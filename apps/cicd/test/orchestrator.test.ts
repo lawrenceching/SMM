@@ -1,0 +1,192 @@
+import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
+import { run } from '../src/index.ts';
+
+let tmpRoot: string;
+
+beforeEach(() => {
+  tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cicd-int-'));
+});
+
+afterEach(() => {
+  fs.rmSync(tmpRoot, { recursive: true, force: true });
+});
+
+function writeConfig(config: object): string {
+  const dir = path.join(tmpRoot, 'cfg');
+  fs.mkdirSync(dir, { recursive: true });
+  const filePath = path.join(dir, 'config.json');
+  fs.writeFileSync(filePath, JSON.stringify(config));
+  return filePath;
+}
+
+function isWindows() {
+  return process.platform === 'win32';
+}
+
+describe('run — happy path', () => {
+  test('one background, one task: exit 0, expected output files', async () => {
+    const configPath = writeConfig({
+      name: 'happy',
+      outputDir: path.join(tmpRoot, 'out'),
+      background: [
+        {
+          name: 'ticker',
+          command: isWindows()
+            ? 'cmd /c "for /L %i in (1,1,30) do echo tick&ping -n 1 127.0.0.1 > nul"'
+            : 'sh -c "for i in 1 2 3; do echo tick; sleep 0.05; done"',
+          delayMs: 200,
+        },
+      ],
+      tasks: [
+        {
+          name: 'task1',
+          command: isWindows() ? 'cmd /c echo hello-from-task' : 'sh -c "echo hello-from-task"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.taskResults).toHaveLength(1);
+    expect(result.taskResults[0]!.name).toBe('task1');
+    expect(result.taskResults[0]!.exitCode).toBe(0);
+
+    const taskDir = path.join(result.outputDir, 'task1');
+    const mainLog = fs.readFileSync(path.join(taskDir, 'main.log'), 'utf8');
+    expect(mainLog.trim()).toBe('hello-from-task');
+
+    const tickerLog = fs.readFileSync(path.join(taskDir, 'ticker.log'), 'utf8');
+    // At least one tick should be captured during the task window.
+    expect(tickerLog.trim().length).toBeGreaterThan(0);
+  });
+
+  test('multiple tasks share one background, each gets its own slice', async () => {
+    const configPath = writeConfig({
+      name: 'multi',
+      outputDir: path.join(tmpRoot, 'out'),
+      background: [
+        {
+          name: 'counter',
+          command: isWindows()
+            ? 'cmd /c "for /L %i in (1,1,30) do echo line-%i&ping -n 1 127.0.0.1 > nul"'
+            : 'sh -c "for i in 1 2 3 4 5; do echo line-$i; sleep 0.05; done"',
+          delayMs: 200,
+        },
+      ],
+      tasks: [
+        { name: 'first', command: isWindows() ? 'cmd /c echo first-task' : 'sh -c "echo first-task"' },
+        { name: 'second', command: isWindows() ? 'cmd /c echo second-task' : 'sh -c "echo second-task"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+    expect(result.taskResults.map((r) => r.name)).toEqual(['first', 'second']);
+  });
+});
+
+describe('run — failure handling', () => {
+  test('stopOnFailure=true: failure halts further tasks, exits 1', async () => {
+    const configPath = writeConfig({
+      name: 'stop',
+      outputDir: path.join(tmpRoot, 'out'),
+      stopOnFailure: true,
+      tasks: [
+        { name: 'fails', command: isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"' },
+        { name: 'never-runs', command: isWindows() ? 'cmd /c echo should-not-appear' : 'sh -c "echo should-not-appear"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults.map((r) => r.name)).toEqual(['fails']);
+  });
+
+  test('stopOnFailure=false: all tasks run, exit code is 1 if any failed', async () => {
+    const configPath = writeConfig({
+      name: 'continue',
+      outputDir: path.join(tmpRoot, 'out'),
+      stopOnFailure: false,
+      tasks: [
+        { name: 'fails', command: isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"' },
+        { name: 'passes', command: isWindows() ? 'cmd /c echo passes' : 'sh -c "echo passes"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults.map((r) => r.name)).toEqual(['fails', 'passes']);
+
+    const passesDir = path.join(result.outputDir, 'passes');
+    expect(fs.readFileSync(path.join(passesDir, 'main.log'), 'utf8').trim()).toBe('passes');
+  });
+
+  test('task timeout kills the task and marks it timed out', async () => {
+    const configPath = writeConfig({
+      name: 'timeout',
+      outputDir: path.join(tmpRoot, 'out'),
+      tasks: [
+        {
+          name: 'slow',
+          command: isWindows() ? 'cmd /c ping -n 30 127.0.0.1 > nul' : 'sh -c "sleep 30"',
+          timeoutMs: 300,
+        },
+      ],
+    });
+
+    const before = Date.now();
+    const result = await run({ configPath, cwd: tmpRoot });
+    const elapsed = Date.now() - before;
+
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults[0]!.timedOut).toBe(true);
+    expect(elapsed).toBeLessThan(10000); // Well under the 30s sleep.
+  });
+});
+
+describe('run — output layout', () => {
+  test('keepRawTimeline=false removes _timeline after slicing', async () => {
+    const configPath = writeConfig({
+      name: 'no-raw',
+      outputDir: path.join(tmpRoot, 'out'),
+      keepRawTimeline: false,
+      tasks: [
+        { name: 't', command: isWindows() ? 'cmd /c echo done' : 'sh -c "echo done"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+    expect(fs.existsSync(path.join(result.outputDir, '_timeline'))).toBe(false);
+  });
+
+  test('keepRawTimeline=true preserves _timeline', async () => {
+    const configPath = writeConfig({
+      name: 'keep-raw',
+      outputDir: path.join(tmpRoot, 'out'),
+      keepRawTimeline: true,
+      tasks: [
+        { name: 't', command: isWindows() ? 'cmd /c echo done' : 'sh -c "echo done"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+    expect(fs.existsSync(path.join(result.outputDir, '_timeline', 't.jsonl'))).toBe(true);
+  });
+});
+
+describe('run — config errors', () => {
+  test('invalid config throws with structured errors', async () => {
+    const configPath = writeConfig({
+      name: 'bad',
+      tasks: [{ name: 't', command: 'x', timeoutMs: -5 }],
+    });
+
+    await expect(run({ configPath, cwd: tmpRoot })).rejects.toThrow(/Invalid config/);
+  });
+});
