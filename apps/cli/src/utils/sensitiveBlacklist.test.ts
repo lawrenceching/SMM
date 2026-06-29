@@ -158,3 +158,80 @@ describe("initSensitiveStrings", () => {
     expect(maskSensitive("contains new-key")).toBe("contains ******");
   });
 });
+
+import { Writable } from "node:stream";
+import { wrapWithMasking } from "./sensitiveBlacklist";
+
+describe("wrapWithMasking", () => {
+  beforeEach(() => {
+    _resetSensitiveStringsForTests();
+  });
+
+  it("masks each write through the inner stream", () => new Promise<void>((resolve) => {
+    const writes: string[] = [];
+    const inner = new Writable({
+      write(chunk, _enc, cb) {
+        writes.push(chunk.toString());
+        cb();
+      },
+    });
+    const wrapped = wrapWithMasking(inner);
+    addSensitiveString("secret");
+
+    wrapped.write("hello secret world", () => {
+      expect(writes).toEqual(["hello ****** world"]);
+      resolve();
+    });
+  }));
+
+  it("passes empty string through unchanged", () => new Promise<void>((resolve) => {
+    const writes: string[] = [];
+    const inner = new Writable({
+      write(chunk, _enc, cb) {
+        writes.push(chunk.toString());
+        cb();
+      },
+    });
+    const wrapped = wrapWithMasking(inner);
+    addSensitiveString("secret");
+
+    wrapped.write("", () => {
+      expect(writes).toEqual([""]);
+      resolve();
+    });
+  }));
+
+  it("preserves the encoding argument on the inner write", () => new Promise<void>((resolve) => {
+    let receivedEncoding: BufferEncoding | undefined;
+    const inner = new Writable({
+      decodeStrings: false,
+      write(_chunk, encoding, cb) {
+        receivedEncoding = encoding;
+        cb();
+      },
+    });
+    const wrapped = wrapWithMasking(inner);
+
+    wrapped.write("payload", "utf-8", () => {
+      expect(receivedEncoding).toBe("utf-8");
+      resolve();
+    });
+  }));
+
+  it("propagates underlying write errors via the callback", () => new Promise<void>((resolve) => {
+    const inner = new Writable({
+      write(_chunk, _enc, cb) {
+        cb(new Error("boom"));
+      },
+    });
+    const wrapped = wrapWithMasking(inner);
+    // Suppress uncaught error from the Writable (we test via the callback).
+    wrapped.on("error", () => {});
+
+    wrapped.write("data", (err) => {
+      expect(err).toBeInstanceOf(Error);
+      expect((err as Error).message).toBe("boom");
+      resolve();
+    });
+  }));
+});

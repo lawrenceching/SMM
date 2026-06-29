@@ -1,5 +1,6 @@
 import os from "node:os";
 import { readFile } from "node:fs/promises";
+import { Writable } from "node:stream";
 import { getUserConfigPath } from "./config";
 
 const PLACEHOLDER = "******";
@@ -72,4 +73,25 @@ export async function initSensitiveStrings(): Promise<void> {
 
 export function _resetSensitiveStringsForTests(): void {
   sensitiveStrings.clear();
+}
+
+export function wrapWithMasking(
+  inner: NodeJS.WritableStream,
+): NodeJS.WritableStream {
+  const wrapped = new Writable({
+    decodeStrings: false,
+    write(chunk: Buffer | string, encoding: BufferEncoding, cb: (err?: Error) => void) {
+      const text = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+      const masked = maskSensitive(text);
+      inner.write(masked, encoding, cb);
+    },
+  });
+  // Re-emit inner errors on the wrapper so they don't surface as unhandled
+  // exceptions, while still letting downstream listeners observe them.
+  if (typeof (inner as NodeJS.ReadableStream & { on?: unknown }).on === "function") {
+    (inner as unknown as NodeJS.EventEmitter).on("error", (err: Error) => {
+      wrapped.emit("error", err);
+    });
+  }
+  return wrapped;
 }
