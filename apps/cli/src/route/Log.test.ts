@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { Hono } from "hono";
-import { handleLog } from "./Log";
+import { handleLog, _resetRateLimiterForTests } from "./Log";
 import { frontendLogger } from "../../lib/logger";
 
 // We test through a Hono app; pino writes go to the real rotating stream,
@@ -202,5 +202,26 @@ describe("POST /api/log — pino this-binding (regression)", () => {
     });
     expect(res.status).toBe(204);
     expect(frontendLogger.info).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("POST /api/log — frontend 'log' level", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    _resetRateLimiterForTests();
+  });
+
+  it("accepts level='log' (console.log) and dispatches to frontendLogger.info", async () => {
+    const app = new Hono();
+    handleLog(app);
+    const res = await app.request("/api/log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ level: "log", message: "from console.log" }),
+    });
+    expect(res.status).toBe(204);
+    expect(frontendLogger.info).toHaveBeenCalledTimes(1);
+    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(args[1]).toBe("[frontend] from console.log");
   });
 });

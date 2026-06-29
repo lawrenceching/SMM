@@ -42,12 +42,22 @@ class RateLimiter {
       if (now >= record.resetTime) this.requestCounts.delete(key);
     }
   }
+
+  /** Test helper: drop all tracked keys. */
+  reset(): void {
+    this.requestCounts.clear();
+  }
 }
 
 const rateLimiter = new RateLimiter();
 setInterval(() => rateLimiter.cleanup(), 60_000);
 
-const LogLevel = z.enum(["trace", "debug", "info", "warn", "error", "fatal"]);
+/** Test helper: clear all rate-limit state so tests don't pollute each other. */
+export function _resetRateLimiterForTests(): void {
+  rateLimiter.reset();
+}
+
+const LogLevel = z.enum(["trace", "debug", "info", "warn", "error", "fatal", "log"]);
 const SingleEntry = z.object({
   level: LogLevel.default("info"),
   message: z.string().min(1, "Message is required"),
@@ -131,7 +141,10 @@ export function handleLog(app: Hono): void {
       // Bind `this` to frontendLogger so pino's internal LOG function sees
       // its msgPrefixSym. Detached method calls (e.g. through Record casts)
       // crash with "this[msgPrefixSym] is undefined".
-      const method = frontendLogger[entry.level];
+      // Normalize frontend's "log" to pino's "info" so the wire format
+      // matches frontend vocabulary while pino still routes through info().
+      const pinoLevel = entry.level === "log" ? "info" : entry.level;
+      const method = frontendLogger[pinoLevel];
       if (typeof method === "function") {
         method.call(frontendLogger, enriched, line);
       }
