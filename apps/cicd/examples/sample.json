@@ -1,0 +1,22 @@
+{
+  "name": "sample workflow",
+  "background": [
+    {
+      "name": "ticker",
+      "command": "node -e \"let i=0; setInterval(()=>console.log('tick',i++),100)\"",
+      "delayMs": 300
+    }
+  ],
+  "tasks": [
+    {
+      "name": "first",
+      "command": "node -e \"console.log('first-task-output')\""
+    },
+    {
+      "name": "second",
+      "command": "node -e \"console.log('second-task-output')\""
+    }
+  ],
+  "stopOnFailure": true,
+  "keepRawTimeline": true
+}
