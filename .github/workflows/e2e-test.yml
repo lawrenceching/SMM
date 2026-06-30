@@ -68,11 +68,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: '146.0.7680.153'
+          install-dependencies: true
+          install-chromedriver: true
+
       - name: Run E2E tests
         id: e2e
         run: bun ci/run-e2e-test.ts --spec "${{ matrix.spec }}"
         env:
           BUILD_ENV: docker
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
       - name: Upload E2E logs
         if: always() && steps.e2e.outcome != 'skipped'

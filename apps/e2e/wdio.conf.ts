@@ -30,6 +30,23 @@ const LOCAL_CHROMEDRIVER_BINARY = path.join(
 const USE_LOCAL_CHROME_BINARY = fs.existsSync(LOCAL_CHROME_BINARY);
 const USE_LOCAL_CHROMEDRIVER_BINARY = fs.existsSync(LOCAL_CHROMEDRIVER_BINARY);
 
+function resolveExistingBinaryPath(envValue: string | undefined): string | undefined {
+    if (!envValue) return undefined;
+    return fs.existsSync(envValue) ? envValue : undefined;
+}
+
+/** CI: browser-actions/setup-chrome sets CHROME_BIN and CHROMEDRIVER. */
+const CI_CHROME_BINARY = resolveExistingBinaryPath(process.env.CHROME_BIN);
+const CI_CHROMEDRIVER_BINARY = resolveExistingBinaryPath(
+    process.env.CHROMEDRIVER ?? process.env.CHROMEWEBDRIVER,
+);
+
+const CHROME_BINARY =
+    CI_CHROME_BINARY ?? (USE_LOCAL_CHROME_BINARY ? LOCAL_CHROME_BINARY : undefined);
+const CHROMEDRIVER_BINARY =
+    CI_CHROMEDRIVER_BINARY ??
+    (USE_LOCAL_CHROMEDRIVER_BINARY ? LOCAL_CHROMEDRIVER_BINARY : undefined);
+
 let reportAggregator: ReportAggregator | undefined;
 
 type BrowserLogEntry = {
@@ -205,18 +222,18 @@ export const config: WebdriverIO.Config = {
     //
     capabilities: [{
         browserName: 'chrome',
-        // Use pinned browserVersion only when local browser binary isn't available.
-        ...(!USE_LOCAL_CHROME_BINARY ? { browserVersion: PINNED_CHROME_VERSION } : {}),
-        ...(USE_LOCAL_CHROMEDRIVER_BINARY
+        // Use pinned browserVersion only when no pre-installed Chrome binary is available.
+        ...(CHROME_BINARY ? {} : { browserVersion: PINNED_CHROME_VERSION }),
+        ...(CHROMEDRIVER_BINARY
             ? {
                 'wdio:chromedriverOptions': {
-                    binary: LOCAL_CHROMEDRIVER_BINARY
-                }
+                    binary: CHROMEDRIVER_BINARY,
+                },
             }
             : {}),
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
-            ...(USE_LOCAL_CHROME_BINARY ? { binary: LOCAL_CHROME_BINARY } : {}),
+            ...(CHROME_BINARY ? { binary: CHROME_BINARY } : {}),
             args: process.env.BUILD_ENV === 'docker'
                 ? [
                     '--disable-gpu',
