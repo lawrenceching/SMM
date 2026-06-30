@@ -1,8 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 
 export interface ManagedChild {
-  proc: ChildProcess;
+  proc: ChildProcess | null;
   pid: number | undefined;
+  spawnFailed: boolean;
 }
 
 export interface SpawnOptions {
@@ -15,23 +16,94 @@ export interface SpawnOptions {
 }
 
 export function spawnChild(opts: SpawnOptions): ManagedChild {
-  const proc = spawn(opts.command, opts.args, {
-    cwd: opts.cwd,
-    env: opts.env,
-    shell: process.platform === 'win32',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    windowsHide: true,
-    detached: process.platform !== 'win32',
+  const managed: ManagedChild = {
+    proc: null,
+    pid: undefined,
+    spawnFailed: false,
+  };
+
+  try {
+    const proc = spawn(opts.command, opts.args, {
+      cwd: opts.cwd,
+      env: opts.env,
+      shell: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      detached: process.platform !== 'win32',
+    });
+    managed.proc = proc;
+    managed.pid = proc.pid;
+
+    proc.stdout?.on('data', opts.onStdout);
+    proc.stderr?.on('data', opts.onStderr);
+    proc.once('error', (error) => {
+      managed.spawnFailed = true;
+      opts.onStderr(
+        Buffer.from(
+          `${error instanceof Error ? error.message : String(error)}\n`,
+        ),
+      );
+    });
+  } catch (error) {
+    managed.spawnFailed = true;
+    opts.onStderr(
+      Buffer.from(
+        `${error instanceof Error ? error.message : String(error)}\n`,
+      ),
+    );
+  }
+
+  return managed;
+}
+
+export async function waitForSpawn(child: ManagedChild): Promise<boolean> {
+  if (child.spawnFailed || !child.proc) {
+    return false;
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (ok: boolean) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(ok && !child.spawnFailed);
+    };
+
+    const timer = setTimeout(() => finish(child.pid !== undefined), 100);
+
+    child.proc!.once('spawn', () => finish(true));
+    child.proc!.once('error', () => finish(false));
   });
+}
 
-  proc.stdout?.on('data', opts.onStdout);
-  proc.stderr?.on('data', opts.onStderr);
+export function waitForChildExit(child: ManagedChild): Promise<number> {
+  if (child.spawnFailed || !child.proc) {
+    return Promise.resolve(1);
+  }
 
-  return { proc, pid: proc.pid };
+  return new Promise((resolve) => {
+    const { proc } = child;
+
+    if (proc!.exitCode !== null) {
+      resolve(proc!.exitCode);
+      return;
+    }
+
+    let settled = false;
+    const finish = (code: number) => {
+      if (settled) return;
+      settled = true;
+      resolve(code);
+    };
+
+    proc!.once('error', () => finish(1));
+    proc!.once('close', (code) => finish(code ?? 1));
+  });
 }
 
 function killProcessTree(child: ManagedChild, signal: NodeJS.Signals): void {
-  if (!child.pid || child.proc.killed) return;
+  if (child.spawnFailed || !child.proc || !child.pid || child.proc.killed) return;
 
   if (process.platform === 'win32') {
     const force = signal === 'SIGKILL';
@@ -74,6 +146,10 @@ export async function killTreeAndWait(
   child: ManagedChild,
   graceMs: number,
 ): Promise<void> {
+  if (child.spawnFailed || !child.proc || !child.pid) {
+    return;
+  }
+
   killProcessTree(child, 'SIGTERM');
   await waitForExit(child.proc, graceMs);
 

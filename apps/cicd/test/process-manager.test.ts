@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { spawnChild, killTreeAndWait } from '../src/process-manager.ts';
+import { spawnChild, killTreeAndWait, waitForChildExit } from '../src/process-manager.ts';
 
 describe('spawnChild', () => {
   test('captures stdout from a simple command', async () => {
@@ -14,7 +14,7 @@ describe('spawnChild', () => {
     });
 
     await new Promise<void>((resolve) => {
-      child.proc.on('close', () => resolve());
+      child.proc!.on('close', () => resolve());
     });
 
     const output = Buffer.concat(chunks).toString('utf8').trim();
@@ -36,7 +36,7 @@ describe('spawnChild', () => {
     });
 
     await new Promise<void>((resolve) => {
-      child.proc.on('close', () => resolve());
+      child.proc!.on('close', () => resolve());
     });
 
     const output = Buffer.concat(stderrChunks).toString('utf8').trim();
@@ -57,10 +57,26 @@ describe('spawnChild', () => {
     });
 
     const exitCode = await new Promise<number | null>((resolve) => {
-      child.proc.on('close', (code) => resolve(code));
+      child.proc!.on('close', (code) => resolve(code));
     });
 
     expect(exitCode).toBe(7);
+  });
+
+  test('invalid command resolves exit without hanging', async () => {
+    const child = spawnChild({
+      command: 'definitely-not-a-real-command-xyz123',
+      args: [],
+      cwd: process.cwd(),
+      env: process.env,
+      onStdout: () => {},
+      onStderr: () => {},
+    });
+
+    const start = Date.now();
+    const exitCode = await waitForChildExit(child);
+    expect(exitCode).toBe(1);
+    expect(Date.now() - start).toBeLessThan(2000);
   });
 });
 
@@ -85,7 +101,11 @@ describe('killTreeAndWait', () => {
     await killTreeAndWait(child, 2000);
     const elapsed = Date.now() - beforeKill;
 
-    expect(child.proc.killed || child.proc.exitCode !== null || child.proc.signalCode !== null).toBe(true);
+    expect(
+      child.proc!.killed ||
+        child.proc!.exitCode !== null ||
+        child.proc!.signalCode !== null,
+    ).toBe(true);
     // Should complete well before the sleep ends.
     expect(elapsed).toBeLessThan(10000);
   });

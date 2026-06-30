@@ -5,14 +5,6 @@ import type { Config, Task } from '../apps/cicd/src/config.ts';
 const DEFAULT_SPEC_GLOB = 'test/specs/**/*.ts';
 const WDIO_ENV = { BROWSER_LOG_ENABLED: 'true' };
 
-/** Wrap a shell command for apps/cicd (Unix needs sh -c; Windows uses shell spawn). */
-export function shellCmd(cmd: string): string {
-  if (process.platform === 'win32') {
-    return cmd;
-  }
-  return `sh -c ${JSON.stringify(cmd)}`;
-}
-
 export type ParsedWdioArgs = {
   specPatterns: string[];
   otherArgs: string[];
@@ -126,7 +118,7 @@ function buildWdioTasks(
 
   return specPaths.map((specPath, index) => ({
     name: taskNames[index]!,
-    command: shellCmd(buildWdioCommand(specPath, otherArgs)),
+    command: buildWdioCommand(specPath, otherArgs),
     cwd: e2eCwd,
     env: WDIO_ENV,
   }));
@@ -143,13 +135,13 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
     name: 'smm-e2e',
     outputDir: './artifacts/cicd',
     background: [
-      { name: 'cli', command: shellCmd('pnpm dev:cli'), cwd: repoRoot },
-      { name: 'ui', command: shellCmd('pnpm dev:ui'), cwd: repoRoot },
+      { name: 'cli', command: 'pnpm dev:cli', cwd: repoRoot },
+      { name: 'ui', command: 'pnpm dev:ui', cwd: repoRoot },
     ],
     tasks: [
       {
         name: 'wait-ready',
-        command: shellCmd('bun ci/wait-for-e2e-ready.ts'),
+        command: 'bun ci/wait-for-e2e-ready.ts',
         cwd: repoRoot,
       },
       ...buildWdioTasks(specPaths, otherArgs, e2eRoot),

@@ -190,3 +190,25 @@ describe('run — config errors', () => {
     await expect(run({ configPath, cwd: tmpRoot })).rejects.toThrow(/Invalid config/);
   });
 });
+
+describe('run — spawn failures', () => {
+  test('invalid task command fails fast without hanging', async () => {
+    const configPath = writeConfig({
+      name: 'bad-spawn',
+      outputDir: path.join(tmpRoot, 'out'),
+      tasks: [
+        {
+          name: 'bad',
+          command: 'definitely-not-a-real-command-xyz123',
+        },
+      ],
+    });
+
+    const start = Date.now();
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults).toHaveLength(1);
+    expect(result.taskResults[0]!.exitCode).toBe(1);
+    expect(Date.now() - start).toBeLessThan(5000);
+  });
+});

@@ -7,6 +7,8 @@ import { sliceLogFile } from './slicer.ts';
 import {
   spawnChild,
   killTreeAndWait,
+  waitForChildExit,
+  waitForSpawn,
   type ManagedChild,
 } from './process-manager.ts';
 
@@ -36,17 +38,17 @@ export async function runOrchestrator(
   // Spawn backgrounds.
   const backgrounds: ManagedChild[] = [];
   for (const bg of config.background) {
-    try {
-      const child = spawnChild({
-        command: bg.command,
-        args: [],
-        cwd: bg.cwd ?? process.cwd(),
-        env: { ...process.env, ...(bg.env ?? {}) },
-        onStdout: (chunk) => logStore.appendChunk(bg.name, 'stdout', chunk),
-        onStderr: (chunk) => logStore.appendChunk(bg.name, 'stderr', chunk),
-      });
-      backgrounds.push(child);
-    } catch {
+    const child = spawnChild({
+      command: bg.command,
+      args: [],
+      cwd: bg.cwd ?? process.cwd(),
+      env: { ...process.env, ...(bg.env ?? {}) },
+      onStdout: (chunk) => logStore.appendChunk(bg.name, 'stdout', chunk),
+      onStderr: (chunk) => logStore.appendChunk(bg.name, 'stderr', chunk),
+    });
+    backgrounds.push(child);
+
+    if (!(await waitForSpawn(child))) {
       for (const other of backgrounds) {
         await killTreeAndWait(other, 1000);
       }
@@ -66,7 +68,11 @@ export async function runOrchestrator(
 
   // Reject early if any background died during startup.
   const earlyExit = backgrounds.find(
-    (b) => b.proc.exitCode !== null || b.proc.signalCode !== null,
+    (b) =>
+      b.spawnFailed ||
+      !b.proc ||
+      b.proc.exitCode !== null ||
+      b.proc.signalCode !== null,
   );
   if (earlyExit) {
     for (const bg of backgrounds) {
@@ -94,24 +100,29 @@ export async function runOrchestrator(
     });
 
     let timedOut = false;
-    const exitPromise = new Promise<void>((resolve) => {
-      child.proc.once('close', () => resolve());
-    });
+    let exitCode = 1;
 
     if (task.timeoutMs !== undefined) {
       const timeoutHandle = setTimeout(() => {
         timedOut = true;
         void killTreeAndWait(child, 1000);
       }, task.timeoutMs);
-      await exitPromise;
+      exitCode = await waitForChildExit(child);
       clearTimeout(timeoutHandle);
     } else {
-      await exitPromise;
+      exitCode = await waitForChildExit(child);
     }
 
     const endTime = Date.now();
-    const exitCode =
-      child.proc.exitCode ?? (child.proc.signalCode !== null ? 1 : 0);
+    if (
+      !child.spawnFailed &&
+      child.proc &&
+      child.proc.exitCode !== null
+    ) {
+      exitCode = child.proc.exitCode;
+    } else if (child.proc?.signalCode !== null) {
+      exitCode = 1;
+    }
 
     taskResults.push({
       name: task.name,

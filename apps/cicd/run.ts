@@ -28,6 +28,11 @@ if (!values.config) {
 
 const cwd = values.cwd!;
 
+process.on('unhandledRejection', (reason) => {
+  console.error(reason instanceof Error ? reason.message : String(reason));
+  process.exit(1);
+});
+
 try {
   const result = await run({
     configPath: path.resolve(cwd, values.config),
