@@ -69,7 +69,11 @@ describe('buildE2eConfig', () => {
 
     const wdioTasks = config.tasks.filter((task) => task.name !== 'wait-ready');
     expect(wdioTasks.length).toBeGreaterThan(1);
-    expect(wdioTasks.every((task) => task.command.includes('ensure-wdio-cache.ts'))).toBe(true);
+    expect(
+      wdioTasks.every((task) =>
+        task.command.includes(`${ROOT.replace(/\\/g, '/')}/ci/ensure-wdio-cache.ts`),
+      ),
+    ).toBe(true);
     expect(wdioTasks.map((task) => task.name)).toContain('SearchMovie.e2e.ts');
   });
 

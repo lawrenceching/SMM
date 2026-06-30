@@ -100,25 +100,42 @@ function quoteForShell(value: string): string {
   return value;
 }
 
-function buildWdioCommand(specPath: string, otherArgs: string[]): string {
+/** Absolute bun script path; safe when task cwd is not repo root. */
+export function repoScriptCommand(
+  repoRoot: string,
+  relativeScript: string,
+): string {
+  const scriptPath = path
+    .join(repoRoot, relativeScript)
+    .split(path.sep)
+    .join('/');
+  return `bun ${quoteForShell(scriptPath)}`;
+}
+
+function buildWdioCommand(
+  specPath: string,
+  otherArgs: string[],
+  repoRoot: string,
+): string {
   const wdioArgs = [
     ...otherArgs,
     '--spec',
     quoteForShell(`./${specPath}`),
   ];
-  return `bun ci/ensure-wdio-cache.ts && pnpm wdio ${wdioArgs.join(' ')}`;
+  return `${repoScriptCommand(repoRoot, 'ci/ensure-wdio-cache.ts')} && pnpm wdio ${wdioArgs.join(' ')}`;
 }
 
 function buildWdioTasks(
   specPaths: string[],
   otherArgs: string[],
+  repoRoot: string,
   e2eCwd: string,
 ): Task[] {
   const taskNames = taskNamesForSpecs(specPaths);
 
   return specPaths.map((specPath, index) => ({
     name: taskNames[index]!,
-    command: buildWdioCommand(specPath, otherArgs),
+    command: buildWdioCommand(specPath, otherArgs, repoRoot),
     cwd: e2eCwd,
     env: WDIO_ENV,
   }));
@@ -144,7 +161,7 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
         command: 'bun ci/wait-for-e2e-ready.ts',
         cwd: repoRoot,
       },
-      ...buildWdioTasks(specPaths, otherArgs, e2eRoot),
+      ...buildWdioTasks(specPaths, otherArgs, repoRoot, e2eRoot),
     ],
     stopOnFailure: false,
     keepRawTimeline: true,
