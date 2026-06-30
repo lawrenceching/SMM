@@ -13,7 +13,7 @@ node_modules/
 *.log
 
 # E2E CI output (uploaded as GitHub Actions artifacts)
-artifacts/e2e/
+artifacts/*
 
 
 apps/ohos/docs/*

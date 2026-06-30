@@ -227,6 +227,7 @@ pnpm run wdio --spec ./test/specs/[test file].e2e.ts
 ```
 bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 ```
+日志由 `apps/cicd` 写入 `artifacts/cicd/<commandId>/`，每个 spec 文件对应一个 task（如 `SearchMovie.e2e.ts/main.log`）。
 
 ### 编写测试
 

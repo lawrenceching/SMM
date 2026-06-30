@@ -6,6 +6,8 @@ import type { RunOptions, RunResult } from './types.ts';
 
 export type { RunOptions, RunResult, TaskRecord } from './types.ts';
 export type { Config, BackgroundTask, Task, ParseResult, ParseError } from './config.ts';
+export { ConsoleReporter } from './console-reporter.ts';
+export type { ConsoleReporterOptions } from './console-reporter.ts';
 
 export async function run(options: RunOptions): Promise<RunResult> {
   const cwd = options.cwd ?? process.cwd();
@@ -35,6 +37,7 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const result = await runOrchestrator(parsed.config, commandId);
 
   return {
+    name: parsed.config.name,
     exitCode: result.exitCode,
     outputDir: path.resolve(parsed.config.outputDir, String(commandId)),
     taskResults: result.taskResults,

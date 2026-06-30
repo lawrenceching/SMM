@@ -1,5 +1,6 @@
 import * as path from 'node:path';
 import { parseArgs } from 'node:util';
+import { ConsoleReporter } from './src/console-reporter.ts';
 import { run } from './src/index.ts';
 
 const HELP = `Usage: bun apps/cicd/run.ts -f <config.json> [--cwd <dir>]`;
@@ -32,12 +33,7 @@ try {
     configPath: path.resolve(cwd, values.config),
     cwd,
   });
-  console.log(`output: ${result.outputDir}`);
-  console.log(`tasks: ${result.taskResults.length}`);
-  for (const r of result.taskResults) {
-    const status = r.exitCode === 0 ? 'ok' : `fail(${r.exitCode})`;
-    console.log(`  - ${r.name}: ${status} (${r.endTime - r.startTime}ms)${r.timedOut ? ' TIMED OUT' : ''}`);
-  }
+  new ConsoleReporter({ cwd }).print(result);
   process.exit(result.exitCode);
 } catch (err) {
   console.error(err instanceof Error ? err.message : String(err));

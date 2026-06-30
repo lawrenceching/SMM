@@ -12,6 +12,7 @@ export type RunOptions = {
 };
 
 export type RunResult = {
+  name: string;
   exitCode: 0 | 1;
   outputDir: string;
   taskResults: TaskRecord[];

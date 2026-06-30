@@ -12,12 +12,36 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: Run AI Tests
+            spec: "./test/specs/ai/*.e2e.ts"
+            artifact_prefix: ai
+          - name: Run Config Tests
+            spec: "./test/specs/config/*.e2e.ts"
+            artifact_prefix: config
+          - name: Run MCP Tests
+            spec: "./test/specs/mcp/*.e2e.ts"
+            artifact_prefix: mcp
+          - name: Run Media Folder Initialization Tests
+            spec: "./test/specs/media-folder-initialization/*.e2e.ts"
+            artifact_prefix: media-folder-initialization
+          - name: Run Movie Tests
+            spec: "./test/specs/movie/*.e2e.ts"
+            artifact_prefix: movie
+          - name: Run Music Tests
+            spec: "./test/specs/music/*.e2e.ts"
+            artifact_prefix: music
+          - name: Run Other Tests
+            spec: "./test/specs/other/*.e2e.ts"
+            artifact_prefix: other
+          - name: Run Transcribe Tests
+            spec: "./test/specs/transcribe/*.e2e.ts"
+            artifact_prefix: transcribe
           - name: Run TV Show Tests
             spec: "./test/specs/tv/*.e2e.ts"
-            artifact_prefix: tv-show
-          - name: Run MCP Server Tests
-            spec: "./test/specs/ai/*.e2e.ts"
-            artifact_prefix: mcp-server
+            artifact_prefix: tv
+          - name: Run TVDB Tests
+            spec: "./test/specs/tvdb/*.e2e.ts"
+            artifact_prefix: tvdb
 
     steps:
       - name: Checkout code
@@ -55,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
-          path: artifacts/e2e/
+          path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7
 
