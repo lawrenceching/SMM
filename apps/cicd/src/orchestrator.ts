@@ -2,6 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Config } from './config.ts';
 import type { TaskRecord } from './types.ts';
+import { DebugLog } from './debug-log.ts';
 import { LogStore } from './log-store.ts';
 import { sliceLogFile } from './slicer.ts';
 import {
@@ -24,6 +25,18 @@ export async function runOrchestrator(
   const outputDir = path.resolve(config.outputDir, String(commandId));
   const timelineDir = path.join(outputDir, '_timeline');
   fs.mkdirSync(timelineDir, { recursive: true });
+
+  const debugLog = DebugLog.forOutputDir(outputDir);
+  debugLog.emit('run_start', {
+    commandId,
+    outputDir,
+    platform: process.platform,
+    nodePid: process.pid,
+    ppid: process.ppid,
+    taskCount: config.tasks.length,
+    backgroundCount: config.background.length,
+    stopOnFailure: config.stopOnFailure,
+  });
 
   const logStore = new LogStore(timelineDir);
 
@@ -48,11 +61,29 @@ export async function runOrchestrator(
     });
     backgrounds.push(child);
 
+    debugLog.emit('background_spawn', {
+      name: bg.name,
+      pid: child.pid ?? null,
+      spawnFailed: child.spawnFailed,
+      cwd: bg.cwd ?? process.cwd(),
+      command: bg.command,
+      delayMs: bg.delayMs ?? 0,
+    });
+
     if (!(await waitForSpawn(child))) {
+      debugLog.emit('background_spawn_failed', {
+        name: bg.name,
+        pid: child.pid ?? null,
+      });
       for (const other of backgrounds) {
-        await killTreeAndWait(other, 1000);
+        await killTreeAndWait(other, 1000, {
+          log: debugLog,
+          label: other === child ? bg.name : 'background',
+          reason: 'background_spawn_failed',
+        });
       }
       await logStore.close();
+      debugLog.close();
       return { exitCode: 1, taskResults: [] };
     }
   }
@@ -75,10 +106,23 @@ export async function runOrchestrator(
       b.proc.signalCode !== null,
   );
   if (earlyExit) {
+    debugLog.emit('background_early_exit', {
+      name: earlyExit.proc ? config.background[backgrounds.indexOf(earlyExit)]?.name : null,
+      pid: earlyExit.pid ?? null,
+      spawnFailed: earlyExit.spawnFailed,
+      procExitCode: earlyExit.proc?.exitCode ?? null,
+      procSignalCode: earlyExit.proc?.signalCode ?? null,
+    });
     for (const bg of backgrounds) {
-      await killTreeAndWait(bg, 1000);
+      const bgConfig = config.background[backgrounds.indexOf(bg)]!;
+      await killTreeAndWait(bg, 1000, {
+        log: debugLog,
+        label: bgConfig.name,
+        reason: 'background_early_exit',
+      });
     }
     await logStore.close();
+    debugLog.close();
     return { exitCode: 1, taskResults: [] };
   }
 
@@ -90,6 +134,13 @@ export async function runOrchestrator(
     if (stopRequested) break;
 
     const startTime = Date.now();
+    debugLog.emit('task_start', {
+      name: task.name,
+      cwd: task.cwd ?? process.cwd(),
+      command: task.command,
+      timeoutMs: task.timeoutMs ?? null,
+    });
+
     const child = spawnChild({
       command: task.command,
       args: [],
@@ -99,21 +150,47 @@ export async function runOrchestrator(
       onStderr: (chunk) => logStore.appendChunk(task.name, 'stderr', chunk),
     });
 
+    debugLog.emit('task_spawn', {
+      name: task.name,
+      pid: child.pid ?? null,
+      spawnFailed: child.spawnFailed,
+    });
+
     let timedOut = false;
     let exitCode = 1;
+    let closeCode: number | null = null;
+    let closeSignal: NodeJS.Signals | null = null;
 
     if (task.timeoutMs !== undefined) {
       const timeoutHandle = setTimeout(() => {
         timedOut = true;
-        void killTreeAndWait(child, 1000);
+        debugLog.emit('task_timeout', {
+          name: task.name,
+          pid: child.pid ?? null,
+          timeoutMs: task.timeoutMs,
+        });
+        void killTreeAndWait(child, 1000, {
+          log: debugLog,
+          label: task.name,
+          reason: 'task_timeout',
+        });
       }, task.timeoutMs);
-      exitCode = await waitForChildExit(child);
+      const exitResult = await waitForChildExit(child);
       clearTimeout(timeoutHandle);
+      closeCode = exitResult.closeCode;
+      closeSignal = exitResult.signal;
+      exitCode = exitResult.exitCode;
     } else {
-      exitCode = await waitForChildExit(child);
+      const exitResult = await waitForChildExit(child);
+      closeCode = exitResult.closeCode;
+      closeSignal = exitResult.signal;
+      exitCode = exitResult.exitCode;
     }
 
     const endTime = Date.now();
+    const procExitCode = child.proc?.exitCode ?? null;
+    const procSignalCode = child.proc?.signalCode ?? null;
+
     if (
       !child.spawnFailed &&
       child.proc &&
@@ -123,6 +200,19 @@ export async function runOrchestrator(
     } else if (child.proc?.signalCode !== null) {
       exitCode = 1;
     }
+
+    debugLog.emit('task_end', {
+      name: task.name,
+      pid: child.pid ?? null,
+      durationMs: endTime - startTime,
+      timedOut,
+      spawnFailed: child.spawnFailed,
+      closeCode,
+      closeSignal,
+      procExitCode,
+      procSignalCode,
+      resolvedExitCode: exitCode,
+    });
 
     taskResults.push({
       name: task.name,
@@ -139,7 +229,12 @@ export async function runOrchestrator(
 
   // Always tear down backgrounds.
   for (const bg of backgrounds) {
-    await killTreeAndWait(bg, 5000);
+    const bgConfig = config.background[backgrounds.indexOf(bg)]!;
+    await killTreeAndWait(bg, 5000, {
+      log: debugLog,
+      label: bgConfig.name,
+      reason: 'run_complete',
+    });
   }
   await logStore.close();
 
@@ -171,6 +266,18 @@ export async function runOrchestrator(
     taskResults.length > 0 && taskResults.every((r) => r.exitCode === 0)
       ? 0
       : 1;
+
+  debugLog.emit('run_end', {
+    exitCode,
+    tasks: taskResults.map((task) => ({
+      name: task.name,
+      exitCode: task.exitCode,
+      durationMs: task.endTime - task.startTime,
+      timedOut: task.timedOut,
+    })),
+  });
+  debugLog.close();
+
   return { exitCode, taskResults };
 }
 

@@ -77,19 +77,29 @@ export function repairWdioBrowserCache(
   const removed: string[] = [];
   const platformId = platformCacheId();
 
+  console.error(`[ensure-wdio-cache] cacheDir=${cacheDir} platformId=${platformId}`);
+
   for (const target of cacheTargets()) {
     const versionDir = path.join(cacheDir, target.kind, platformId);
-    if (!fs.existsSync(versionDir)) {
+    const executablePath = path.join(versionDir, target.relativeExecutable);
+    const versionDirExists = fs.existsSync(versionDir);
+    const executableExists = fs.existsSync(executablePath);
+
+    console.error(
+      `[ensure-wdio-cache] check kind=${target.kind} versionDir=${versionDir} versionDirExists=${versionDirExists} executablePath=${executablePath} executableExists=${executableExists}`,
+    );
+
+    if (!versionDirExists) {
       continue;
     }
 
-    const executablePath = path.join(versionDir, target.relativeExecutable);
-    if (fs.existsSync(executablePath)) {
+    if (executableExists) {
       continue;
     }
 
     fs.rmSync(versionDir, { recursive: true, force: true });
     removed.push(versionDir);
+    console.error(`[ensure-wdio-cache] removed kind=${target.kind} path=${versionDir}`);
   }
 
   return removed;

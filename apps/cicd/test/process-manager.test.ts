@@ -74,9 +74,27 @@ describe('spawnChild', () => {
     });
 
     const start = Date.now();
-    const exitCode = await waitForChildExit(child);
-    expect(exitCode).toBe(1);
+    const result = await waitForChildExit(child);
+    expect(result.exitCode).toBe(1);
     expect(Date.now() - start).toBeLessThan(2000);
+  });
+
+  test('waitForChildExit reports close code and signal', async () => {
+    const child = spawnChild({
+      command: process.platform === 'win32' ? 'cmd' : 'sh',
+      args:
+        process.platform === 'win32'
+          ? ['/c', 'exit 3']
+          : ['-c', 'exit 3'],
+      cwd: process.cwd(),
+      env: process.env,
+      onStdout: () => {},
+      onStderr: () => {},
+    });
+
+    const result = await waitForChildExit(child);
+    expect(result.closeCode).toBe(3);
+    expect(result.exitCode).toBe(3);
   });
 });
 

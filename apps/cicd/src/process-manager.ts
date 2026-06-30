@@ -1,10 +1,20 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import type { DebugLog } from './debug-log.ts';
 
 export interface ManagedChild {
   proc: ChildProcess | null;
   pid: number | undefined;
   spawnFailed: boolean;
 }
+
+export type ChildExitResult = {
+  /** Value from the `close` event (null when killed by signal). */
+  closeCode: number | null;
+  /** Signal name from the `close` event, if any. */
+  signal: NodeJS.Signals | null;
+  /** Exit code used by the orchestrator for pass/fail. */
+  exitCode: number;
+};
 
 export interface SpawnOptions {
   command: string;
@@ -77,28 +87,44 @@ export async function waitForSpawn(child: ManagedChild): Promise<boolean> {
   });
 }
 
-export function waitForChildExit(child: ManagedChild): Promise<number> {
+export function waitForChildExit(child: ManagedChild): Promise<ChildExitResult> {
   if (child.spawnFailed || !child.proc) {
-    return Promise.resolve(1);
+    return Promise.resolve({
+      closeCode: null,
+      signal: null,
+      exitCode: 1,
+    });
   }
 
   return new Promise((resolve) => {
     const { proc } = child;
 
     if (proc!.exitCode !== null) {
-      resolve(proc!.exitCode);
+      resolve({
+        closeCode: proc!.exitCode,
+        signal: proc!.signalCode,
+        exitCode: proc!.exitCode,
+      });
       return;
     }
 
     let settled = false;
-    const finish = (code: number) => {
+    const finish = (result: ChildExitResult) => {
       if (settled) return;
       settled = true;
-      resolve(code);
+      resolve(result);
     };
 
-    proc!.once('error', () => finish(1));
-    proc!.once('close', (code) => finish(code ?? 1));
+    proc!.once('error', () =>
+      finish({ closeCode: null, signal: null, exitCode: 1 }),
+    );
+    proc!.once('close', (code, signal) =>
+      finish({
+        closeCode: code,
+        signal,
+        exitCode: code ?? 1,
+      }),
+    );
   });
 }
 
@@ -145,16 +171,45 @@ function waitForExit(proc: ChildProcess, timeoutMs: number): Promise<void> {
 export async function killTreeAndWait(
   child: ManagedChild,
   graceMs: number,
+  debug?: { log: DebugLog; label: string; reason: string },
 ): Promise<void> {
   if (child.spawnFailed || !child.proc || !child.pid) {
+    debug?.log.emit('kill_skipped', {
+      label: debug.label,
+      reason: debug.reason,
+      spawnFailed: child.spawnFailed,
+      pid: child.pid ?? null,
+    });
     return;
   }
+
+  debug?.log.emit('kill_start', {
+    label: debug.label,
+    reason: debug.reason,
+    pid: child.pid,
+    signal: 'SIGTERM',
+    graceMs,
+  });
 
   killProcessTree(child, 'SIGTERM');
   await waitForExit(child.proc, graceMs);
 
   if (child.pid && child.proc.exitCode === null && child.proc.signalCode === null) {
+    debug?.log.emit('kill_escalate', {
+      label: debug.label,
+      reason: debug.reason,
+      pid: child.pid,
+      signal: 'SIGKILL',
+    });
     killProcessTree(child, 'SIGKILL');
     await waitForExit(child.proc, 1000);
   }
+
+  debug?.log.emit('kill_end', {
+    label: debug.label,
+    reason: debug.reason,
+    pid: child.pid,
+    procExitCode: child.proc.exitCode,
+    procSignalCode: child.proc.signalCode,
+  });
 }

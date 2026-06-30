@@ -147,6 +147,10 @@ async function main(): Promise<number> {
   if (outputDir) {
     exportCiOutputs(outputDir, success);
     printRunSummary({ success, outputDir, specTaskNames });
+    const debugLog = path.join(outputDir, '_debug', 'events.jsonl');
+    if (fs.existsSync(debugLog)) {
+      log(`debug log: ${toRepoRelativePath(debugLog)}`);
+    }
   } else {
     console.log(`success: ${success}`);
     log('could not determine output directory');
