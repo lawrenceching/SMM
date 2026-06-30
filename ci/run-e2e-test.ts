@@ -15,7 +15,6 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildE2eConfig } from './build-e2e-config.ts';
-import { repairWdioBrowserCache } from './ensure-wdio-cache.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -117,8 +116,6 @@ function printRunSummary(options: {
 
 async function main(): Promise<number> {
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
-
-  repairWdioBrowserCache();
 
   const config = buildE2eConfig(WDIO_ARGS, ROOT);
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
