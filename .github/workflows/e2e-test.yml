@@ -68,6 +68,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
+      - name: Prepare WebDriverIO browser cache
+        working-directory: apps/e2e
+        run: |
+          bun ../../ci/ensure-wdio-cache.ts
+          pnpm wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts
+        env:
+          BUILD_ENV: docker
+
       - name: Run E2E tests
         id: e2e
         run: bun ci/run-e2e-test.ts --spec "${{ matrix.spec }}"

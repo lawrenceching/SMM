@@ -106,7 +106,7 @@ function buildWdioCommand(specPath: string, otherArgs: string[]): string {
     '--spec',
     quoteForShell(`./${specPath}`),
   ];
-  return `pnpm wdio ${wdioArgs.join(' ')}`;
+  return `bun ci/ensure-wdio-cache.ts && pnpm wdio ${wdioArgs.join(' ')}`;
 }
 
 function buildWdioTasks(
@@ -146,7 +146,7 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
       },
       ...buildWdioTasks(specPaths, otherArgs, e2eRoot),
     ],
-    stopOnFailure: true,
+    stopOnFailure: false,
     keepRawTimeline: true,
   };
 }
