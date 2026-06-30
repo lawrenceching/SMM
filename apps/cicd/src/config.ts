@@ -18,6 +18,7 @@ export const TaskSchema = z.object({
 
 export const ConfigSchema = z.object({
   name: z.string().min(1),
+  env: z.record(z.string(), z.string()).optional(),
   background: z.array(BackgroundTaskSchema).default([]),
   tasks: z.array(TaskSchema).min(1),
   outputDir: z.string().default('./artifacts/cicd'),

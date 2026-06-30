@@ -18,6 +18,13 @@ export interface OrchestratorResult {
   taskResults: TaskRecord[];
 }
 
+function buildChildEnv(
+  configEnv: Record<string, string> | undefined,
+  itemEnv: Record<string, string> | undefined,
+): NodeJS.ProcessEnv {
+  return { ...process.env, ...configEnv, ...itemEnv };
+}
+
 export async function runOrchestrator(
   config: Config,
   commandId: string,
@@ -55,7 +62,7 @@ export async function runOrchestrator(
       command: bg.command,
       args: [],
       cwd: bg.cwd ?? process.cwd(),
-      env: { ...process.env, ...(bg.env ?? {}) },
+      env: buildChildEnv(config.env, bg.env),
       onStdout: (chunk) => logStore.appendChunk(bg.name, 'stdout', chunk),
       onStderr: (chunk) => logStore.appendChunk(bg.name, 'stderr', chunk),
     });
@@ -145,7 +152,7 @@ export async function runOrchestrator(
       command: task.command,
       args: [],
       cwd: task.cwd ?? process.cwd(),
-      env: { ...process.env, ...(task.env ?? {}) },
+      env: buildChildEnv(config.env, task.env),
       onStdout: (chunk) => logStore.appendChunk(task.name, 'stdout', chunk),
       onStderr: (chunk) => logStore.appendChunk(task.name, 'stderr', chunk),
     });

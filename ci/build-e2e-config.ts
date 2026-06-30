@@ -3,7 +3,14 @@ import * as path from 'node:path';
 import type { Config, Task } from '../apps/cicd/src/config.ts';
 
 const DEFAULT_SPEC_GLOB = 'test/specs/**/*.ts';
-const WDIO_ENV = { BROWSER_LOG_ENABLED: 'true' };
+const DEFAULT_SMM_AUTH_TOKEN = 'ChangeMe123';
+
+export function buildE2eEnv(): Record<string, string> {
+  return {
+    BROWSER_LOG_ENABLED: 'true',
+    SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? DEFAULT_SMM_AUTH_TOKEN,
+  };
+}
 
 export type ParsedWdioArgs = {
   specPatterns: string[];
@@ -123,7 +130,6 @@ function buildWdioTasks(
     name: taskNames[index]!,
     command: buildWdioCommand(specPath, otherArgs),
     cwd: e2eCwd,
-    env: WDIO_ENV,
   }));
 }
 
@@ -137,6 +143,7 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
   return {
     name: 'smm-e2e',
     outputDir: './artifacts/cicd',
+    env: buildE2eEnv(),
     background: [
       { name: 'cli', command: 'pnpm dev:cli', cwd: repoRoot },
       { name: 'ui', command: 'pnpm dev:ui', cwd: repoRoot },

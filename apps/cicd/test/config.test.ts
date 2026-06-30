@@ -37,6 +37,18 @@ describe('parseConfig', () => {
     }
   });
 
+  test('accepts top-level env', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      env: { FOO: 'bar', BAZ: 'qux' },
+      tasks: [{ name: 't1', command: 'echo hi' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.env).toEqual({ FOO: 'bar', BAZ: 'qux' });
+    }
+  });
+
   test('rejects missing tasks', () => {
     const result = parseConfig({ name: 'broken' });
     expect(result.ok).toBe(false);

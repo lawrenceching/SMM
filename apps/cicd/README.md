@@ -37,6 +37,9 @@ full schema and semantics. Minimal example:
 ```json
 {
   "name": "smoke",
+  "env": {
+    "NODE_ENV": "test"
+  },
   "background": [
     { "name": "server", "command": "pnpm dev", "delayMs": 5000 }
   ],
@@ -45,6 +48,10 @@ full schema and semantics. Minimal example:
   ]
 }
 ```
+
+Top-level `env` is shallow-merged into every background and task subprocess
+(after `process.env`, before per-item `env`). Use per-background or per-task
+`env` to override a single key.
 
 ## Output
 

@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   buildE2eConfig,
+  buildE2eEnv,
   expandSpecPatterns,
   parseWdioArgs,
   taskNamesForSpecs,
@@ -60,6 +61,35 @@ describe('taskNamesForSpecs', () => {
   });
 });
 
+describe('buildE2eEnv', () => {
+  test('includes BROWSER_LOG_ENABLED and default SMM_AUTH_TOKEN', () => {
+    const original = process.env.SMM_AUTH_TOKEN;
+    delete process.env.SMM_AUTH_TOKEN;
+
+    expect(buildE2eEnv()).toEqual({
+      BROWSER_LOG_ENABLED: 'true',
+      SMM_AUTH_TOKEN: 'ChangeMe123',
+    });
+
+    if (original !== undefined) {
+      process.env.SMM_AUTH_TOKEN = original;
+    }
+  });
+
+  test('uses SMM_AUTH_TOKEN from process.env when set', () => {
+    const original = process.env.SMM_AUTH_TOKEN;
+    process.env.SMM_AUTH_TOKEN = 'custom-token';
+
+    expect(buildE2eEnv().SMM_AUTH_TOKEN).toBe('custom-token');
+
+    if (original !== undefined) {
+      process.env.SMM_AUTH_TOKEN = original;
+    } else {
+      delete process.env.SMM_AUTH_TOKEN;
+    }
+  });
+});
+
 describe('buildE2eConfig', () => {
   test('creates one wdio task per spec file', () => {
     const config = buildE2eConfig(
@@ -85,5 +115,20 @@ describe('buildE2eConfig', () => {
     expect(wdioTasks).toHaveLength(1);
     expect(wdioTasks[0]!.name).toBe('hello.e2e.ts');
     expect(wdioTasks[0]!.command).toContain('./test/specs/hello.e2e.ts');
+  });
+
+  test('sets config-level env and omits per-task env on wdio tasks', () => {
+    const config = buildE2eConfig(
+      ['--spec', './test/specs/hello.e2e.ts'],
+      ROOT,
+    );
+
+    expect(config.env).toEqual({
+      BROWSER_LOG_ENABLED: 'true',
+      SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123',
+    });
+
+    const wdioTasks = config.tasks.filter((task) => task.name !== 'wait-ready');
+    expect(wdioTasks.every((task) => task.env === undefined)).toBe(true);
   });
 });

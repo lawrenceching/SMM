@@ -180,6 +180,59 @@ describe('run — output layout', () => {
   });
 });
 
+describe('run — env', () => {
+  test('config-level env is visible to tasks', async () => {
+    const configPath = writeConfig({
+      name: 'config-env',
+      outputDir: path.join(tmpRoot, 'out'),
+      env: { CICD_TEST_VAR: 'from-config' },
+      tasks: [
+        {
+          name: 't',
+          command: isWindows()
+            ? 'cmd /c echo %CICD_TEST_VAR%'
+            : 'node -e "console.log(process.env.CICD_TEST_VAR)"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+
+    const mainLog = fs.readFileSync(
+      path.join(result.outputDir, 't', 'main.log'),
+      'utf8',
+    );
+    expect(mainLog.trim()).toBe('from-config');
+  });
+
+  test('task-level env overrides config-level env', async () => {
+    const configPath = writeConfig({
+      name: 'env-override',
+      outputDir: path.join(tmpRoot, 'out'),
+      env: { CICD_TEST_VAR: 'from-config' },
+      tasks: [
+        {
+          name: 't',
+          env: { CICD_TEST_VAR: 'from-task' },
+          command: isWindows()
+            ? 'cmd /c echo %CICD_TEST_VAR%'
+            : 'node -e "console.log(process.env.CICD_TEST_VAR)"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+
+    const mainLog = fs.readFileSync(
+      path.join(result.outputDir, 't', 'main.log'),
+      'utf8',
+    );
+    expect(mainLog.trim()).toBe('from-task');
+  });
+});
+
 describe('run — config errors', () => {
   test('invalid config throws with structured errors', async () => {
     const configPath = writeConfig({
