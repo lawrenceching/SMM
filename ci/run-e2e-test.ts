@@ -7,7 +7,7 @@
  * Config is written to `artifacts/e2e/config.json`.
  * Logs are written by apps/cicd to `artifacts/cicd/{commandId}/`:
  *   - {spec}/main.log  — WebdriverIO output per spec file
- *   - {spec}/cli.log   — pnpm dev:cli output during that spec's window
+ *   - {spec}/cli.log   — pnpm e2e:cli output during that spec's window
  *   - {spec}/ui.log    — pnpm dev:ui output during that spec's window
  */
 import { spawn } from 'node:child_process';

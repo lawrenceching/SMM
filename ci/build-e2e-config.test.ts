@@ -131,4 +131,17 @@ describe('buildE2eConfig', () => {
     const wdioTasks = config.tasks.filter((task) => task.name !== 'wait-ready');
     expect(wdioTasks.every((task) => task.env === undefined)).toBe(true);
   });
+
+  test('uses e2e:cli (start script) for the CLI background task', () => {
+    const config = buildE2eConfig(
+      ['--spec', './test/specs/hello.e2e.ts'],
+      ROOT,
+    );
+
+    expect(config.background.find((task) => task.name === 'cli')).toEqual({
+      name: 'cli',
+      command: 'pnpm e2e:cli',
+      cwd: ROOT,
+    });
+  });
 });

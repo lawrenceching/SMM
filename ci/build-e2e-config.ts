@@ -145,7 +145,7 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
     outputDir: './artifacts/cicd',
     env: buildE2eEnv(),
     background: [
-      { name: 'cli', command: 'pnpm dev:cli', cwd: repoRoot },
+      { name: 'cli', command: 'pnpm e2e:cli', cwd: repoRoot },
       { name: 'ui', command: 'pnpm dev:ui', cwd: repoRoot },
     ],
     tasks: [

@@ -138,6 +138,7 @@ async function disableMcpServerForE2eWorker(): Promise<void> {
 }
 
 const chromeOptionsForDockerEnv: string[] = [
+    '--window-size=1920,1080',
     '--disable-dev-shm-usage',
     '--disable-software-rasterizer',
     '--disable-extensions',

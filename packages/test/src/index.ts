@@ -309,13 +309,12 @@ export async function removePlanFolder(): Promise<string | null> {
 }
 
 /**
- * Remove the plans directory (userDataDir/plans) if it exists.
- * Requires the app (hello API) to be running to resolve userDataDir.
+ * Remove the plans directory (appDataDir/plans) if it exists.
+ * Requires the app (hello API) to be running to resolve appDataDir.
  * @returns The path to the plans directory that was removed, or null if it did not exist
  */
 export async function removePlansDir(): Promise<string | null> {
-    const userDataDir = await getUserDataDir()
-    const plansDir = path.join(userDataDir, 'plans')
+    const plansDir = await getPlanDir()
     if (fs.existsSync(plansDir)) {
         fs.rmSync(plansDir, { recursive: true, force: true })
         console.log(`Removed plans directory: ${plansDir}`)

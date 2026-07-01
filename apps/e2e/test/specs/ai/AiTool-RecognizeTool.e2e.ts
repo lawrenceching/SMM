@@ -9,7 +9,7 @@ import env from 'test/lib/env'
 import { type MediaMetadata } from '@smm/core/types'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import { addFile, createTask, endTask } from 'test/lib/debugRecognizeTool'
+import { addFile, createTask, endTask, requireTaskId } from 'test/lib/debugRecognizeTool'
 import Prompts from 'test/componentobjects/Prompts'
 import { Path } from '@smm/core'
 
@@ -64,10 +64,9 @@ describe('AI Assistant - Recognize Tool', async () => {
         // Simulate the AI Tool Recognize Episode Files
         // By sending HTTP request to recognize task debug API
         
-        const { data } = await createTask({
+        const taskId = requireTaskId(await createTask({
             mediaFolderPath: folder.path!,
-        })
-        const taskId = data.taskId
+        }))
         console.log(`Created task with ID: ${taskId}`)
 
         await addFile({

@@ -1,5 +1,5 @@
-import pino from 'pino'
 import { Path } from '@core/path'
+import { logger } from '../../lib/logger'
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -20,8 +20,6 @@ import {
   getRenameTask,
 } from './renameFilesToolV2'
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils'
-
-const logger = pino()
 
 export const createBeginRenameFilesTaskTool = (
   clientId: string,

@@ -1,5 +1,5 @@
 import { Path } from '@core/path'
-import pino from 'pino'
+import { logger } from '../../lib/logger'
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -19,8 +19,6 @@ import {
   getTask,
 } from './recognizeMediaFilesTool'
 import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan'
-
-const logger = pino()
 
 export const createBeginRecognizeTaskTool = (
   clientId: string,

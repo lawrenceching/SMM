@@ -9,7 +9,7 @@ import env from 'test/lib/env'
 import { type MediaMetadata } from '@smm/core/types'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import { addFile, createTask, endTask } from 'test/lib/debugRenameTool'
+import { addFile, createTask, endTask, requireTaskId } from 'test/lib/debugRenameTool'
 
 import { Path } from '@smm/core'
 import Prompts from 'test/componentobjects/Prompts'
@@ -17,7 +17,7 @@ import Prompts from 'test/componentobjects/Prompts'
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
 
-describe('AI Assistant - Recognize Tool', async () => {
+describe('AI Assistant - Rename Tool', async () => {
 
     before(async () => {
         await createBeforeHook({ setupMediaFolders: false, setupMediaMetadata: false })();
@@ -30,7 +30,7 @@ describe('AI Assistant - Recognize Tool', async () => {
         }
     })
 
-    it('Recognize TV Show episode files', async function() {
+    it('Renames TV Show episode files via debug tool route', async function() {
         if(env.slowdown) {
             this.timeout(5 * 60 * 1000)
         }
@@ -70,10 +70,9 @@ describe('AI Assistant - Recognize Tool', async () => {
 
         
         // 1. Start rename plan
-        const { data } = await createTask({
-                    mediaFolderPath: folder.path!,
-        })
-        const taskId = data.taskId
+        const taskId = requireTaskId(await createTask({
+            mediaFolderPath: folder.path!,
+        }))
         await addFile({
             taskId: taskId,
             from: path.join(folder.path!, 'S01E01.mp4'),

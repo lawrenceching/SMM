@@ -3,7 +3,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { setup, cleanup, importFolderWithMediaMetadata } from '../../lib/testbed'
 import { Path } from '@smm/core'
-import { hello } from '@smm/test'
+import { getPlanDir } from '@smm/test'
 import type { RecognizeMediaFilePlan } from '@smm/core/types/RecognizeMediaFilePlan.ts'
 import {createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
@@ -76,8 +76,7 @@ S01E12 - - - -`)
 
 
     // 2. Create recognize file plan (POSIX paths; files map S01E01.mkv -> (1,1), S01E02.mkv -> (1,2))
-    const { userDataDir } = await hello()
-    const plansDir = path.join(userDataDir, 'plans')
+    const plansDir = await getPlanDir()
     fs.mkdirSync(plansDir, { recursive: true })
 
     const planId = crypto.randomUUID()

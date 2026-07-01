@@ -19,8 +19,19 @@ export interface EndTaskOptions {
 
 export interface DebugApiResponse {
   success: boolean
-  data?: any
+  data?: { taskId?: string; [key: string]: unknown }
   error?: string
+}
+
+export function requireTaskId(response: DebugApiResponse, label = 'createTask'): string {
+  if (!response.success) {
+    throw new Error(`${label} failed: ${response.error ?? 'unknown error'}`)
+  }
+  const taskId = response.data?.taskId
+  if (!taskId) {
+    throw new Error(`${label} failed: missing taskId in response: ${JSON.stringify(response)}`)
+  }
+  return taskId
 }
 
 export async function createTask(options: CreateTaskOptions): Promise<DebugApiResponse> {
