@@ -373,8 +373,6 @@ Poster
 Completed
 Fanart
 Completed
-Episode Thumbnails
-Completed
 nfo
 Completed`);
     }, {
