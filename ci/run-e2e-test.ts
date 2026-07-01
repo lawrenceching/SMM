@@ -10,11 +10,46 @@
  *   - {spec}/cli.log   — pnpm e2e:cli output during that spec's window
  *   - {spec}/ui.log    — pnpm dev:ui output during that spec's window
  */
-import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildE2eConfig } from './build-e2e-config.ts';
+import {
+  startChild,
+  awaitChildExit,
+  killTree,
+  type ManagedRunChild,
+} from './run-e2e-child.ts';
+
+let currentChild: ManagedRunChild | null = null;
+let shuttingDown = false;
+let signalCount = 0;
+
+const handleSignal = async (sig: NodeJS.Signals): Promise<void> => {
+  signalCount += 1;
+  if (signalCount === 1 && currentChild) {
+    shuttingDown = true;
+    console.error(`\n[run-e2e-test] received ${sig}, forwarding to child...`);
+    if (currentChild.pid) {
+      try {
+        if (process.platform !== 'win32') {
+          process.kill(-currentChild.pid, 'SIGTERM');
+        }
+      } catch {
+        // best-effort
+      }
+    }
+    return;
+  }
+  console.error(`[run-e2e-test] received ${sig} twice, force-killing tree`);
+  if (currentChild) {
+    await killTree(currentChild, 1000);
+  }
+  process.exit(130);
+};
+
+process.on('SIGINT', () => void handleSignal('SIGINT'));
+process.on('SIGTERM', () => void handleSignal('SIGTERM'));
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -64,41 +99,29 @@ function findLatestCicdOutputDir(): string | null {
   return path.join(CICD_OUTPUT_DIR, entries[0]!.name);
 }
 
-async function runCicd(configPath: string): Promise<{
-  exitCode: number;
-  stdout: string;
-}> {
-  return new Promise((resolve) => {
-    let stdout = '';
+async function runCicd(configPath: string): Promise<{ exitCode: number; stdout: string }> {
+  let stdout = '';
 
-    const proc = spawn(
-      'bun',
-      ['apps/cicd/run.ts', '-f', configPath, '--cwd', ROOT],
-      {
-        cwd: ROOT,
-        env: process.env,
-        shell: process.platform === 'win32',
-        stdio: ['ignore', 'pipe', 'pipe'],
-        windowsHide: true,
-      },
-    );
-
-    proc.stdout?.on('data', (chunk: Buffer) => {
+  currentChild = startChild({
+    command: 'bun',
+    args: ['apps/cicd/run.ts', '-f', configPath, '--cwd', ROOT],
+    cwd: ROOT,
+    env: process.env,
+    onStdout: (chunk) => {
       const text = chunk.toString();
       stdout += text;
       process.stdout.write(text);
-    });
-    proc.stderr?.on('data', (chunk: Buffer) => {
-      process.stderr.write(chunk);
-    });
-
-    proc.on('close', (code) => {
-      resolve({ exitCode: code ?? 1, stdout });
-    });
-    proc.on('error', () => {
-      resolve({ exitCode: 1, stdout });
-    });
+    },
+    onStderr: (chunk) => process.stderr.write(chunk),
   });
+
+  const exit = await awaitChildExit(currentChild);
+
+  if (shuttingDown) {
+    await killTree(currentChild, 2000);
+  }
+  currentChild = null;
+  return { exitCode: exit.exitCode, stdout };
 }
 
 function printRunSummary(options: {
