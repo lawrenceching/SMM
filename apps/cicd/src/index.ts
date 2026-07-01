@@ -34,7 +34,9 @@ export async function run(options: RunOptions): Promise<RunResult> {
   }
 
   const commandId = String(Math.floor(Date.now() / 1000));
-  const result = await runOrchestrator(parsed.config, commandId);
+  const result = await runOrchestrator(parsed.config, commandId, {
+    signal: options.signal,
+  });
 
   return {
     name: parsed.config.name,

@@ -9,6 +9,7 @@ export type TaskRecord = {
 export type RunOptions = {
   configPath: string;
   cwd?: string;
+  signal?: AbortSignal;
 };
 
 export type RunResult = {
