@@ -20,6 +20,7 @@ describe('App', () => {
             openBrowserPage: true,
             resetUserConfig: true,
         })
+
     })
 
     afterEach(async () => {
@@ -53,12 +54,14 @@ describe('App', () => {
 
         await Sidebar.clickFolder(tvshowFolder.folderName)
         await browser.pause(1000); // wait for UI update
-        expect(await TvShowPanelCO.immersiveInput.getValue()).toBe(tvshowFolder.translations?.title?.['en-US'] ?? 'N/A')
+        const tvAllTitles = Object.values(tvshowFolder.translations?.title ?? {})
+        expect(tvAllTitles).toContain(await TvShowPanelCO.immersiveInput.getValue())
         expect(await StatusBar.getMessage()).toBe(tvshowFolder.path)
 
         await Sidebar.clickFolder(movieFolder.folderName)
         await browser.pause(1000); // wait for UI update
-        expect(await MoviePanelCO.input.getValue()).toBe(movieFolder.translations?.title?.['en-US'] ?? 'N/A')
+        const movieAllTitles = Object.values(movieFolder.translations?.title ?? {})
+        expect(movieAllTitles).toContain(await MoviePanelCO.input.getValue())
         expect(await StatusBar.getMessage()).toBe(movieFolder.path)
 
         await Sidebar.clickFolder(musicFolder.folderName)

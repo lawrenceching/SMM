@@ -1,3 +1,4 @@
+import * as cp from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { browser, expect } from '@wdio/globals'
@@ -102,6 +103,24 @@ async function findVisibleButton(
     }
     throw new Error(`None of the buttons [${labels.join(', ')}] are visible`)
 }
+
+/** Try to detect whether ffmpeg is available on the system. */
+function checkFfmpegAvailable(): boolean {
+  try {
+    cp.execSync('ffmpeg -version', { stdio: 'ignore', timeout: 5_000 })
+    return true
+  } catch {
+    return false
+  }
+}
+
+const isFfmpegAvailable = checkFfmpegAvailable()
+
+if (!isFfmpegAvailable) {
+  describe.skip('ConvertVideoFormat - ffmpeg not available in this environment', () => {
+    it('skipped', () => {})
+  })
+} else {
 
 describe('ConvertVideoFormat', () => {
     let folderPath: string | undefined
@@ -267,3 +286,4 @@ describe('ConvertVideoFormat', () => {
         // The afterEach hook will clean up any leftover files
     })
 })
+}

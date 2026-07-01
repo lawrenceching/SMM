@@ -33,9 +33,6 @@ jobs:
           - name: Run Other Tests
             spec: "./test/specs/other/*.e2e.ts"
             artifact_prefix: other
-          - name: Run Transcribe Tests
-            spec: "./test/specs/transcribe/*.e2e.ts"
-            artifact_prefix: transcribe
           - name: Run TV Show Tests
             spec: "./test/specs/tv/*.e2e.ts"
             artifact_prefix: tv

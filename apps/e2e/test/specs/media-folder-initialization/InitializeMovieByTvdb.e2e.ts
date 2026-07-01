@@ -57,8 +57,9 @@ describe('TVDB Movie Media Folder Initialization', () => {
 
         const text = await MoviePanelCO.table.getText()
 
-        expect(text).toContain(`Type File Poster Sub NFO
-Video
+        expect(text).toContain(`ID Video File Thumb Sub NFO
+Movie
+S01E01
 The Dark Knight [1080P].mkv`)
 
         await expectMediaMetadataToBe(folder.path!, (obj) => {
@@ -89,8 +90,9 @@ The Dark Knight [1080P].mkv`)
 
         const text = await MoviePanelCO.table.getText()
 
-        expect(text).toContain(`Type File Poster Sub NFO
-Video
+        expect(text).toContain(`ID Video File Thumb Sub NFO
+Movie
+S01E01
 The Dark Knight [1080P].mkv`)
 
         await expectMediaMetadataToBe(folder.path!, (obj) => {

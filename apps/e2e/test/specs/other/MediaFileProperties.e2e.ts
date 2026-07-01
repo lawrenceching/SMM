@@ -1,3 +1,4 @@
+import * as cp from 'node:child_process'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { execSync } from 'node:child_process'
@@ -61,6 +62,24 @@ async function clickContextMenuItem(labels: string[]) {
 
     throw new Error(`Context menu item [${labels.join(', ')}] not found`)
 }
+
+/** Try to detect whether ffmpeg is available on the system. */
+function checkFfmpegAvailable(): boolean {
+  try {
+    cp.execSync('ffmpeg -version', { stdio: 'ignore', timeout: 5_000 })
+    return true
+  } catch {
+    return false
+  }
+}
+
+const isFfmpegAvailable = checkFfmpegAvailable()
+
+if (!isFfmpegAvailable) {
+  describe.skip('MediaFileProperties - ffmpeg not available in this environment', () => {
+    it('skipped', () => {})
+  })
+} else {
 
 describe('MediaFileProperties', () => {
     beforeEach(async () => {
@@ -221,3 +240,4 @@ describe('MediaFileProperties', () => {
         await expect(filePropDialog2).not.toBeDisplayed()
     })
 })
+}

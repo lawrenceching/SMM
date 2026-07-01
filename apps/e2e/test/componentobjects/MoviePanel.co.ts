@@ -5,7 +5,7 @@ import SearchboxCO from './Searchbox.co'
 class MoviePanelComponentObject {
 
     get table() {
-        return $('[data-testid="movie-episode-table"]')
+        return $('[data-testid="tvshow-episode-table"]')
     }
 
     get input() {

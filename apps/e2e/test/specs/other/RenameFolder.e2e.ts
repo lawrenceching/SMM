@@ -167,8 +167,9 @@ S01E12 - - - -`)
         }
 
         browser.pause(4000)
-        expect(await MoviePanelCO.table.getText()).toBe(`Type File Poster Sub NFO
-Video
+        expect(await MoviePanelCO.table.getText()).toBe(`ID Video File Thumb Sub NFO
+Movie
+S01E01
 The Dark Knight [1080P].mkv`)
 
         await Sidebar.rightClickFolderByFolderName(folder.folderName);
@@ -203,8 +204,9 @@ The Dark Knight [1080P].mkv`)
 
         await RenameDialog.waitForClosed()
 
-        expect(await MoviePanelCO.table.getText()).toBe(`Type File Poster Sub NFO
-Video
+        expect(await MoviePanelCO.table.getText()).toBe(`ID Video File Thumb Sub NFO
+Movie
+S01E01
 The Dark Knight [1080P].mkv`)
 
         const newFolderPath = folder.path!.replace(folder.folderName, `${folder.folderName} - Renamed`)

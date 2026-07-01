@@ -230,7 +230,10 @@ export const config: WebdriverIO.Config = {
     ],
     // Patterns to exclude.
     exclude: [
-        // 'path/to/excluded/files'
+        // Manual-only specs depend on external tools (yt-dlp, video captioner)
+        // and network access. They are excluded from CI runs and run on-demand
+        // by developers. See ci/build-e2e-config.ts for the matching CI exclusion.
+        ['test/specs/manual/**/*.ts'],
     ],
     //
     // ============

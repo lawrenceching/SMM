@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import type { Config, Task } from '../apps/cicd/src/config.ts';
 
 const DEFAULT_SPEC_GLOB = 'test/specs/**/*.ts';
+const MANUAL_SPEC_DIR = /(?:^|[/\\])test[/\\]specs[/\\]manual[/\\]/;
 const DEFAULT_SMM_AUTH_TOKEN = 'ChangeMe123';
 
 export function buildE2eEnv(): Record<string, string> {
@@ -52,7 +53,9 @@ export function parseWdioArgs(argv: string[]): ParsedWdioArgs {
 export function expandSpecPatterns(
   patterns: string[],
   e2eRoot: string,
+  options?: { excludeManual?: boolean },
 ): string[] {
+  const excludeManual = options?.excludeManual ?? false;
   const files = new Set<string>();
 
   for (const pattern of patterns) {
@@ -60,6 +63,11 @@ export function expandSpecPatterns(
     const glob = new Glob(normalized);
 
     for (const match of glob.scanSync({ cwd: e2eRoot, absolute: false })) {
+      // Skip manual-only specs (depend on yt-dlp / video captioner / network)
+      // when expanding the default glob. Explicit --spec arguments are honored as-is.
+      if (excludeManual && MANUAL_SPEC_DIR.test(match)) {
+        continue;
+      }
       if (match.endsWith('.ts')) {
         files.add(match.replace(/\\/g, '/').replace(/^\.\//, ''));
       }
@@ -138,7 +146,11 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
   const { specPatterns, otherArgs } = parseWdioArgs(wdioArgs);
   const patterns =
     specPatterns.length > 0 ? specPatterns : [DEFAULT_SPEC_GLOB];
-  const specPaths = expandSpecPatterns(patterns, e2eRoot);
+  // Only auto-exclude manual/ specs when using the default glob.
+  // Explicit --spec arguments from the developer bypass this filter so that
+  // manual specs can still be targeted on demand.
+  const excludeManual = specPatterns.length === 0;
+  const specPaths = expandSpecPatterns(patterns, e2eRoot, { excludeManual });
 
   return {
     name: 'smm-e2e',

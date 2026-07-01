@@ -19,7 +19,10 @@ describe('Sidebar', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             openBrowserPage: true,
-            resetUserConfig: true,
+            resetUserConfig: (userConfig) => {
+                userConfig.preferMediaLanguage = 'en-US'
+                return userConfig
+            },
         })
     })
 
@@ -187,7 +190,7 @@ describe('Sidebar', () => {
         let folderNames = await Sidebar.getFolderNamesInOrder()
         console.log('Folders matching "古见":', folderNames)
         expect(folderNames.length).toBe(1)
-        expect(folderNames[0]).toContain('Komi Can\'t Communicate')
+        expect(folderNames[0]).toContain('古见同学有交流障碍症')
 
         if(slowdown) {
             await delay(3 * 1000)
