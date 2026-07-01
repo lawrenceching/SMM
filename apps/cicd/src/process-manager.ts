@@ -33,6 +33,14 @@ export function spawnChild(opts: SpawnOptions): ManagedChild {
   };
 
   try {
+    // `detached` MUST differ per platform:
+    //   Unix:    detached=true makes the child a process-group leader, so
+    //            process.kill(-child.pid, signal) reaches the whole subtree.
+    //   Windows: detached=true combined with shell:true makes cmd.exe swallow
+    //            stdout for any command containing quoted arguments (verified
+    //            bug in Node's child_process on Windows). We rely on
+    //            `taskkill /T` (see killProcessTree below) to walk the tree,
+    //            which works regardless of detached setting.
     const proc = spawn(opts.command, opts.args, {
       cwd: opts.cwd,
       env: opts.env,
