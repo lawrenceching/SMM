@@ -95,3 +95,7 @@ artifacts/e2e/
 # Misc
 .agents/
 
+# Allow the E2E test Docker image (apps/e2e/Dockerfile) to access these
+!apps/e2e/
+!packages/test/
+

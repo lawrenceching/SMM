@@ -1,0 +1,9 @@
+{
+  "name": "@smm/e2e-test-base-image",
+  "version": "1.2.9",
+  "private": true,
+  "description": "Docker base image for SMM end-to-end test containers (Node.js, pnpm, Bun, Chrome, ChromeDriver, CJK fonts)",
+  "scripts": {
+    "build": "docker build -t smm-e2e-base:latest -f Dockerfile ."
+  }
+}

@@ -1,76 +1,50 @@
 # E2E Test Docker Image
-# 
-# This Dockerfile creates an environment for running WebDriverIO + Chrome E2E tests.
-# It installs Chrome browser and all necessary dependencies.
+#
+# Linux container for running apps/e2e WebdriverIO tests.
 #
 # Usage:
 #   docker build -t smm-e2e:test -f apps/e2e/Dockerfile .
-#   docker run --rm smm-e2e:test
+#   docker run --rm smm-e2e:test                          # default: runs hello.e2e.ts
+#   docker run --rm smm-e2e:test pnpm run wdio:tv         # run tv group
 #
-# Or use docker-compose:
-#   docker-compose -f apps/e2e/docker-compose.yml up
+# Requires .dockerignore to allow apps/e2e/ and packages/test/
+# (add `!apps/e2e/` and `!packages/test/` lines).
 
 FROM node:22-bookworm
 
-# Set environment variables
-ENV BUILD_ENV=docker
-ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_ENV=development
-ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV BUILD_ENV=docker \
+    DEBIAN_FRONTEND=noninteractive \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_SKIP_DOWNLOAD=true \
+    CHROME_BIN=/usr/bin/google-chrome
 
-# Install system dependencies including Chrome
-RUN apt-get update && apt-get install -y \
-    # Chrome dependencies
-    wget \
-    gnupg2 \
-    ca-certificates \
-    apt-transport-https \
-    # Fonts for rendering (including CJK)
-    fonts-noto-cjk \
-    fonts-wqy-microhei \
-    fonts-wqy-zenhei \
-    # X11 libraries for Chrome
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libpango-1.0-0 \
-    libcairo2 \
-    libasound2 \
-    # Additional utilities
-    curl \
-    unzip \
-    # Clean up
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Chrome Stable
-RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list \
+# System deps, Chrome, and CJK fonts
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        wget gnupg2 ca-certificates apt-transport-https curl unzip \
+        fonts-noto-cjk fonts-wqy-microhei fonts-wqy-zenhei \
+        libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+        libcups2 libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 \
+        libxfixes3 libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub \
+        | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+        > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
-    && apt-get install -y google-chrome-stable \
+    && apt-get install -y --no-install-recommends google-chrome-stable \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm globally (pinned to packageManager version in package.json)
+# Pin pnpm to the version declared in packageManager
 RUN corepack enable && corepack prepare pnpm@10.29.3 --activate
 
-RUN npm install -g bun
-
-# Set working directory
 WORKDIR /app
 
 COPY . .
 
-RUN pnpm install
-RUN pnpm run build 
-RUN bash apps/e2e/bin/start_test.sh
+RUN pnpm install --frozen-lockfile
+
+WORKDIR /app/apps/e2e
+
+# Default smoke-test for the environment. Override with
+# `docker run --rm <image> pnpm run wdio:<group>` to run a different group.
+CMD ["pnpm", "run", "wdio:hello"]
