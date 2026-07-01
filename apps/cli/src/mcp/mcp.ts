@@ -19,7 +19,7 @@ import {
   END_RECOGNIZE_TASK,
 } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
 import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
-import { getAppDataDir } from "@/utils/config";
+import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import { acknowledge, broadcast } from "@/utils/socketIO";
 import { logger } from "../../lib/logger";
 import { getLocalizedToolDescription } from "@/i18n/helpers";
@@ -112,6 +112,11 @@ async function loadLocalizedToolDescriptions(): Promise<Record<string, string>> 
  * core-routes MCP factory. Inject:
  * - `getUserConfig` from `apps/cli`'s Bun-based config reader.
  * - `appDataDir` from the platform-specific data dir helper.
+ * - `userDataDir` from the platform-specific data dir helper —
+ *   MCP tool handlers (`get-episodes`, `rename-folder`) use this
+ *   to construct the `CoreRoutesConfig` passed to
+ *   `isMediaFolderManaged`, so the two paths must be set
+ *   correctly on Linux (XDG) where they differ.
  * - `acknowledge` from the Socket.IO manager (used for
  *   `getApplicationContext` and rename/recognize plan broadcasts).
  * - Localized tool descriptions loaded from i18next.
@@ -121,6 +126,7 @@ async function buildMcpConfig(): Promise<McpConfig> {
   return {
     getUserConfig,
     appDataDir: getAppDataDir(),
+    userDataDir: getUserDataDir(),
     acknowledge: (message, timeoutMs) =>
       acknowledge(message as Parameters<typeof acknowledge>[0], timeoutMs),
     broadcast: (message) =>

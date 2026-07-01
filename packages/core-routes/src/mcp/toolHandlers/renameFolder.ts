@@ -59,7 +59,7 @@ export function registerRenameFolderTool(
           allowlist: [],
           hello: {
             version: "0.0.0",
-            userDataDir: config.appDataDir,
+            userDataDir: config.userDataDir,
             appDataDir: config.appDataDir,
             logDir: "",
             tmpDir: "",

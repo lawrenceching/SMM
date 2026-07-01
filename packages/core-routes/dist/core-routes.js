@@ -57671,6 +57671,8 @@ var RecognizeMediaFilePlanReady = {
 var RenameFilesPlanReady = {
   event: "renameFilesPlanReady"
 };
+var USER_CONFIG_UPDATED_EVENT = "userConfigUpdated";
+var USER_CONFIG_FOLDER_RENAMED_EVENT = "userConfig.folderRenamed";
 
 // src/tools/plans.ts
 import { mkdir as mkdir3, readdir as readdir2, stat as stat5, unlink as unlink2 } from "node:fs/promises";
@@ -57881,6 +57883,42 @@ async function deletePlan(appDataDir, id) {
     }
   }
 }
+async function cleanPreparingPlans(appDataDir, fs, logger) {
+  const start = Date.now();
+  const plansPath = plansDir(appDataDir);
+  logger?.info({ appDataDir, plansDir: plansPath }, "[cleanup] plan cleanup: scanning for stale preparing plans");
+  const files = await listPlanFiles(appDataDir);
+  logger?.info({ plansDir: plansPath, scanned: files.length }, "[cleanup] plan cleanup: enumerated plan files");
+  let removed = 0;
+  let failed = 0;
+  for (const filePath of files) {
+    try {
+      const plan = await fs.readJson(filePath);
+      if (!plan) {
+        logger?.debug({ filePath }, "[cleanup] plan cleanup: skipping unreadable plan file");
+        continue;
+      }
+      if (plan.status === "preparing") {
+        await unlink2(filePath);
+        removed++;
+        logger?.debug({ filePath, planId: plan.id, task: plan.task }, "[cleanup] plan cleanup: removed stale preparing plan");
+      } else {
+        logger?.debug({ filePath, planId: plan.id, status: plan.status }, "[cleanup] plan cleanup: keeping plan (not preparing)");
+      }
+    } catch (err) {
+      failed++;
+      logger?.warn({ filePath, error: err.message }, "[cleanup] plan cleanup: failed to process plan file, skipping");
+    }
+  }
+  logger?.info({
+    plansDir: plansPath,
+    scanned: files.length,
+    removed,
+    failed,
+    durationMs: Date.now() - start
+  }, "[cleanup] plan cleanup: complete");
+  return removed;
+}
 async function getActivePlansForFolder(appDataDir, mediaFolderPath, fs) {
   const target = Path.posix(mediaFolderPath);
   const files = await listPlanFiles(appDataDir);
@@ -57906,8 +57944,9 @@ function makeLogger(logger) {
     error: (obj, msg) => logger?.error(obj, msg)
   };
 }
-function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, logger, abortSignal) {
+function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, broadcast, logger, abortSignal) {
   const log = makeLogger(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RENAME_FILES_TASK_DESCRIPTION,
     toolName: BEGIN_RENAME_FILES_TASK,
@@ -57929,6 +57968,17 @@ function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, logger, 
       try {
         const taskId = await beginRenamePlan(appDataDir, folderPathInPosix, fs);
         log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RENAME_FILES_TASK}] Task created successfully`);
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data = {
+          taskId,
+          planFilePath: planFilePathInPosix
+        };
+        emit({
+          event: RenameFilesPlanReady.event,
+          data
+        });
+        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[tool][${BEGIN_RENAME_FILES_TASK}] RenameFilesPlanReady broadcast sent`);
         return toolOk({ taskId });
       } catch (error48) {
         log.error({
@@ -58377,8 +58427,9 @@ function makeLogger2(logger) {
     error: (obj, msg) => logger?.error(obj, msg)
   };
 }
-function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, logger, abortSignal) {
+function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
   const log = makeLogger2(logger);
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: BEGIN_RECOGNIZE_TASK_DESCRIPTION,
     toolName: BEGIN_RECOGNIZE_TASK,
@@ -58393,6 +58444,17 @@ function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, logger, abortSign
       try {
         const taskId = await beginRecognizePlan(appDataDir, folderPathInPosix, fs);
         log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RECOGNIZE_TASK}] Task created successfully`);
+        const fullPlanPath = planFilePath(appDataDir, taskId);
+        const planFilePathInPosix = Path.posix(fullPlanPath);
+        const data = {
+          taskId,
+          planFilePath: planFilePathInPosix
+        };
+        emit({
+          event: RecognizeMediaFilePlanReady.event,
+          data
+        });
+        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[DIAG] begin-recognize-task: plan created, RecognizeMediaFilePlanReady broadcast sent`);
         return toolOk({ taskId });
       } catch (error48) {
         log.error({
@@ -58533,10 +58595,10 @@ function createChatTools(args) {
     [GET_MEDIA_FOLDERS]: buildGetMediaFoldersTool(userConfig, abortSignal),
     [LIST_FILES_IN_MEDIA_FOLDER]: buildListFilesInMediaFolderTool(userConfig, abortSignal),
     [RENAME_FOLDER]: buildRenameFolderTool(clientId, syntheticConfig, abortSignal, acknowledge),
-    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
+    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, broadcast, logger, abortSignal),
     [ADD_RENAME_FILE_TO_TASK]: buildAddRenameFileToTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
     [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
-    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, logger, abortSignal),
+    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
     [ADD_RECOGNIZED_MEDIA_FILE]: buildAddRecognizedMediaFileTool(clientId, config2.appDataDir, fs, logger, abortSignal),
     [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal)
   };
@@ -60326,6 +60388,12 @@ var HOP_BY_HOP_RESPONSE_HEADERS = new Set([
 var PROXY_CONTROL_HEADERS = new Set([
   "x-smm-proxy-upstream-baseurl"
 ]);
+var CONDITIONAL_REQUEST_HEADERS = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since"
+]);
 function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
   const base = new URL(upstreamBaseURL);
   const basePath = base.pathname.replace(/\/+$/, "");
@@ -60356,6 +60424,8 @@ function filterRequestHeaders(request, upstreamUrl) {
     if (HOP_BY_HOP_REQUEST_HEADERS.has(lowerKey))
       return;
     if (PROXY_CONTROL_HEADERS.has(lowerKey))
+      return;
+    if (CONDITIONAL_REQUEST_HEADERS.has(lowerKey))
       return;
     headers.set(key, value);
   });
@@ -60623,6 +60693,12 @@ var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
   "upgrade",
   "host"
 ]);
+var CONDITIONAL_REQUEST_HEADERS2 = new Set([
+  "if-none-match",
+  "if-modified-since",
+  "if-match",
+  "if-unmodified-since"
+]);
 var STRIPPED_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length"
@@ -60649,11 +60725,26 @@ function buildOutgoingHeaders(request) {
     const lowerKey = key.toLowerCase();
     if (HOP_BY_HOP_REQUEST_HEADERS2.has(lowerKey))
       return;
+    if (CONDITIONAL_REQUEST_HEADERS2.has(lowerKey))
+      return;
     if (lowerKey === "accept-encoding")
       return;
     headers[key] = value;
   });
   return headers;
+}
+function toFetchApiStatus(statusCode) {
+  const status = statusCode ?? 502;
+  if (status === 304)
+    return 200;
+  return status;
+}
+function createNodeHttpResponse(body, statusCode, statusMessage, sourceHeaders, bodyLength) {
+  return new Response(body, {
+    status: toFetchApiStatus(statusCode),
+    statusText: statusMessage ?? "",
+    headers: buildResponseHeaders(sourceHeaders, bodyLength)
+  });
 }
 function buildResponseHeaders(source, bodyLength) {
   const headers = new Headers;
@@ -60707,11 +60798,7 @@ function requestViaNodeHttp(request) {
             const wireBody = Buffer.concat(chunks);
             const body = await decompressBody(wireBody, res.headers["content-encoding"]);
             const bodyBytes = Buffer.from(body);
-            resolve2(new Response(bodyBytes, {
-              status: res.statusCode ?? 502,
-              statusText: res.statusMessage ?? "",
-              headers: buildResponseHeaders(res.headers, bodyBytes.length)
-            }));
+            resolve2(createNodeHttpResponse(bodyBytes, res.statusCode, res.statusMessage, res.headers, bodyBytes.length));
           } catch (error48) {
             reject(error48);
           }
@@ -60756,25 +60843,16 @@ function requestViaNodeHttpStreaming(request) {
   const headers = buildOutgoingHeaders(request);
   return new Promise((resolve2, reject) => {
     const onResponse = (res) => {
-      const respHeaders = buildResponseHeaders(res.headers);
       const contentEncoding = res.headers["content-encoding"];
       const decompressor = decompressorFor(contentEncoding);
       if (decompressor) {
         const decompressed = res.pipe(decompressor);
         decompressor.on("error", reject);
         const webStream = Readable2.toWeb(decompressed);
-        resolve2(new Response(webStream, {
-          status: res.statusCode ?? 502,
-          statusText: res.statusMessage ?? "",
-          headers: respHeaders
-        }));
+        resolve2(createNodeHttpResponse(webStream, res.statusCode, res.statusMessage, res.headers));
       } else {
         const webStream = Readable2.toWeb(res);
-        resolve2(new Response(webStream, {
-          status: res.statusCode ?? 502,
-          statusText: res.statusMessage ?? "",
-          headers: respHeaders
-        }));
+        resolve2(createNodeHttpResponse(webStream, res.statusCode, res.statusMessage, res.headers));
       }
     };
     (async () => {
@@ -61474,6 +61552,10 @@ async function doUpdatePlan(body, config2 = { allowlist: [] }) {
     return { error: `Error Reason: Plan with id "${id}" not found` };
   }
   return { data: { plan } };
+}
+// src/cleanup.ts
+async function cleanupStalePlans(appDataDir, fs = defaultChatFs(), logger) {
+  return cleanPreparingPlans(appDataDir, fs, logger);
 }
 // src/downloadImage.ts
 import { Buffer as Buffer2 } from "node:buffer";
@@ -65977,6 +66059,17 @@ class Server2 extends Protocol {
           }
           return taskValidationResult.data;
         }
+        if (typeof result === "object" && result !== null && "content" in result) {
+          const content0 = result.content?.[0];
+          console.error("[DIAG-SRV] result keys:", Object.keys(result));
+          console.error("[DIAG-SRV] content[0]:", JSON.stringify(content0));
+          console.error("[DIAG-SRV] content[0].text typeof:", typeof content0?.text);
+          if (content0?.text !== undefined) {
+            console.error("[DIAG-SRV] content[0].text length:", content0.text.length);
+          }
+        } else {
+          console.error("[DIAG-SRV] result has NO content:", JSON.stringify(result));
+        }
         const validationResult = safeParse3(CallToolResultSchema, result);
         if (!validationResult.success) {
           const errorMessage = validationResult.error instanceof Error ? validationResult.error.message : String(validationResult.error);
@@ -67665,7 +67758,7 @@ function isVideoFile2(filePath) {
 // src/mcp/toolHandlers/beginRecognizeTask.ts
 function registerBeginRecognizeTaskTool(server, config2) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.logger, undefined);
+  const agentTool = buildBeginRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     mediaFolderPath: exports_external.string().describe("The absolute path of the media folder")
   });
@@ -67702,7 +67795,7 @@ function registerBeginRecognizeTaskTool(server, config2) {
 // src/mcp/toolHandlers/beginRenameTask.ts
 function registerBeginRenameTaskTool(server, config2, deps) {
   const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRenameFilesTaskTool("mcp", config2.appDataDir, fs, deps, config2.logger, undefined);
+  const agentTool = buildBeginRenameFilesTaskTool("mcp", config2.appDataDir, fs, deps, config2.broadcast, config2.logger, undefined);
   const inputSchema = exports_external.object({
     mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, in POSIX or Windows format")
   });
@@ -67729,6 +67822,10 @@ function registerBeginRenameTaskTool(server, config2, deps) {
           mediaFolderPath: Path.posix(mediaFolderPath)
         });
       }
+      config2.logger?.error?.({
+        resultType: typeof result,
+        resultKeys: typeof result === "object" && result !== null ? Object.keys(result) : []
+      }, `[tool][${BEGIN_RENAME_FILES_TASK}] Unexpected agent tool result shape`);
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(`Error starting rename task: ${error48 instanceof Error ? error48.message : String(error48)}`);
@@ -67933,7 +68030,7 @@ function registerGetEpisodesTool(server, config2) {
         allowlist: [],
         hello: {
           version: "0.0.0",
-          userDataDir: config2.appDataDir,
+          userDataDir: config2.userDataDir,
           appDataDir: config2.appDataDir,
           logDir: "",
           tmpDir: "",
@@ -68093,7 +68190,7 @@ function registerRenameFolderTool(server, config2) {
         allowlist: [],
         hello: {
           version: "0.0.0",
-          userDataDir: config2.appDataDir,
+          userDataDir: config2.userDataDir,
           appDataDir: config2.appDataDir,
           logDir: "",
           tmpDir: "",
@@ -68105,6 +68202,19 @@ function registerRenameFolderTool(server, config2) {
         logger: config2.logger
       };
       const result = await executeRenameFolder({ from: params.from, to: params.to }, syntheticConfig);
+      if (result.renamed) {
+        config2.broadcast?.({
+          event: USER_CONFIG_FOLDER_RENAMED_EVENT,
+          data: {
+            from: result.from,
+            to: result.to
+          }
+        });
+        config2.broadcast?.({
+          event: USER_CONFIG_UPDATED_EVENT,
+          data: {}
+        });
+      }
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
@@ -68261,7 +68371,9 @@ async function createMcpStreamableHttpHandler(config2) {
   registerListFilesTool(server, config2);
   registerGetMediaMetadataTool(server, config2);
   registerStaticTextTools(server, config2);
-  registerRenameFolderTool(server, config2);
+  if (!config2.disabledTools?.includes(RENAME_FOLDER)) {
+    registerRenameFolderTool(server, config2);
+  }
   registerBeginRenameTaskTool(server, config2, renameFilesTaskDeps);
   registerAddRenameFileTool(server, config2, renameFilesTaskDeps);
   registerEndRenameTaskTool(server, config2, renameFilesTaskDeps);
@@ -68291,6 +68403,8 @@ function createErrorResponse(message) {
     isError: true
   };
 }
+// src/mcp/index.ts
+var MCP_TOOL_NAMES = { RENAME_FOLDER };
 export {
   validateUpstreamBaseURL,
   validatePathIsInAllowlist,
@@ -68363,12 +68477,15 @@ export {
   createCoreRoutesRequestHandler,
   createChatTools,
   coreRouteHandlers,
+  cleanupStalePlans,
+  cleanPreparingPlans,
   checkFolderPathAvailable,
   checkFileIsReadable,
   buildUpstreamUrl,
   applyMcpLifecycleFromConfig,
   PORT_RANGE_START,
   PORT_RANGE_END,
+  MCP_TOOL_NAMES,
   ExistedFileError,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS
 };

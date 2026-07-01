@@ -28,6 +28,18 @@ export interface McpConfig {
   appDataDir: string;
 
   /**
+   * User data dir used to locate `smm.json` (the {@link UserConfig}
+   * file). On Linux (XDG) this is `~/.config/smm`, distinct from
+   * `appDataDir` (`~/.local/share/smm`); on Windows and macOS the
+   * two paths are the same. MCP tool handlers that need to look up
+   * managed folders must read user config from this path — using
+   * `appDataDir` here would silently break managed-folder checks on
+   * Linux (see PR fixing `get-episodes` / `rename-folder` synthetic
+   * config).
+   */
+  userDataDir: string;
+
+  /**
    * Socket.IO broadcast for fire-and-forget UI notifications
    * (`RenameFilesPlanReady`, `RecognizeMediaFilePlanReady`, etc.).
    */

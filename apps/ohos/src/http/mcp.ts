@@ -31,6 +31,15 @@ let mcpHandlerPromise: Promise<McpRequestHandler> | null = null
 
 export interface CreateMcpHandlerOptions {
   appDataDir: string
+  /**
+   * User data dir used to locate `smm.json`. OHOS Electron
+   * (`buildHelloConfig`) currently sets `appDataDir == userDataDir`
+   * (both come from `app.getPath("userData")`), but the MCP tool
+   * handlers still need both fields to construct the synthetic
+   * `CoreRoutesConfig` used by `isMediaFolderManaged` — see
+   * `packages/core-routes/src/mcp/types.ts`.
+   */
+  userDataDir: string
   getUserConfig: () => Promise<UserConfig>
   /** Returns the live Socket.IO manager. May return `null` before the
    *  manager is constructed (the OHOS server boots the manager
@@ -80,6 +89,7 @@ export function getMcpHandler(
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
+      userDataDir: options.userDataDir,
       activatePersistedFileAccess: options.activatePersistedFileAccess,
       // HarmonyOS cannot rename folders — the sandbox denies the
       // operation regardless of `user_config.selectedFolder`, so

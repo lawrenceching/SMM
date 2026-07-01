@@ -321,6 +321,7 @@ export async function startMainHttpServer(): Promise<void> {
       // response on its own.
       void       handleMcpRequest(req, res, {
         appDataDir: ohosAppDataDir,
+        userDataDir: userDataDir,
         getUserConfig: ohosGetUserConfig,
         getSocketManager: () => socketManager,
         logger: createCoreRoutesLogger(),
