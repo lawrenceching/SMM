@@ -3,7 +3,7 @@ import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/type
 import type { Hono } from "hono";
 import { logger } from "../../lib/logger";
 import { buildAllowlist } from "@/utils/buildAllowlist";
-import { getAppDataDir } from "@/utils/config";
+import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import { broadcast } from "../utils/socketIO";
 
 const coreRoutesLogger = {
@@ -23,6 +23,7 @@ export async function processRenameFiles(
     {
       allowlist,
       appDataDir: getAppDataDir(),
+      hello: { userDataDir: getUserDataDir(), appDataDir: getAppDataDir() },
       logger: coreRoutesLogger,
       broadcast: (message) => broadcast(message),
     },
