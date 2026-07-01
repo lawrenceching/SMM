@@ -233,6 +233,61 @@ describe('run — env', () => {
   });
 });
 
+describe('run — afterEach', () => {
+  test('afterEach runs after each task with CICD context env', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "mkdir %CICD_OUTPUT_DIR%\\%CICD_TASK_NAME% 2>nul & echo %CICD_TASK_NAME%>%CICD_OUTPUT_DIR%\\%CICD_TASK_NAME%\\hook-ran.txt"'
+      : 'node -e "const fs=require(\'fs\');const p=process.env.CICD_OUTPUT_DIR+\'/\'+process.env.CICD_TASK_NAME;fs.mkdirSync(p,{recursive:true});fs.writeFileSync(p+\'/hook-ran.txt\',process.env.CICD_TASK_NAME)"';
+
+    const configPath = writeConfig({
+      name: 'hooks',
+      outputDir: path.join(tmpRoot, 'out'),
+      afterEach: [{ name: 'record', command: hookCommand }],
+      tasks: [
+        { name: 'first', command: isWindows() ? 'cmd /c echo first-task' : 'sh -c "echo first-task"' },
+        { name: 'second', command: isWindows() ? 'cmd /c echo second-task' : 'sh -c "echo second-task"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+
+    expect(
+      fs.readFileSync(path.join(result.outputDir, 'first/hook-ran.txt'), 'utf8').trim(),
+    ).toBe('first');
+    expect(
+      fs.readFileSync(path.join(result.outputDir, 'second/hook-ran.txt'), 'utf8').trim(),
+    ).toBe('second');
+  });
+
+  test('afterEach runs after failed task even when stopOnFailure stops later tasks', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "mkdir %CICD_OUTPUT_DIR%\\%CICD_TASK_NAME% 2>nul & echo ran>%CICD_OUTPUT_DIR%\\%CICD_TASK_NAME%\\hook-ran.txt"'
+      : 'node -e "const fs=require(\'fs\');const p=process.env.CICD_OUTPUT_DIR+\'/\'+process.env.CICD_TASK_NAME;fs.mkdirSync(p,{recursive:true});fs.writeFileSync(p+\'/hook-ran.txt\',\'ran\')"';
+
+    const configPath = writeConfig({
+      name: 'hooks-on-fail',
+      outputDir: path.join(tmpRoot, 'out'),
+      stopOnFailure: true,
+      afterEach: [{ name: 'record', command: hookCommand }],
+      tasks: [
+        { name: 'fails', command: isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"' },
+        { name: 'never-runs', command: isWindows() ? 'cmd /c echo x' : 'sh -c "echo x"' },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults.map((r) => r.name)).toEqual(['fails']);
+    expect(
+      fs.existsSync(path.join(result.outputDir, 'fails/hook-ran.txt')),
+    ).toBe(true);
+    expect(
+      fs.existsSync(path.join(result.outputDir, 'never-runs/hook-ran.txt')),
+    ).toBe(false);
+  });
+});
+
 describe('run — config errors', () => {
   test('invalid config throws with structured errors', async () => {
     const configPath = writeConfig({

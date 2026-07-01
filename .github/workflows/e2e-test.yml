@@ -84,20 +84,11 @@ jobs:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
-      - name: Upload E2E logs
+      - name: Upload E2E logs and reports
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
           path: artifacts/cicd/
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Upload WDIO test reports
-        if: always() && steps.e2e.outcome != 'skipped'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_prefix }}-reports-${{ github.run_id }}
-          path: apps/e2e/reports/
           if-no-files-found: ignore
           retention-days: 7

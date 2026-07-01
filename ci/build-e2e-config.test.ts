@@ -117,7 +117,7 @@ describe('buildE2eConfig', () => {
     expect(wdioTasks[0]!.command).toContain('./test/specs/hello.e2e.ts');
   });
 
-  test('sets config-level env and omits per-task env on wdio tasks', () => {
+  test('sets config-level env and afterEach report collector', () => {
     const config = buildE2eConfig(
       ['--spec', './test/specs/hello.e2e.ts'],
       ROOT,
@@ -129,7 +129,21 @@ describe('buildE2eConfig', () => {
     });
 
     const wdioTasks = config.tasks.filter((task) => task.name !== 'wait-ready');
-    expect(wdioTasks.every((task) => task.env === undefined)).toBe(true);
+    expect(wdioTasks).toEqual([
+      {
+        name: 'hello.e2e.ts',
+        command: expect.stringContaining('./test/specs/hello.e2e.ts'),
+        cwd: path.join(ROOT, 'apps/e2e'),
+      },
+    ]);
+
+    expect(config.afterEach).toEqual([
+      {
+        name: 'collect-wdio-report',
+        command: 'bun ci/collect-wdio-report.ts',
+        cwd: ROOT,
+      },
+    ]);
   });
 
   test('uses e2e:cli (start script) for the CLI background task', () => {

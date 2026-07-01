@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Config } from './config.ts';
+import type { Config, Hook } from './config.ts';
 import type { TaskRecord } from './types.ts';
 import { DebugLog } from './debug-log.ts';
 import { LogStore } from './log-store.ts';
@@ -23,6 +23,95 @@ function buildChildEnv(
   itemEnv: Record<string, string> | undefined,
 ): NodeJS.ProcessEnv {
   return { ...process.env, ...configEnv, ...itemEnv };
+}
+
+async function runHook(
+  hook: Hook,
+  options: {
+    config: Config;
+    outputDir: string;
+    taskName: string;
+    taskExitCode: number;
+    debugLog: DebugLog;
+  },
+): Promise<void> {
+  const { config, outputDir, taskName, taskExitCode, debugLog } = options;
+
+  debugLog.emit('after_each_start', {
+    hookName: hook.name,
+    taskName,
+    taskExitCode,
+    command: hook.command,
+  });
+
+  const child = spawnChild({
+    command: hook.command,
+    args: [],
+    cwd: hook.cwd ?? process.cwd(),
+    env: buildChildEnv(config.env, {
+      ...hook.env,
+      CICD_TASK_NAME: taskName,
+      CICD_OUTPUT_DIR: outputDir,
+      CICD_TASK_EXIT_CODE: String(taskExitCode),
+    }),
+    onStdout: (chunk) => process.stdout.write(chunk),
+    onStderr: (chunk) => process.stderr.write(chunk),
+  });
+
+  let exitCode = 1;
+
+  if (hook.timeoutMs !== undefined) {
+    const timeoutHandle = setTimeout(() => {
+      debugLog.emit('after_each_timeout', {
+        hookName: hook.name,
+        taskName,
+        timeoutMs: hook.timeoutMs,
+      });
+      void killTreeAndWait(child, 1000, {
+        log: debugLog,
+        label: hook.name,
+        reason: 'after_each_timeout',
+      });
+    }, hook.timeoutMs);
+    const exitResult = await waitForChildExit(child);
+    clearTimeout(timeoutHandle);
+    exitCode = exitResult.exitCode;
+  } else {
+    const exitResult = await waitForChildExit(child);
+    exitCode = exitResult.exitCode;
+  }
+
+  if (
+    !child.spawnFailed &&
+    child.proc &&
+    child.proc.exitCode !== null
+  ) {
+    exitCode = child.proc.exitCode;
+  } else if (child.proc?.signalCode !== null) {
+    exitCode = 1;
+  }
+
+  debugLog.emit('after_each_end', {
+    hookName: hook.name,
+    taskName,
+    exitCode,
+    spawnFailed: child.spawnFailed,
+  });
+}
+
+async function runAfterEachHooks(
+  hooks: Hook[],
+  options: {
+    config: Config;
+    outputDir: string;
+    taskName: string;
+    taskExitCode: number;
+    debugLog: DebugLog;
+  },
+): Promise<void> {
+  for (const hook of hooks) {
+    await runHook(hook, options);
+  }
 }
 
 export async function runOrchestrator(
@@ -228,6 +317,16 @@ export async function runOrchestrator(
       endTime,
       timedOut,
     });
+
+    if (config.afterEach.length > 0) {
+      await runAfterEachHooks(config.afterEach, {
+        config,
+        outputDir,
+        taskName: task.name,
+        taskExitCode: exitCode,
+        debugLog,
+      });
+    }
 
     if (exitCode !== 0 && config.stopOnFailure) {
       stopRequested = true;

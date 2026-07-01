@@ -4,6 +4,7 @@ import {createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
 import page from 'test/pageobjects/page'
+import { logTvShowHeaderLayoutDiagnostics } from '../../lib/tvShowHeaderLayoutDiagnostics'
 
 describe('TVShow - Rename By Plan', () => {
 
@@ -47,6 +48,9 @@ describe('TVShow - Rename By Plan', () => {
     await Sidebar.clickFolder(folder.folderName)
     await TvShowPanelCO.waitForTable(30000)
 
+    await logTvShowHeaderLayoutDiagnostics(
+      'RenameByPlan: before rename-button click',
+    )
     await TvShowPanelCO.renameButton.waitForClickable({ timeout: 10000 })
     await TvShowPanelCO.renameButton.click()
 

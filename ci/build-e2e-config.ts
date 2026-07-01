@@ -156,6 +156,13 @@ export function buildE2eConfig(wdioArgs: string[], repoRoot: string): Config {
       },
       ...buildWdioTasks(specPaths, otherArgs, e2eRoot),
     ],
+    afterEach: [
+      {
+        name: 'collect-wdio-report',
+        command: 'bun ci/collect-wdio-report.ts',
+        cwd: repoRoot,
+      },
+    ],
     stopOnFailure: false,
     keepRawTimeline: true,
   };

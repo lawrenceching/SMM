@@ -49,6 +49,30 @@ describe('parseConfig', () => {
     }
   });
 
+  test('accepts afterEach hooks', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+      afterEach: [{ name: 'cleanup', command: 'echo done' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.afterEach).toHaveLength(1);
+      expect(result.config.afterEach[0]?.name).toBe('cleanup');
+    }
+  });
+
+  test('defaults afterEach to empty array', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.afterEach).toEqual([]);
+    }
+  });
+
   test('rejects missing tasks', () => {
     const result = parseConfig({ name: 'broken' });
     expect(result.ok).toBe(false);

@@ -10,6 +10,7 @@ import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import page from 'test/pageobjects/page'
 import Sidebar from 'test/componentobjects/Sidebar'
 import Prompts from 'test/componentobjects/Prompts'
+import { logTvShowHeaderLayoutDiagnostics } from '../../lib/tvShowHeaderLayoutDiagnostics'
 
 describe('TVShow - Recognize By Plan', () => {
   let planFilePath: string | null = null
@@ -105,6 +106,9 @@ S01E12 - - - -`)
     await Sidebar.clickFolder(folder.folderName)
 
     await Prompts.aiBasedRecognizePrompt.waitForDisplayed({ timeout: 10000 })
+    await logTvShowHeaderLayoutDiagnostics(
+      'RecognizeByPlan/AI-plan: after prompt visible, before confirm (control — no recognize-button click)',
+    )
     await Prompts.confirmButton.waitForClickable({ timeout: 10000 })
     await Prompts.confirmButton.click()
 
@@ -170,6 +174,9 @@ S01E11 - - - -
 S01E12 - - - -`)
 
 
+    await logTvShowHeaderLayoutDiagnostics(
+      'RecognizeByPlan/rule-based: before recognize-button click',
+    )
     await TvShowPanelCO.recognizeButton.click()
     await Prompts.confirmButton.waitForDisplayed({ timeout: 10000 })
     await Prompts.confirmButton.waitForClickable({ timeout: 10000 })
