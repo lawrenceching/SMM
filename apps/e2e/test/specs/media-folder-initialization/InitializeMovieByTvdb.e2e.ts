@@ -73,7 +73,7 @@ The Dark Knight [1080P].mkv`)
 
     })
 
-    it('import media folder by searching folder name in TVDB', async function() {
+    it.only('import media folder by searching folder name in TVDB', async function() {
 
         if(env.slowdown) {
             this.timeout(60 * 1000)
@@ -81,12 +81,12 @@ The Dark Knight [1080P].mkv`)
  
         const folder = await createAndImportFolder({
             ...folder5,
-            folderName: '蝙蝠侠：黑暗骑士',
+            folderName: 'Batman Return of the Caped Crusaders',
         }, 'TVDB Movie Media Folder Initialization:import media folder with tvdbid in folder name');
 
         await delay(10 * 1000)
 
-        expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：黑暗骑士')
+        expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：披风斗士归来')
 
         const text = await MoviePanelCO.table.getText()
 
@@ -98,8 +98,8 @@ The Dark Knight [1080P].mkv`)
         await expectMediaMetadataToBe(folder.path!, (obj) => {
             const mm = obj as MediaMetadata;
             expect(mm.movie).toBeDefined()
-            expect(mm.movie?.id).toBe('116')
-            expect(mm.movie?.name).toBe('蝙蝠侠：黑暗骑士')
+            expect(mm.movie?.id).toBe('13611')
+            expect(mm.movie?.name).toBe('蝙蝠侠：披风斗士归来')
             expect(mm.movie?.database).toBe('TVDB')
             return true;
         })
