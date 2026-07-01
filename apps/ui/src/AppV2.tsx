@@ -15,9 +15,11 @@ import { AppWarningBanner } from "./components/AppWarningBanner"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import { FolderNotAvailablePanel } from "./components/FolderNotAvailablePanel"
+import { ErrorLoadingPanel } from "./components/ErrorLoadingPanel"
 import TvShowPanel from "./components/tv/TvShowPanel"
 import MoviePanel from "./components/movie/MoviePanel"
 import { LocalFilePanel } from "./components/LocalFilePanel"
+import { logger } from "@/lib/log"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 import { useFeatures } from "@/hooks/useFeatures"
@@ -89,14 +91,24 @@ function AppV2Content() {
 
   // Dialogs
   const { openFolderDialog, filePickerDialog } = useDialogs()
+  const queryClient = useQueryClient()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
-  const queryClient = useQueryClient()
   const folderStatus = useUIMediaFolderStore((s) => s.folders.find(f => f.path === selectedFolder)?.status)
+  const folderType = useUIMediaFolderStore((s) => s.folders.find(f => f.path === selectedFolder)?.type)
 
   // Media metadata
-  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined, { defaultType: folderType })
 
+
+  // Log error when metadata is loaded but type is missing (e.g. race condition during import)
+  useEffect(() => {
+    if (selectedMediaMetadata && selectedMediaMetadata.type === undefined) {
+      logger.error(
+        `[AppV2] selectedMediaMetadata.type is undefined for folder: ${selectedFolder ?? "(none)"}, folderStatus: ${folderStatus ?? "(none)"}`,
+      )
+    }
+  }, [selectedMediaMetadata, selectedMediaMetadata?.type, selectedFolder, folderStatus])
   /** When metadata loads with a selection but folder store is still empty, align store (e.g. restored index). */
   useEffect(() => {
     const path = selectedMediaMetadata?.mediaFolderPath
@@ -347,9 +359,13 @@ function AppV2Content() {
                                   <MusicPanel />
                                 </div>
                               )}
+                              {selectedMediaMetadata.type === undefined && (
+                                <ErrorLoadingPanel />
+                              )}
                               {selectedMediaMetadata.type !== "tvshow-folder" 
                               && selectedMediaMetadata.type !== "movie-folder"
                               && selectedMediaMetadata.type !== "music-folder" 
+                              && selectedMediaMetadata.type !== undefined
                               && (folderStatus === "ok" || folderStatus === "error_loading_metadata")
                               && (
                                 <LocalFilePanel mediaFolderPath={selectedMediaMetadata.mediaFolderPath} />

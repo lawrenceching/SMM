@@ -15,7 +15,7 @@ export class MediaMetadataRepository {
   /**
    * Read media metadata from cache, with fallback to blank metadata and file listing
    */
-  async read(pathPosix: string, options?: { traceId?: string }): Promise<MediaMetadata> {
+  async read(pathPosix: string, options?: { traceId?: string; defaultType?: MediaMetadata["type"] }): Promise<MediaMetadata> {
     return readMediaMetadataV2(pathPosix, options || {});
   }
 

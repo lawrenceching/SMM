@@ -12,21 +12,23 @@ export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: str
 }
 
 
-function blankMediaMetadata(path: string): MediaMetadata {
-    return {
+function blankMediaMetadata(path: string, defaultType?: MediaMetadata["type"]): MediaMetadata {
+    const mm: MediaMetadata = {
         mediaFolderPath: path,
         files: [],
         mediaFiles: [],
-    };
+    }
+    if (defaultType) mm.type = defaultType
+    return mm
 }
 
-export async function readMediaMetadataV2(pathPosix: string, { traceId }: { traceId?: string } = {}): Promise<MediaMetadata> {
+export async function readMediaMetadataV2(pathPosix: string, { traceId, defaultType }: { traceId?: string; defaultType?: MediaMetadata["type"] } = {}): Promise<MediaMetadata> {
   
     const systemConfig = await hello();
     const mediaMetadataFilePath = metadataCacheFilePath(systemConfig.appDataDir, pathPosix);
     const readFileResponseBody = await readFile(mediaMetadataFilePath);
 
-    let mediaMetadata: MediaMetadata = blankMediaMetadata(pathPosix);
+    let mediaMetadata: MediaMetadata = blankMediaMetadata(pathPosix, defaultType);
 
     if(readFileResponseBody.error) {
         if(isError(readFileResponseBody.error, FileNotFoundError)) {

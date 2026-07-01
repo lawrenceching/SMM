@@ -1,0 +1,47 @@
+{
+    "name": "SMM Development",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "args": {
+            "PNPM_VERSION": "10.29.3"
+        }
+    },
+    // Ports used by the dev servers
+    "forwardPorts": [5173, 30000, 3001],
+    "portsAttributes": {
+        "5173": { "label": "Vite Dev Server" },
+        "30000": { "label": "SMM CLI (Hono)" },
+        "3001": { "label": "SMM CLI (alt)" }
+    },
+    // Container env vars — overrides Dockerfile ENV for dev session
+    "remoteEnv": {
+        "BUILD_ENV": "docker",
+        "CHROME_BIN": "/usr/bin/google-chrome",
+        "CHROMEDRIVER": "/usr/bin/chromedriver",
+        "SMM_AUTH_ENABLED": "true",
+        "SMM_AUTH_TOKEN": "ChangeMe123"
+    },
+    // Extensions useful for this project
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "EditorConfig.EditorConfig",
+                "ms-vscode.vscode-typescript-next",
+                "vitest.explorer",
+                "oven.bun-vscode"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "editor.defaultFormatter": "esbenp.prettier-vscode",
+                "typescript.enablePromptUseWorkspaceTsdk": true
+            }
+        }
+    },
+    // Installs dependencies on first open (and after git pull / branch switch)
+    "postCreateCommand": "pnpm install",
+    // Avoid running as 'seluser' (selenium image's default user)
+    "remoteUser": "root"
+}

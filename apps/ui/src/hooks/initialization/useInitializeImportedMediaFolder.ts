@@ -72,13 +72,18 @@ export function useInitializeImportedMediaFolder() {
 
     const jobId = useRef<string | null>(null);
 
-    const onStart = useCallback((folder: string) => {
+    const onStart = useCallback((folder: string, folderType: FolderType) => {
         const _jobId = addJob(`初始化 ${new Path(folder).name()}`);
         updateJob(_jobId, { status: "running", progress: 50 });
         jobId.current = _jobId;
+        const mediaType: MediaMetadata["type"] =
+            folderType === "tvshow" ? "tvshow-folder"
+            : folderType === "movie" ? "movie-folder"
+            : "music-folder"
         upsertFolder({
             path: folder,
             status: "initializing",
+            type: mediaType,
         })
         logger.info(`move status to initializing for folder: ${folder}`)
 
@@ -432,7 +437,7 @@ export function useInitializeImportedMediaFolder() {
 
             await persistHarmonyOSFileAccess([folderPathInPlatformFormat]);
 
-            onStart(folderPathInPlatformFormat);
+            onStart(folderPathInPlatformFormat, type);
 
             await withTimeout(async () => {
                 await doInitialization(folderPathInPlatformFormat, type, traceId);

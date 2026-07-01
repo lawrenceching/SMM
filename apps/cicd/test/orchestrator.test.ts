@@ -36,7 +36,7 @@ describe('run — happy path', () => {
           name: 'ticker',
           command: isWindows()
             ? 'cmd /c "for /L %i in (1,1,30) do echo tick&ping -n 1 127.0.0.1 > nul"'
-            : 'sh -c "for i in 1 2 3; do echo tick; sleep 0.05; done"',
+            : 'sh -c "for i in 1 2 3 4 5 6 7 8 9 10; do echo tick; sleep 0.05; done"',
           delayMs: 200,
         },
       ],
@@ -316,7 +316,7 @@ describe('run — spawn failures', () => {
     const result = await run({ configPath, cwd: tmpRoot });
     expect(result.exitCode).toBe(1);
     expect(result.taskResults).toHaveLength(1);
-    expect(result.taskResults[0]!.exitCode).toBe(1);
+    expect(result.taskResults[0]!.exitCode).not.toBe(0); // shell returns 1 (Win cmd) or 127 (Unix sh)
     expect(Date.now() - start).toBeLessThan(5000);
   });
 });

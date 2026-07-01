@@ -6,7 +6,7 @@ export function useFetchMediaMetadataMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (vars: { path: string; traceId?: string }): Promise<MediaMetadata> => {
-      const { queryKey, queryFn } = mediaMetadataReadQueryOptions(vars.path, vars.traceId)
+      const { queryKey, queryFn } = mediaMetadataReadQueryOptions(vars.path, { traceId: vars.traceId })
       return queryClient.fetchQuery({ queryKey, queryFn })
     },
   })

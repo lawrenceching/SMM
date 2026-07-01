@@ -13,11 +13,11 @@ export function normalizeMediaFolderPathForQuery(path: string): string {
 }
 
 /** Shared options for `useQuery` / `queryClient.fetchQuery` so cache identity matches. */
-export function mediaMetadataReadQueryOptions(path: string, traceId?: string) {
+export function mediaMetadataReadQueryOptions(path: string, opts?: { traceId?: string; defaultType?: import("@core/types").MediaMetadata["type"] }) {
   const folderPathPosix = normalizeMediaFolderPathForQuery(path)
   return {
     queryKey: mediaMetadataQueryKey(folderPathPosix),
     queryFn: (): Promise<MediaMetadata> =>
-      mediaMetadataRepository.read(folderPathPosix, traceId ? { traceId } : {}),
+      mediaMetadataRepository.read(folderPathPosix, opts ?? {}),
   }
 }

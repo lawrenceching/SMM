@@ -20,4 +20,6 @@ export interface UIMediaFolder {
   status: UIMediaFolderStatus
   /** Test-only folder; may be handled differently in UI logic. */
   test?: boolean
+  /** Media folder type, set during import to guide initial metadata loading */
+  type?: "music-folder" | "tvshow-folder" | "movie-folder"
 }
