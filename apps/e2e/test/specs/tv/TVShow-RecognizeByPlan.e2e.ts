@@ -39,11 +39,6 @@ describe('TVShow - Recognize By Plan', () => {
   it('shows AI recognize prompt, confirms plan, and applies recognition (plan no longer pending)', async function () {
     this.timeout(90 * 1000)
 
-    /**
-     * Maximize window to avoid recognize button is folded in "More" menu and not visible
-     */
-    await browser.maximizeWindow();
-
     const folder = createFolderInTestFolder({
       ...folder1,
       folderName: "UnKnown Folder 123123123123",
@@ -136,11 +131,6 @@ S01E12 - - - -`)
 
   it('shows rule-based recognize prompt, confirms plan', async function () {
     this.timeout(1 * 60 * 1000)
-
-    /**
-     * Maximize window to avoid recognize button is folded in "More" menu and not visible
-     */
-    await browser.maximizeWindow();
 
     const folder = createFolderInTestFolder({
       ...folder1,

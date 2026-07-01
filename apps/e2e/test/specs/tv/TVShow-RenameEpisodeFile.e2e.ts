@@ -92,6 +92,33 @@ async function clickContextMenuItem(labels: string[]) {
   throw new Error(`Context menu item [${labels.join(', ')}] not found`)
 }
 
+function waitForFilesInFolder(
+  folderPath: string,
+  options: {
+    mustInclude: string[]
+    mustExclude: string[]
+    timeout?: number
+  },
+): Promise<void> {
+  const { mustInclude, mustExclude, timeout = 30_000 } = options
+  return browser.waitUntil(
+    () => {
+      const names = fs.readdirSync(folderPath)
+      return (
+        mustInclude.every((name) => names.includes(name)) &&
+        mustExclude.every((name) => !names.includes(name))
+      )
+    },
+    {
+      timeout,
+      interval: 500,
+      timeoutMsg:
+        `Rename did not update files in ${folderPath}. ` +
+        `Expected: ${mustInclude.join(', ')}; removed: ${mustExclude.join(', ')}`,
+    },
+  )
+}
+
 describe('TVShow - Rename Episode File', () => {
   before(createBeforeHook({ setupMediaFolders: true, setupMediaMetadata: false }))
 
@@ -166,8 +193,10 @@ describe('TVShow - Rename Episode File', () => {
     await RenameDialog.waitForClosed()
     console.log('Rename dialog closed after confirm')
 
-    // Allow time for the batch file system rename to complete
-    await delay(2000)
+    await waitForFilesInFolder(testMediaFolder, {
+      mustInclude: [RENAMED_FILE_NAME, ...RENAMED_ASSOCIATED_FILES],
+      mustExclude: [EPISODE_FILE_NAME, ...ASSOCIATED_FILES],
+    })
 
     const filesInMediaFolder = fs.readdirSync(testMediaFolder)
     console.log('Files in media folder after rename:', filesInMediaFolder)

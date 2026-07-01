@@ -32,11 +32,6 @@ describe('TVShow - Rename By Plan', () => {
   it('Rename by AI and then rename by rule', async function () {
     this.timeout(90 * 1000)
 
-    /**
-     * Maximize window to avoid recognize button is folded in "More" menu and not visible
-     */
-    await browser.maximizeWindow();
-
     const folder = createFolderInTestFolder({
       ...folder1,
     })

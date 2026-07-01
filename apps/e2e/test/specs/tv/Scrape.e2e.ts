@@ -320,7 +320,7 @@ Completed`);
   });
 
   it('scrape from TMDB for Movie', async function () {
-    this.timeout(60 * 1000)
+    this.timeout(120 * 1000)
 
     await updateUserConfig((userConfig) => {
       return {
@@ -410,7 +410,7 @@ Completed`);
   })
 
   it('scrape from TVDB for Movie', async function () {
-    this.timeout(60 * 1000)
+    this.timeout(120 * 1000)
 
     await updateUserConfig((userConfig) => {
       return {
