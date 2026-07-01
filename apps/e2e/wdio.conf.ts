@@ -158,6 +158,39 @@ const chromeOptionsForDockerEnv: string[] = [
     '--unsafely-treat-insecure-origin-as-secure=http://*'
 ]
 
+/** CI headless: Chrome launch args alone do not set the WebDriver window; apply via setWindowSize in `before`. */
+export const DEFAULT_E2E_WINDOW_WIDTH = 1920
+export const DEFAULT_E2E_WINDOW_HEIGHT = 1080
+
+export function resolveE2eWindowSize(): { width: number; height: number } | null {
+    const widthEnv = process.env.E2E_WINDOW_WIDTH
+    const heightEnv = process.env.E2E_WINDOW_HEIGHT
+    if (widthEnv && heightEnv) {
+        const width = Number(widthEnv)
+        const height = Number(heightEnv)
+        if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+            return { width, height }
+        }
+    }
+    if (process.env.BUILD_ENV === 'docker') {
+        return { width: DEFAULT_E2E_WINDOW_WIDTH, height: DEFAULT_E2E_WINDOW_HEIGHT }
+    }
+    return null
+}
+
+async function applyE2eWindowSize(): Promise<void> {
+    const target = resolveE2eWindowSize()
+    if (!target) return
+
+    await browser.setWindowSize(target.width, target.height)
+    const rect = await browser.getWindowRect()
+    console.log(
+        `[E2E] setWindowSize ${target.width}x${target.height}; ` +
+            `getWindowRect=${rect.width}x${rect.height}; ` +
+            `inner=${await browser.execute(() => `${window.innerWidth}x${window.innerHeight}`)}`,
+    )
+}
+
 /**
  * https://webdriver.io/docs/capabilities/
  */
@@ -411,6 +444,7 @@ export const config: WebdriverIO.Config = {
      */
     before: async function (_capabilities, specs) {
         registerExpectExtensions();
+        await applyE2eWindowSize();
 
         const browserLogEnabled = process.env.BROWSER_LOG_ENABLED === 'true';
         if (browserLogEnabled) {
