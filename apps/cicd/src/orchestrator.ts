@@ -8,7 +8,7 @@ import { sliceLogFile } from './slicer.ts';
 import {
   spawnChild,
   killTreeAndWait,
-  waitForChildExit,
+  waitForChildExitOrAbort,
   waitForSpawn,
   type ManagedChild,
 } from './process-manager.ts';
@@ -33,9 +33,10 @@ async function runHook(
     taskName: string;
     taskExitCode: number;
     debugLog: DebugLog;
+    signal: AbortSignal;
   },
 ): Promise<void> {
-  const { config, outputDir, taskName, taskExitCode, debugLog } = options;
+  const { config, outputDir, taskName, taskExitCode, debugLog, signal } = options;
 
   debugLog.emit('after_each_start', {
     hookName: hook.name,
@@ -73,12 +74,16 @@ async function runHook(
         reason: 'after_each_timeout',
       });
     }, hook.timeoutMs);
-    const exitResult = await waitForChildExit(child);
+    const result = await waitForChildExitOrAbort(child, signal);
     clearTimeout(timeoutHandle);
-    exitCode = exitResult.exitCode;
+    if (!result.aborted) {
+      exitCode = result.exitCode;
+    }
   } else {
-    const exitResult = await waitForChildExit(child);
-    exitCode = exitResult.exitCode;
+    const result = await waitForChildExitOrAbort(child, signal);
+    if (!result.aborted) {
+      exitCode = result.exitCode;
+    }
   }
 
   if (
@@ -107,17 +112,21 @@ async function runAfterEachHooks(
     taskName: string;
     taskExitCode: number;
     debugLog: DebugLog;
+    signal: AbortSignal;
   },
 ): Promise<void> {
   for (const hook of hooks) {
     await runHook(hook, options);
+    if (options.signal.aborted) return;
   }
 }
 
 export async function runOrchestrator(
   config: Config,
   commandId: string,
+  options: { signal?: AbortSignal } = {},
 ): Promise<OrchestratorResult> {
+  const signal = options.signal ?? new AbortController().signal;
   const outputDir = path.resolve(config.outputDir, String(commandId));
   const timelineDir = path.join(outputDir, '_timeline');
   fs.mkdirSync(timelineDir, { recursive: true });
@@ -133,6 +142,15 @@ export async function runOrchestrator(
     backgroundCount: config.background.length,
     stopOnFailure: config.stopOnFailure,
   });
+
+  // Emit a debug event so operators can see when an abort signal arrived.
+  if (signal.aborted) {
+    debugLog.emit('abort_signal_received', { reason: 'pre-aborted' });
+  } else {
+    signal.addEventListener('abort', () => {
+      debugLog.emit('abort_signal_received', { reason: 'listener' });
+    }, { once: true });
+  }
 
   const logStore = new LogStore(timelineDir);
 
@@ -190,7 +208,21 @@ export async function runOrchestrator(
     0,
   );
   if (maxDelay > 0) {
-    await new Promise((resolve) => setTimeout(resolve, maxDelay));
+    await new Promise<void>((resolve) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+      const timer = setTimeout(resolve, maxDelay);
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        { once: true },
+      );
+    });
   }
 
   // Reject early if any background died during startup.
@@ -271,16 +303,24 @@ export async function runOrchestrator(
           reason: 'task_timeout',
         });
       }, task.timeoutMs);
-      const exitResult = await waitForChildExit(child);
+      const result = await waitForChildExitOrAbort(child, signal);
       clearTimeout(timeoutHandle);
-      closeCode = exitResult.closeCode;
-      closeSignal = exitResult.signal;
-      exitCode = exitResult.exitCode;
+      if (result.aborted) {
+        exitCode = 1;
+      } else {
+        closeCode = result.closeCode;
+        closeSignal = result.signal;
+        exitCode = result.exitCode;
+      }
     } else {
-      const exitResult = await waitForChildExit(child);
-      closeCode = exitResult.closeCode;
-      closeSignal = exitResult.signal;
-      exitCode = exitResult.exitCode;
+      const result = await waitForChildExitOrAbort(child, signal);
+      if (result.aborted) {
+        exitCode = 1;
+      } else {
+        closeCode = result.closeCode;
+        closeSignal = result.signal;
+        exitCode = result.exitCode;
+      }
     }
 
     const endTime = Date.now();
@@ -318,25 +358,31 @@ export async function runOrchestrator(
       timedOut,
     });
 
-    if (config.afterEach.length > 0) {
-      await runAfterEachHooks(config.afterEach, {
+    if ((config.afterEach ?? []).length > 0) {
+      await runAfterEachHooks(config.afterEach ?? [], {
         config,
         outputDir,
         taskName: task.name,
         taskExitCode: exitCode,
         debugLog,
+        signal,
       });
     }
 
     if (exitCode !== 0 && config.stopOnFailure) {
       stopRequested = true;
     }
+
+    if (signal.aborted) {
+      stopRequested = true;
+    }
   }
 
   // Always tear down backgrounds.
+  const teardownGraceMs = signal.aborted ? 1000 : 5000;
   for (const bg of backgrounds) {
     const bgConfig = config.background[backgrounds.indexOf(bg)]!;
-    await killTreeAndWait(bg, 5000, {
+    await killTreeAndWait(bg, teardownGraceMs, {
       log: debugLog,
       label: bgConfig.name,
       reason: 'run_complete',
@@ -349,18 +395,24 @@ export async function runOrchestrator(
     const taskDir = path.join(outputDir, record.name);
     fs.mkdirSync(taskDir, { recursive: true });
 
-    await sliceLogFile(
-      path.join(timelineDir, `${record.name}.jsonl`),
-      { startMs: record.startTime, endMs: record.endTime },
-      path.join(taskDir, 'main.log'),
-    );
-
-    for (const bg of config.background) {
+    const taskTimeline = path.join(timelineDir, `${record.name}.jsonl`);
+    if (fs.existsSync(taskTimeline)) {
       await sliceLogFile(
-        path.join(timelineDir, `${bg.name}.jsonl`),
+        taskTimeline,
         { startMs: record.startTime, endMs: record.endTime },
-        path.join(taskDir, `${bg.name}.log`),
+        path.join(taskDir, 'main.log'),
       );
+    }
+
+    for (const bg of config.background ?? []) {
+      const bgTimeline = path.join(timelineDir, `${bg.name}.jsonl`);
+      if (fs.existsSync(bgTimeline)) {
+        await sliceLogFile(
+          bgTimeline,
+          { startMs: record.startTime, endMs: record.endTime },
+          path.join(taskDir, `${bg.name}.log`),
+        );
+      }
     }
   }
 
