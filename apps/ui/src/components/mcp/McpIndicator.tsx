@@ -31,9 +31,16 @@ export function McpIndicator({ className }: McpIndicatorProps) {
 
     // On initial mount only: if config says enabled but server is not running,
     // revert the config so the toggle reflects reality and notify the user.
+    //
+    // We depend on `userConfig` (not just `serverState`) because the closure
+    // captures `mcpEnabled` / `userConfig`. If `serverState` resolves before
+    // `userConfig` finishes loading, the captured `mcpEnabled` is `false` and
+    // we'd bail out with `initialCheckDone.current` already set — silently
+    // skipping the reconciliation. Waiting for both queries ensures we
+    // evaluate with consistent state.
     const initialCheckDone = useRef(false)
     useEffect(() => {
-        if (!serverState || initialCheckDone.current) return
+        if (!serverState || !userConfig || initialCheckDone.current) return
         initialCheckDone.current = true
 
         if (!mcpEnabled || isRunning) return
@@ -52,7 +59,7 @@ export function McpIndicator({ className }: McpIndicatorProps) {
 
         setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: false })
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [serverState])
+    }, [serverState, userConfig])
 
     const handleMcpToggle = async () => {
         const traceId = `McpIndicator-MCP-toggle-${nextTraceId()}`
