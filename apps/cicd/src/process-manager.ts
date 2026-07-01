@@ -221,3 +221,61 @@ export async function killTreeAndWait(
     procSignalCode: child.proc.signalCode,
   });
 }
+
+export type AbortOrExitResult =
+  | { aborted: false; closeCode: number | null; signal: NodeJS.Signals | null; exitCode: number }
+  | { aborted: true };
+
+export async function waitForChildExitOrAbort(
+  child: ManagedChild,
+  signal: AbortSignal,
+): Promise<AbortOrExitResult> {
+  if (child.spawnFailed || !child.proc) {
+    return { aborted: false, closeCode: null, signal: null, exitCode: 1 };
+  }
+
+  if (signal.aborted) {
+    await killTreeAndWait(child, 1000);
+    return { aborted: true };
+  }
+
+  return new Promise((resolve) => {
+    const { proc } = child;
+    let settled = false;
+    // `aborted` is set synchronously inside `onAbort` so that if the kill
+    // triggers `close` before our IIFE finishes, the handler below sees the
+    // flag and resolves with `{ aborted: true }` instead of leaking the
+    // natural-exit shape.
+    let aborted = false;
+    const finish = (result: AbortOrExitResult) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener('abort', onAbort);
+      resolve(result);
+    };
+
+    const onAbort = () => {
+      aborted = true;
+      void (async () => {
+        await killTreeAndWait(child, 2000);
+        finish({ aborted: true });
+      })();
+    };
+
+    // No hang-guard timer: Node's ChildProcess guarantees 'close' or 'error'
+    // fires for any successful spawn, and spawn-fail is handled by the early
+    // return above.
+    signal.addEventListener('abort', onAbort, { once: true });
+
+    proc!.once('close', (code, sig) => {
+      if (aborted) {
+        finish({ aborted: true });
+      } else {
+        finish({ aborted: false, closeCode: code, signal: sig, exitCode: code ?? 1 });
+      }
+    });
+    proc!.once('error', () => {
+      finish({ aborted: false, closeCode: null, signal: null, exitCode: 1 });
+    });
+  });
+}

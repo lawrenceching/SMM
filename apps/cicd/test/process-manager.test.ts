@@ -1,5 +1,10 @@
 import { describe, test, expect } from 'bun:test';
-import { spawnChild, killTreeAndWait, waitForChildExit } from '../src/process-manager.ts';
+import {
+  spawnChild,
+  killTreeAndWait,
+  waitForChildExit,
+  waitForChildExitOrAbort,
+} from '../src/process-manager.ts';
 
 describe('spawnChild', () => {
   test('captures stdout from a simple command', async () => {
@@ -117,5 +122,72 @@ describe('killTreeAndWait', () => {
     ).toBe(true);
     // Should complete well before the sleep ends.
     expect(elapsed).toBeLessThan(10000);
+  });
+});
+
+describe('waitForChildExitOrAbort', () => {
+  test('returns child exit result when child exits normally', async () => {
+    const isWindows = process.platform === 'win32';
+    const child = spawnChild({
+      command: isWindows ? 'cmd /c "exit /b 0"' : 'exit 0',
+      args: [],
+      cwd: process.cwd(),
+      env: process.env,
+      onStdout: () => {},
+      onStderr: () => {},
+    });
+
+    const controller = new AbortController();
+    const result = await waitForChildExitOrAbort(child, controller.signal);
+    expect(result.aborted).toBe(false);
+    if (!result.aborted) {
+      expect(result.exitCode).toBe(0);
+    }
+  });
+
+  test('kills child when signal aborts before natural exit', async () => {
+    const isWindows = process.platform === 'win32';
+    const child = spawnChild({
+      command: isWindows ? 'cmd' : 'sh',
+      args: isWindows ? ['/c', 'ping -n 60 127.0.0.1 > nul'] : ['-c', 'sleep 60'],
+      cwd: process.cwd(),
+      env: process.env,
+      onStdout: () => {},
+      onStderr: () => {},
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const controller = new AbortController();
+    const before = Date.now();
+    const promise = waitForChildExitOrAbort(child, controller.signal);
+
+    setTimeout(() => controller.abort(), 100);
+
+    const result = await promise;
+    const elapsed = Date.now() - before;
+
+    expect(result.aborted).toBe(true);
+    expect(child.proc!.exitCode !== null || child.proc!.signalCode !== null).toBe(true);
+    expect(elapsed).toBeLessThan(10000);
+  });
+
+  test('returns aborted result if signal is already aborted', async () => {
+    const isWindows = process.platform === 'win32';
+    const child = spawnChild({
+      command: isWindows ? 'cmd' : 'sh',
+      args: isWindows ? ['/c', 'ping -n 60 127.0.0.1 > nul'] : ['-c', 'sleep 60'],
+      cwd: process.cwd(),
+      env: process.env,
+      onStdout: () => {},
+      onStderr: () => {},
+    });
+
+    const controller = new AbortController();
+    controller.abort();
+
+    const result = await waitForChildExitOrAbort(child, controller.signal);
+    expect(result.aborted).toBe(true);
+    await killTreeAndWait(child, 1000);
   });
 });
