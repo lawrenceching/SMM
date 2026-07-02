@@ -10,8 +10,13 @@ RUN apt-get update && apt-get install -y curl gnupg ca-certificates \
     && apt-get install -y nodejs \
     && corepack enable \
     && corepack prepare pnpm@${PNPM_VERSION} --activate \
-    && npm install -g bun \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# AI Coding Agents (ignore-scripts avoids downloading binaries at build time)
+RUN npm install -g bun \
+    && npm install -g --ignore-scripts @anthropic-ai/claude-code@latest \
+    && npm install -g --ignore-scripts opencode-ai@latest \
+    && npm install -g --ignore-scripts @earendil-works/pi-coding-agent@latest
 
 # Wdio config picks these up to skip auto-download and apply docker flags
 ENV CHROME_BIN=/usr/bin/google-chrome \

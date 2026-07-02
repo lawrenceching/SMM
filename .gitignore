@@ -4,6 +4,7 @@ test/media/tutorials/**
 .trae/
 .DS_Store
 
+.pnpm-store/
 .env.json
 bin/
 !bin/*/

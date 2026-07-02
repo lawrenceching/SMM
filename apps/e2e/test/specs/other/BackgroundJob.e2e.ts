@@ -195,6 +195,26 @@ describe('Background Job', () => {
         })
         console.log(`Toast appeared with text: ${toastText}`)
 
+        // Wait for the failure toast to fully dismiss before right-clicking the job item.
+        // The toast sits at the viewport's bottom-right with z-index 999999999, overlapping
+        // the StatusBar BackgroundJobs popover. While it's visible, hit-testing routes the
+        // right-click to the toast instead of the job item, so Radix's ContextMenu trigger
+        // never fires and no menu opens.
+        await browser.waitUntil(async () => {
+            return !(await $('[data-sonner-toast]').isExisting())
+        }, {
+            timeout: 6000,
+            timeoutMsg: 'Failure toast did not dismiss within 6s',
+        })
+
+        // If the BackgroundJobs popover auto-closed while we waited, re-open it so the job
+        // item is interactable again.
+        const popoverOpenAfterWait = await StatusBar.isBackgroundJobsPopoverOpen()
+        if (!popoverOpenAfterWait) {
+            await StatusBar.clickBackgroundJobsIndicator()
+            await StatusBar.waitForBackgroundJobsPopover(5000)
+        }
+
         // Step 7: Right-click on the job item to open the context menu
         const jobItem = $(`[data-testid="background-job-${jobId}"]`)
         await jobItem.click({ button: 'right' })
