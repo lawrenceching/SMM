@@ -32,6 +32,7 @@ export function TextDialog({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setText(initialValue)
     }
   }, [isOpen, initialValue])

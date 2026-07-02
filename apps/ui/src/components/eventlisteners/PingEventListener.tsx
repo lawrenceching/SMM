@@ -3,6 +3,7 @@ import { useMount, useUnmount } from "react-use";
 
 export function PingEventListener() {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {

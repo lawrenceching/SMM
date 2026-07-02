@@ -7,6 +7,7 @@ import { useConfig } from "@/hooks/userConfig";
 export function MediaMetadataUpdatedEventListener() {
     const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
     const { refreshUserConfig } = useConfig();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const eventListener = useRef<((event: any) => void) | null>(null);
 
     useMount(() => {

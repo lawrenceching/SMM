@@ -108,6 +108,7 @@ export function UITranscribeDialog({
   const hasAdvancedContent = asrOptionsEnabled || tencentAsrEnabled
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (isOpen && !wasOpenRef.current) {
       setSelectedIds(computeInitialSelection(rows, defaultSelectedIds))
       setShowAdvancedOptions(false)
@@ -125,6 +126,7 @@ export function UITranscribeDialog({
         setProvider("videoCaptioner")
       }
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
     wasOpenRef.current = isOpen
   }, [
     isOpen,

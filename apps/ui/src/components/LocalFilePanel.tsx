@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
@@ -14,9 +14,11 @@ export interface LocalFilePanelProps {
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   const mediaMetadataQuery = useMediaMetadataQuery(mediaFolderPath);
-  const selectedMediaMetadata: UIMediaMetadata | undefined = mediaMetadataQuery.data
-    ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
-    : undefined
+  const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() =>
+    mediaMetadataQuery.data
+      ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
+      : undefined,
+    [mediaMetadataQuery.data, mediaMetadataQuery.isError])
   const { mutateAsync: updateMediaMetadata } = useUpdateMediaMetadataMutation();
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
@@ -27,15 +29,20 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
     if (selectedMediaMetadata?.type) {
       // Convert MediaMetadata.type to MediaType
       if (selectedMediaMetadata.type === "tvshow-folder") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMediaType("tvshow")
       } else if (selectedMediaMetadata.type === "movie-folder") {
+         
         setMediaType("movie")
       } else if (selectedMediaMetadata.type === "music-folder") {
+         
         setMediaType("music")
       } else {
+         
         setMediaType("unknown")
       }
     } else {
+       
       setMediaType("unknown")
     }
   }, [selectedMediaMetadata])
@@ -43,6 +50,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   // Update current path when mediaFolderPath changes
   useEffect(() => {
     if (mediaFolderPath) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentPath(mediaFolderPath)
     }
   }, [mediaFolderPath])

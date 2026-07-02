@@ -64,6 +64,7 @@ export function ExecuteCmdDialog({ isOpen, onClose, initialCommand }: ExecuteCmd
 
   useEffect(() => {
     if (isOpen && initialCommand) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCommand(initialCommand)
     }
   }, [isOpen, initialCommand])

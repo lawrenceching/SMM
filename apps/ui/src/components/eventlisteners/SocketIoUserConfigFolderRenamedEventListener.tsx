@@ -12,6 +12,7 @@ import { nextTraceId } from "@/lib/utils";
  */
 export function SocketIoUserConfigFolderRenamedEventListener() {
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const eventListener = useRef<((event: any) => void) | null>(null);
     const { setUserConfig } = useConfig();
     const setFolders = useUIMediaFolderStore((s) => s.setFolders);

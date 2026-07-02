@@ -72,7 +72,7 @@ export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeD
       if (saved === 0) return
       onClose()
     },
-    [rows, onClose, folder, isVideoCaptionerAsrOptionsEnabled],
+    [rows, onClose, folder, isVideoCaptionerAsrOptionsEnabled, createJob],
   )
 
   return (

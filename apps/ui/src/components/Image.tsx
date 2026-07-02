@@ -36,6 +36,7 @@ const Image: React.FC<ImageProps> = ({
 
   // Reset error state when imageData changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasError(false)
   }, [imageData])
 

@@ -112,6 +112,7 @@ export function UISynthesizeSubtitleDialog({
   const selectedEligibleCount = eligibleRows.filter((r) => selectedIds.has(r.id)).length
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (isOpen && !wasOpenRef.current) {
       setSelectedIds(computeInitialSelection(rows, defaultSelectedIds))
       setSubtitleMode(readStoredSubtitleMode())
@@ -120,6 +121,7 @@ export function UISynthesizeSubtitleDialog({
       setRenderMode("")
       setLayout("")
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
     wasOpenRef.current = isOpen
   }, [isOpen, rows, defaultSelectedIds])
 

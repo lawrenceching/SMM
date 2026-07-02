@@ -32,6 +32,7 @@ export function RenameFileDialog({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNewName(initialValue)
     }
   }, [isOpen, initialValue])

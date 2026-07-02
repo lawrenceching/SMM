@@ -340,7 +340,7 @@ export function MediaFilePropertyDialog({
         })
         .finally(() => setIsLoadingScreenshots(false))
     }
-  }, [isOpen, resolvedFilePath, fileType, track, addFailedCmdEntry]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, resolvedFilePath, fileType, track, addFailedCmdEntry])  
 
   // ── Save handler ─────────────────────────────────────────────────
   const handleSave = async () => {

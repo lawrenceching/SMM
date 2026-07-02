@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { useControllableState } from '@radix-ui/react-use-controllable-state';
@@ -65,6 +67,7 @@ export const Reasoning = memo(
 
     // Track duration when streaming starts and ends
     useEffect(() => {
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (isStreaming) {
         if (startTime === null) {
           setStartTime(Date.now());
@@ -73,10 +76,12 @@ export const Reasoning = memo(
         setDuration(Math.round((Date.now() - startTime) / 1000));
         setStartTime(null);
       }
+      /* eslint-enable react-hooks/set-state-in-effect */
     }, [isStreaming, startTime, setDuration]);
 
     // Auto-open when streaming starts, auto-close when streaming ends (once only)
     useEffect(() => {
+       
       if (isStreaming && !isOpen) {
         setIsOpen(true);
       } else if (!isStreaming && isOpen && !defaultOpen && !hasAutoClosedRef) {
@@ -87,6 +92,7 @@ export const Reasoning = memo(
         }, AUTO_CLOSE_DELAY);
         return () => clearTimeout(timer);
       }
+       
     }, [isStreaming, isOpen, defaultOpen, setIsOpen, hasAutoClosedRef]);
 
     const handleOpenChange = (newOpen: boolean) => {

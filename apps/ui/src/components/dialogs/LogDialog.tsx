@@ -37,6 +37,7 @@ export function LogDialog({
   )
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPassiveEnded(false)
   }, [executionId, open])
 
@@ -57,6 +58,7 @@ export function LogDialog({
 
   useEffect(() => {
     if (bodyText && isTerminalCommandLogText(bodyText)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPassiveEnded(true)
     }
   }, [bodyText])

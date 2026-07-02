@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { act, render } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -22,7 +23,6 @@ function createWrapper() {
       queries: { retry: false, gcTime: 0, staleTime: 0 },
     },
   })
-  // eslint-disable-next-line react/display-name
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
@@ -63,7 +63,7 @@ vi.mock('@/hooks/useMediaDatabaseBaseUrls', () => ({
 
 vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useTmdbLanguages')>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const mockFn = vi.fn<any>(() => ({
     data: [
       { code: 'zh-CN', name: '中文 (zh-CN)' },
@@ -76,7 +76,7 @@ vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
     error: null,
   }))
   // Expose on `globalThis` so individual tests can override the mock.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   ;(globalThis as any).__mockUseTmdbSearchLanguageOptions = mockFn
   return {
     ...actual,
@@ -86,7 +86,7 @@ vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
 
 vi.mock('@/hooks/useTvdbLanguages', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useTvdbLanguages')>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const mockFn = vi.fn<any>(() => ({ data: [
     { id: 'eng', name: 'English', nativeName: 'English' },
     { id: 'zho', name: 'Chinese', nativeName: '中文' },
@@ -95,7 +95,7 @@ vi.mock('@/hooks/useTvdbLanguages', async (importOriginal) => {
     { id: 'deu', name: 'German', nativeName: 'Deutsch' },
   ], isLoading: false, error: null }))
   // Expose on `globalThis` so individual tests can override the mock.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   ;(globalThis as any).__mockUseTvdbLanguages = mockFn
   return {
     ...actual,
@@ -147,7 +147,7 @@ describe('MediaDatabaseSearchbox', () => {
     // from a previous test (e.g. the fallback-items test) does not bleed through.
     // `mockImplementation` restores the default data; `mockReset` would leave the
     // function returning undefined.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: [
         { code: 'zh-CN', name: '中文 (zh-CN)' },
@@ -159,7 +159,7 @@ describe('MediaDatabaseSearchbox', () => {
       isLoading: false,
       error: null,
     }))
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     ;(globalThis as any).__mockUseTvdbLanguages.mockImplementation(() => ({ data: [
       { id: 'eng', name: 'English', nativeName: 'English' },
       { id: 'zho', name: 'Chinese', nativeName: '中文' },
@@ -358,7 +358,7 @@ describe('MediaDatabaseSearchbox', () => {
     // that `<SelectValue />` (bare) can find a match and display the current
     // `searchLanguage`. The fallback items use `getLanguageDisplayName(code)`
     // to show native-language names even while loading.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: undefined,
       isLoading: true,
@@ -380,7 +380,7 @@ describe('MediaDatabaseSearchbox', () => {
     // must be included in the rendered `SelectItem`s even while the language list
     // is still loading, so that `<SelectValue />` (bare) can find a match.
     localStorages.lastSelectedTmdbLanguage = 'fr-FR'
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: undefined,
       isLoading: true,

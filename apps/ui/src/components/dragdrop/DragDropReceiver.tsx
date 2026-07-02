@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { type ReactNode, useState, useRef, useCallback } from "react"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"

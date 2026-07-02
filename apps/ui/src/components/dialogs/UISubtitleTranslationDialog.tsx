@@ -107,6 +107,7 @@ export function UISubtitleTranslationDialog({
   const selectedEligibleCount = eligibleRows.filter((r) => selectedIds.has(r.id)).length
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (isOpen && !wasOpenRef.current) {
       setSelectedIds(computeInitialSelection(rows, defaultSelectedIds))
       setTranslator(readStoredTranslator())
@@ -117,6 +118,7 @@ export function UISubtitleTranslationDialog({
       setLlmApiBase("")
       setLlmModel("")
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
     wasOpenRef.current = isOpen
   }, [isOpen, rows, defaultSelectedIds])
 

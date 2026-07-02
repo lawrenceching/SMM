@@ -14,9 +14,11 @@ vi.mock("@/hooks/initialization/useInitializeImportedMediaFolder", () => ({
 
 vi.mock("react-use", () => ({
   useMount: (cb: () => void) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(cb, [])
   },
   useUnmount: (cb: () => void) => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => cb, [])
   },
 }))

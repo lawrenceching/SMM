@@ -186,7 +186,7 @@ export function MediaDatabaseSearchbox({
     setSearchLanguage(resolveInitialSearchLanguage(searchDatabase, resolvedMediaLanguage))
     setShowAllLanguages(false)
     // Only react to changes in `searchDatabase` or `resolvedMediaLanguage`.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [searchDatabase, resolvedMediaLanguage])
 
   useEffect(() => {

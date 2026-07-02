@@ -7,7 +7,7 @@ const debug = Debug("recognizeMediaFolderByTvdbIdInFolderName");
 
 export function getTvdbIdFromFolderName(folderName: string): string | null {
     // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
-    const match = folderName.match(/[\(\{\[]\s*tvdbid\s*=\s*(\d+)\s*[\}\)\]]/i);
+    const match = folderName.match(/(?:[(\[{])\s*tvdbid\s*=\s*(\d+)\s*[\])}]/i);
     return match ? match[1] : null;
 }
 

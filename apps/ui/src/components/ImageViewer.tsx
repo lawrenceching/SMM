@@ -40,6 +40,7 @@ export function ImageViewer({
   // Reset status when imageUrl changes so we show loading again for the new image
   useEffect(() => {
     if (imageUrl) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus("loading")
     }
   }, [imageUrl])

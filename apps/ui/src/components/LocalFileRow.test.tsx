@@ -32,6 +32,7 @@ vi.mock("@/lib/i18n", async (importOriginal) => {
   }
 })
 vi.mock("@/components/ui/context-menu", () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require("react")
   return {
     ContextMenu: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,

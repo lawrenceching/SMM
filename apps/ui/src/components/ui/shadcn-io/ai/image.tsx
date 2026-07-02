@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { cn } from '@/lib/utils';
 import type { Experimental_GeneratedImage } from 'ai';
 

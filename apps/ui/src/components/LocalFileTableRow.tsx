@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Orchestrator: resolves subtitle pipeline state, fetches associated files,
  * monitors running background jobs correlated to this row's media file, and
@@ -175,7 +176,7 @@ export function LocalFileTableRow({
         }),
       )
     }
-  }, [absPath, mediaFolderPath, associatedFiles, userConfig, appConfig, t])
+  }, [absPath, mediaFolderPath, associatedFiles, userConfig, appConfig, t, tStrict])
 
   return (
     <UILocalFileTableRow

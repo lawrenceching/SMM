@@ -36,7 +36,7 @@ export function RenameRuleCombobox({ onRenameRuleChange }: RenameRuleComboboxPro
     if(value && value.trim().length > 0) {
       onRenameRuleChange?.(value)
     }
-  }, [value])
+  }, [value, onRenameRuleChange])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

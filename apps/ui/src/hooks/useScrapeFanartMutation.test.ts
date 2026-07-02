@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi } from "vitest"
 import type { MediaMetadata } from "@core/types"
 import { resolveFanartUrl, type ScrapeFanartMutationVariables } from "./useScrapeFanartMutation"

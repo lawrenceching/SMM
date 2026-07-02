@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react"
 import type { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n"
 import {
@@ -102,7 +102,8 @@ interface DialogContextValue {
   ]
 }
 
-const DialogContext = createContext<DialogContextValue | undefined>(undefined)
+// eslint-disable-next-line react-refresh/only-export-components
+export const DialogContext = createContext<DialogContextValue | undefined>(undefined)
 
 interface DialogProviderProps {
   children: ReactNode
@@ -113,7 +114,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [confirmationConfig, setConfirmationConfig] = useState<DialogConfig | null>(null)
   const confirmationConfigRef = useRef<DialogConfig | null>(null)
-  confirmationConfigRef.current = confirmationConfig
+  useEffect(() => { confirmationConfigRef.current = confirmationConfig }, [confirmationConfig])
 
   // Spinner dialog state
   const [isSpinnerOpen, setIsSpinnerOpen] = useState(false)
@@ -617,6 +618,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useDialogs(): DialogContextValue {
   const { t } = useTranslation('dialogs')
   const context = useContext(DialogContext)

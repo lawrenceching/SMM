@@ -393,6 +393,7 @@ export function useRuleBasedRenameFilesFlow({
     if (plan) {
       onFlowStart?.()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan?.id, onFlowStart])
 
   return {

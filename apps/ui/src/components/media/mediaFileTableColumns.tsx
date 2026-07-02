@@ -130,6 +130,7 @@ export function MediaFileTableRowCells({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function buildMediaFileTableColumnLayout(options: {
   layout: "simple" | "detail" | "preview"
   preview?: "rename" | "recognize"

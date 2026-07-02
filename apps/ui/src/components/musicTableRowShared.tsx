@@ -7,6 +7,7 @@ import { Music } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "@/components/Image"
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -14,6 +15,7 @@ export function formatDuration(seconds: number): string {
 }
 
 /** Builds a file:// URL for the thumbnail that the backend can resolve. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function getThumbnailImageUrl(
   thumbnailPath: string,
   mediaFolderPath: string | undefined,

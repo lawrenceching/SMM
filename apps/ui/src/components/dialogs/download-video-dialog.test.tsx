@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import { createContext } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -298,6 +299,7 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/providers/dialog-provider', () => ({
+  DialogContext: createContext(undefined),
   useDialogs: () => ({
     textDialog: [h.openTextDialog, vi.fn()],
   }),
@@ -991,10 +993,10 @@ describe('DownloadVideoDialog - user agreement', () => {
   // TC-EP-11: stale metadata responses are discarded after URL change
   it.skip('ignores stale episodes metadata response after URL changes', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
-    let firstHandlers: { onSuccess?: Function; onSettled?: Function } | undefined
+    let firstHandlers: { onSuccess?: () => void; onSettled?: () => void } | undefined
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
       if (!firstHandlers) {
-        firstHandlers = handlers as { onSuccess?: Function; onSettled?: Function }
+        firstHandlers = handlers as { onSuccess?: () => void; onSettled?: () => void }
         return
       }
       handlers?.onSuccess?.({
@@ -1143,9 +1145,9 @@ describe('DownloadVideoDialog - user agreement', () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     // Use a deferred callback so the loading state is visible in the DOM
     // before the episodes list replaces it.
-    let deferredHandlers: { onSuccess?: Function; onSettled?: Function } | undefined
+    let deferredHandlers: { onSuccess?: () => void; onSettled?: () => void } | undefined
     h.mutateEpisodesMetadata.mockImplementation((_url, handlers) => {
-      deferredHandlers = handlers as { onSuccess?: Function; onSettled?: Function }
+      deferredHandlers = handlers as { onSuccess?: () => void; onSettled?: () => void }
       // Defer via microtask so React can render the loading state first
       queueMicrotask(() => {
         deferredHandlers?.onSuccess?.({

@@ -16,6 +16,7 @@ import { useFeatures } from "@/hooks/useFeatures"
 import { useConvexSettings } from "@/hooks/useConvexSettings"
 import { NewVersionDialog } from "./dialogs/NewVersionDialog"
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { mapWebSocketStatusToConnectionStatus }
 
 const VIDEO_CAPTIONER_CLI_HELP_LINK =

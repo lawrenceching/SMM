@@ -53,6 +53,7 @@ export function useImage(url?: string, placeholder?: string): string | undefined
 
   useEffect(() => {
     if (!url) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setImageData(placeholder)
       return
     }
@@ -61,12 +62,14 @@ export function useImage(url?: string, placeholder?: string): string | undefined
     const abortController = new AbortController()
 
     if (urlType === 'data') {
+       
       setImageData(url)
       return
     }
 
     if (urlType === 'unknown') {
       console.error(`[useImage] Unknown URL type: ${url}`)
+       
       setImageData(placeholder)
       return
     }
@@ -77,6 +80,7 @@ export function useImage(url?: string, placeholder?: string): string | undefined
     downloadImage(apiUrl, abortController.signal)
       .then(async (blob) => {
         const base64data = await convertBlobToBase64(blob)
+         
         setImageData(base64data)
       })
       .catch((error) => {
@@ -85,6 +89,7 @@ export function useImage(url?: string, placeholder?: string): string | undefined
           error,
           "(requested: " + apiUrl + ")"
         )
+         
         setImageData(placeholder)
       })
 

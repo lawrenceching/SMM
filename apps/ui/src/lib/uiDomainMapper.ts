@@ -48,6 +48,7 @@ export function hasDomainMetadataChanged(
  * Extracts persistable domain metadata from UI metadata by removing UI-only properties.
  */
 export function extractPersistableMediaMetadata(uiMetadata: UIMediaMetadata): MediaMetadata {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { status, ...domainMetadata } = uiMetadata;
   return domainMetadata as MediaMetadata;
 }

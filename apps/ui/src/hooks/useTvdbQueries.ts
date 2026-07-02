@@ -37,17 +37,18 @@ export function useTvdbQueries() {
   const { appConfig, userConfig } = useConfig()
   const reverseProxyFromConfig = appConfig?.reverseProxyUrl ?? null
 
-  const getReverseProxyUrl = (): string | null | undefined =>
+  const getReverseProxyUrl = useCallback((): string | null | undefined =>
     reverseProxyFromConfig ??
-    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl
+    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl,
+  [reverseProxyFromConfig, queryClient])
 
-  const getTvdbClientOptions = () => ({
+  const getTvdbClientOptions = useCallback(() => ({
     reverseProxyUrl: getReverseProxyUrl(),
     upstreamBaseURL: userConfig.tvdb?.host?.trim() || SMM_TVDB_DEFAULT_UPSTREAM,
     apiKey: userConfig.tvdb?.apiKey?.trim() || undefined,
-  })
+  }), [getReverseProxyUrl, userConfig.tvdb?.host, userConfig.tvdb?.apiKey])
 
-  const getClient = () => getTVDBv4Client(getTvdbClientOptions())
+  const getClient = useCallback(() => getTVDBv4Client(getTvdbClientOptions()), [getTvdbClientOptions])
 
   const getArtworkTypes = useCallback(
     (): Promise<TVDBv4ArtworkTypeRecord[] | undefined> => {
@@ -61,7 +62,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_ARTWORK_TYPES_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getSeriesExtended = useCallback(
@@ -76,7 +77,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_SERIES_EXTENDED_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getSeasonExtended = useCallback(
@@ -91,7 +92,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_SEASON_EXTENDED_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getMovieExtended = useCallback(
@@ -106,7 +107,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_MOVIE_EXTENDED_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getSeriesTranslationByLangCode = useCallback(
@@ -121,7 +122,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_TRANSLATION_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getEpisodeTranslationByLangCode = useCallback(
@@ -136,7 +137,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_TRANSLATION_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getMovieTranslationByLangCode = useCallback(
@@ -151,7 +152,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_TRANSLATION_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const search = useCallback(
@@ -166,7 +167,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_SEARCH_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getClient]
   )
 
   const getTvShowMediaMetadata = useCallback(
@@ -192,7 +193,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_TV_SHOW_MEDIA_METADATA_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getTvdbClientOptions]
   )
 
   const getMovieMediaMetadata = useCallback(
@@ -215,7 +216,7 @@ export function useTvdbQueries() {
         staleTime: TVDB_MOVIE_MEDIA_METADATA_STALE_MS,
       })
     },
-    [queryClient, reverseProxyFromConfig, userConfig.tvdb?.host, userConfig.tvdb?.apiKey]
+    [queryClient, getTvdbClientOptions]
   )
 
   return {

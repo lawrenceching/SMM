@@ -55,6 +55,7 @@ export const EndRenameFilesTaskTool = makeAssistantTool({
  * file is removed when the plan reaches a terminal status via
  * `/api/updatePlan`.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export async function cleanupRenamePlan(planId: string): Promise<void> {
   deletePlanDraft(planId)
 }

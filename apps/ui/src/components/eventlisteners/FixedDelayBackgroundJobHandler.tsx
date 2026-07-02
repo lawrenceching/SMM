@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useMount, useUnmount } from 'react-use'
 import { useJobOrchestratorContext } from '@/components/JobOrchestratorProvider'
 import {
@@ -16,7 +16,7 @@ import {
 export function FixedDelayBackgroundJobHandler() {
   const { createJob } = useJobOrchestratorContext()
   const createJobRef = useRef(createJob)
-  createJobRef.current = createJob
+  useEffect(() => { createJobRef.current = createJob }, [createJob])
   const eventListener = useRef<((event: Event) => void) | null>(null)
 
   useMount(() => {

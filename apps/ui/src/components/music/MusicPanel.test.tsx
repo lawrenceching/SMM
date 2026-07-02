@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { MusicPanel } from './MusicPanel';
 import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore';
 import { useMediaMetadataQuery } from '@/hooks/mediaMetadata';

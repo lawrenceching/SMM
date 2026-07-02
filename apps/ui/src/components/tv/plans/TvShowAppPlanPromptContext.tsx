@@ -55,6 +55,7 @@ export function TvShowAppPlanPromptProvider({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTvShowAppPlanPrompts(): TvShowAppPlanPromptContextValue {
   const ctx = useContext(TvShowAppPlanPromptContext)
   if (!ctx) {

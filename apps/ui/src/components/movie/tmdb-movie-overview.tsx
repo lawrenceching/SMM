@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, FileEdit, Download } from "lucide-react"
 import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveMovieSearchbox } from "../ImmersiveMovieSearchbox"
-import { useCallback, useState, useEffect } from "react"
+import { useCallback, useState, useEffect, useMemo } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
@@ -32,7 +32,7 @@ interface TMDBMovieOverviewProps {
 
 // Helper function to format date
 function formatDate(dateString: string, t: TFunction<readonly ["components"], undefined>): string {
-    if (!dateString) return t("movie.notAvailable" as any)
+    if (!dateString) return t("movie.notAvailable")
     try {
         const date = new Date(dateString)
         return date.toLocaleDateString("en-US", {
@@ -61,9 +61,9 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     const { t } = useTranslation('components')
     const { selectedFolder } = useUIMediaFolderStoreState()
     const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
-    const selectedMediaMetadata: UIMediaMetadata | undefined = mediaMetadataQuery.data
+    const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() => mediaMetadataQuery.data
         ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
-        : undefined
+        : undefined, [mediaMetadataQuery.data, mediaMetadataQuery.isError])
     const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
     const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const updateMediaMetadata = useCallback(async (
@@ -91,7 +91,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     const { search: searchTmdb } = useTmdbQueries()
     const posterUrl = movie ? getTMDBImageUrl(movie.poster_path, "w500") : null
     const backdropUrl = movie ? getTMDBImageUrl(movie.backdrop_path, "w780") : null
-    const formattedDate = movie ? formatDate(movie.release_date, t) : (t("movie.notAvailable" as any) as string)
+    const formattedDate = movie ? formatDate(movie.release_date, t) : t("movie.notAvailable")
 
     // Update search query when movie title changes
     useEffect(() => {
@@ -128,11 +128,11 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
             setSearchResults(movies)
 
             if (movies.length === 0) {
-                setSearchError(t("movie.searchNoResults" as any) as string)
+                setSearchError(t("movie.searchNoResults"))
             }
         } catch (error) {
             console.error('Search failed:', error)
-            const errorMessage = error instanceof Error ? error.message : (t("movie.searchFailed" as any) as string)
+            const errorMessage = error instanceof Error ? error.message : t("movie.searchFailed")
             setSearchError(errorMessage)
             setSearchResults([])
         } finally {
@@ -191,11 +191,11 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                 searchResults={searchResults}
                                 isSearching={isSearching}
                                 searchError={searchError}
-                                placeholder={t("movie.searchPlaceholderUnrecognized" as any) as string}
+                                placeholder={t("movie.searchPlaceholderUnrecognized")}
                                 inputClassName="text-3xl font-bold mb-2 block"
                                 unrecognizedHint={
                                     isMediaMetadataOk
-                                        ? (t("movie.unrecognizedFolderHint" as any) as string)
+                                        ? (t("movie.unrecognizedFolderHint" as any) as string) // eslint-disable-line @typescript-eslint/no-explicit-any
                                         : undefined
                                 }
                             />
@@ -254,7 +254,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                             searchResults={searchResults}
                                             isSearching={isSearching}
                                             searchError={searchError}
-                                            placeholder={t("movie.searchPlaceholder" as any) as string}
+                                            placeholder={t("movie.searchPlaceholder")}
                                             inputClassName="text-3xl font-bold mb-2 block"
                                         />
                                         {movie?.original_title !== movie?.title && (
@@ -304,7 +304,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                             </div>
                         ) : movie?.overview && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">{t("movie.overview" as any) as string}</h2>
+                                <h2 className="text-lg font-semibold">{t("movie.overview")}</h2>
                                 <p className="text-muted-foreground leading-relaxed">{movie?.overview}</p>
                             </div>
                         )}
@@ -321,11 +321,11 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                             </div>
                         ) : movie?.genre_ids && movie?.genre_ids.length > 0 && (
                             <div className="space-y-2">
-                                <h2 className="text-lg font-semibold">{t("movie.genres" as any) as string}</h2>
+                                <h2 className="text-lg font-semibold">{t("movie.genres")}</h2>
                                 <div className="flex flex-wrap gap-2">
                                     {movie?.genre_ids.map((genreId) => (
                                         <Badge key={genreId} variant="outline">
-                                            {t("movie.genreLabel" as any, { genreId } as any) as string}
+                                            {t("movie.genreLabel", { genreId })}
                                         </Badge>
                                     ))}
                                 </div>
@@ -348,7 +348,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                     }}
                                 >
                                     <FileEdit className="size-4 mr-2" />
-                                    {t("movie.rename" as any) as string}
+                                    {t("movie.rename")}
                                 </Button>
                                 <Button
                                     variant="outline"
@@ -362,7 +362,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                     disabled={!selectedMediaMetadata?.mediaFiles || selectedMediaMetadata.mediaFiles.length === 0}
                                 >
                                     <Download className="size-4 mr-2" />
-                                    {t("movie.scrape" as any) as string}
+                                    {t("movie.scrape")}
                                 </Button>
                             </div>
                         )}

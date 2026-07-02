@@ -30,11 +30,13 @@ const useFileSrc = (file: File | undefined) => {
 
   useEffect(() => {
     if (!file) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSrc(undefined);
       return;
     }
 
     const objectUrl = URL.createObjectURL(file);
+     
     setSrc(objectUrl);
 
     return () => {
@@ -64,7 +66,7 @@ type AttachmentPreviewProps = {
   src: string;
 };
 
-const AttachmentPreview: FC<AttachmentPreviewProps> = ({  }) => {
+const AttachmentPreview: FC<AttachmentPreviewProps> = () => {
   // const [isLoaded, setIsLoaded] = useState(false);
   return (
     // <Image
@@ -145,9 +147,10 @@ const AttachmentUI: FC = () => {
         return "Document";
       case "file":
         return "File";
-      default:
+      default: {
         const _exhaustiveCheck: never = type;
         throw new Error(`Unknown attachment type: ${_exhaustiveCheck}`);
+      }
     }
   });
 

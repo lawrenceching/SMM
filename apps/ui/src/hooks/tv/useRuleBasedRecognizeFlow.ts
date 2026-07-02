@@ -303,6 +303,7 @@ export function useRuleBasedRecognizeFlow({
       })
   }, [
     mediaFolderPath,
+    mediaMetadata,
     createPlanMutation,
     recognizeFailedMessage,
     removePlanFromCache,

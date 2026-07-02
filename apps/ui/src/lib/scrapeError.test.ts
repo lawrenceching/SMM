@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import type { TFunction } from "i18next"
 import { localizeScrapeError } from "./scrapeError"
 

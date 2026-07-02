@@ -47,7 +47,7 @@ export function SubtitleTranslationDialog({ rows, onClose, folder, ...rest }: Su
       if (saved === 0) return
       onClose()
     },
-    [rows, onClose, folder],
+    [rows, onClose, folder, createJob],
   )
 
   return (

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
@@ -6,7 +7,7 @@ export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
 function getApiKey(): string {
   // In server context (Node.js), use process.env
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const nodeProcess = (globalThis as any).process;
     if (nodeProcess?.env) {
       return nodeProcess.env.VITE_DEEPSEEK_API_KEY || nodeProcess.env.DEEPSEEK_API_KEY || 'sk-ce25f3132fbc4b599f0f26eede96d390';
@@ -17,7 +18,7 @@ function getApiKey(): string {
   
   // In client context, use import.meta.env
   if (typeof import.meta !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const metaEnv = (import.meta as any).env;
     if (metaEnv) {
       return metaEnv.VITE_DEEPSEEK_API_KEY || 'sk-ce25f3132fbc4b599f0f26eede96d390';

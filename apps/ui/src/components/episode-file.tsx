@@ -45,6 +45,7 @@ interface EpisodeFileProps {
  * @param videoNewPath  Absolute POSIX path of the video after rename
  * @param allMediaFiles All file paths in the media folder (from MediaMetadata.files)
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function computeAssociatedFileRenames(
     videoOldPath: string,
     videoNewPath: string,
@@ -88,7 +89,7 @@ function getRelativePath(mediaFolderPath: string | undefined, filePath: string):
     
     try {
         return relative(mediaFolderPath, filePath)
-    } catch (error) {
+    } catch {
         // If relative path calculation fails, fallback to filename
         const parts = filePath.split(/[/\\]/)
         return parts[parts.length - 1] || filePath
@@ -188,7 +189,7 @@ export function EpisodeFile({
                             if (mediaFolderPath) {
                                 try {
                                     relativePath = relative(mediaFolderPath, file.path)
-                                } catch (error) {
+                                } catch {
                                     // If relative path calculation fails, use absolute path
                                     relativePath = file.path
                                 }

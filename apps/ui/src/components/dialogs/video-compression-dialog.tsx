@@ -145,7 +145,7 @@ export function VideoCompressionDialog({
   const [probedTotalBitrateKbps, setProbedTotalBitrateKbps] = useState<number | undefined>(undefined)
   const encodersQuery = useFfmpegEncodersQuery()
 
-  const encodersAvailable = encodersQuery.data?.usable ?? []
+  const encodersAvailable = useMemo(() => encodersQuery.data?.usable ?? [], [encodersQuery.data?.usable])
   const encodersError = encodersQuery.error
   const encodersLoading = encodersQuery.isPending
 

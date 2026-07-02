@@ -64,6 +64,7 @@ const LocalFileSubtitleContext = createContext<LocalFileSubtitleContextValue | n
   null,
 )
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useLocalFileSubtitle(): LocalFileSubtitleContextValue {
   const ctx = useContext(LocalFileSubtitleContext)
   if (!ctx) {
@@ -74,6 +75,7 @@ export function useLocalFileSubtitle(): LocalFileSubtitleContextValue {
 
 const noop = () => {}
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function createMockLocalFileSubtitleContext(
   overrides?: Partial<LocalFileSubtitleContextValue>,
 ): LocalFileSubtitleContextValue {

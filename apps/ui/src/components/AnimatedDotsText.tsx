@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
 let sharedStyleSheet: CSSStyleSheet | null = null
@@ -31,11 +31,7 @@ export function AnimatedDotsText({
   paused = false,
   className,
 }: AnimatedDotsTextProps) {
-  const uidRef = useRef<number | null>(null)
-  if (uidRef.current === null) {
-    uidRef.current = instanceCounter++
-  }
-  const uid = uidRef.current
+  const [uid] = useState(() => instanceCounter++)
 
   const totalDuration = interval * (maxDots + 1)
 

@@ -9,7 +9,6 @@ import type { TvShowEpisodeTableRow, TvShowEpisodeDataRow } from '@/components/t
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 import type { UIRenameFilesPlan } from '@/types/UIRenameFilesPlan'
 import type { MediaMetadata } from '@core/types'
-import type { UIMediaFolderStatus } from '@/types/UIMediaFolder'
 
 function episodeRow(season: number, episode: number, videoFile?: string, checked = false): TvShowEpisodeDataRow {
   return {

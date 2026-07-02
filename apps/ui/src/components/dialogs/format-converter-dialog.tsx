@@ -166,16 +166,22 @@ export function FormatConverterDialog({
 
   useEffect(() => {
     if (!isOpen) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOutputDir(sourceDir)
     const base = getBaseNameWithoutExt(sourcePath)
+     
     setOutputFileName(base ? `${base} (1).${formatExt}` : "")
+     
     setImageOptions(cloneDefaultImageOptions())
+     
     setErrorMessage(null)
   }, [isOpen, sourceDir, sourcePath, formatExt])
 
   useEffect(() => {
     if (!isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsConverting(false)
+       
       setErrorMessage(null)
     }
   }, [isOpen])

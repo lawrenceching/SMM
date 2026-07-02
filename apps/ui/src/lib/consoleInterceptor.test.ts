@@ -16,11 +16,11 @@ describe("installConsoleInterceptor", () => {
     _uninstallConsoleInterceptor();
     (globalThis as unknown as { console: Console }).console = {
       ...console,
-      log: (...args: unknown[]) => undefined,
-      info: (...args: unknown[]) => undefined,
-      warn: (...args: unknown[]) => undefined,
-      error: (...args: unknown[]) => undefined,
-      debug: (...args: unknown[]) => undefined,
+      log: (..._args: unknown[]) => undefined,
+      info: (..._args: unknown[]) => undefined,
+      warn: (..._args: unknown[]) => undefined,
+      error: (..._args: unknown[]) => undefined,
+      debug: (..._args: unknown[]) => undefined,
     } as unknown as Console;
   });
 

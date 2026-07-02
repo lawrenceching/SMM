@@ -90,7 +90,7 @@ export function TvShowPanelHeader({
     const actionsDisabled = !hasValidTmdbTvShow
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled
-            ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
+            ? (t('tvShow.unrecognizedFolderHint' as any, { ns: 'components' }) as string) // eslint-disable-line @typescript-eslint/no-explicit-any
             : undefined
 
     const database = tvShow?.database ?? movie?.database

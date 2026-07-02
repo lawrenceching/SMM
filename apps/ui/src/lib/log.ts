@@ -2,6 +2,7 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { isNil } from "es-toolkit";
 import pino from 'pino'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function minimize(mm: UIMediaMetadata): any {
     return {
         mediaFolderPath: mm.mediaFolderPath,

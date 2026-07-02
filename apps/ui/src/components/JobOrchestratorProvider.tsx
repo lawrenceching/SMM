@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   createContext,
   useCallback,
@@ -11,7 +12,7 @@ import type { ReactNode } from 'react'
 import { apiFetch } from '@/lib/apiFetch'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
-import { useDialogs } from '@/providers/dialog-provider'
+import { DialogContext } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
   DownloadVideoBackgroundJobData,
@@ -110,6 +111,7 @@ let syncFromIndexedDBChain: Promise<unknown> = Promise.resolve()
 /** Poll IndexedDB while jobs are pending/running (safety net for reconciliation). */
 const ACTIVE_JOB_POLL_INTERVAL_MS = 5_000
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useJobOrchestratorContext(): JobOrchestratorContextValue {
   const ctx = useContext(JobOrchestratorContext)
   if (!ctx) throw new Error('useJobOrchestratorContext must be used inside <JobOrchestratorProvider>')
@@ -274,16 +276,12 @@ async function cleanupPassLog(logPath: string): Promise<void> {
 export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation('components')
   const tRef = useRef(t)
-  tRef.current = t
+  useEffect(() => { tRef.current = t }, [t])
 
   // Optional log dialog integration — gracefully handle missing DialogProvider
   const openLogDialogRef = useRef<((params: { executionId: string; jobTitle: string; isRunning?: boolean }) => void) | undefined>(undefined)
-  try {
-    const { logDialog } = useDialogs()
-    openLogDialogRef.current = logDialog[0]
-  } catch {
-    openLogDialogRef.current = undefined
-  }
+  const dialogContext = useContext(DialogContext)
+  useEffect(() => { openLogDialogRef.current = dialogContext?.logDialog[0] }, [dialogContext])
 
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
@@ -878,9 +876,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         // best-effort chaining
       }
     }
-  }, [syncFromIndexedDB])
+  }, [syncFromIndexedDB, ytdlpPrintArg, ytdlpTty])
 
-  executeJobRef.current = executeJob
+  useEffect(() => { executeJobRef.current = executeJob }, [executeJob])
 
   // ---------------------------------------------------------------------------
   // Stop a running job
@@ -1235,6 +1233,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
  * Returns per-file status sets for the given folder + job type.
  * Driven entirely by the registry's `extractPath` — no per-type branches.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useFileStatuses(folder: string, type: string) {
   const { jobRecords } = useJobOrchestratorContext()
   const config = JOB_TYPE_REGISTRY[type]
@@ -1284,6 +1283,7 @@ export function useFileStatuses(folder: string, type: string) {
 }
 
 /** All jobs in the store (convenience alias over `jobRecords`). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useJobs() {
   return useJobOrchestratorContext().jobRecords
 }

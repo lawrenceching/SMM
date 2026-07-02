@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /** @vitest-environment jsdom */
 import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -62,7 +63,8 @@ vi.mock("@/hooks/userConfig/useConfig", () => ({
 }));
 
 vi.mock("@/components/ui/context-menu", () => {
-  const React = require("react");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require("react");
   return {
     ContextMenu: ({ children }: any) => <div>{children}</div>,
     ContextMenuTrigger: ({ children }: any) => <div>{children}</div>,
@@ -83,7 +85,8 @@ vi.mock("@/components/ui/context-menu", () => {
 });
 
 vi.mock("@/components/ui/hover-card", () => {
-  const React = require("react");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  require("react");
   return {
     HoverCard: ({ children }: any) => <div>{children}</div>,
     HoverCardTrigger: ({ children }: any) => <div>{children}</div>,

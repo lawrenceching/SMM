@@ -184,6 +184,7 @@ export function useDownloadVideoForm(
 
   useEffect(() => {
     if (!isOpen) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsAgreementChecked(hasAgreed)
   }, [isOpen, hasAgreed])
 
@@ -219,6 +220,7 @@ export function useDownloadVideoForm(
   // --- destinationFolder sync ---
   useEffect(() => {
     if (isOpen && destinationFolder) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDownloadFolder(destinationFolder)
     }
   }, [isOpen, destinationFolder])
@@ -230,7 +232,9 @@ export function useDownloadVideoForm(
 
   useEffect(() => {
     if (!isYoutube || hasYoutubeCookiesAuth) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setYoutubeCookiesHintEmphasized(false)
+       
       setYoutubeCookiesHintFlashKey(0)
     }
   }, [isYoutube, hasYoutubeCookiesAuth])
@@ -271,6 +275,7 @@ export function useDownloadVideoForm(
   // --- Sync availableHeights when videoMetadata changes ---
   useEffect(() => {
     if (videoMetadata) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAvailableHeights(extractAvailableHeights(videoMetadata.formats))
     }
   }, [videoMetadata])
@@ -278,6 +283,7 @@ export function useDownloadVideoForm(
   // --- Force JS Runtime for YouTube ---
   useEffect(() => {
     if (isYoutube) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUseJsRuntime(true)
     }
   }, [isYoutube])
@@ -501,7 +507,7 @@ export function useDownloadVideoForm(
     setYoutubeCookiesHintFlashKey(0)
     setProxy(userConfig?.ytdlpProxy ?? "")
     resetListFormats()
-  }, [platform, resetListFormats, userConfig?.ytdlpProxy])
+  }, [platform, resetListFormats, userConfig?.ytdlpProxy, setProxy])
 
   return {
     url,

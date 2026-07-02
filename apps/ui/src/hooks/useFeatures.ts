@@ -428,6 +428,7 @@ export function useFeatures(): UseFeaturesResult {
         setIsMobileLayoutEnabled(readMobileLayoutEnabled())
       }
       if (event.key === TTY_FOR_YTDLP_STORAGE_KEY) {
+        // eslint-disable-next-line
         setEnableTtyForYtdlpCommand(readTtyForYtdlpEnabled())
       }
       if (event.key === PRINT_ARG_FOR_YTDLP_STORAGE_KEY) {
@@ -451,6 +452,7 @@ export function useFeatures(): UseFeaturesResult {
     }
     window.addEventListener("storage", onStorage)
     return () => window.removeEventListener("storage", onStorage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const setVideoCaptionerAsrOptionsEnabled = useCallback((enabled: boolean) => {

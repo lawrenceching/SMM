@@ -1,7 +1,7 @@
-import { useCallback, useRef } from "react"
+import { useCallback, useContext, useEffect, useRef } from "react"
 import type { DownloadVideoDialogProps, FileItem } from "../types"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
-import { useDialogs } from "@/providers/dialog-provider"
+import { DialogContext } from "@/providers/dialog-provider"
 import { useDownloadVideoForm } from "../hooks/use-download-video-form"
 import { useYtdlpDownloadFlow } from "../hooks/use-ytdlp-download-flow"
 import { UIDownloadVideoDialogContent } from "../UIDownloadVideoDialogContent"
@@ -23,12 +23,8 @@ export function DownloadVideoDialogContent({
 
   // Optional log dialog integration — gracefully handle missing DialogProvider in tests
   const openLogDialogRef = useRef<((params: { executionId: string; jobTitle: string; isRunning?: boolean }) => void) | undefined>(undefined)
-  try {
-    const { logDialog } = useDialogs()
-    openLogDialogRef.current = logDialog[0]
-  } catch {
-    openLogDialogRef.current = undefined
-  }
+  const dialogContext = useContext(DialogContext)
+  useEffect(() => { openLogDialogRef.current = dialogContext?.logDialog[0] }, [dialogContext])
 
   const form = useDownloadVideoForm({ isOpen: true, destinationFolder, t: td })
 
@@ -73,13 +69,13 @@ export function DownloadVideoDialogContent({
       (file: FileItem) => form.setDownloadFolder(file.path),
       { selectFolder: true, initialPath: form.downloadFolder || undefined },
     )
-  }, [onOpenFilePicker, form.setDownloadFolder, form.downloadFolder])
+  }, [onOpenFilePicker, form])
 
   const handleCancel = useCallback(() => {
     form.resetFormState()
     flow.resetFlowState()
     onClose()
-  }, [form.resetFormState, flow.resetFlowState, onClose])
+  }, [form, flow, onClose])
 
   const handleOpenListingLog = useCallback(() => {
     if (form.listingExecutionId && openLogDialogRef.current) {

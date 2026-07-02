@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type MediaMetadata, type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@core/types"
@@ -62,7 +63,7 @@ export function nextTraceId(): number {
     const nextId = isNaN(currentId) ? 1 : currentId + 1;
     localStorage.setItem(STORAGE_KEY_TRACE_ID, nextId.toString());
     return nextId;
-  } catch (error) {
+  } catch {
     // Fallback to runtime counter if localStorage fails
     runtimeTraceIdCounter++;
     return runtimeTraceIdCounter;
@@ -126,7 +127,7 @@ function getRelativePath(absolutePath: string, mediaFolderPath: string | undefin
   }
   try {
     return relative(mediaFolderPath, absolutePath);
-  } catch (error) {
+  } catch {
     // If relative path calculation fails, return the absolute path
     return absolutePath;
   }

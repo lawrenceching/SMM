@@ -105,6 +105,7 @@ function TrackListItem({
                       className="w-0.5 bg-green-500 rounded-full animate-pulse"
                       style={{
                         animationDelay: `${i * 0.15}s`,
+                        // eslint-disable-next-line react-hooks/purity
                         height: `${4 + Math.random() * 12}px`,
                       }}
                     />

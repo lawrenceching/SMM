@@ -52,6 +52,7 @@ export function useAiBasedRenameFilesFlow({
       `[rename] useAiBasedRenameFilesFlow: plan=${plan ? `id=${plan.id} status=${plan.status}` : "undefined"}, ` +
       `mediaFolderPath=${mediaFolderPath}, plansCount=${plans.length}`,
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan?.id, plan?.status, plans.length, mediaFolderPath])
 
   const onConfirm = useCallback(async () => {
@@ -80,6 +81,7 @@ export function useAiBasedRenameFilesFlow({
     if (plan) {
       onFlowStart?.()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan?.id, onFlowStart])
 
   useTvShowWebSocketEvents({

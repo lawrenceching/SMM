@@ -108,9 +108,9 @@ export function useSubtitleFlow({
   const allJobRecords = useJobs()
   const runningJobIdsRef = useRef(new Set<string>())
   const onRefreshMediaMetadataRef = useRef(onRefreshMediaMetadata)
-  onRefreshMediaMetadataRef.current = onRefreshMediaMetadata
+  useEffect(() => { onRefreshMediaMetadataRef.current = onRefreshMediaMetadata }, [onRefreshMediaMetadata])
   const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath)
-  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath
+  useEffect(() => { mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath }, [mediaMetadata?.mediaFolderPath])
 
   useEffect(() => {
     const mfp = mediaFolderPathRef.current

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useCallback, useEffect, useMemo } from "react"
 import {
   Loader2,
@@ -345,7 +346,8 @@ export function FileExplorer({
     } finally {
       setIsLoading(false)
     }
-  }, [onlyFolders])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onlyFolders, onPathChange])
   
   // Filter files based on search query
   const filteredFiles = useMemo(() => {
@@ -665,7 +667,7 @@ export function FileExplorer({
     onFileSelect(file)
   }
 
-  const handleItemDoubleClick = async (file: FileItem) => {
+  const handleItemDoubleClick = useCallback(async (file: FileItem) => {
     console.log('[FileExplorer] handleItemDoubleClick:', file)
     // Double-click: open image files or navigate into folder
     if (!file.isDirectory && isImageFile(file.name)) {
@@ -718,7 +720,7 @@ export function FileExplorer({
     }
     // Call optional double click handler
     onFileDoubleClick?.(file)
-  }
+  }, [onFileDoubleClick, showDrives, pathHistory, onPathChange, onFileSelect, restrictToInitialPath, initialPath, currentPath, normalizeToPosix])
 
   const handleGoToParent = async () => {
     // Determine separator from current path
@@ -913,7 +915,7 @@ export function FileExplorer({
         setFocusedIndex(-1)
         break
     }
-  }, [sortedFiles, focusedIndex])
+  }, [sortedFiles, focusedIndex, handleItemDoubleClick, onFileSelect])
   
   // Update focused item when clicking
   useEffect(() => {

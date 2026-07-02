@@ -86,7 +86,7 @@ export function MusicPanel() {
     isMediaMetadataError,
     isMediaMetadataPending,
     mediaMetadataFetchStatus,
-    uiFolderRow?.status,
+    uiFolderRow,
   ]);
 
   const mediaMetadata = queriedMediaMetadata;
@@ -141,11 +141,11 @@ export function MusicPanel() {
   // When a job completes for this folder, refresh media metadata to pick up new files.
   const runningJobIdsRef = useRef(new Set<string>());
   const fetchMediaMetadataRef = useRef(fetchMediaMetadata);
-  fetchMediaMetadataRef.current = fetchMediaMetadata;
+  useEffect(() => { fetchMediaMetadataRef.current = fetchMediaMetadata }, [fetchMediaMetadata]);
   const mediaFolderPathRef = useRef(mediaMetadata?.mediaFolderPath);
-  mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath;
+  useEffect(() => { mediaFolderPathRef.current = mediaMetadata?.mediaFolderPath }, [mediaMetadata?.mediaFolderPath]);
   const platformFolderRef = useRef(platformFolder);
-  platformFolderRef.current = platformFolder;
+  useEffect(() => { platformFolderRef.current = platformFolder }, [platformFolder]);
 
   useEffect(() => {
     const pf = platformFolderRef.current;
@@ -279,6 +279,7 @@ export function MusicPanel() {
     })();
 
     return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mediaMetadata, pathSignature]);
 
   const musicFileRowsForDialogs = useMemo<LocalFileTableRowData[]>(

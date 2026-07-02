@@ -74,12 +74,15 @@ function FadeInContent({
 
   useEffect(() => {
     if (reducedMotion) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisible(true)
       return
     }
+     
     setVisible(false)
     const id = requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+         
         setVisible(true)
       })
     })

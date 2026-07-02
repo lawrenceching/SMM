@@ -350,6 +350,7 @@ function EpisodeVideoScreenshot({
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const COLUMN_KEYS = ["video", "thumbnail", "subtitle", "nfo"] as const
 type ColumnKey = (typeof COLUMN_KEYS)[number]
 
@@ -381,16 +382,21 @@ export function TvShowEpisodeTable({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(defaultColumnVisibility)
   const folderAbortRef = useRef<AbortController | null>(null)
-  if (layout === "preview" && !folderAbortRef.current) {
-    folderAbortRef.current = new AbortController()
-  }
-  const folderAbortSignal = folderAbortRef.current?.signal
+  const [folderAbortSignal, setFolderAbortSignal] = useState<AbortSignal | undefined>(undefined)
+  useEffect(() => {
+    if (layout === "preview" && !folderAbortRef.current) {
+      folderAbortRef.current = new AbortController()
+      setFolderAbortSignal(folderAbortRef.current.signal)
+    }
+  }, [layout])
 
   // When leaving preview layout, cancel in-flight/queued screenshot requests.
   useEffect(() => {
     if (layout !== "preview") {
       folderAbortRef.current?.abort()
       folderAbortRef.current = null
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFolderAbortSignal(undefined)
     }
   }, [layout])
 

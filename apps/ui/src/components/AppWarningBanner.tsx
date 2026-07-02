@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -22,6 +22,7 @@ function safeSetLocalStorageItem(key: string, value: string): void {
       localStorage.setItem(key, value)
     }
   } catch {
+    /* intentionally empty */
   }
 }
 
@@ -47,6 +48,7 @@ function getOS(): "macos" | "linux" | "win" | "unknown" {
       return "win"
     }
   } catch {
+    /* intentionally empty */
   }
 
   return "unknown"
@@ -58,16 +60,11 @@ function shouldShowBanner(): boolean {
 }
 
 export function AppWarningBanner() {
-  const [isVisible, setIsVisible] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return
-    }
+  const [isVisible, setIsVisible] = useState(() => {
+    if (typeof window === "undefined") return false
     const dismissed = safeGetLocalStorageItem(LOCAL_STORAGE_KEY)
-    const showBanner = dismissed !== "true" && shouldShowBanner()
-    setIsVisible(showBanner)
-  }, [])
+    return dismissed !== "true" && shouldShowBanner()
+  })
 
   const handleClose = () => {
     safeSetLocalStorageItem(LOCAL_STORAGE_KEY, "true")

@@ -244,7 +244,7 @@ function MoviePanel() {
         return { ...file, newPath: assocRelativeNewPath }
       }),
     }))
-  }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule, movieFiles])
+  }, [isRuleBasedRenameFilePromptOpen, mediaMetadata, selectedNamingRule, movieFiles, latestMovieFiles])
 
   useEffect(() => {
     if (isRuleBasedRenameFilePromptOpen) {
@@ -320,6 +320,7 @@ function MoviePanel() {
   // Build table data using the movie→tv-show adapter
   const tableData = useMemo<TvShowEpisodeTableRow[]>(() => {
     if (!mediaMetadata) return []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), {
       renamePreview: renamePreview ?? undefined,
     })

@@ -7,7 +7,7 @@ import { listFiles } from "./listFiles";
 import { Path } from "@core/path";
 
 export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: string) {
-    const filename = folderPathInPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
     return join(appDataDir, `metadata`,  `${filename}.json`)
 }
 

@@ -278,7 +278,7 @@ export function buildTvShowEpisodeTableRowsForPlan(
       }]
     }
 
-    let rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t)
+    const rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t)
 
     if(plan.task === "recognize-media-file") {
       if(plan.status === 'preparing') {

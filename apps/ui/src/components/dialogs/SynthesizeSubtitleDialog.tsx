@@ -47,7 +47,7 @@ export function SynthesizeSubtitleDialog({ rows, onClose, folder, ...rest }: Syn
       if (saved === 0) return
       onClose()
     },
-    [rows, onClose, folder],
+    [rows, onClose, folder, createJob],
   )
 
   return (

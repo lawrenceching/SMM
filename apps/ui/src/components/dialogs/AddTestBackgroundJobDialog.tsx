@@ -37,7 +37,9 @@ export function AddTestBackgroundJobDialog({ isOpen, onClose }: AddTestBackgroun
 
   useEffect(() => {
     if (!isOpen) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDurationSeconds('60')
+     
     setOutcome('succeeded')
   }, [isOpen])
 

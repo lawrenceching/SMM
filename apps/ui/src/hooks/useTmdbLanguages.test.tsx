@@ -17,7 +17,6 @@ function createWrapper() {
       queries: { retry: false, gcTime: 0, staleTime: 0 },
     },
   })
-  // eslint-disable-next-line react/display-name
   return ({ children }: { children: React.ReactNode }) => (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )

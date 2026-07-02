@@ -87,7 +87,7 @@ class AssistantErrorBoundary extends Component<
     }
 
     componentDidCatch(error: Error, info: ErrorInfo) {
-        // eslint-disable-next-line no-console
+         
         console.error("[Assistant] error caught by boundary:", error, info)
     }
 
@@ -277,8 +277,7 @@ function AssistantImpl() {
             },
         })
     }, [
-        isHarmony,
-        isUIAiChatTransportEnabled,
+        useFrontendTransport,
         userConfig.selectedAIProvider,
         userConfig.aiProviders,
         appConfig.reverseProxyUrl,

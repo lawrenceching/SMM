@@ -71,7 +71,7 @@ function getRelativePath(mediaFolderPath: string | undefined, filePath: string):
     
     try {
         return relative(mediaFolderPath, filePath)
-    } catch (error) {
+    } catch {
         // If relative path calculation fails, fallback to filename
         const parts = filePath.split(/[/\\]/)
         return parts[parts.length - 1] || filePath

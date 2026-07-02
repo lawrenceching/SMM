@@ -104,7 +104,7 @@ function TvShowPanel() {
         .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
         .map((row) => row.videoFile)
         .filter((path): path is string => path !== undefined),
-    [],
+    [latestTableData],
   )
 
   const getSelectedEpisodes = useCallback(
@@ -112,7 +112,7 @@ function TvShowPanel() {
       latestTableData.current
         .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
         .map((row) => ({ season: row.season, episode: row.episode })),
-    [],
+    [latestTableData],
   )
 
   const recognizeBeforeConfirm = useCallback(
@@ -253,7 +253,7 @@ function TvShowPanel() {
       console.warn(`[TvShowPanel] previewMode: unknown plan task: ${task}`)
       return undefined;
     }
-  }, [plan, mediaMetadata?.mediaFolderPath])
+  }, [plan])
 
   const previewStatus: "loading" | "ok" | undefined = useMemo(() => {
     if(plan === undefined) {
@@ -267,20 +267,22 @@ function TvShowPanel() {
   }, [plan])
 
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!mediaMetadata) return;
 
     let ret: TvShowEpisodeTableRow[] = [];
     if(plan === undefined) {
       ret = buildTvShowEpisodeTableRows(mediaMetadata, uiStatus, (key: string) => {
-       return t(key as any)
+       return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
       })
     } else {
       ret = buildTvShowEpisodeTableRowsForPlan(mediaMetadata, uiStatus, plan, (key: string) => {
-       return t(key as any)
+       return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
       })
     };
 
     setTableData(ret);
+    /* eslint-enable react-hooks/set-state-in-effect */
 
   }, [mediaMetadata, plan, uiStatus, t])
 

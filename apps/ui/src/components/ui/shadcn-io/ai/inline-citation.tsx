@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Badge } from '@/components/ui/badge';
@@ -159,10 +160,13 @@ export const InlineCitationCarouselIndex = ({
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCount(api.scrollSnapList().length);
+     
     setCurrent(api.selectedScrollSnap() + 1);
 
     api.on('select', () => {
+       
       setCurrent(api.selectedScrollSnap() + 1);
     });
   }, [api]);

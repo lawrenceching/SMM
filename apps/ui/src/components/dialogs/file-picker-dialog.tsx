@@ -34,15 +34,18 @@ export function FilePickerDialog({
   useEffect(() => {
     if (isOpen) {
       if (initialPath) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentPath(initialPath)
       } else {
         const saved = localStorages.filePickerLastDir
         if (saved) {
+           
           setCurrentPath(saved)
         }
       }
     } else {
       // Reset state when dialog closes
+       
       setSelectedFile(null)
       // Don't reset currentPath to "~" - keep it for next time
     }

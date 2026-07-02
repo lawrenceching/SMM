@@ -127,5 +127,6 @@ export function useMediaDatabaseBaseUrls(type: MediaDatabaseType): MediaDatabase
       ordered.push(defaultEndpoint)
     }
     return dedupe(ordered)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, discovered, localStorageVersion])
 }

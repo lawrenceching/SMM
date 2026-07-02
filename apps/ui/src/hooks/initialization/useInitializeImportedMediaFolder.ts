@@ -98,7 +98,8 @@ export function useInitializeImportedMediaFolder() {
             // Import Media Library
             // do nothing
         }
-        
+
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const recognizeTvShow = useCallback(async (mm: MediaMetadata, traceId: string) => {
@@ -160,6 +161,7 @@ export function useInitializeImportedMediaFolder() {
                 })),
             ];
         return runRecognitionSteps(traceId, tvSteps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     /** Maps async episode recognition to domain `mediaFiles` (may be empty). Caller updates UI / persistence. */
@@ -265,6 +267,7 @@ export function useInitializeImportedMediaFolder() {
             ];
 
         return runRecognitionSteps(traceId, movieSteps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     const onTvShowRecognized = useCallback(async (
@@ -277,7 +280,7 @@ export function useInitializeImportedMediaFolder() {
             ...mm,
             tvShow,
         }, { traceId });
-    }, [])
+    }, [saveMediaMetadata])
 
     const onEpisodeRecognized = useCallback(async (
         folder: string,
@@ -289,7 +292,7 @@ export function useInitializeImportedMediaFolder() {
             ...mm,
             mediaFiles,
         }, { traceId });
-    }, [])
+    }, [saveMediaMetadata])
 
     const onMovieRecognized = useCallback(async (
         folder: string,
@@ -301,7 +304,7 @@ export function useInitializeImportedMediaFolder() {
             ...mm,
             movie,
         }, { traceId });
-    }, [])
+    }, [saveMediaMetadata])
 
     const doInitialization = useCallback(async (
         folder: string, 
@@ -373,6 +376,7 @@ export function useInitializeImportedMediaFolder() {
             }, `skip initialization for folder: ${folder} of type: ${type}`);
         }
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     /**
@@ -389,14 +393,14 @@ export function useInitializeImportedMediaFolder() {
             status: "ok",
         })
 
-    }, [])
+    }, [upsertFolder])
 
     const onSucceeded = useCallback((_folder: string) => {
         if (!jobId.current) {
             return;
         }
         updateJob(jobId.current, { status: "succeeded" });
-    }, [])
+    }, [updateJob])
 
     const onError = useCallback((_folder: string, error: Error) => {
         if (error instanceof Error && error.name === 'TimeoutError') {
@@ -419,7 +423,7 @@ export function useInitializeImportedMediaFolder() {
             updateJob(jobId.current, { status: "failed" });
         }
 
-    }, [])
+    }, [updateJob])
 
     const initializeImportedMediaFolder = async (event: Event) => {
         const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail;

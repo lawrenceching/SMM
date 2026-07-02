@@ -75,7 +75,7 @@ export function useUpdateMediaMetadataMutation() {
         traceId: options?.traceId,
       })
     },
-    [mutation.mutateAsync],
+    [mutation],
   )
 
   return {

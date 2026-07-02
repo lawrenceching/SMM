@@ -13,6 +13,7 @@ import { resolveAppLanguage } from "@core/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { startMcpServer, stopMcpServer } from "@/api/mcp"
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const THEME_OPTIONS = ["light", "dark", "system"] as const
 const PRIMARY_DATABASE_OPTIONS: {
   value: PrimaryDatabase
@@ -90,6 +91,7 @@ export function GeneralSettings() {
 
   // Reset form when userConfig changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setApplicationLanguage(initialValues.applicationLanguage)
     setTmdbHost(initialValues.tmdbHost)
     setTmdbApiKey(initialValues.tmdbApiKey)
@@ -101,6 +103,7 @@ export function GeneralSettings() {
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [initialValues])
 
   // Detect changes

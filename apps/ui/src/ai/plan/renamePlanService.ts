@@ -6,7 +6,7 @@ import {
 } from '@core/plan/renamePlan'
 import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync'
 import { validateRenameOperationsApi } from '@/api/validateRenameOperations'
-import { resolveMediaMetadataForFolderPath } from '@/ai/tools/GetMediaMetadata'
+import { resolveMediaMetadataForFolderPath } from '@/ai/mediaMetadataToolBridge'
 import { getPlanById } from '@/api/getPlanById'
 import { updatePlan } from '@/api/updatePlan'
 import { getPlanDraft, setPlanDraft } from './aiPlanDrafts'

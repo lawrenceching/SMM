@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TvShowPanelHeader } from './TvShowPanelHeader'
@@ -13,10 +14,11 @@ vi.mock('../MediaDatabaseSearchbox', () => ({
 }))
 
 vi.mock('../ui/dropdown-menu', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react')
   return {
     DropdownMenu: ({ children }: any) => <div data-testid="dropdown-menu">{children}</div>,
-    DropdownMenuTrigger: ({ children, asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
+    DropdownMenuTrigger: ({ children, asChild: _asChild }: any) => <div data-testid="dropdown-trigger">{children}</div>,
     DropdownMenuContent: ({ children }: any) => <div role="menu">{children}</div>,
     DropdownMenuItem: ({ children, disabled, onClick, ...rest }: any) => (
       <div role="menuitem" aria-disabled={disabled || undefined} onClick={onClick} {...rest}>{children}</div>

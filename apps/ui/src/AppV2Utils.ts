@@ -17,7 +17,7 @@ import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4";
  */
 export function getTmdbIdFromFolderName(folderName: string): string | null {
   // Match patterns like (tmdbid=123456), {tmdbid=123456}, or [tmdbid=123456]
-  const match = folderName.match(/[\(\{\[]\s*tmdbid\s*=\s*(\d+)\s*[\}\)\]]/i);
+  const match = folderName.match(/(?:[(\[{])\s*tmdbid\s*=\s*(\d+)\s*[\])}]/i);
   return match ? match[1] : null;
 }
 

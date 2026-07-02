@@ -46,9 +46,8 @@ export function useResolvedLanguages(): ResolvedLanguages {
         osLocale: helloQuery.data?.osLocale,
       }),
     [
-      userConfig.applicationLanguage,
-      userConfig.preferMediaLanguage,
       helloQuery.data?.osLocale,
+      userConfig,
     ],
   )
 }

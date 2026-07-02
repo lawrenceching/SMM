@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { useLatest, useMount, useUnmount } from "react-use"
 import { listFiles } from "@/api/listFiles"
 import { useJobManager } from "@/hooks/useJobManager"
@@ -21,6 +21,7 @@ import { useTranslation } from "@/lib/i18n"
 /**
  * folders - the absolute folder paths in platform format
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function _dedupFolders(newFolders: string[], existingFolderPaths: string[]): string[] {
   const importedFolders: string[] = existingFolderPaths
     .filter((path) => path && Path.toPlatformPath(path))
@@ -30,6 +31,7 @@ export function _dedupFolders(newFolders: string[], existingFolderPaths: string[
   return newFolders.filter((folder) => !importedPosix.has(Path.posix(folder)))
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export async function _listFolders(path: string): Promise<string[]> {
   const listFilesResponse = await listFiles({
     path,
@@ -39,6 +41,7 @@ export async function _listFolders(path: string): Promise<string[]> {
   return listFilesResponse.data?.items.map((item) => item.path) ?? []
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export async function listLibraryFoldersWithAccess(libraryPath: string): Promise<string[]> {
   await persistHarmonyOSFileAccess([libraryPath])
   return _listFolders(libraryPath)
@@ -48,7 +51,7 @@ export function MediaLibraryImportedEventHandler() {
 
   const { t: tComponents } = useTranslation("components")
   const tRef = useRef(tComponents)
-  tRef.current = tComponents
+  useEffect(() => { tRef.current = tComponents }, [tComponents])
 
   const eventListener = useRef<((event: Event) => void) | null>(null)
   const { folders } = useUIMediaFolderStoreState()
@@ -103,7 +106,7 @@ export function MediaLibraryImportedEventHandler() {
       } })
 
       // Use Sidebar store sort order so initialization runs top-to-bottom as shown in Sidebar
-      let foldersInSidebarOrder = sortPathsBySidebarDisplayOrder(foldersToImport, (path) => basename(path) ?? "")
+      const foldersInSidebarOrder = sortPathsBySidebarDisplayOrder(foldersToImport, (path) => basename(path) ?? "")
 
       /**
        * Double check foldersInSidebarOrder contains all element in foldersToImport

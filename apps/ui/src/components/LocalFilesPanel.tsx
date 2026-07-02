@@ -58,7 +58,7 @@ function LocalFilesPanel({ files, onFileAction, mediaFolderPath }: LocalFilesPan
             }
         })
 
-    }, [files])
+    }, [files, mediaFolderPath])
 
     const handleAction = (action: string, file: File) => {
         if (onFileAction) {

@@ -29,9 +29,11 @@ export function BackgroundJobsPopoverContent() {
   useEffect(() => {
     if (!isPopoverOpen) return
     if (jobs.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsLoading(false)
       return
     }
+     
     setIsLoading(true)
     void refreshFromIndexedDB('popover-mount').finally(() => setIsLoading(false))
   }, [isPopoverOpen, jobs.length, refreshFromIndexedDB])

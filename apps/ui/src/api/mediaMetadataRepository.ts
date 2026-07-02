@@ -65,7 +65,7 @@ export class MediaMetadataRepository {
       if (existing.type) {
         return { ...existing, status: 'ok' };
       }
-    } catch (error) {
+    } catch {
       // Metadata doesn't exist, continue with initialization
     }
 

@@ -57,6 +57,7 @@ export function useListFormatsMutation(): UseListFormatsMutationReturn {
         // so both display surfaces stay in sync.
         const resolved = resolveYtdlpError(
           { message: err instanceof Error ? err.message : String(err) },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
           t as any,
         )
         setListingError(resolved.message)

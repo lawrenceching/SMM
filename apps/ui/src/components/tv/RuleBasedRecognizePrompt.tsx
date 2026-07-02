@@ -4,8 +4,8 @@ import { useTranslation } from "@/lib/i18n"
 import { Loader2 } from "lucide-react"
 
 export interface RuleBasedRecognizePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
-  tvShowTitle: string
-  tvShowTmdbId: number
+  tvShowTitle?: string
+  tvShowTmdbId?: number
   isLoading?: boolean
   notAllEpisodesRecognized?: boolean
   allPlanFilesUnchanged?: boolean
@@ -24,8 +24,6 @@ export function RuleBasedRecognizePrompt({
   cancelLabel,
   isConfirmButtonDisabled,
   isConfirmDisabled,
-  tvShowTitle,
-  tvShowTmdbId,
   isLoading = false,
   notAllEpisodesRecognized = false,
   allPlanFilesUnchanged = false,

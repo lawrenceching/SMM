@@ -4,6 +4,7 @@
  * Uses real hooks + JobOrchestratorProvider; mocks stop at executeCmd helpers.
  */
 import type { ReactElement } from 'react'
+import { createContext } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -61,6 +62,7 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@/providers/dialog-provider', () => ({
+  DialogContext: createContext(undefined),
   useDialogs: () => ({
     textDialog: [vi.fn(), vi.fn()],
   }),

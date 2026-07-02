@@ -140,11 +140,10 @@ describe("useRenameVideoFileFlow", () => {
       useRenameVideoFileFlow({ mediaFolderPath, files, onAfterRename }),
     )
 
-    let confirm!: (newRelativePath: string) => Promise<void>
     act(() => {
       result.current.onRenameContextMenuClick(baseRow)
     })
-    confirm = openRename.mock.calls[0]![0]
+    const confirm = openRename.mock.calls[0]![0] as (newRelativePath: string) => Promise<void>
 
     await act(async () => {
       await confirm("S01E02.mkv")
@@ -174,11 +173,10 @@ describe("useRenameVideoFileFlow", () => {
       useRenameVideoFileFlow({ mediaFolderPath, files, onAfterRename }),
     )
 
-    let confirm!: (newRelativePath: string) => Promise<void>
     act(() => {
       result.current.onRenameContextMenuClick(baseRow)
     })
-    confirm = openRename.mock.calls[0]![0]
+    const confirm = openRename.mock.calls[0]![0] as (newRelativePath: string) => Promise<void>
 
     await expect(
       act(async () => {

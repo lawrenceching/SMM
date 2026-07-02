@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
@@ -41,7 +42,7 @@ export function sendWebSocketMessage(message: WebSocketMessage): void {
  */
 export function useWebSocketEvent(handler: (message: WebSocketMessage) => void): void {
   const handlerRef = useRef(handler);
-  handlerRef.current = handler;
+  useEffect(() => { handlerRef.current = handler }, [handler]);
 
   useEffect(() => {
     const listener: WebSocketEventListener = (message) => {
@@ -275,7 +276,8 @@ export function useWebSocket(): UseWebSocketReturn {
     return () => {
       disconnect();
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     status,

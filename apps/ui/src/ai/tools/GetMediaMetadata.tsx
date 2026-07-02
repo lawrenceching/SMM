@@ -21,8 +21,6 @@ import {
   useMediaMetadataToolBridge,
 } from '@/ai/mediaMetadataToolBridge'
 
-export { resolveMediaMetadataForFolderPath } from '@/ai/mediaMetadataToolBridge'
-
 const getMediaMetadata = tool({
   description: GET_MEDIA_METADATA_DESCRIPTION,
   parameters: getMediaMetadataInputSchema,

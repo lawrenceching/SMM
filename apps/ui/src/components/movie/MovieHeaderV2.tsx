@@ -78,7 +78,7 @@ export function MovieHeaderV2({
     const actionsDisabled = !hasValidMovieMetadata
     const unrecognizedHint =
         isMediaMetadataOk && actionsDisabled
-            ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string)
+            ? (t('movie.unrecognizedFolderHint' as any, { ns: 'components' }) as string) // eslint-disable-line @typescript-eslint/no-explicit-any
             : undefined
 
     const database = movieMeta?.database

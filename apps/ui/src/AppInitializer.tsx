@@ -9,6 +9,7 @@ import { queryClient } from "@/lib/queryClient"
 import { DvdGuideUrlInitializer } from "@/components/initialization/DvdGuideUrlInitializer"
 const debug = Debug("AppInitializer")
 
+// eslint-disable-next-line react-refresh/only-export-components
 export async function buildMediaMetadata(
   folders: string[],
   initializeMediaMetadata: (folderPath: string, type: "music-folder" | "tvshow-folder" | "movie-folder") => Promise<UIMediaMetadata>
