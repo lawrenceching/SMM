@@ -50,7 +50,10 @@ describe('resolveE2eWindowSize', () => {
     });
   });
 
-  test('returns null outside docker when env size is not set', () => {
-    expect(resolveE2eWindowSize()).toBeNull();
+  test('returns default 1920x1080 when env size is not set', () => {
+    expect(resolveE2eWindowSize()).toEqual({
+      width: DEFAULT_E2E_WINDOW_WIDTH,
+      height: DEFAULT_E2E_WINDOW_HEIGHT,
+    });
   });
 });

@@ -158,11 +158,14 @@ const chromeOptionsForDockerEnv: string[] = [
     '--unsafely-treat-insecure-origin-as-secure=http://*'
 ]
 
-/** CI headless: Chrome launch args alone do not set the WebDriver window; apply via setWindowSize in `before`. */
+/** WebDriver window: Chrome's --window-size does not reliably set the WebDriver window
+ *  (especially in headless mode), so apply via setWindowSize in `before` whenever we have
+ *  a target size. The default ensures layout tests that depend on container queries get
+ *  a wide enough viewport locally, not just in CI. */
 export const DEFAULT_E2E_WINDOW_WIDTH = 1920
 export const DEFAULT_E2E_WINDOW_HEIGHT = 1080
 
-export function resolveE2eWindowSize(): { width: number; height: number } | null {
+export function resolveE2eWindowSize(): { width: number; height: number } {
     const widthEnv = process.env.E2E_WINDOW_WIDTH
     const heightEnv = process.env.E2E_WINDOW_HEIGHT
     if (widthEnv && heightEnv) {
@@ -172,15 +175,11 @@ export function resolveE2eWindowSize(): { width: number; height: number } | null
             return { width, height }
         }
     }
-    if (process.env.BUILD_ENV === 'docker') {
-        return { width: DEFAULT_E2E_WINDOW_WIDTH, height: DEFAULT_E2E_WINDOW_HEIGHT }
-    }
-    return null
+    return { width: DEFAULT_E2E_WINDOW_WIDTH, height: DEFAULT_E2E_WINDOW_HEIGHT }
 }
 
 async function applyE2eWindowSize(): Promise<void> {
     const target = resolveE2eWindowSize()
-    if (!target) return
 
     await browser.setWindowSize(target.width, target.height)
     const rect = await browser.getWindowRect()

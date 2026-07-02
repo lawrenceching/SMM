@@ -249,3 +249,8 @@ API列表可查阅文件: `docs/api/index.md`.
 ## 注意事项
 
 1. 当代码改动涉及 `apps/ohos`时, 需要阅读 [HarmonyOS 开发 FAQ](docs/superpowers/reference/faq-harmonyos.md)
+
+## Superpowers Skill
+当使用 superpowers skillset 驱动改动时, 在 "writing-plans" 阶段, 需要为本项目额外编写/更新一份设计文档.
+
+文档模板: [Design Template](./docs/superpowers/reference/design-template.md)
