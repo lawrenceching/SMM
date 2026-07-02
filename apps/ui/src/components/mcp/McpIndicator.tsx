@@ -43,7 +43,12 @@ export function McpIndicator({ className }: McpIndicatorProps) {
         if (!serverState || !userConfig || initialCheckDone.current) return
         initialCheckDone.current = true
 
-        if (!mcpEnabled || isRunning) return
+        console.log(`[McpIndicator-init] mcpEnabled=${mcpEnabled} isRunning=${isRunning} serverState.status=${serverState.status} initialCheckDone=${initialCheckDone.current}`)
+
+        if (!mcpEnabled || isRunning) {
+            console.log(`[McpIndicator-init] bailed out: mcpEnabled=${mcpEnabled} isRunning=${isRunning} serverState.status=${serverState.status}`)
+            return
+        }
 
         const traceId = `McpIndicator-init-${nextTraceId()}`
 
@@ -57,12 +62,14 @@ export function McpIndicator({ className }: McpIndicatorProps) {
             })
         }
 
+        console.log(`[McpIndicator-init] reverting enableMcpServer to false because serverState.status=${serverState.status}`)
         setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: false })
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [serverState, userConfig])
 
     const handleMcpToggle = async () => {
         const traceId = `McpIndicator-MCP-toggle-${nextTraceId()}`
+        console.log(`[McpIndicator] handleMcpToggle called: mcpEnabled=${mcpEnabled} host=${mcpHost} port=${mcpPort}`)
 
         if (mcpEnabled) {
             // ── Turn OFF ────────────────────────────────────────
@@ -78,7 +85,9 @@ export function McpIndicator({ className }: McpIndicatorProps) {
             await setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: true })
             // 2. Start server — may fail
             try {
+                console.log(`[${traceId}] Calling doStartMcpServer host=${mcpHost} port=${mcpPort}`)
                 await doStartMcpServer(queryClient, { host: mcpHost, port: mcpPort })
+                console.log(`[${traceId}] doStartMcpServer succeeded`)
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
                 console.error(`[${traceId}] MCP start failed:`, msg)

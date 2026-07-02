@@ -20,7 +20,7 @@ describe('Sidebar', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: (userConfig) => {
-                userConfig.preferMediaLanguage = 'en-US'
+                userConfig.preferMediaLanguage = 'zh-CN'
                 return userConfig
             },
         })

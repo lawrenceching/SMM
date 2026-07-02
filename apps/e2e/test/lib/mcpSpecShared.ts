@@ -38,21 +38,32 @@ async function ensureMcpPopoverOpen(): Promise<void> {
  * (see {@link SMM_MCP_GLOBAL_ADDRESS_KEY}). Use after `setup()` when user config / page was reset.
  */
 export async function enableMcpFromStatusBarAndStoreAddress(): Promise<void> {
+  console.log('[mcpSpecShared] enableMcpFromStatusBarAndStoreAddress started')
   await ensureMcpPopoverOpen()
   await StatusBar.mcpSwitch.waitForDisplayed()
 
-  if (!(await StatusBar.isMcpToggleOn())) {
+  const isOn = await StatusBar.isMcpToggleOn()
+  console.log(`[mcpSpecShared] toggle aria-checked=${isOn}`)
+
+  if (!isOn) {
+    console.log('[mcpSpecShared] toggle is OFF, clicking to turn ON')
     await StatusBar.mcpSwitch.waitForClickable()
     await delay(500)
     await StatusBar.mcpSwitch.click()
     await delay(1000)
+    const isOnAfter = await StatusBar.isMcpToggleOn()
+    console.log(`[mcpSpecShared] after click toggle aria-checked=${isOnAfter}`)
+  } else {
+    console.log('[mcpSpecShared] toggle is ON, skipping click (MCP server may not be running!)')
   }
 
   await delay(1000)
   const mcpAddress = await StatusBar.getMcpAddress()
+  console.log(`[mcpSpecShared] mcpAddress from UI = ${mcpAddress}`)
   expect(mcpAddress).toContain('http://')
   ;(globalThis as Record<string, unknown>)[SMM_MCP_GLOBAL_ADDRESS_KEY] = mcpAddress
   ;(globalThis as Record<string, unknown>)[SMM_MCP_WORKER_FLAG_KEY] = true
+  console.log(`[mcpSpecShared] enableMcpFromStatusBarAndStoreAddress completed, stored address=${mcpAddress}`)
 }
 
 /** Turn MCP server off and clear stored URL (WDIO global `after`). */
@@ -82,6 +93,7 @@ export function createMcpSpecContext(): McpSpecContext {
 
 /** Enable MCP from StatusBar after {@link setup}. Call from spec `beforeEach`. */
 export async function setupMcpTest(): Promise<void> {
+  console.log('[setupMcpTest] started')
   await StatusBar.mcpIndicatorButton.waitForDisplayed()
   await StatusBar.mcpIndicatorButton.click()
   await StatusBar.waitForMcpPopover(1000)
@@ -89,20 +101,14 @@ export async function setupMcpTest(): Promise<void> {
 
   await browser.pause(1000)
 
-  if (!(await StatusBar.isMcpToggleOn())) {
-    console.log('MCP switch is off, clicking to turn it on')
-    await StatusBar.mcpSwitch.click()
-    await browser.pause(1000)
-  }
-
-  if (!(await StatusBar.isMcpToggleOn())) {
-    console.log('[2nd check] MCP switch is still off, clicking to turn it on')
-    await StatusBar.mcpSwitch.click()
-    await browser.pause(1000)
-  }
-
-  if (!(await StatusBar.isMcpToggleOn())) {
-    console.log('[3rd check] MCP switch is still off, clicking to turn it on')
+  for (let i = 1; i <= 3; i++) {
+    const isOn = await StatusBar.isMcpToggleOn()
+    console.log(`[setupMcpTest] check ${i}: toggle aria-checked=${isOn}`)
+    if (isOn) {
+      console.log(`[setupMcpTest] toggle ON at check ${i}, done`)
+      break
+    }
+    console.log(`[setupMcpTest] check ${i}: toggle OFF, clicking`)
     await StatusBar.mcpSwitch.click()
     await browser.pause(1000)
   }

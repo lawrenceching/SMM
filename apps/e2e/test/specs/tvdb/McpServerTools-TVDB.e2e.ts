@@ -9,6 +9,7 @@ import { enableMcpFromStatusBarAndStoreAddress, getMcpAddressForWorker } from '.
 
 describe('MCP Server Tools - TVDB', () => {
   before(async () => {
+    console.log('[TVDB-e2e] before: setup started')
     await setup({
       removeMetadataDir: true,
       removePlansDir: true,
@@ -21,10 +22,13 @@ describe('MCP Server Tools - TVDB', () => {
       openBrowserPage: true,
     })
 
+    console.log('[TVDB-e2e] before: setup completed, pausing 5s')
     // App start MCP server after it detected user config changed
     // It may need a while for MCP server to start
     await browser.pause(5000)
+    console.log('[TVDB-e2e] before: 5s pause completed, calling enableMcpFromStatusBarAndStoreAddress')
     await enableMcpFromStatusBarAndStoreAddress()
+    console.log('[TVDB-e2e] before: enableMcpFromStatusBarAndStoreAddress completed')
   })
 
   const repoRoot = path.resolve(process.cwd(), '..', '..')
@@ -66,8 +70,11 @@ describe('MCP Server Tools - TVDB', () => {
     await Sidebar.clickFolder(folder.folderName)
     
     await browser.pause(1000)
+
+    const usedAddress = getMcpAddressForWorker()
+    console.log(`[TVDB-e2e] calling getMediaMetadata with mcpAddress=${usedAddress}`)
     
-    const r = await mcpClient.getMediaMetadata(clientCwd, getMcpAddressForWorker(), {
+    const r = await mcpClient.getMediaMetadata(clientCwd, usedAddress, {
       mediaFolderPath: folder.path!,
     })
     const json = JSON.stringify(r)
