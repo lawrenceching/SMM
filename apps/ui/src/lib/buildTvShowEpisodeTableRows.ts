@@ -36,7 +36,7 @@ function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
     if (path) rows.push({ id, type: "folderFile", path })
   }
 
-  console.log(`buildFolderFileRows RETURNED: ${JSON.stringify(rows)}`)
+  debug(`buildFolderFileRows RETURNED: %O`, rows)
 
   return rows
 }
@@ -291,7 +291,7 @@ export function buildTvShowEpisodeTableRowsForPlan(
       return fillTvShowEpisodeTableRowByRenameFilesPlan(rows, plan)
     }
 
-    console.log(`buildTvShowEpisodeTableRowsForPlan RETURNED: ${JSON.stringify(rows)}`)
+    debug(`buildTvShowEpisodeTableRowsForPlan RETURNED: %O`, rows)
 
     return rows
 }

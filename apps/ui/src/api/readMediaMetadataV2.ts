@@ -58,7 +58,13 @@ export async function readMediaMetadataV2(pathPosix: string, { traceId, defaultT
         });
     }
 
-    console.log(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} read media metadata: ${pathPosix}`, mediaMetadata);
+    console.log(`[readMediaMetadataV2]${traceId ? ` [${traceId}]` : ''} read media metadata: ${pathPosix}`, {
+        type: mediaMetadata.type,
+        filesCount: mediaMetadata.files?.length ?? 0,
+        mediaFilesCount: mediaMetadata.mediaFiles?.length ?? 0,
+        tvShowId: mediaMetadata.tvShow?.id,
+        tvShowSeasonCount: mediaMetadata.tvShow?.seasons?.length ?? 0,
+    });
 
     return mediaMetadata;
 }

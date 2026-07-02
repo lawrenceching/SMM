@@ -217,6 +217,7 @@ export function TvShowPanelHeader({
                                 className="hidden @[410px]:inline-flex"
                                 disabled={actionsDisabled}
                                 onClick={() => {
+                                    console.log("[tvshow] clicked recognize-button")
                                     onRecognizeButtonClick?.()
                                 }}
                                 data-testid="recognize-button"
@@ -230,6 +231,7 @@ export function TvShowPanelHeader({
                                 className="hidden @[310px]:inline-flex"
                                 disabled={actionsDisabled}
                                 onClick={() => {
+                                    console.log("[tvshow] clicked rename-button")
                                     onRenameClick?.()
                                 }}
                                 data-testid="rename-button"

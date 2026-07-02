@@ -132,7 +132,10 @@ export function FloatingPrompt({
               </Button>
               <Button
                 data-testid="floating-prompt-confirm-button"
-                onClick={onConfirm}
+                onClick={() => {
+                  console.log(`[tvshow] clicked floating-prompt-confirm-button mode=${mode}`)
+                  onConfirm?.()
+                }}
                 disabled={isConfirmButtonDisabled}
                 className={cn(
                   mode === "ai" &&
@@ -183,7 +186,10 @@ export function FloatingPrompt({
               </Button>
               <Button
                 data-testid="floating-prompt-confirm-button"
-                onClick={onConfirm}
+                onClick={() => {
+                  console.log(`[tvshow] clicked floating-prompt-confirm-button mode=${mode}`)
+                  onConfirm?.()
+                }}
                 disabled={isConfirmButtonDisabled}
                 className={cn(
                   mode === "ai" &&

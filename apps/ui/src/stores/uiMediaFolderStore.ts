@@ -81,6 +81,7 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
   applyFolderClick: (rawPath, multi) =>
     set((state) => {
       const path = rawPath
+      console.log(`[sidebar] folder click path=${path} multi=${multi}`)
       if (!multi) {
         return { selectedFolder: path, selectedFolders: [path] }
       }

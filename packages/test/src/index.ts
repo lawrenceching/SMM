@@ -235,7 +235,7 @@ export async function hello(): Promise<HelloResponse> {
         headers,
     })
     const data = await response.json() as HelloResponse
-    console.log('API response:', data)
+    console.log(`hello: uptime=${data.uptime.toFixed(1)}s version=${data.version}`)
     return data
 }
 

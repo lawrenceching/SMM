@@ -175,6 +175,7 @@ class Sidebar {
      */
     async waitForFolderTitle(title: string, timeout: number = 30000): Promise<boolean> {
         try {
+            console.log(`[sidebar] waitForFolderTitle: polling for title="${title}" timeout=${timeout}ms`)
             return await browser.waitUntil(async () => {
                 const folders = await this.getFolderTitles()
                 console.log(`Folders in Sidebar: ${folders.join(', ')}`)
@@ -201,6 +202,7 @@ class Sidebar {
      */
     async waitForFolderName(folderName: string, timeout: number = 30000): Promise<boolean> {
         try {
+            console.log(`[sidebar] waitForFolderName: polling for folderName="${folderName}" timeout=${timeout}ms`)
             return await browser.waitUntil(async () => {
                 const folders = await this.getFolderNames()
                 console.log(`Folders in Sidebar: ${folders.join(', ')}`)
