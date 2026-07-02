@@ -151,7 +151,7 @@ Props 透传：`data`, `mediaFolderPath`, `preview`, `previewStatus`, `layout`, 
 
 ## 7. Documents
 
-- [x] `.agents/docs/design/media-file-table-business.md` — 本设计文档
+- [x] `docs/superpowers/design/media-file-table-business.md` — 本设计文档
 
 ## 8. Post Verification
 

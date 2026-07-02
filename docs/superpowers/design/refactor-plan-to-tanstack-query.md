@@ -278,9 +278,9 @@ sequenceDiagram
 
 ### 5.10 文档
 
-- [ ] 更新 `.agents/docs/architecture.md`（State Management：移除 GlobalStatesProvider/plansStore，新增 plans query hooks）
-- [x] 更新 `.agents/docs/design/episode-rename-recognize.md`（Plan 生命周期、状态、creator、统一 plan 预览/prompt、AI transport 分流）
-- [x] 更新 `.agents/docs/design/ai-assistant.md`（transport、Plan 存储、task tools 单路径执行）
+- [ ] 更新 `docs/superpowers/architecture.md`（State Management：移除 GlobalStatesProvider/plansStore，新增 plans query hooks）
+- [x] 更新 `docs/superpowers/design/episode-rename-recognize.md`（Plan 生命周期、状态、creator、统一 plan 预览/prompt、AI transport 分流）
+- [x] 更新 `docs/superpowers/design/ai-assistant.md`（transport、Plan 存储、task tools 单路径执行）
 - [ ] 更新 `docs/api/index.md`（getPlans/createPlan/updatePlan，移除 getPendingPlans）
 
 ## 6. Backward Compatibility
@@ -292,9 +292,9 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [ ] `.agents/docs/architecture.md` - 更新 State Management 与 TvShowPanel/MoviePanel 架构图
-- [x] `.agents/docs/design/episode-rename-recognize.md` - Plan 生命周期/状态/creator/存储统一、AI 预览与 prompt
-- [x] `.agents/docs/design/ai-assistant.md` - transport 与 task tools 单路径执行
+- [ ] `docs/superpowers/architecture.md` - 更新 State Management 与 TvShowPanel/MoviePanel 架构图
+- [x] `docs/superpowers/design/episode-rename-recognize.md` - Plan 生命周期/状态/creator/存储统一、AI 预览与 prompt
+- [x] `docs/superpowers/design/ai-assistant.md` - transport 与 task tools 单路径执行
 - [ ] `docs/api/index.md` - 新增 getPlans/createPlan/updatePlan，移除 getPendingPlans
 
 ## 8. Post Verification

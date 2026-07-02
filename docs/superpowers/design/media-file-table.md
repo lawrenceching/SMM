@@ -109,7 +109,7 @@ none — 本次仅新建组件，不修改任何现有文件。`TvShowEpisodeTab
 
 ## 7. Documents
 
-- [ ] `.agents/docs/design/media-file-table.md` — 本设计文档
+- [ ] `docs/superpowers/design/media-file-table.md` — 本设计文档
 
 ## 8. Post Verification
 

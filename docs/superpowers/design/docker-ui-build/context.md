@@ -56,4 +56,4 @@ pnpm workspace 解析要求所有 `pnpm-workspace.yaml` 声明的成员都存在
 - [apps/docker/Dockerfile](../../../apps/docker/Dockerfile) — 现有完整 Docker 构建
 - [apps/docker/docs/development-plan.md](../../../apps/docker/docs/development-plan.md) — Docker 开发计划
 - [.dockerignore](../../../.dockerignore) — Docker 构建忽略规则
-- [.agents/docs/architecture.md](../../architecture.md) — 项目架构
+- [docs/superpowers/architecture.md](../../architecture.md) — 项目架构

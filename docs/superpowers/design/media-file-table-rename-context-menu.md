@@ -203,7 +203,7 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [x] `.agents/docs/design/media-file-table-rename-context-menu.md` — 本设计文档
+- [x] `docs/superpowers/design/media-file-table-rename-context-menu.md` — 本设计文档
 - [x] `docs/` 下 user guide 无需更新（这是开发期内部重构）
 
 ## 8. Post Verification

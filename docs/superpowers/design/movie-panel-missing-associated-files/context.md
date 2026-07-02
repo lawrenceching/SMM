@@ -2,7 +2,7 @@
 
 ## Background
 
-`MoviePanel` 在功能探索阶段引入了 `isUseMediaFileTableEnabled` 特性开关（`useFeatures`），启用后渲染新增的 `<MediaFileTable>`（基于 `UIMediaFileTable`），未启用时仍使用复用自 `TvShowPanel` 的 `<TvShowEpisodeTable>`（见 `.agents/docs/design/movie-panel-reuse-tv-table.md`）。
+`MoviePanel` 在功能探索阶段引入了 `isUseMediaFileTableEnabled` 特性开关（`useFeatures`），启用后渲染新增的 `<MediaFileTable>`（基于 `UIMediaFileTable`），未启用时仍使用复用自 `TvShowPanel` 的 `<TvShowEpisodeTable>`（见 `docs/superpowers/design/movie-panel-reuse-tv-table.md`）。
 
 两个分支最终都会调用同一个适配器 `buildMovieEpisodeTableRows`（`apps/ui/src/lib/buildMovieEpisodeTableRows.ts`），把 movie 类型的 `MediaMetadata` 适配成 "S01E01 单集" 的 `TvShowEpisodeTableRow[]`，交给表格组件渲染。
 

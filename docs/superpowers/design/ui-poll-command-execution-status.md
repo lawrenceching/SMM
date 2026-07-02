@@ -223,7 +223,7 @@ sequenceDiagram
 
 - [x] `docs/api/index.md` — 登记 `GET /api/command-execution/:executionId`
 - [ ] `docs/api/CommandExecutionStatusAPI.md` — 新建（未完成）
-- [ ] `.agents/docs/architecture.md` — Background Jobs 小节补充对账环（可选）
+- [ ] `docs/superpowers/architecture.md` — Background Jobs 小节补充对账环（可选）
 
 ---
 

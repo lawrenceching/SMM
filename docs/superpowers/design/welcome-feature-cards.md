@@ -141,7 +141,7 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [x] `.agents/docs/design/welcome-feature-cards.md` (this file)
+- [x] `docs/superpowers/design/welcome-feature-cards.md` (this file)
 
 No user-facing docs in `docs/` need updating. The change is purely visual / structural and is opt-out via feature flag, so the user guide is unaffected.
 

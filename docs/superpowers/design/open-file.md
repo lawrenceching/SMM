@@ -195,8 +195,8 @@ sequenceDiagram
 
 ## 7. Documents
 
-- [x] `.agents/docs/design/harmonyos-integration.md` — new section 4 Open File + update IPC table
-- [x] `.agents/docs/faq-harmonyos.md` — open file troubleshooting
+- [x] `docs/superpowers/design/harmonyos-integration.md` — new section 4 Open File + update IPC table
+- [x] `docs/superpowers/faq-harmonyos.md` — open file troubleshooting
 - [x] `apps/ohos/README.md` — mention `open-file` channel in preload list
 
 ## 8. Post Verification

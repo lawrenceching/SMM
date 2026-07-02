@@ -109,7 +109,7 @@ export function isFfmpegCompressFormat(format: FfmpegConvertFormat): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Video compression — see .agents/docs/design/video-compression.md
+// Video compression — see docs/superpowers/design/video-compression.md
 // ---------------------------------------------------------------------------
 
 export type FfmpegCompressContainer = "mp4" | "mkv" | "webm" | "mov";

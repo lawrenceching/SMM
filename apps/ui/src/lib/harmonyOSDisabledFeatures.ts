@@ -1,6 +1,6 @@
 /**
  * HarmonyOS-disabled UI features. Keep in sync with
- * `.agents/docs/design/harmonyos-integration.md` §6 Disabled Features.
+ * `docs/superpowers/design/harmonyos-integration.md` §6 Disabled Features.
  *
  * The AI Summary (MusicPanel right-click → Summarize) flow is gated via the
  * master `isAiFeatureEnabled` flag, which defaults to `false` on HarmonyOS

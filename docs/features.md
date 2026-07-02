@@ -33,6 +33,8 @@ And the test status of v1.1.0
 | > SearchTvShow.e2e.ts                            |        |         |
 | TV Show - Rule Based Rename                      | AUTO   |         |
 | > TVShow-RenameByPlan.e2e.ts                     |        |         |
+| TV Show - Rule Based Recognize                   | TODO   |         |
+| > TVShow-Recognize.e2e.ts                        |        |         |
 | TV Show - Scrape                                 | AUTO   |         |
 | > Scrape.e2e.ts                                  |        |         |
 | TV Show - Rename Episode Video File              | AUTO   |         |

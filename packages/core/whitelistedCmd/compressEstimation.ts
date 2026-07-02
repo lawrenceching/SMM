@@ -1,7 +1,7 @@
 /**
  * Heuristic estimator for video compression output size.
  *
- * Approach D (see .agents/docs/design/video-compression.md §9): pure
+ * Approach D (see docs/superpowers/design/video-compression.md §9): pure
  * client-side, no ffmpeg execution. Combines a per-encoder bits-per-pixel
  * table, a CRF slope, and a source-content factor derived from the source's
  * own bitrate.

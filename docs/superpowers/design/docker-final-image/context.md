@@ -85,6 +85,6 @@
 - [apps/docker/docs/development-plan.md](../../../apps/docker/docs/development-plan.md) — Docker 开发计划
 - [ci/download-3pp-binary.sh](../../../ci/download-3pp-binary.sh) — 第三方二进制下载脚本
 - [.dockerignore](../../../.dockerignore) — 构建上下文排除规则
-- [.agents/docs/design/docker-cli-build/](../docker-cli-build/design.md) — CLI 中间镜像设计
-- [.agents/docs/design/docker-ui-build/](../docker-ui-build/design.md) — UI 中间镜像设计
-- [.agents/docs/design/docker-authentication/](../docker-authentication/design.md) — Docker 认证（最终阶段需保留 `SMM_AUTH_TOKEN` / `SMM_AUTH_ENABLED` 文档）
+- [docs/superpowers/design/docker-cli-build/](../docker-cli-build/design.md) — CLI 中间镜像设计
+- [docs/superpowers/design/docker-ui-build/](../docker-ui-build/design.md) — UI 中间镜像设计
+- [docs/superpowers/design/docker-authentication/](../docker-authentication/design.md) — Docker 认证（最终阶段需保留 `SMM_AUTH_TOKEN` / `SMM_AUTH_ENABLED` 文档）

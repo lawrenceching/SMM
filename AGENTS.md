@@ -248,4 +248,4 @@ API列表可查阅文件: `docs/api/index.md`.
 
 ## 注意事项
 
-1. 当代码改动涉及 `apps/ohos`时, 需要阅读 [HarmonyOS 开发 FAQ](.agents/docs/faq-harmonyos.md)
+1. 当代码改动涉及 `apps/ohos`时, 需要阅读 [HarmonyOS 开发 FAQ](docs/superpowers/reference/faq-harmonyos.md)

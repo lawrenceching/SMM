@@ -290,7 +290,7 @@ sequenceDiagram
 ## 7. Documents
 
 - [x] `docs/api/index.md` — 补充 `McpServerState.url`；注明 OHOS 使用主端口 `/mcp`
-- [ ] `.agents/docs/design/mcp-server.md` — lifecycle 路由迁至 core-routes；OHOS 门控模式
+- [ ] `docs/superpowers/design/mcp-server.md` — lifecycle 路由迁至 core-routes；OHOS 门控模式
 - [ ] `apps/cli/docs/MCP.md` — OHOS 与桌面地址差异（如需要）
 
 ## 8. Post Verification

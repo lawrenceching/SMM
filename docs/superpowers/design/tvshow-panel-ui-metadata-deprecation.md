@@ -231,7 +231,7 @@ const uiStatus: UIMediaFolderStatus = (() => {
 实测：
 - [x] `apps/ui/src/types/UIMediaMetadata.ts` 类型与 `extractUIMediaMetadataProps` 维持现状
 - [x] `docs/api/index.md` 不变更
-- [x] `.agents/docs/design/episode-rename-recognize.md` 不变更
+- [x] `docs/superpowers/design/episode-rename-recognize.md` 不变更
 - [x] `pnpm run typecheck:ui` 通过
 - [x] `pnpm test` 通过 (1374 passed, 23 skipped, 0 failed)
 - [x] `grep -n "UIMediaMetadata" apps/ui/src/components/TvShowPanel.tsx` 应无输出

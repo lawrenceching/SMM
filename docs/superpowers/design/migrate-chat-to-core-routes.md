@@ -200,7 +200,7 @@ sequenceDiagram
 ## 7. Documents
 
 [ ] `docs/api/index.md` — 更新 `/api/chat` 描述（如存在）
-[x] `.agents/docs/design/ai-assistant.md` — 更新 transport、Plan 存储、task tools 单路径执行、core-routes 路径
+[x] `docs/superpowers/design/ai-assistant.md` — 更新 transport、Plan 存储、task tools 单路径执行、core-routes 路径
 
 ## 8. Post Verification
 

@@ -6,7 +6,7 @@ export interface ExecuteCmdRequest {
   /**
    * Run the command in a pseudo-terminal. Currently honored only for
    * `yt-dlp` (the CLI silently ignores this flag for other commands).
-   * Default false. See `.agents/docs/design/executeCmd-pty.md` for
+   * Default false. See `docs/superpowers/design/executeCmd-pty.md` for
    * context on why yt-dlp needs PTY on Windows.
    */
   tty?: boolean;

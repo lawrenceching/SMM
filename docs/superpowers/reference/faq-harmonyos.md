@@ -128,7 +128,7 @@ Sidebar 右键媒体目录，或菜单打开应用数据/日志目录时，操�
 - 查看主进程日志前缀 `[OpenInFileManager]`，区分 shell 失败与 native fallback。
 - 媒体目录路径应与 `smm.json` `folders[]` 中存储的 URI 一致。
 
-设计文档：`.agents/docs/design/harmonyos-integration.md`
+设计文档：`docs/superpowers/design/harmonyos-integration.md`
 
 ## 「打开」文件失败
 
@@ -148,4 +148,4 @@ TvShowPanel fanart、MusicPanel 音轨等右键或双击「打开」无反应，
 - 打开文件时不应请求 `POST /api/openFile`（Electron 走 IPC）；若出现该请求且返回 404，说明 preload 未注入或版本过旧。
 - 查看主进程日志前缀 `[OpenFile]`。
 
-设计文档：`.agents/docs/design/open-file.md`
+设计文档：`docs/superpowers/design/open-file.md`

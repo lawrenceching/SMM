@@ -78,9 +78,9 @@ OHOS renderer is Electron-based, so it shares the `isElectron()` path. The web-N
 
 ## References
 
-- `.agents/docs/design/episode-rename-recognize.md` — Plan lifecycle and the four flows (rule-based UI, AI chat desktop, AI chat frontend, MCP).
-- `.agents/docs/design/ai-assistant.md` — Dual transport and the per-tool path rules.
-- `.agents/docs/design/mcp-server.md` — MCP tool execution and broadcast wiring.
+- `docs/superpowers/design/episode-rename-recognize.md` — Plan lifecycle and the four flows (rule-based UI, AI chat desktop, AI chat frontend, MCP).
+- `docs/superpowers/design/ai-assistant.md` — Dual transport and the per-tool path rules.
+- `docs/superpowers/design/mcp-server.md` — MCP tool execution and broadcast wiring.
 - `apps/ui/src/components/eventlisteners/RenameFilesPlanReadyEventListener.tsx` and `RecognizeMediaFilePlanReadyEventListener.tsx` — current listeners.
 - `packages/core-routes/src/tools/renameFilesTask.ts` lines 226-238 and `recognizeMediaFilesTask.ts` lines 215-225 — broadcast call sites.
 - `apps/ui/src/lib/isElectron.ts`, `apps/ui/src/lib/isHarmonyOS.ts` — platform detection helpers.

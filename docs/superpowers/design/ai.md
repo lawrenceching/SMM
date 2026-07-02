@@ -9,7 +9,7 @@ SMM 暴露 `get-app-context` 等 AI 工具给两类调用方:
 
 两个流程都返回相同的输出 `{ selectedMediaFolder, language }`,但调用栈、传输层、生命周期完全不同。本文以 `get-app-context` 为例拆解两端实现。
 
-> 通用前置知识 (kebab-case 工具名常量、Zod schema、Socket.IO `acknowledge`) 见 `.agents/docs/design/ai-assistant.md` 和 `.agents/docs/design/mcp-server.md`。本文仅聚焦工具调用流程本身。
+> 通用前置知识 (kebab-case 工具名常量、Zod schema、Socket.IO `acknowledge`) 见 `docs/superpowers/design/ai-assistant.md` 和 `docs/superpowers/design/mcp-server.md`。本文仅聚焦工具调用流程本身。
 
 ## 1. AI Assistant Tool Call Flow
 
@@ -245,9 +245,9 @@ sequenceDiagram
 
 ## 5. Related Docs
 
-- `.agents/docs/design/ai-assistant.md` — Dual transport 架构, tool wiring, reverse proxy
-- `.agents/docs/design/mcp-server.md` — MCP 生命周期, stdio/HTTP transport
-- `.agents/docs/design/mcp-lifecycle-api-core-routes.md` — `createMcpStreamableHttpHandler` 设计
-- `.agents/docs/design/mcp-server-migration-to-ohos.md` — OHOS Node http 适配
-- `.agents/docs/design/SocketIO.md` — `acknowledge` / `broadcast` 语义
-- `.agents/docs/design/migrate-chat-to-core-routes.md` — `doChat` 迁移历史
+- `docs/superpowers/design/ai-assistant.md` — Dual transport 架构, tool wiring, reverse proxy
+- `docs/superpowers/design/mcp-server.md` — MCP 生命周期, stdio/HTTP transport
+- `docs/superpowers/design/mcp-lifecycle-api-core-routes.md` — `createMcpStreamableHttpHandler` 设计
+- `docs/superpowers/design/mcp-server-migration-to-ohos.md` — OHOS Node http 适配
+- `docs/superpowers/design/SocketIO.md` — `acknowledge` / `broadcast` 语义
+- `docs/superpowers/design/migrate-chat-to-core-routes.md` — `doChat` 迁移历史

@@ -142,7 +142,7 @@ function writeAiAreaEnabled(enabled: boolean): void {
 }
 
 /** Default: enabled on desktop, disabled on HarmonyOS (no bundled AI tools
- *  on OHOS, see `.agents/docs/design/harmonyos-integration.md` §6). */
+ *  on OHOS, see `docs/superpowers/design/harmonyos-integration.md` §6). */
 function readAiFeatureEnabled(): boolean {
   if (typeof window === "undefined") return !isHarmonyOS()
   try {
