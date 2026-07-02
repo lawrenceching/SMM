@@ -43,7 +43,14 @@ describe('run — happy path', () => {
       tasks: [
         {
           name: 'task1',
-          command: isWindows() ? 'cmd /c echo hello-from-task' : 'sh -c "echo hello-from-task"',
+          // Brief sleep after echo widens the task time window so the
+          // ticker (which emits every ~50ms on Linux) reliably lands at
+          // least one tick inside [startTime, endTime]. Without the sleep
+          // the task finishes in a few ms and the test races against the
+          // ticker's 50ms cadence — flaky on Linux CI.
+          command: isWindows()
+            ? 'cmd /c "echo hello-from-task&ping -n 1 127.0.0.1 > nul"'
+            : 'sh -c "echo hello-from-task; sleep 0.1"',
         },
       ],
     });
