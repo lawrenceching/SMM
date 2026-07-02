@@ -190,6 +190,7 @@ export async function applyRecognizeMediaFilePlan(
     persist: PersistUIMediaMetadataFn,
     options: { traceId: string }
 ): Promise<void> {
+    const beforeFileCount = mediaMetadata.mediaFiles?.length ?? 0;
     console.log("[recognize] apply recognize plan", {
         traceId: options.traceId,
         mediaFolderPath: mediaMetadata.mediaFolderPath,
@@ -214,6 +215,19 @@ export async function applyRecognizeMediaFilePlan(
         mediaFileCount: updatedMediaFiles.length,
     })
     await persist(mediaMetadata.mediaFolderPath!, updatedMetadata, { traceId: options.traceId })
+    console.log("[recognize] apply delta", {
+        traceId: options.traceId,
+        planId: plan.id,
+        mediaFolderPath: mediaMetadata.mediaFolderPath,
+        beforeFileCount,
+        afterFileCount: updatedMediaFiles.length,
+        mappedCount: plan.files.length,
+        mappings: plan.files.map((f) => ({
+            season: f.season,
+            episode: f.episode,
+            basename: f.path.split(/[/\\]/).pop(),
+        })),
+    })
 }
 
 export function rebuildPlanWithSelectedEpisodes(

@@ -43,13 +43,16 @@ export function useAiBasedRenameFilesFlow({
       ),
     [plans, mediaFolderPath],
   )
-    console.log(
-      `[DIAG] useAiBasedRenameFilesFlow: plan=${plan ? `id=${plan.id} status=${plan.status}` : 'undefined'}, ` +
-      `mediaFolderPath=${mediaFolderPath}, plansCount=${plans.length}`,
-    )
 
   const promptStatus: "generating" | "wait-for-ack" =
     plan?.status === "preparing" ? "generating" : "wait-for-ack"
+
+  useEffect(() => {
+    console.log(
+      `[rename] useAiBasedRenameFilesFlow: plan=${plan ? `id=${plan.id} status=${plan.status}` : "undefined"}, ` +
+      `mediaFolderPath=${mediaFolderPath}, plansCount=${plans.length}`,
+    )
+  }, [plan?.id, plan?.status, plans.length, mediaFolderPath])
 
   const onConfirm = useCallback(async () => {
     if (!plan) return

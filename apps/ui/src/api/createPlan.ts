@@ -22,6 +22,12 @@ export async function createPlan(
   request: CreatePlanRequest,
   signal?: AbortSignal,
 ): Promise<CreatePlanResponseBody> {
+  console.log(`[createPlan] request sent`, {
+    planId: request.id,
+    task: request.task,
+    creator: request.creator,
+    mediaFolderPath: request.mediaFolderPath,
+  });
   const resp = await apiFetch('/api/createPlan', {
     method: 'POST',
     headers: {
@@ -29,6 +35,11 @@ export async function createPlan(
     },
     body: JSON.stringify(request),
     signal,
+  });
+  console.log(`[createPlan] response received`, {
+    planId: request.id,
+    status: resp.status,
+    ok: resp.ok,
   });
 
   if (!resp.ok) {

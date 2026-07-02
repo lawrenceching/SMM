@@ -23,6 +23,11 @@ export async function updatePlan(
   patch: UpdatePlanPatch,
   signal?: AbortSignal,
 ): Promise<UpdatePlanResponseBody> {
+  console.log(`[updatePlan] request sent`, {
+    planId: id,
+    status: patch.status,
+    filesCount: patch.files?.length ?? 0,
+  });
   const resp = await apiFetch('/api/updatePlan', {
     method: 'POST',
     headers: {
@@ -30,6 +35,11 @@ export async function updatePlan(
     },
     body: JSON.stringify({ id, ...patch }),
     signal,
+  });
+  console.log(`[updatePlan] response received`, {
+    planId: id,
+    status: resp.status,
+    ok: resp.ok,
   });
 
   if (!resp.ok) {
