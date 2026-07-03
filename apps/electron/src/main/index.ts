@@ -578,7 +578,8 @@ function createWindow(options: CreateWindowOptions = {}): void {
     ...(process.platform === 'linux' ? { icon } : { icon }),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: false
     }
   })
 
@@ -608,6 +609,12 @@ function createWindow(options: CreateWindowOptions = {}): void {
   }
   win.loadURL(`http://localhost:${cliPort ?? 5173}`)
 }
+
+// Disable Chromium background throttling so long-running AI streaming, timers
+// and network work continue smoothly when the window is hidden or occluded.
+app.commandLine.appendSwitch('disable-renderer-backgrounding')
+app.commandLine.appendSwitch('disable-background-timer-throttling')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
