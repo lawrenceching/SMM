@@ -71,6 +71,14 @@ describe("useRuleBasedRenameFilesFlow", () => {
     mediaFiles: [{ absolutePath: `${mediaFolderPath}/S01E01.mkv`, seasonNumber: 1, episodeNumber: 1 }],
   } as MediaMetadata
 
+  const noMediaMetadata = {
+    mediaFolderPath,
+    type: "tvshow-folder",
+    tvShow: { id: "123", name: "Test Show", seasons: [] },
+    files: [],
+    mediaFiles: [],
+  } as MediaMetadata
+
   let queryClient: QueryClient
 
   const wrapper = ({ children }: { children: ReactNode }) => (
@@ -94,7 +102,7 @@ describe("useRuleBasedRenameFilesFlow", () => {
     })
   })
 
-  it("shows failure toast and rejects plan when no rename files are generated", async () => {
+  it("shows failure toast and rejects plan when no media files are associated with the folder", async () => {
     queryClient.setQueryData(plansQueryKey(mediaFolderPath), [preparingPlan])
     generateNewFileNamesMock.mockReturnValue(null)
 
@@ -102,7 +110,7 @@ describe("useRuleBasedRenameFilesFlow", () => {
       () =>
         useRuleBasedRenameFilesFlow({
           plans: [preparingPlan],
-          mediaMetadata,
+          mediaMetadata: noMediaMetadata,
           uiStatus: "ok",
           beforeConfirm: (plan) => plan,
         }),
@@ -260,6 +268,88 @@ describe("useRuleBasedRenameFilesFlow", () => {
         status: "pending",
         files: [{ from: `${mediaFolderPath}/S01E01.mkv`, to: `${mediaFolderPath}/emby.mkv` }],
       },
+    })
+  })
+
+  // Regression: see issue — when all video files already match the default naming
+  // rule (e.g. Plex), the rename prompt must stay open so the user can switch to a
+  // different rule (e.g. Emby). Today the hook closes the prompt and shows a
+  // misleading "no video files" error toast.
+  describe("when all video files already match the default naming rule", () => {
+    const allMatchMetadata = {
+      mediaFolderPath,
+      type: "tvshow-folder",
+      tvShow: {
+        id: "123",
+        name: "Test Show",
+        seasons: [
+          {
+            season: 1,
+            name: "Season 1",
+            episodes: [{ season: 1, episode: 1, name: "Pilot" }],
+          },
+        ],
+      },
+      files: ["Season 01/S01E01.mkv"],
+      mediaFiles: [
+        {
+          absolutePath: `${mediaFolderPath}/Season 01/S01E01.mkv`,
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
+    } as MediaMetadata
+
+    beforeEach(() => {
+      queryClient.setQueryData(plansQueryKey(mediaFolderPath), [preparingPlan])
+      // buildTvShowRenamePlanFileEntries returns [] when all generated paths
+      // match the current paths; useTvShowFileNameGeneration returns null in
+      // that case. We mimic that here.
+      generateNewFileNamesMock.mockReturnValue(null)
+    })
+
+    it("does not reject the rename plan — keeps the prompt open so the user can switch naming rules", async () => {
+      renderHook(
+        () =>
+          useRuleBasedRenameFilesFlow({
+            plans: [preparingPlan],
+            mediaMetadata: allMatchMetadata,
+            uiStatus: "ok",
+            beforeConfirm: (plan) => plan,
+          }),
+        { wrapper },
+      )
+
+      await waitFor(() => {
+        expect(generateNewFileNamesMock).toHaveBeenCalled()
+      })
+
+      expect(updatePlanMutateAsyncMock).not.toHaveBeenCalledWith(
+        expect.objectContaining({
+          patch: { status: "rejected" },
+        }),
+      )
+    })
+
+    it("does not show the 'unable to generate rename plan' error toast when mediaFiles are populated", async () => {
+      renderHook(
+        () =>
+          useRuleBasedRenameFilesFlow({
+            plans: [preparingPlan],
+            mediaMetadata: allMatchMetadata,
+            uiStatus: "ok",
+            beforeConfirm: (plan) => plan,
+          }),
+        { wrapper },
+      )
+
+      await waitFor(() => {
+        expect(generateNewFileNamesMock).toHaveBeenCalled()
+      })
+
+      expect(toastErrorMock).not.toHaveBeenCalledWith(
+        "Unable to generate a rename plan. Check that episodes have video files.",
+      )
     })
   })
 })

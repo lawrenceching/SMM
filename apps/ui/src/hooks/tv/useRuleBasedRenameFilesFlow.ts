@@ -145,12 +145,27 @@ export function useRuleBasedRenameFilesFlow({
         })
         return
       }
+
+      // The candidate list is empty. Two cases:
+      //   1. No media files at all → genuine failure (existing behavior).
+      //   2. Media files exist but all already match this naming rule → keep
+      //      the prompt open so the user can switch to a different rule.
+      const mediaFileCount = mediaMetadata?.mediaFiles?.length ?? 0
+      if (mediaFileCount > 0) {
+        console.log(
+          "[rename] all files already match naming rule — keeping prompt open so user can switch",
+          { planId, namingRule: rule, mediaFileCount, tvShow: mediaMetadata?.tvShow?.name },
+        )
+        return
+      }
+
       await failRenamePlan(planId, noRenameFilesMessage, "no rename candidates")
     },
     [
       generateNewFileNames,
-      mediaFolderPath,
+      mediaMetadata?.mediaFiles?.length,
       mediaMetadata?.tvShow?.name,
+      mediaFolderPath,
       updatePlanMutation,
       failRenamePlan,
       noRenameFilesMessage,
