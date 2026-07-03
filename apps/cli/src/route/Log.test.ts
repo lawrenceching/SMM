@@ -245,6 +245,7 @@ describe("POST /api/log — rate limiting", () => {
 describe("POST /api/log — pino this-binding (regression)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    _resetRateLimiterForTests();
   });
 
   it("dispatches frontend log entries using .call so pino's internal `this` is bound", () => {
