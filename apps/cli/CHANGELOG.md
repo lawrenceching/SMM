@@ -1,5 +1,14 @@
 # cli
 
+## 1.4.3
+
+### Patch Changes
+
+- v1.4.3
+- Updated dependencies
+  - @smm/core-routes@1.4.3
+  - @smm/tvdb4@1.3.12
+
 ## 1.4.2
 
 ### Patch Changes

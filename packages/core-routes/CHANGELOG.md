@@ -1,5 +1,13 @@
 # @smm/core-routes
 
+## 1.4.3
+
+### Patch Changes
+
+- v1.4.3
+- Updated dependencies
+  - @smm/core@1.4.3
+
 ## 1.4.2
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @smm/utils
 
+## 1.2.12
+
+### Patch Changes
+
+- v1.4.3
+
 ## 1.2.11
 
 ### Patch Changes
