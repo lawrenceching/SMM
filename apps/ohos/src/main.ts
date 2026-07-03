@@ -72,6 +72,14 @@ async function runPlanCleanup(phase: "startup" | "shutdown"): Promise<void> {
   }
 }
 
+// Disable Chromium background throttling for the AI streaming scenario on
+// HarmonyOS. We deliberately do NOT pass 'disable-renderer-backgrounding' —
+// it is listed as unsupported in
+// apps/ohos/web_engine/src/main/ets/common/CommandLineAdapter.ets (UNSUPPORTED_ARGS)
+// and may cause exceptions in the current HarmonyOS Electron runtime.
+app.commandLine.appendSwitch('disable-background-timer-throttling')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+
 app.whenReady().then(() => {
   initAppRoot(app.getAppPath())
 
