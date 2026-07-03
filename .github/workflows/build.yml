@@ -61,16 +61,19 @@ jobs:
     defaults:
       run:
         working-directory: .
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Lint UI
+        run: cd apps/ui && pnpm run lint
 
       - name: Build UI
         run: cd apps/ui && pnpm run build
