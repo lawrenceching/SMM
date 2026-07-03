@@ -5,6 +5,7 @@ import { join } from "@/lib/path";
 import { FileNotFoundError, isError } from "@core/errors";
 import { listFiles } from "./listFiles";
 import { Path } from "@core/path";
+import { logger } from "@/lib/log";
 
 export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: string) {
     const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
@@ -65,6 +66,18 @@ export async function readMediaMetadataV2(pathPosix: string, { traceId, defaultT
         tvShowId: mediaMetadata.tvShow?.id,
         tvShowSeasonCount: mediaMetadata.tvShow?.seasons?.length ?? 0,
     });
+
+    logger.info({
+        traceId,
+        stage: 'mediaMetadataRepository.read',
+        folder: pathPosix,
+        type: mediaMetadata.type,
+        filesCount: mediaMetadata.files?.length ?? 0,
+        mediaFilesCount: mediaMetadata.mediaFiles?.length ?? 0,
+        tvShowId: mediaMetadata.tvShow?.id,
+        tvShowSeasonCount: mediaMetadata.tvShow?.seasons?.length ?? 0,
+        cacheFile: mediaMetadataFilePath,
+    }, 'readMediaMetadataV2: returned')
 
     return mediaMetadata;
 }

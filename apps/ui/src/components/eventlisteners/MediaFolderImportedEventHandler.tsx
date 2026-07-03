@@ -16,9 +16,10 @@ export function MediaFolderImportedEventHandler() {
 
             (async () => {
                 try {
+                    const t0 = performance.now();
                     console.log(`acquiring mutex for media folder initialization`);
                     await mutex.acquire();
-                    console.log(`acquired mutex for media folder initialization`);
+                    console.log(`acquired mutex after ${performance.now() - t0}ms for media folder initialization`);
                     await initializeImportedMediaFolder(event);
                 } catch (error) {
                     console.error("Failed to initialize media folder:", error);

@@ -11,7 +11,6 @@ import type { ReactNode } from 'react'
 // Mock the yt-dlp progress hook so tests don't need a real QueryClient
 // with network fetch. Each test can set mockProgress to simulate log data.
 let mockProgress: YtdlpDownloadProgress | null = null
-let mockIsRunning = false
 const hookInvocationLog: Array<{ executionId: string; isRunning: boolean }> = []
 
 vi.mock('@/hooks/useYtdlpDownloadProgressQuery', () => ({
@@ -72,7 +71,6 @@ function renderRow(row: JobTableRowData) {
 
 beforeEach(() => {
   mockProgress = null
-  mockIsRunning = false
   hookInvocationLog.length = 0
 })
 

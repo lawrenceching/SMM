@@ -35,6 +35,8 @@ export function pattern1(
     
     if(ret.length > 0) {
         console.log('[recognize] matched episodes by pattern SXXEYY', ret)
+    } else {
+        console.log('[recognize] pattern1 miss: SXXEYY', { episodes, videoFiles })
     }
 
     return ret;
@@ -57,6 +59,8 @@ export function pattern2(
 
     if (ret.length > 0) {
         console.log('[recognize] matched episodes by pattern 第X季第Y集', ret);
+    } else {
+        console.log('[recognize] pattern2 miss: 第X季第Y集', { episodes, videoFiles });
     }
 
     return ret;
@@ -79,6 +83,8 @@ export function pattern3(
 
     if (ret.length > 0) {
         console.log('[recognize] matched episodes by pattern 第XX季第YY集', ret);
+    } else {
+        console.log('[recognize] pattern3 miss: 第XX季第YY集', { episodes, videoFiles });
     }
 
     return ret;
@@ -115,6 +121,8 @@ export function pattern4(
 
     if (ret.length > 0) {
         console.log('[recognize] matched episodes by pattern xxx<divider>N.ext', ret);
+    } else {
+        console.log('[recognize] pattern4 miss: xxx<divider>N.ext', { episodes, videoFiles });
     }
 
     return ret;
@@ -182,6 +190,10 @@ export function fuzzyRecognizeEpisodes(
     _videoFiles: string[]
 ): RecognizedEpisode[] {
     // TODO: no solution yet
+    console.log('[recognize] fuzzyRecognizeEpisodes invoked (no implementation)', {
+        episodes: _episodes,
+        videoFiles: _videoFiles,
+    })
     return [];
 }
 

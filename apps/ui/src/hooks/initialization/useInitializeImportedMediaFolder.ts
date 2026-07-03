@@ -34,6 +34,7 @@ import type { FolderType } from "@core/types";
 import { useInitializeMediaMetadataMutation, useUpdateMediaMetadataMutation } from "../mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess";
+import { redactUserConfig } from "@/lib/redactUserConfig";
 
 export function useInitializeImportedMediaFolder() {
 
@@ -276,10 +277,23 @@ export function useInitializeImportedMediaFolder() {
         tvShow: TvShowMediaMetadata,
         traceId: string
     ) => {
+        logger.info({
+            traceId,
+            stage: 'save.tvshow',
+            folder,
+            tvShowId: tvShow?.id,
+            tvShowName: tvShow?.name,
+        }, 'persisting recognized tvshow')
         await saveMediaMetadata(Path.posix(folder), {
             ...mm,
             tvShow,
         }, { traceId });
+        logger.info({
+            traceId,
+            stage: 'save.tvshow',
+            folder,
+            tvShowId: tvShow?.id,
+        }, 'persisted recognized tvshow')
     }, [saveMediaMetadata])
 
     const onEpisodeRecognized = useCallback(async (
@@ -288,10 +302,22 @@ export function useInitializeImportedMediaFolder() {
         mediaFiles: MediaFileMetadata[],
         traceId: string
     ) => {
+        logger.info({
+            traceId,
+            stage: 'save.episodes',
+            folder,
+            mediaFileCount: mediaFiles.length,
+        }, 'persisting recognized episodes')
         await saveMediaMetadata(Path.posix(folder), {
             ...mm,
             mediaFiles,
         }, { traceId });
+        logger.info({
+            traceId,
+            stage: 'save.episodes',
+            folder,
+            mediaFileCount: mediaFiles.length,
+        }, 'persisted recognized episodes')
     }, [saveMediaMetadata])
 
     const onMovieRecognized = useCallback(async (
@@ -300,10 +326,23 @@ export function useInitializeImportedMediaFolder() {
         movie: MovieMediaMetadata,
         traceId: string
     ) => {
+        logger.info({
+            traceId,
+            stage: 'save.movie',
+            folder,
+            movieId: movie?.id,
+            movieName: movie?.name,
+        }, 'persisting recognized movie')
         await saveMediaMetadata(Path.posix(folder), {
             ...mm,
             movie,
         }, { traceId });
+        logger.info({
+            traceId,
+            stage: 'save.movie',
+            folder,
+            movieId: movie?.id,
+        }, 'persisted recognized movie')
     }, [saveMediaMetadata])
 
     const doInitialization = useCallback(async (
@@ -329,7 +368,7 @@ export function useInitializeImportedMediaFolder() {
                 logger.info({
                     traceId,
                     folder,
-                    tvShow,
+                    tvShow: redactUserConfig(tvShow),
                 }, `successfully recognized tvshow for folder: ${folder}`);
                 await onTvShowRecognized(folder, mm, tvShow, traceId);
 
@@ -353,7 +392,7 @@ export function useInitializeImportedMediaFolder() {
                 logger.info({
                     traceId,
                     folder,
-                    movie,
+                    movie: redactUserConfig(movie),
                 }, `successfully recognized movie for folder: ${folder}`);
                 await onMovieRecognized(folder, mm, movie, traceId);
 
@@ -388,6 +427,12 @@ export function useInitializeImportedMediaFolder() {
             return;
         }
 
+        logger.info({
+            jobId: jobId.current,
+            stage: 'initialization',
+            folder,
+        }, 'initialization: finished')
+
         upsertFolder({
             path: folder,
             status: "ok",
@@ -400,24 +445,46 @@ export function useInitializeImportedMediaFolder() {
             return;
         }
         updateJob(jobId.current, { status: "succeeded" });
+        logger.info({
+            jobId: jobId.current,
+            stage: 'initialization',
+            folder: _folder,
+        }, 'initialization: succeeded')
     }, [updateJob])
 
     const onError = useCallback((_folder: string, error: Error) => {
-        if (error instanceof Error && error.name === 'TimeoutError') {
+        const errorName = error instanceof Error ? error.name : 'UnknownError'
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        const isTimeout = errorName === 'TimeoutError'
+
+        if (isTimeout) {
+            logger.warn({
+                stage: 'initialization',
+                folder: _folder,
+                errorName,
+                errorMessage,
+            }, 'initialization: timeout')
             toast.error('初始化目录超时');
         } else {
             const unknownErrorStack = error instanceof Error
                 ? (error.stack || error.message)
                 : String(error);
             console.error(`Unknown error during media folder initialization:\n${unknownErrorStack}`);
-            toast.error(`因未知原因, 目录初始化失败:\n${error instanceof Error ? error.message : String(error)}`);
+            logger.error({
+                stage: 'initialization',
+                folder: _folder,
+                errorName,
+                errorMessage,
+                stack: unknownErrorStack,
+            }, 'initialization: failed')
+            toast.error(`因未知原因, 目录初始化失败:\n${errorMessage}`);
         }
 
         if (!jobId.current) {
             return;
         }
 
-        if (error instanceof Error && error.name === 'TimeoutError') {
+        if (isTimeout) {
             updateJob(jobId.current, { status: "aborted" });
         } else {
             updateJob(jobId.current, { status: "failed" });

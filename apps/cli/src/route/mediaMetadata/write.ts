@@ -2,13 +2,12 @@ import type { MediaMetadata, WriteMediaMetadataRequestBody, WriteMediaMetadataRe
 import type { Hono } from "hono";
 import { mkdir } from "fs/promises";
 import { mediaMetadataDir, metadataCacheFilePath } from "./utils";
-import { mediaMetadataToString } from "lib/log";
+import { logger, logHttpReqIn, logHttpRespOut } from "../../../lib/logger";
 
 export async function handleWriteMediaMetadata(app: Hono) {
     app.post('/api/writeMediaMetadata', async (c) => {
         const raw = await c.req.json() as WriteMediaMetadataRequestBody;
-        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url}`)
-        console.log(`[HTTP_IN][${c.req.method} ${c.req.url}] ${mediaMetadataToString(raw.data)}`)
+        logHttpReqIn(c, raw);
         const metadata = raw.data;
 
         if (!metadata.mediaFolderPath) {
@@ -16,12 +15,13 @@ export async function handleWriteMediaMetadata(app: Hono) {
                 data: {} as MediaMetadata,
                 error: 'Invalid Request: mediaFolderPath is required in metadata'
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+            logger.warn({ folder: metadata.mediaFolderPath }, '[writeMediaMetadata] rejected: missing mediaFolderPath');
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
 
         const metadataFilePath = metadataCacheFilePath(metadata.mediaFolderPath);
-        
+
         // Ensure the metadata directory exists
         try {
             await mkdir(mediaMetadataDir, { recursive: true });
@@ -30,27 +30,33 @@ export async function handleWriteMediaMetadata(app: Hono) {
                 data: {} as MediaMetadata,
                 error: `Create Directory Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
+            logger.error({ err: error, folder: metadata.mediaFolderPath, dir: mediaMetadataDir }, '[writeMediaMetadata] mkdir failed');
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
 
         // Write metadata to file
         try {
             await Bun.write(metadataFilePath, JSON.stringify(metadata, null, 2));
-            console.log(`[WriteMediaMetadata] Written metadata to file: ${mediaMetadataToString(metadata)}`)
+            logger.info({
+                folder: metadata.mediaFolderPath,
+                type: metadata.type,
+                fileCount: metadata.files?.length ?? 0,
+                mediaFileCount: metadata.mediaFiles?.length ?? 0,
+                path: metadataFilePath,
+            }, '[writeMediaMetadata] persisted');
             const resp: WriteMediaMetadataResponseBody = {
                 data: metadata
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
-            console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         } catch (error) {
             const resp: WriteMediaMetadataResponseBody = {
                 data: {} as MediaMetadata,
                 error: `Write File Failed: ${error instanceof Error ? error.message : 'Unknown error'}`
             };
-            console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url}`)
-            console.log(`[HTTP_OUT][${c.req.method} ${c.req.url}] ${mediaMetadataToString(resp.data)}`)
+            logger.error({ err: error, folder: metadata.mediaFolderPath, path: metadataFilePath }, '[writeMediaMetadata] Bun.write failed');
+            logHttpRespOut(c, resp, 200);
             return c.json(resp, 200);
         }
     });
