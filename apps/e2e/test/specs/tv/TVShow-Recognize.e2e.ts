@@ -100,4 +100,44 @@ S01E03 S01E03.mkv V V V`)
       )
     })
   })
+
+  it('recognize confirm is disabled when all episodes already recognized (S5)', async function () {
+    this.timeout(60 * 1000)
+
+    const folder = createFolderInTestFolder({
+      ...folder1,
+      folderName: 'AlreadyRecognized 123123',
+    })
+
+    // Import WITH mediaFiles intact — all episodes are already recognized
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json')
+
+    await page.open()
+    await Sidebar.waitForFolderName(folder.folderName, 10000)
+    await Sidebar.clickFolder(folder.folderName)
+    await TvShowPanelCO.waitForTable(30000)
+
+    // Sanity: the table should show recognized video files
+    expect(await TvShowPanelCO.toString()).toContain('S01E01 S01E01.mkv')
+    expect(await TvShowPanelCO.toString()).toContain('S01E02 S01E02.mkv')
+
+    // Click the rule-based recognize button
+    await TvShowPanelCO.recognizeButton.waitForClickable({ timeout: 10000 })
+    await TvShowPanelCO.recognizeButton.click()
+
+    // The prompt should open with confirm button disabled
+    await browser.waitUntil(
+      async () => {
+        const exists = await Prompts.confirmButton.isExisting().catch(() => false)
+        if (!exists) return false
+        // Wait for loading to finish (plan status becomes "pending")
+        await browser.pause(2000)
+        return !(await Prompts.confirmButton.isEnabled())
+      },
+      { timeout: 30000, interval: 500, timeoutMsg: 'Expected confirm button to be disabled after recognize' },
+    )
+
+    expect(await Prompts.confirmButton.isEnabled()).toBe(false)
+  })
+
 })

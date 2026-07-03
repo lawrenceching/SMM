@@ -152,8 +152,15 @@ export function useRuleBasedRenameFilesFlow({
       //      the prompt open so the user can switch to a different rule.
       const mediaFileCount = mediaMetadata?.mediaFiles?.length ?? 0
       if (mediaFileCount > 0) {
+        // All files already match this naming rule — update plan to pending with 0 files
+        // so the prompt can show appropriate UI (confirm disabled, info message).
+        await updatePlanMutation.mutateAsync({
+          id: planId,
+          mediaFolderPath: mediaFolderPath!,
+          patch: toUpdatePlanPatch({ status: "pending", files: [] }),
+        })
         console.log(
-          "[rename] all files already match naming rule — keeping prompt open so user can switch",
+          "[rename] all files already match naming rule — prompt open, confirm disabled",
           { planId, namingRule: rule, mediaFileCount, tvShow: mediaMetadata?.tvShow?.name },
         )
         return
@@ -411,6 +418,18 @@ export function useRuleBasedRenameFilesFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan?.id, onFlowStart])
 
+  const allRenamePlanFilesUnchanged = useMemo(() => {
+    if (
+      !plan ||
+      plan.status !== "pending" ||
+      plan.task !== "rename-files" ||
+      !mediaMetadata
+    ) {
+      return false
+    }
+    return plan.files.length === 0 && (mediaMetadata.mediaFiles?.length ?? 0) > 0
+  }, [plan, mediaMetadata])
+
   return {
     plan,
     open,
@@ -422,5 +441,6 @@ export function useRuleBasedRenameFilesFlow({
     onConfirm,
     onCancel,
     startRenameFlow,
+    allRenamePlanFilesUnchanged,
   }
 }

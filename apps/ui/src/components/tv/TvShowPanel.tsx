@@ -394,6 +394,7 @@ function TvShowPanel() {
       isRuleBasedRecognizeLoading: recognizeFlow.loading,
       notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
       allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
+      allRenamePlanFilesUnchanged: renameFlow.allRenamePlanFilesUnchanged,
     }
   }, [renameFlow, aiRenameFlow, aiRecognizeFlow, recognizeFlow])
 

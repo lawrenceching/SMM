@@ -35,6 +35,7 @@ export interface TvShowAppPlanPromptContextValue {
   isRuleBasedRecognizeLoading: boolean
   notAllEpisodesRecognized: boolean
   allPlanFilesUnchanged: boolean
+  allRenamePlanFilesUnchanged: boolean
 }
 
 const TvShowAppPlanPromptContext = createContext<TvShowAppPlanPromptContextValue | null>(

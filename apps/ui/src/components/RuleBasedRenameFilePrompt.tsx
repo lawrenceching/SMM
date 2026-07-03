@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
-export interface RuleBasedRenameFilePromptProps extends Omit<FloatingPromptProps, 'mode' | 'children' | 'options' | 'selectedValue' | 'onValueChange' | 'confirmLabel' | 'cancelLabel' | 'isConfirmButtonDisabled' | 'isConfirmDisabled'> {
+export interface RuleBasedRenameFilePromptProps extends Omit<FloatingPromptProps, 'mode' | 'children' | 'options' | 'selectedValue' | 'onValueChange' | 'confirmLabel' | 'cancelLabel'> {
   /**
    * Options for the naming rule dropdown
    */

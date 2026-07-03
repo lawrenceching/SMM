@@ -33,6 +33,7 @@ export function TvShowPanelPrompts() {
     isRuleBasedRecognizeLoading,
     notAllEpisodesRecognized,
     allPlanFilesUnchanged,
+    allRenamePlanFilesUnchanged,
   } = useTvShowAppPlanPrompts()
 
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
@@ -88,6 +89,7 @@ export function TvShowPanelPrompts() {
         onNamingRulesSelected={(value) => {
           void onAppRenameNamingRuleSelected(value as "plex" | "emby")
         }}
+        isConfirmButtonDisabled={allRenamePlanFilesUnchanged}
         onConfirm={async () => {
           if (appRenamePlan) {
             await onAppRenameConfirm(appRenamePlan.id)
