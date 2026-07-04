@@ -1,7 +1,8 @@
 import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
-import { Loader2 } from "lucide-react"
+import { Info, Loader2 } from "lucide-react"
 
 export interface RuleBasedRecognizePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
   tvShowTitle?: string
@@ -38,8 +39,12 @@ export function RuleBasedRecognizePrompt({
   const notAllEpisodesMessage = t('toolbar.notAllEpisodesRecognized', {
     defaultValue: 'It seems not all episodes are recognized',
   })
+  const ruleBasedRecognizeHintMessage = t('toolbar.ruleBasedRecognizeHint', {
+    defaultValue:
+      'This recognition is based on an internally maintained rule set and cannot reliably recognize all files. We recommend using AI.',
+  })
   const allPlanFilesUnchangedMessage = t('toolbar.allPlanFilesUnchanged', {
-    defaultValue: 'All episodes already match the current video file mappings. There is nothing to apply.',
+    defaultValue: 'Nothing to apply.',
   })
 
   return (
@@ -67,7 +72,34 @@ export function RuleBasedRecognizePrompt({
           )}
         </div>
         {!isLoading && notAllEpisodesRecognized && (
-          <span className="text-sm text-muted-foreground">{notAllEpisodesMessage}</span>
+          <div className="flex items-center gap-1.5">
+            <span
+              className="text-sm text-muted-foreground"
+              data-testid="rule-based-recognize-not-all-message"
+            >
+              {notAllEpisodesMessage}
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  aria-label={ruleBasedRecognizeHintMessage}
+                  data-testid="rule-based-recognize-hint-icon"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                align="start"
+                className="max-w-xs text-pretty"
+                data-testid="rule-based-recognize-hint-tooltip"
+              >
+                {ruleBasedRecognizeHintMessage}
+              </TooltipContent>
+            </Tooltip>
+          </div>
         )}
         {!isLoading && allPlanFilesUnchanged && (
           <span className="text-sm text-muted-foreground">{allPlanFilesUnchangedMessage}</span>

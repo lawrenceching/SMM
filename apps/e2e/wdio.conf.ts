@@ -531,10 +531,8 @@ export const config: WebdriverIO.Config = {
      * @param {boolean} result.passed    true if test has passed, otherwise false
      * @param {object}  result.retries   information about spec related retries, e.g. `{ attempts: 0, limit: 0 }`
      */
-    afterTest: async function (_test, _context, { passed }) {
-        if (!passed) {
-            await browser.takeScreenshot()
-        }
+    afterTest: async function (_test, _context) {
+        await browser.takeScreenshot()
     },
 
 
