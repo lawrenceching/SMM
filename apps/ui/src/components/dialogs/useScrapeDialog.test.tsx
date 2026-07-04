@@ -2,7 +2,8 @@
 import "@testing-library/jest-dom/vitest"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import { ScrapeDialog } from "./ScrapeDialog"
+import { UIScrapeDialog } from "./UIScrapeDialog"
+import { useScrapeDialog, type UseScrapeDialogInput } from "./useScrapeDialog"
 
 const scrapePosterMock = vi.fn()
 const scrapeFanartMock = vi.fn()
@@ -69,7 +70,25 @@ vi.mock("@/lib/i18n", () => ({
   useTranslation: () => stableI18n,
 }))
 
-describe("ScrapeDialog — movie folder tasks", () => {
+function Harness(props: UseScrapeDialogInput) {
+  const dlg = useScrapeDialog(props)
+  return (
+    <UIScrapeDialog
+      isOpen={props.isOpen}
+      onClose={props.onClose}
+      tasks={dlg.tasks}
+      isRunning={dlg.isRunning}
+      allTasksDone={dlg.allTasksDone}
+      showButtons={dlg.showButtons}
+      cancelDisabled={dlg.cancelDisabled}
+      canDismissIncidentally={dlg.canDismissIncidentally}
+      onCancel={dlg.handleCancel}
+      onStart={dlg.handleStart}
+    />
+  )
+}
+
+describe("useScrapeDialog — movie folder tasks", () => {
   const mediaMetadata = {
     type: "movie-folder",
     mediaFolderPath: "/media/Movie",
@@ -83,7 +102,7 @@ describe("ScrapeDialog — movie folder tasks", () => {
   })
 
   it("does not show the thumbnails row for movie folders", async () => {
-    render(<ScrapeDialog isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />)
+    render(<Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />)
 
     await waitFor(() => {
       expect(screen.getByTestId("scrape-dialog-task-row-poster")).toBeInTheDocument()
@@ -94,7 +113,7 @@ describe("ScrapeDialog — movie folder tasks", () => {
   })
 })
 
-describe("ScrapeDialog — error propagation", () => {
+describe("useScrapeDialog — error propagation", () => {
   const mediaMetadata = {
     type: "movie-folder",
     mediaFolderPath: "/media/Movie",
@@ -124,7 +143,7 @@ describe("ScrapeDialog — error propagation", () => {
 
     const onClose = vi.fn()
     render(
-      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
@@ -146,7 +165,7 @@ describe("ScrapeDialog — error propagation", () => {
 
     const onClose = vi.fn()
     render(
-      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
@@ -169,7 +188,7 @@ describe("ScrapeDialog — error propagation", () => {
 
     const onClose = vi.fn()
     render(
-      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
@@ -181,7 +200,7 @@ describe("ScrapeDialog — error propagation", () => {
   })
 })
 
-describe("ScrapeDialog — cancel button", () => {
+describe("useScrapeDialog — cancel button", () => {
   const mediaMetadata = {
     type: "movie-folder",
     mediaFolderPath: "/media/Movie",
@@ -206,7 +225,7 @@ describe("ScrapeDialog — cancel button", () => {
   it("keeps cancel enabled with pending tasks and closes on cancel click", async () => {
     const onClose = vi.fn()
     render(
-      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
     await waitFor(() => {
@@ -228,7 +247,7 @@ describe("ScrapeDialog — cancel button", () => {
 
     const onClose = vi.fn()
     render(
-      <ScrapeDialog isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
     )
 
     await waitFor(() => {
@@ -255,7 +274,7 @@ describe("ScrapeDialog — cancel button", () => {
     )
 
     render(
-      <ScrapeDialog isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
+      <Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
     )
 
     await waitFor(() => {
