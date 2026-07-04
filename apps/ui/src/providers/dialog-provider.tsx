@@ -12,13 +12,14 @@ import {
   TextDialog,
   RenameFolderDialog,
   OpenFolderDialog,
-  ScrapeDialog,
+  UIScrapeDialog,
   FormatConverterDialog,
   VideoCompressionDialog,
   MediaFilePropertyDialog,
   ExecuteCmdDialog,
   AddTestBackgroundJobDialog,
   LogDialog,
+  useScrapeDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
@@ -378,6 +379,12 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
+  const scrape = useScrapeDialog({
+    isOpen: isScrapeOpen,
+    onClose: closeScrape,
+    mediaMetadata: scrapeOptions.mediaMetadata,
+  })
+
   const openMediaFileProperty = useCallback((options: { filePath: string; track?: TrackProperties }) => {
     setMediaFilePropertyPath(options.filePath)
     setMediaFilePropertyTrack(options.track)
@@ -567,10 +574,17 @@ export function DialogProvider({ children }: DialogProviderProps) {
           description={renameFolderOptions.description}
         />
       )}
-      <ScrapeDialog
+      <UIScrapeDialog
         isOpen={isScrapeOpen}
         onClose={closeScrape}
-        mediaMetadata={scrapeOptions.mediaMetadata}
+        tasks={scrape.tasks}
+        isRunning={scrape.isRunning}
+        allTasksDone={scrape.allTasksDone}
+        showButtons={scrape.showButtons}
+        cancelDisabled={scrape.cancelDisabled}
+        canDismissIncidentally={scrape.canDismissIncidentally}
+        onCancel={scrape.handleCancel}
+        onStart={scrape.handleStart}
       />
       <MediaFilePropertyDialog
         isOpen={isMediaFilePropertyOpen}
