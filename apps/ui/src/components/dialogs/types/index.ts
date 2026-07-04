@@ -1,5 +1,4 @@
 import type { SettingsTab } from "@/components/ui/config-panel"
-import type { MediaMetadata } from "@core/types"
 import type { ScrapeTaskView } from "@/lib/scrapeDialog"
 import type { DialogConfig, FileItem, FolderType } from "./common"
 
@@ -90,6 +89,7 @@ export interface Task {
 }
 
 export type { ScrapeTaskId, ScrapeTaskStatus, ScrapeTaskView } from "@/lib/scrapeDialog"
+export type { UseScrapeDialogInput, UseScrapeDialogResult } from "../useScrapeDialog"
 
 export interface UIScrapeDialogProps {
   isOpen: boolean
@@ -102,10 +102,6 @@ export interface UIScrapeDialogProps {
   canDismissIncidentally: boolean
   onCancel: () => void
   onStart: () => void | Promise<void>
-}
-
-export type ScrapeDialogProps = Pick<UIScrapeDialogProps, "isOpen" | "onClose"> & {
-  mediaMetadata?: MediaMetadata
 }
 
 /** Values passed to VideoCaptioner `transcribe --asr` from TranscribeDialog. */
