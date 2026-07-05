@@ -18,6 +18,7 @@ import {
   MediaFilePropertyDialog,
   ExecuteCmdDialog,
   AddTestBackgroundJobDialog,
+  FunctionCheckDialog,
   LogDialog,
   useScrapeDialog,
   type DialogConfig,
@@ -96,6 +97,10 @@ interface DialogContextValue {
   addTestBackgroundJobDialog: [
     openAddTestBackgroundJob: () => void,
     closeAddTestBackgroundJob: () => void
+  ]
+  functionCheckDialog: [
+    openFunctionCheck: () => void,
+    closeFunctionCheck: () => void
   ]
   logDialog: [
     openLogDialog: (options: { executionId: string; jobTitle: string; isRunning?: boolean }) => void,
@@ -186,6 +191,8 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [executeCmdInitialCommand, setExecuteCmdInitialCommand] = useState<ExecuteCmdType | undefined>(undefined)
 
   const [isAddTestBackgroundJobOpen, setIsAddTestBackgroundJobOpen] = useState(false)
+
+  const [isFunctionCheckOpen, setIsFunctionCheckOpen] = useState(false)
 
   const [isLogDialogOpen, setIsLogDialogOpen] = useState(false)
   const [logDialogExecutionId, setLogDialogExecutionId] = useState('')
@@ -468,6 +475,14 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsAddTestBackgroundJobOpen(false)
   }, [])
 
+  const openFunctionCheck = useCallback(() => {
+    setIsFunctionCheckOpen(true)
+  }, [])
+
+  const closeFunctionCheck = useCallback(() => {
+    setIsFunctionCheckOpen(false)
+  }, [])
+
   const openLogDialog = useCallback((options: { executionId: string; jobTitle: string; isRunning?: boolean }) => {
     setLogDialogExecutionId(options.executionId)
     setLogDialogJobTitle(options.jobTitle)
@@ -501,6 +516,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     videoCompressionDialog: [openVideoCompression, closeVideoCompression],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
     addTestBackgroundJobDialog: [openAddTestBackgroundJob, closeAddTestBackgroundJob],
+    functionCheckDialog: [openFunctionCheck, closeFunctionCheck],
     logDialog: [openLogDialog, closeLogDialog],
   }
 
@@ -618,6 +634,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
       <AddTestBackgroundJobDialog
         isOpen={isAddTestBackgroundJobOpen}
         onClose={closeAddTestBackgroundJob}
+      />
+      <FunctionCheckDialog
+        isOpen={isFunctionCheckOpen}
+        onClose={closeFunctionCheck}
       />
       <LogDialog
         open={isLogDialogOpen}

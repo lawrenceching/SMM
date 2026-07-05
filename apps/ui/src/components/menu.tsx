@@ -169,6 +169,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
     filePickerDialog,
     executeCmdDialog,
     addTestBackgroundJobDialog,
+    functionCheckDialog,
   } = useDialogs()
   const { t } = useTranslation('components')
   const {
@@ -185,6 +186,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const [openFilePicker] = filePickerDialog
   const [openExecuteCmd] = executeCmdDialog
   const [openAddTestBackgroundJob] = addTestBackgroundJobDialog
+  const [openFunctionCheck] = functionCheckDialog
 
   const logMenuAction = (action: string, context?: Record<string, unknown>) => {
     void writeFrontendLog({
@@ -358,6 +360,14 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
             },
             {
               type: "separator"
+            },
+            {
+              name: t('menu.functionCheck'),
+              id: 'function-check',
+              onClick: () => {
+                logMenuAction("function-check.click")
+                openFunctionCheck()
+              },
             },
             {
               name: t('menu.openExecuteCmd'),

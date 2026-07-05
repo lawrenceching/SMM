@@ -62,6 +62,7 @@ const HOP_BY_HOP_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
  */
 const PROXY_CONTROL_HEADERS: ReadonlySet<string> = new Set([
   "x-smm-proxy-upstream-baseurl",
+  "x-http-proxy",
 ]);
 
 /** Conditional cache headers — strip when forwarding so upstream returns full 200 bodies. */
@@ -92,6 +93,21 @@ export interface ReverseProxyConfig {
    * `fetch` (Node 18+ / Bun).
    */
   fetchImpl?: typeof fetch;
+
+  /**
+   * Optional factory to create a proxied `fetch` implementation when the
+   * incoming request carries an `X-Http-Proxy` header.
+   *
+   * The factory receives the proxy URL from the header (e.g.
+   * `http://127.0.0.1:8081`) and must return a function matching the `fetch`
+   * signature, or `undefined` to fall through to {@link fetchImpl} / global
+   * `fetch`.
+   *
+   * When `X-Http-Proxy` is present and `createProxiedFetch` is set, the
+   * returned fetch is used **only for that single request** — subsequent
+   * requests without the header use the normal fetch path.
+   */
+  createProxiedFetch?: (proxyUrl: string) => typeof fetch | undefined;
 }
 
 export function buildUpstreamUrl(
@@ -212,6 +228,26 @@ export async function handleProxyRequest(
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
 
+  // Read optional X-Http-Proxy header to determine the outbound proxy
+  // for this specific request. When set, the reverse proxy forwards the
+  // request through the given HTTP proxy instead of connecting directly
+  // to the upstream.
+  const httpProxyHeader = request.headers.get("X-Http-Proxy");
+  let activeFetch = fetchImpl;
+  if (httpProxyHeader && config.createProxiedFetch) {
+    try {
+      const proxiedFetch = config.createProxiedFetch(httpProxyHeader);
+      if (proxiedFetch) {
+        activeFetch = proxiedFetch;
+      }
+    } catch (error) {
+      logger.warn(
+        { proxyUrl: httpProxyHeader, err: error },
+        "[Reverse Proxy] failed to create proxied fetch, falling back to direct",
+      );
+    }
+  }
+
   const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
   if (!upstreamBaseURL) {
     return applyCorsToBody(
@@ -256,7 +292,7 @@ export async function handleProxyRequest(
       "[Reverse Proxy] forwarding request",
     );
 
-    const response = await fetchImpl(upstreamReq);
+    const response = await activeFetch(upstreamReq);
     const respHeaders = filterResponseHeaders(response);
     const respBody = await response.arrayBuffer();
 

@@ -54,6 +54,7 @@ interface ComponentsResources {
     openLogFolder: string
     openExecuteCmd: string
     addTestBackgroundJob: string
+    functionCheck: string
     config: string
     cleanUp: string
     exit: string

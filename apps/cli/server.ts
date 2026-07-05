@@ -56,6 +56,7 @@ import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
+  createProxiedFetch,
   createReverseProxyManager,
   createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
@@ -484,5 +485,10 @@ async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
     logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');
   }
 
-  return { reservedPorts, allowedUpstreamHosts, logger };
+  return {
+    reservedPorts,
+    allowedUpstreamHosts,
+    logger,
+    createProxiedFetch,
+  };
 }

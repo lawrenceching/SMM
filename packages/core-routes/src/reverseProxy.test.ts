@@ -10,6 +10,7 @@ import {
   validateUpstreamBaseURL,
   type ReverseProxyConfig,
 } from "./reverseProxy.ts";
+import { createProxiedFetch } from "./proxiedFetch.ts";
 import {
   createReverseProxyManager,
   createReverseProxyRequestHandler,
@@ -117,11 +118,13 @@ describe("filterRequestHeaders", () => {
     const request = new Request("http://x", {
       headers: {
         "X-SMM-Proxy-Upstream-BaseURL": "https://api.themoviedb.org/3",
+        "X-Http-Proxy": "http://127.0.0.1:8081",
         "X-Custom": "keep",
       },
     });
     const headers = filterRequestHeaders(request, new URL("https://api.themoviedb.org/3"));
     expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBeNull();
+    expect(headers.get("X-Http-Proxy")).toBeNull();
     expect(headers.get("X-Custom")).toBe("keep");
   });
 
@@ -261,6 +264,78 @@ describe("handleProxyRequest", () => {
 
     expect(response.status).toBe(502);
   });
+
+  it("uses createProxiedFetch when X-Http-Proxy header is present", async () => {
+    const proxiedFetch = vi.fn().mockResolvedValue(jsonResponse({ proxied: true }));
+    const createProxiedFetchMock = vi.fn().mockReturnValue(proxiedFetch);
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      createProxiedFetch: createProxiedFetchMock,
+    });
+
+    expect(response.status).toBe(200);
+    expect(createProxiedFetchMock).toHaveBeenCalledWith("http://127.0.0.1:8081");
+    expect(proxiedFetch).toHaveBeenCalledOnce();
+    // The original mockFetch (global) should NOT have been called
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("falls back to global fetch when createProxiedFetch returns undefined", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      createProxiedFetch: () => undefined,
+    });
+
+    expect(response.status).toBe(200);
+    // Falls through to global fetch
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to global fetch when createProxiedFetch throws", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "ftp://127.0.0.1:21" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      // createProxiedFetch from proxiedFetch.ts throws for unsupported schemes
+      createProxiedFetch,
+    });
+
+    // Falls through to global fetch despite the bad proxy URL
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("ignores X-Http-Proxy when createProxiedFetch is not configured", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
 });
 
 // ---- CORS ----
@@ -307,6 +382,35 @@ describe("CORS headers", () => {
     expect(response.headers.get("Access-Control-Allow-Methods")).toContain("GET");
     expect(response.headers.get("Access-Control-Max-Age")).toBe("86400");
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+// ---- createProxiedFetch ----
+
+describe("createProxiedFetch", () => {
+  it("accepts SOCKS5 proxy URLs", () => {
+    const proxied = createProxiedFetch("socks5://127.0.0.1:1080");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts SOCKS5h proxy URLs", () => {
+    const proxied = createProxiedFetch("socks5h://127.0.0.1:1080");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts http:// proxy URLs", () => {
+    const proxied = createProxiedFetch("http://127.0.0.1:8081");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts https:// proxy URLs", () => {
+    const proxied = createProxiedFetch("https://proxy.example.com:8443");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("throws for unsupported proxy schemes", () => {
+    expect(() => createProxiedFetch("ftp://proxy:21"))
+      .toThrowError(/Unsupported proxy scheme/);
   });
 });
 
