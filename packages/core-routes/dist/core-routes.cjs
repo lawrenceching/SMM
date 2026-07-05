@@ -66174,17 +66174,6 @@ class Server2 extends Protocol {
           }
           return taskValidationResult.data;
         }
-        if (typeof result === "object" && result !== null && "content" in result) {
-          const content0 = result.content?.[0];
-          console.error("[DIAG-SRV] result keys:", Object.keys(result));
-          console.error("[DIAG-SRV] content[0]:", JSON.stringify(content0));
-          console.error("[DIAG-SRV] content[0].text typeof:", typeof content0?.text);
-          if (content0?.text !== undefined) {
-            console.error("[DIAG-SRV] content[0].text length:", content0.text.length);
-          }
-        } else {
-          console.error("[DIAG-SRV] result has NO content:", JSON.stringify(result));
-        }
         const validationResult = safeParse3(CallToolResultSchema, result);
         if (!validationResult.success) {
           const errorMessage = validationResult.error instanceof Error ? validationResult.error.message : String(validationResult.error);
@@ -68145,7 +68134,7 @@ function registerGetEpisodesTool(server, config2) {
         allowlist: [],
         hello: {
           version: "0.0.0",
-          userDataDir: config2.appDataDir,
+          userDataDir: config2.userDataDir,
           appDataDir: config2.appDataDir,
           logDir: "",
           tmpDir: "",
@@ -68305,7 +68294,7 @@ function registerRenameFolderTool(server, config2) {
         allowlist: [],
         hello: {
           version: "0.0.0",
-          userDataDir: config2.appDataDir,
+          userDataDir: config2.userDataDir,
           appDataDir: config2.appDataDir,
           logDir: "",
           tmpDir: "",

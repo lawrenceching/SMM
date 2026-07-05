@@ -333,7 +333,7 @@ var import_node_path3 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
 
 // src/version.ts
-var APP_VERSION = "1.4.0";
+var APP_VERSION = "1.4.3";
 
 // src/http/hello-config.ts
 function buildHelloConfig(reverseProxyUrl) {
@@ -486,6 +486,7 @@ function getMcpHandler(options) {
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
+      userDataDir: options.userDataDir,
       activatePersistedFileAccess: options.activatePersistedFileAccess,
       disabledTools: [mcpToolNames.RENAME_FOLDER],
       acknowledge: async (message, timeoutMs) => {
@@ -906,6 +907,7 @@ async function startMainHttpServer() {
     if (url.startsWith("/mcp/") || url === "/mcp") {
       handleMcpRequest(req, res, {
         appDataDir: ohosAppDataDir,
+        userDataDir,
         getUserConfig: ohosGetUserConfig,
         getSocketManager: () => socketManager,
         logger: createCoreRoutesLogger(),
@@ -1066,6 +1068,8 @@ async function runPlanCleanup(phase) {
     logger.error({ error: err instanceof Error ? err.message : String(err) }, "[cleanup] plan cleanup threw an unexpected error");
   }
 }
+import_electron10.app.commandLine.appendSwitch("disable-background-timer-throttling");
+import_electron10.app.commandLine.appendSwitch("disable-backgrounding-occluded-windows");
 import_electron10.app.whenReady().then(() => {
   initAppRoot(import_electron10.app.getAppPath());
   getAllowedRootItems();
