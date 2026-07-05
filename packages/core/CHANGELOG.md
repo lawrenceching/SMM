@@ -1,5 +1,11 @@
 # @smm/core
 
+## 1.4.4
+
+### Patch Changes
+
+- v1.4.4
+
 ## 1.4.3
 
 ### Patch Changes
