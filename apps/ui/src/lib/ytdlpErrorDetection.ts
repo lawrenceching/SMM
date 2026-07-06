@@ -165,7 +165,11 @@ export const YTDLP_ERROR_I18N_MAP: Record<YtdlpErrorType, YtdlpErrorI18nConfig> 
   "http-error": {
     key: "httpError",
     // {{status}} is interpolated with the actual HTTP status code (e.g. "400").
-    fallback: "未知错误(HTTP {{status}}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
+    // The 401/4xx/5xx here comes from SMM's own /api/executeCmd endpoint (see
+    // `executeCmdStream` in apps/ui/src/api/executeCmd.ts), NOT from the
+    // target URL — yt-dlp's own HTTP errors use a different format and are
+    // classified into the dedicated `http-403/404/410/412/429/5xx` types.
+    fallback: "内部 API 服务器返回错误 (HTTP {{status}}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
   },
   "executable-not-found": {
     key: "executableNotFound",
@@ -398,7 +402,7 @@ export function getYtdlpErrorMessage(
       return `连接 ${ctx} 超时`
     }
     if (result.type === "http-error") {
-      return `未知错误(HTTP ${ctx}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.`
+      return `内部 API 服务器返回错误 (HTTP ${ctx}), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.`
     }
   }
 

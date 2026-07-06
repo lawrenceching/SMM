@@ -94,7 +94,7 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
           'downloadVideo.folderLabel': 'Download Folder',
           'downloadVideo.start': 'Start',
           'downloadVideo.useCookiesFromBrowserLabel': 'From browser',
-          'downloadVideo.errors.httpError': 'Unknown error (HTTP {{status}}). Please try restarting the app. If the problem persists, contact the developer.',
+          'downloadVideo.errors.httpError': 'Internal API server returned an error (HTTP {{status}}). Please try restarting the app. If the problem persists, contact the developer.',
           'downloadVideo.errors.executableNotFound': 'Required executable not found. Please check the CLI installation.',
           'downloadVideo.errors.apiNetworkError': 'Cannot reach the service. Please check your network.',
           'downloadVideo.errors.unknown': 'Unknown error. Check the status bar task list for detailed logs.',
@@ -325,7 +325,7 @@ describe('DownloadVideoDialog executeCmd integration (scheme B)', () => {
 
       const errEl = await triggerGoAndWaitForListingError()
       // The status code is interpolated into the message; the body is dropped.
-      expect(errEl.textContent).toContain('Unknown error (HTTP 500)')
+      expect(errEl.textContent).toContain('Internal API server returned an error (HTTP 500)')
       expect(errEl.textContent).toContain('restarting the app')
     })
 
@@ -351,7 +351,7 @@ describe('DownloadVideoDialog executeCmd integration (scheme B)', () => {
       fireEvent.click(screen.getByTestId('download-video-dialog-use-cookies-from-browser-checkbox'))
 
       const errEl = await triggerGoAndWaitForListingError()
-      expect(errEl.textContent).toContain('Unknown error (HTTP 400)')
+      expect(errEl.textContent).toContain('Internal API server returned an error (HTTP 400)')
       expect(errEl.textContent).toContain('restarting the app')
     })
 
