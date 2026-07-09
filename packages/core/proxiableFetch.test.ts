@@ -422,3 +422,53 @@ describe("proxiableFetch — beforeFetch", () => {
     expect(h.A).toBe("from-init")
   })
 })
+
+describe("proxiableFetch — AbortSignal", () => {
+  it("throws immediately when the signal is already aborted before any call", async () => {
+    const ac = new AbortController()
+    ac.abort()
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    await expect(
+      proxiableFetch(
+        { path: "/x", urls: ["http://a", "http://b"], fetchFn },
+        { signal: ac.signal },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" })
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+
+  it("rethrows an AbortError from fetchFn and does not continue to the next attempt", async () => {
+    const ac = new AbortController()
+    const fetchFn = vi
+      .fn()
+      .mockImplementationOnce(async () => {
+        ac.abort()
+        throw new DOMException("aborted", "AbortError")
+      })
+      .mockResolvedValue(mockResponse({ ok: true }))
+    await expect(
+      proxiableFetch(
+        { path: "/x", urls: ["http://a", "http://b"], fetchFn: fetchFn as unknown as typeof fetch },
+        { signal: ac.signal },
+      ),
+    ).rejects.toMatchObject({ name: "AbortError" })
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it("honors signal.reason over the default AbortError", async () => {
+    const ac = new AbortController()
+    ac.abort(new Error("custom-reason"))
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    let caught: unknown
+    try {
+      await proxiableFetch(
+        { path: "/x", urls: ["http://a"], fetchFn },
+        { signal: ac.signal },
+      )
+    } catch (e) {
+      caught = e
+    }
+    expect(caught).toBeInstanceOf(Error)
+    expect((caught as Error).message).toBe("custom-reason")
+  })
+})
