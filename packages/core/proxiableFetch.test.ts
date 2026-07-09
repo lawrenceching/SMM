@@ -515,3 +515,36 @@ describe("proxiableFetch — body cloning across attempts", () => {
     expect(await call1.text()).toBe(await call2.text())
   })
 })
+
+describe("proxiableFetch — edge cases", () => {
+  it("throws when neither fetchFn nor globalThis.fetch is available", async () => {
+    const original = (globalThis as { fetch?: typeof fetch }).fetch
+    delete (globalThis as { fetch?: typeof fetch }).fetch
+    try {
+      const fetchFn = undefined as unknown as typeof fetch
+      await expect(
+        proxiableFetch({ path: "/x", urls: ["http://a"], fetchFn }),
+      ).rejects.toThrow(/no fetch implementation available/)
+    } finally {
+      if (original) (globalThis as { fetch?: typeof fetch }).fetch = original
+    }
+  })
+
+  it("falls back to globalThis.fetch when fetchFn is omitted", async () => {
+    const stubFetch = vi.fn(async () => mockResponse({ ok: true }))
+    const original = (globalThis as { fetch?: typeof fetch }).fetch
+    ;(globalThis as { fetch?: typeof fetch }).fetch = stubFetch as unknown as typeof fetch
+    try {
+      const resp = await proxiableFetch({ path: "/x", urls: ["http://a"] })
+      expect(resp.ok).toBe(true)
+      expect(stubFetch).toHaveBeenCalledTimes(1)
+      expect(stubFetch).toHaveBeenCalledWith("http://a/x", expect.any(Object))
+    } finally {
+      if (original) {
+        ;(globalThis as { fetch?: typeof fetch }).fetch = original
+      } else {
+        delete (globalThis as { fetch?: typeof fetch }).fetch
+      }
+    }
+  })
+})
