@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
-import { getTMDBImageUrl } from "@/api/tmdb"
-import { searchTmdbDirect } from "@/api/tmdbDirect"
+import { getTMDBImageUrl, searchTmdb, SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useTranslation } from "@/lib/i18n"
@@ -14,8 +13,8 @@ import {
   tvdbTranslationCodeForSearchLanguage,
 } from "@/lib/tvdbSearchDisplay"
 import { buildTvdbSearchResults, type TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
-import { searchTvdbDirect } from "@/lib/TvdbDirectSearch"
-import { useMediaDatabaseBaseUrls } from "@/hooks/useMediaDatabaseBaseUrls"
+import { getTVDBv4Client, SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
+import { useReverseProxyBaseUrls } from "@/hooks/useReverseProxyBaseUrls"
 import {
   useTmdbSearchLanguageOptions,
   TMDB_PRIORITY_LANGUAGE_CODES,
@@ -99,9 +98,8 @@ export function MediaDatabaseSearchbox({
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false)
   const [showAllLanguages, setShowAllLanguages] = useState(false)
 
-  // Get the prioritized, deduplicated list of base URLs to try.
-  const tmdbBaseUrls = useMediaDatabaseBaseUrls("tmdb")
-  const tvdbBaseUrls = useMediaDatabaseBaseUrls("tvdb")
+  // Get the prioritized list of reverse proxies (local first, then remotes).
+  const reverseProxyUrls = useReverseProxyBaseUrls()
 
   // Fetch the full language lists for both databases.
   const tmdbLanguageOptions = useTmdbSearchLanguageOptions()
@@ -229,29 +227,29 @@ export function MediaDatabaseSearchbox({
         const query = searchQuery.trim()
         const type = mediaType === "tv" ? "series" : "movie"
 
-        for (const base of tvdbBaseUrls) {
+        for (const proxy of reverseProxyUrls) {
           try {
-            const result: TVDBv4SearchResult[] | undefined = await searchTvdbDirect(
-              { query, type, language: searchLanguage },
-              {
-                baseUrl: base.url,
-                authorizationMethod: base.authorizationMethod,
-              },
-            )
+            const tvdb = getTVDBv4Client({
+              reverseProxyUrl: proxy.url,
+              upstreamBaseURL: SMM_TVDB_DEFAULT_UPSTREAM,
+              proxyKind: proxy.kind,
+              authorizationMethod: proxy.authorizationMethod,
+            })
+            const resp = await tvdb.search({ query, type, language: searchLanguage })
+            const result: TVDBv4SearchResult[] | undefined =
+              resp.status === "success" ? resp.data : undefined
 
             if (result && result.length > 0) {
               const items = buildTvdbSearchResults(result)
               setTvdbSearchResultsRaw(items)
               return
             }
-            // Empty results are not an error — keep trying the next URL
-            // in case a different upstream has more matches.
+            // Empty results are not an error — keep trying the next proxy.
           } catch (err) {
             errors.push(err instanceof Error ? err.message : String(err))
           }
         }
 
-        // All URLs tried; either all returned empty results or all failed.
         setSearchError(
           errors.length > 0
             ? t("errors:searchFailed")
@@ -260,16 +258,18 @@ export function MediaDatabaseSearchbox({
         return
       }
 
-      // TMDB: try each base URL in order, stop on first success
-      for (const base of tmdbBaseUrls) {
+      // TMDB: try each reverse proxy in order, stop on first non-empty success
+      for (const proxy of reverseProxyUrls) {
         try {
-          const response = await searchTmdbDirect(
+          const response = await searchTmdb(
             searchQuery.trim(),
             mediaType,
             searchLanguage,
             {
-              baseUrl: base.url,
-              authorizationMethod: base.authorizationMethod,
+              reverseProxyUrl: proxy.url,
+              upstreamBaseURL: SMM_TMDB_DEFAULT_UPSTREAM,
+              proxyKind: proxy.kind,
+              authorizationMethod: proxy.authorizationMethod,
             },
           )
 
@@ -285,7 +285,6 @@ export function MediaDatabaseSearchbox({
           setSearchResults(results)
 
           if (results.length === 0) {
-            // Empty results: try next URL.
             continue
           }
           return
@@ -294,7 +293,6 @@ export function MediaDatabaseSearchbox({
         }
       }
 
-      // All TMDB URLs exhausted.
       setSearchResults([])
       setSearchError(
         errors.length > 0
@@ -310,7 +308,7 @@ export function MediaDatabaseSearchbox({
     } finally {
       setIsSearching(false)
     }
-  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t, tmdbBaseUrls, tvdbBaseUrls])
+  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t, reverseProxyUrls])
 
   const handleSelect = useCallback(
     (item: ImmersiveSearchResultItem) => {

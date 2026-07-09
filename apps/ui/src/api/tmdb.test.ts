@@ -214,6 +214,23 @@ describe('tmdb routing through reverse proxy', () => {
       /Reverse proxy URL is not available/,
     )
   })
+
+  it('uses OpenResty headers when proxyKind is openresty', async () => {
+    const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
+
+    await searchTmdb('naruto', 'tv', 'en-US', {
+      reverseProxyUrl: 'https://remote-proxy.example',
+      proxyKind: 'openresty',
+      authorizationMethod: 'date-token',
+    })
+
+    const init = fetchSpy.mock.calls[0][1] as RequestInit
+    const headers = init.headers as Record<string, string>
+    expect(headers['X-Upstream-Base-Url']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
+    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBeUndefined()
+    expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
+    expect(headers.Authorization).toBeUndefined()
+  })
 })
 
 describe('getTmdbPrimaryTranslations', () => {

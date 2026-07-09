@@ -57,8 +57,8 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useMediaDatabaseBaseUrls', () => ({
-  useMediaDatabaseBaseUrls: vi.fn(() => []),
+vi.mock('@/hooks/useReverseProxyBaseUrls', () => ({
+  useReverseProxyBaseUrls: vi.fn(() => []),
 }))
 
 vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {

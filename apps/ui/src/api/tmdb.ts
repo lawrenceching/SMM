@@ -4,12 +4,20 @@ import type {
   TmdbSeriesDetails,
   TmdbSeasonDetails,
 } from '@core/types'
+import {
+  buildProxyRequestHeaders,
+  type ProxyAuthorizationMethod,
+  type ProxyKind,
+} from '@/lib/proxyRequestHeaders'
+
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tmdb'
 
 export interface TmdbUpstream {
   reverseProxyUrl: string
   upstreamBaseURL: string
   apiKey?: string
+  proxyKind: ProxyKind
+  authorizationMethod: ProxyAuthorizationMethod
 }
 
 export type {
@@ -34,20 +42,32 @@ export interface TmdbRequestOptions {
   upstreamBaseURL?: string
   /** TMDB API key configured by the user. Attached as `Authorization: Bearer <apiKey>`. */
   apiKey?: string
+  /**
+   * Proxy protocol. Defaults to `local` (SMM reverse proxy headers).
+   * Use `openresty` for remote general reverse proxies from `/api/discover`.
+   */
+  proxyKind?: ProxyKind
+  /**
+   * OpenResty proxy auth method. Ignored for `proxyKind: 'local'` except that
+   * date-token is never written to the upstream `Authorization` header.
+   */
+  authorizationMethod?: ProxyAuthorizationMethod
   signal?: AbortSignal
   /** Override fetch for tests or custom HTTP clients. Defaults to global `fetch`. */
   fetchFn?: typeof fetch
 }
 
 function buildHeaders(upstream: TmdbUpstream): Record<string, string> {
-  const headers: Record<string, string> = {
-    Accept: 'application/json',
-    'X-SMM-Proxy-Upstream-BaseURL': upstream.upstreamBaseURL,
-  }
+  const extra: Record<string, string> = {}
   if (upstream.apiKey) {
-    headers['Authorization'] = `Bearer ${upstream.apiKey}`
+    extra.Authorization = `Bearer ${upstream.apiKey}`
   }
-  return headers
+  return buildProxyRequestHeaders({
+    kind: upstream.proxyKind,
+    upstreamBaseURL: upstream.upstreamBaseURL,
+    authorizationMethod: upstream.authorizationMethod,
+    extra,
+  })
 }
 
 function buildProxyUrl(upstream: TmdbUpstream, path: string, queryString: string): string {
@@ -79,7 +99,13 @@ function resolveUpstream(options?: TmdbRequestOptions): TmdbUpstream {
   const normalizedUpstream = options?.upstreamBaseURL?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
   const upstreamBaseURL = normalizedUpstream.replace(/\/+$/, '')
   const apiKey = options?.apiKey?.trim() || undefined
-  return { reverseProxyUrl, upstreamBaseURL, apiKey }
+  return {
+    reverseProxyUrl,
+    upstreamBaseURL,
+    apiKey,
+    proxyKind: options?.proxyKind ?? 'local',
+    authorizationMethod: options?.authorizationMethod ?? 'none',
+  }
 }
 
 /**

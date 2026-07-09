@@ -61,7 +61,7 @@ packages/core-routes
 
 #### ✅ 2.2.1 `discover.ts` — `GET /api/discover`
 
-- **职责**：拉取 `https://raw.gitcode.com/.../config.json` 并归一化为 `{ type, url, authorizationMethod }` 列表。
+- **职责**：拉取 `https://raw.gitcode.com/.../config.json` 并归一化为 `{ mediaDatabases: [...], reverseProxies: [...] }`。`mediaDatabases` 每项为 `{ type, url, authorizationMethod }`；`reverseProxies` 每项为 `{ id, type, url, authorizationMethod }`（远端 `authMethod` 归一化为 `authorizationMethod`）。
 - **依赖审计**：
   - 纯 `fetch` + `AbortController` + `setTimeout`。
   - 唯一的外部依赖是 `logger` from `'../../lib/logger'` —— **logger 已经走 `ctx.config.logger` 模式，可替换**。

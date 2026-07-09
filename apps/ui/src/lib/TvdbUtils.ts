@@ -2,6 +2,12 @@ import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4LanguageRecord, TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"
+import {
+    buildProxyRequestHeaders,
+    type ProxyAuthorizationMethod,
+    type ProxyKind,
+} from "@/lib/proxyRequestHeaders"
+
 export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tvdb'
 
 export interface TvdbUpstream {
@@ -9,6 +15,8 @@ export interface TvdbUpstream {
     upstreamBaseURL: string
     apiKey?: string
     requiresAuth: boolean
+    proxyKind: ProxyKind
+    authorizationMethod: ProxyAuthorizationMethod
 }
 
 const debug = Debug('TvdbUtils')
@@ -43,6 +51,8 @@ export interface GetTVDBv4ClientOverrides {
     reverseProxyUrl?: string | null
     upstreamBaseURL?: string
     apiKey?: string
+    proxyKind?: ProxyKind
+    authorizationMethod?: ProxyAuthorizationMethod
 }
 
 function resolveTvdbUpstream(overrides?: GetTVDBv4ClientOverrides): TvdbUpstream {
@@ -60,18 +70,26 @@ function resolveTvdbUpstream(overrides?: GetTVDBv4ClientOverrides): TvdbUpstream
         upstreamBaseURL,
         apiKey,
         requiresAuth: upstreamBaseURL !== SMM_TVDB_DEFAULT_UPSTREAM,
+        proxyKind: overrides?.proxyKind ?? "local",
+        authorizationMethod: overrides?.authorizationMethod ?? "none",
     }
 }
 
 /**
- * Memoization cache keyed by `(reverseProxyUrl, upstreamBaseURL, apiKey)` so
+ * Memoization cache keyed by `(reverseProxyUrl, upstreamBaseURL, apiKey, proxyKind, authorizationMethod)` so
  * the in-process token cache inside `TVDBv4` (its `this.token` /
  * `this.tokenExpiresAt`) survives across calls during a single UI session.
  */
 const tvdbClientCache = new Map<string, TVDBv4>()
 
 function buildClientCacheKey(upstream: TvdbUpstream): string {
-    return [upstream.reverseProxyUrl, upstream.upstreamBaseURL, upstream.apiKey ?? ""].join("|")
+    return [
+        upstream.reverseProxyUrl,
+        upstream.upstreamBaseURL,
+        upstream.apiKey ?? "",
+        upstream.proxyKind,
+        upstream.authorizationMethod,
+    ].join("|")
 }
 
 function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
@@ -83,7 +101,15 @@ function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
         disableAuth: !(upstream.requiresAuth && Boolean(upstream.apiKey)),
         fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
             const headers = new Headers(init?.headers)
-            headers.set('X-SMM-Proxy-Upstream-BaseURL', upstream.upstreamBaseURL)
+            const proxyHeaders = buildProxyRequestHeaders({
+                kind: upstream.proxyKind,
+                upstreamBaseURL: upstream.upstreamBaseURL,
+                authorizationMethod: upstream.authorizationMethod,
+            })
+            for (const [key, value] of Object.entries(proxyHeaders)) {
+                if (key.toLowerCase() === "accept") continue
+                headers.set(key, value)
+            }
             return window.fetch(input, { ...init, headers })
         },
     })

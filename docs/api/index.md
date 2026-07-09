@@ -85,7 +85,7 @@ HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as 
 
 ## Discover
 Source Code: apps/cli/src/route/discover.ts
-HTTP: `GET /api/discover` — fetches the remote media-database discovery config from `https://gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json` and returns the normalized `mediaDatabases` array. Each entry has the shape `{ type: 'tmdb' | 'tvdb', url: string, authorizationMethod: 'date-token' | 'none' }`. The CLI never returns an error response — fetch failures (timeout, non-2xx, malformed body) result in an empty list. The UI uses this endpoint at startup to populate the list of candidate TMDB/TVDB endpoints for reachability testing.
+HTTP: `GET /api/discover` — fetches the remote discovery config from `https://gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json` and returns normalized `mediaDatabases` and `reverseProxies` arrays. Each media-database entry has the shape `{ type: 'tmdb' | 'tvdb', url: string, authorizationMethod: 'date-token' | 'none' }`. Each reverse-proxy entry has the shape `{ id: string, type: 'general', url: string, authorizationMethod: 'date-token' | 'none' }` (the remote config's `authMethod` is normalized to `authorizationMethod`). The CLI never returns an error response — fetch failures (timeout, non-2xx, malformed body) result in empty lists. The UI uses this endpoint at startup to populate the list of candidate TMDB/TVDB endpoints for reachability testing.
 
 ## DownloadImage
 Source Code: packages/core-routes/src/downloadImage.ts

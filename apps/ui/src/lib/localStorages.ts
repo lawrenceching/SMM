@@ -4,6 +4,7 @@ const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
 const STORAGE_KEY_COOKIE_GUIDE_URL = 'cookie_guide_url';
 const STORAGE_KEY_PREFER_TMDB_BASE_URL = 'preferTmdbBaseUrl';
 const STORAGE_KEY_PREFER_TVDB_BASE_URL = 'preferTvdbBaseUrl';
+const STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL = 'preferReverseProxyBaseUrl';
 const STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE = 'lastSelectedTmdbLanguage';
 const STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE = 'lastSelectedTvdbLanguage';
 
@@ -102,6 +103,24 @@ const localStorages = {
                 localStorage.setItem(STORAGE_KEY_PREFER_TVDB_BASE_URL, value);
             } else {
                 localStorage.removeItem(STORAGE_KEY_PREFER_TVDB_BASE_URL);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
+    get preferReverseProxyBaseUrl(): string | null {
+        try {
+            return localStorage.getItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL);
+        } catch {
+            return null;
+        }
+    },
+    set preferReverseProxyBaseUrl(value: string | null) {
+        try {
+            if (value) {
+                localStorage.setItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL);
             }
         } catch {
             // Ignore localStorage errors
