@@ -271,3 +271,88 @@ describe("proxiableFetch — HTTP error handling", () => {
     expect(bodyAccess).not.toHaveBeenCalled()
   })
 })
+
+describe("proxiableFetch — reverse-proxy iteration", () => {
+  it("iterates direct then each proxy for the first URL, then advances to the next URL", async () => {
+    const calls: Array<{ url: string; proxy: string | undefined }> = []
+    const beforeFetch = vi.fn(
+      (input: { url: string; proxy: string | undefined }) => {
+        calls.push({ url: input.url, proxy: input.proxy })
+        return
+      },
+    )
+    // All 9 attempts fail so we observe the full iteration order.
+    const fetchFn = vi.fn(async () => {
+      throw new TypeError("all fail")
+    })
+    await expect(
+      proxiableFetch(
+        {
+          path: "/v1/ping",
+          urls: ["http://cn", "http://hk", "http://uk"],
+          reverseProxies: ["http://p1", "http://p2"],
+          fetchFn,
+          beforeFetch,
+        },
+        {},
+      ),
+    ).rejects.toBeInstanceOf(TypeError)
+    // 3 URLs × (1 direct + 2 proxies) = 9 attempts, all called.
+    expect(fetchFn).toHaveBeenCalledTimes(9)
+    expect(calls.map((c) => c.url)).toEqual([
+      "http://cn/v1/ping",
+      "http://p1/v1/ping",
+      "http://p2/v1/ping",
+      "http://hk/v1/ping",
+      "http://p1/v1/ping",
+      "http://p2/v1/ping",
+      "http://uk/v1/ping",
+      "http://p1/v1/ping",
+      "http://p2/v1/ping",
+    ])
+    // First 3 calls: target cn, then p1 wraps cn, then p2 wraps cn.
+    expect(calls[0]!.proxy).toBeUndefined()
+    expect(calls[1]!.proxy).toBe("http://p1")
+    expect(calls[2]!.proxy).toBe("http://p2")
+  })
+
+  it("succeeds via the first proxy when the direct attempt throws", async () => {
+    const responses: Array<() => Promise<Response>> = [
+      async () => {
+        throw new TypeError("direct down")
+      },
+      async () => mockResponse({ ok: true }),
+    ]
+    const fetchFn = vi.fn(async () => responses.shift()!())
+    const proxyArgs: Array<string | undefined> = []
+    const resp = await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://cn"],
+        reverseProxies: ["http://p1"],
+        fetchFn,
+        beforeFetch: (i) => {
+          proxyArgs.push(i.proxy)
+        },
+      },
+      {},
+    )
+    expect(resp.ok).toBe(true)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+    expect(proxyArgs).toEqual([undefined, "http://p1"])
+  })
+
+  it("treats reverseProxies = undefined as [] (no proxy attempts)", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://a", "http://b"],
+        // no reverseProxies
+        fetchFn,
+      },
+      {},
+    )
+    expect(fetchFn).toHaveBeenCalledTimes(1) // first call returns ok
+  })
+})
