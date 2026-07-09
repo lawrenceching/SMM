@@ -472,3 +472,46 @@ describe("proxiableFetch — AbortSignal", () => {
     expect((caught as Error).message).toBe("custom-reason")
   })
 })
+
+describe("proxiableFetch — body cloning across attempts", () => {
+  it("clones a URLSearchParams body so each attempt has its own", async () => {
+    const initBody = new URLSearchParams("a=1")
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockResolvedValueOnce(mockResponse({ ok: true }))
+    const resp = await proxiableFetch(
+      { path: "/x", urls: ["http://a", "http://b"], fetchFn: fetchFn as unknown as typeof fetch },
+      { method: "POST", body: initBody },
+    )
+    expect(resp.ok).toBe(true)
+    const call1 = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1].body as URLSearchParams
+    const call2 = (fetchFn.mock.calls[1] as unknown as [string, RequestInit])[1].body as URLSearchParams
+    expect(call1).toBeInstanceOf(URLSearchParams)
+    expect(call2).toBeInstanceOf(URLSearchParams)
+    expect(call1).not.toBe(call2)
+    expect(call1.get("a")).toBe("1")
+    expect(call2.get("a")).toBe("1")
+  })
+
+  it("clones a Blob body so each attempt has its own Blob with the same bytes", async () => {
+    const initBody = new Blob([new Uint8Array([1, 2, 3])], {
+      type: "application/octet-stream",
+    })
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError("network"))
+      .mockResolvedValueOnce(mockResponse({ ok: true }))
+    const resp = await proxiableFetch(
+      { path: "/x", urls: ["http://a", "http://b"], fetchFn: fetchFn as unknown as typeof fetch },
+      { method: "POST", body: initBody },
+    )
+    expect(resp.ok).toBe(true)
+    const call1 = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1].body as Blob
+    const call2 = (fetchFn.mock.calls[1] as unknown as [string, RequestInit])[1].body as Blob
+    expect(call1).toBeInstanceOf(Blob)
+    expect(call2).toBeInstanceOf(Blob)
+    expect(call1).not.toBe(call2)
+    expect(await call1.text()).toBe(await call2.text())
+  })
+})
