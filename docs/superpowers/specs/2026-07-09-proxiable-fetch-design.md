@@ -1,7 +1,7 @@
 # proxiableFetch Utility — Design
 
 Date: 2026-07-09
-Status: Pending implementation
+Status: Implemented 2026-07-09 (commits 9063b712..c585c86b)
 
 ## Problem
 
