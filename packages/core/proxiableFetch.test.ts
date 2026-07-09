@@ -213,3 +213,61 @@ describe("proxiableFetch — failover on network throw", () => {
     expect(fetchFn).toHaveBeenCalledTimes(3)
   })
 })
+
+describe("proxiableFetch — HTTP error handling", () => {
+  it("fails over when the response is !ok and abortOnHttpError is true (default)", async () => {
+    const responses: Array<() => Promise<Response>> = [
+      async () => mockResponse({ ok: false, status: 500, statusText: "Boom" }),
+      async () => mockResponse({ ok: true, status: 200 }),
+    ]
+    const fetchFn = vi.fn(async () => responses.shift()!())
+    const resp = await proxiableFetch(
+      { path: "/v1/ping", urls: ["http://a", "http://b"], fetchFn },
+      {},
+    )
+    expect(resp.ok).toBe(true)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+  })
+
+  it("returns the failing response when abortOnHttpError is false", async () => {
+    const fetchFn = vi.fn(
+      async () => mockResponse({ ok: false, status: 500, statusText: "Boom" }),
+    )
+    const resp = await proxiableFetch(
+      {
+        path: "/v1/ping",
+        urls: ["http://a", "http://b"],
+        abortOnHttpError: false,
+        fetchFn,
+      },
+      {},
+    )
+    expect(resp.status).toBe(500)
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+  })
+
+  it("does not read the body of a failing response (no leak on the failing path)", async () => {
+    const bodyAccess = vi.fn()
+    const failing: Response = {
+      ok: false,
+      status: 500,
+      statusText: "Boom",
+      body: {
+        getReader: () => {
+          bodyAccess()
+          return {} as ReadableStreamDefaultReader<Uint8Array>
+        },
+      },
+    } as unknown as Response
+    const fetchFn = vi
+      .fn<[string, RequestInit?], Promise<Response>>()
+      .mockResolvedValueOnce(failing)
+      .mockResolvedValueOnce(mockResponse({ ok: true }))
+    const resp = await proxiableFetch(
+      { path: "/x", urls: ["http://a", "http://b"], fetchFn },
+      {},
+    )
+    expect(resp.ok).toBe(true)
+    expect(bodyAccess).not.toHaveBeenCalled()
+  })
+})
