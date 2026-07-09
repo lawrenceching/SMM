@@ -125,3 +125,42 @@ describe("_cloneRequestInit", () => {
     expect(out.signal).toBe(ac.signal)
   })
 })
+
+import { proxiableFetch } from "./proxiableFetch"
+import { vi } from "vitest"
+
+function mockResponse(opts: { ok: boolean; status?: number; statusText?: string }): Response {
+  return {
+    ok: opts.ok,
+    status: opts.status ?? (opts.ok ? 200 : 500),
+    statusText: opts.statusText ?? (opts.ok ? "OK" : "Internal Server Error"),
+  } as unknown as Response
+}
+
+describe("proxiableFetch — happy path", () => {
+  it("returns the response when the first direct URL returns ok", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    const resp = await proxiableFetch(
+      {
+        path: "/v1/ping",
+        urls: ["http://example.com.cn"],
+        fetchFn,
+      },
+      { method: "GET" },
+    )
+    expect(resp.ok).toBe(true)
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+    expect(fetchFn).toHaveBeenCalledWith(
+      "http://example.com.cn/v1/ping",
+      expect.objectContaining({ method: "GET" }),
+    )
+  })
+
+  it("throws if urls is empty", async () => {
+    const fetchFn = vi.fn()
+    await expect(
+      proxiableFetch({ path: "/v1/ping", urls: [], fetchFn }),
+    ).rejects.toThrow(/urls is empty/)
+    expect(fetchFn).not.toHaveBeenCalled()
+  })
+})

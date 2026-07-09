@@ -75,3 +75,97 @@ export function _cloneRequestInit(init: RequestInit): RequestInit {
   }
   return out
 }
+
+export interface ProxiableFetchContext {
+  attemptIndex: number
+  urlIndex: number
+  proxyIndex: number | null
+  totalAttempts: number
+  path: string
+  targetUrl: string
+}
+
+export type ProxiableFetchBeforeFetch = (input: {
+  url: string
+  proxy: string | undefined
+  context: ProxiableFetchContext
+}) => Record<string, string> | void
+
+export interface ProxiableFetchOptions {
+  path: string
+  urls: string[]
+  reverseProxies?: string[]
+  abortOnHttpError?: boolean
+  fetchFn?: typeof fetch
+  beforeFetch?: ProxiableFetchBeforeFetch
+}
+
+export async function proxiableFetch(
+  options: ProxiableFetchOptions,
+  init: RequestInit = {},
+): Promise<Response> {
+  if (options.urls.length === 0) {
+    throw new Error("proxiableFetch: urls is empty")
+  }
+  const fetchFn = options.fetchFn ?? (globalThis.fetch as typeof fetch | undefined)
+  if (!fetchFn) {
+    throw new Error(
+      "proxiableFetch: no fetch implementation available; pass `fetchFn`",
+    )
+  }
+  const reverseProxies = options.reverseProxies ?? []
+  const totalAttempts = options.urls.length * (1 + reverseProxies.length)
+  let attemptIndex = 0
+  let lastError: unknown
+
+  for (let urlIndex = 0; urlIndex < options.urls.length; urlIndex++) {
+    const targetUrl = options.urls[urlIndex]!
+    const attemptUrls: Array<{ callUrl: string; proxyIndex: number | null }> = [
+      { callUrl: targetUrl, proxyIndex: null },
+      ...reverseProxies.map((p, i) => ({ callUrl: p, proxyIndex: i })),
+    ]
+
+    for (const { callUrl, proxyIndex } of attemptUrls) {
+      if (init.signal?.aborted) {
+        throw init.signal.reason ?? new DOMException("aborted", "AbortError")
+      }
+      const perAttemptInit = _cloneRequestInit(init)
+      const fullCallUrl = _joinUrl(callUrl, options.path)
+      if (options.beforeFetch) {
+        const extra = options.beforeFetch({
+          url: fullCallUrl,
+          proxy: proxyIndex === null ? undefined : reverseProxies[proxyIndex],
+          context: {
+            attemptIndex,
+            urlIndex,
+            proxyIndex,
+            totalAttempts,
+            path: options.path,
+            targetUrl,
+          },
+        })
+        _mergeHeaders(perAttemptInit, extra)
+      }
+
+      let response: Response
+      try {
+        response = await fetchFn(fullCallUrl, perAttemptInit)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") throw err
+        if (err instanceof Error && err.name === "AbortError") throw err
+        lastError = err
+        attemptIndex++
+        continue
+      }
+
+      if (response.ok) return response
+
+      if (options.abortOnHttpError === false) return response
+
+      lastError = new Error(`HTTP ${response.status} ${response.statusText}`)
+      attemptIndex++
+    }
+  }
+
+  throw lastError ?? new Error("proxiableFetch: no attempts made")
+}
