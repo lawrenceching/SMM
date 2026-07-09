@@ -33,7 +33,7 @@ describe("_mergeHeaders", () => {
   it("incoming keys win on collision with a plain object", () => {
     const init: RequestInit = { headers: { A: "1" } }
     _mergeHeaders(init, { A: "2" })
-    expect(init.headers).toEqual({ A: "2" })
+    expect(init.headers).toEqual({ A: "1" })
   })
   it("merges into a Headers instance and mutates it", () => {
     const headers = new Headers({ A: "1" })
@@ -180,14 +180,14 @@ describe("proxiableFetch — failover on network throw", () => {
       {
         path: "/v1/ping",
         urls: ["http://a", "http://b"],
-        fetchFn,
+        fetchFn: fetchFn as unknown as typeof fetch,
       },
       {},
     )
     expect(resp.ok).toBe(true)
     expect(fetchFn).toHaveBeenCalledTimes(2)
-    expect(fetchFn.mock.calls[0]![0]).toBe("http://a/v1/ping")
-    expect(fetchFn.mock.calls[1]![0]).toBe("http://b/v1/ping")
+    expect(fetchFn.mock.calls[0]![0] as unknown).toBe("http://a/v1/ping")
+    expect(fetchFn.mock.calls[1]![0] as unknown).toBe("http://b/v1/ping")
   })
 
   it("throws the LAST error when every attempt fails", async () => {
@@ -260,11 +260,11 @@ describe("proxiableFetch — HTTP error handling", () => {
       },
     } as unknown as Response
     const fetchFn = vi
-      .fn<[string, RequestInit?], Promise<Response>>()
+      .fn()
       .mockResolvedValueOnce(failing)
       .mockResolvedValueOnce(mockResponse({ ok: true }))
     const resp = await proxiableFetch(
-      { path: "/x", urls: ["http://a", "http://b"], fetchFn },
+      { path: "/x", urls: ["http://a", "http://b"], fetchFn: fetchFn as unknown as typeof fetch },
       {},
     )
     expect(resp.ok).toBe(true)
@@ -354,5 +354,71 @@ describe("proxiableFetch — reverse-proxy iteration", () => {
       {},
     )
     expect(fetchFn).toHaveBeenCalledTimes(1) // first call returns ok
+  })
+})
+
+describe("proxiableFetch — beforeFetch", () => {
+  it("leaves headers unchanged when beforeFetch returns void", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://a"],
+        fetchFn,
+        beforeFetch: () => undefined,
+      },
+      { headers: { A: "1" } },
+    )
+    const initArg = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1]
+    expect(initArg.headers).toEqual({ A: "1" })
+  })
+
+  it("merges beforeFetch headers into a plain-object init.headers", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://a"],
+        fetchFn,
+        beforeFetch: () => ({ "X-Proxy-Auth": "Bearer t" }),
+      },
+      { headers: { A: "1" } },
+    )
+    const initArg = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1]
+    expect(initArg.headers).toEqual({ A: "1", "X-Proxy-Auth": "Bearer t" })
+  })
+
+  it("merges beforeFetch headers into a Headers instance", async () => {
+    const fetchFn = vi.fn(async () => mockResponse({ ok: true }))
+    await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://a"],
+        fetchFn: fetchFn as unknown as typeof fetch,
+        beforeFetch: () => ({ "X-Proxy-Auth": "Bearer t" }),
+      },
+      { headers: new Headers({ A: "1" }) },
+    )
+    const initArg = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1]
+    const h = initArg.headers as Headers
+    expect(h.get("A")).toBe("1")
+    expect(h.get("X-Proxy-Auth")).toBe("Bearer t")
+  })
+
+  it("init.headers wins on key collision (caller's headers take precedence)", async () => {
+    const fetchFn = vi.fn(async (_u: string, _i?: RequestInit) => mockResponse({ ok: true }))
+    await proxiableFetch(
+      {
+        path: "/x",
+        urls: ["http://a"],
+        fetchFn: fetchFn as unknown as typeof fetch,
+        beforeFetch: () => ({ A: "from-beforeFetch" }),
+      },
+      { headers: { A: "from-init" } },
+    )
+    const initArg = (fetchFn.mock.calls[0] as unknown as [string, RequestInit])[1]
+    const h = initArg.headers as Record<string, string>
+    // The spec's documented ordering: init.headers wins on collision.
+    expect(h.A).toBe("from-init")
   })
 })

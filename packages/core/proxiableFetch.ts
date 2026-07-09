@@ -11,13 +11,17 @@ export function _mergeHeaders(
   if (!extra) return
   const incoming = init.headers
   if (incoming instanceof Headers) {
-    for (const [k, v] of Object.entries(extra)) incoming.set(k, v)
+    for (const [k, v] of Object.entries(extra)) {
+      if (!incoming.has(k)) incoming.set(k, v)
+    }
     return
   }
   // init.headers is undefined | Record<string,string> | string[][]. We only
   // support the object form for the merge path; the spec forbids the rest here.
   const obj: Record<string, string> = (incoming as Record<string, string> | undefined) ?? {}
-  for (const [k, v] of Object.entries(extra)) obj[k] = v
+  for (const [k, v] of Object.entries(extra)) {
+    if (!(k in obj)) obj[k] = v
+  }
   init.headers = obj
 }
 
