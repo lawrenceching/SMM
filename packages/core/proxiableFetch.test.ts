@@ -548,3 +548,19 @@ describe("proxiableFetch — edge cases", () => {
     }
   })
 })
+
+describe("proxiableFetch — final-error semantics", () => {
+  it("throws the synthetic HTTP error from the last attempt when all attempts return HTTP errors", async () => {
+    const responses: Array<() => Promise<Response>> = [
+      async () => mockResponse({ ok: false, status: 502, statusText: "Bad Gateway" }),
+      async () => mockResponse({ ok: false, status: 503, statusText: "Service Unavailable" }),
+    ]
+    const fetchFn = vi.fn(async () => responses.shift()!())
+    await expect(
+      proxiableFetch(
+        { path: "/x", urls: ["http://a", "http://b"], fetchFn },
+        {},
+      ),
+    ).rejects.toThrow(/HTTP 503 Service Unavailable/)
+  })
+})
