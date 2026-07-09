@@ -164,3 +164,52 @@ describe("proxiableFetch — happy path", () => {
     expect(fetchFn).not.toHaveBeenCalled()
   })
 })
+
+describe("proxiableFetch — failover on network throw", () => {
+  it("fails over to the next URL when the first throws", async () => {
+    const responses: Array<() => Promise<Response>> = [
+      async () => {
+        throw new TypeError("network down")
+      },
+      async () => mockResponse({ ok: true, status: 200 }),
+    ]
+    const fetchFn = vi.fn(async (_url: string, _init?: RequestInit) => {
+      return responses.shift()!()
+    })
+    const resp = await proxiableFetch(
+      {
+        path: "/v1/ping",
+        urls: ["http://a", "http://b"],
+        fetchFn,
+      },
+      {},
+    )
+    expect(resp.ok).toBe(true)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+    expect(fetchFn.mock.calls[0]![0]).toBe("http://a/v1/ping")
+    expect(fetchFn.mock.calls[1]![0]).toBe("http://b/v1/ping")
+  })
+
+  it("throws the LAST error when every attempt fails", async () => {
+    const errors = [
+      new TypeError("first"),
+      new TypeError("second"),
+      new TypeError("third"),
+    ]
+    const fetchFn = vi.fn(async () => {
+      throw errors.shift()!
+    })
+    await expect(
+      proxiableFetch(
+        {
+          path: "/v1/ping",
+          urls: ["http://a", "http://b", "http://c"],
+          fetchFn,
+        },
+        {},
+      ),
+    ).rejects.toBeInstanceOf(TypeError)
+    // Three direct attempts, no proxies.
+    expect(fetchFn).toHaveBeenCalledTimes(3)
+  })
+})
