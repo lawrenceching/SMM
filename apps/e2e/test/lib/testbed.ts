@@ -21,8 +21,12 @@ export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetada
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Load .env.local from e2e folder
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local') })
+// Load .env.local from e2e folder. Use `override: true` so the e2e-specific
+// values win over the root .env.local (which may set the same keys to empty
+// values). Without override, dotenv's default behavior leaves any
+// already-set env var untouched, so an empty value from the root file would
+// block the e2e value.
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local'), override: true })
 
 /**
  * Options for the before hook
