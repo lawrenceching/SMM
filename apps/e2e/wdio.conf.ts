@@ -9,6 +9,13 @@ import {
     disableMcpFromStatusBarAndClearGlobal,
     enableMcpFromStatusBarAndStoreAddress,
 } from './test/lib/mcpSpecShared';
+import {
+    clearNetworkLogDir,
+    initNetworkLogCapture,
+    isNetworkLogEnabled,
+    saveNetworkLog,
+    setupNetworkLogCapture,
+} from './test/lib/networkLogCapture';
 
 const HTML_REPORT_DIR = './reports/html-reports';
 const PINNED_CHROME_VERSION = '146.0.7680.153';
@@ -435,8 +442,12 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<String>} specs List of spec file paths that are to be run
      * @param {string} cid worker id (e.g. 0-0)
      */
-    // beforeSession: function (config, capabilities, specs, cid) {
-    // },
+    beforeSession(_config, _capabilities, specs, cid) {
+        initNetworkLogCapture(cid, specs);
+        if (isNetworkLogEnabled()) {
+            clearNetworkLogDir();
+        }
+    },
     /**
      * Gets executed before test execution begins. At this point you can access to all global
      * variables like `browser`. It is the perfect place to define custom commands.
@@ -483,6 +494,8 @@ export const config: WebdriverIO.Config = {
                 console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
             });
         }
+
+        await setupNetworkLogCapture(browser);
 
         // if (workerSpecsIncludeMcp(specs)) {
         //     await updateUserConfig((userConfig) => {
@@ -558,7 +571,8 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<Object>} capabilities list of capabilities details
      * @param {Array.<String>} specs List of spec file paths that ran
      */
-    after: async function (_result, _capabilities, specs) {
+    after: async function (_result, _capabilities, _specs) {
+        saveNetworkLog();
         // if (workerSpecsIncludeMcp(specs)) {
         //     await disableMcpServerForE2eWorker();
         // }

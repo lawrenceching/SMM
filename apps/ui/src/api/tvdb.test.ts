@@ -164,6 +164,22 @@ describe('fetchTvdb', () => {
   })
 
   describe('when no custom TVDB host is configured', () => {
+    it('uses default upstream when tvdb config is missing from user config', async () => {
+      mockReadUserConfig.mockResolvedValue({
+        ...defaultUserConfig,
+        tvdb: undefined as unknown as UserConfig['tvdb'],
+      })
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTvdb('/search', {
+        config: { mediaDatabases: [], reverseProxies: [] },
+      })
+
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        `${SMM_TVDB_DEFAULT_UPSTREAM}/search`,
+      )
+    })
+
     it('forwards AbortSignal to direct and proxy fetch attempts', async () => {
       const controller = new AbortController()
       const fetchSpy = vi

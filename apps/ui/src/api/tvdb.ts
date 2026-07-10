@@ -16,7 +16,7 @@ export async function fetchTvdb(urlPath: string, options?: {
 }) {
 
     const userConfig = await readUserConfig()
-    const { host, apiKey, httpProxy } = userConfig.tvdb
+    const { host, apiKey, httpProxy } = userConfig.tvdb ?? {}
 
     if (!isEmpty(host) && URL.canParse(host!)) {
         const headers: Record<string, string> = {}

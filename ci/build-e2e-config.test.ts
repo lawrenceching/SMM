@@ -62,12 +62,13 @@ describe('taskNamesForSpecs', () => {
 });
 
 describe('buildE2eEnv', () => {
-  test('includes BROWSER_LOG_ENABLED and default SMM_AUTH_TOKEN', () => {
+  test('includes browser/network log flags and default SMM_AUTH_TOKEN', () => {
     const original = process.env.SMM_AUTH_TOKEN;
     delete process.env.SMM_AUTH_TOKEN;
 
     expect(buildE2eEnv()).toEqual({
       BROWSER_LOG_ENABLED: 'true',
+      NETWORK_LOG_ENABLED: 'true',
       SMM_AUTH_TOKEN: 'ChangeMe123',
     });
 
@@ -125,6 +126,7 @@ describe('buildE2eConfig', () => {
 
     expect(config.env).toEqual({
       BROWSER_LOG_ENABLED: 'true',
+      NETWORK_LOG_ENABLED: 'true',
       SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123',
     });
 

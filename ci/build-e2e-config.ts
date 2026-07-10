@@ -9,6 +9,7 @@ const DEFAULT_SMM_AUTH_TOKEN = 'ChangeMe123';
 export function buildE2eEnv(): Record<string, string> {
   return {
     BROWSER_LOG_ENABLED: 'true',
+    NETWORK_LOG_ENABLED: 'true',
     SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? DEFAULT_SMM_AUTH_TOKEN,
   };
 }

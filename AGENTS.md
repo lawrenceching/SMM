@@ -229,6 +229,11 @@ bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 ```
 日志由 `apps/cicd` 写入 `artifacts/cicd/<commandId>/`，每个 spec 文件对应一个 task（如 `SearchMovie.e2e.ts/main.log`）。
 
+浏览器网络请求日志在 `artifacts/cicd/[commandId]/[testFileName]/network-log` 目录.
+网络请求日志通常非常庞大, 不适宜直接文件
+请使用 [query-network-log](apps/tools/query-network-log.md) 工具查询
+
+
 ### 编写测试
 
 关键辅助测试函数

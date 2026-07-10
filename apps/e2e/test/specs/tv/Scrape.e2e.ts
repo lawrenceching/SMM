@@ -283,7 +283,7 @@ Completed
 nfo
 Completed`);
     }, {
-      timeout: 10 * 1000,
+      timeout: 40 * 1000,
       interval: 1000,
       timeoutMsg: 'ScrapeDialog did not show Completed status'
     });

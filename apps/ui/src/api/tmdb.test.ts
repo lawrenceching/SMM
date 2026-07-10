@@ -192,6 +192,22 @@ describe('fetchTmdb', () => {
   })
 
   describe('when no custom TMDB host is configured', () => {
+    it('uses default upstream when tmdb config is missing from user config', async () => {
+      mockReadUserConfig.mockResolvedValue({
+        ...defaultUserConfig,
+        tmdb: undefined as unknown as UserConfig['tmdb'],
+      })
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTmdb('/search/tv', {
+        config: { mediaDatabases: [], reverseProxies: [] },
+      })
+
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        `${SMM_TMDB_DEFAULT_UPSTREAM}/search/tv`,
+      )
+    })
+
     it('forwards AbortSignal to direct and proxy fetch attempts', async () => {
       const controller = new AbortController()
       const fetchSpy = vi

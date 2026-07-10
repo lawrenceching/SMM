@@ -1,0 +1,14 @@
+{
+  "name": "@smm/tools",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "query-network-log": "bun query-network-log.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^25.0.6",
+    "typescript": "^5.0.0"
+  }
+}

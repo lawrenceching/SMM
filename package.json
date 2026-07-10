@@ -50,7 +50,8 @@
     "build:ohos": "bash ./ci/build-ohos.sh",
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm i && pnpm run build:cli",
-    "changeset:publish": "changeset publish"
+    "changeset:publish": "changeset publish",
+    "query-network-log": "bun apps/tools/query-network-log.ts"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",

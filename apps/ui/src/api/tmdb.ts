@@ -61,7 +61,7 @@ export async function fetchTmdb(urlPath: string, options?: {
 }) {
 
   const userConfig = await readUserConfig()
-  const { host, apiKey, httpProxy } = userConfig.tmdb
+  const { host, apiKey, httpProxy } = userConfig.tmdb ?? {}
 
   if (!isEmpty(host) && URL.canParse(host!)) {
     const headers: Record<string, string> = {}
