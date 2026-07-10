@@ -23,6 +23,7 @@ export const DEFAULT_ALLOWED_UPSTREAM_HOSTS: ReadonlySet<string> = new Set([
   "api.themoviedb.org",
   "api4.thetvdb.com",
   // SMM-managed default upstream that hosts the public TMDB/TVDB proxy without requiring an API key.
+  "mediadb.vercel.app",
   "tmdb-mcp-server.imlc.me",
   "httpbin.io",
   // AI Provider hosts for summarize feature

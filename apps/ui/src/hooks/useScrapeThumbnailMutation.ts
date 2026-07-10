@@ -2,7 +2,6 @@ import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
 import { getMovieById } from "@/api/tmdb"
 import { getTVDBv4Client, SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
-import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { useDownloadThumbnailFromTMDB } from "./useDownloadThumbnailFromTMDB"
 import { useDownloadThumbnailFromTVDB } from "./useDownloadThumbnailFromTVDB"
 import { useConfig } from "./userConfig"
@@ -60,11 +59,7 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
 
         if (movie.database === "TMDB") {
           const movieId = parseInt(movie.id, 10)
-          await getMovieById(movieId, "en-US", {
-            reverseProxyUrl: appConfig.reverseProxyUrl,
-            upstreamBaseURL: userConfig.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM,
-            apiKey: userConfig.tmdb?.apiKey?.trim() || undefined,
-          })
+          await getMovieById(movieId, "en-US")
           // TODO: implement movie thumbnail scraping
           return
         }

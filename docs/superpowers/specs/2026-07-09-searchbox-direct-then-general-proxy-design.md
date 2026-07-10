@@ -1,10 +1,12 @@
 # MediaDatabaseSearchbox: Direct Upstream then General Reverse Proxy
 
+> Status: Implemented 2026-07-09 (inline execution). Related UI tests: 66 passed.
+
 This design document describes the high-level design for Searchbox media-database search failover: try the SMM-managed upstream directly first; on network failure only, retry through discovered general reverse proxies.
 
 ## 1. Background
 
-`MediaDatabaseSearchbox` currently searches TMDB/TVDB only through reverse proxies (`useReverseProxyBaseUrls` → `searchTmdb` / `getTVDBv4Client`), with `https://tmdb-mcp-server.imlc.me/api/{tmdb|tvdb}` as the upstream base URL.
+`MediaDatabaseSearchbox` currently searches TMDB/TVDB only through reverse proxies (`useReverseProxyBaseUrls` → `searchTmdb` / `getTVDBv4Client`), with `https://mediadb.vercel.app/api/{tmdb|tvdb}` as the upstream base URL.
 
 When the upstream host is reachable from the client, a direct request is simpler and avoids proxy latency/quota. When the upstream is unreachable (common in restricted networks), the client should fall back to general reverse proxies discovered via `/api/discover` and latency probing (`reverseProxyServiceDiscovery`).
 

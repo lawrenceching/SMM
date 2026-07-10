@@ -1,4 +1,4 @@
-// https://tmdb-mcp-server.imlc.me/api/tvdb/v4/search?query=%E3%80%90%E6%8E%A8%E3%81%97%E3%81%AE%E5%AD%90%E3%80%91&type=series
+// https://mediadb.vercel.app/api/tvdb/v4/search?query=%E3%80%90%E6%8E%A8%E3%81%97%E3%81%AE%E5%AD%90%E3%80%91&type=series
 {
     "status": "success",
     "data": [

@@ -3,7 +3,7 @@
 The episode id comes from `/seasons/{seasonId}/extended`
 
 ```bash
-curl `https://tmdb-mcp-server.imlc.me/api/tvdb/v4/episodes/2004593/extended`
+curl `https://mediadb.vercel.app/api/tvdb/v4/episodes/2004593/extended`
 ```
 
 ```json

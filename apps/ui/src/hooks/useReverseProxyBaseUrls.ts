@@ -6,11 +6,11 @@ import {
 import localStorages from "@/lib/localStorages"
 import { useConfig } from "@/hooks/userConfig"
 import type { ReverseProxyEndpoint } from "@/api/discover"
-import type { ProxyAuthorizationMethod, ProxyKind } from "@/lib/proxyRequestHeaders"
+import type { ProxyAuthorizationMethod } from "@/lib/proxyRequestHeaders"
 
+/** A remote general reverse proxy candidate (OpenResty / discover API). */
 export interface ReverseProxyCandidate {
   id: string
-  kind: ProxyKind
   url: string
   authorizationMethod: ProxyAuthorizationMethod
 }
@@ -28,7 +28,6 @@ function readPreferredFromLocalStorage(): ReverseProxyCandidate | null {
       const { id, url, authorizationMethod } = parsed as Record<string, unknown>
       return {
         id: typeof id === "string" && id.trim() ? id : "preferred",
-        kind: "openresty",
         url: url as string,
         authorizationMethod:
           authorizationMethod === "date-token" ? "date-token" : "none",
@@ -43,7 +42,6 @@ function readPreferredFromLocalStorage(): ReverseProxyCandidate | null {
 function toCandidate(endpoint: ReverseProxyEndpoint): ReverseProxyCandidate {
   return {
     id: endpoint.id,
-    kind: "openresty",
     url: endpoint.url,
     authorizationMethod: endpoint.authorizationMethod,
   }
@@ -99,7 +97,6 @@ export function useReverseProxyBaseUrls(): ReverseProxyCandidate[] {
     if (localUrl) {
       ordered.push({
         id: "local",
-        kind: "local",
         url: localUrl,
         authorizationMethod: "none",
       })

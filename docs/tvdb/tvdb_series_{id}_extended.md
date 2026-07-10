@@ -5,7 +5,7 @@ The id is number id extracted from object id such as `series-421069`.
 The object is provided by Search API.
 
 ```bash
-curl `https://tmdb-mcp-server.imlc.me/api/tvdb/v4/series/421069/extended`
+curl `https://mediadb.vercel.app/api/tvdb/v4/series/421069/extended`
 ```
 
 ```json

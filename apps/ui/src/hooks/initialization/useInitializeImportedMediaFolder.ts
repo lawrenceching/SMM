@@ -42,7 +42,7 @@ export function useInitializeImportedMediaFolder() {
     const setSelectedFolder = useUIMediaFolderStore(state => state.setSelectedFolder)
     const folders = useUIMediaFolderStore(state => state.folders)
     const latestFolders = useLatest(folders);
-    const { addMediaFolderInUserConfig, userConfig, appConfig } = useConfig();
+    const { addMediaFolderInUserConfig, userConfig } = useConfig();
     const latestUserConfig = useLatest(userConfig);
     const helloQuery = useHelloQuery();
     const latestOsLocale = useLatest(helloQuery.data?.osLocale);
@@ -108,11 +108,6 @@ export function useInitializeImportedMediaFolder() {
             browserLocale: getBrowserLocale(),
             osLocale: latestOsLocale.current,
         }).mediaLanguage;
-        const tmdb = {
-            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
-            apiKey: latestUserConfig.current.tmdb?.apiKey,
-            reverseProxyUrl: appConfig.reverseProxyUrl,
-        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -132,7 +127,6 @@ export function useInitializeImportedMediaFolder() {
                         recognizeTvShowByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
-                            tmdb,
                         }),
                 },
                 {
@@ -153,7 +147,6 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeTvShowBySearchTvShowFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
-                                tmdb,
                             })
                             : recognizeTvShowBySearchTvShowFolderNameInTvdb({
                                 mediaMetadata: mm,
@@ -212,11 +205,6 @@ export function useInitializeImportedMediaFolder() {
             browserLocale: getBrowserLocale(),
             osLocale: latestOsLocale.current,
         }).mediaLanguage;
-        const tmdb = {
-            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
-            apiKey: latestUserConfig.current.tmdb?.apiKey,
-            reverseProxyUrl: appConfig.reverseProxyUrl,
-        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -237,7 +225,6 @@ export function useInitializeImportedMediaFolder() {
                         recognizeMovieByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
-                            tmdb,
                         }),
                 },
                 {
@@ -258,7 +245,6 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeMovieBySearchFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
-                                tmdb,
                             })
                             : recognizeMovieBySearchFolderNameInTvdb({
                                 mediaMetadata: mm,

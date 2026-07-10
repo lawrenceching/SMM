@@ -1,6 +1,6 @@
 import type { ReverseProxyEndpoint } from "@/api/discover"
 import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
-import { buildProxyRequestHeaders } from "./proxyRequestHeaders"
+import { buildGeneralProxyRequestHeaders } from "./proxyRequestHeaders"
 
 const REACHABILITY_TIMEOUT_MS = 10_000
 export const REACHABILITY_PROBES_PER_URL = 3
@@ -60,8 +60,7 @@ export async function probeReverseProxyReachability(
     const url = buildProbeUrl(options?.taggedBaseUrl ?? endpoint.url)
     const response = await fetch(url, {
       method: "GET",
-      headers: buildProxyRequestHeaders({
-        kind: "openresty",
+      headers: buildGeneralProxyRequestHeaders({
         upstreamBaseURL: SMM_TMDB_DEFAULT_UPSTREAM,
         authorizationMethod: endpoint.authorizationMethod,
       }),

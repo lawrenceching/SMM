@@ -61,12 +61,10 @@ describe("useReverseProxyBaseUrls", () => {
 
     expect(result.current[0]).toEqual({
       id: "local",
-      kind: "local",
       url: "http://127.0.0.1:30005",
       authorizationMethod: "none",
     })
     expect(result.current[1]?.url).toBe("https://remote.example")
-    expect(result.current[1]?.kind).toBe("openresty")
   })
 
   it("prefers localStorage preferred remote before other remotes", () => {
@@ -116,7 +114,7 @@ describe("useReverseProxyBaseUrls", () => {
 
     const { result } = renderHook(() => useReverseProxyBaseUrls())
     expect(result.current).toHaveLength(1)
-    expect(result.current[0]?.kind).toBe("local")
+    expect(result.current[0]?.id).toBe("local")
   })
 
   it("omits blank local reverseProxyUrl", () => {

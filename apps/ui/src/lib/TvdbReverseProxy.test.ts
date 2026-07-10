@@ -1,12 +1,38 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { _resetTvdbClientCacheForTesting, getTVDBv4Client } from "./TvdbUtils"
+import { defaultUserConfig, readUserConfig } from "@/api/readUserConfig"
+import { fetchDiscoverConfig } from "@/api/discover"
+import { _resetInternalReverseProxyCacheForTesting } from "@/api/fetchByInternalReverseProxy"
+
+vi.mock("@/api/readUserConfig", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/readUserConfig")>()
+  return {
+    ...actual,
+    readUserConfig: vi.fn(),
+  }
+})
+
+vi.mock("@/api/discover", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/discover")>()
+  return {
+    ...actual,
+    fetchDiscoverConfig: vi.fn(),
+  }
+})
+
+vi.mock("@/api/hello", () => ({
+  hello: vi.fn(),
+}))
 
 // Use the real TVDBv4 client implementation here so we exercise the login + token-cache
 // behavior end-to-end through window.fetch stubs.
 
 const REVERSE_PROXY_URL = "http://127.0.0.1:30005"
 const TVDB_DIRECT_UPSTREAM = "https://api4.thetvdb.com/v4"
-const SMM_TVDB_DEFAULT_UPSTREAM = "https://tmdb-mcp-server.imlc.me/api/tvdb"
+const SMM_TVDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tvdb"
+
+const mockReadUserConfig = vi.mocked(readUserConfig)
+const mockFetchDiscoverConfig = vi.mocked(fetchDiscoverConfig)
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } })
@@ -14,6 +40,21 @@ function jsonResponse(body: unknown, status = 200) {
 
 beforeEach(() => {
   _resetTvdbClientCacheForTesting()
+  _resetInternalReverseProxyCacheForTesting()
+  mockReadUserConfig.mockResolvedValue({
+    ...defaultUserConfig,
+    tvdb: { host: "", apiKey: "", httpProxy: "" },
+  })
+  mockFetchDiscoverConfig.mockResolvedValue({
+    mediaDatabases: [
+      {
+        type: "tvdb",
+        url: SMM_TVDB_DEFAULT_UPSTREAM,
+        authorizationMethod: "none",
+      },
+    ],
+    reverseProxies: [],
+  })
 })
 
 afterEach(() => {
@@ -76,12 +117,18 @@ describe("TVDB login + token caching through reverse proxy", () => {
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     const url = String(fetchSpy.mock.calls[0][0])
-    expect(url).toBe(`${REVERSE_PROXY_URL}/series/1/extended`)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Headers
-    expect(headers.get("Authorization")).toBeNull()
-    expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(SMM_TVDB_DEFAULT_UPSTREAM)
-    // No login was sent.
+    // Default upstream routes through fetchTvdb (direct + discovered general proxies),
+    // not the local SMM reverse proxy.
+    expect(url).toBe(`${SMM_TVDB_DEFAULT_UPSTREAM}/series/1/extended`)
+    const init = fetchSpy.mock.calls[0][1] as RequestInit | undefined
+    const headers = init?.headers
+    if (headers instanceof Headers) {
+      expect(headers.get("Authorization")).toBeNull()
+      expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBeNull()
+    } else if (headers && typeof headers === "object") {
+      expect((headers as Record<string, string>).Authorization).toBeUndefined()
+      expect((headers as Record<string, string>)["X-SMM-Proxy-Upstream-BaseURL"]).toBeUndefined()
+    }
     const loginCalls = fetchSpy.mock.calls.filter((c) => String(c[0]).endsWith("/login"))
     expect(loginCalls).toHaveLength(0)
   })

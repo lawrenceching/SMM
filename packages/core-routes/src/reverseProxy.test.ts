@@ -67,8 +67,8 @@ describe("buildUpstreamUrl", () => {
   });
 
   it("preserves upstream base path (e.g. /api/tmdb)", () => {
-    const result = buildUpstreamUrl("https://tmdb-mcp-server.imlc.me/api/tmdb", "/search/tv", "");
-    expect(result).toBe("https://tmdb-mcp-server.imlc.me/api/tmdb/search/tv");
+    const result = buildUpstreamUrl("https://mediadb.vercel.app/api/tmdb", "/search/tv", "");
+    expect(result).toBe("https://mediadb.vercel.app/api/tmdb/search/tv");
   });
 });
 
@@ -78,6 +78,14 @@ describe("validateUpstreamBaseURL", () => {
   it("accepts a host in the allowlist", () => {
     const url = validateUpstreamBaseURL("https://api.themoviedb.org/3", DEFAULT_ALLOWED_UPSTREAM_HOSTS);
     expect(url.hostname).toBe("api.themoviedb.org");
+  });
+
+  it("accepts SMM-managed mediadb.vercel.app upstream", () => {
+    const url = validateUpstreamBaseURL(
+      "https://mediadb.vercel.app/api/tmdb",
+      DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    );
+    expect(url.hostname).toBe("mediadb.vercel.app");
   });
 
   it("rejects a host not in the allowlist", () => {
@@ -215,25 +223,25 @@ describe("handleProxyRequest", () => {
   it("accepts SMM-managed TMDB upstream and forwards with base path", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ results: [] }));
 
-    const request = makeProxyRequest("/search/tv?query=test", "https://tmdb-mcp-server.imlc.me/api/tmdb");
+    const request = makeProxyRequest("/search/tv?query=test", "https://mediadb.vercel.app/api/tmdb");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(200);
     const forwardedReq: Request = mockFetch.mock.calls[0]![0];
-    expect(forwardedReq.url).toBe("https://tmdb-mcp-server.imlc.me/api/tmdb/search/tv?query=test");
-    expect(forwardedReq.headers.get("Host")).toBe("tmdb-mcp-server.imlc.me");
+    expect(forwardedReq.url).toBe("https://mediadb.vercel.app/api/tmdb/search/tv?query=test");
+    expect(forwardedReq.headers.get("Host")).toBe("mediadb.vercel.app");
   });
 
   it("accepts SMM-managed TVDB upstream and forwards with base path", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }));
 
-    const request = makeProxyRequest("/series/123/extended", "https://tmdb-mcp-server.imlc.me/api/tvdb");
+    const request = makeProxyRequest("/series/123/extended", "https://mediadb.vercel.app/api/tvdb");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(200);
     const forwardedReq: Request = mockFetch.mock.calls[0]![0];
-    expect(forwardedReq.url).toBe("https://tmdb-mcp-server.imlc.me/api/tvdb/series/123/extended");
-    expect(forwardedReq.headers.get("Host")).toBe("tmdb-mcp-server.imlc.me");
+    expect(forwardedReq.url).toBe("https://mediadb.vercel.app/api/tvdb/series/123/extended");
+    expect(forwardedReq.headers.get("Host")).toBe("mediadb.vercel.app");
   });
 
   it("filters hop-by-hop response headers", async () => {

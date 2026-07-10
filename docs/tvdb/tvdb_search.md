@@ -1,7 +1,7 @@
 # Example of TVDB Search API
 
 ```bash
-curl 'https://tmdb-mcp-server.imlc.me/api/tvdb/v4/search?query=【推しの子】'
+curl 'https://mediadb.vercel.app/api/tvdb/v4/search?query=【推しの子】'
 ```
 
 ```json

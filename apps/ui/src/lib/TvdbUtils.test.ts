@@ -57,7 +57,7 @@ import {
 } from "./TvdbUtils"
 
 const REVERSE_PROXY_URL = "http://127.0.0.1:30005"
-const SMM_TVDB_DEFAULT_UPSTREAM = "https://tmdb-mcp-server.imlc.me/api/tvdb"
+const SMM_TVDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tvdb"
 const TVDB_DIRECT_UPSTREAM = "https://api4.thetvdb.com/v4"
 
 beforeEach(() => {
@@ -69,13 +69,14 @@ afterEach(() => {
 })
 
 describe("getTVDBv4Client", () => {
-  it("targets reverse proxy and SMM-managed default upstream when no TVDB host is configured", () => {
+  it("uses fetchTvdb fetchImpl for the SMM-managed default upstream when no TVDB host is configured", () => {
     getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL })
     expect(mockTvdbConstructor).toHaveBeenCalledTimes(1)
-    const options = mockTvdbConstructor.mock.calls[0][0] as { baseUrl?: string; disableAuth?: boolean; apiKey?: string }
-    expect(options.baseUrl).toBe(REVERSE_PROXY_URL)
+    const options = mockTvdbConstructor.mock.calls[0][0] as { baseUrl?: string; disableAuth?: boolean; apiKey?: string; fetchImpl?: unknown }
+    expect(options.baseUrl).toBe(SMM_TVDB_DEFAULT_UPSTREAM)
     expect(options.disableAuth).toBe(true)
     expect(options.apiKey).toBe("")
+    expect(typeof options.fetchImpl).toBe("function")
   })
 
   it("enables auth and forwards apiKey when configured TVDB host is direct and apiKey is set", () => {
@@ -110,22 +111,13 @@ describe("getTVDBv4Client", () => {
     expect(mockTvdbConstructor).toHaveBeenCalledTimes(1)
   })
 
-  it("throws when no reverse proxy URL is available", () => {
-    expect(() => getTVDBv4Client({ reverseProxyUrl: null })).toThrow(/Reverse proxy URL is not available/)
-  })
-
-  it("injects X-SMM-Proxy-Upstream-BaseURL on every fetchImpl call (SMM-managed upstream)", async () => {
-    const fetchSpy = vi
-      .spyOn(window, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }))
-    getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL })
-    const options = mockTvdbConstructor.mock.calls[0][0] as { fetchImpl?: typeof window.fetch }
-    expect(options.fetchImpl).toBeTypeOf("function")
-    await options.fetchImpl!("http://127.0.0.1:30005/series/123/extended", { method: "GET" })
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Headers
-    expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(SMM_TVDB_DEFAULT_UPSTREAM)
+  it("throws when no reverse proxy URL is available (custom upstream)", () => {
+    expect(() =>
+      getTVDBv4Client({
+        reverseProxyUrl: null,
+        upstreamBaseURL: "https://custom-tvdb.example/v4",
+      }),
+    ).toThrow(/Reverse proxy URL is not available/)
   })
 
   it("injects X-SMM-Proxy-Upstream-BaseURL with configured TVDB host", async () => {

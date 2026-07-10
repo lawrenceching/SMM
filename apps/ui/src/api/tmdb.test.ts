@@ -1,14 +1,343 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getMovieById, getTMDBImageUrl, searchTmdb, getSeason, getTvShowById, getTmdbPrimaryTranslations, getTmdbLanguages } from './tmdb'
+import type { UserConfig } from '@core/types'
+import { fetchDiscoverConfig, type DiscoverConfig } from './discover'
+import localStorages from '@/lib/localStorages'
+import { defaultUserConfig, readUserConfig } from './readUserConfig'
+import { hello } from './hello'
+
+vi.mock('./readUserConfig', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./readUserConfig')>()
+  return {
+    ...actual,
+    readUserConfig: vi.fn(),
+  }
+})
+
+vi.mock('./hello', () => ({
+  hello: vi.fn(),
+}))
+
+vi.mock('./discover', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./discover')>()
+  return {
+    ...actual,
+    fetchDiscoverConfig: vi.fn(),
+  }
+})
+
+import {
+  clearDisabledDomains,
+  fetchTmdb,
+  getMovieById,
+  getTMDBImageUrl,
+  searchTmdb,
+  getSeason,
+  getTvShowById,
+  getTmdbPrimaryTranslations,
+  getTmdbLanguages,
+} from './tmdb'
+import { _resetInternalReverseProxyCacheForTesting } from './fetchByInternalReverseProxy'
 
 const REVERSE_PROXY_URL = 'http://127.0.0.1:30005'
-const SMM_TMDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tmdb'
+const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
+
+const mockReadUserConfig = vi.mocked(readUserConfig)
+const mockHello = vi.mocked(hello)
+const mockFetchDiscoverConfig = vi.mocked(fetchDiscoverConfig)
+
+function userConfigWithTmdb(
+  tmdb: Partial<UserConfig['tmdb']> = {},
+): UserConfig {
+  return {
+    ...defaultUserConfig,
+    tmdb: {
+      host: '',
+      apiKey: '',
+      httpProxy: '',
+      ...tmdb,
+    },
+  }
+}
+
+function okResponse(body: unknown = {}): Response {
+  return new Response(JSON.stringify(body), { status: 200, statusText: 'OK' })
+}
+
+function headersOf(init: RequestInit | undefined): Record<string, string> {
+  const h = init?.headers
+  if (!h) return {}
+  if (h instanceof Headers) {
+    const out: Record<string, string> = {}
+    h.forEach((v, k) => {
+      out[k] = v
+    })
+    return out
+  }
+  return { ...(h as Record<string, string>) }
+}
+
+const discoverConfig: DiscoverConfig = {
+  mediaDatabases: [
+    {
+      type: 'tmdb',
+      url: 'https://tmdb-a.example/api/tmdb',
+      authorizationMethod: 'none',
+    },
+  ],
+  reverseProxies: [
+    {
+      id: 'proxy-a',
+      type: 'general',
+      url: 'https://proxy-a.example',
+      authorizationMethod: 'date-token',
+    },
+  ],
+}
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  localStorages.disabledDomains = new Set()
+  _resetInternalReverseProxyCacheForTesting()
+  mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
+  mockHello.mockResolvedValue({
+    reverseProxyUrl: REVERSE_PROXY_URL,
+    userDataDir: '/tmp/smm',
+  } as Awaited<ReturnType<typeof hello>>)
+  mockFetchDiscoverConfig.mockResolvedValue(discoverConfig)
 })
 
 afterEach(() => {
+  localStorages.disabledDomains = new Set()
+})
+
+describe('clearDisabledDomains', () => {
+  it('removes the given domains from localStorages.disabledDomains and keeps others', () => {
+    localStorages.disabledDomains = new Set([
+      'mediadb.vercel.app',
+      'proxy.example.com',
+      'unrelated.example',
+    ])
+
+    clearDisabledDomains(['mediadb.vercel.app', 'proxy.example.com', ''])
+
+    expect([...localStorages.disabledDomains]).toEqual(['unrelated.example'])
+  })
+})
+
+describe('fetchTmdb', () => {
+  describe('when user configures a custom TMDB host', () => {
+    it('routes through the local reverse proxy with upstream headers', async () => {
+      mockReadUserConfig.mockResolvedValue(
+        userConfigWithTmdb({
+          host: 'https://api.themoviedb.org/3/',
+          apiKey: 'secret-key',
+          httpProxy: 'http://127.0.0.1:7890',
+        }),
+      )
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({ id: 1 }))
+
+      const resp = await fetchTmdb('/search/tv?query=naruto')
+
+      expect(resp.ok).toBe(true)
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(`${REVERSE_PROXY_URL}/search/tv?query=naruto`)
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
+      expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe('https://api.themoviedb.org/3')
+      expect(headers.Authorization).toBe('Bearer secret-key')
+      expect(headers['X-Http-Proxy']).toBe('http://127.0.0.1:7890')
+      expect(fetchSpy.mock.calls[0]![1]).toMatchObject({
+        method: 'GET',
+        cache: 'no-store',
+      })
+    })
+
+    it('normalizes urlPath without a leading slash', async () => {
+      mockReadUserConfig.mockResolvedValue(
+        userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+      )
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTmdb('movie/1')
+
+      expect(fetchSpy.mock.calls[0]![0]).toBe(`${REVERSE_PROXY_URL}/movie/1`)
+    })
+
+    it('throws when reverse proxy URL is unavailable', async () => {
+      mockReadUserConfig.mockResolvedValue(
+        userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+      )
+      mockHello.mockResolvedValue({
+        reverseProxyUrl: null,
+        userDataDir: '/tmp/smm',
+      } as Awaited<ReturnType<typeof hello>>)
+
+      await expect(fetchTmdb('/search/tv')).rejects.toThrow(
+        /Reverse proxy URL is not available/,
+      )
+    })
+
+    it('forwards AbortSignal to fetch', async () => {
+      mockReadUserConfig.mockResolvedValue(
+        userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+      )
+      const controller = new AbortController()
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTmdb('/search/tv', { signal: controller.signal })
+
+      expect(fetchSpy.mock.calls[0]![1]).toMatchObject({
+        signal: controller.signal,
+      })
+    })
+  })
+
+  describe('when no custom TMDB host is configured', () => {
+    it('forwards AbortSignal to direct and proxy fetch attempts', async () => {
+      const controller = new AbortController()
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(okResponse())
+
+      await fetchTmdb('/search/tv', {
+        config: discoverConfig,
+        signal: controller.signal,
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
+      expect(fetchSpy.mock.calls[0]![1]).toMatchObject({ signal: controller.signal })
+      expect(fetchSpy.mock.calls[1]![1]).toMatchObject({ signal: controller.signal })
+    })
+
+    it('rethrows AbortError without failing over or disabling domains', async () => {
+      const abortError = new DOMException('aborted', 'AbortError')
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(abortError)
+
+      await expect(
+        fetchTmdb('/search/tv', {
+          config: discoverConfig,
+          signal: new AbortController().signal,
+        }),
+      ).rejects.toSatisfy(
+        (err: unknown) => err instanceof DOMException && err.name === 'AbortError',
+      )
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(localStorages.disabledDomains.size).toBe(0)
+    })
+
+    it('tries the discovered TMDB host directly first', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({ results: [] }))
+
+      const resp = await fetchTmdb('/search/tv?query=naruto', { config: discoverConfig })
+
+      expect(resp!.ok).toBe(true)
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        'https://tmdb-a.example/api/tmdb/search/tv?query=naruto',
+      )
+    })
+
+    it('fails over to a reverse proxy with date-token auth when direct fetch throws', async () => {
+      const fetchSpy = vi
+        .spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(okResponse({ results: [] }))
+
+      const resp = await fetchTmdb('/search/movie?query=inception', {
+        config: discoverConfig,
+      })
+
+      expect(resp!.ok).toBe(true)
+      expect(fetchSpy).toHaveBeenCalledTimes(2)
+      expect(fetchSpy.mock.calls[1]![0]).toBe('https://proxy-a.example')
+      const headers = headersOf(fetchSpy.mock.calls[1]![1])
+      expect(headers['X-Upstream-Base-Url']).toBe('https://tmdb-a.example/api/tmdb')
+      expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
+    })
+
+    it('records the failed direct host in disabledDomains before failover', async () => {
+      vi.spyOn(globalThis, 'fetch')
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(okResponse())
+
+      await fetchTmdb('/search/tv', { config: discoverConfig })
+
+      expect(localStorages.disabledDomains.has('tmdb-a.example')).toBe(true)
+    })
+
+    it('skips hosts and proxies listed in disabledDomains', async () => {
+      const config: DiscoverConfig = {
+        mediaDatabases: [
+          {
+            type: 'tmdb',
+            url: 'https://disabled-tmdb.example/api/tmdb',
+            authorizationMethod: 'none',
+          },
+          {
+            type: 'tmdb',
+            url: 'https://live-tmdb.example/api/tmdb',
+            authorizationMethod: 'none',
+          },
+        ],
+        reverseProxies: [
+          {
+            id: 'disabled-proxy',
+            type: 'general',
+            url: 'https://disabled-proxy.example',
+            authorizationMethod: 'none',
+          },
+          {
+            id: 'live-proxy',
+            type: 'general',
+            url: 'https://live-proxy.example',
+            authorizationMethod: 'none',
+          },
+        ],
+      }
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTmdb('/search/tv', {
+        config,
+        disabledDomains: new Set(['disabled-tmdb.example', 'disabled-proxy.example']),
+      })
+
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        'https://live-tmdb.example/api/tmdb/search/tv',
+      )
+    })
+
+    it('uses default host and proxy when discover lists are empty', async () => {
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
+
+      await fetchTmdb('/search/tv', {
+        config: { mediaDatabases: [], reverseProxies: [] },
+      })
+
+      expect(fetchSpy.mock.calls[0]![0]).toBe(
+        `${SMM_TMDB_DEFAULT_UPSTREAM}/search/tv`,
+      )
+    })
+
+    it('clears disabled domains from the discover config when every attempt fails', async () => {
+      localStorages.disabledDomains = new Set([
+        'tmdb-a.example',
+        'proxy-a.example',
+        'unrelated.example',
+      ])
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+
+      // Pass an empty in-memory set so this attempt still tries the discover candidates.
+      const resp = await fetchTmdb('/search/tv', {
+        config: discoverConfig,
+        disabledDomains: new Set(),
+      })
+
+      expect(resp).toBeUndefined()
+      expect([...localStorages.disabledDomains]).toEqual(['unrelated.example'])
+    })
+  })
 })
 
 describe('getTMDBImageUrl', () => {
@@ -130,32 +459,31 @@ describe('tmdb routing through reverse proxy', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
-  it('searches via reverse proxy with SMM-managed upstream when TMDB host is empty', async () => {
+  it('searches via direct default upstream when TMDB host is empty', async () => {
+    mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
     const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
 
-    await searchTmdb('naruto', 'tv', 'en-US', { reverseProxyUrl: REVERSE_PROXY_URL })
+    const result = await searchTmdb('naruto', 'tv', 'en-US')
 
+    expect(result).toEqual({ results: [], page: 1, total_pages: 1, total_results: 0 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(
-      `${REVERSE_PROXY_URL}/search/tv?query=naruto&language=en-US`,
+      'https://tmdb-a.example/api/tmdb/search/tv?query=naruto&language=en-US',
     )
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Record<string, string>
-    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
-    expect(headers['Authorization']).toBeUndefined()
-    expect(headers['X-TMDB-Host']).toBeUndefined()
-    expect(headers['X-TMDB-API-Key']).toBeUndefined()
   })
 
   it('searches via reverse proxy with configured TMDB host and Authorization', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({
+        host: 'https://api.themoviedb.org/3/',
+        apiKey: 'abc123',
+      }),
+    )
     const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
 
-    await searchTmdb('inception', 'movie', 'en-US', {
-      reverseProxyUrl: REVERSE_PROXY_URL,
-      upstreamBaseURL: 'https://api.themoviedb.org/3/',
-      apiKey: 'abc123',
-    })
+    const result = await searchTmdb('inception', 'movie', 'en-US')
 
+    expect(result).toEqual({ results: [], page: 1, total_pages: 1, total_results: 0 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(
       `${REVERSE_PROXY_URL}/search/movie?query=inception&language=en-US`,
@@ -165,19 +493,20 @@ describe('tmdb routing through reverse proxy', () => {
     // Trailing slash from user input is stripped.
     expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe('https://api.themoviedb.org/3')
     expect(headers['Authorization']).toBe('Bearer abc123')
-    expect(headers['X-TMDB-Host']).toBeUndefined()
-    expect(headers['X-TMDB-API-Key']).toBeUndefined()
   })
 
-  it('uses per-request overrides over the singleton', async () => {
+  it('routes getMovieById through reverse proxy with user config', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({
+        host: 'https://api.themoviedb.org/3',
+        apiKey: 'override-key',
+      }),
+    )
     const fetchSpy = mockOkJson({ id: 1 })
 
-    await getMovieById(1, 'en-US', {
-      reverseProxyUrl: REVERSE_PROXY_URL,
-      upstreamBaseURL: 'https://api.themoviedb.org/3',
-      apiKey: 'override-key',
-    })
+    const result = await getMovieById(1, 'en-US')
 
+    expect(result).toEqual({ id: 1 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(`${REVERSE_PROXY_URL}/movie/1?language=en-US`)
     const init = fetchSpy.mock.calls[0][1] as RequestInit
@@ -187,22 +516,30 @@ describe('tmdb routing through reverse proxy', () => {
   })
 
   it('routes getTvShowById through reverse proxy', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
     const fetchSpy = mockOkJson({ id: 84666 })
 
-    await getTvShowById(84666, 'zh-CN', { reverseProxyUrl: REVERSE_PROXY_URL })
+    const result = await getTvShowById(84666, 'zh-CN')
 
+    expect(result).toEqual({ id: 84666 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(`${REVERSE_PROXY_URL}/tv/84666?language=zh-CN`)
     const init = fetchSpy.mock.calls[0][1] as RequestInit
     const headers = init.headers as Record<string, string>
-    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
+    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe('https://api.themoviedb.org/3')
   })
 
   it('routes getSeason through reverse proxy', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
     const fetchSpy = mockOkJson({ id: 1, episodes: [] })
 
-    await getSeason(84666, 1, 'en-US', { reverseProxyUrl: REVERSE_PROXY_URL })
+    const result = await getSeason(84666, 1, 'en-US')
 
+    expect(result).toEqual({ id: 1, episodes: [] })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
     expect(fetchSpy.mock.calls[0][0]).toBe(
       `${REVERSE_PROXY_URL}/tv/84666/season/1?language=en-US`,
@@ -210,26 +547,51 @@ describe('tmdb routing through reverse proxy', () => {
   })
 
   it('throws a clear error when no reverse proxy URL is available', async () => {
-    await expect(searchTmdb('naruto', 'tv', 'en-US', { reverseProxyUrl: null })).rejects.toThrow(
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
+    mockHello.mockResolvedValue({
+      reverseProxyUrl: null,
+      userDataDir: '/tmp/smm',
+    } as Awaited<ReturnType<typeof hello>>)
+
+    await expect(searchTmdb('naruto', 'tv', 'en-US')).rejects.toThrow(
       /Reverse proxy URL is not available/,
     )
   })
 
-  it('uses OpenResty headers when proxyKind is openresty', async () => {
-    const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
+  it('forwards signal to the underlying fetch', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
+    const controller = new AbortController()
+    const fetchSpy = mockOkJson({ results: [] })
 
-    await searchTmdb('naruto', 'tv', 'en-US', {
-      reverseProxyUrl: 'https://remote-proxy.example',
-      proxyKind: 'openresty',
-      authorizationMethod: 'date-token',
-    })
+    await searchTmdb('naruto', 'tv', 'en-US', { signal: controller.signal })
 
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Record<string, string>
-    expect(headers['X-Upstream-Base-Url']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
-    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBeUndefined()
-    expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
-    expect(headers.Authorization).toBeUndefined()
+    expect(fetchSpy.mock.calls[0][1]).toMatchObject({ signal: controller.signal })
+  })
+
+  it('throws when fetchTmdb returns undefined (all attempts failed)', async () => {
+    mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+
+    await expect(searchTmdb('naruto', 'tv', 'en-US')).rejects.toThrow(
+      /Failed to search TMDB: all attempts failed/,
+    )
+  })
+
+  it('throws when fetchTmdb returns a non-ok response', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('Not Found', { status: 404, statusText: 'Not Found' }),
+    )
+
+    await expect(searchTmdb('naruto', 'tv', 'en-US')).rejects.toThrow(
+      /Failed to search TMDB: 404 Not Found/,
+    )
   })
 })
 
@@ -240,21 +602,34 @@ describe('getTmdbPrimaryTranslations', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
-  it('fetches the IETF primary translation list through the reverse proxy', async () => {
+  it('fetches the IETF primary translation list through fetchTmdb', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
     const fetchSpy = mockOkJson(['en-US', 'zh-CN', 'fr-FR'])
 
-    const result = await getTmdbPrimaryTranslations({ reverseProxyUrl: REVERSE_PROXY_URL })
+    const result = await getTmdbPrimaryTranslations()
 
     expect(result).toEqual(['en-US', 'zh-CN', 'fr-FR'])
     expect(fetchSpy).toHaveBeenCalledTimes(1)
-    expect(fetchSpy.mock.calls[0][0]).toBe(`${REVERSE_PROXY_URL}/configuration/primary_translations`)
+    expect(fetchSpy.mock.calls[0][0]).toBe(
+      `${REVERSE_PROXY_URL}/configuration/primary_translations`,
+    )
     const init = fetchSpy.mock.calls[0][1] as RequestInit
     const headers = init.headers as Record<string, string>
-    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe(SMM_TMDB_DEFAULT_UPSTREAM)
+    expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe('https://api.themoviedb.org/3')
   })
 
   it('throws a clear error when no reverse proxy URL is available', async () => {
-    await expect(getTmdbPrimaryTranslations({ reverseProxyUrl: null })).rejects.toThrow(
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
+    mockHello.mockResolvedValue({
+      reverseProxyUrl: null,
+      userDataDir: '/tmp/smm',
+    } as Awaited<ReturnType<typeof hello>>)
+
+    await expect(getTmdbPrimaryTranslations()).rejects.toThrow(
       /Reverse proxy URL is not available/,
     )
   })
@@ -267,13 +642,16 @@ describe('getTmdbLanguages', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
-  it('fetches the language list (iso_639_1, english_name, name) through the reverse proxy', async () => {
+  it('fetches the language list (iso_639_1, english_name, name) through fetchTmdb', async () => {
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
     const fetchSpy = mockOkJson([
       { iso_639_1: 'en', english_name: 'English', name: 'English' },
       { iso_639_1: 'zh', english_name: 'Chinese', name: '中文' },
     ])
 
-    const result = await getTmdbLanguages({ reverseProxyUrl: REVERSE_PROXY_URL })
+    const result = await getTmdbLanguages()
 
     expect(result).toEqual([
       { iso_639_1: 'en', english_name: 'English', name: 'English' },
@@ -284,7 +662,15 @@ describe('getTmdbLanguages', () => {
   })
 
   it('throws a clear error when no reverse proxy URL is available', async () => {
-    await expect(getTmdbLanguages({ reverseProxyUrl: null })).rejects.toThrow(
+    mockReadUserConfig.mockResolvedValue(
+      userConfigWithTmdb({ host: 'https://api.themoviedb.org/3' }),
+    )
+    mockHello.mockResolvedValue({
+      reverseProxyUrl: null,
+      userDataDir: '/tmp/smm',
+    } as Awaited<ReturnType<typeof hello>>)
+
+    await expect(getTmdbLanguages()).rejects.toThrow(
       /Reverse proxy URL is not available/,
     )
   })

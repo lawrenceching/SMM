@@ -34,7 +34,7 @@ export function useTvdbLanguages() {
     queryFn: () => getTvdbLanguages(options),
     staleTime: STALE_MS,
     gcTime: 7 * 24 * 60 * 60 * 1000,
-    enabled: Boolean(options.reverseProxyUrl),
+    enabled: true,
   })
 }
 

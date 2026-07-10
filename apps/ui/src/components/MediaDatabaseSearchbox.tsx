@@ -1,10 +1,17 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
-import { getTMDBImageUrl, searchTmdb, SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
+import { fetchTmdb, getTMDBImageUrl } from "@/api/tmdb"
+import { fetchTvdb } from "@/api/tvdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useTranslation } from "@/lib/i18n"
-import type { TMDBTVShow, TMDBMovie, PrimaryDatabase, PreferMediaLanguage } from "@core/types"
+import type {
+  TMDBTVShow,
+  TMDBMovie,
+  PrimaryDatabase,
+  PreferMediaLanguage,
+  TmdbSearchResponseBody,
+} from "@core/types"
 import { type TVDBv4SearchResult } from "@smm/tvdb4"
 import {
   getTvdbSearchResultAlternateName,
@@ -13,8 +20,6 @@ import {
   tvdbTranslationCodeForSearchLanguage,
 } from "@/lib/tvdbSearchDisplay"
 import { buildTvdbSearchResults, type TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
-import { getTVDBv4Client, SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
-import { useReverseProxyBaseUrls } from "@/hooks/useReverseProxyBaseUrls"
 import {
   useTmdbSearchLanguageOptions,
   TMDB_PRIORITY_LANGUAGE_CODES,
@@ -97,9 +102,6 @@ export function MediaDatabaseSearchbox({
   const [searchError, setSearchError] = useState<string | null>(null)
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false)
   const [showAllLanguages, setShowAllLanguages] = useState(false)
-
-  // Get the prioritized list of reverse proxies (local first, then remotes).
-  const reverseProxyUrls = useReverseProxyBaseUrls()
 
   // Fetch the full language lists for both databases.
   const tmdbLanguageOptions = useTmdbSearchLanguageOptions()
@@ -221,94 +223,69 @@ export function MediaDatabaseSearchbox({
     setSearchResults([])
     setTvdbSearchResultsRaw([])
 
-    const errors: string[] = []
     try {
       if (searchDatabase === "TVDB") {
-        const query = searchQuery.trim()
         const type = mediaType === "tv" ? "series" : "movie"
+        const params = new URLSearchParams()
+        params.set("query", searchQuery.trim())
+        params.set("type", type)
+        if (searchLanguage.trim()) params.set("language", searchLanguage)
 
-        for (const proxy of reverseProxyUrls) {
-          try {
-            const tvdb = getTVDBv4Client({
-              reverseProxyUrl: proxy.url,
-              upstreamBaseURL: SMM_TVDB_DEFAULT_UPSTREAM,
-              proxyKind: proxy.kind,
-              authorizationMethod: proxy.authorizationMethod,
-            })
-            const resp = await tvdb.search({ query, type, language: searchLanguage })
-            const result: TVDBv4SearchResult[] | undefined =
-              resp.status === "success" ? resp.data : undefined
-
-            if (result && result.length > 0) {
-              const items = buildTvdbSearchResults(result)
-              setTvdbSearchResultsRaw(items)
-              return
-            }
-            // Empty results are not an error — keep trying the next proxy.
-          } catch (err) {
-            errors.push(err instanceof Error ? err.message : String(err))
-          }
+        const resp = await fetchTvdb(`/search?${params.toString()}`)
+        if (!resp || !resp.ok) {
+          setSearchError(t("errors:searchFailed"))
+          return
         }
 
-        setSearchError(
-          errors.length > 0
-            ? t("errors:searchFailed")
-            : t("errors:searchNoResults"),
-        )
+        const body = (await resp.json()) as {
+          status?: string
+          data?: TVDBv4SearchResult[]
+        }
+        const result =
+          body.status === "success" && Array.isArray(body.data) ? body.data : undefined
+
+        if (result && result.length > 0) {
+          setTvdbSearchResultsRaw(buildTvdbSearchResults(result))
+          return
+        }
+        setSearchError(t("errors:searchNoResults"))
         return
       }
 
-      // TMDB: try each reverse proxy in order, stop on first non-empty success
-      for (const proxy of reverseProxyUrls) {
-        try {
-          const response = await searchTmdb(
-            searchQuery.trim(),
-            mediaType,
-            searchLanguage,
-            {
-              reverseProxyUrl: proxy.url,
-              upstreamBaseURL: SMM_TMDB_DEFAULT_UPSTREAM,
-              proxyKind: proxy.kind,
-              authorizationMethod: proxy.authorizationMethod,
-            },
-          )
-
-          if (response.error) {
-            errors.push(response.error)
-            continue
-          }
-
-          const results = response.results.filter(
-            (item): item is TMDBTVShow | TMDBMovie =>
-              mediaType === "tv" ? "name" in item : "title" in item
-          )
-          setSearchResults(results)
-
-          if (results.length === 0) {
-            continue
-          }
-          return
-        } catch (err) {
-          errors.push(err instanceof Error ? err.message : String(err))
-        }
+      const params = new URLSearchParams()
+      params.set("query", searchQuery.trim())
+      params.set("language", searchLanguage)
+      const resp = await fetchTmdb(`/search/${mediaType}?${params.toString()}`)
+      if (!resp || !resp.ok) {
+        setSearchError(t("errors:searchFailed"))
+        return
       }
 
-      setSearchResults([])
-      setSearchError(
-        errors.length > 0
-          ? t("errors:searchFailed")
-          : t("errors:searchNoResults"),
+      const response = (await resp.json()) as TmdbSearchResponseBody
+      if (response.error) {
+        setSearchError(t("errors:searchFailed"))
+        return
+      }
+
+      const results = response.results.filter(
+        (item): item is TMDBTVShow | TMDBMovie =>
+          mediaType === "tv" ? "name" in item : "title" in item,
       )
+      setSearchResults(results)
+      if (results.length === 0) {
+        setSearchError(t("errors:searchNoResults"))
+      }
     } catch (error) {
       console.error("Search failed:", error)
-      const errorMessage =
-        error instanceof Error ? error.message : t("errors:searchFailed")
-      setSearchError(errorMessage)
+      setSearchError(
+        error instanceof Error ? error.message : t("errors:searchFailed"),
+      )
       setSearchResults([])
+      setTvdbSearchResultsRaw([])
     } finally {
       setIsSearching(false)
     }
-  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t, reverseProxyUrls])
+  }, [searchQuery, searchLanguage, searchDatabase, mediaType, t])
 
   const handleSelect = useCallback(
     (item: ImmersiveSearchResultItem) => {

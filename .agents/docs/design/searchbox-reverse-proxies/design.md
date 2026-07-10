@@ -20,8 +20,8 @@ Remote config now exposes `reverseProxies` — general OpenResty proxies. Protoc
 
 Upstream for Searchbox remains SMM-managed:
 
-- TMDB: `https://tmdb-mcp-server.imlc.me/api/tmdb`
-- TVDB: `https://tmdb-mcp-server.imlc.me/api/tvdb`
+- TMDB: `https://mediadb.vercel.app/api/tmdb`
+- TVDB: `https://mediadb.vercel.app/api/tvdb`
 
 ## 2. Architecture
 

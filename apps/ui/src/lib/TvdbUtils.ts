@@ -2,20 +2,20 @@ import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4LanguageRecord, TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"
+import { fetchTvdb } from "@/api/tvdb"
 import {
-    buildProxyRequestHeaders,
+    buildLocalProxyRequestHeaders,
     type ProxyAuthorizationMethod,
-    type ProxyKind,
 } from "@/lib/proxyRequestHeaders"
+import { isCustomUpstream } from "@/lib/mediaDatabaseAccess"
 
-export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tvdb'
+export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tvdb'
 
 export interface TvdbUpstream {
-    reverseProxyUrl: string
+    reverseProxyUrl: string | null
     upstreamBaseURL: string
     apiKey?: string
     requiresAuth: boolean
-    proxyKind: ProxyKind
     authorizationMethod: ProxyAuthorizationMethod
 }
 
@@ -51,32 +51,25 @@ export interface GetTVDBv4ClientOverrides {
     reverseProxyUrl?: string | null
     upstreamBaseURL?: string
     apiKey?: string
-    proxyKind?: ProxyKind
     authorizationMethod?: ProxyAuthorizationMethod
 }
 
 function resolveTvdbUpstream(overrides?: GetTVDBv4ClientOverrides): TvdbUpstream {
-    const reverseProxyUrl = overrides?.reverseProxyUrl
-    if (!reverseProxyUrl) {
-        throw new Error(
-            'Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.',
-        )
-    }
     const upstreamBaseURL =
         overrides?.upstreamBaseURL?.trim() || SMM_TVDB_DEFAULT_UPSTREAM
+    const reverseProxyUrl = overrides?.reverseProxyUrl ?? null
     const apiKey = overrides?.apiKey?.trim() || undefined
     return {
         reverseProxyUrl,
         upstreamBaseURL,
         apiKey,
-        requiresAuth: upstreamBaseURL !== SMM_TVDB_DEFAULT_UPSTREAM,
-        proxyKind: overrides?.proxyKind ?? "local",
+        requiresAuth: isCustomUpstream(upstreamBaseURL, SMM_TVDB_DEFAULT_UPSTREAM),
         authorizationMethod: overrides?.authorizationMethod ?? "none",
     }
 }
 
 /**
- * Memoization cache keyed by `(reverseProxyUrl, upstreamBaseURL, apiKey, proxyKind, authorizationMethod)` so
+ * Memoization cache keyed by `(reverseProxyUrl, upstreamBaseURL, apiKey, authorizationMethod)` so
  * the in-process token cache inside `TVDBv4` (its `this.token` /
  * `this.tokenExpiresAt`) survives across calls during a single UI session.
  */
@@ -84,44 +77,78 @@ const tvdbClientCache = new Map<string, TVDBv4>()
 
 function buildClientCacheKey(upstream: TvdbUpstream): string {
     return [
-        upstream.reverseProxyUrl,
+        upstream.reverseProxyUrl ?? "",
         upstream.upstreamBaseURL,
         upstream.apiKey ?? "",
-        upstream.proxyKind,
         upstream.authorizationMethod,
     ].join("|")
 }
 
+function buildMediaDatabaseTvdbFetchImpl(
+    upstream: TvdbUpstream,
+): typeof fetch {
+    return (input: RequestInfo | URL, init?: RequestInit) => {
+        const urlString =
+            typeof input === "string"
+                ? input
+                : input instanceof URL
+                    ? input.href
+                    : input.url
+        const upstreamBase = upstream.upstreamBaseURL.replace(/\/+$/, "")
+        const path = urlString.startsWith(upstreamBase)
+            ? urlString.slice(upstreamBase.length) || "/"
+            : new URL(urlString).pathname + new URL(urlString).search
+        return fetchTvdb(
+            path.startsWith("/") ? path : `/${path}`,
+            { signal: init?.signal ?? undefined },
+        ) as unknown as Promise<Response>
+    }
+}
+
 function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
+    if (isCustomUpstream(upstream.upstreamBaseURL, SMM_TVDB_DEFAULT_UPSTREAM)) {
+        if (!upstream.reverseProxyUrl) {
+            throw new Error(
+                "Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.",
+            )
+        }
+        const reverseProxyUrl = upstream.reverseProxyUrl
+        return new TVDBv4({
+            baseUrl: reverseProxyUrl,
+            apiKey: upstream.apiKey ?? "",
+            disableAuth: !(upstream.requiresAuth && Boolean(upstream.apiKey)),
+            fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
+                const headers = new Headers(init?.headers)
+                const proxyHeaders = buildLocalProxyRequestHeaders({
+                    upstreamBaseURL: upstream.upstreamBaseURL,
+                })
+                for (const [key, value] of Object.entries(proxyHeaders)) {
+                    if (key.toLowerCase() === "accept") continue
+                    headers.set(key, value)
+                }
+                return window.fetch(input, { ...init, headers })
+            },
+        })
+    }
+
     return new TVDBv4({
-        baseUrl: upstream.reverseProxyUrl,
+        baseUrl: upstream.upstreamBaseURL,
         apiKey: upstream.apiKey ?? "",
-        // Login is required only when the upstream is a real TVDB v4 host. The SMM-managed
-        // default upstream does not require a login request.
-        disableAuth: !(upstream.requiresAuth && Boolean(upstream.apiKey)),
-        fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
-            const headers = new Headers(init?.headers)
-            const proxyHeaders = buildProxyRequestHeaders({
-                kind: upstream.proxyKind,
-                upstreamBaseURL: upstream.upstreamBaseURL,
-                authorizationMethod: upstream.authorizationMethod,
-            })
-            for (const [key, value] of Object.entries(proxyHeaders)) {
-                if (key.toLowerCase() === "accept") continue
-                headers.set(key, value)
-            }
-            return window.fetch(input, { ...init, headers })
-        },
+        disableAuth: true,
+        fetchImpl: buildMediaDatabaseTvdbFetchImpl(upstream),
     })
 }
 
 /**
- * Build (or reuse) a `TVDBv4` client that always routes traffic through the
- * discovered reverse proxy. Callers should pass `(reverseProxyUrl,
- * upstreamBaseURL, apiKey)` from UI configuration/hooks.
+ * Build (or reuse) a `TVDBv4` client. For the SMM-managed default upstream the
+ * client routes through `fetchTvdb` (direct + discovered general reverse
+ * proxies); for a custom upstream it routes through the local SMM reverse
+ * proxy URL. Callers should pass `(reverseProxyUrl, upstreamBaseURL, apiKey)`
+ * from UI configuration/hooks.
  *
- * Throws when no reverse proxy URL is available (no fallback to a CLI
- * `/tvdb/*` route).
+ * Throws when a custom upstream is configured but no reverse proxy URL is
+ * available. The SMM-managed default upstream does not require a local SMM
+ * proxy URL.
  */
 export function getTVDBv4Client(overrides?: GetTVDBv4ClientOverrides): TVDBv4 {
     const upstream = resolveTvdbUpstream(overrides)

@@ -4,21 +4,15 @@ import type {
   TmdbSeriesDetails,
   TmdbSeasonDetails,
 } from '@core/types'
-import {
-  buildProxyRequestHeaders,
-  type ProxyAuthorizationMethod,
-  type ProxyKind,
-} from '@/lib/proxyRequestHeaders'
+import localStorages from '@/lib/localStorages'
+import { fetchDiscoverConfig, type DiscoverConfig, type ReverseProxyEndpoint } from './discover'
+import { isEmpty } from 'es-toolkit/compat'
+import { readUserConfig } from './readUserConfig'
+import { fetchWithFailover } from '@/lib/http'
+import staticConfig from './staticConfig'
+import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 
-export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://tmdb-mcp-server.imlc.me/api/tmdb'
-
-export interface TmdbUpstream {
-  reverseProxyUrl: string
-  upstreamBaseURL: string
-  apiKey?: string
-  proxyKind: ProxyKind
-  authorizationMethod: ProxyAuthorizationMethod
-}
+export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
 
 export type {
   TmdbTvSeasonDetails,
@@ -29,83 +23,80 @@ export type {
 
 /**
  * Optional overrides for a single TMDB request.
- * The caller should pass connection values from UI config/hooks.
+ *
+ * After the fetchTmdbJson → fetchTmdb migration, the request configuration
+ * (reverse proxy URL, upstream base URL, API key, general proxies, fetch
+ * implementation) is read internally from `userConfig` and the discover
+ * config inside `fetchTmdb`. Only `signal` is consumed from this object.
  */
 export interface TmdbRequestOptions {
-  /**
-   * Reverse proxy base URL discovered via the hello task
-   * (e.g. `http://127.0.0.1:30005`). Required at request time;
-   * if not provided here, the singleton must have it.
-   */
-  reverseProxyUrl?: string | null
-  /** Custom TMDB upstream base URL configured by the user. */
-  upstreamBaseURL?: string
-  /** TMDB API key configured by the user. Attached as `Authorization: Bearer <apiKey>`. */
-  apiKey?: string
-  /**
-   * Proxy protocol. Defaults to `local` (SMM reverse proxy headers).
-   * Use `openresty` for remote general reverse proxies from `/api/discover`.
-   */
-  proxyKind?: ProxyKind
-  /**
-   * OpenResty proxy auth method. Ignored for `proxyKind: 'local'` except that
-   * date-token is never written to the upstream `Authorization` header.
-   */
-  authorizationMethod?: ProxyAuthorizationMethod
   signal?: AbortSignal
-  /** Override fetch for tests or custom HTTP clients. Defaults to global `fetch`. */
-  fetchFn?: typeof fetch
 }
 
-function buildHeaders(upstream: TmdbUpstream): Record<string, string> {
-  const extra: Record<string, string> = {}
-  if (upstream.apiKey) {
-    extra.Authorization = `Bearer ${upstream.apiKey}`
+
+
+/**
+ * Remove domains from the disabled list so they can be retried later.
+ * Used when every TMDB host / reverse proxy attempt fails, to avoid
+ * permanently banning the whole candidate set.
+ */
+export function clearDisabledDomains(domains: string[]): void {
+  const next = new Set(localStorages.disabledDomains)
+  for (const domain of domains) {
+    if (!isEmpty(domain)) {
+      next.delete(domain)
+    }
   }
-  return buildProxyRequestHeaders({
-    kind: upstream.proxyKind,
-    upstreamBaseURL: upstream.upstreamBaseURL,
-    authorizationMethod: upstream.authorizationMethod,
-    extra,
-  })
+  localStorages.disabledDomains = next
 }
 
-function buildProxyUrl(upstream: TmdbUpstream, path: string, queryString: string): string {
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const suffix = queryString ? `?${queryString}` : ''
-  return `${upstream.reverseProxyUrl}${normalizedPath}${suffix}`
-}
+export { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 
-async function fetchJson<T>(
-  url: string,
-  init: RequestInit,
-  errorPrefix: string,
-  fetchFn: typeof fetch = fetch,
-): Promise<T> {
-  const resp = await fetchFn(url, { ...init, cache: 'no-store' })
-  if (!resp.ok) {
-    throw new Error(`${errorPrefix}: ${resp.status} ${resp.statusText}`)
-  }
-  return resp.json() as Promise<T>
-}
+export async function fetchTmdb(urlPath: string, options?: {
+  disabledDomains?: Set<string>
+  config?: DiscoverConfig
+  signal?: AbortSignal,
+  defaultUrl?: string,
+  defualtProxy?: ReverseProxyEndpoint
+}) {
 
-function resolveUpstream(options?: TmdbRequestOptions): TmdbUpstream {
-  const reverseProxyUrl = options?.reverseProxyUrl
-  if (!reverseProxyUrl) {
-    throw new Error(
-      'Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.',
+  const userConfig = await readUserConfig()
+  const { host, apiKey, httpProxy } = userConfig.tmdb
+
+  if (!isEmpty(host) && URL.canParse(host!)) {
+    const headers: Record<string, string> = {}
+    if (apiKey?.trim()) {
+      headers.Authorization = `Bearer ${apiKey.trim()}`
+    }
+    return await fetchByInternalReverseProxy(
+      host!,
+      urlPath,
+      {
+        signal: options?.signal,
+        headers,
+        httpProxy: httpProxy?.trim(),
+      },
     )
   }
-  const normalizedUpstream = options?.upstreamBaseURL?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
-  const upstreamBaseURL = normalizedUpstream.replace(/\/+$/, '')
-  const apiKey = options?.apiKey?.trim() || undefined
-  return {
-    reverseProxyUrl,
-    upstreamBaseURL,
-    apiKey,
-    proxyKind: options?.proxyKind ?? 'local',
-    authorizationMethod: options?.authorizationMethod ?? 'none',
+
+  const config = options?.config ?? await fetchDiscoverConfig()
+  let hosts = config.mediaDatabases
+        .filter(db => db.type === 'tmdb')
+        .map(db => db.url)
+
+  if(hosts.length === 0) {
+    console.log(`No tmdb hosts found, using default host: ${SMM_TMDB_DEFAULT_UPSTREAM}`)
+    hosts = [staticConfig.externalTmdbApiServerBaseUrl]
   }
+
+  return await fetchWithFailover(
+    hosts,
+    urlPath.startsWith('/') ? urlPath : `/${urlPath}`,
+    {
+      signal: options?.signal,
+      _disabledDomains: options?.disabledDomains,
+      _config: config,
+    })
 }
 
 /**
@@ -117,21 +108,20 @@ export async function searchTmdb(
   language: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSearchResponseBody> {
-  const upstream = resolveUpstream(options)
   const queryParams = new URLSearchParams()
   queryParams.append('query', keyword)
   queryParams.append('language', language)
-  const url = buildProxyUrl(upstream, `/search/${type}`, queryParams.toString())
-  return fetchJson<TmdbSearchResponseBody>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to search TMDB',
-    options?.fetchFn,
+  const resp = await fetchTmdb(
+    `/search/${type}?${queryParams.toString()}`,
+    { signal: options?.signal },
   )
+  if (!resp) {
+    throw new Error('Failed to search TMDB: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to search TMDB: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<TmdbSearchResponseBody>
 }
 
 /**
@@ -140,24 +130,21 @@ export async function searchTmdb(
 export async function getTvShowById(
   id: number,
   language?: string,
-  signalOrOptions?: AbortSignal | TmdbRequestOptions,
+  options?: TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
-  const options =
-    signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions
-  const upstream = resolveUpstream(options)
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
-  const url = buildProxyUrl(upstream, `/tv/${id}`, queryParams.toString())
-  return fetchJson<TmdbSeriesDetails>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to get TV show',
-    options?.fetchFn,
+  const resp = await fetchTmdb(
+    `/tv/${id}?${queryParams.toString()}`,
+    { signal: options?.signal },
   )
+  if (!resp) {
+    throw new Error('Failed to get TV show: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to get TV show: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<TmdbSeriesDetails>
 }
 
 /**
@@ -166,24 +153,21 @@ export async function getTvShowById(
 export async function getMovieById(
   id: number,
   language?: string,
-  signalOrOptions?: AbortSignal | TmdbRequestOptions,
+  options?: TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
-  const options =
-    signalOrOptions instanceof AbortSignal ? { signal: signalOrOptions } : signalOrOptions
-  const upstream = resolveUpstream(options)
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
-  const url = buildProxyUrl(upstream, `/movie/${id}`, queryParams.toString())
-  return fetchJson<TmdbMovieDetails>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to get movie',
-    options?.fetchFn,
+  const resp = await fetchTmdb(
+    `/movie/${id}?${queryParams.toString()}`,
+    { signal: options?.signal },
   )
+  if (!resp) {
+    throw new Error('Failed to get movie: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to get movie: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<TmdbMovieDetails>
 }
 
 /**
@@ -204,18 +188,17 @@ export interface TmdbLanguageEntry {
 export async function getTmdbPrimaryTranslations(
   options?: TmdbRequestOptions,
 ): Promise<string[]> {
-  const upstream = resolveUpstream(options)
-  const url = buildProxyUrl(upstream, `/configuration/primary_translations`, "")
-  return fetchJson<string[]>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to fetch TMDB primary translations',
-    options?.fetchFn,
+  const resp = await fetchTmdb(
+    '/configuration/primary_translations',
+    { signal: options?.signal },
   )
+  if (!resp) {
+    throw new Error('Failed to fetch TMDB primary translations: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch TMDB primary translations: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<string[]>
 }
 
 /**
@@ -226,18 +209,17 @@ export async function getTmdbPrimaryTranslations(
 export async function getTmdbLanguages(
   options?: TmdbRequestOptions,
 ): Promise<TmdbLanguageEntry[]> {
-  const upstream = resolveUpstream(options)
-  const url = buildProxyUrl(upstream, `/configuration/languages`, "")
-  return fetchJson<TmdbLanguageEntry[]>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to fetch TMDB languages',
-    options?.fetchFn,
+  const resp = await fetchTmdb(
+    '/configuration/languages',
+    { signal: options?.signal },
   )
+  if (!resp) {
+    throw new Error('Failed to fetch TMDB languages: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to fetch TMDB languages: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<TmdbLanguageEntry[]>
 }
 
 /**
@@ -271,27 +253,20 @@ export async function getSeason(
   seriesId: number,
   seasonNumber: number,
   language?: string,
-  options?: TmdbRequestOptions & {
-    appendToResponse?: string
-  },
+  options?: TmdbRequestOptions,
 ): Promise<TmdbSeasonDetails> {
-  const upstream = resolveUpstream(options)
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
-  if (options?.appendToResponse) queryParams.append('append_to_response', options.appendToResponse)
-  const url = buildProxyUrl(
-    upstream,
-    `/tv/${seriesId}/season/${seasonNumber}`,
-    queryParams.toString(),
+  const resp = await fetchTmdb(
+    `/tv/${seriesId}/season/${seasonNumber}?${queryParams.toString()}`,
+    { signal: options?.signal },
   )
-  return fetchJson<TmdbSeasonDetails>(
-    url,
-    {
-      method: 'GET',
-      headers: buildHeaders(upstream),
-      signal: options?.signal,
-    },
-    'Failed to get TV season',
-    options?.fetchFn,
-  )
+  if (!resp) {
+    throw new Error('Failed to get TV season: all attempts failed')
+  }
+  if (!resp.ok) {
+    throw new Error(`Failed to get TV season: ${resp.status} ${resp.statusText}`)
+  }
+  return resp.json() as Promise<TmdbSeasonDetails>
 }
+
