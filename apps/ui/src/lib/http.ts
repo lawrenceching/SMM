@@ -9,7 +9,7 @@ import staticConfig from "@/api/staticConfig"
 export function getDomainName(url: string): string {
     try {
         return new URL(url).hostname
-    } catch (error) {
+    } catch {
         return ''
     }
 }
@@ -28,7 +28,7 @@ export async function fetchWithFailover(
         try {
           const hostname = new URL(url).hostname
           return !disabledDomains.has(hostname)
-        } catch (error) {
+        } catch {
           return true
         }
       })
@@ -48,7 +48,7 @@ export async function fetchWithFailover(
           try {
             const hostname = new URL(proxy.url!).hostname
             return !disabledDomains.has(hostname)
-          } catch (error) {
+          } catch {
             return true
           }
         })
