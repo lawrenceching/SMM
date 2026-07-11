@@ -1,9 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { hello } from './hello'
+import { logger } from '@/lib/log'
 
 vi.mock('./hello', () => ({
   hello: vi.fn(),
 }))
+
+vi.mock('@/lib/log', () => ({
+  logger: {
+    debug: vi.fn(),
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
+}))
+
+const mockLogger = vi.mocked(logger)
 
 const mockHello = vi.mocked(hello)
 
@@ -121,6 +133,28 @@ describe('fetchByInternalReverseProxy', () => {
 
     const headers = headersOf(fetchMock.mock.calls[0]![1])
     expect(headers['x-http-proxy']).toBeUndefined()
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      expect.objectContaining({ viaHttpProxy: false }),
+      'reverse proxy request',
+    )
+  })
+
+  it('logs debug context when httpProxy is provided', async () => {
+    const { fetchByInternalReverseProxy } = await loadSubject()
+
+    await fetchByInternalReverseProxy('https://api.themoviedb.org/3', '/movie/1', {
+      httpProxy: 'http://192.168.50.10:7897',
+    })
+
+    expect(mockLogger.debug).toHaveBeenCalledWith(
+      {
+        path: '/movie/1',
+        upstream: 'https://api.themoviedb.org/3',
+        viaHttpProxy: true,
+        httpProxyHost: '192.168.50.10:7897',
+      },
+      'reverse proxy request',
+    )
   })
 
   it('preserves caller headers and init options', async () => {

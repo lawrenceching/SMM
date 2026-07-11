@@ -1,5 +1,18 @@
 import { isEmpty } from "es-toolkit/compat"
 import { hello } from "./hello"
+import { logger } from "@/lib/log"
+
+function formatHttpProxyHostForLog(httpProxy: string | undefined): string | undefined {
+    if (!httpProxy?.trim()) return undefined
+    try {
+        const u = new URL(httpProxy.trim())
+        const defaultPort = u.protocol === "https:" ? "443" : u.protocol === "http:" ? "80" : ""
+        const port = u.port || defaultPort
+        return port ? `${u.hostname}:${port}` : u.hostname
+    } catch {
+        return undefined
+    }
+}
 
 let cachedReverseProxyUrl: string | null = null
 
@@ -58,6 +71,13 @@ export async function fetchByInternalReverseProxy(
     if (!isEmpty(httpProxy)) {
         headers['X-Http-Proxy'] = httpProxy!.trim()
     }
+
+    logger.debug({
+        path: normalizedPath,
+        upstream,
+        viaHttpProxy: !isEmpty(httpProxy),
+        httpProxyHost: formatHttpProxyHostForLog(httpProxy),
+    }, 'reverse proxy request')
 
     return fetch(proxyUrl, {
         method: 'GET',

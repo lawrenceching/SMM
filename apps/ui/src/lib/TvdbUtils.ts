@@ -3,10 +3,9 @@ import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4LanguageRecord, TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"
 import { fetchTvdb } from "@/api/tvdb"
-import {
-    buildLocalProxyRequestHeaders,
-    type ProxyAuthorizationMethod,
-} from "@/lib/proxyRequestHeaders"
+import { fetchByInternalReverseProxy } from "@/api/fetchByInternalReverseProxy"
+import { readUserConfig } from "@/api/readUserConfig"
+import type { ProxyAuthorizationMethod } from "@/lib/proxyRequestHeaders"
 import { isCustomUpstream } from "@/lib/mediaDatabaseAccess"
 
 export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tvdb'
@@ -129,15 +128,17 @@ function buildCustomUpstreamTvdbFetchImpl(upstream: TvdbUpstream): typeof fetch 
 
         const parsedUrl = new URL(urlString)
         if (parsedUrl.pathname === "/login") {
-            const headers = new Headers(init?.headers)
-            const proxyHeaders = buildLocalProxyRequestHeaders({
-                upstreamBaseURL: upstream.upstreamBaseURL,
-            })
-            for (const [key, value] of Object.entries(proxyHeaders)) {
-                if (key.toLowerCase() === "accept") continue
-                headers.set(key, value)
-            }
-            return window.fetch(input, { ...init, headers })
+            return readUserConfig().then((userConfig) =>
+                fetchByInternalReverseProxy(
+                    upstream.upstreamBaseURL,
+                    "/login",
+                    {
+                        ...init,
+                        method: init?.method ?? "POST",
+                        httpProxy: userConfig.tvdb?.httpProxy?.trim() || undefined,
+                    },
+                ),
+            ) as unknown as Promise<Response>
         }
 
         let jwt: string | undefined

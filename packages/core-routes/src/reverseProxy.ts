@@ -1,3 +1,9 @@
+import {
+  formatProxyHostForLog,
+  getOutboundProxyMode,
+  type OutboundProxyMode,
+} from "./proxiedFetch.ts";
+
 /**
  * Reverse proxy: forwards incoming requests to a whitelisted upstream based on
  * the `X-SMM-Proxy-Upstream-BaseURL` request header.
@@ -108,7 +114,10 @@ export interface ReverseProxyConfig {
    * returned fetch is used **only for that single request** — subsequent
    * requests without the header use the normal fetch path.
    */
-  createProxiedFetch?: (proxyUrl: string) => typeof fetch | undefined;
+  createProxiedFetch?: (
+    proxyUrl: string,
+    logger?: ReverseProxyLogger,
+  ) => typeof fetch | undefined;
 }
 
 export function buildUpstreamUrl(
@@ -208,6 +217,33 @@ function noopLogger(): ReverseProxyLogger {
   };
 }
 
+type ResolvedProxyMode = OutboundProxyMode | "direct" | "direct-fallback";
+
+function buildOutboundProxyLogFields(
+  httpProxyHeader: string | null,
+  usingProxiedFetch: boolean,
+  forwardUrl?: string,
+): {
+  viaHttpProxy: boolean;
+  httpProxyHost?: string;
+  proxyMode: ResolvedProxyMode;
+} {
+  const trimmed = httpProxyHeader?.trim();
+  const viaHttpProxy = Boolean(trimmed);
+  if (!viaHttpProxy) {
+    return { viaHttpProxy: false, proxyMode: "direct" };
+  }
+  const httpProxyHost = formatProxyHostForLog(trimmed!);
+  if (!usingProxiedFetch) {
+    return { viaHttpProxy: true, httpProxyHost, proxyMode: "direct-fallback" };
+  }
+  return {
+    viaHttpProxy: true,
+    httpProxyHost,
+    proxyMode: getOutboundProxyMode(trimmed!, forwardUrl),
+  };
+}
+
 /**
  * Pure Web-Fetch entry point. Validate, build upstream URL, forward and pipe
  * back the upstream response with hop-by-hop headers stripped and CORS applied.
@@ -235,18 +271,38 @@ export async function handleProxyRequest(
   // to the upstream.
   const httpProxyHeader = request.headers.get("X-Http-Proxy");
   let activeFetch = fetchImpl;
-  if (httpProxyHeader && config.createProxiedFetch) {
+  let usingProxiedFetch = false;
+  if (httpProxyHeader?.trim() && config.createProxiedFetch) {
     try {
-      const proxiedFetch = config.createProxiedFetch(httpProxyHeader);
+      const proxiedFetch = config.createProxiedFetch(httpProxyHeader, logger);
       if (proxiedFetch) {
         activeFetch = proxiedFetch;
+        usingProxiedFetch = true;
+      } else {
+        logger.warn(
+          {
+            httpProxyHost: formatProxyHostForLog(httpProxyHeader),
+          },
+          "[Reverse Proxy] createProxiedFetch returned undefined; using direct fetch",
+        );
       }
     } catch (error) {
-      logger.warn(
-        { proxyUrl: httpProxyHeader, err: error },
+      logger.error(
+        {
+          httpProxyHost: formatProxyHostForLog(httpProxyHeader),
+          err: error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
         "[Reverse Proxy] failed to create proxied fetch, falling back to direct",
       );
     }
+  } else if (httpProxyHeader?.trim() && !config.createProxiedFetch) {
+    logger.warn(
+      {
+        httpProxyHost: formatProxyHostForLog(httpProxyHeader),
+      },
+      "[Reverse Proxy] X-Http-Proxy set but createProxiedFetch is not configured; using direct fetch",
+    );
   }
 
   const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
@@ -275,6 +331,11 @@ export async function handleProxyRequest(
     incomingUrl.pathname,
     incomingUrl.search,
   );
+  const proxyLogFields = buildOutboundProxyLogFields(
+    httpProxyHeader,
+    usingProxiedFetch,
+    forwardUrl,
+  );
 
   try {
     const reqHeaders = filterRequestHeaders(request, upstreamUrl);
@@ -289,7 +350,14 @@ export async function handleProxyRequest(
     });
 
     logger.info(
-      { method, forwardUrl, upstreamHost: upstreamUrl.host },
+      {
+        method,
+        forwardUrl,
+        upstreamHost: upstreamUrl.host,
+        incomingPath: incomingUrl.pathname,
+        upstreamBaseURL,
+        ...proxyLogFields,
+      },
       "[Reverse Proxy] forwarding request",
     );
 
@@ -303,6 +371,7 @@ export async function handleProxyRequest(
         forwardUrl,
         status: response.status,
         responseBytes: respBody.byteLength,
+        ...proxyLogFields,
       },
       "[Reverse Proxy] upstream response",
     );
@@ -314,7 +383,15 @@ export async function handleProxyRequest(
     });
   } catch (error) {
     logger.error(
-      { err: error, method: request.method, forwardUrl },
+      {
+        err: error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        method: request.method,
+        forwardUrl,
+        incomingPath: incomingUrl.pathname,
+        upstreamBaseURL,
+        ...proxyLogFields,
+      },
       "[Reverse Proxy] upstream request failed",
     );
     return applyCorsToBody(

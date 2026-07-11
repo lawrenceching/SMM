@@ -6,9 +6,13 @@
  * (HTTP CONNECT for HTTPS targets, direct forward-proxy for HTTP targets)
  * or through a SOCKS5 proxy (via `SocksProxyAgent`).
  *
+ * Under Bun, HTTP(S) proxies use Bun's native `fetch({ proxy })` because
+ * Bun ignores `http.request({ createConnection })`, which breaks the
+ * Node CONNECT-tunnel path.
+ *
  * External dependencies: `socks-proxy-agent` (for SOCKS5 support only).
  * HTTP proxy support uses only Node built-ins (`node:http`, `node:https`,
- * `node:net`, `node:tls`).
+ * `node:net`, `node:tls`) when not running on Bun.
  */
 
 import http from "node:http";
@@ -17,6 +21,100 @@ import net from "node:net";
 import tls from "node:tls";
 import { once } from "node:events";
 import { SocksProxyAgent } from "socks-proxy-agent";
+
+function isBunRuntime(): boolean {
+  return typeof (globalThis as { Bun?: unknown }).Bun !== "undefined";
+}
+
+export type OutboundProxyMode =
+  | "bun-native"
+  | "node-connect"
+  | "node-forward"
+  | "socks5";
+
+export interface ProxiedFetchLogger {
+  debug(obj: Record<string, unknown>, msg?: string): void;
+}
+
+/** Log-safe proxy endpoint (host:port only; credentials are never included). */
+export function formatProxyHostForLog(proxyUrl: string): string {
+  try {
+    const u = new URL(proxyUrl);
+    const defaultPort =
+      u.protocol === "https:"
+        ? "443"
+        : u.protocol === "http:"
+          ? "80"
+          : "";
+    const port = u.port || defaultPort;
+    return port ? `${u.hostname}:${port}` : u.hostname;
+  } catch {
+    return "(invalid-proxy-url)";
+  }
+}
+
+export function getOutboundProxyMode(
+  proxyUrl: string,
+  targetUrl?: string,
+): OutboundProxyMode {
+  const proxy = new URL(proxyUrl);
+  if (proxy.protocol === "socks5:" || proxy.protocol === "socks5h:") {
+    return "socks5";
+  }
+  if (isBunRuntime()) {
+    return "bun-native";
+  }
+  if (targetUrl) {
+    const target = new URL(targetUrl);
+    if (target.protocol === "http:") {
+      return "node-forward";
+    }
+  }
+  return "node-connect";
+}
+
+function wrapFetchWithLogging(
+  inner: (request: Request) => Promise<Response>,
+  mode: OutboundProxyMode,
+  logger?: ProxiedFetchLogger,
+): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    const target = new URL(request.url);
+    logger?.debug(
+      {
+        proxyMode: mode,
+        method: request.method,
+        targetHost: target.host,
+        targetPath: target.pathname,
+      },
+      "[ProxiedFetch] outbound request",
+    );
+    try {
+      const response = await inner(request);
+      logger?.debug(
+        {
+          proxyMode: mode,
+          status: response.status,
+          targetHost: target.host,
+        },
+        "[ProxiedFetch] outbound response",
+      );
+      return response;
+    } catch (err) {
+      logger?.debug(
+        {
+          proxyMode: mode,
+          targetHost: target.host,
+          err,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        },
+        "[ProxiedFetch] outbound failed",
+      );
+      throw err;
+    }
+  };
+}
 
 function nodeHeadersToObject(headers: http.IncomingHttpHeaders): Record<string, string> {
   const result: Record<string, string> = {};
@@ -275,33 +373,108 @@ function socksProxyRequest(
  *                  `socks5://127.0.0.1:1080`.
  * @throws {Error}  If `proxyUrl` uses an unsupported scheme.
  */
-export function createProxiedFetch(proxyUrl: string): typeof fetch {
+export function createProxiedFetch(
+  proxyUrl: string,
+  logger?: ProxiedFetchLogger,
+): typeof fetch {
   const proxy = new URL(proxyUrl);
   const isSocks = proxy.protocol === "socks5:" || proxy.protocol === "socks5h:";
 
   if (isSocks) {
-    return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      const request = input instanceof Request ? input : new Request(input, init);
-      return socksProxyRequest(request, proxyUrl);
-    };
+    logger?.debug(
+      {
+        proxyMode: "socks5",
+        httpProxyHost: formatProxyHostForLog(proxyUrl),
+      },
+      "[ProxiedFetch] using outbound proxy",
+    );
+    return wrapFetchWithLogging(
+      (request) => socksProxyRequest(request, proxyUrl),
+      "socks5",
+      logger,
+    );
   }
 
   if (proxy.protocol !== "http:" && proxy.protocol !== "https:") {
     throw new Error(`Unsupported proxy scheme: "${proxy.protocol}". Use http://, https://, or socks5://.`);
   }
 
+  // Bun ignores Node's `http.request({ createConnection })`, so the CONNECT
+  // tunnel path below never sends traffic through the proxy under Bun.
+  // Bun's fetch accepts a `proxy` option and handles CONNECT correctly.
+  if (isBunRuntime()) {
+    logger?.debug(
+      {
+        proxyMode: "bun-native",
+        httpProxyHost: formatProxyHostForLog(proxyUrl),
+      },
+      "[ProxiedFetch] using outbound proxy",
+    );
+    return wrapFetchWithLogging(
+      async (request) => {
+        const method = request.method;
+        const headers = new Headers(request.headers);
+        const body =
+          method.toUpperCase() !== "GET" && method.toUpperCase() !== "HEAD"
+            ? await request.arrayBuffer()
+            : undefined;
+        return fetch(request.url, {
+          method,
+          headers,
+          body,
+          proxy: proxyUrl,
+        } as RequestInit & { proxy: string });
+      },
+      "bun-native",
+      logger,
+    );
+  }
+
   const proxyPort = Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80);
   const proxyHost = proxy.hostname;
+
+  logger?.debug(
+    {
+      proxyMode: "node-connect",
+      httpProxyHost: formatProxyHostForLog(proxyUrl),
+    },
+    "[ProxiedFetch] using outbound proxy",
+  );
 
   return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
-    const isHttpsUpstream = url.protocol === "https:";
-
-    if (!isHttpsUpstream) {
-      return httpForwardRequest(request, proxyHost, proxyPort);
+    const mode: OutboundProxyMode =
+      url.protocol === "https:" ? "node-connect" : "node-forward";
+    logger?.debug(
+      {
+        proxyMode: mode,
+        method: request.method,
+        targetHost: url.host,
+        targetPath: url.pathname,
+      },
+      "[ProxiedFetch] outbound request",
+    );
+    try {
+      const response = !url.protocol.startsWith("https:")
+        ? await httpForwardRequest(request, proxyHost, proxyPort)
+        : await httpsTunnelRequest(request, proxyHost, proxyPort);
+      logger?.debug(
+        { proxyMode: mode, status: response.status, targetHost: url.host },
+        "[ProxiedFetch] outbound response",
+      );
+      return response;
+    } catch (err) {
+      logger?.debug(
+        {
+          proxyMode: mode,
+          targetHost: url.host,
+          err,
+          errorMessage: err instanceof Error ? err.message : String(err),
+        },
+        "[ProxiedFetch] outbound failed",
+      );
+      throw err;
     }
-
-    return httpsTunnelRequest(request, proxyHost, proxyPort);
   };
 }

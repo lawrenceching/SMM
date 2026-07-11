@@ -10,7 +10,7 @@ import {
   validateUpstreamBaseURL,
   type ReverseProxyConfig,
 } from "./reverseProxy.ts";
-import { createProxiedFetch } from "./proxiedFetch.ts";
+import { createProxiedFetch, formatProxyHostForLog, getOutboundProxyMode } from "./proxiedFetch.ts";
 import {
   createReverseProxyManager,
   createReverseProxyRequestHandler,
@@ -288,7 +288,10 @@ describe("handleProxyRequest", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(createProxiedFetchMock).toHaveBeenCalledWith("http://127.0.0.1:8081");
+    expect(createProxiedFetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8081",
+      expect.objectContaining({ info: expect.any(Function) }),
+    );
     expect(proxiedFetch).toHaveBeenCalledOnce();
     // The original mockFetch (global) should NOT have been called
     expect(mockFetch).not.toHaveBeenCalled();
@@ -343,6 +346,39 @@ describe("handleProxyRequest", () => {
 
     expect(response.status).toBe(200);
     expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("logs outbound proxy context when X-Http-Proxy is present", async () => {
+    const proxiedFetch = vi.fn().mockResolvedValue(jsonResponse({ proxied: true }));
+    const infoCalls: Record<string, unknown>[] = [];
+    const captureLogger: ReverseProxyConfig["logger"] = {
+      debug: vi.fn(),
+      info: (obj) => {
+        infoCalls.push(obj);
+      },
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    const request = makeProxyRequest(
+      "/login",
+      "https://api4.thetvdb.com/v4",
+      { extraHeaders: { "X-Http-Proxy": "http://user:secret@127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: captureLogger,
+      createProxiedFetch: () => proxiedFetch,
+    });
+
+    expect(response.status).toBe(200);
+    expect(infoCalls[0]).toMatchObject({
+      viaHttpProxy: true,
+      httpProxyHost: "127.0.0.1:8081",
+      incomingPath: "/login",
+      upstreamBaseURL: "https://api4.thetvdb.com/v4",
+      proxyMode: expect.any(String),
+    });
+    expect(infoCalls[0]?.proxyMode).not.toBe("direct");
   });
 });
 
@@ -419,6 +455,23 @@ describe("createProxiedFetch", () => {
   it("throws for unsupported proxy schemes", () => {
     expect(() => createProxiedFetch("ftp://proxy:21"))
       .toThrowError(/Unsupported proxy scheme/);
+  });
+
+  it("formatProxyHostForLog redacts credentials and keeps host:port", () => {
+    expect(formatProxyHostForLog("http://user:pass@192.168.1.10:7897"))
+      .toBe("192.168.1.10:7897");
+  });
+
+  it("getOutboundProxyMode uses node-forward for HTTP upstream targets on Node", () => {
+    const mode = getOutboundProxyMode(
+      "http://127.0.0.1:8081",
+      "http://example.com/api",
+    );
+    if (typeof (globalThis as { Bun?: unknown }).Bun !== "undefined") {
+      expect(mode).toBe("bun-native");
+    } else {
+      expect(mode).toBe("node-forward");
+    }
   });
 });
 
