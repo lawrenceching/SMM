@@ -24,6 +24,14 @@ vi.mock("@/api/hello", () => ({
   hello: vi.fn(),
 }))
 
+const { mockFetchTvdb } = vi.hoisted(() => ({
+  mockFetchTvdb: vi.fn(() => Promise.resolve(new Response("{}", { status: 200 }))),
+}))
+
+vi.mock("@/api/tvdb", () => ({
+  fetchTvdb: mockFetchTvdb,
+}))
+
 // Use the real TVDBv4 client implementation here so we exercise the login + token-cache
 // behavior end-to-end through window.fetch stubs.
 
@@ -39,6 +47,7 @@ function jsonResponse(body: unknown, status = 200) {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks()
   _resetTvdbClientCacheForTesting()
   _resetInternalReverseProxyCacheForTesting()
   mockReadUserConfig.mockResolvedValue({
@@ -62,7 +71,7 @@ afterEach(() => {
 })
 
 describe("TVDB login + token caching through reverse proxy", () => {
-  it("performs login through the reverse proxy and reuses the cached token on subsequent calls", async () => {
+  it("performs login through the reverse proxy and routes post-login calls through fetchTvdb with the cached token", async () => {
     const fetchSpy = vi.spyOn(window, "fetch").mockImplementation(async (input) => {
       const url = typeof input === "string" ? input : (input as Request).url ?? String(input)
       if (url.endsWith("/login")) {
@@ -80,10 +89,9 @@ describe("TVDB login + token caching through reverse proxy", () => {
     // First call: triggers login + extended request.
     await tvdb.seriesExtendedById(421069)
 
-    expect(fetchSpy).toHaveBeenCalledTimes(2)
+    // Login call: window.fetch (login path bypasses fetchTvdb).
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
     const loginCall = fetchSpy.mock.calls[0]
-    const seriesCall = fetchSpy.mock.calls[1]
-
     expect(loginCall[0]).toBe(`${REVERSE_PROXY_URL}/login`)
     const loginInit = loginCall[1] as RequestInit
     expect(loginInit.method).toBe("POST")
@@ -91,20 +99,18 @@ describe("TVDB login + token caching through reverse proxy", () => {
     const loginHeaders = loginInit.headers as Headers
     expect(loginHeaders.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(TVDB_DIRECT_UPSTREAM)
 
-    expect(seriesCall[0]).toBe(`${REVERSE_PROXY_URL}/series/421069/extended`)
-    const seriesInit = seriesCall[1] as RequestInit
-    const seriesHeaders = seriesInit.headers as Headers
-    expect(seriesHeaders.get("Authorization")).toBe("Bearer TVDB_TOKEN_123")
-    expect(seriesHeaders.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(TVDB_DIRECT_UPSTREAM)
+    // Post-login call: routed through fetchTvdb with the extracted JWT.
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(1)
+    const seriesPath = mockFetchTvdb.mock.calls[0]![0] as string
+    expect(seriesPath).toBe("/series/421069/extended")
+    expect(mockFetchTvdb.mock.calls[0]![1]).toMatchObject({ jwt: "TVDB_TOKEN_123" })
 
-    // Second call: must reuse cached token; no second login request.
+    // Second call: reuses the cached token (no second login, same JWT).
     await tvdb.seriesExtendedById(99999)
-    expect(fetchSpy).toHaveBeenCalledTimes(3)
-    const loginCalls = fetchSpy.mock.calls.filter((c) => String(c[0]).endsWith("/login"))
-    expect(loginCalls).toHaveLength(1)
-    const second = fetchSpy.mock.calls[2]
-    const secondHeaders = (second[1] as RequestInit).headers as Headers
-    expect(secondHeaders.get("Authorization")).toBe("Bearer TVDB_TOKEN_123")
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(2)
+    expect(mockFetchTvdb.mock.calls[1]![0]).toBe("/series/99999/extended")
+    expect(mockFetchTvdb.mock.calls[1]![1]).toMatchObject({ jwt: "TVDB_TOKEN_123" })
   })
 
   it("does not perform login when API key is empty and upstream is the SMM-managed default", async () => {
@@ -115,22 +121,12 @@ describe("TVDB login + token caching through reverse proxy", () => {
     const tvdb = getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL })
     await tvdb.seriesExtendedById(1)
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const url = String(fetchSpy.mock.calls[0][0])
-    // Default upstream routes through fetchTvdb (direct + discovered general proxies),
-    // not the local SMM reverse proxy.
-    expect(url).toBe(`${SMM_TVDB_DEFAULT_UPSTREAM}/series/1/extended`)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit | undefined
-    const headers = init?.headers
-    if (headers instanceof Headers) {
-      expect(headers.get("Authorization")).toBeNull()
-      expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBeNull()
-    } else if (headers && typeof headers === "object") {
-      expect((headers as Record<string, string>).Authorization).toBeUndefined()
-      expect((headers as Record<string, string>)["X-SMM-Proxy-Upstream-BaseURL"]).toBeUndefined()
-    }
-    const loginCalls = fetchSpy.mock.calls.filter((c) => String(c[0]).endsWith("/login"))
-    expect(loginCalls).toHaveLength(0)
+    // SMM-managed default: no login, no JWT, all calls go through fetchTvdb.
+    expect(fetchSpy).toHaveBeenCalledTimes(0)
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(1)
+    expect(mockFetchTvdb.mock.calls[0]![0]).toBe("/series/1/extended")
+    // SMM-managed default fetchImpl does not include a `jwt` key (no auth needed).
+    expect(mockFetchTvdb.mock.calls[0]![1]).not.toHaveProperty("jwt")
   })
 
   it("does not perform login when configured TVDB host has no API key", async () => {
@@ -141,10 +137,10 @@ describe("TVDB login + token caching through reverse proxy", () => {
     const tvdb = getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL, upstreamBaseURL: TVDB_DIRECT_UPSTREAM })
     await tvdb.seriesExtendedById(1)
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Headers
-    expect(headers.get("Authorization")).toBeNull()
-    expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(TVDB_DIRECT_UPSTREAM)
+    // Custom upstream without API key: disableAuth=true, no login, no JWT.
+    expect(fetchSpy).toHaveBeenCalledTimes(0)
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(1)
+    expect(mockFetchTvdb.mock.calls[0]![0]).toBe("/series/1/extended")
+    expect(mockFetchTvdb.mock.calls[0]![1]).toMatchObject({ jwt: undefined })
   })
 })

@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
 import { fetchTmdb, getTMDBImageUrl } from "@/api/tmdb"
-import { fetchTvdb } from "@/api/tvdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useTranslation } from "@/lib/i18n"
@@ -12,7 +11,8 @@ import type {
   PreferMediaLanguage,
   TmdbSearchResponseBody,
 } from "@core/types"
-import { type TVDBv4SearchResult } from "@smm/tvdb4"
+import { TVDBv4Error } from "@smm/tvdb4"
+import { getTVDBv4Client } from "@/lib/TvdbUtils"
 import {
   getTvdbSearchResultAlternateName,
   getTvdbSearchResultName,
@@ -85,7 +85,7 @@ export function MediaDatabaseSearchbox({
   unrecognizedHint,
 }: TMDBSearchboxProps) {
   const { t } = useTranslation(["errors", "components"])
-  const { userConfig } = useConfig()
+  const { userConfig, appConfig } = useConfig()
   const { mediaLanguage: resolvedMediaLanguage } = useResolvedLanguages()
 
   const [searchDatabase, setSearchDatabase] = useState<PrimaryDatabase>(() => {
@@ -226,26 +226,22 @@ export function MediaDatabaseSearchbox({
     try {
       if (searchDatabase === "TVDB") {
         const type = mediaType === "tv" ? "series" : "movie"
-        const params = new URLSearchParams()
-        params.set("query", searchQuery.trim())
-        params.set("type", type)
-        if (searchLanguage.trim()) params.set("language", searchLanguage)
+        const query = searchQuery.trim()
+        const language = searchLanguage.trim() || undefined
 
-        const resp = await fetchTvdb(`/search?${params.toString()}`)
-        if (!resp || !resp.ok) {
-          setSearchError(t("errors:searchFailed"))
-          return
-        }
+        const tvdb = getTVDBv4Client({
+          reverseProxyUrl: appConfig?.reverseProxyUrl ?? null,
+          upstreamBaseURL: userConfig?.tvdb?.host?.trim() || undefined,
+          apiKey: userConfig?.tvdb?.apiKey?.trim() || undefined,
+        })
+        const envelope = await tvdb.search({ query, type, language })
 
-        const body = (await resp.json()) as {
-          status?: string
-          data?: TVDBv4SearchResult[]
-        }
-        const result =
-          body.status === "success" && Array.isArray(body.data) ? body.data : undefined
-
-        if (result && result.length > 0) {
-          setTvdbSearchResultsRaw(buildTvdbSearchResults(result))
+        if (
+          envelope.status === "success" &&
+          Array.isArray(envelope.data) &&
+          envelope.data.length > 0
+        ) {
+          setTvdbSearchResultsRaw(buildTvdbSearchResults(envelope.data))
           return
         }
         setSearchError(t("errors:searchNoResults"))
@@ -257,7 +253,11 @@ export function MediaDatabaseSearchbox({
       params.set("language", searchLanguage)
       const resp = await fetchTmdb(`/search/${mediaType}?${params.toString()}`)
       if (!resp || !resp.ok) {
-        setSearchError(t("errors:searchFailed"))
+        if (resp?.status === 401) {
+          setSearchError(t("errors:searchFailedUnauthorized"))
+        } else {
+          setSearchError(t("errors:searchFailed"))
+        }
         return
       }
 
@@ -277,9 +277,13 @@ export function MediaDatabaseSearchbox({
       }
     } catch (error) {
       console.error("Search failed:", error)
-      setSearchError(
-        error instanceof Error ? error.message : t("errors:searchFailed"),
-      )
+      if (error instanceof TVDBv4Error && error.status === 401) {
+        setSearchError(t("errors:searchFailedUnauthorized"))
+      } else {
+        setSearchError(
+          error instanceof Error ? error.message : t("errors:searchFailed"),
+        )
+      }
       setSearchResults([])
       setTvdbSearchResultsRaw([])
     } finally {

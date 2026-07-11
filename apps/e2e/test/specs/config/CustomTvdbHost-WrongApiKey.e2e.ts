@@ -1,12 +1,9 @@
-import { browser } from '@wdio/globals'
 import { setup, cleanup, isOfficialTvdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
 import type { UserConfig } from '@smm/core/types'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
-import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from '../../lib/gherkin'
 import '../../steps'
 
-describe('Custom TVDB Host', () => {
+describe('Custom TVDB Host (Wrong API Key)', () => {
 
     before(async () => {
         const accessible = await isOfficialTvdbHostAccessible()
@@ -20,12 +17,6 @@ describe('Custom TVDB Host', () => {
     })
 
     beforeEach(async () => {
-
-        const tvdbApiKey: string = process.env.TVDB_API_KEY || ''
-        if (!tvdbApiKey || tvdbApiKey.trim() === '') {
-            throw new Error('TVDB_API_KEY is not set')
-        }
-
         await setup({
             removeMetadataDir: true,
             removePlansDir: true,
@@ -35,7 +26,7 @@ describe('Custom TVDB Host', () => {
             resetUserConfig: (config: UserConfig) => {
                 config.tvdb = {
                     host: 'https://api4.thetvdb.com/v4',
-                    apiKey: tvdbApiKey,
+                    apiKey: 'invalid-wrong-key-12345',
                 }
                 return config
             },
@@ -53,7 +44,7 @@ describe('Custom TVDB Host', () => {
         })
     })
 
-    it('Scenario: TVDB search from custom TVDB host returns results', async function () {
+    it('Scenario: TVDB search from custom TVDB host with wrong API key shows 401 error', async function () {
         this.timeout(90 * 1000)
 
         // GIVEN: a TV show folder with one episode and TMDB id 84666 was imported.
@@ -64,24 +55,7 @@ describe('Custom TVDB Host', () => {
         await when('I select "TVDB" as the search database')
         await when('I click the search button in the searchbox')
 
-        // THEN: TVDB search returns at least one result.
-        await then('TVDB search returns at least one result', async () => {
-            await browser.waitUntil(
-                async () => {
-                    const results = await TVShowPanel.searchbox.results
-                    const count = await results.length
-                    return count > 0
-                },
-                {
-                    timeout: 30000,
-                    interval: 500,
-                    timeoutMsg: 'TVDB search results did not appear within 30s',
-                }
-            )
-        })
-
-        if (env.slowdown) {
-            await browser.pause(5000)
-        }
+        // THEN: the searchbox shows an error message containing "401".
+        await then('Searchbox shows error message "401"')
     })
 })

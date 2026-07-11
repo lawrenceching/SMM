@@ -72,20 +72,21 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-const { mockFetchTmdb, mockFetchTvdb } = vi.hoisted(() => ({
-  mockFetchTmdb: vi.fn(),
-  mockFetchTvdb: vi.fn(),
-}))
+const { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
+  const mockFetchTmdb = vi.fn()
+  const mockTvdbSearch = vi.fn()
+  const mockGetTVDBv4Client = vi.fn(() => ({ search: mockTvdbSearch }))
+  return { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch }
+})
 
 vi.mock('@/api/tmdb', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/tmdb')>()
   return { ...actual, fetchTmdb: mockFetchTmdb }
 })
 
-vi.mock('@/api/tvdb', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/api/tvdb')>()
-  return { ...actual, fetchTvdb: mockFetchTvdb }
-})
+vi.mock('@/lib/TvdbUtils', () => ({
+  getTVDBv4Client: mockGetTVDBv4Client,
+}))
 
 vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useTmdbLanguages')>()
@@ -498,10 +499,10 @@ describe('MediaDatabaseSearchbox', () => {
     const [urlPath] = mockFetchTmdb.mock.calls[0] as [string]
     expect(urlPath.startsWith('/search/tv?')).toBe(true)
     expect(urlPath).toContain('query=naruto')
-    expect(mockFetchTvdb).not.toHaveBeenCalled()
+    expect(mockGetTVDBv4Client).not.toHaveBeenCalled()
   })
 
-  it('handleSearch calls fetchTvdb with /search?type=movie when database is TVDB and mediaType is movie', async () => {
+  it('handleSearch calls getTVDBv4Client().search() with type=movie when database is TVDB and mediaType is movie', async () => {
     vi.mocked(useConfig).mockImplementation(() => ({
       userConfig: {
         applicationLanguage: 'en',
@@ -512,9 +513,7 @@ describe('MediaDatabaseSearchbox', () => {
       },
       appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
     } as any))
-    mockFetchTvdb.mockResolvedValue(
-      new Response(JSON.stringify({ status: 'success', data: [] }), { status: 200 }),
-    )
+    mockTvdbSearch.mockResolvedValue({ status: 'success', data: [] })
     render(
       <MediaDatabaseSearchbox
         mediaType="movie"
@@ -528,11 +527,10 @@ describe('MediaDatabaseSearchbox', () => {
       await mockImmersiveSearchboxProps.current.onSearch?.()
     })
 
-    await waitFor(() => expect(mockFetchTvdb).toHaveBeenCalledTimes(1))
-    const [urlPath] = mockFetchTvdb.mock.calls[0] as [string]
-    expect(urlPath.startsWith('/search?')).toBe(true)
-    expect(urlPath).toContain('type=movie')
-    expect(urlPath).toContain('query=inception')
+    await waitFor(() => expect(mockTvdbSearch).toHaveBeenCalledTimes(1))
+    expect(mockGetTVDBv4Client).toHaveBeenCalledTimes(1)
+    const [searchParams] = mockTvdbSearch.mock.calls[0] as [{ query: string; type: string; language?: string }]
+    expect(searchParams).toMatchObject({ query: 'inception', type: 'movie' })
     expect(mockFetchTmdb).not.toHaveBeenCalled()
   })
 })

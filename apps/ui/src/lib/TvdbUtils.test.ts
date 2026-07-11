@@ -11,6 +11,7 @@ const {
   mockSeasonExtendedById,
   MockTVDBv4,
   mockTvdbConstructor,
+  mockFetchTvdb,
 } = vi.hoisted(() => {
   const movieTranslationByLangCode = vi.fn()
   const movieExtendedById = vi.fn()
@@ -22,6 +23,7 @@ const {
     message: "not used in this test file",
   })
   const constructorSpy = vi.fn()
+  const fetchTvdb = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }))
   class MockTVDBv4 {
     constructor(options: unknown) {
       constructorSpy(options)
@@ -42,11 +44,16 @@ const {
     mockSeasonExtendedById: seasonExtendedById,
     MockTVDBv4,
     mockTvdbConstructor: constructorSpy,
+    mockFetchTvdb: fetchTvdb,
   }
 })
 
 vi.mock("@smm/tvdb4", () => ({
   TVDBv4: MockTVDBv4,
+}))
+
+vi.mock("@/api/tvdb", () => ({
+  fetchTvdb: mockFetchTvdb,
 }))
 
 import {
@@ -138,6 +145,23 @@ describe("getTVDBv4Client", () => {
     const init = fetchSpy.mock.calls[0][1] as RequestInit
     const headers = init.headers as Headers
     expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(TVDB_DIRECT_UPSTREAM)
+  })
+
+  it("routes post-login TVDBv4 calls through fetchTvdb with the extracted JWT", async () => {
+    getTVDBv4Client({
+      reverseProxyUrl: REVERSE_PROXY_URL,
+      upstreamBaseURL: TVDB_DIRECT_UPSTREAM,
+      apiKey: "tvdb-api-key",
+    })
+    const options = mockTvdbConstructor.mock.calls[0][0] as { fetchImpl?: typeof window.fetch }
+    const headers = new Headers({ Authorization: "Bearer jwt-from-login" })
+    await options.fetchImpl!(
+      `${REVERSE_PROXY_URL}/search?query=naruto&type=series&language=eng`,
+      { method: "GET", headers },
+    )
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(1)
+    expect(mockFetchTvdb.mock.calls[0]![0]).toBe("/search?query=naruto&type=series&language=eng")
+    expect(mockFetchTvdb.mock.calls[0]![1]).toMatchObject({ jwt: "jwt-from-login" })
   })
 })
 

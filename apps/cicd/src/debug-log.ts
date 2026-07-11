@@ -26,7 +26,9 @@ export class DebugLog {
       ...data,
     };
     const text = JSON.stringify(line);
-    process.stderr.write(`[cicd-debug] ${text}\n`);
+    if (process.env.VERBOSE) {
+      process.stderr.write(`${text}\n`);
+    }
     this.stream?.write(`${text}\n`);
   }
 

@@ -6,6 +6,7 @@
   "invalidInput": "输入无效",
   "operationFailed": "操作失败",
   "searchNoResults": "未找到结果",
-  "searchFailed": "搜索TMDB失败"
+  "searchFailed": "搜索TMDB失败",
+  "searchFailedUnauthorized": "搜索失败：API key 无效（HTTP 401）。请检查 API key 和主机配置。"
 }
 

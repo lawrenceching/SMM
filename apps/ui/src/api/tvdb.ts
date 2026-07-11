@@ -12,16 +12,29 @@ export async function fetchTvdb(urlPath: string, options?: {
     config?: DiscoverConfig
     signal?: AbortSignal,
     defaultUrl?: string,
-    defualtProxy?: ReverseProxyEndpoint
+    defualtProxy?: ReverseProxyEndpoint,
+    /**
+     * TVDB JWT obtained from `POST /login`. Required when a custom TVDB
+     * host (`userConfig.tvdb.host`) is configured; ignored for the SMM-
+     * managed default upstream, which uses discovered general reverse
+     * proxies that handle auth themselves.
+     */
+    jwt?: string
 }) {
 
     const userConfig = await readUserConfig()
-    const { host, apiKey, httpProxy } = userConfig.tvdb ?? {}
+    const { host, httpProxy } = userConfig.tvdb ?? {}
 
     if (!isEmpty(host) && URL.canParse(host!)) {
-        const headers: Record<string, string> = {}
-        if (apiKey?.trim()) {
-            headers.Authorization = `Bearer ${apiKey.trim()}`
+        const jwt = options?.jwt?.trim()
+        if (!jwt) {
+            throw new Error(
+                'TVDB JWT is required when using a custom TVDB host. ' +
+                'Obtain one via TVDBv4.login() (see apps/ui/src/lib/TvdbUtils.ts).',
+            )
+        }
+        const headers: Record<string, string> = {
+            Authorization: `Bearer ${jwt}`,
         }
 
         return await fetchByInternalReverseProxy(

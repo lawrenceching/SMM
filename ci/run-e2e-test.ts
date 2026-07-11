@@ -29,7 +29,7 @@ const handleSignal = async (sig: NodeJS.Signals): Promise<void> => {
   signalCount += 1;
   if (signalCount === 1 && currentChild) {
     shuttingDown = true;
-    console.error(`\n[run-e2e-test] received ${sig}, forwarding to child...`);
+    console.error(`\nreceived ${sig}, forwarding to child...`);
     if (currentChild.pid) {
       try {
         if (process.platform !== 'win32') {
@@ -41,7 +41,7 @@ const handleSignal = async (sig: NodeJS.Signals): Promise<void> => {
     }
     return;
   }
-  console.error(`[run-e2e-test] received ${sig} twice, force-killing tree`);
+  console.error(`received ${sig} twice, force-killing tree`);
   if (currentChild) {
     await killTree(currentChild, 1000);
   }
@@ -60,7 +60,8 @@ const CONFIG_PATH = path.join(ROOT, CONFIG_REL_PATH);
 const CICD_OUTPUT_DIR = path.join(ROOT, 'artifacts', 'cicd');
 
 function log(message: string): void {
-  console.log(`[run-e2e-test] ${message}`);
+  if (!process.env.VERBOSE) return;
+  console.log(message);
 }
 
 function toRepoRelativePath(absolutePath: string): string {
@@ -184,6 +185,6 @@ main()
     process.exit(exitCode);
   })
   .catch((error) => {
-    console.error('[run-e2e-test] failed:', error);
+    console.error('failed:', error);
     process.exit(1);
   });

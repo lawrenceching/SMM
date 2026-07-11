@@ -105,6 +105,60 @@ function buildMediaDatabaseTvdbFetchImpl(
     }
 }
 
+/**
+ * Build a `fetchImpl` for the custom-upstream `TVDBv4` client.
+ *
+ * The `TVDBv4` client calls `fetchImpl` twice:
+ *  1. `POST /login` — sends the raw API key in the body, has no `Authorization`
+ *     header yet (no JWT is available). This call must NOT go through
+ *     `fetchTvdb`, which requires a JWT for custom upstream; we forward it
+ *     directly with the proxy headers.
+ *  2. Any subsequent call (`/search`, `/series/...`, etc.) — `TVDBv4` has
+ *     obtained a JWT and adds `Authorization: Bearer <jwt>`. We extract the
+ *     JWT and route through `fetchTvdb(path, { jwt })`.
+ */
+function buildCustomUpstreamTvdbFetchImpl(upstream: TvdbUpstream): typeof fetch {
+    const upstreamBase = upstream.upstreamBaseURL.replace(/\/+$/, "")
+    return (input: RequestInfo | URL, init?: RequestInit) => {
+        const urlString =
+            typeof input === "string"
+                ? input
+                : input instanceof URL
+                    ? input.href
+                    : input.url
+
+        const parsedUrl = new URL(urlString)
+        if (parsedUrl.pathname === "/login") {
+            const headers = new Headers(init?.headers)
+            const proxyHeaders = buildLocalProxyRequestHeaders({
+                upstreamBaseURL: upstream.upstreamBaseURL,
+            })
+            for (const [key, value] of Object.entries(proxyHeaders)) {
+                if (key.toLowerCase() === "accept") continue
+                headers.set(key, value)
+            }
+            return window.fetch(input, { ...init, headers })
+        }
+
+        let jwt: string | undefined
+        if (init?.headers) {
+            const auth = new Headers(init.headers).get("Authorization")
+            if (auth && auth.toLowerCase().startsWith("bearer ")) {
+                jwt = auth.slice(7).trim()
+            }
+        }
+
+        const path = urlString.startsWith(upstreamBase)
+            ? urlString.slice(upstreamBase.length) || "/"
+            : parsedUrl.pathname + parsedUrl.search
+
+        return fetchTvdb(
+            path.startsWith("/") ? path : `/${path}`,
+            { signal: init?.signal ?? undefined, jwt },
+        ) as unknown as Promise<Response>
+    }
+}
+
 function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
     if (isCustomUpstream(upstream.upstreamBaseURL, SMM_TVDB_DEFAULT_UPSTREAM)) {
         if (!upstream.reverseProxyUrl) {
@@ -112,22 +166,11 @@ function buildTvdbClient(upstream: TvdbUpstream): TVDBv4 {
                 "Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.",
             )
         }
-        const reverseProxyUrl = upstream.reverseProxyUrl
         return new TVDBv4({
-            baseUrl: reverseProxyUrl,
+            baseUrl: upstream.reverseProxyUrl,
             apiKey: upstream.apiKey ?? "",
             disableAuth: !(upstream.requiresAuth && Boolean(upstream.apiKey)),
-            fetchImpl: (input: RequestInfo | URL, init?: RequestInit) => {
-                const headers = new Headers(init?.headers)
-                const proxyHeaders = buildLocalProxyRequestHeaders({
-                    upstreamBaseURL: upstream.upstreamBaseURL,
-                })
-                for (const [key, value] of Object.entries(proxyHeaders)) {
-                    if (key.toLowerCase() === "accept") continue
-                    headers.set(key, value)
-                }
-                return window.fetch(input, { ...init, headers })
-            },
+            fetchImpl: buildCustomUpstreamTvdbFetchImpl(upstream),
         })
     }
 

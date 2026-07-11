@@ -1,12 +1,9 @@
-import { browser } from '@wdio/globals'
 import { setup, cleanup, isOfficialTmdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
 import type { UserConfig } from '@smm/core/types'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
-import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from '../../lib/gherkin'
 import '../../steps'
 
-describe('Custom TMDB Host', () => {
+describe('Custom TMDB Host (Wrong API Key)', () => {
 
     before(async () => {
         const accessible = await isOfficialTmdbHostAccessible()
@@ -20,12 +17,6 @@ describe('Custom TMDB Host', () => {
     })
 
     beforeEach(async () => {
-
-        const tmdbApiKey: string = process.env.TMDB_API_KEY || ''
-        if (!tmdbApiKey || tmdbApiKey.trim() === '') {
-            throw new Error('TMDB_API_KEY is not set')
-        }
-
         await setup({
             removeMetadataDir: true,
             removePlansDir: true,
@@ -35,7 +26,7 @@ describe('Custom TMDB Host', () => {
             resetUserConfig: (config: UserConfig) => {
                 config.tmdb = {
                     host: 'https://api.themoviedb.org/3',
-                    apiKey: tmdbApiKey,
+                    apiKey: 'invalid-wrong-key-12345',
                 }
                 return config
             },
@@ -53,7 +44,7 @@ describe('Custom TMDB Host', () => {
         })
     })
 
-    it('Scenario: TMDB search from custom TMDB host returns results', async function () {
+    it('Scenario: TMDB search from custom TMDB host with wrong API key shows 401 error', async function () {
         this.timeout(90 * 1000)
 
         // GIVEN: a TV show folder with one episode and TMDB id 84666 was imported.
@@ -63,24 +54,7 @@ describe('Custom TMDB Host', () => {
         await when('searchbox input is focused')
         await when('I click the search button in the searchbox')
 
-        // THEN: TMDB search returns at least one result.
-        await then('TMDB search returns at least one result', async () => {
-            await browser.waitUntil(
-                async () => {
-                    const results = await TVShowPanel.searchbox.results
-                    const count = await results.length
-                    return count > 0
-                },
-                {
-                    timeout: 30000,
-                    interval: 500,
-                    timeoutMsg: 'TMDB search results did not appear within 30s',
-                }
-            )
-        })
-
-        if (env.slowdown) {
-            await browser.pause(5000)
-        }
+        // THEN: the searchbox shows an error message containing "401".
+        await then('Searchbox shows error message "401"')
     })
 })

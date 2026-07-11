@@ -109,14 +109,14 @@ describe('fetchTvdb', () => {
       )
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({ data: [] }))
 
-      const resp = await fetchTvdb('/search?query=naruto')
+      const resp = await fetchTvdb('/search?query=naruto', { jwt: 'jwt-from-login' })
 
       expect(resp.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(1)
       expect(fetchSpy.mock.calls[0]![0]).toBe(`${REVERSE_PROXY_URL}/search?query=naruto`)
       const headers = headersOf(fetchSpy.mock.calls[0]![1])
       expect(headers['X-SMM-Proxy-Upstream-BaseURL']).toBe('https://api4.thetvdb.com/v4')
-      expect(headers.Authorization).toBe('Bearer secret-key')
+      expect(headers.Authorization).toBe('Bearer jwt-from-login')
       expect(fetchSpy.mock.calls[0]![1]).toMatchObject({
         method: 'GET',
         cache: 'no-store',
@@ -129,9 +129,17 @@ describe('fetchTvdb', () => {
       )
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
 
-      await fetchTvdb('series/1/extended')
+      await fetchTvdb('series/1/extended', { jwt: 'jwt-from-login' })
 
       expect(fetchSpy.mock.calls[0]![0]).toBe(`${REVERSE_PROXY_URL}/series/1/extended`)
+    })
+
+    it('throws when JWT is missing for custom host', async () => {
+      mockReadUserConfig.mockResolvedValue(
+        userConfigWithTvdb({ host: 'https://api4.thetvdb.com/v4' }),
+      )
+
+      await expect(fetchTvdb('/search')).rejects.toThrow(/TVDB JWT is required/)
     })
 
     it('throws when reverse proxy URL is unavailable', async () => {
@@ -143,9 +151,9 @@ describe('fetchTvdb', () => {
         userDataDir: '/tmp/smm',
       } as Awaited<ReturnType<typeof hello>>)
 
-      await expect(fetchTvdb('/search')).rejects.toThrow(
-        /Reverse proxy URL is not available/,
-      )
+      await expect(
+        fetchTvdb('/search', { jwt: 'jwt-from-login' }),
+      ).rejects.toThrow(/Reverse proxy URL is not available/)
     })
 
     it('forwards AbortSignal to fetch', async () => {
@@ -155,7 +163,7 @@ describe('fetchTvdb', () => {
       const controller = new AbortController()
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse())
 
-      await fetchTvdb('/search', { signal: controller.signal })
+      await fetchTvdb('/search', { signal: controller.signal, jwt: 'jwt-from-login' })
 
       expect(fetchSpy.mock.calls[0]![1]).toMatchObject({
         signal: controller.signal,

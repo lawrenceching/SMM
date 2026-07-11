@@ -299,7 +299,7 @@ export function ImmersiveSearchbox({
                                     <div className="text-muted-foreground">Searching...</div>
                                 </div>
                             ) : searchError ? (
-                                <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                                <div data-testid="tmdb-search-error" className="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
                                     {searchError}
                                 </div>
                             ) : searchResults.length > 0 ? (

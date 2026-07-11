@@ -6,6 +6,7 @@
   "invalidInput": "輸入無效",
   "operationFailed": "操作失敗",
   "searchNoResults": "未找到結果",
-  "searchFailed": "搜尋TMDB失敗"
+  "searchFailed": "搜尋TMDB失敗",
+  "searchFailedUnauthorized": "搜尋失敗：API key 無效（HTTP 401）。請檢查 API key 和主機配置。"
 }
 

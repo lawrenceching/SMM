@@ -1138,6 +1138,7 @@ interface ErrorsResources {
   operationFailed: string
   searchNoResults: string
   searchFailed: string
+  searchFailedUnauthorized: string
 }
 
 interface ValidationResources {
