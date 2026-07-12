@@ -4,6 +4,11 @@ import {
     cleanup,
     isReverseProxyAccessible,
     isHttpProxyAccessible,
+    useEmbeddedHttpProxy,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    getCurrentProxyAddress,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
 } from 'test/lib/testbed'
 import type { UserConfig } from '@smm/core/types'
 import env from 'test/lib/env'
@@ -28,14 +33,22 @@ describe('Custom TVDB Host (via HTTP Proxy)', () => {
             throw new Error('Reverse proxy is not accessible — CLI proxy may have failed to start')
         }
 
-        const tvdbHttpProxy = (process.env.TVDB_HTTP_PROXY || '').trim()
-        if (!tvdbHttpProxy) {
-            throw new Error('TVDB_HTTP_PROXY is not set in the e2e environment')
+        if (useEmbeddedHttpProxy()) {
+            await startEmbeddedHttpProxy(DEFAULT_EMBEDDED_PROXY_ADDRESS)
+        } else {
+            const tvdbHttpProxy = (process.env.TVDB_HTTP_PROXY || '').trim()
+            if (!tvdbHttpProxy) {
+                throw new Error('TVDB_HTTP_PROXY is not set in the e2e environment')
+            }
+            const httpProxyUp = await isHttpProxyAccessible(tvdbHttpProxy)
+            if (!httpProxyUp) {
+                throw new Error(`TVDB HTTP proxy is not reachable: ${tvdbHttpProxy}`)
+            }
         }
-        const httpProxyUp = await isHttpProxyAccessible(tvdbHttpProxy)
-        if (!httpProxyUp) {
-            throw new Error(`TVDB HTTP proxy is not reachable: ${tvdbHttpProxy}`)
-        }
+    })
+
+    after(async () => {
+        await stopEmbeddedHttpProxy()
     })
 
     beforeEach(async () => {
@@ -49,7 +62,7 @@ describe('Custom TVDB Host (via HTTP Proxy)', () => {
                 config.tvdb = {
                     host: 'https://api4.thetvdb.com/v4',
                     apiKey: WRONG_TVDB_API_KEY,
-                    httpProxy: (process.env.TVDB_HTTP_PROXY || '').trim(),
+                    httpProxy: getCurrentProxyAddress() ?? (process.env.TVDB_HTTP_PROXY || '').trim(),
                 }
                 return config
             },
@@ -78,11 +91,10 @@ describe('Custom TVDB Host (via HTTP Proxy)', () => {
         await when('I select "TVDB" as the search database')
         await when('I click the search button in the searchbox')
 
-        // THEN: the searchbox shows a 401 error. That proves the request
-        // traveled the full chain (UI → SMM reverse proxy → user HTTP
-        // proxy → official TVDB) and TVDB rejected the wrong key — i.e.
-        // the proxy chain is wired up correctly, no real API key required.
+        // THEN: proxy chain OK; unauthorized error names TVDB and HTTP 401.
         await then('Searchbox shows error message "401"')
+        await then('Searchbox shows error message "TVDB"')
+        await then('Searchbox shows error message "API key"')
 
         if (env.slowdown) {
             await browser.pause(5000)

@@ -4,6 +4,11 @@ import {
     cleanup,
     isReverseProxyAccessible,
     isHttpProxyAccessible,
+    useEmbeddedHttpProxy,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    getCurrentProxyAddress,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
 } from 'test/lib/testbed'
 import type { UserConfig } from '@smm/core/types'
 import env from 'test/lib/env'
@@ -28,14 +33,22 @@ describe('Custom TMDB Host (via HTTP Proxy)', () => {
             throw new Error('Reverse proxy is not accessible — CLI proxy may have failed to start')
         }
 
-        const tmdbHttpProxy = (process.env.TMDB_HTTP_PROXY || '').trim()
-        if (!tmdbHttpProxy) {
-            throw new Error('TMDB_HTTP_PROXY is not set in the e2e environment')
+        if (useEmbeddedHttpProxy()) {
+            await startEmbeddedHttpProxy(DEFAULT_EMBEDDED_PROXY_ADDRESS)
+        } else {
+            const tmdbHttpProxy = (process.env.TMDB_HTTP_PROXY || '').trim()
+            if (!tmdbHttpProxy) {
+                throw new Error('TMDB_HTTP_PROXY is not set in the e2e environment')
+            }
+            const httpProxyUp = await isHttpProxyAccessible(tmdbHttpProxy)
+            if (!httpProxyUp) {
+                throw new Error(`TMDB HTTP proxy is not reachable: ${tmdbHttpProxy}`)
+            }
         }
-        const httpProxyUp = await isHttpProxyAccessible(tmdbHttpProxy)
-        if (!httpProxyUp) {
-            throw new Error(`TMDB HTTP proxy is not reachable: ${tmdbHttpProxy}`)
-        }
+    })
+
+    after(async () => {
+        await stopEmbeddedHttpProxy()
     })
 
     beforeEach(async () => {
@@ -49,7 +62,7 @@ describe('Custom TMDB Host (via HTTP Proxy)', () => {
                 config.tmdb = {
                     host: 'https://api.themoviedb.org/3',
                     apiKey: WRONG_TMDB_API_KEY,
-                    httpProxy: (process.env.TMDB_HTTP_PROXY || '').trim(),
+                    httpProxy: getCurrentProxyAddress() ?? (process.env.TMDB_HTTP_PROXY || '').trim(),
                 }
                 return config
             },
@@ -77,11 +90,10 @@ describe('Custom TMDB Host (via HTTP Proxy)', () => {
         await when('searchbox input is focused')
         await when('I click the search button in the searchbox')
 
-        // THEN: the searchbox shows a 401 error. That proves the request
-        // traveled the full chain (UI → SMM reverse proxy → user HTTP
-        // proxy → official TMDB) and TMDB rejected the wrong key — i.e.
-        // the proxy chain is wired up correctly, no real API key required.
+        // THEN: proxy chain OK; unauthorized error names TMDB and HTTP 401.
         await then('Searchbox shows error message "401"')
+        await then('Searchbox shows error message "TMDB"')
+        await then('Searchbox shows error message "API key"')
 
         if (env.slowdown) {
             await browser.pause(5000)

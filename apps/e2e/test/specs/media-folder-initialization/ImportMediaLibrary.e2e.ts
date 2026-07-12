@@ -32,12 +32,14 @@ describe('Import Media Library', () => {
             await delay(1000)
         }
 
+        await ConfigDialog.switchToTab('media-databases')
         await ConfigDialog.setPrimaryDatabase('TMDB')
         console.log(`set primary database to TVDB in ConfigDialog`)
         if (env.slowdown) {
             await delay(1000)
         }
 
+        await ConfigDialog.switchToTab('general')
         await ConfigDialog.setPreferMediaLanguage('zh-CN')
         console.log(`set prefer media language to zh-CN in ConfigDialog`)
         if (env.slowdown) {

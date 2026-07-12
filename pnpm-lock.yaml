@@ -163,6 +163,9 @@ importers:
       es-toolkit:
         specifier: ^1.44.0
         version: 1.44.0
+      proxy-chain:
+        specifier: ^3.0.0
+        version: 3.0.0
     devDependencies:
       '@testing-library/webdriverio':
         specifier: ^3.2.1
@@ -6669,6 +6672,10 @@ packages:
   proxy-agent@6.5.0:
     resolution: {integrity: sha512-TmatMXdr2KlRiA2CyDu8GqR8EjahTG3aY3nXjdzFyoZbmB8hrBsTyMezhULIXKnC0jpfjlmiZ3+EaCzoInSu/A==}
     engines: {node: '>= 14'}
+
+  proxy-chain@3.0.0:
+    resolution: {integrity: sha512-p9DbNWMUCn8FJz9u+RTO82fwD3NFoYZgax5vtxd0FYPQ6IwpxX65WxeL64Fm/hZQVS2+bWB+XRy3+iDVaBsUeg==}
+    engines: {node: '>=20.11'}
 
   proxy-from-env@1.1.0:
     resolution: {integrity: sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==}
@@ -14936,6 +14943,14 @@ snapshots:
       pac-proxy-agent: 7.2.0
       proxy-from-env: 1.1.0
       socks-proxy-agent: 8.0.5
+    transitivePeerDependencies:
+      - supports-color
+
+  proxy-chain@3.0.0:
+    dependencies:
+      socks: 2.8.7
+      socks-proxy-agent: 8.0.5
+      tslib: 2.8.1
     transitivePeerDependencies:
       - supports-color
 

@@ -7,6 +7,7 @@ import { GeneralSettings } from "./GeneralSettings";
 const defaultUserConfig = {
   applicationLanguage: "en",
   tmdb: {},
+  tvdb: {},
   folders: [],
   renameRules: [],
   dryRun: false,
@@ -63,12 +64,6 @@ describe("GeneralSettings", () => {
     expect(screen.getByTestId("setting-enable-mcp-server")).toBeInTheDocument();
     expect(screen.getByTestId("setting-mcp-host")).toBeInTheDocument();
     expect(screen.getByTestId("setting-mcp-port")).toBeInTheDocument();
-  });
-
-  it("renders TMDB settings", () => {
-    render(<GeneralSettings />);
-    expect(screen.getByTestId("setting-tmdb-host")).toBeInTheDocument();
-    expect(screen.getByTestId("setting-tmdb-api-key")).toBeInTheDocument();
   });
 
   it("shows follow-system label when application language is not configured", () => {

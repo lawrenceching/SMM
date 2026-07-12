@@ -8,20 +8,13 @@ import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from 
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useTheme } from "@/providers/theme-provider"
-import type { PreferMediaLanguage, PrimaryDatabase } from "@core/types"
+import type { PreferMediaLanguage } from "@core/types"
 import { resolveAppLanguage } from "@core/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { startMcpServer, stopMcpServer } from "@/api/mcp"
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const THEME_OPTIONS = ["light", "dark", "system"] as const
-const PRIMARY_DATABASE_OPTIONS: {
-  value: PrimaryDatabase
-  labelKey: 'general.primaryDatabaseTmdb' | 'general.primaryDatabaseTvdb'
-}[] = [
-  { value: 'TMDB', labelKey: 'general.primaryDatabaseTmdb' },
-  { value: 'TVDB', labelKey: 'general.primaryDatabaseTvdb' },
-]
 
 const APPLICATION_LANGUAGE_UNSET = "__unset__"
 type ApplicationLanguageFormValue = SupportedLanguage | typeof APPLICATION_LANGUAGE_UNSET
@@ -62,12 +55,6 @@ export function GeneralSettings() {
   const initialValues = useMemo(() => ({
     applicationLanguage: (userConfig.applicationLanguage ??
       APPLICATION_LANGUAGE_UNSET) as ApplicationLanguageFormValue,
-    tmdbHost: userConfig.tmdb?.host || '',
-    tmdbApiKey: userConfig.tmdb?.apiKey || '',
-    tmdbProxy: userConfig.tmdb?.httpProxy || '',
-    tvdbHost: userConfig.tvdb?.host || '',
-    tvdbApiKey: userConfig.tvdb?.apiKey || '',
-    primaryDatabase: (userConfig.primaryDatabase || 'TMDB') as PrimaryDatabase,
     preferMediaLanguage: userConfig.preferMediaLanguage || PREFER_MEDIA_LANGUAGE_UNSET,
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
@@ -78,12 +65,6 @@ export function GeneralSettings() {
   const [applicationLanguage, setApplicationLanguage] = useState<ApplicationLanguageFormValue>(
     initialValues.applicationLanguage,
   )
-  const [tmdbHost, setTmdbHost] = useState(initialValues.tmdbHost)
-  const [tmdbApiKey, setTmdbApiKey] = useState(initialValues.tmdbApiKey)
-  const [tmdbProxy, setTmdbProxy] = useState(initialValues.tmdbProxy)
-  const [tvdbHost, setTvdbHost] = useState(initialValues.tvdbHost)
-  const [tvdbApiKey, setTvdbApiKey] = useState(initialValues.tvdbApiKey)
-  const [primaryDatabase, setPrimaryDatabase] = useState<PrimaryDatabase>(initialValues.primaryDatabase)
   const [preferMediaLanguage, setPreferMediaLanguage] = useState<PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET>(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
@@ -93,12 +74,6 @@ export function GeneralSettings() {
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     setApplicationLanguage(initialValues.applicationLanguage)
-    setTmdbHost(initialValues.tmdbHost)
-    setTmdbApiKey(initialValues.tmdbApiKey)
-    setTmdbProxy(initialValues.tmdbProxy)
-    setTvdbHost(initialValues.tvdbHost)
-    setTvdbApiKey(initialValues.tvdbApiKey)
-    setPrimaryDatabase(initialValues.primaryDatabase)
     setPreferMediaLanguage(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
@@ -110,12 +85,6 @@ export function GeneralSettings() {
   const hasChanges = useMemo(() => {
     return (
       applicationLanguage !== initialValues.applicationLanguage ||
-      tmdbHost !== initialValues.tmdbHost ||
-      tmdbApiKey !== initialValues.tmdbApiKey ||
-      tmdbProxy !== initialValues.tmdbProxy ||
-      tvdbHost !== initialValues.tvdbHost ||
-      tvdbApiKey !== initialValues.tvdbApiKey ||
-      primaryDatabase !== initialValues.primaryDatabase ||
       preferMediaLanguage !== initialValues.preferMediaLanguage ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
@@ -123,12 +92,6 @@ export function GeneralSettings() {
     )
   }, [
     applicationLanguage,
-    tmdbHost,
-    tmdbApiKey,
-    tmdbProxy,
-    tvdbHost,
-    tvdbApiKey,
-    primaryDatabase,
     preferMediaLanguage,
     enableMcpServer,
     mcpHost,
@@ -159,18 +122,6 @@ export function GeneralSettings() {
     const updatedConfig = {
       ...userConfig,
       applicationLanguage: savedApplicationLanguage,
-      tmdb: {
-        ...userConfig.tmdb,
-        host: tmdbHost || undefined,
-        apiKey: tmdbApiKey || undefined,
-        httpProxy: tmdbProxy || undefined,
-      },
-      tvdb: {
-        ...userConfig.tvdb,
-        host: tvdbHost || undefined,
-        apiKey: tvdbApiKey || undefined,
-      },
-      primaryDatabase,
       preferMediaLanguage: preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
       enableMcpServer,
       mcpHost: mcpHost || undefined,
@@ -267,60 +218,6 @@ export function GeneralSettings() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="tmdb-host">{t('general.tmdbHost')}</Label>
-          <Input
-            id="tmdb-host"
-            value={tmdbHost}
-            onChange={(e) => setTmdbHost(e.target.value)}
-            placeholder={t('general.tmdbHostPlaceholder')}
-            data-testid="setting-tmdb-host"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tmdb-api-key">{t('general.tmdbApiKey')}</Label>
-          <Input
-            id="tmdb-api-key"
-            type="password"
-            value={tmdbApiKey}
-            onChange={(e) => setTmdbApiKey(e.target.value)}
-            placeholder={t('general.tmdbApiKeyPlaceholder')}
-            data-testid="setting-tmdb-api-key"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tmdb-proxy">{t('general.httpProxy')}</Label>
-          <Input
-            id="tmdb-proxy"
-            value={tmdbProxy}
-            onChange={(e) => setTmdbProxy(e.target.value)}
-            placeholder={t('general.httpProxyPlaceholder')}
-            data-testid="setting-tmdb-proxy"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="primary-database">{t('general.primaryDatabase')}</Label>
-          <Select
-            value={primaryDatabase}
-            onValueChange={(v) => setPrimaryDatabase(v as PrimaryDatabase)}
-          >
-            <SelectTrigger id="primary-database" data-testid="setting-primary-database-trigger">
-              <SelectValue placeholder={t('general.primaryDatabaseDescription')} />
-            </SelectTrigger>
-            <SelectContent data-testid="setting-primary-database-content">
-              {PRIMARY_DATABASE_OPTIONS.map((opt) => (
-                <SelectItem key={opt.value} value={opt.value} data-testid={`setting-primary-database-option-${opt.value}`}>
-                  {t(opt.labelKey)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-sm text-muted-foreground">{t('general.primaryDatabaseDescription')}</p>
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="prefer-media-language">{t('general.preferMediaLanguage')}</Label>
           <Select
             value={preferMediaLanguage}
@@ -338,29 +235,6 @@ export function GeneralSettings() {
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{t('general.preferMediaLanguageDescription')}</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tvdb-host">{t('general.tvdbHost')}</Label>
-          <Input
-            id="tvdb-host"
-            value={tvdbHost}
-            onChange={(e) => setTvdbHost(e.target.value)}
-            placeholder={t('general.tvdbHostPlaceholder')}
-            data-testid="setting-tvdb-host"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="tvdb-api-key">{t('general.tvdbApiKey')}</Label>
-          <Input
-            id="tvdb-api-key"
-            type="password"
-            value={tvdbApiKey}
-            onChange={(e) => setTvdbApiKey(e.target.value)}
-            placeholder={t('general.tvdbApiKeyPlaceholder')}
-            data-testid="setting-tvdb-api-key"
-          />
         </div>
 
         <div className="space-y-4 pt-4 border-t">

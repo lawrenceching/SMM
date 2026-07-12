@@ -254,7 +254,7 @@ export function MediaDatabaseSearchbox({
       const resp = await fetchTmdb(`/search/${mediaType}?${params.toString()}`)
       if (!resp || !resp.ok) {
         if (resp?.status === 401) {
-          setSearchError(t("errors:searchFailedUnauthorized"))
+          setSearchError(t("errors:searchFailedUnauthorizedTmdb"))
         } else {
           setSearchError(t("errors:searchFailed"))
         }
@@ -278,7 +278,7 @@ export function MediaDatabaseSearchbox({
     } catch (error) {
       console.error("Search failed:", error)
       if (error instanceof TVDBv4Error && error.status === 401) {
-        setSearchError(t("errors:searchFailedUnauthorized"))
+        setSearchError(t("errors:searchFailedUnauthorizedTvdb"))
       } else {
         setSearchError(
           error instanceof Error ? error.message : t("errors:searchFailed"),

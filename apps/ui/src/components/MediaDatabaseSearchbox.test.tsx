@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useConfig } from '@/hooks/userConfig'
 import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 import localStorages from '@/lib/localStorages'
+import { TVDBv4Error } from '@smm/tvdb4'
 
 const mockImmersiveSearchboxProps = {
   current: {} as {
@@ -15,6 +16,7 @@ const mockImmersiveSearchboxProps = {
     onShowAllLanguagesChange: (v: boolean) => void
     searchLanguageOptions: ReadonlyArray<{ code: string; name: string }>
     onSearch?: () => void | Promise<void>
+    searchError?: string | null
   },
 }
 
@@ -34,11 +36,12 @@ vi.mock('./ImmersiveSearchbox', () => ({
     const {
       value, onChange, placeholder, inputClassName, onSelect, onSearch,
       searchLanguage, onSearchLanguageChange, showAllLanguages,
-      onShowAllLanguagesChange, searchLanguageOptions,
+      onShowAllLanguagesChange, searchLanguageOptions, searchError,
     } = props
     mockImmersiveSearchboxProps.current = {
       value, searchLanguage, onSearchLanguageChange,
       showAllLanguages, onShowAllLanguagesChange, searchLanguageOptions, onSearch,
+      searchError,
     }
     const fakeResult = { id: 1, name: 'Test Show' }
     return (
@@ -532,5 +535,61 @@ describe('MediaDatabaseSearchbox', () => {
     const [searchParams] = mockTvdbSearch.mock.calls[0] as [{ query: string; type: string; language?: string }]
     expect(searchParams).toMatchObject({ query: 'inception', type: 'movie' })
     expect(mockFetchTmdb).not.toHaveBeenCalled()
+  })
+
+  it('shows database-specific unauthorized message when TMDB search returns 401', async () => {
+    mockFetchTmdb.mockResolvedValue(
+      new Response(JSON.stringify({ status_code: 7 }), { status: 401 }),
+    )
+    render(<MediaDatabaseSearchbox {...defaultProps} value="naruto" />, {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => {
+      expect(mockImmersiveSearchboxProps.current.searchError).toBe(
+        'errors:searchFailedUnauthorizedTmdb',
+      )
+    })
+  })
+
+  it('shows database-specific unauthorized message when TVDB login returns 401', async () => {
+    vi.mocked(useConfig).mockImplementation(() => ({
+      userConfig: {
+        applicationLanguage: 'en',
+        primaryDatabase: 'TVDB',
+        preferMediaLanguage: 'en-US',
+        tmdb: {},
+        tvdb: { host: 'https://api4.thetvdb.com/v4', apiKey: 'bad-key' },
+      },
+      appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
+    } as any))
+    mockTvdbSearch.mockRejectedValue(
+      new TVDBv4Error('TVDB login failed: 401 Unauthorized', {
+        status: 401,
+        url: 'http://127.0.0.1:30005/login',
+      }),
+    )
+    render(
+      <MediaDatabaseSearchbox
+        {...defaultProps}
+        value="lost"
+        onSearchResultSelected={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => {
+      expect(mockImmersiveSearchboxProps.current.searchError).toBe(
+        'errors:searchFailedUnauthorizedTvdb',
+      )
+    })
   })
 })

@@ -18,6 +18,14 @@ import StatusBar from '../componentobjects/StatusBar'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
+export {
+    useEmbeddedHttpProxy,
+    getCurrentProxyAddress,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
+} from './httpProxyServer'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 

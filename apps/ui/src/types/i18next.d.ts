@@ -1139,6 +1139,8 @@ interface ErrorsResources {
   searchNoResults: string
   searchFailed: string
   searchFailedUnauthorized: string
+  searchFailedUnauthorizedTmdb: string
+  searchFailedUnauthorizedTvdb: string
 }
 
 interface ValidationResources {
