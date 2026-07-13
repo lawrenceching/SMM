@@ -52,15 +52,6 @@ describe('Scrape', () => {
         if (!tvdbConnectionOk) {
             this.skip()
         }
-
-        await setup({
-            removeMetadataDir: true,
-            removePlansDir: true,
-            removeMediaFolders: true,
-            removeDirInSidebar: true,
-            resetUserConfig: true,
-            openBrowserPage: true,
-        })
     })
 
     afterEach(async () => {
@@ -73,7 +64,15 @@ describe('Scrape', () => {
         })
     })
 
-    beforeEach(() => {
+    beforeEach(async () => {
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+            openBrowserPage: true,
+        })
         resetStepContext()
     })
 
