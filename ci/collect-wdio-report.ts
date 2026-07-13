@@ -39,7 +39,7 @@ function copyReportDir(sourceRel: string, destSubdir: string, taskName: string, 
   fs.mkdirSync(path.dirname(destDir), { recursive: true });
   fs.cpSync(sourceDir, destDir, { recursive: true, force: true });
 
-  log(`copied ${sourceRel} -> ${path.relative(process.cwd(), destDir)}`);
+  // log(`copied ${sourceRel} -> ${path.relative(process.cwd(), destDir)}`);
   return true;
 }
 

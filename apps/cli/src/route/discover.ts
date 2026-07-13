@@ -2,6 +2,7 @@ import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 
 const DISCOVER_CONFIG_URL =
+  process.env.EXTERNAL_CONFIG_FILE_URL ||
   'https://raw.gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json';
 
 const DISCOVER_TIMEOUT_MS = 10_000;

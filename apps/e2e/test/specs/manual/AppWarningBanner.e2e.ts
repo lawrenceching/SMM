@@ -1,5 +1,6 @@
 import { expect, browser } from '@wdio/globals'
 import env from '../../lib/env'
+import { resolveUiPageUrl } from '../../lib/ui-page-url'
 
 const WARNING_BANNER_SELECTOR = '[data-testid="app-warning-banner"]'
 const WARNING_DISMISSED_KEY = 'warning.appNotFullyTestedInMacOsOrLinux'
@@ -11,7 +12,7 @@ if (isWindows) {
 } else {
   describe('AppWarningBanner - macOS and Linux Testing', () => {
     before(async () => {
-      await browser.url('http://localhost:5173')
+      await browser.url(resolveUiPageUrl())
     })
 
     afterEach(async () => {

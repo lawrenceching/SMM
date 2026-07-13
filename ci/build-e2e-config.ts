@@ -7,11 +7,15 @@ const MANUAL_SPEC_DIR = /(?:^|[/\\])test[/\\]specs[/\\]manual[/\\]/;
 const DEFAULT_SMM_AUTH_TOKEN = 'ChangeMe123';
 
 export function buildE2eEnv(): Record<string, string> {
-  return {
+  const env: Record<string, string> = {
     BROWSER_LOG_ENABLED: 'true',
     NETWORK_LOG_ENABLED: 'true',
     SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? DEFAULT_SMM_AUTH_TOKEN,
   };
+  if (process.env.EXTERNAL_CONFIG_FILE_URL) {
+    env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
+  }
+  return env;
 }
 
 export type ParsedWdioArgs = {

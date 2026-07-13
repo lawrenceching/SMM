@@ -26,6 +26,8 @@ export {
     DEFAULT_EMBEDDED_PROXY_ADDRESS,
 } from './httpProxyServer'
 
+export { startConfigServer, stopConfigServer } from './configServer'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
@@ -157,7 +159,7 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
         const { default: StatusBar } = await import('../componentobjects/StatusBar')
         const { default: Sidebar } = await import('../componentobjects/Sidebar')
 
-        Page.open()
+        await Page.open()
 
         // Wait for the page to be ready by checking StatusBar is displayed
         await browser.waitUntil(async () => {

@@ -4,7 +4,8 @@ import { isEmpty } from "es-toolkit/compat"
 import localStorages from "./localStorages"
 import { fetchDiscoverConfig } from "../api/discover"
 import { clearDisabledDomains } from "../api/tmdb"
-import staticConfig from "@/api/staticConfig"
+// TODO: Remove once reverse proxy support is fully removed.
+// import staticConfig from "@/api/staticConfig"
 
 export function getDomainName(url: string): string {
     try {
@@ -53,31 +54,22 @@ export async function fetchWithFailover(
           }
         })
   
-      if(reverseProxies.length === 0) {
-        const defaultProxy = staticConfig.defaultExternalReverseProxy;
-        console.log(`No reverse proxies found, using default reverse proxy: ${defaultProxy.url}`)
-        reverseProxies = [{
-            id: 'default',
-            type: 'general',
-            url: defaultProxy.url,
-            authorizationMethod: defaultProxy.authorizationMethod,
-        } as ReverseProxyEndpoint]
-      }
+      // TODO: Reverse proxy support is deprecated and will be removed entirely.
+      // The fallback to default external reverse proxy has been disabled.
+      // When reverseProxies is empty, the failover chain will only contain direct fetches.
+      // if(reverseProxies.length === 0) {
+      //   const defaultProxy = staticConfig.defaultExternalReverseProxy;
+      //   console.log(`No reverse proxies found, using default reverse proxy: ${defaultProxy.url}`)
+      //   reverseProxies = [{
+      //       id: 'default',
+      //       type: 'general',
+      //       url: defaultProxy.url,
+      //       authorizationMethod: defaultProxy.authorizationMethod,
+      //   } as ReverseProxyEndpoint]
+      // }
    
       const chain = [];
-  
-      for(const baseUrl of validBaseUrls) {
-        chain.push({
-          url: baseUrl,
-          proxy: undefined,
-          fn: async () => {
-              return await fetch(`${baseUrl}${urlPath}`, {
-                signal: options?.signal,
-              })
-          }
-        })
-      }
-  
+
       for(const [upstreamBasedUrl, proxy] of zip(validBaseUrls, reverseProxies)) {
         // es-toolkit zip pads the shorter array with null — skip incomplete pairs
         if (!upstreamBasedUrl || !proxy?.url) {
@@ -87,7 +79,7 @@ export async function fetchWithFailover(
           url: upstreamBasedUrl,
           proxy: proxy.url,
           fn: async () => {
-  
+
             const headers: Record<string, string> = {
               'X-Upstream-Base-Url': upstreamBasedUrl,
             }
@@ -101,13 +93,29 @@ export async function fetchWithFailover(
               ].join('')
               headers['X-Proxy-Authorization'] = `Bearer ${yyyyMMdd}`
             }
-  
-              return await fetch(proxy.url!, {
+
+              const resp = await fetch(proxy.url!, {
                 method: 'GET',
                 headers,
                 signal: options?.signal,
               })
-  
+              if (!resp.ok) {
+                throw new Error(`Reverse proxy returned HTTP ${resp.status}`)
+              }
+              return resp
+
+          }
+        })
+      }
+
+      for(const baseUrl of validBaseUrls) {
+        chain.push({
+          url: baseUrl,
+          proxy: undefined,
+          fn: async () => {
+              return await fetch(`${baseUrl}${urlPath}`, {
+                signal: options?.signal,
+              })
           }
         })
       }
@@ -117,7 +125,7 @@ export async function fetchWithFailover(
         console.error('empty request chain!')
         throw new Error('Empty Request Chain')
       }
-  
+
       for(const { url, proxy, fn } of chain) {
         try {
           return await fn()

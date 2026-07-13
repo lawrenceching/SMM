@@ -259,6 +259,8 @@ class TVShowPanel {
     async openAndClickContextMenuForEpisode(episodeId: string, labelEn: string): Promise<void> {
         const labelMap: Record<string, string[]> = {
             'Select File': ['Select File', '选择文件'],
+            'Rename': ['Rename', '重命名'],
+            'Unlink': ['Unlink', '取消关联'],
         }
 
         const labels = labelMap[labelEn] ?? [labelEn]

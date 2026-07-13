@@ -200,3 +200,26 @@ And the test status of v1.1.0
    - 选择目录, 点击 "Start"
    - 验证每个合集视频各创建一个下载任务
 
+
+
+## 
+
+## Custom TMDB/TVDB Host and HTTP Proxy
+
+| Feature                     | Test File             | Type   | Comment |
+| ----------------------------|---------------------- | ------ | ------- |
+| Custom TMDB Host            | CustomTmdbHost.e2e.ts |  AUTO  |         |
+| Custom TVDB Host            | CustomTvdbHost.e2e.ts |  AUTO  |         |
+| TMDB HTTP Proxy | CustomTmdbHost-WithHttpProxy.e2e.ts | AUTO | |
+| TVDB HTTP Proxy | CustomTvdbHost-WithHttpProxy.e2e.ts | AUTO | |
+| Wrong TMDB API Key | CustomTmdbHost-WrongApiKey.e2e.ts | AUTO | |
+| Wrong TVDB API Key | CustomTvdbHost-WrongApiKey.e2e.ts | AUTO | |
+| TMDB Host Failover | TmdbHostFailover.e2e.ts |||
+
+TODO: HTTP Proxy needs to add auto test for all OS
+
+5. Connect to mediadb.vercel.app
+6. Connect to gz proxy (check mediadb.vercel.app was disabled)
+7. Media Folder Initialization succeeded behind a proxy
+8. Scrape behind a proxy
+ 

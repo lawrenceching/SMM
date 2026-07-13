@@ -1,119 +1,12 @@
 import { expect, browser } from '@wdio/globals'
-import * as fs from 'node:fs'
-import * as path from 'node:path'
-import * as os from 'node:os'
-import Menu from '../../componentobjects/Menu'
-import Sidebar from '../../componentobjects/Sidebar'
-import ConfigDialog from '../../componentobjects/ConfigDialog'
-import { cleanup, setup, expectMediaMetadataToBe } from '../../lib/testbed'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { setup, cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
+import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
+import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
+import '../../steps'
 import env from 'test/lib/env'
-import { type MediaMetadata, type UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/core/types'
 
-const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
-const mediaDir = path.join(tmpMediaRoot, 'media')
-
-describe('Search TV Show', () => {
-
-    before(async () => {
-        await setup({
-            removeMetadataDir: true,
-            removePlansDir: true,
-            removeMediaFolders: true,
-            removeDirInSidebar: true,
-            resetUserConfig: (config: UserConfig) => {
-                config.preferMediaLanguage = 'zh-CN'
-                config.applicationLanguage = 'zh-CN'
-                return config
-            },
-            openBrowserPage: true,
-        })  
-    })
-
-    after(async () => {
-        cleanup({
-            removeMetadataDir: true,
-            removePlansDir: true,
-            removeMediaFolders: true,
-            removeDirInSidebar: true,
-            resetUserConfig: true,
-            clearLocalStorage: true,
-        })
-    })
-
-    beforeEach(async () => {
-        console.log(`${new Date().toISOString()} TEST STARTED`);
-    })
-
-    afterEach(async () => {
-        console.log(`${new Date().toISOString()} TEST ENDED`);
-    })
-
-    it('Search TV Show - TMDB', async function() {
-        this.timeout(5 * 60 * 1000)
-
-        const randomFolderName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-        const testMediaFolder = path.join(mediaDir, randomFolderName)
-        fs.mkdirSync(testMediaFolder, { recursive: true })
-        console.log('Created unknown media folder:', testMediaFolder)
-
-        console.log('Importing media folder:', testMediaFolder)
-        await Menu.importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: testMediaFolder,
-            traceId: 'e2eTest:Import Media Folder Search TV Show'
-        })
-
-        await browser.pause(1000)
-
-        console.log(`Waiting for folder "${randomFolderName}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolderName(randomFolderName, 60000)
-        expect(isDisplayed).toBe(true)
-        console.log(`Folder "${randomFolderName}" is now displayed in sidebar`)
-
-        await browser.pause(1000)
-
-        await TVShowPanel.searchbox.input.waitForDisplayed()
-        const initialInputValue = await TVShowPanel.searchbox.input.getValue()
-        expect(initialInputValue).toBe('')
-        
-        await TVShowPanel.searchbox.input.click()
-        await browser.pause(300)
-        await TVShowPanel.searchbox.database.waitForDisplayed();
-
-        await TVShowPanel.searchbox.setDatabase('TMDB')
-        await TVShowPanel.searchbox.setLanguage('zh-CN')
-        await TVShowPanel.searchbox.searchButton.click()
-
-        /**
-         * Anime 我推的孩子 have 4 seasons in TVDB
-         * while 2 seasons in TMDB
-         * So it's a good example to verify SMM search TVDB database
-         */
-        const keyword = '我推的孩子'
-        await TVShowPanel.searchbox.input.setValue(keyword)
-        await TVShowPanel.searchbox.searchButton.click()
-
-        console.log(`Searching TV show using keyword: ${keyword}`)
-
-        await TVShowPanel.searchbox.selectSearchResult({
-            title: '【我推的孩子】',
-            date: 'April 12, 2023'
-        })
-
-        // TODO: in macOS, query large block of HTML will random caused more than 1 minutes
-        // So I can't use waitUntil to check HTML state in some interval.
-        // hard delay is added here as workaround
-        console.log(`${new Date().toISOString()} PAUSED 10 seconds`);
-        await browser.pause(10000)
-        console.log(`${new Date().toISOString()} RESUMED`);
-        const html  = await $('[data-testid="tv-show-panel"]').getHTML()
-        console.log(`${new Date().toISOString()} html="${html}"`)
-
-        await browser.waitUntil(async () => {
-            const stateInString = await TVShowPanel.toString();
-            console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
-            return stateInString.includes(`特别篇
+const OSHI_NO_KO_TMDB_EPISODE_TABLE = `特别篇
 S00E01 - - - -
 S00E02 - - - -
 第 1 季
@@ -151,100 +44,137 @@ S01E31 - - - -
 S01E32 - - - -
 S01E33 - - - -
 S01E34 - - - -
-S01E35 - - - -`)
-        }, {
-            timeout: 5000,
-            interval: 1000,
-            timeoutMsg: 'Expected to see Season 0 in the TV show panel',
+S01E35 - - - -`
+
+describe('Search TV Show', () => {
+
+    before(async () => {
+        await setup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: (config: UserConfig) => {
+                config.preferMediaLanguage = 'zh-CN'
+                config.applicationLanguage = 'zh-CN'
+                return config
+            },
+            openBrowserPage: true,
         })
-
-        console.log(`Waiting for media metadata to be updated`)
-
-        await expectMediaMetadataToBe(testMediaFolder, (obj) => {
-
-            expect(obj.tvShow?.id).toBe('203737')
-            expect(obj.tvShow?.name).toBe('【我推的孩子】')
-            expect(obj.tvShow?.database).toBe('TMDB')
-            return true;
-        })
-
-        if(env.slowdown) {
-            await browser.pause(10 * 1000)
-        }        
     })
-    
-    it('Search TV Show - TVDB', async function() {
+
+    afterEach(async () => {
+        await cleanup({
+            removeMetadataDir: true,
+            removePlansDir: true,
+            removeMediaFolders: true,
+            removeDirInSidebar: true,
+            resetUserConfig: true,
+            clearLocalStorage: true,
+        })
+    })
+
+    beforeEach(() => {
+        resetStepContext()
+    })
+
+    it('Search TV Show - TMDB', async function () {
         this.timeout(5 * 60 * 1000)
 
-        const randomFolderName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-        const testMediaFolder = path.join(mediaDir, randomFolderName)
-        fs.mkdirSync(testMediaFolder, { recursive: true })
-        console.log('Created unknown media folder:', testMediaFolder)
+        /**
+         * Anime 我推的孩子 have 4 seasons in TVDB
+         * while 2 seasons in TMDB
+         * So it's a good example to verify SMM search TMDB database
+         */
+        await given('unknown TV show folder was imported')
 
-        console.log('Importing media folder:', testMediaFolder)
-        await Menu.importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: testMediaFolder,
-            traceId: 'e2eTest:Import Media Folder Search TV Show'
+        await then('searchbox input is empty')
+        await when('searchbox input is focused')
+        await browser.pause(300)
+        await when('I select "TMDB" as the search database')
+        await when('I select "zh-CN" as the search language')
+        await when('I click the search button in the searchbox')
+        await when('I search for "我推的孩子"')
+        await when('I select search result with title "【我推的孩子】" and date "April 12, 2023"')
+
+        // TODO: in macOS, query large block of HTML will random caused more than 1 minutes
+        // So I can't use waitUntil to check HTML state in some interval.
+        // hard delay is added here as workaround
+        await then('episode table shows Oshi no Ko TMDB seasons', async () => {
+            console.log(`${new Date().toISOString()} PAUSED 10 seconds`)
+            await browser.pause(10000)
+            console.log(`${new Date().toISOString()} RESUMED`)
+            const html = await $('[data-testid="tv-show-panel"]').getHTML()
+            console.log(`${new Date().toISOString()} html="${html}"`)
+
+            await browser.waitUntil(async () => {
+                const stateInString = await TvShowPanelCO.toString()
+                console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
+                return stateInString.includes(OSHI_NO_KO_TMDB_EPISODE_TABLE)
+            }, {
+                timeout: 5000,
+                interval: 1000,
+                timeoutMsg: 'Expected to see Season 0 in the TV show panel',
+            })
         })
 
-        console.log(`Waiting for folder "${randomFolderName}" to appear in sidebar...`)
-        const isDisplayed = await Sidebar.waitForFolderName(randomFolderName, 60000)
-        expect(isDisplayed).toBe(true)
-        console.log(`Folder "${randomFolderName}" is now displayed in sidebar`)
+        await then('metadata is persisted with TMDB Oshi no Ko', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await expectMediaMetadataToBe(folder.path, (obj) => {
+                expect(obj.tvShow?.id).toBe('203737')
+                expect(obj.tvShow?.name).toBe('【我推的孩子】')
+                expect(obj.tvShow?.database).toBe('TMDB')
+                return true
+            })
+        })
 
-        await browser.pause(1000)
+        if (env.slowdown) {
+            await browser.pause(10 * 1000)
+        }
+    })
 
-        await TVShowPanel.searchbox.input.waitForDisplayed()
-        const initialInputValue = await TVShowPanel.searchbox.input.getValue()
-        expect(initialInputValue).toBe('')
-        
-        await TVShowPanel.searchbox.input.click()
-        await browser.pause(300)
-        await TVShowPanel.searchbox.database.waitForDisplayed();
-
-        await TVShowPanel.searchbox.setDatabase('TVDB')
-        await TVShowPanel.searchbox.setLanguage('zho')
-        await TVShowPanel.searchbox.searchButton.click()
+    it('Search TV Show - TVDB', async function () {
+        this.timeout(5 * 60 * 1000)
 
         /**
          * Anime 我推的孩子 have 4 seasons in TVDB
          * while 2 seasons in TMDB
          * So it's a good example to verify SMM search TVDB database
          */
-        const keyword = '我推的孩子'
-        await TVShowPanel.searchbox.input.setValue(keyword)
-        await TVShowPanel.searchbox.searchButton.click()
+        await given('unknown TV show folder was imported')
 
-        await browser.pause(1000)
+        await then('searchbox input is empty')
+        await when('searchbox input is focused')
+        await browser.pause(300)
+        await when('I select "TVDB" as the search database')
+        await when('I select "zho" as the search language')
+        await when('I click the search button in the searchbox')
+        await when('I search for "我推的孩子"')
+        await when('I select search result with title "【我推的孩子】"')
 
-        console.log(`Searching TV show using keyword: ${keyword}`)
-        await TVShowPanel.searchbox.selectSearchResultByText('【我推的孩子】')
-
-        console.log(`Waiting for media metadata to be updated`)
-
-        await browser.waitUntil(async () => {
-
-            try {
-                await expectMediaMetadataToBe(testMediaFolder, (obj) => {
-                    console.log(JSON.stringify(obj))
-                    const mm = obj as MediaMetadata;
-                    return mm.tvShow !== undefined
-                })
-            } catch (error) {
-                return false
-            }
-            return true
-
-        }, {
-            timeout: 5 * 60 * 1000,
-            interval: 1000,
-            timeoutMsg: 'Expected to see TV show metadata in the media metadata',
+        await then('metadata has tvShow defined', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await browser.waitUntil(async () => {
+                try {
+                    await expectMediaMetadataToBe(folder.path, (obj) => {
+                        console.log(JSON.stringify(obj))
+                        const mm = obj as MediaMetadata
+                        return mm.tvShow !== undefined
+                    })
+                } catch {
+                    return false
+                }
+                return true
+            }, {
+                timeout: 5 * 60 * 1000,
+                interval: 1000,
+                timeoutMsg: 'Expected to see TV show metadata in the media metadata',
+            })
         })
 
-        if(env.slowdown) {
+        if (env.slowdown) {
             await browser.pause(10 * 1000)
-        }        
+        }
     })
 
 })

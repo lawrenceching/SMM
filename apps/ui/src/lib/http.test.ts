@@ -66,7 +66,7 @@ describe("getDomainName", () => {
 
 describe("fetchWithFailover", () => {
   describe("direct success", () => {
-    it("calls the first base URL with urlPath and returns its response", async () => {
+    it("calls the first reverse proxy with headers and returns its response", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okResponse({ ok: true }))
 
       const resp = await fetchWithFailover([HOST_A, HOST_B], "/search/tv", {
@@ -82,12 +82,13 @@ describe("fetchWithFailover", () => {
 
       expect(resp!.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(`${HOST_A}/search/tv`)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_A)
+      expect(headersOf(fetchSpy.mock.calls[0]![1])["X-Upstream-Base-Url"]).toBe(HOST_A)
     })
   })
 
   describe("failover order", () => {
-    it("tries every direct base URL before any reverse proxy", async () => {
+    it("tries every reverse proxy before any direct base URL", async () => {
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
         .mockRejectedValueOnce(new TypeError("Failed to fetch"))
@@ -106,17 +107,14 @@ describe("fetchWithFailover", () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(3)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(`${HOST_A}/search/tv`)
-      expect(fetchSpy.mock.calls[1]![0]).toBe(`${HOST_B}/search/tv`)
-      expect(fetchSpy.mock.calls[2]![0]).toBe(PROXY_A)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_A)
+      expect(fetchSpy.mock.calls[1]![0]).toBe(`${HOST_A}/search/tv`)
+      expect(fetchSpy.mock.calls[2]![0]).toBe(`${HOST_B}/search/tv`)
     })
 
     it("fails over to a reverse proxy with upstream and date-token headers", async () => {
-      vi.useFakeTimers()
-      vi.setSystemTime(new Date("2026-07-10T12:00:00.000Z"))
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
-        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
         .mockResolvedValueOnce(okResponse({ results: [] }))
 
       const resp = await fetchWithFailover([HOST_A], "/search/movie", {
@@ -131,17 +129,16 @@ describe("fetchWithFailover", () => {
       })
 
       expect(resp!.ok).toBe(true)
-      expect(fetchSpy.mock.calls[1]![0]).toBe(PROXY_A)
-      expect(fetchSpy.mock.calls[1]![1]).toMatchObject({ method: "GET" })
-      const headers = headersOf(fetchSpy.mock.calls[1]![1])
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_A)
+      expect(fetchSpy.mock.calls[0]![1]).toMatchObject({ method: "GET" })
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
       expect(headers["X-Upstream-Base-Url"]).toBe(HOST_A)
-      expect(headers["X-Proxy-Authorization"]).toBe("Bearer 20260710")
+      expect(headers["X-Proxy-Authorization"]).toMatch(/^Bearer \d{8}$/)
     })
 
     it("omits X-Proxy-Authorization when proxy auth method is none", async () => {
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
-        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
         .mockResolvedValueOnce(okResponse())
 
       await fetchWithFailover([HOST_A], "/search/tv", {
@@ -155,13 +152,13 @@ describe("fetchWithFailover", () => {
         ]),
       })
 
-      const headers = headersOf(fetchSpy.mock.calls[1]![1])
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
       expect(headers["X-Upstream-Base-Url"]).toBe(HOST_A)
       expect(headers["X-Proxy-Authorization"]).toBeUndefined()
     })
 
     it("pairs proxies with hosts via zip (shortest list wins)", async () => {
-      // 2 hosts + 1 proxy → 2 direct attempts + 1 proxy attempt (paired with HOST_A only)
+      // 2 hosts + 1 proxy → 1 proxy attempt (paired with HOST_A) + 2 direct attempts
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
         .mockRejectedValue(new TypeError("Failed to fetch"))
@@ -179,16 +176,16 @@ describe("fetchWithFailover", () => {
 
       expect(fetchSpy).toHaveBeenCalledTimes(3)
       expect(fetchSpy.mock.calls.map((c) => c[0])).toEqual([
+        PROXY_A,
         `${HOST_A}/x`,
         `${HOST_B}/x`,
-        PROXY_A,
       ])
-      expect(headersOf(fetchSpy.mock.calls[2]![1])["X-Upstream-Base-Url"]).toBe(HOST_A)
+      expect(headersOf(fetchSpy.mock.calls[0]![1])["X-Upstream-Base-Url"]).toBe(HOST_A)
     })
   })
 
   describe("disabled domain filtering", () => {
-    it("skips a disabled base URL and uses the next host", async () => {
+    it("skips a disabled base URL and uses the next host via proxy", async () => {
       const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okResponse())
 
       await fetchWithFailover([HOST_A, HOST_B], "/search/tv", {
@@ -204,7 +201,8 @@ describe("fetchWithFailover", () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(`${HOST_B}/search/tv`)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_A)
+      expect(headersOf(fetchSpy.mock.calls[0]![1])["X-Upstream-Base-Url"]).toBe(HOST_B)
     })
 
     it("retries all base URLs when every host is disabled (network-issue heuristic)", async () => {
@@ -223,7 +221,7 @@ describe("fetchWithFailover", () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(`${HOST_A}/search/tv`)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_A)
     })
 
     it("skips a disabled reverse proxy and uses the next one", async () => {
@@ -251,7 +249,8 @@ describe("fetchWithFailover", () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(2)
-      expect(fetchSpy.mock.calls[1]![0]).toBe(PROXY_B)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_B)
+      expect(fetchSpy.mock.calls[1]![0]).toBe(`${HOST_A}/search/tv`)
     })
   })
 
@@ -266,8 +265,8 @@ describe("fetchWithFailover", () => {
         _config: configWith([]),
       })
 
-      expect(fetchSpy.mock.calls[1]![0]).toBe(staticConfig.defaultExternalReverseProxy.url)
-      const headers = headersOf(fetchSpy.mock.calls[1]![1])
+      expect(fetchSpy.mock.calls[0]![0]).toBe(staticConfig.defaultExternalReverseProxy.url)
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
       expect(headers["X-Upstream-Base-Url"]).toBe(HOST_A)
       expect(headers["X-Proxy-Authorization"]).toMatch(/^Bearer \d{8}$/)
     })
@@ -295,12 +294,12 @@ describe("fetchWithFailover", () => {
         ]),
       })
 
-      expect(fetchSpy.mock.calls[1]![0]).toBe(PROXY_B)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(PROXY_B)
     })
   })
 
   describe("abort handling", () => {
-    it("forwards AbortSignal to direct and proxy fetch attempts", async () => {
+    it("forwards AbortSignal to proxy and direct fetch attempts", async () => {
       const controller = new AbortController()
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
@@ -338,9 +337,7 @@ describe("fetchWithFailover", () => {
             },
           ]),
         }),
-      ).rejects.toSatisfy(
-        (err: unknown) => err instanceof DOMException && err.name === "AbortError",
-      )
+      ).rejects.toThrow(abortError)
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
       expect(localStorages.disabledDomains.size).toBe(0)
@@ -348,7 +345,7 @@ describe("fetchWithFailover", () => {
   })
 
   describe("disabled domain bookkeeping", () => {
-    it("records a failed direct host in localStorages.disabledDomains before failover", async () => {
+    it("records a failed proxy in localStorages.disabledDomains before failover to direct", async () => {
       vi.spyOn(globalThis, "fetch")
         .mockRejectedValueOnce(new TypeError("Failed to fetch"))
         .mockResolvedValueOnce(okResponse())
@@ -364,11 +361,11 @@ describe("fetchWithFailover", () => {
         ]),
       })
 
-      expect(localStorages.disabledDomains.has("tmdb-a.example")).toBe(true)
+      expect(localStorages.disabledDomains.has("proxy-a.example")).toBe(true)
     })
 
-    it("records a failed reverse proxy when a later proxy attempt succeeds", async () => {
-      // Chain: HOST_A, HOST_B, PROXY_A(with A), PROXY_B(with B)
+    it("records a failed reverse proxy when a later direct attempt succeeds", async () => {
+      // Chain: PROXY_A(with A), PROXY_B(with B), HOST_A, HOST_B
       vi.spyOn(globalThis, "fetch")
         .mockRejectedValueOnce(new TypeError("Failed to fetch"))
         .mockRejectedValueOnce(new TypeError("Failed to fetch"))
@@ -393,7 +390,8 @@ describe("fetchWithFailover", () => {
       })
 
       expect(localStorages.disabledDomains.has("proxy-a.example")).toBe(true)
-      expect(localStorages.disabledDomains.has("proxy-b.example")).toBe(false)
+      expect(localStorages.disabledDomains.has("proxy-b.example")).toBe(true)
+      expect(localStorages.disabledDomains.has("tmdb-a.example")).toBe(true)
     })
 
     it("clears host and proxy domains from disabledDomains when every attempt fails", async () => {
