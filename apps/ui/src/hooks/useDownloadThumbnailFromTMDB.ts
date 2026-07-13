@@ -1,7 +1,7 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import { downloadImageApi } from "@/api/downloadImage"
+import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { extname, newFilePathWithExt } from "@/lib/path"
 import type { MediaFileMetadata } from "@core/types"
 
@@ -68,7 +68,7 @@ export function useDownloadThumbnailFromTMDB<TContext = unknown>(
           continue
         }
         const stillFilePath = newFilePathWithExt(mediaFile.absolutePath, extname(stillPath.stillPath))
-        await downloadImageApi(stillPath.stillPath, stillFilePath)
+        await downloadImageWithFailover(stillPath.stillPath, stillFilePath)
       }
     },
   })
