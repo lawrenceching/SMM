@@ -38,6 +38,32 @@ describe("fetchProxiedImageWithFailover", () => {
     )
   })
 
+  it("still tries /api/image with original URL when fetchDiscoverConfig rejects", async () => {
+    const fetchImpl = vi
+      .fn<(input: string, init?: RequestInit) => Promise<Response>>()
+      .mockResolvedValueOnce({
+        ok: true,
+        blob: async () => new Blob(["img"], { type: "image/jpeg" }),
+      } as Response)
+
+    const { fetchProxiedImageWithFailover } = await import("./fetchProxiedImageWithFailover")
+    const blob = await fetchProxiedImageWithFailover(
+      "https://image.tmdb.org/t/p/original/a.jpg",
+      {
+        fetchDiscoverConfig: async () => {
+          throw new Error("Discover request failed: 500 Internal Server Error")
+        },
+        fetchImpl,
+      },
+    )
+
+    expect(await blob.text()).toBe("img")
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(String(fetchImpl.mock.calls[0]![0])).toContain(
+      encodeURIComponent("https://image.tmdb.org/t/p/original/a.jpg"),
+    )
+  })
+
   it("rethrows AbortError without trying further candidates", async () => {
     const abortError = new DOMException("Aborted", "AbortError")
     const fetchImpl = vi.fn().mockRejectedValue(abortError)

@@ -84,6 +84,31 @@ describe("downloadImageWithFailover", () => {
     expect(downloadImageApi).toHaveBeenCalledTimes(1)
   })
 
+  it("still downloads from original URL when fetchDiscoverConfig rejects", async () => {
+    const downloadImageApi = vi
+      .fn<(url: string, path: string) => Promise<DownloadImageResponseBody>>()
+      .mockResolvedValueOnce({ data: { url: "ok", path: "/p" } })
+
+    const { downloadImageWithFailover } = await import("./downloadImageWithFailover")
+    const result = await downloadImageWithFailover(
+      "https://image.tmdb.org/t/p/original/a.jpg",
+      "/media/poster.jpg",
+      {
+        fetchDiscoverConfig: async () => {
+          throw new Error("Discover request failed: 500 Internal Server Error")
+        },
+        downloadImageApi,
+      },
+    )
+
+    expect(result).toEqual({ data: { url: "ok", path: "/p" } })
+    expect(downloadImageApi).toHaveBeenCalledTimes(1)
+    expect(downloadImageApi).toHaveBeenCalledWith(
+      "https://image.tmdb.org/t/p/original/a.jpg",
+      "/media/poster.jpg",
+    )
+  })
+
   it("returns last error when all candidates fail", async () => {
     const downloadImageApi = vi
       .fn<(url: string, path: string) => Promise<DownloadImageResponseBody>>()

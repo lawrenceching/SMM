@@ -4,6 +4,8 @@ import { buildAssetUrlCandidates } from "@/lib/assetImageUrls"
 import { fetchDiscoverConfig, type DiscoverConfig } from "./discover"
 import { downloadImageApi as defaultDownloadImageApi } from "./downloadImage"
 
+const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxies: [] }
+
 export interface DownloadImageWithFailoverDeps {
   fetchDiscoverConfig?: () => Promise<DiscoverConfig>
   downloadImageApi?: (url: string, pathInPosix: string) => Promise<DownloadImageResponseBody>
@@ -17,7 +19,7 @@ export async function downloadImageWithFailover(
   const fetchConfig = deps.fetchDiscoverConfig ?? fetchDiscoverConfig
   const download = deps.downloadImageApi ?? defaultDownloadImageApi
 
-  const config = await fetchConfig()
+  const config = await fetchConfig().catch(() => EMPTY_DISCOVER_CONFIG)
   const candidates = buildAssetUrlCandidates(url, config)
 
   let last: DownloadImageResponseBody | undefined

@@ -1,6 +1,8 @@
 import { buildAssetUrlCandidates } from "@/lib/assetImageUrls"
 import { fetchDiscoverConfig, type DiscoverConfig } from "./discover"
 
+const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxies: [] }
+
 export interface FetchProxiedImageWithFailoverDeps {
   fetchDiscoverConfig?: () => Promise<DiscoverConfig>
   fetchImpl?: (input: string, init?: RequestInit) => Promise<Response>
@@ -20,7 +22,7 @@ export async function fetchProxiedImageWithFailover(
 ): Promise<Blob> {
   const fetchConfig = deps.fetchDiscoverConfig ?? fetchDiscoverConfig
   const fetchImpl = deps.fetchImpl ?? fetch
-  const config = await fetchConfig()
+  const config = await fetchConfig().catch(() => EMPTY_DISCOVER_CONFIG)
   const candidates = buildAssetUrlCandidates(imageUrl, config)
 
   let lastError: unknown
