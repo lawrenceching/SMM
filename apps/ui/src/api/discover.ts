@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { apiFetch } from '@/lib/apiFetch';
 
-export type MediaDatabaseType = 'tmdb' | 'tvdb'
+export type MediaDatabaseType = 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset'
 export type MediaDatabaseAuthorizationMethod = 'date-token' | 'none'
 
 export type ReverseProxyType = 'general'
@@ -29,7 +29,12 @@ export interface DiscoverConfig {
 }
 
 const endpointSchema = z.object({
-  type: z.union([z.literal('tmdb'), z.literal('tvdb')]),
+  type: z.union([
+    z.literal('tmdb'),
+    z.literal('tvdb'),
+    z.literal('tmdb-asset'),
+    z.literal('tvdb-asset'),
+  ]),
   url: z.string().min(1),
   authorizationMethod: z.union([z.literal('date-token'), z.literal('none')]),
 })
