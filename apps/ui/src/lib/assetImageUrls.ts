@@ -27,6 +27,15 @@ function hostSwap(originalUrl: string, assetBaseUrl: string): string | null {
   }
 }
 
+function getOverrideDefaultTmdbAssetServerHost(): string | null {
+  if (typeof localStorage === 'undefined') return null
+  try {
+    return localStorage.getItem('debug.overrideDefaultTmdbAssetServerHost')
+  } catch {
+    return null
+  }
+}
+
 function assetTypeForHost(hostname: string): MediaDatabaseType | null {
   if (TMDB_IMAGE_HOSTS.has(hostname)) return "tmdb-asset"
   if (TVDB_ARTWORK_HOSTS.has(hostname)) return "tvdb-asset"
@@ -58,5 +67,18 @@ export function buildAssetUrlCandidates(
     if (!swapped) continue
     if (!candidates.includes(swapped)) candidates.push(swapped)
   }
+  // Debug override: replace first candidate's host to simulate CDN failure
+  // for testing failover to discover asset mirrors.
+  const overrideHost = getOverrideDefaultTmdbAssetServerHost()
+  if (overrideHost && assetType === 'tmdb-asset' && candidates.length > 0) {
+    try {
+      const overridden = new URL(candidates[0])
+      overridden.host = overrideHost
+      candidates[0] = overridden.href
+    } catch {
+      // ignore invalid override host
+    }
+  }
+
   return candidates
 }
