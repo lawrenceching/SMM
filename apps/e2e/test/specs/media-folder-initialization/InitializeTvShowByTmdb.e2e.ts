@@ -4,6 +4,7 @@ import TvShowPanel from '../../componentobjects/TVShowPanel.co'
 import { delay } from 'es-toolkit'
 import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
 import '../../steps'
+import ConfigDialog from '../../componentobjects/ConfigDialog'
 import type { MediaMetadata } from '@smm/core/types'
 import { env } from 'node:process'
 
@@ -20,9 +21,10 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
         })
 
         const { openConfigDialog } = await import('../../actions/openConfigDialog')
-        const { setPrimaryDatabaseAndPreferLanguage } = await import('../../actions/setPrimaryDatabaseAndPreferLanguage')
+        // Set prefer media language on general tab (primaryDatabase defaults to TMDB)
         await openConfigDialog(async () => {
-            await setPrimaryDatabaseAndPreferLanguage('TMDB', 'en-US')
+            await ConfigDialog.switchToTab('general')
+            await ConfigDialog.setPreferMediaLanguage('en-US')
         })
 
         resetStepContext()
@@ -61,20 +63,20 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             await TvShowPanel.waitForTitleToBe(expectedTitle)
 
             expect(await TvShowPanel.toString()).toBe(`Specials
-	S00E01 - - - -
-	Season 1
-	S01E01 S01E01.mkv V V V
-	S01E02 S01E02.mkv V V V
-	S01E03 S01E03.mkv V V V
-	S01E04 - - - -
-	S01E05 - - - -
-	S01E06 - - - -
-	S01E07 - - - -
-	S01E08 - - - -
-	S01E09 - - - -
-	S01E10 - - - -
-	S01E11 - - - -
-	S01E12 - - - -`)
+S00E01 - - - -
+Season 1
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
         })
 
         await then('metadata is persisted with TMDB tvshow id 84666', async () => {
@@ -143,20 +145,20 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             await TvShowPanel.waitForTitleToBe(expectedTitle)
 
             expect(await TvShowPanel.toString()).toBe(`Specials
-	S00E01 - - - -
-	Season 1
-	S01E01 S01E01.mkv V V V
-	S01E02 S01E02.mkv V V V
-	S01E03 S01E03.mkv V V V
-	S01E04 - - - -
-	S01E05 - - - -
-	S01E06 - - - -
-	S01E07 - - - -
-	S01E08 - - - -
-	S01E09 - - - -
-	S01E10 - - - -
-	S01E11 - - - -
-	S01E12 - - - -`)
+S00E01 - - - -
+Season 1
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
         })
 
         await then('metadata is persisted with TMDB tvshow id 84666', async () => {
@@ -225,21 +227,21 @@ describe('Media Folder Initialization - TV Show - TMDB', () => {
             await browser.pause(5000)
 
             expect(await TvShowPanel.toString()).toBe(`nfo
-	Specials
-	S00E01 - - - -
-	Season 1
-	S01E01 S01E01.mkv V V V
-	S01E02 S01E02.mkv V V V
-	S01E03 S01E03.mkv V V V
-	S01E04 - - - -
-	S01E05 - - - -
-	S01E06 - - - -
-	S01E07 - - - -
-	S01E08 - - - -
-	S01E09 - - - -
-	S01E10 - - - -
-	S01E11 - - - -
-	S01E12 - - - -`)
+Specials
+S00E01 - - - -
+Season 1
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
         })
 
         await then('metadata is persisted with TMDB tvshow id 84666', async () => {

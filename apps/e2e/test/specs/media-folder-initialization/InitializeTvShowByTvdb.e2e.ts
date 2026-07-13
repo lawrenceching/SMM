@@ -4,6 +4,7 @@ import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
 import { delay } from 'es-toolkit'
 import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
 import '../../steps'
+import ConfigDialog from '../../componentobjects/ConfigDialog'
 import type { MediaMetadata } from '@smm/core/types'
 import env from 'test/lib/env'
 
@@ -20,9 +21,21 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
         })
 
         const { openConfigDialog } = await import('../../actions/openConfigDialog')
-        const { setPrimaryDatabaseAndPreferLanguage } = await import('../../actions/setPrimaryDatabaseAndPreferLanguage')
+        // Set primary database to TVDB (save on media-databases tab before switching away)
         await openConfigDialog(async () => {
-            await setPrimaryDatabaseAndPreferLanguage('TVDB', 'zh-CN')
+            if (env.slowdown) {
+                await delay(1000)
+            }
+            await ConfigDialog.switchToTab('media-databases')
+            await ConfigDialog.setPrimaryDatabase('TVDB')
+        })
+        // Set prefer media language (separate dialog session, stays on general tab)
+        await openConfigDialog(async () => {
+            if (env.slowdown) {
+                await delay(1000)
+            }
+            await ConfigDialog.switchToTab('general')
+            await ConfigDialog.setPreferMediaLanguage('zh-CN')
         })
 
         resetStepContext()
@@ -55,21 +68,21 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
 
             const state = await TvShowPanelCO.toString()
             expect(state).toContain(`Season 0
-	S00E01 - - - -
-	S00E02 - - - -
-	Season 1
-	S01E01 S01E01.mkv V V V
-	S01E02 S01E02.mkv V V V
-	S01E03 S01E03.mkv V V V
-	S01E04 - - - -
-	S01E05 - - - -
-	S01E06 - - - -
-	S01E07 - - - -
-	S01E08 - - - -
-	S01E09 - - - -
-	S01E10 - - - -
-	S01E11 - - - -
-	S01E12 - - - -`)
+S00E01 - - - -
+S00E02 - - - -
+Season 1
+S01E01 S01E01.mkv V V V
+S01E02 S01E02.mkv V V V
+S01E03 S01E03.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`)
         })
 
         await then('metadata is persisted with TVDB tvshow id 355969', async () => {
@@ -99,48 +112,48 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
 
             const state = await TvShowPanelCO.toString()
             expect(state).toContain(`Season 0
-	S00E01 - - - -
-	S00E02 - - - -
-	Season 1
-	S01E01 S01E01.mkv - - -
-	S01E02 - - - -
-	S01E03 - - - -
-	S01E04 - - - -
-	S01E05 - - - -
-	S01E06 - - - -
-	S01E07 - - - -
-	S01E08 - - - -
-	S01E09 - - - -
-	S01E10 - - - -
-	S01E11 - - - -
-	Season 2
-	S02E01 - - - -
-	S02E02 - - - -
-	S02E03 - - - -
-	S02E04 - - - -
-	S02E05 - - - -
-	S02E06 - - - -
-	S02E07 - - - -
-	S02E08 - - - -
-	S02E09 - - - -
-	S02E10 - - - -
-	S02E11 - - - -
-	S02E12 - - - -
-	S02E13 - - - -
-	Season 3
-	S03E01 - - - -
-	S03E02 - - - -
-	S03E03 - - - -
-	S03E04 - - - -
-	S03E05 - - - -
-	S03E06 - - - -
-	S03E07 - - - -
-	S03E08 - - - -
-	S03E09 - - - -
-	S03E10 - - - -
-	S03E11 - - - -
-	Season 4
-	S04E01 - - - -`)
+S00E01 - - - -
+S00E02 - - - -
+Season 1
+S01E01 S01E01.mkv - - -
+S01E02 - - - -
+S01E03 - - - -
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+Season 2
+S02E01 - - - -
+S02E02 - - - -
+S02E03 - - - -
+S02E04 - - - -
+S02E05 - - - -
+S02E06 - - - -
+S02E07 - - - -
+S02E08 - - - -
+S02E09 - - - -
+S02E10 - - - -
+S02E11 - - - -
+S02E12 - - - -
+S02E13 - - - -
+Season 3
+S03E01 - - - -
+S03E02 - - - -
+S03E03 - - - -
+S03E04 - - - -
+S03E05 - - - -
+S03E06 - - - -
+S03E07 - - - -
+S03E08 - - - -
+S03E09 - - - -
+S03E10 - - - -
+S03E11 - - - -
+Season 4
+S04E01 - - - -`)
         })
 
         await then('metadata is persisted with TVDB tvshow id 421069', async () => {

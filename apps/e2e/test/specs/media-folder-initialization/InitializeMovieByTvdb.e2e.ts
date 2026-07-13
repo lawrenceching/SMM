@@ -21,13 +21,23 @@ describe('TVDB Movie Media Folder Initialization', () => {
         })
 
         const { openConfigDialog } = await import('../../actions/openConfigDialog')
-        const { setPrimaryDatabaseAndPreferLanguage } = await import('../../actions/setPrimaryDatabaseAndPreferLanguage')
+        // Set primary database to TVDB (save on media-databases tab before switching away)
         await openConfigDialog(async () => {
             expect(await ConfigDialog.isDisplayed()).toBe(true)
             if (env.slowdown) {
                 await delay(1000)
             }
-            await setPrimaryDatabaseAndPreferLanguage('TVDB', 'zh-CN')
+            await ConfigDialog.switchToTab('media-databases')
+            await ConfigDialog.setPrimaryDatabase('TVDB')
+        })
+        // Set prefer media language (separate dialog session, stays on general tab)
+        await openConfigDialog(async () => {
+            expect(await ConfigDialog.isDisplayed()).toBe(true)
+            if (env.slowdown) {
+                await delay(1000)
+            }
+            await ConfigDialog.switchToTab('general')
+            await ConfigDialog.setPreferMediaLanguage('zh-CN')
         })
 
         resetStepContext()
@@ -59,9 +69,9 @@ describe('TVDB Movie Media Folder Initialization', () => {
         await then('movie panel table shows the expected content', async () => {
             const text = await MoviePanelCO.table.getText()
             expect(text).toContain(`ID Video File Thumb Sub NFO
-	Movie
-	S01E01
-	The Dark Knight [1080P].mkv`)
+Movie
+S01E01
+The Dark Knight [1080P].mkv`)
         })
 
         await then('metadata is persisted with TVDB movie id 116', async () => {
@@ -93,9 +103,9 @@ describe('TVDB Movie Media Folder Initialization', () => {
         await then('movie panel table shows the expected content', async () => {
             const text = await MoviePanelCO.table.getText()
             expect(text).toContain(`ID Video File Thumb Sub NFO
-	Movie
-	S01E01
-	The Dark Knight [1080P].mkv`)
+Movie
+S01E01
+The Dark Knight [1080P].mkv`)
         })
 
         await then('metadata is persisted with TVDB movie id 13611', async () => {

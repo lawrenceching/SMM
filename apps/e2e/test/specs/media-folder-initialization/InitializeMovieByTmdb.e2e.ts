@@ -20,13 +20,14 @@ describe('Media Folder Initialization', () => {
         })
 
         const { openConfigDialog } = await import('../../actions/openConfigDialog')
-        const { setPrimaryDatabaseAndPreferLanguage } = await import('../../actions/setPrimaryDatabaseAndPreferLanguage')
+        // Set prefer media language on general tab (primaryDatabase defaults to TMDB)
         await openConfigDialog(async () => {
             expect(await ConfigDialog.isDisplayed()).toBe(true)
             if (env.slowdown) {
                 await delay(1000)
             }
-            await setPrimaryDatabaseAndPreferLanguage('TMDB', 'zh-CN')
+            await ConfigDialog.switchToTab('general')
+            await ConfigDialog.setPreferMediaLanguage('zh-CN')
         })
 
         resetStepContext()
