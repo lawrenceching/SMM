@@ -174,6 +174,28 @@ describe('handleDiscover', () => {
     const body = await res.json();
     expect(body.data.mediaDatabases[0].authorizationMethod).toBe('none');
   });
+
+  it('keeps tmdb-asset and tvdb-asset entries', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [
+          { type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' },
+          { type: 'tmdb-asset', baseUrl: 'https://tmdb-asset.example.com' },
+          { type: 'tvdb-asset', url: 'https://tvdb-asset.example.com', authorizationMethod: 'none' },
+          { type: 'unknown', baseUrl: 'https://drop.me' },
+        ],
+      }),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.mediaDatabases).toEqual([
+      { type: 'tmdb', url: 'https://example.com/api/tmdb', authorizationMethod: 'none' },
+      { type: 'tmdb-asset', url: 'https://tmdb-asset.example.com', authorizationMethod: 'none' },
+      { type: 'tvdb-asset', url: 'https://tvdb-asset.example.com', authorizationMethod: 'none' },
+    ]);
+  });
 });
 
 describe('fetchDiscoveredMediaDatabases', () => {

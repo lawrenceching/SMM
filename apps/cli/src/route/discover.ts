@@ -7,7 +7,7 @@ const DISCOVER_CONFIG_URL =
 
 const DISCOVER_TIMEOUT_MS = 10_000;
 
-export type MediaDatabaseType = 'tmdb' | 'tvdb';
+export type MediaDatabaseType = 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset';
 export type MediaDatabaseAuthorizationMethod = 'date-token' | 'none';
 
 /**
@@ -77,7 +77,9 @@ function normalizeMediaDatabaseEntry(entry: RemoteMediaDatabaseEntry): MediaData
   if (!endpointUrl) return null;
 
   const type = entry.type;
-  if (type !== 'tmdb' && type !== 'tvdb') return null;
+  if (type !== 'tmdb' && type !== 'tvdb' && type !== 'tmdb-asset' && type !== 'tvdb-asset') {
+    return null;
+  }
 
   return {
     type,
