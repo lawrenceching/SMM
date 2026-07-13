@@ -1,4 +1,4 @@
-import type { DiscoverConfig, ReverseProxyEndpoint } from "../api/discover"
+import type { DiscoverConfig } from "../api/discover"
 import { zip } from "es-toolkit"
 import { isEmpty } from "es-toolkit/compat"
 import localStorages from "./localStorages"

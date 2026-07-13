@@ -141,12 +141,14 @@ function killProcessTree(child: ManagedChild, signal: NodeJS.Signals): void {
 
   if (process.platform === 'win32') {
     const force = signal === 'SIGKILL';
+    // Match ci/run-e2e-child.ts: shell:false + windowsHide avoids a brief
+    // visible cmd.exe window for each taskkill during background teardown.
     spawn(
       'taskkill',
       force
         ? ['/pid', String(child.pid), '/f', '/t']
         : ['/pid', String(child.pid), '/t'],
-      { shell: true, stdio: 'ignore' },
+      { shell: false, stdio: 'ignore', windowsHide: true },
     );
     return;
   }

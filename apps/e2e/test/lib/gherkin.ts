@@ -62,8 +62,16 @@ export async function given(label: string, fn?: () => Promise<void>): Promise<vo
     await executeStep('Given', label, fn)
 }
 
-export async function when(label: string, fn?: () => Promise<void>): Promise<void> {
-    await executeStep('When', label, fn)
+export async function when(
+    label: string,
+    arg?: (() => Promise<void>) | Record<string, unknown>,
+): Promise<void> {
+    if (arg !== undefined && typeof arg !== 'function') {
+        currentContext._importFolderDef = arg
+        await executeStep('When', label, undefined)
+        return
+    }
+    await executeStep('When', label, arg as (() => Promise<void>) | undefined)
 }
 
 export async function then(label: string, fn?: () => Promise<void>): Promise<void> {

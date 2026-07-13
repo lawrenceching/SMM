@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DiscoverConfig } from "@/api/discover"
-import staticConfig from "@/api/staticConfig"
 import { fetchWithFailover, getDomainName } from "./http"
 import localStorages from "./localStorages"
 
@@ -255,20 +254,15 @@ describe("fetchWithFailover", () => {
   })
 
   describe("default / invalid reverse proxies", () => {
-    it("uses staticConfig default reverse proxy when discover list is empty", async () => {
-      const fetchSpy = vi
-        .spyOn(globalThis, "fetch")
-        .mockRejectedValueOnce(new TypeError("Failed to fetch"))
-        .mockResolvedValueOnce(okResponse())
+    it("falls back to direct fetch when discover reverse proxy list is empty", async () => {
+      const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(okResponse())
 
       await fetchWithFailover([HOST_A], "/search/tv", {
         _config: configWith([]),
       })
 
-      expect(fetchSpy.mock.calls[0]![0]).toBe(staticConfig.defaultExternalReverseProxy.url)
-      const headers = headersOf(fetchSpy.mock.calls[0]![1])
-      expect(headers["X-Upstream-Base-Url"]).toBe(HOST_A)
-      expect(headers["X-Proxy-Authorization"]).toMatch(/^Bearer \d{8}$/)
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(fetchSpy.mock.calls[0]![0]).toBe(`${HOST_A}/search/tv`)
     })
 
     it("filters out unparseable reverse proxy URLs before building the chain", async () => {
@@ -337,7 +331,9 @@ describe("fetchWithFailover", () => {
             },
           ]),
         }),
-      ).rejects.toThrow(abortError)
+      ).rejects.toSatisfy(
+        (err: unknown) => err instanceof DOMException && err.name === "AbortError",
+      )
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
       expect(localStorages.disabledDomains.size).toBe(0)

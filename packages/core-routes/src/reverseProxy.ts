@@ -90,6 +90,12 @@ export interface ReverseProxyLogger {
 export interface ReverseProxyConfig {
   /** Upstream host allowlist. Defaults to {@link DEFAULT_ALLOWED_UPSTREAM_HOSTS}. */
   allowedUpstreamHosts?: ReadonlySet<string>;
+  /**
+   * Optional callback to dynamically resolve the upstream host allowlist.
+   * Called on every request to support runtime configuration changes.
+   * Takes precedence over {@link allowedUpstreamHosts} when both are provided.
+   */
+  resolveAllowedUpstreamHosts?: () => Promise<ReadonlySet<string>>;
   /** Ports to skip during port scanning (e.g. the MCP server port). */
   reservedPorts?: ReadonlySet<number>;
   /** Port range to scan. Defaults to [30000, 31000]. */
@@ -256,9 +262,23 @@ export async function handleProxyRequest(
   config: ReverseProxyConfig = {},
 ): Promise<Response> {
   const logger = config.logger ?? noopLogger();
-  const allowedUpstreamHosts =
-    config.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
   const fetchImpl = config.fetchImpl ?? fetch;
+
+  // Resolve allowlist: prefer dynamic resolver if provided, otherwise use static or default
+  let allowedUpstreamHosts: ReadonlySet<string>;
+  if (config.resolveAllowedUpstreamHosts) {
+    try {
+      allowedUpstreamHosts = await config.resolveAllowedUpstreamHosts();
+    } catch (error) {
+      logger.error(
+        { err: error, errorMessage: error instanceof Error ? error.message : String(error) },
+        "[Reverse Proxy] failed to resolve allowed upstream hosts, falling back to defaults",
+      );
+      allowedUpstreamHosts = config.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+    }
+  } else {
+    allowedUpstreamHosts = config.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+  }
 
   // Handle CORS preflight
   if (request.method === "OPTIONS") {

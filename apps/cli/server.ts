@@ -450,15 +450,15 @@ export class Server {
  * Build the reverse proxy config from the current user config:
  * - reservedPorts: the configured MCP server port (default 30001) so the
  *   proxy scan does not collide with it.
- * - allowedUpstreamHosts: the SMM defaults plus any AI provider hosts the
- *   user has configured (used by the summarize feature).
+ * - resolveAllowedUpstreamHosts: a dynamic resolver that reads the latest
+ *   user config on each request to build the allowlist. This ensures that
+ *   custom TMDB/TVDB hosts and AI provider hosts are always up-to-date.
  *
  * User config read failures are non-fatal: the proxy will still start with
  * defaults so the rest of the CLI can serve requests.
  */
 async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
   const reservedPorts = new Set<number>();
-  const allowedUpstreamHosts = new Set<string>(DEFAULT_ALLOWED_UPSTREAM_HOSTS);
 
   try {
     const userConfig = await getUserConfig();
@@ -466,28 +466,48 @@ async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
     if (Number.isFinite(configuredMcpPort)) {
       reservedPorts.add(configuredMcpPort);
     }
-
-    if (userConfig.aiProviders?.length) {
-      for (const p of userConfig.aiProviders) {
-        if (!p.baseURL) continue;
-        try {
-          allowedUpstreamHosts.add(new URL(p.baseURL).hostname);
-          logger.info(
-            { host: new URL(p.baseURL).hostname },
-            '[Reverse Proxy] Added AI provider host to whitelist',
-          );
-        } catch {
-          logger.warn({ baseURL: p.baseURL }, 'Invalid baseURL in AI provider config');
-        }
-      }
-    }
   } catch (err) {
     logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');
   }
 
+  // Dynamic resolver: reads the latest user config on each request
+  const resolveAllowedUpstreamHosts = async (): Promise<ReadonlySet<string>> => {
+    const allowedUpstreamHosts = new Set<string>(DEFAULT_ALLOWED_UPSTREAM_HOSTS);
+
+    try {
+      const userConfig = await getUserConfig();
+
+      // Add AI provider hosts
+      if (userConfig.aiProviders?.length) {
+        for (const p of userConfig.aiProviders) {
+          if (!p.baseURL) continue;
+          try {
+            allowedUpstreamHosts.add(new URL(p.baseURL).hostname);
+          } catch {
+            logger.warn({ baseURL: p.baseURL }, 'Invalid baseURL in AI provider config');
+          }
+        }
+      }
+
+      // Add custom TMDB/TVDB hosts
+      for (const candidate of [userConfig.tmdb?.host, userConfig.tvdb?.host]) {
+        if (!candidate) continue;
+        try {
+          allowedUpstreamHosts.add(new URL(candidate).hostname);
+        } catch {
+          logger.warn({ host: candidate }, 'Invalid custom media database host URL');
+        }
+      }
+    } catch (err) {
+      logger.warn({ err }, 'Failed to load user config for allowed upstream hosts');
+    }
+
+    return allowedUpstreamHosts;
+  };
+
   return {
     reservedPorts,
-    allowedUpstreamHosts,
+    resolveAllowedUpstreamHosts,
     logger,
     createProxiedFetch,
   };

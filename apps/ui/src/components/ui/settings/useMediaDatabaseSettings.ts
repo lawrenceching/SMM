@@ -32,10 +32,10 @@ export interface MediaDatabasesSettingsForm {
 }
 
 export interface MediaDatabasesSettingsFormErrors {
-  tmdbHost?: string
-  tmdbProxy?: string
-  tvdbHost?: string
-  tvdbProxy?: string
+  tmdbHost?: 'invalidUrl'
+  tmdbProxy?: 'invalidUrl'
+  tvdbHost?: 'invalidUrl'
+  tvdbProxy?: 'invalidUrl'
 }
 
 export interface MediaDatabasesSettingsProps {
@@ -99,7 +99,7 @@ export function useMediaDatabaseSettings(): MediaDatabasesSettingsProps {
     primaryDatabase, initialValues,
   ])
 
-  const errors = useMemo(() => ({
+  const errors = useMemo((): MediaDatabasesSettingsFormErrors => ({
     tmdbHost: tmdbHost && !isValidUrl(tmdbHost) ? 'invalidUrl' : undefined,
     tmdbProxy: tmdbProxy && !isValidUrl(tmdbProxy) ? 'invalidUrl' : undefined,
     tvdbHost: tvdbHost && !isValidUrl(tvdbHost) ? 'invalidUrl' : undefined,

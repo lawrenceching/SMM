@@ -242,19 +242,20 @@ describe('fetchTmdb', () => {
       expect(localStorages.disabledDomains.size).toBe(0)
     })
 
-    it('tries the discovered TMDB host directly first', async () => {
+    it('tries the discovered reverse proxy first', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({ results: [] }))
 
       const resp = await fetchTmdb('/search/tv?query=naruto', { config: discoverConfig })
 
       expect(resp!.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(
-        'https://tmdb-a.example/api/tmdb/search/tv?query=naruto',
-      )
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://proxy-a.example')
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
+      expect(headers['X-Upstream-Base-Url']).toBe('https://tmdb-a.example/api/tmdb')
+      expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
     })
 
-    it('fails over to a reverse proxy with date-token auth when direct fetch throws', async () => {
+    it('fails over to the discovered TMDB host when reverse proxy throws', async () => {
       const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockRejectedValueOnce(new TypeError('Failed to fetch'))
@@ -266,20 +267,20 @@ describe('fetchTmdb', () => {
 
       expect(resp!.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(2)
-      expect(fetchSpy.mock.calls[1]![0]).toBe('https://proxy-a.example')
-      const headers = headersOf(fetchSpy.mock.calls[1]![1])
-      expect(headers['X-Upstream-Base-Url']).toBe('https://tmdb-a.example/api/tmdb')
-      expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://proxy-a.example')
+      expect(fetchSpy.mock.calls[1]![0]).toBe(
+        'https://tmdb-a.example/api/tmdb/search/movie?query=inception',
+      )
     })
 
-    it('records the failed direct host in disabledDomains before failover', async () => {
+    it('records the failed reverse proxy in disabledDomains before failover', async () => {
       vi.spyOn(globalThis, 'fetch')
         .mockRejectedValueOnce(new TypeError('Failed to fetch'))
         .mockResolvedValueOnce(okResponse())
 
       await fetchTmdb('/search/tv', { config: discoverConfig })
 
-      expect(localStorages.disabledDomains.has('tmdb-a.example')).toBe(true)
+      expect(localStorages.disabledDomains.has('proxy-a.example')).toBe(true)
     })
 
     it('skips hosts and proxies listed in disabledDomains', async () => {
@@ -319,9 +320,9 @@ describe('fetchTmdb', () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(
-        'https://live-tmdb.example/api/tmdb/search/tv',
-      )
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://live-proxy.example')
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
+      expect(headers['X-Upstream-Base-Url']).toBe('https://live-tmdb.example/api/tmdb')
     })
 
     it('uses default host and proxy when discover lists are empty', async () => {
@@ -475,7 +476,7 @@ describe('tmdb routing through reverse proxy', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
-  it('searches via direct default upstream when TMDB host is empty', async () => {
+  it('searches via discovered reverse proxy when TMDB host is empty', async () => {
     mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
     const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
 
@@ -483,9 +484,9 @@ describe('tmdb routing through reverse proxy', () => {
 
     expect(result).toEqual({ results: [], page: 1, total_pages: 1, total_results: 0 })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
-    expect(fetchSpy.mock.calls[0][0]).toBe(
-      'https://tmdb-a.example/api/tmdb/search/tv?query=naruto&language=en-US',
-    )
+    expect(fetchSpy.mock.calls[0][0]).toBe('https://proxy-a.example')
+    const headers = headersOf(fetchSpy.mock.calls[0][1] as RequestInit)
+    expect(headers['X-Upstream-Base-Url']).toBe('https://tmdb-a.example/api/tmdb')
   })
 
   it('searches via reverse proxy with configured TMDB host and Authorization', async () => {

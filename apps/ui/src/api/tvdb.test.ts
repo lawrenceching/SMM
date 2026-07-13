@@ -222,19 +222,20 @@ describe('fetchTvdb', () => {
       expect(localStorages.disabledDomains.size).toBe(0)
     })
 
-    it('tries the discovered TVDB host directly first', async () => {
+    it('tries the discovered reverse proxy first', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(okResponse({ data: [] }))
 
       const resp = await fetchTvdb('/search?query=naruto', { config: discoverConfig })
 
       expect(resp!.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(
-        'https://tvdb-a.example/api/tvdb/search?query=naruto',
-      )
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://proxy-a.example')
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
+      expect(headers['X-Upstream-Base-Url']).toBe('https://tvdb-a.example/api/tvdb')
+      expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
     })
 
-    it('fails over to a reverse proxy with date-token auth when direct fetch throws', async () => {
+    it('fails over to the discovered TVDB host when reverse proxy throws', async () => {
       const fetchSpy = vi
         .spyOn(globalThis, 'fetch')
         .mockRejectedValueOnce(new TypeError('Failed to fetch'))
@@ -246,20 +247,20 @@ describe('fetchTvdb', () => {
 
       expect(resp!.ok).toBe(true)
       expect(fetchSpy).toHaveBeenCalledTimes(2)
-      expect(fetchSpy.mock.calls[1]![0]).toBe('https://proxy-a.example')
-      const headers = headersOf(fetchSpy.mock.calls[1]![1])
-      expect(headers['X-Upstream-Base-Url']).toBe('https://tvdb-a.example/api/tvdb')
-      expect(headers['X-Proxy-Authorization']).toMatch(/^Bearer \d{8}$/)
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://proxy-a.example')
+      expect(fetchSpy.mock.calls[1]![0]).toBe(
+        'https://tvdb-a.example/api/tvdb/search?query=naruto',
+      )
     })
 
-    it('records the failed direct host in disabledDomains before failover', async () => {
+    it('records the failed reverse proxy in disabledDomains before failover', async () => {
       vi.spyOn(globalThis, 'fetch')
         .mockRejectedValueOnce(new TypeError('Failed to fetch'))
         .mockResolvedValueOnce(okResponse())
 
       await fetchTvdb('/search', { config: discoverConfig })
 
-      expect(localStorages.disabledDomains.has('tvdb-a.example')).toBe(true)
+      expect(localStorages.disabledDomains.has('proxy-a.example')).toBe(true)
     })
 
     it('skips hosts and proxies listed in disabledDomains', async () => {
@@ -299,9 +300,9 @@ describe('fetchTvdb', () => {
       })
 
       expect(fetchSpy).toHaveBeenCalledTimes(1)
-      expect(fetchSpy.mock.calls[0]![0]).toBe(
-        'https://live-tvdb.example/api/tvdb/search',
-      )
+      expect(fetchSpy.mock.calls[0]![0]).toBe('https://live-proxy.example')
+      const headers = headersOf(fetchSpy.mock.calls[0]![1])
+      expect(headers['X-Upstream-Base-Url']).toBe('https://live-tvdb.example/api/tvdb')
     })
 
     it('uses default host and proxy when discover lists are empty', async () => {

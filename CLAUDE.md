@@ -1,2 +1,1 @@
-References
-[AGENTS.md](./AGENTS.md)
+Read [AGENTS.md](./AGENTS.md) to understand this project.
