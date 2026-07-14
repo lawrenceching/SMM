@@ -202,24 +202,31 @@ And the test status of v1.1.0
 
 
 
-## 
-
 ## Custom TMDB/TVDB Host and HTTP Proxy
 
 | Feature                     | Test File             | Type   | Comment |
 | ----------------------------|---------------------- | ------ | ------- |
-| Custom TMDB Host            | CustomTmdbHost.e2e.ts |  AUTO  |         |
-| Custom TVDB Host            | CustomTvdbHost.e2e.ts |  AUTO  |         |
-| TMDB HTTP Proxy | CustomTmdbHost-WithHttpProxy.e2e.ts | AUTO | |
-| TVDB HTTP Proxy | CustomTvdbHost-WithHttpProxy.e2e.ts | AUTO | |
-| Wrong TMDB API Key | CustomTmdbHost-WrongApiKey.e2e.ts | AUTO | |
-| Wrong TVDB API Key | CustomTvdbHost-WrongApiKey.e2e.ts | AUTO | |
-| TMDB Host Failover | TmdbHostFailover.e2e.ts |||
+| Search by Custom TMDB host  | CustomTmdbHost.e2e.ts |  AUTO  |         |
+| Search by Custom TVDB host  | CustomTvdbHost.e2e.ts |  AUTO  |         |
+| Search by Custom TMDB host behind HTTP Proxy | CustomTmdbHost-WithHttpProxy.e2e.ts | AUTO | |
+| Search by Custom TVDB host behind HTTP Proxy | CustomTvdbHost-WithHttpProxy.e2e.ts | AUTO | |
+| Wrong TMDB API Key          | CustomTmdbHost-WrongApiKey.e2e.ts | AUTO | |
+| Wrong TVDB API Key          | CustomTvdbHost-WrongApiKey.e2e.ts | AUTO | |
+| TMDB Host Failover          | TmdbHostFailover.e2e.ts | AUTO ||
+| Init Folder                 | InitTvShowByCustomTmdbHost.e2e.ts | AUTO ||
+|                             | InitTvShowByCustomTvdbHost.e2e.ts | AUTO ||
+|                             | InitTvShowByTmdbBehindHttpProxy.e2e.ts | AUTO ||
+|                             | InitTvShowByTvdbBehindHttpProxy.e2e.ts | AUTO ||
 
 TODO: HTTP Proxy needs to add auto test for all OS
 
-5. Connect to mediadb.vercel.app
-6. Connect to gz proxy (check mediadb.vercel.app was disabled)
-7. Media Folder Initialization succeeded behind a proxy
-8. Scrape behind a proxy
- 
+## Scrape
+
+| Feature                     | Test File             | Type   | Comment |
+| ----------------------------|---------------------- | ------ | ------- |
+| Scrape TV show from TMDB    | Scrape.e2e.ts         |  AUTO  |         |
+| Scrape TV show from TVDB    | Scrape.e2e.ts         |  AUTO  |         |
+| Scrape movie from TMDB      | Scrape.e2e.ts         |  AUTO  |         |
+| Scrape movie from TVDB      | Scrape.e2e.ts         |  AUTO  |         |
+| TMDB hosts failover         | Scrape.e2e.ts         |  AUTO  |         |
+| TVDB hosts failover         | Scrape.e2e.ts         |  AUTO  |         |

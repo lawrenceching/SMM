@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { Config, Hook } from './config.ts';
-import type { TaskRecord } from './types.ts';
+import type { HookRecord, TaskRecord } from './types.ts';
 import { DebugLog } from './debug-log.ts';
 import { LogStore } from './log-store.ts';
 import { sliceLogFile } from './slicer.ts';
@@ -16,6 +16,7 @@ import {
 export interface OrchestratorResult {
   exitCode: 0 | 1;
   taskResults: TaskRecord[];
+  onArtifactsReadyResults: HookRecord[];
 }
 
 function buildChildEnv(
@@ -25,53 +26,74 @@ function buildChildEnv(
   return { ...process.env, ...configEnv, ...itemEnv };
 }
 
+/** Resolve task/background/hook cwd: omit → projectRoot; relative → under projectRoot; absolute → as-is. */
+export function resolveItemCwd(
+  itemCwd: string | undefined,
+  projectRoot: string,
+): string {
+  if (!itemCwd) return projectRoot;
+  return path.isAbsolute(itemCwd) ? itemCwd : path.resolve(projectRoot, itemCwd);
+}
+
+type HookPhase = 'after_each' | 'artifacts_ready';
+
+type HookRunOutcome = {
+  exitCode: number;
+  startTime: number;
+  endTime: number;
+  timedOut: boolean;
+};
+
 async function runHook(
   hook: Hook,
   options: {
     config: Config;
-    outputDir: string;
-    taskName: string;
-    taskExitCode: number;
+    projectRoot: string;
+    hookEnv: Record<string, string>;
     debugLog: DebugLog;
     signal: AbortSignal;
+    phase: HookPhase;
+    debugContext?: Record<string, unknown>;
   },
-): Promise<void> {
-  const { config, outputDir, taskName, taskExitCode, debugLog, signal } = options;
+): Promise<HookRunOutcome> {
+  const { config, projectRoot, hookEnv, debugLog, signal, phase, debugContext } = options;
+  const startTime = Date.now();
+  const cwd = resolveItemCwd(hook.cwd, projectRoot);
 
-  debugLog.emit('after_each_start', {
+  debugLog.emit(`${phase}_start`, {
     hookName: hook.name,
-    taskName,
-    taskExitCode,
     command: hook.command,
+    cwd,
+    ...debugContext,
   });
 
   const child = spawnChild({
     command: hook.command,
     args: [],
-    cwd: hook.cwd ?? process.cwd(),
+    cwd,
     env: buildChildEnv(config.env, {
       ...hook.env,
-      CICD_TASK_NAME: taskName,
-      CICD_OUTPUT_DIR: outputDir,
-      CICD_TASK_EXIT_CODE: String(taskExitCode),
+      ...hookEnv,
     }),
     onStdout: (chunk) => process.stdout.write(chunk),
     onStderr: (chunk) => process.stderr.write(chunk),
   });
 
   let exitCode = 1;
+  let timedOut = false;
 
   if (hook.timeoutMs !== undefined) {
     const timeoutHandle = setTimeout(() => {
-      debugLog.emit('after_each_timeout', {
+      timedOut = true;
+      debugLog.emit(`${phase}_timeout`, {
         hookName: hook.name,
-        taskName,
         timeoutMs: hook.timeoutMs,
+        ...debugContext,
       });
       void killTreeAndWait(child, 1000, {
         log: debugLog,
         label: hook.name,
-        reason: 'after_each_timeout',
+        reason: `${phase}_timeout`,
       });
     }, hook.timeoutMs);
     const result = await waitForChildExitOrAbort(child, signal);
@@ -96,18 +118,24 @@ async function runHook(
     exitCode = 1;
   }
 
-  debugLog.emit('after_each_end', {
+  const endTime = Date.now();
+
+  debugLog.emit(`${phase}_end`, {
     hookName: hook.name,
-    taskName,
     exitCode,
     spawnFailed: child.spawnFailed,
+    timedOut,
+    ...debugContext,
   });
+
+  return { exitCode, startTime, endTime, timedOut };
 }
 
 async function runAfterEachHooks(
   hooks: Hook[],
   options: {
     config: Config;
+    projectRoot: string;
     outputDir: string;
     taskName: string;
     taskExitCode: number;
@@ -115,19 +143,98 @@ async function runAfterEachHooks(
     signal: AbortSignal;
   },
 ): Promise<void> {
+  const { config, projectRoot, outputDir, taskName, taskExitCode, debugLog, signal } = options;
   for (const hook of hooks) {
-    await runHook(hook, options);
-    if (options.signal.aborted) return;
+    await runHook(hook, {
+      config,
+      projectRoot,
+      hookEnv: {
+        CICD_TASK_NAME: taskName,
+        CICD_OUTPUT_DIR: outputDir,
+        CICD_TASK_EXIT_CODE: String(taskExitCode),
+      },
+      debugLog,
+      signal,
+      phase: 'after_each',
+      debugContext: { taskName, taskExitCode },
+    });
+    if (signal.aborted) return;
   }
+}
+
+/** Returns hook records; all passed when every hook exited 0. */
+async function runOnArtifactsReadyHooks(
+  hooks: Hook[],
+  options: {
+    config: Config;
+    projectRoot: string;
+    outputDir: string;
+    taskExitCode: number;
+    taskNames: string[];
+    debugLog: DebugLog;
+    signal: AbortSignal;
+  },
+): Promise<HookRecord[]> {
+  const { config, projectRoot, outputDir, taskExitCode, taskNames, debugLog, signal } = options;
+  const results: HookRecord[] = [];
+  for (const hook of hooks) {
+    if (hook.when === 'success' && taskExitCode !== 0) {
+      const now = Date.now();
+      debugLog.emit('artifacts_ready_skip', {
+        hookName: hook.name,
+        when: hook.when,
+        taskExitCode,
+        reason: 'tasks_not_successful',
+      });
+      results.push({
+        name: hook.name,
+        exitCode: 0,
+        startTime: now,
+        endTime: now,
+        timedOut: false,
+        skipped: true,
+      });
+      continue;
+    }
+
+    const outcome = await runHook(hook, {
+      config,
+      projectRoot,
+      hookEnv: {
+        CICD_OUTPUT_DIR: outputDir,
+        CICD_ARTIFACT_DIR: outputDir,
+        CICD_EXIT_CODE: String(taskExitCode),
+        CICD_TASK_NAMES: taskNames.join(','),
+      },
+      debugLog,
+      signal,
+      phase: 'artifacts_ready',
+      debugContext: {
+        taskExitCode,
+        taskNames,
+      },
+    });
+    results.push({
+      name: hook.name,
+      exitCode: outcome.exitCode,
+      startTime: outcome.startTime,
+      endTime: outcome.endTime,
+      timedOut: outcome.timedOut,
+      skipped: false,
+    });
+    if (signal.aborted) return results;
+  }
+  return results;
 }
 
 export async function runOrchestrator(
   config: Config,
   commandId: string,
-  options: { signal?: AbortSignal } = {},
+  options: { signal?: AbortSignal; projectRoot?: string } = {},
 ): Promise<OrchestratorResult> {
   const signal = options.signal ?? new AbortController().signal;
-  const outputDir = path.resolve(config.outputDir, String(commandId));
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const outputDir = path.resolve(projectRoot, config.outputDir, String(commandId));
   const timelineDir = path.join(outputDir, '_timeline');
   fs.mkdirSync(timelineDir, { recursive: true });
 
@@ -165,10 +272,11 @@ export async function runOrchestrator(
   // Spawn backgrounds.
   const backgrounds: ManagedChild[] = [];
   for (const bg of config.background) {
+    const cwd = resolveItemCwd(bg.cwd, projectRoot);
     const child = spawnChild({
       command: bg.command,
       args: [],
-      cwd: bg.cwd ?? process.cwd(),
+      cwd,
       env: buildChildEnv(config.env, bg.env),
       onStdout: (chunk) => logStore.appendChunk(bg.name, 'stdout', chunk),
       onStderr: (chunk) => logStore.appendChunk(bg.name, 'stderr', chunk),
@@ -179,7 +287,7 @@ export async function runOrchestrator(
       name: bg.name,
       pid: child.pid ?? null,
       spawnFailed: child.spawnFailed,
-      cwd: bg.cwd ?? process.cwd(),
+      cwd,
       command: bg.command,
       delayMs: bg.delayMs ?? 0,
     });
@@ -198,7 +306,7 @@ export async function runOrchestrator(
       }
       await logStore.close();
       debugLog.close();
-      return { exitCode: 1, taskResults: [] };
+      return { exitCode: 1, taskResults: [], onArtifactsReadyResults: [] };
     }
   }
 
@@ -251,7 +359,7 @@ export async function runOrchestrator(
     }
     await logStore.close();
     debugLog.close();
-    return { exitCode: 1, taskResults: [] };
+    return { exitCode: 1, taskResults: [], onArtifactsReadyResults: [] };
   }
 
   // Run tasks serially.
@@ -262,9 +370,10 @@ export async function runOrchestrator(
     if (stopRequested) break;
 
     const startTime = Date.now();
+    const cwd = resolveItemCwd(task.cwd, projectRoot);
     debugLog.emit('task_start', {
       name: task.name,
-      cwd: task.cwd ?? process.cwd(),
+      cwd,
       command: task.command,
       timeoutMs: task.timeoutMs ?? null,
     });
@@ -272,7 +381,7 @@ export async function runOrchestrator(
     const child = spawnChild({
       command: task.command,
       args: [],
-      cwd: task.cwd ?? process.cwd(),
+      cwd,
       env: buildChildEnv(config.env, task.env),
       onStdout: (chunk) => logStore.appendChunk(task.name, 'stdout', chunk),
       onStderr: (chunk) => logStore.appendChunk(task.name, 'stderr', chunk),
@@ -361,6 +470,7 @@ export async function runOrchestrator(
     if ((config.afterEach ?? []).length > 0) {
       await runAfterEachHooks(config.afterEach ?? [], {
         config,
+        projectRoot,
         outputDir,
         taskName: task.name,
         taskExitCode: exitCode,
@@ -416,14 +526,36 @@ export async function runOrchestrator(
     }
   }
 
+  const tasksExitCode: 0 | 1 =
+    taskResults.length > 0 && taskResults.every((r) => r.exitCode === 0)
+      ? 0
+      : 1;
+
+  let onArtifactsReadyResults: HookRecord[] = [];
+  if (taskResults.length > 0 && (config.onArtifactsReady ?? []).length > 0) {
+    onArtifactsReadyResults = await runOnArtifactsReadyHooks(config.onArtifactsReady ?? [], {
+      config,
+      projectRoot,
+      outputDir,
+      taskExitCode: tasksExitCode,
+      taskNames: taskResults.map((r) => r.name),
+      debugLog,
+      signal,
+    });
+  }
+
+  const artifactsReadyOk =
+    onArtifactsReadyResults.length === 0 ||
+    onArtifactsReadyResults.every(
+      (r) => r.skipped || (r.exitCode === 0 && !r.timedOut),
+    );
+
   if (!config.keepRawTimeline) {
     fs.rmSync(timelineDir, { recursive: true, force: true });
   }
 
   const exitCode: 0 | 1 =
-    taskResults.length > 0 && taskResults.every((r) => r.exitCode === 0)
-      ? 0
-      : 1;
+    taskResults.length > 0 && tasksExitCode === 0 && artifactsReadyOk ? 0 : 1;
 
   debugLog.emit('run_end', {
     exitCode,
@@ -433,9 +565,10 @@ export async function runOrchestrator(
       durationMs: task.endTime - task.startTime,
       timedOut: task.timedOut,
     })),
+    artifactsReadyOk,
   });
   debugLog.close();
 
-  return { exitCode, taskResults };
+  return { exitCode, taskResults, onArtifactsReadyResults };
 }
 

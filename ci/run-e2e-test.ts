@@ -1,189 +1,123 @@
 /**
- * E2E test runner: builds an apps/cicd JSON config and runs WebdriverIO via @smm/cicd.
+ * E2E test runner: writes apps/cicd config and runs WebdriverIO.
  *
  * Usage (from repo root):
  *   bun ci/run-e2e-test.ts --spec ./test/specs/hello.e2e.ts
  *
- * Config is written to `artifacts/e2e/config.json`.
- * Logs are written by apps/cicd to `artifacts/cicd/{commandId}/`:
- *   - {spec}/main.log  — WebdriverIO output per spec file
- *   - {spec}/cli.log   — pnpm e2e:cli output during that spec's window
- *   - {spec}/ui.log    — pnpm dev:ui output during that spec's window
+ * Config: artifacts/e2e/config.json
+ * Logs and run summary: apps/cicd/run.ts
  */
+import { $, Glob } from 'bun';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildE2eConfig } from './build-e2e-config.ts';
-import {
-  startChild,
-  awaitChildExit,
-  killTree,
-  type ManagedRunChild,
-} from './run-e2e-child.ts';
 
-let currentChild: ManagedRunChild | null = null;
-let shuttingDown = false;
-let signalCount = 0;
-
-const handleSignal = async (sig: NodeJS.Signals): Promise<void> => {
-  signalCount += 1;
-  if (signalCount === 1 && currentChild) {
-    shuttingDown = true;
-    console.error(`\nreceived ${sig}, forwarding to child...`);
-    if (currentChild.pid) {
-      try {
-        if (process.platform !== 'win32') {
-          process.kill(-currentChild.pid, 'SIGTERM');
-        }
-      } catch {
-        // best-effort
-      }
-    }
-    return;
-  }
-  console.error(`received ${sig} twice, force-killing tree`);
-  if (currentChild) {
-    await killTree(currentChild, 1000);
-  }
-  process.exit(130);
-};
-
-process.on('SIGINT', () => void handleSignal('SIGINT'));
-process.on('SIGTERM', () => void handleSignal('SIGTERM'));
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
-const WDIO_ARGS = process.argv.slice(2);
-
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const E2E_ROOT = path.join(ROOT, 'apps/e2e');
 const CONFIG_REL_PATH = 'artifacts/e2e/config.json';
 const CONFIG_PATH = path.join(ROOT, CONFIG_REL_PATH);
-const CICD_OUTPUT_DIR = path.join(ROOT, 'artifacts', 'cicd');
 
-function log(message: string): void {
-  if (!process.env.VERBOSE) return;
-  console.log(message);
-}
-
-function toRepoRelativePath(absolutePath: string): string {
-  return path.relative(ROOT, absolutePath).split(path.sep).join('/');
-}
-
-function exportCiOutputs(logDir: string, success: boolean): void {
-  const githubOutput = process.env.GITHUB_OUTPUT;
-  if (!githubOutput) return;
-
-  const lines = [
-    `log_dir=${toRepoRelativePath(logDir)}`,
-    `success=${success}`,
-  ];
-  fs.appendFileSync(githubOutput, `${lines.join('\n')}\n`);
-}
-
-function parseOutputDir(stdout: string): string | null {
-  const match = stdout.match(/^output: (.+)$/m);
-  return match ? match[1]!.trim() : null;
-}
-
-function findLatestCicdOutputDir(): string | null {
-  if (!fs.existsSync(CICD_OUTPUT_DIR)) return null;
-
-  const entries = fs
-    .readdirSync(CICD_OUTPUT_DIR, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => ({
-      name: entry.name,
-      mtime: fs.statSync(path.join(CICD_OUTPUT_DIR, entry.name)).mtimeMs,
-    }))
-    .sort((a, b) => b.mtime - a.mtime);
-
-  if (entries.length === 0) return null;
-  return path.join(CICD_OUTPUT_DIR, entries[0]!.name);
-}
-
-async function runCicd(configPath: string): Promise<{ exitCode: number; stdout: string }> {
-  let stdout = '';
-
-  currentChild = startChild({
-    command: 'bun',
-    args: ['apps/cicd/run.ts', '-f', configPath, '--cwd', ROOT],
-    cwd: ROOT,
-    env: process.env,
-    onStdout: (chunk) => {
-      const text = chunk.toString();
-      stdout += text;
-      process.stdout.write(text);
-    },
-    onStderr: (chunk) => process.stderr.write(chunk),
-  });
-
-  const exit = await awaitChildExit(currentChild);
-
-  if (shuttingDown) {
-    await killTree(currentChild, 2000);
+function parseArgv(argv: string[]): string[] {
+  const patterns: string[] = [];
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i]!;
+    if (arg === '--spec') {
+      const value = argv[i + 1];
+      if (!value || value.startsWith('-')) {
+        throw new Error('Missing value for --spec');
+      }
+      patterns.push(value);
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith('--spec=')) {
+      const value = arg.slice('--spec='.length);
+      if (!value) {
+        throw new Error('Missing value for --spec');
+      }
+      patterns.push(value);
+      continue;
+    }
+    throw new Error(
+      `Unknown argument: ${arg}\nUsage: bun ci/run-e2e-test.ts [--spec <glob-or-file> ...]`,
+    );
   }
-  currentChild = null;
-  return { exitCode: exit.exitCode, stdout };
+  return patterns;
 }
 
-function printRunSummary(options: {
-  success: boolean;
-  outputDir: string;
-  specTaskNames: string[];
-}): void {
-  console.log(`success: ${options.success}`);
-  console.log(`output dir: ${toRepoRelativePath(options.outputDir)}`);
-  for (const taskName of options.specTaskNames) {
-    const mainLog = path.join(options.outputDir, taskName, 'main.log');
-    console.log(`log: ${toRepoRelativePath(mainLog)}`);
+function specFiles(patterns: string[], excludeManual: boolean): string[] {
+  const files = new Set<string>();
+  for (const pattern of patterns) {
+    const glob = new Glob(pattern.replace(/\\/g, '/'));
+    for (const match of glob.scanSync({ cwd: E2E_ROOT, absolute: false })) {
+      if (excludeManual && match.includes('test/specs/manual/')) continue;
+      if (match.endsWith('.ts')) files.add(match.replace(/\\/g, '/'));
+    }
   }
+  const resolved = [...files].sort();
+  if (resolved.length === 0) {
+    throw new Error(`No spec files matched: ${patterns.join(', ')}`);
+  }
+  return resolved;
 }
 
 async function main(): Promise<number> {
-  fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
+  const argv = process.argv.slice(2);
+  const patterns = parseArgv(argv);
+  const specs = specFiles(
+    patterns.length > 0 ? patterns : ['test/specs/**/*.ts'],
+    patterns.length === 0,
+  );
 
-  const config = buildE2eConfig(WDIO_ARGS, ROOT);
+  const env: Record<string, string> = {
+    BROWSER_LOG_ENABLED: 'true',
+    NETWORK_LOG_ENABLED: 'true',
+    SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123',
+  };
+  if (process.env.EXTERNAL_CONFIG_FILE_URL) {
+    env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
+  }
+
+  const config = {
+    name: 'smm-e2e',
+    outputDir: './artifacts/cicd',
+    env,
+    background: [
+      { name: 'cli', command: 'pnpm e2e:cli', cwd: ROOT },
+      { name: 'ui', command: 'pnpm dev:ui', cwd: ROOT },
+    ],
+    tasks: [
+      { name: 'wait-ready', command: 'bun ci/wait-for-e2e-ready.ts', cwd: ROOT },
+      ...specs.map((spec) => ({
+        name: path.posix.basename(spec),
+        command: `pnpm wdio --spec ./${spec}`,
+        cwd: E2E_ROOT,
+      })),
+    ],
+    afterEach: [
+      {
+        name: 'collect-wdio-report',
+        command: 'bun ci/collect-wdio-report.ts',
+        cwd: ROOT,
+      },
+    ],
+    stopOnFailure: false,
+    keepRawTimeline: true,
+  };
+
+  fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
-  log(`wrote config: ${CONFIG_REL_PATH}`);
-  log(`wdio args: ${WDIO_ARGS.length > 0 ? WDIO_ARGS.join(' ') : '(default: all specs)'}`);
+  const result = await $`bun apps/cicd/run.ts -f ${CONFIG_REL_PATH} --cwd ${ROOT}`
+    .cwd(ROOT)
+    .env(process.env)
+    .nothrow();
 
-  const specTaskCount = config.tasks.filter((task) => task.name !== 'wait-ready').length;
-  log(`spec tasks: ${specTaskCount}`);
-
-  const { exitCode, stdout } = await runCicd(CONFIG_REL_PATH);
-
-  let outputDir = parseOutputDir(stdout);
-  if (!outputDir) {
-    outputDir = findLatestCicdOutputDir();
-    if (outputDir) {
-      log(`fallback output dir: ${toRepoRelativePath(outputDir)}`);
-    }
-  }
-
-  const success = exitCode === 0;
-  const specTaskNames = config.tasks
-    .filter((task) => task.name !== 'wait-ready')
-    .map((task) => task.name);
-
-  if (outputDir) {
-    exportCiOutputs(outputDir, success);
-    printRunSummary({ success, outputDir, specTaskNames });
-    const debugLog = path.join(outputDir, '_debug', 'events.jsonl');
-    if (fs.existsSync(debugLog)) {
-      log(`debug log: ${toRepoRelativePath(debugLog)}`);
-    }
-  } else {
-    console.log(`success: ${success}`);
-    log('could not determine output directory');
-  }
-
-  return exitCode;
+  return result.exitCode;
 }
 
 main()
-  .then((exitCode) => {
-    process.exit(exitCode);
-  })
+  .then((exitCode) => process.exit(exitCode))
   .catch((error) => {
     console.error('failed:', error);
     process.exit(1);

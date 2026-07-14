@@ -16,7 +16,12 @@ export const TaskSchema = z.object({
   timeoutMs: z.number().int().positive().optional(),
 });
 
-export const HookSchema = TaskSchema;
+export const HookWhenSchema = z.enum(['always', 'success']);
+
+export const HookSchema = TaskSchema.extend({
+  /** onArtifactsReady: `success` runs only when all tasks passed; `always` runs regardless. Default `always`. */
+  when: HookWhenSchema.default('always'),
+});
 
 export const ConfigSchema = z.object({
   name: z.string().min(1),
@@ -24,6 +29,7 @@ export const ConfigSchema = z.object({
   background: z.array(BackgroundTaskSchema).default([]),
   tasks: z.array(TaskSchema).min(1),
   afterEach: z.array(HookSchema).default([]),
+  onArtifactsReady: z.array(HookSchema).default([]),
   outputDir: z.string().default('./artifacts/cicd'),
   stopOnFailure: z.boolean().default(true),
   keepRawTimeline: z.boolean().default(true),
@@ -32,6 +38,7 @@ export const ConfigSchema = z.object({
 export type BackgroundTask = z.infer<typeof BackgroundTaskSchema>;
 export type Task = z.infer<typeof TaskSchema>;
 export type Hook = z.infer<typeof HookSchema>;
+export type HookWhen = z.infer<typeof HookWhenSchema>;
 export type Config = z.infer<typeof ConfigSchema>;
 
 export type ParseError = { path: string; message: string };

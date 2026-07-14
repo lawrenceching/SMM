@@ -105,10 +105,14 @@ export const TaskSchema = z.object({
   timeoutMs: z.number().int().positive().optional(),     // unset = no timeout
 });
 
+export const HookSchema = TaskSchema; // name, command, cwd, env, timeoutMs
+
 export const ConfigSchema = z.object({
   name: z.string().min(1),                               // human-readable run name
   background: z.array(BackgroundTaskSchema).default([]),
   tasks: z.array(TaskSchema).min(1),
+  afterEach: z.array(HookSchema).default([]),            // after each task (main.log not yet sliced)
+  onArtifactsReady: z.array(HookSchema).default([]),     // once after slice (main.log ready)
   outputDir: z.string().default('./artifacts/cicd'),     // resolved relative to orchestrator cwd
   stopOnFailure: z.boolean().default(true),
   keepRawTimeline: z.boolean().default(true),
@@ -122,13 +126,15 @@ export type Config = z.infer<typeof ConfigSchema>;
 **Field semantics:**
 
 - `command` — executed with `shell: process.platform === 'win32'` to align with `ci/run-e2e-test.ts`. Supports `&&`, pipes, env-var expansion.
-- `cwd` — defaults to the orchestrator process cwd. CLI accepts `--cwd` to override.
+- `cwd` — optional. Omitted → project root (`run({ cwd })` / CLI `--cwd`, default `process.cwd()`). Relative paths resolve against project root. Absolute paths are used as-is.
 - `env` — shallow-merged with `process.env`; user-provided keys win.
 - `delayMs` — applied per-background after its own spawn; backgrounds may have different delays.
 - `timeoutMs` — if exceeded, task is killed (SIGTERM → 5s → SIGKILL) and treated as failure.
-- `outputDir` — created if missing. Each run produces a subdirectory `<commandId>/` (commandId = `Math.floor(Date.now() / 1000)`).
+- `outputDir` — created if missing; relative paths resolve against project root. Each run produces a subdirectory `<commandId>/` (commandId = `Math.floor(Date.now() / 1000)`).
 - `stopOnFailure` — when true, the first failing task triggers background cleanup and skips remaining tasks.
-- `keepRawTimeline` — when false, `_timeline/` is deleted after slicing.
+- `keepRawTimeline` — when false, `_timeline/` is deleted after slicing (and after `onArtifactsReady`).
+- `afterEach` — hooks run after each task exits; env includes `CICD_TASK_NAME`, `CICD_OUTPUT_DIR`, `CICD_TASK_EXIT_CODE`. Sliced `main.log` is **not** available yet.
+- `onArtifactsReady` — hooks run once after all finished tasks are sliced; env includes `CICD_ARTIFACT_DIR` (same path as `CICD_OUTPUT_DIR`), `CICD_EXIT_CODE` (task aggregate), `CICD_TASK_NAMES` (comma-separated). Plain-text `main.log` / `*.log` are available. Any hook exit ≠ 0 makes the run exit `1`. Skipped when no task results (e.g. background spawn failure). Per-hook `when`: `always` (default) or `success` (run only if all tasks exited 0). See [cicd-on-artifacts-ready.md](../design/cicd-on-artifacts-ready.md).
 
 ## Execution Flow
 
@@ -142,13 +148,15 @@ export type Config = z.infer<typeof ConfigSchema>;
    - Await exit; if `timeoutMs` is set, race against a timer.
    - `endTime = Date.now()`
    - Record `{ name, exitCode, startTime, endTime }`.
+   - Run `afterEach` hooks (if any).
    - If exit ≠ 0 and `stopOnFailure === true`: break the loop.
 6. Kill all background processes (SIGTERM → wait 5s → SIGKILL stragglers).
 7. For each task record, slice its window:
    - For each background: read `_timeline/<bg-name>.jsonl`, filter by `[startTime, endTime]`, write `<commandId>/<task-name>/<bg-name>.log` (plain text, message only).
    - Write `<commandId>/<task-name>/main.log` from `_timeline/<task-name>.jsonl`.
-8. If `keepRawTimeline === false`: `rm -rf _timeline/`.
-9. Exit code: `0` if all tasks passed, `1` otherwise.
+8. Run `onArtifactsReady` hooks (if any). Non-zero hook exit forces overall failure.
+9. If `keepRawTimeline === false`: `rm -rf _timeline/`.
+10. Exit code: `0` if all tasks passed **and** all `onArtifactsReady` hooks passed, `1` otherwise.
 
 **Timestamp authority:** All JSONL timestamps are written by the orchestrator using its own `Date.now()`. Child processes never stamp their own output — this guarantees clock consistency and prevents log injection (a child cannot forge `{"timestamp":...}` lines).
 

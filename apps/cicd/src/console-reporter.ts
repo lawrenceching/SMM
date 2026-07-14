@@ -1,5 +1,5 @@
 import * as path from 'node:path';
-import type { RunResult, TaskRecord } from './types.ts';
+import type { HookRecord, RunResult, TaskRecord } from './types.ts';
 
 export type ConsoleReporterOptions = {
   /** Base directory for displaying relative paths (default: process.cwd()). */
@@ -32,6 +32,24 @@ function formatTaskLine(task: TaskRecord): string {
     return `  ✓ ${label} ${duration}`;
   }
   return `  ✗ ${label} ${duration}  exit ${task.exitCode}`;
+}
+
+function formatHookLine(hook: HookRecord): string {
+  const label = hook.name.padEnd(16);
+
+  if (hook.skipped) {
+    return `  - ${label}          skipped (when: success)`;
+  }
+
+  const duration = formatDuration(hook.endTime - hook.startTime).padStart(8);
+
+  if (hook.timedOut) {
+    return `  ✗ ${label} ${duration}  timed out`;
+  }
+  if (hook.exitCode === 0) {
+    return `  ✓ ${label} ${duration}`;
+  }
+  return `  ✗ ${label} ${duration}  exit ${hook.exitCode}`;
 }
 
 export class ConsoleReporter {
@@ -67,6 +85,14 @@ export class ConsoleReporter {
       lines.push('Logs:');
       for (const task of result.taskResults) {
         lines.push(`  ${task.name}/main.log`);
+      }
+    }
+
+    if (result.onArtifactsReadyResults.length > 0) {
+      lines.push('');
+      lines.push('onArtifactsReady:');
+      for (const hook of result.onArtifactsReadyResults) {
+        lines.push(formatHookLine(hook));
       }
     }
 
