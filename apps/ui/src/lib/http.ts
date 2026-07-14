@@ -43,7 +43,7 @@ export async function fetchWithFailover(
       }
 
       const config: DiscoverConfig = options?._config ?? await fetchDiscoverConfig()
-      let reverseProxies = config.reverseProxies
+      const reverseProxies = config.reverseProxies
         .filter(proxy => URL.canParse(proxy.url))
         .filter(proxy => {
           try {
