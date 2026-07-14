@@ -5,9 +5,9 @@ on:
 
 jobs:
   e2e-http-proxy:
-    name: HTTP Proxy E2E (${{ matrix.platform }}-${{ matrix.arch }})
+    name: HTTP Proxy (${{ matrix.platform }}-${{ matrix.arch }})
     runs-on: ${{ matrix.runs-on }}
-    timeout-minutes: 60
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -52,34 +52,15 @@ jobs:
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install CJK fonts (Linux)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-cjk
-
-      - name: Setup Chrome
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: '146.0.7680.153'
-          install-dependencies: true
-          install-chromedriver: true
-
-      - name: Run HTTP Proxy E2E test
+      - name: Run reverse-proxy HTTP Proxy tests
         id: e2e
-        run: bun ci/run-e2e-test.ts --spec "./test/specs/config/CustomTmdbHost-WithHttpProxy.e2e.ts"
-        env:
-          BUILD_ENV: docker
-          USE_EMBEDDED_HTTP_PROXY: 'true'
-          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
-          CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        run: pnpm e2e:http-proxy
 
-      - name: Upload E2E logs and reports
+      - name: Upload logs
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
-          name: http-proxy-e2e-${{ matrix.platform }}-${{ matrix.arch }}-logs-${{ github.run_id }}
+          name: http-proxy-${{ matrix.platform }}-${{ matrix.arch }}-logs-${{ github.run_id }}
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7

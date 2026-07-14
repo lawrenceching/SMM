@@ -1,0 +1,22 @@
+{
+    "name": "http-proxy-reverse-proxy",
+    "outputDir": "./artifacts/cicd",
+    "env": {
+        "SMM_AUTH_TOKEN": "ChangeMe123"
+    },
+    "background": [
+        {
+            "name": "cli",
+            "command": "pnpm e2e:cli"
+        }
+    ],
+    "tasks": [
+        {
+            "name": "reverse-proxy.test.ts",
+            "command": "pnpm exec vitest run src/reverseProxy.test.ts",
+            "cwd": "packages/core-routes"
+        }
+    ],
+    "stopOnFailure": true,
+    "keepRawTimeline": true
+}
