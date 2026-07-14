@@ -22,6 +22,10 @@ describe('TVShow - Unlink Episode', () => {
     })
 
     afterEach(async () => {
+        // Dismiss open episode context menu so sidebar folder stays clickable for cleanup
+        await browser.keys(['\uE00C']) // Escape
+        await browser.pause(300)
+
         await cleanup({
             removeMetadataDir: true,
             removePlansDir: true,
