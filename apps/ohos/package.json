@@ -1,6 +1,6 @@
 {
   "name": "@smm/ohos-electron-main",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "HarmonyOS Electron main process (TypeScript source)",
   "private": true,
   "scripts": {
