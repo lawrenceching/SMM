@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
-import { downloadImageApi } from "@/api/downloadImage"
+import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { extname, newFilePathWithExt } from "@/lib/path"
 import type { MediaFileMetadata } from "@core/types"
 import Debug from 'debug'
@@ -71,7 +71,7 @@ export function useDownloadThumbnailFromTVDB<TContext = unknown>(
         }
         const stillFilePath = newFilePathWithExt(mediaFile.absolutePath, extname(stillPath.stillPath))
         debug(`started to download thumbnail for S${mediaFile.seasonNumber?.toString().padStart(2, '0')}E${mediaFile.episodeNumber?.toString().padStart(2, '0')}: ${stillPath.stillPath}`)
-        await downloadImageApi(stillPath.stillPath, stillFilePath)
+        await downloadImageWithFailover(stillPath.stillPath, stillFilePath)
         debug(`downloaded thumbnail for S${mediaFile.seasonNumber?.toString().padStart(2, '0')}E${mediaFile.episodeNumber?.toString().padStart(2, '0')}: ${stillFilePath}`)
       }
     },

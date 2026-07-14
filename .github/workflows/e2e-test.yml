@@ -15,9 +15,9 @@ jobs:
           - name: Run AI Tests
             spec: "./test/specs/ai/*.e2e.ts"
             artifact_prefix: ai
-          - name: Run Config Tests
-            spec: "./test/specs/config/*.e2e.ts"
-            artifact_prefix: config
+          - name: Run Config and HTTP Proxy Tests
+            spec: "./test/specs/config/*.e2e.ts ./test/specs/httpproxy/*.e2e.ts"
+            artifact_prefix: config-httpproxy
           - name: Run MCP Tests
             spec: "./test/specs/mcp/*.e2e.ts"
             artifact_prefix: mcp
@@ -75,7 +75,12 @@ jobs:
 
       - name: Run E2E tests
         id: e2e
-        run: bun ci/run-e2e-test.ts --spec "${{ matrix.spec }}"
+        run: |
+          args=()
+          for pattern in ${{ matrix.spec }}; do
+            args+=(--spec "$pattern")
+          done
+          bun ci/run-e2e-test.ts "${args[@]}"
         env:
           BUILD_ENV: docker
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}

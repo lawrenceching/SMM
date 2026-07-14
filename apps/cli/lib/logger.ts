@@ -136,9 +136,6 @@ export function logHttpRespIn(url: string, statusCode: number, body?: unknown) {
     target: 'external',
   };
 
-  console.log(`logger.isLevelEnabled('debug'): ${logger.isLevelEnabled('debug')}`)
-  console.log(`body: ${JSON.stringify(body, null, 2)}`)
-
   if (logger.isLevelEnabled('debug') && body !== undefined) {
     logData.body = body;
   }

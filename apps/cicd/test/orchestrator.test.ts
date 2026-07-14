@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import { run } from '../src/index.ts';
+import { resolveItemCwd } from '../src/orchestrator.ts';
 
 let tmpRoot: string;
 
@@ -187,6 +188,79 @@ describe('run — output layout', () => {
   });
 });
 
+describe('resolveItemCwd', () => {
+  test('omitted cwd defaults to projectRoot', () => {
+    expect(resolveItemCwd(undefined, '/repo')).toBe('/repo');
+  });
+
+  test('relative cwd resolves against projectRoot', () => {
+    expect(resolveItemCwd('apps/e2e', '/repo')).toBe(path.resolve('/repo', 'apps/e2e'));
+  });
+
+  test('absolute cwd is kept as-is', () => {
+    const abs = path.resolve('/elsewhere/pkg');
+    expect(resolveItemCwd(abs, '/repo')).toBe(abs);
+  });
+});
+
+describe('run — cwd', () => {
+  test('relative task cwd runs under projectRoot', async () => {
+    const nested = path.join(tmpRoot, 'apps', 'nested');
+    fs.mkdirSync(nested, { recursive: true });
+
+    const configPath = writeConfig({
+      name: 'relative-cwd',
+      outputDir: path.join(tmpRoot, 'out'),
+      tasks: [
+        {
+          name: 'in-nested',
+          cwd: 'apps/nested',
+          command: isWindows()
+            ? 'cmd /c echo %CD%'
+            : 'node -e "console.log(process.cwd())"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+
+    const mainLog = fs.readFileSync(
+      path.join(result.outputDir, 'in-nested', 'main.log'),
+      'utf8',
+    );
+    expect(path.normalize(mainLog.trim().toLowerCase())).toContain(
+      path.normalize(nested).toLowerCase(),
+    );
+  });
+
+  test('omitted cwd defaults to projectRoot', async () => {
+    const configPath = writeConfig({
+      name: 'default-cwd',
+      outputDir: path.join(tmpRoot, 'out'),
+      tasks: [
+        {
+          name: 'at-root',
+          command: isWindows()
+            ? 'cmd /c echo %CD%'
+            : 'node -e "console.log(process.cwd())"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+
+    const mainLog = fs.readFileSync(
+      path.join(result.outputDir, 'at-root', 'main.log'),
+      'utf8',
+    );
+    expect(path.normalize(mainLog.trim().toLowerCase())).toContain(
+      path.normalize(tmpRoot).toLowerCase(),
+    );
+  });
+});
+
 describe('run — env', () => {
   test('config-level env is visible to tasks', async () => {
     const configPath = writeConfig({
@@ -292,6 +366,142 @@ describe('run — afterEach', () => {
     expect(
       fs.existsSync(path.join(result.outputDir, 'never-runs/hook-ran.txt')),
     ).toBe(false);
+  });
+});
+
+describe('run — onArtifactsReady', () => {
+  test('runs after slice with main.log available and CICD env', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "if exist %CICD_ARTIFACT_DIR%\\task1\\main.log (echo %CICD_TASK_NAMES%>%CICD_ARTIFACT_DIR%\\hook-ok.txt) else (exit 1)"'
+      : 'node -e "const fs=require(\'fs\');const p=require(\'path\');if(!process.env.CICD_ARTIFACT_DIR)process.exit(3);const main=p.join(process.env.CICD_ARTIFACT_DIR,\'task1\',\'main.log\');if(!fs.existsSync(main))process.exit(1);const body=fs.readFileSync(main,\'utf8\');if(!body.includes(\'hello-artifact\'))process.exit(2);fs.writeFileSync(p.join(process.env.CICD_ARTIFACT_DIR,\'hook-ok.txt\'),[process.env.CICD_TASK_NAMES,process.env.CICD_EXIT_CODE].join(\'|\'))"';
+
+    const configPath = writeConfig({
+      name: 'artifacts-ready',
+      outputDir: path.join(tmpRoot, 'out'),
+      onArtifactsReady: [{ name: 'check', command: hookCommand }],
+      tasks: [
+        {
+          name: 'task1',
+          command: isWindows()
+            ? 'cmd /c echo hello-artifact'
+            : 'sh -c "echo hello-artifact"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+    expect(fs.existsSync(path.join(result.outputDir, 'hook-ok.txt'))).toBe(true);
+    if (!isWindows()) {
+      expect(
+        fs.readFileSync(path.join(result.outputDir, 'hook-ok.txt'), 'utf8').trim(),
+      ).toBe('task1|0');
+    } else {
+      expect(
+        fs.readFileSync(path.join(result.outputDir, 'hook-ok.txt'), 'utf8').trim(),
+      ).toBe('task1');
+      const mainLog = fs.readFileSync(
+        path.join(result.outputDir, 'task1/main.log'),
+        'utf8',
+      );
+      expect(mainLog).toContain('hello-artifact');
+    }
+  });
+
+  test('hook failure fails the run even when tasks pass', async () => {
+    const hookCommand = isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"';
+
+    const configPath = writeConfig({
+      name: 'artifacts-ready-fail',
+      outputDir: path.join(tmpRoot, 'out'),
+      onArtifactsReady: [{ name: 'fail', command: hookCommand }],
+      tasks: [
+        {
+          name: 'ok',
+          command: isWindows() ? 'cmd /c echo ok' : 'sh -c "echo ok"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults[0]!.exitCode).toBe(0);
+    expect(fs.existsSync(path.join(result.outputDir, 'ok/main.log'))).toBe(true);
+  });
+
+  test('when=success skips hook if any task failed', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "echo ran>%CICD_ARTIFACT_DIR%\\hook-ran.txt"'
+      : 'node -e "require(\'fs\').writeFileSync(process.env.CICD_ARTIFACT_DIR+\'/hook-ran.txt\',\'ran\')"';
+
+    const configPath = writeConfig({
+      name: 'artifacts-when-success-skip',
+      outputDir: path.join(tmpRoot, 'out'),
+      stopOnFailure: false,
+      onArtifactsReady: [{ name: 'check', command: hookCommand, when: 'success' }],
+      tasks: [
+        {
+          name: 'fails',
+          command: isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.onArtifactsReadyResults).toHaveLength(1);
+    expect(result.onArtifactsReadyResults[0]!.skipped).toBe(true);
+    expect(result.onArtifactsReadyResults[0]!.name).toBe('check');
+    expect(fs.existsSync(path.join(result.outputDir, 'hook-ran.txt'))).toBe(false);
+  });
+
+  test('when=success runs hook when all tasks pass', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "echo ran>%CICD_ARTIFACT_DIR%\\hook-ran.txt"'
+      : 'node -e "require(\'fs\').writeFileSync(process.env.CICD_ARTIFACT_DIR+\'/hook-ran.txt\',\'ran\')"';
+
+    const configPath = writeConfig({
+      name: 'artifacts-when-success-run',
+      outputDir: path.join(tmpRoot, 'out'),
+      onArtifactsReady: [{ name: 'check', command: hookCommand, when: 'success' }],
+      tasks: [
+        {
+          name: 'ok',
+          command: isWindows() ? 'cmd /c echo ok' : 'sh -c "echo ok"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(0);
+    expect(result.onArtifactsReadyResults).toHaveLength(1);
+    expect(result.onArtifactsReadyResults[0]!.exitCode).toBe(0);
+    expect(result.onArtifactsReadyResults[0]!.skipped).toBe(false);
+    expect(fs.existsSync(path.join(result.outputDir, 'hook-ran.txt'))).toBe(true);
+  });
+
+  test('when=always still runs after failed tasks', async () => {
+    const hookCommand = isWindows()
+      ? 'cmd /c "echo ran>%CICD_ARTIFACT_DIR%\\hook-ran.txt"'
+      : 'node -e "require(\'fs\').writeFileSync(process.env.CICD_ARTIFACT_DIR+\'/hook-ran.txt\',\'ran\')"';
+
+    const configPath = writeConfig({
+      name: 'artifacts-when-always',
+      outputDir: path.join(tmpRoot, 'out'),
+      stopOnFailure: false,
+      onArtifactsReady: [{ name: 'check', command: hookCommand, when: 'always' }],
+      tasks: [
+        {
+          name: 'fails',
+          command: isWindows() ? 'cmd /c exit 1' : 'sh -c "exit 1"',
+        },
+      ],
+    });
+
+    const result = await run({ configPath, cwd: tmpRoot });
+    expect(result.exitCode).toBe(1);
+    expect(result.onArtifactsReadyResults).toHaveLength(1);
+    expect(fs.existsSync(path.join(result.outputDir, 'hook-ran.txt'))).toBe(true);
   });
 });
 

@@ -20,3 +20,15 @@ registerStep('TV show folder "xxx" was recognized', async (ctx, args) => {
     await page.open()
     await Sidebar.waitForFolderName(folder.folderName, 10000)
 })
+
+registerStep('TV show folder with three episodes was imported and recognized', async (ctx) => {
+    const folder = createFolderInTestFolder({
+        ...folder1,
+    })
+
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json')
+
+    ctx._folder = folder
+    ctx._folderName = folder.folderName
+    await Sidebar.waitForFolderName(folder.folderName, 10000)
+})

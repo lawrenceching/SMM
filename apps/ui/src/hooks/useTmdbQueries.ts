@@ -1,24 +1,20 @@
 import { useQueryClient } from "@tanstack/react-query"
-import { createContext, createElement, useCallback, useContext, type ReactNode } from "react"
+import { useCallback } from "react"
 import {
   getMovieById as fetchMovieByIdHttp,
   getTvShowById as fetchTvShowByIdHttp,
   getSeason as fetchTvShowSeasonHttp,
   searchTmdb,
-  SMM_TMDB_DEFAULT_UPSTREAM,
   type TmdbRequestOptions,
 } from "@/api/tmdb"
 import { tmdbMovieByIdQueryKey, tmdbTvShowByIdQueryKey, tmdbTvShowSeasonQueryKey } from "@/lib/tmdbQueryKeys"
 import type {
-  HelloResponseBody,
   TmdbMovieDetails,
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
   TmdbSeasonDetails,
 } from "@core/types"
 import { delay } from "es-toolkit"
-import { helloQueryKey } from "@/lib/appQueryKeys"
-import { useConfig } from "./userConfig"
 
 const TMDB_TV_SHOW_BY_ID_STALE_MS = 5 * 60 * 1000
 const TMDB_TV_SHOW_SEASON_STALE_MS = 5 * 60 * 1000
@@ -26,55 +22,8 @@ const TMDB_MOVIE_BY_ID_STALE_MS = 5 * 60 * 1000
 
 const delayInMs = parseInt(localStorage.getItem('debug_http_delay_ms') ?? "0");
 
-export interface TmdbQueriesRuntimeOptions {
-  fetchFn?: typeof fetch
-}
-
-const TmdbQueriesRuntimeContext = createContext<TmdbQueriesRuntimeOptions>({})
-
-/** Test-only hook: inject a custom fetch implementation for TMDB HTTP calls. */
-export function TmdbQueriesRuntimeProvider({
-  fetchFn,
-  children,
-}: {
-  fetchFn?: typeof fetch
-  children: ReactNode
-}) {
-  return createElement(
-    TmdbQueriesRuntimeContext.Provider,
-    { value: { fetchFn } },
-    children,
-  )
-}
-
 export function useTmdbQueries() {
   const queryClient = useQueryClient()
-  const runtime = useContext(TmdbQueriesRuntimeContext)
-  const { appConfig, userConfig } = useConfig()
-  const reverseProxyFromConfig = appConfig?.reverseProxyUrl ?? null
-
-  const tmdbCacheScope = (options?: TmdbRequestOptions) => ({
-    upstreamBaseURL: options?.upstreamBaseURL?.trim() ?? "",
-    hasTmdbApiKey: Boolean(options?.apiKey?.trim()),
-  })
-
-  const getReverseProxyUrl = useCallback((): string | null | undefined =>
-    reverseProxyFromConfig ??
-    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl,
-  [reverseProxyFromConfig, queryClient])
-
-  const getDefaultTmdbRequestOptions = useCallback((): TmdbRequestOptions => ({
-    reverseProxyUrl: getReverseProxyUrl(),
-    upstreamBaseURL: userConfig.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM,
-    apiKey: userConfig.tmdb?.apiKey?.trim() || undefined,
-  }), [getReverseProxyUrl, userConfig.tmdb?.host, userConfig.tmdb?.apiKey])
-
-  const withReverseProxyUrl = useCallback((options?: TmdbRequestOptions): TmdbRequestOptions => ({
-    ...getDefaultTmdbRequestOptions(),
-    ...options,
-    reverseProxyUrl: options?.reverseProxyUrl ?? getDefaultTmdbRequestOptions().reverseProxyUrl,
-    fetchFn: options?.fetchFn ?? runtime.fetchFn,
-  }), [getDefaultTmdbRequestOptions, runtime.fetchFn])
 
   const getTvShowById = useCallback(
     async (
@@ -85,14 +34,13 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
-      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
-        queryKey: [...tmdbTvShowByIdQueryKey(id, language), tmdbCacheScope(options)],
-        queryFn: () => fetchTvShowByIdHttp(id, language, resolvedOptions),
+        queryKey: tmdbTvShowByIdQueryKey(id, language),
+        queryFn: () => fetchTvShowByIdHttp(id, language, options),
         staleTime: TMDB_TV_SHOW_BY_ID_STALE_MS,
       })
     },
-    [queryClient, withReverseProxyUrl]
+    [queryClient]
   )
 
   const getTvShowSeasonDetails = useCallback(
@@ -100,27 +48,18 @@ export function useTmdbQueries() {
       seriesId: number,
       seasonNumber: number,
       language?: string,
-      options?: {
-        upstreamBaseURL?: string;
-        apiKey?: string;
-        appendToResponse?: string;
-        signal?: AbortSignal;
-      }
+      options?: TmdbRequestOptions
     ): Promise<TmdbSeasonDetails> => {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
-      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
-        queryKey: [
-          ...tmdbTvShowSeasonQueryKey(seriesId, seasonNumber, language),
-          tmdbCacheScope(options),
-        ],
-        queryFn: () => fetchTvShowSeasonHttp(seriesId, seasonNumber, language, resolvedOptions),
+        queryKey: tmdbTvShowSeasonQueryKey(seriesId, seasonNumber, language),
+        queryFn: () => fetchTvShowSeasonHttp(seriesId, seasonNumber, language, options),
         staleTime: TMDB_TV_SHOW_SEASON_STALE_MS,
       })
     },
-    [queryClient, withReverseProxyUrl]
+    [queryClient]
   )
 
   const getMovieById = useCallback(
@@ -132,14 +71,13 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
-      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
-        queryKey: [...tmdbMovieByIdQueryKey(id, language), tmdbCacheScope(options)],
-        queryFn: () => fetchMovieByIdHttp(id, language, resolvedOptions),
+        queryKey: tmdbMovieByIdQueryKey(id, language),
+        queryFn: () => fetchMovieByIdHttp(id, language, options),
         staleTime: TMDB_MOVIE_BY_ID_STALE_MS,
       })
     },
-    [queryClient, withReverseProxyUrl]
+    [queryClient]
   )
 
   const search = useCallback(
@@ -152,13 +90,12 @@ export function useTmdbQueries() {
       if (delayInMs > 0) {
         await delay(delayInMs)
       }
-      const resolvedOptions = withReverseProxyUrl(options)
       return queryClient.fetchQuery({
-        queryKey: ["tmdb-search", query, type, language, tmdbCacheScope(options)],
-        queryFn: () => searchTmdb(query, type, language, resolvedOptions),
+        queryKey: ["tmdb-search", query, type, language],
+        queryFn: () => searchTmdb(query, type, language, options),
       })
     },
-    [queryClient, withReverseProxyUrl]
+    [queryClient]
   )
 
   return { getTvShowById, getTvShowSeasonDetails, getMovieById, search}

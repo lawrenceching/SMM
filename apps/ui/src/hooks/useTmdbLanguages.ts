@@ -4,43 +4,21 @@ import {
   getTmdbLanguages,
   getTmdbPrimaryTranslations,
   type TmdbLanguageEntry,
-  type TmdbRequestOptions,
 } from "@/api/tmdb"
-import { useConfig } from "@/hooks/userConfig"
-import { useQueryClient } from "@tanstack/react-query"
-import { helloQueryKey } from "@/lib/appQueryKeys"
-import type { HelloResponseBody } from "@core/types"
-import { SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 
 const STALE_MS = 24 * 60 * 60 * 1000
-
-function useTmdbRequestOptions(): TmdbRequestOptions {
-  const queryClient = useQueryClient()
-  const { appConfig, userConfig } = useConfig()
-  const reverseProxyUrl =
-    appConfig?.reverseProxyUrl ??
-    queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.reverseProxyUrl ??
-    null
-  return {
-    reverseProxyUrl,
-    upstreamBaseURL: userConfig.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM,
-    apiKey: userConfig.tmdb?.apiKey?.trim() || undefined,
-  }
-}
 
 /**
  * Fetch TMDB's primary translation list (IETF tags, e.g. ["zh-CN", "en-US"]).
  * Cached for 24h.
  */
 export function useTmdbPrimaryTranslations() {
-  const options = useTmdbRequestOptions()
   return useQuery<string[]>({
     queryKey: ["tmdb", "primaryTranslations"],
-    queryFn: () => getTmdbPrimaryTranslations(options),
+    queryFn: () => getTmdbPrimaryTranslations(),
     staleTime: STALE_MS,
     gcTime: 7 * 24 * 60 * 60 * 1000,
-    enabled: Boolean(options.reverseProxyUrl),
   })
 }
 
@@ -49,13 +27,11 @@ export function useTmdbPrimaryTranslations() {
  * Cached for 24h.
  */
 export function useTmdbLanguagesRaw() {
-  const options = useTmdbRequestOptions()
   return useQuery<TmdbLanguageEntry[]>({
     queryKey: ["tmdb", "languages"],
-    queryFn: () => getTmdbLanguages(options),
+    queryFn: () => getTmdbLanguages(),
     staleTime: STALE_MS,
     gcTime: 7 * 24 * 60 * 60 * 1000,
-    enabled: Boolean(options.reverseProxyUrl),
   })
 }
 

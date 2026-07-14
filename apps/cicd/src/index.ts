@@ -4,7 +4,7 @@ import { parseConfig } from './config.ts';
 import { runOrchestrator } from './orchestrator.ts';
 import type { RunOptions, RunResult } from './types.ts';
 
-export type { RunOptions, RunResult, TaskRecord } from './types.ts';
+export type { RunOptions, RunResult, TaskRecord, HookRecord } from './types.ts';
 export type { Config, BackgroundTask, Task, ParseResult, ParseError } from './config.ts';
 export { ConsoleReporter } from './console-reporter.ts';
 export type { ConsoleReporterOptions } from './console-reporter.ts';
@@ -36,12 +36,14 @@ export async function run(options: RunOptions): Promise<RunResult> {
   const commandId = String(Math.floor(Date.now() / 1000));
   const result = await runOrchestrator(parsed.config, commandId, {
     signal: options.signal,
+    projectRoot: cwd,
   });
 
   return {
     name: parsed.config.name,
     exitCode: result.exitCode,
-    outputDir: path.resolve(parsed.config.outputDir, String(commandId)),
+    outputDir: path.resolve(cwd, parsed.config.outputDir, String(commandId)),
     taskResults: result.taskResults,
+    onArtifactsReadyResults: result.onArtifactsReadyResults,
   };
 }

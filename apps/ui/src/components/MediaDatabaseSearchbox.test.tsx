@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { act, render } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useConfig } from '@/hooks/userConfig'
 import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 import localStorages from '@/lib/localStorages'
+import { TVDBv4Error } from '@smm/tvdb4'
 
 const mockImmersiveSearchboxProps = {
   current: {} as {
@@ -14,6 +15,8 @@ const mockImmersiveSearchboxProps = {
     showAllLanguages: boolean
     onShowAllLanguagesChange: (v: boolean) => void
     searchLanguageOptions: ReadonlyArray<{ code: string; name: string }>
+    onSearch?: () => void | Promise<void>
+    searchError?: string | null
   },
 }
 
@@ -30,8 +33,16 @@ function createWrapper() {
 
 vi.mock('./ImmersiveSearchbox', () => ({
   ImmersiveSearchbox: vi.fn((props: any) => {
-    const { value, onChange, placeholder, inputClassName, onSelect, searchLanguage, onSearchLanguageChange, showAllLanguages, onShowAllLanguagesChange, searchLanguageOptions } = props
-    mockImmersiveSearchboxProps.current = { value, searchLanguage, onSearchLanguageChange, showAllLanguages, onShowAllLanguagesChange, searchLanguageOptions }
+    const {
+      value, onChange, placeholder, inputClassName, onSelect, onSearch,
+      searchLanguage, onSearchLanguageChange, showAllLanguages,
+      onShowAllLanguagesChange, searchLanguageOptions, searchError,
+    } = props
+    mockImmersiveSearchboxProps.current = {
+      value, searchLanguage, onSearchLanguageChange,
+      showAllLanguages, onShowAllLanguagesChange, searchLanguageOptions, onSearch,
+      searchError,
+    }
     const fakeResult = { id: 1, name: 'Test Show' }
     return (
       <div data-testid="immersive-searchbox">
@@ -49,6 +60,13 @@ vi.mock('./ImmersiveSearchbox', () => ({
         >
           Select
         </button>
+        <button
+          type="button"
+          data-testid="trigger-search"
+          onClick={() => { void onSearch?.() }}
+        >
+          Search
+        </button>
         <span data-testid="language-options-count">
           {(searchLanguageOptions ?? []).length}
         </span>
@@ -57,8 +75,20 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-vi.mock('@/hooks/useMediaDatabaseBaseUrls', () => ({
-  useMediaDatabaseBaseUrls: vi.fn(() => []),
+const { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
+  const mockFetchTmdb = vi.fn()
+  const mockTvdbSearch = vi.fn()
+  const mockGetTVDBv4Client = vi.fn(() => ({ search: mockTvdbSearch }))
+  return { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch }
+})
+
+vi.mock('@/api/tmdb', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/api/tmdb')>()
+  return { ...actual, fetchTmdb: mockFetchTmdb }
+})
+
+vi.mock('@/lib/TvdbUtils', () => ({
+  getTVDBv4Client: mockGetTVDBv4Client,
 }))
 
 vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
@@ -86,20 +116,21 @@ vi.mock('@/hooks/useTmdbLanguages', async (importOriginal) => {
 
 vi.mock('@/hooks/useTvdbLanguages', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/hooks/useTvdbLanguages')>()
-   
+
   const mockFn = vi.fn<any>(() => ({ data: [
-    { id: 'eng', name: 'English', nativeName: 'English' },
-    { id: 'zho', name: 'Chinese', nativeName: '中文' },
-    { id: 'jpn', name: 'Japanese', nativeName: '日本語' },
-    { id: 'fra', name: 'French', nativeName: 'Français' },
-    { id: 'deu', name: 'German', nativeName: 'Deutsch' },
+    { code: 'eng', name: 'English' },
+    { code: 'zho', name: '中文' },
+    { code: 'jpn', name: '日本語' },
+    { code: 'fra', name: 'Français' },
+    { code: 'deu', name: 'Deutsch' },
   ], isLoading: false, error: null }))
   // Expose on `globalThis` so individual tests can override the mock.
-   
+
   ;(globalThis as any).__mockUseTvdbLanguages = mockFn
   return {
     ...actual,
     useTvdbLanguages: mockFn,
+    useTvdbSearchLanguageOptions: mockFn,
   }
 })
 
@@ -121,6 +152,9 @@ vi.mock('@/hooks/userConfig', () => ({
       preferMediaLanguage: 'en-US',
       tmdb: {},
       tvdb: {},
+    },
+    appConfig: {
+      reverseProxyUrl: 'http://127.0.0.1:30005',
     },
   })),
 }))
@@ -147,7 +181,7 @@ describe('MediaDatabaseSearchbox', () => {
     // from a previous test (e.g. the fallback-items test) does not bleed through.
     // `mockImplementation` restores the default data; `mockReset` would leave the
     // function returning undefined.
-     
+
     ;(globalThis as any).__mockUseTmdbSearchLanguageOptions.mockImplementation(() => ({
       data: [
         { code: 'zh-CN', name: '中文 (zh-CN)' },
@@ -159,17 +193,17 @@ describe('MediaDatabaseSearchbox', () => {
       isLoading: false,
       error: null,
     }))
-     
+
     ;(globalThis as any).__mockUseTvdbLanguages.mockImplementation(() => ({ data: [
-      { id: 'eng', name: 'English', nativeName: 'English' },
-      { id: 'zho', name: 'Chinese', nativeName: '中文' },
-      { id: 'jpn', name: 'Japanese', nativeName: '日本語' },
-      { id: 'fra', name: 'French', nativeName: 'Français' },
-      { id: 'deu', name: 'German', nativeName: 'Deutsch' },
+      { code: 'eng', name: 'English' },
+      { code: 'zho', name: '中文' },
+      { code: 'jpn', name: '日本語' },
+      { code: 'fra', name: 'Français' },
+      { code: 'deu', name: 'Deutsch' },
     ], isLoading: false, error: null }))
     // Reset the useConfig mock to its default (TMDB) so any prior
     // `vi.mocked(useConfig).mockReturnValue(...)` calls don't leak between tests.
-    vi.mocked(useConfig).mockReturnValue({
+    vi.mocked(useConfig).mockImplementation(() => ({
       userConfig: {
         applicationLanguage: 'en',
         primaryDatabase: 'TMDB',
@@ -177,7 +211,10 @@ describe('MediaDatabaseSearchbox', () => {
         tmdb: {},
         tvdb: {},
       },
-    } as any)
+      appConfig: {
+        reverseProxyUrl: 'http://127.0.0.1:30005',
+      },
+    } as any))
   })
 
   it('passes value1 to ImmersiveSearchbox when value prop is value1', () => {
@@ -447,5 +484,112 @@ describe('MediaDatabaseSearchbox', () => {
       { code: 'ja-JP', name: '日本語 (ja-JP)' },
       { code: 'fr-FR', name: 'Français (fr-FR)' },
     ])
+  })
+
+  it('handleSearch calls fetchTmdb with /search/tv? when database is TMDB', async () => {
+    mockFetchTmdb.mockResolvedValue(
+      new Response(JSON.stringify({ results: [] }), { status: 200 }),
+    )
+    render(<MediaDatabaseSearchbox {...defaultProps} value="naruto" />, {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => expect(mockFetchTmdb).toHaveBeenCalledTimes(1))
+    const [urlPath] = mockFetchTmdb.mock.calls[0] as [string]
+    expect(urlPath.startsWith('/search/tv?')).toBe(true)
+    expect(urlPath).toContain('query=naruto')
+    expect(mockGetTVDBv4Client).not.toHaveBeenCalled()
+  })
+
+  it('handleSearch calls getTVDBv4Client().search() with type=movie when database is TVDB and mediaType is movie', async () => {
+    vi.mocked(useConfig).mockImplementation(() => ({
+      userConfig: {
+        applicationLanguage: 'en',
+        primaryDatabase: 'TVDB',
+        preferMediaLanguage: 'en-US',
+        tmdb: {},
+        tvdb: {},
+      },
+      appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
+    } as any))
+    mockTvdbSearch.mockResolvedValue({ status: 'success', data: [] })
+    render(
+      <MediaDatabaseSearchbox
+        mediaType="movie"
+        value="inception"
+        onSearchResultSelected={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => expect(mockTvdbSearch).toHaveBeenCalledTimes(1))
+    expect(mockGetTVDBv4Client).toHaveBeenCalledTimes(1)
+    const [searchParams] = mockTvdbSearch.mock.calls[0] as [{ query: string; type: string; language?: string }]
+    expect(searchParams).toMatchObject({ query: 'inception', type: 'movie' })
+    expect(mockFetchTmdb).not.toHaveBeenCalled()
+  })
+
+  it('shows database-specific unauthorized message when TMDB search returns 401', async () => {
+    mockFetchTmdb.mockResolvedValue(
+      new Response(JSON.stringify({ status_code: 7 }), { status: 401 }),
+    )
+    render(<MediaDatabaseSearchbox {...defaultProps} value="naruto" />, {
+      wrapper: createWrapper(),
+    })
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => {
+      expect(mockImmersiveSearchboxProps.current.searchError).toBe(
+        'errors:searchFailedUnauthorizedTmdb',
+      )
+    })
+  })
+
+  it('shows database-specific unauthorized message when TVDB login returns 401', async () => {
+    vi.mocked(useConfig).mockImplementation(() => ({
+      userConfig: {
+        applicationLanguage: 'en',
+        primaryDatabase: 'TVDB',
+        preferMediaLanguage: 'en-US',
+        tmdb: {},
+        tvdb: { host: 'https://api4.thetvdb.com/v4', apiKey: 'bad-key' },
+      },
+      appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
+    } as any))
+    mockTvdbSearch.mockRejectedValue(
+      new TVDBv4Error('TVDB login failed: 401 Unauthorized', {
+        status: 401,
+        url: 'http://127.0.0.1:30005/login',
+      }),
+    )
+    render(
+      <MediaDatabaseSearchbox
+        {...defaultProps}
+        value="lost"
+        onSearchResultSelected={vi.fn()}
+      />,
+      { wrapper: createWrapper() },
+    )
+
+    await act(async () => {
+      await mockImmersiveSearchboxProps.current.onSearch?.()
+    })
+
+    await waitFor(() => {
+      expect(mockImmersiveSearchboxProps.current.searchError).toBe(
+        'errors:searchFailedUnauthorizedTvdb',
+      )
+    })
   })
 })

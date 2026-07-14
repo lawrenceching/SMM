@@ -87,6 +87,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
+    "url-join": "^5.0.0",
     "use-stick-to-bottom": "^1.1.1",
     "zod": "^4.1.8",
     "zustand": "^5.0.9"

@@ -54,6 +54,7 @@ interface ComponentsResources {
     openLogFolder: string
     openExecuteCmd: string
     addTestBackgroundJob: string
+    functionCheck: string
     config: string
     cleanUp: string
     exit: string
@@ -1091,10 +1092,32 @@ interface SettingsResources {
     availableRules: string
     emptyState: string
   }
+  mediaDatabases: {
+    title: string
+    description: string
+    primaryDatabase: string
+    primaryDatabaseDescription: string
+    primaryDatabaseTmdb: string
+    primaryDatabaseTvdb: string
+    tmdbSection: string
+    tmdbHost: string
+    tmdbHostPlaceholder: string
+    tmdbApiKey: string
+    tmdbApiKeyPlaceholder: string
+    tmdbHttpProxy: string
+    tvdbSection: string
+    tvdbHost: string
+    tvdbHostPlaceholder: string
+    tvdbApiKey: string
+    tvdbApiKeyPlaceholder: string
+    tvdbHttpProxy: string
+    httpProxyPlaceholder: string
+  }
   sidebar: {
     title: string
     general: string
     ai: string
+    mediaDatabases: string
     renameRules: string
     externalApps: string
     feedback: string
@@ -1137,6 +1160,9 @@ interface ErrorsResources {
   operationFailed: string
   searchNoResults: string
   searchFailed: string
+  searchFailedUnauthorized: string
+  searchFailedUnauthorizedTmdb: string
+  searchFailedUnauthorizedTvdb: string
 }
 
 interface ValidationResources {

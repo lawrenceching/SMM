@@ -1,9 +1,12 @@
 /**
  * Polls CLI and UI dev servers until both respond, or exits 1 on timeout.
  * Used as the first apps/cicd task before WebdriverIO runs.
+ *
+ * UI port is read from apps/ui/vite.config.ts (not hard-coded).
  */
+import { readUiDevServerPort } from './read-ui-dev-port.ts';
+
 const CLI_READY_URL = 'http://localhost:30000/api/hello';
-const UI_READY_URL = 'http://localhost:5173';
 const CLI_AUTH_TOKEN = 'ChangeMe123';
 
 async function waitForHttp(
@@ -55,8 +58,11 @@ async function main(): Promise<void> {
     headers: { Authorization: `Bearer ${CLI_AUTH_TOKEN}` },
   });
 
-  console.log('[wait-for-e2e-ready] waiting for UI (http://localhost:5173)');
-  await waitForHttp(UI_READY_URL);
+  const uiPort = readUiDevServerPort();
+  const uiReadyUrl = `http://localhost:${uiPort}`;
+  console.log(`[wait-for-e2e-ready] UI port from vite.config.ts: ${uiPort}`);
+  console.log(`[wait-for-e2e-ready] waiting for UI (${uiReadyUrl})`);
+  await waitForHttp(uiReadyUrl);
 }
 
 main().catch((error) => {

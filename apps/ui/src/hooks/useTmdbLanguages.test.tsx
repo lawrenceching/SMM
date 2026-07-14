@@ -1,15 +1,38 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi, beforeEach } from "vitest"
 import { renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-vi.mock("@/hooks/userConfig", () => ({
-  useConfig: vi.fn(() => ({
-    userConfig: { tmdb: { host: "", apiKey: "" } },
-    appConfig: { reverseProxyUrl: "http://127.0.0.1:30001" },
-  })),
+vi.mock("@/api/readUserConfig", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/readUserConfig")>()
+  return {
+    ...actual,
+    readUserConfig: vi.fn(),
+  }
+})
+
+vi.mock("@/api/hello", () => ({
+  hello: vi.fn(),
 }))
 
+vi.mock("@/api/discover", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/discover")>()
+  return {
+    ...actual,
+    fetchDiscoverConfig: vi.fn(),
+  }
+})
+
+import { readUserConfig, defaultUserConfig } from "@/api/readUserConfig"
+import { hello } from "@/api/hello"
+import { fetchDiscoverConfig } from "@/api/discover"
 import { useTmdbSearchLanguageOptions } from "./useTmdbLanguages"
+
+const mockReadUserConfig = vi.mocked(readUserConfig)
+const mockHello = vi.mocked(hello)
+const mockFetchDiscoverConfig = vi.mocked(fetchDiscoverConfig)
+
+const REVERSE_PROXY_URL = "http://127.0.0.1:30001"
+const TEST_DEFAULT_UPSTREAM = "http://127.0.0.1:39998/api/tmdb"
 
 function createWrapper() {
   const queryClient = new QueryClient({
@@ -32,9 +55,30 @@ function mockFetchOnce(body: unknown) {
 }
 
 describe("useTmdbSearchLanguageOptions", () => {
+  beforeEach(() => {
+    fetchSpy.mockReset()
+    mockReadUserConfig.mockResolvedValue({
+      ...defaultUserConfig,
+      tmdb: { host: "", apiKey: "", httpProxy: "" },
+    })
+    mockHello.mockResolvedValue({
+      reverseProxyUrl: REVERSE_PROXY_URL,
+      userDataDir: "/tmp/smm",
+    } as Awaited<ReturnType<typeof hello>>)
+    mockFetchDiscoverConfig.mockResolvedValue({
+      mediaDatabases: [
+        {
+          type: "tmdb",
+          url: TEST_DEFAULT_UPSTREAM,
+          authorizationMethod: "none",
+        },
+      ],
+      reverseProxies: [],
+    })
+  })
+
   it("combines primary translations with the language-name list to produce {code, name} options", async () => {
     // First call: primary_translations. Second call: languages.
-    fetchSpy.mockReset()
     mockFetchOnce(["en-US", "zh-CN", "fr-FR"])
     mockFetchOnce([
       { iso_639_1: "en", english_name: "English", name: "English" },
@@ -56,7 +100,6 @@ describe("useTmdbSearchLanguageOptions", () => {
   })
 
   it("falls back to the ISO 639-1 prefix when the language name is missing", async () => {
-    fetchSpy.mockReset()
     mockFetchOnce(["xx-XX"])
     mockFetchOnce([])
 
@@ -71,7 +114,6 @@ describe("useTmdbSearchLanguageOptions", () => {
   })
 
   it("deduplicates entries that appear more than once in the primary-translation list", async () => {
-    fetchSpy.mockReset()
     mockFetchOnce(["en-US", "en-US", "zh-CN"])
     mockFetchOnce([
       { iso_639_1: "en", english_name: "English", name: "English" },

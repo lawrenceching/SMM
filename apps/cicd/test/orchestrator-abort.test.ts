@@ -37,6 +37,7 @@ describe('runOrchestrator — abort', () => {
         { name: 'long-task', command: sleepCommand(60) },
       ],
       afterEach: [],
+      onArtifactsReady: [],
       stopOnFailure: false,
       keepRawTimeline: false,
     };
@@ -62,6 +63,7 @@ describe('runOrchestrator — abort', () => {
         { name: 'short-task', command: isWindows() ? 'cmd /c echo done' : 'sh -c "echo done"' },
       ],
       afterEach: [],
+      onArtifactsReady: [],
       stopOnFailure: false,
       keepRawTimeline: false,
     };

@@ -4,8 +4,34 @@ const STORAGE_KEY_SIDEBAR_SELECTED_FOLDER = 'sidebar.selectedFolder';
 const STORAGE_KEY_COOKIE_GUIDE_URL = 'cookie_guide_url';
 const STORAGE_KEY_PREFER_TMDB_BASE_URL = 'preferTmdbBaseUrl';
 const STORAGE_KEY_PREFER_TVDB_BASE_URL = 'preferTvdbBaseUrl';
+const STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL = 'preferReverseProxyBaseUrl';
 const STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE = 'lastSelectedTmdbLanguage';
 const STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE = 'lastSelectedTvdbLanguage';
+const STORAGE_KEY_DISABLED_DOMAINS = 'disabledDomains';
+
+function readDisabledDomainsSet(): Set<string> {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY_DISABLED_DOMAINS);
+        if (!stored) return new Set();
+        const parsed = JSON.parse(stored) as unknown;
+        if (!Array.isArray(parsed)) return new Set();
+        return new Set(parsed.filter((d): d is string => typeof d === 'string' && d.trim() !== ''));
+    } catch {
+        return new Set();
+    }
+}
+
+function writeDisabledDomainsSet(domains: Set<string>): void {
+    try {
+        if (domains.size === 0) {
+            localStorage.removeItem(STORAGE_KEY_DISABLED_DOMAINS);
+        } else {
+            localStorage.setItem(STORAGE_KEY_DISABLED_DOMAINS, JSON.stringify([...domains]));
+        }
+    } catch {
+        // Ignore localStorage errors
+    }
+}
 
 const localStorages = {
     get selectedFolderIndex(): number | null {
@@ -107,6 +133,24 @@ const localStorages = {
             // Ignore localStorage errors
         }
     },
+    get preferReverseProxyBaseUrl(): string | null {
+        try {
+            return localStorage.getItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL);
+        } catch {
+            return null;
+        }
+    },
+    set preferReverseProxyBaseUrl(value: string | null) {
+        try {
+            if (value) {
+                localStorage.setItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL, value);
+            } else {
+                localStorage.removeItem(STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL);
+            }
+        } catch {
+            // Ignore localStorage errors
+        }
+    },
     get lastSelectedTmdbLanguage(): string | null {
         try {
             const stored = localStorage.getItem(STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE);
@@ -144,7 +188,13 @@ const localStorages = {
         } catch {
             // Ignore localStorage errors
         }
-    }
+    },
+    get disabledDomains(): Set<string> {
+        return readDisabledDomainsSet();
+    },
+    set disabledDomains(domains: Set<string>) {
+        writeDisabledDomainsSet(domains);
+    },
 }
 
 export default localStorages;

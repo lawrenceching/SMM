@@ -1,5 +1,5 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
-import { downloadImageApi } from "@/api/downloadImage"
+import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { join } from "@/lib/path"
 import { checkFileExists } from "@/lib/utils"
@@ -119,7 +119,7 @@ export function useScrapePosterMutation<TContext = unknown>(
       const exists = await checkFileExists(posterPath)
       if (exists) return
 
-      const response = await downloadImageApi(posterUrl, posterPath)
+      const response = await downloadImageWithFailover(posterUrl, posterPath)
       if (response.error) {
         throw new Error(response.error)
       }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { fetchProxiedImageWithFailover } from '@/api/fetchProxiedImageWithFailover'
 
 type UrlType = 'data' | 'file' | 'http' | 'https' | 'protocol-relative' | 'unknown'
 
@@ -30,16 +31,6 @@ function convertBlobToBase64(blob: Blob): Promise<string> {
     }
     reader.readAsDataURL(blob)
   })
-}
-
-async function downloadImage(url: string, signal?: AbortSignal): Promise<Blob> {
-  const response = await fetch(url, { signal })
-  
-  if (!response.ok) {
-    throw new Error(`Failed to download image: ${response.statusText}`)
-  }
-  
-  return response.blob()
 }
 
 /**
@@ -75,20 +66,21 @@ export function useImage(url?: string, placeholder?: string): string | undefined
     }
 
     const imageUrl = urlType === 'protocol-relative' ? normalizeUrl(url) : url
-    const apiUrl = `/api/image?url=${encodeURIComponent(imageUrl)}`
 
-    downloadImage(apiUrl, abortController.signal)
+    fetchProxiedImageWithFailover(imageUrl, { signal: abortController.signal })
       .then(async (blob) => {
         const base64data = await convertBlobToBase64(blob)
          
         setImageData(base64data)
       })
       .catch((error) => {
-        console.error(
-          `[useImage] Error downloading image from ${imageUrl}:`,
-          error,
-          "(requested: " + apiUrl + ")"
-        )
+        if (
+          (error instanceof DOMException && error.name === 'AbortError') ||
+          (error instanceof Error && error.name === 'AbortError')
+        ) {
+          return
+        }
+        console.error(`[useImage] Error downloading image from ${imageUrl}:`, error)
          
         setImageData(placeholder)
       })

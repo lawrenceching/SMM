@@ -1,6 +1,6 @@
 {
   "name": "SMM",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "A minimal Electron application with TypeScript",
   "main": "main.js",
   "scripts": {

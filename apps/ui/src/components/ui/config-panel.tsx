@@ -1,13 +1,14 @@
 import { useState } from "react"
-import { Settings, Bot, MessageSquare, Box } from "lucide-react"
+import { Settings, Bot, MessageSquare, Box, Database } from "lucide-react"
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarProvider, SidebarTrigger, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "./sidebar"
 import { GeneralSettings } from "./settings/GeneralSettings"
 import { AiSettings } from "./settings/AiSettings"
 import { ExternalApplicationsSettings } from "./settings/ExternalApplicationsSettings"
+import { MediaDatabasesSettings } from "./settings/MediaDatabasesSettings"
 import { Feedback } from "./settings/Feedback"
 import { useTranslation } from "@/lib/i18n"
 
-export type SettingsTab = "general" | "ai" | "external-apps" | "rename-rules" | "feedback"
+export type SettingsTab = "general" | "ai" | "external-apps" | "media-databases" | "rename-rules" | "feedback"
 
 interface ConfigPanelSidebarProps {
   activeTab: SettingsTab
@@ -20,6 +21,7 @@ function ConfigPanelSidebar({ activeTab, onTabChange }: ConfigPanelSidebarProps)
   const menuItems: Array<{ id: SettingsTab; label: string; icon: React.ReactNode }> = [
     { id: "general", label: t('sidebar.general'), icon: <Settings className="h-4 w-4" /> },
     { id: "ai", label: t('sidebar.ai'), icon: <Bot className="h-4 w-4" /> },
+    { id: "media-databases", label: t('sidebar.mediaDatabases'), icon: <Database className="h-4 w-4" /> },
     { id: "external-apps", label: t('sidebar.externalApps'), icon: <Box className="h-4 w-4" /> },
     // Disable Rename Rules as this feature is going to deprecate
     // { id: "rename-rules", label: t('sidebar.renameRules'), icon: <FileText className="h-4 w-4" /> },
@@ -68,6 +70,8 @@ function ConfigPanel({ initialTab = "general" }: ConfigPanelProps) {
         return <AiSettings />
       case "external-apps":
         return <ExternalApplicationsSettings />
+      case "media-databases":
+        return <MediaDatabasesSettings />
       case "feedback":
         return <Feedback />
       default:

@@ -1,5 +1,5 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
-import { downloadImageApi } from "@/api/downloadImage"
+import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { join } from "@/lib/path"
 import { checkFileExists } from "@/lib/utils"
@@ -145,7 +145,7 @@ export function useScrapeFanartMutation<TContext = unknown>(
       const exists = await checkFileExists(fanartPath)
       if (exists) return
 
-      const response = await downloadImageApi(fanartUrl, fanartPath)
+      const response = await downloadImageWithFailover(fanartUrl, fanartPath)
       if (response.error) {
         throw new Error(response.error)
       }

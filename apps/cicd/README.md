@@ -45,6 +45,12 @@ full schema and semantics. Minimal example:
   ],
   "tasks": [
     { "name": "test", "command": "pnpm test" }
+  ],
+  "afterEach": [
+    { "name": "collect", "command": "bun ci/collect-wdio-report.ts" }
+  ],
+  "onArtifactsReady": [
+    { "name": "check-log", "command": "bun ./apps/e2e/scenarios/check-log.ts" }
   ]
 }
 ```
@@ -52,6 +58,14 @@ full schema and semantics. Minimal example:
 Top-level `env` is shallow-merged into every background and task subprocess
 (after `process.env`, before per-item `env`). Use per-background or per-task
 `env` to override a single key.
+
+**cwd:** omitted → project root (`run()` / CLI `--cwd`, default `process.cwd()`).
+Relative paths resolve against that project root. Absolute paths are used as-is.
+
+**Hooks:**
+- `afterEach` — after each task; `main.log` is not sliced yet. Env: `CICD_TASK_NAME`, `CICD_OUTPUT_DIR`, `CICD_TASK_EXIT_CODE`.
+- `onArtifactsReady` — once after log slicing; `{task}/main.log` is available. Env: `CICD_ARTIFACT_DIR` (same as `CICD_OUTPUT_DIR`), `CICD_EXIT_CODE`, `CICD_TASK_NAMES`. A failing hook fails the whole run.
+- `when` — on hooks: `always` (default) or `success`. For `onArtifactsReady`, `success` skips the hook unless every task exited 0.
 
 ## Output
 

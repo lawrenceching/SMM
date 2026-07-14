@@ -1,4 +1,4 @@
-import { watch, type FSWatcher } from 'fs';
+import { existsSync, watch, type FSWatcher } from 'fs';
 import { broadcast } from '../utils/socketIO';
 import { FOLDER_CONTENT_CHANGED_EVENT } from '@core/event-types';
 import { Path } from '@core/path';
@@ -67,6 +67,11 @@ export class FolderWatcher {
 
     if (this.watchers.has(posixPath)) {
       logger.debug({ folderPath: posixPath }, '[FolderWatcher] Already watching folder');
+      return;
+    }
+
+    if (!existsSync(folderPath)) {
+      logger.debug({ folderPath: posixPath }, '[FolderWatcher] Folder does not exist, skipping');
       return;
     }
 

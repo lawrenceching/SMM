@@ -18,11 +18,25 @@ import StatusBar from '../componentobjects/StatusBar'
 // Re-export for convenience
 export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
 
+export {
+    useEmbeddedHttpProxy,
+    getCurrentProxyAddress,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
+} from './httpProxyServer'
+
+export { startConfigServer, stopConfigServer } from './configServer'
+
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
-// Load .env.local from e2e folder
-dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local') })
+// Load .env.local from e2e folder. Use `override: true` so the e2e-specific
+// values win over the root .env.local (which may set the same keys to empty
+// values). Without override, dotenv's default behavior leaves any
+// already-set env var untouched, so an empty value from the root file would
+// block the e2e value.
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env.local'), override: true })
 
 /**
  * Options for the before hook
@@ -145,7 +159,7 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
         const { default: StatusBar } = await import('../componentobjects/StatusBar')
         const { default: Sidebar } = await import('../componentobjects/Sidebar')
 
-        Page.open()
+        await Page.open()
 
         // Wait for the page to be ready by checking StatusBar is displayed
         await browser.waitUntil(async () => {
@@ -440,4 +454,57 @@ export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' | 
         console.warn(`Remote is not accessible: ${url}`, error)
         return false
     }
+}
+
+/**
+ * Probe whether an HTTP proxy URL is reachable.
+ *
+ * Used as a pre-flight check for the "custom host via HTTP proxy" e2e specs.
+ * We can't `fetch()` through a generic HTTP proxy from Node without an
+ * agent library, so this checks the lower bar: is the proxy's TCP endpoint
+ * accepting connections? If the port is open we treat the proxy as
+ * "ready"; a 4xx/5xx response from the actual proxied call would surface
+ * as a different failure mode that the spec already exercises.
+ */
+export async function isHttpProxyAccessible(proxyUrl: string | null | undefined): Promise<boolean> {
+    if (!proxyUrl || typeof proxyUrl !== 'string') return false
+    let parsed: URL
+    try {
+        parsed = new URL(proxyUrl)
+    } catch {
+        console.warn(`Invalid HTTP proxy URL: ${proxyUrl}`)
+        return false
+    }
+    const protocol = parsed.protocol.toLowerCase()
+    if (protocol !== 'http:' && protocol !== 'https:') {
+        console.warn(`Unsupported HTTP proxy protocol: ${parsed.protocol}`)
+        return false
+    }
+    const host = parsed.hostname
+    const port = parsed.port
+        ? Number.parseInt(parsed.port, 10)
+        : protocol === 'https:'
+            ? 443
+            : 80
+    if (!host || !Number.isFinite(port) || port <= 0) return false
+
+    const { createConnection } = await import('node:net')
+    return await new Promise<boolean>((resolve) => {
+        const socket = createConnection({ host, port })
+        const finish = (ok: boolean) => {
+            socket.removeAllListeners()
+            if (!socket.destroyed) socket.destroy()
+            resolve(ok)
+        }
+        const timer = setTimeout(() => finish(false), 5000)
+        socket.once('connect', () => {
+            clearTimeout(timer)
+            finish(true)
+        })
+        socket.once('error', (error) => {
+            clearTimeout(timer)
+            console.warn(`HTTP proxy not accessible: ${proxyUrl}`, error)
+            finish(false)
+        })
+    })
 }

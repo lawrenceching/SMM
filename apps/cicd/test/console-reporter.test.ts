@@ -16,6 +16,7 @@ function makeResult(overrides: Partial<RunResult> = {}): RunResult {
         timedOut: false,
       },
     ],
+    onArtifactsReadyResults: [],
     ...overrides,
   };
 }
@@ -108,5 +109,73 @@ describe('ConsoleReporter', () => {
     );
 
     expect(report).toContain('150ms');
+  });
+
+  test('formats onArtifactsReady hooks after logs section', () => {
+    const report = new ConsoleReporter().format(
+      makeResult({
+        onArtifactsReadyResults: [
+          {
+            name: 'check-log',
+            exitCode: 0,
+            startTime: 0,
+            endTime: 42,
+            timedOut: false,
+            skipped: false,
+          },
+        ],
+      }),
+    );
+
+    expect(report).toContain('onArtifactsReady:');
+    expect(report).toContain('✓ check-log');
+    expect(report).toContain('42ms');
+    const logsIndex = report.indexOf('Logs:');
+    const hooksIndex = report.indexOf('onArtifactsReady:');
+    expect(logsIndex).toBeGreaterThan(-1);
+    expect(hooksIndex).toBeGreaterThan(logsIndex);
+  });
+
+  test('formats failed onArtifactsReady hook', () => {
+    const report = new ConsoleReporter().format(
+      makeResult({
+        exitCode: 1,
+        onArtifactsReadyResults: [
+          {
+            name: 'check-log',
+            exitCode: 1,
+            startTime: 0,
+            endTime: 100,
+            timedOut: false,
+            skipped: false,
+          },
+        ],
+      }),
+    );
+
+    expect(report).toContain('✗ check-log');
+    expect(report).toContain('exit 1');
+  });
+
+  test('formats skipped onArtifactsReady hook', () => {
+    const report = new ConsoleReporter().format(
+      makeResult({
+        exitCode: 1,
+        onArtifactsReadyResults: [
+          {
+            name: 'check-log',
+            exitCode: 0,
+            startTime: 0,
+            endTime: 0,
+            timedOut: false,
+            skipped: true,
+          },
+        ],
+      }),
+    );
+
+    expect(report).toContain('onArtifactsReady:');
+    expect(report).toContain('- check-log');
+    expect(report).toContain('skipped (when: success)');
   });
 });

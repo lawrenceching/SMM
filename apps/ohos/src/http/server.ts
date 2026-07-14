@@ -116,6 +116,7 @@ export async function startMainHttpServer(): Promise<void> {
 
   const {
     createCoreRoutesRequestHandler,
+    createProxiedFetch,
     createReverseProxyManager,
     createReverseProxyRequestHandler,
     createSocketIOManager,
@@ -142,6 +143,7 @@ export async function startMainHttpServer(): Promise<void> {
     allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
     logger: proxyLogger,
     fetchImpl: nodeHttpFetch,
+    createProxiedFetch,
   }
 
   const reverseProxyManager = createReverseProxyManager(reverseProxyConfig)

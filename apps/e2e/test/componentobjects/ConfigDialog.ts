@@ -10,7 +10,7 @@ const Key = {
     Escape: '\uE00C'
 }
 
-type SettingsTab = 'general' | 'ai' | 'external-apps' | 'rename-rules' | 'feedback'
+type SettingsTab = 'general' | 'ai' | 'external-apps' | 'media-databases' | 'rename-rules' | 'feedback'
 type PreferMediaLanguageCode = "__unset__" | "zh-CN" | "en-US" | "ja-JP"
 type ThemeMode = "light" | "dark" | "system"
 
@@ -45,6 +45,14 @@ class ConfigDialog {
         const tab = await this.getTabButton(tabId)
         await tab.waitForClickable({ timeout: 5000 })
         await tab.click()
+    }
+
+    /**
+     * Switch to a settings tab and wait for its content to render.
+     */
+    async switchToTab(tabId: SettingsTab): Promise<void> {
+        await this.clickTab(tabId)
+        await browser.pause(300)
     }
 
     // ==================== General Settings ====================
@@ -189,6 +197,15 @@ class ConfigDialog {
 
     get ffmpegVersion() {
         return $('[data-testid="setting-ffmpeg-version"]')
+    }
+
+    // ==================== Media Databases Settings ====================
+
+    /**
+     * Get the media databases settings container element
+     */
+    get mediaDatabasesSettings() {
+        return $('[data-testid="media-databases-settings"]')
     }
 
     // ==================== External Applications (new tab) ====================

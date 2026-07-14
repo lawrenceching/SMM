@@ -10,6 +10,7 @@ import {
   validateUpstreamBaseURL,
   type ReverseProxyConfig,
 } from "./reverseProxy.ts";
+import { createProxiedFetch, formatProxyHostForLog, getOutboundProxyMode } from "./proxiedFetch.ts";
 import {
   createReverseProxyManager,
   createReverseProxyRequestHandler,
@@ -66,8 +67,8 @@ describe("buildUpstreamUrl", () => {
   });
 
   it("preserves upstream base path (e.g. /api/tmdb)", () => {
-    const result = buildUpstreamUrl("https://tmdb-mcp-server.imlc.me/api/tmdb", "/search/tv", "");
-    expect(result).toBe("https://tmdb-mcp-server.imlc.me/api/tmdb/search/tv");
+    const result = buildUpstreamUrl("https://mediadb.vercel.app/api/tmdb", "/search/tv", "");
+    expect(result).toBe("https://mediadb.vercel.app/api/tmdb/search/tv");
   });
 });
 
@@ -77,6 +78,14 @@ describe("validateUpstreamBaseURL", () => {
   it("accepts a host in the allowlist", () => {
     const url = validateUpstreamBaseURL("https://api.themoviedb.org/3", DEFAULT_ALLOWED_UPSTREAM_HOSTS);
     expect(url.hostname).toBe("api.themoviedb.org");
+  });
+
+  it("accepts SMM-managed mediadb.vercel.app upstream", () => {
+    const url = validateUpstreamBaseURL(
+      "https://mediadb.vercel.app/api/tmdb",
+      DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    );
+    expect(url.hostname).toBe("mediadb.vercel.app");
   });
 
   it("rejects a host not in the allowlist", () => {
@@ -117,11 +126,13 @@ describe("filterRequestHeaders", () => {
     const request = new Request("http://x", {
       headers: {
         "X-SMM-Proxy-Upstream-BaseURL": "https://api.themoviedb.org/3",
+        "X-Http-Proxy": "http://127.0.0.1:8081",
         "X-Custom": "keep",
       },
     });
     const headers = filterRequestHeaders(request, new URL("https://api.themoviedb.org/3"));
     expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBeNull();
+    expect(headers.get("X-Http-Proxy")).toBeNull();
     expect(headers.get("X-Custom")).toBe("keep");
   });
 
@@ -212,25 +223,25 @@ describe("handleProxyRequest", () => {
   it("accepts SMM-managed TMDB upstream and forwards with base path", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ results: [] }));
 
-    const request = makeProxyRequest("/search/tv?query=test", "https://tmdb-mcp-server.imlc.me/api/tmdb");
+    const request = makeProxyRequest("/search/tv?query=test", "https://mediadb.vercel.app/api/tmdb");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(200);
     const forwardedReq: Request = mockFetch.mock.calls[0]![0];
-    expect(forwardedReq.url).toBe("https://tmdb-mcp-server.imlc.me/api/tmdb/search/tv?query=test");
-    expect(forwardedReq.headers.get("Host")).toBe("tmdb-mcp-server.imlc.me");
+    expect(forwardedReq.url).toBe("https://mediadb.vercel.app/api/tmdb/search/tv?query=test");
+    expect(forwardedReq.headers.get("Host")).toBe("mediadb.vercel.app");
   });
 
   it("accepts SMM-managed TVDB upstream and forwards with base path", async () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ data: {} }));
 
-    const request = makeProxyRequest("/series/123/extended", "https://tmdb-mcp-server.imlc.me/api/tvdb");
+    const request = makeProxyRequest("/series/123/extended", "https://mediadb.vercel.app/api/tvdb");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(200);
     const forwardedReq: Request = mockFetch.mock.calls[0]![0];
-    expect(forwardedReq.url).toBe("https://tmdb-mcp-server.imlc.me/api/tvdb/series/123/extended");
-    expect(forwardedReq.headers.get("Host")).toBe("tmdb-mcp-server.imlc.me");
+    expect(forwardedReq.url).toBe("https://mediadb.vercel.app/api/tvdb/series/123/extended");
+    expect(forwardedReq.headers.get("Host")).toBe("mediadb.vercel.app");
   });
 
   it("filters hop-by-hop response headers", async () => {
@@ -253,13 +264,228 @@ describe("handleProxyRequest", () => {
     expect(response.headers.get("Transfer-Encoding")).toBeNull();
   });
 
-  it("returns 502 when the upstream fetch throws", async () => {
+  it("returns 502 ProblemDetails when the upstream fetch throws", async () => {
     mockFetch.mockRejectedValueOnce(new Error("network down"));
 
     const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("content-type")).toBe("application/problem+json");
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "network down",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ECONNREFUSED (undici)", async () => {
+    const cause = Object.assign(new Error("connect ECONNREFUSED 192.168.1.1:443"), { code: "ECONNREFUSED" });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("content-type")).toBe("application/problem+json");
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection refused by upstream host",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ENOTFOUND (undici)", async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND api.themoviedb.org"), {
+      code: "ENOTFOUND",
+      hostname: "api.themoviedb.org",
+    });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "DNS resolution failed for upstream host",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ETIMEDOUT (undici)", async () => {
+    const cause = Object.assign(new Error("connect ETIMEDOUT 192.168.1.1:443"), { code: "ETIMEDOUT" });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection to upstream host timed out",
+    });
+  });
+
+  it("returns 502 ProblemDetails for proxy timeout", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("HTTP proxy request timeout"));
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Proxy request timed out",
+    });
+  });
+
+  it("returns 502 ProblemDetails for Bun-style ConnectionRefused", async () => {
+    const bunError = Object.assign(
+      new Error("Unable to connect. Is the computer able to access the url?"),
+      { code: "ConnectionRefused" },
+    );
+    mockFetch.mockRejectedValueOnce(bunError);
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    // classifyProxyError prioritises the system code over message pattern,
+    // so ConnectionRefused maps to "Connection refused by upstream host".
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection refused by upstream host",
+    });
+  });
+
+  it("uses createProxiedFetch when X-Http-Proxy header is present", async () => {
+    const proxiedFetch = vi.fn().mockResolvedValue(jsonResponse({ proxied: true }));
+    const createProxiedFetchMock = vi.fn().mockReturnValue(proxiedFetch);
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      createProxiedFetch: createProxiedFetchMock,
+    });
+
+    expect(response.status).toBe(200);
+    expect(createProxiedFetchMock).toHaveBeenCalledWith(
+      "http://127.0.0.1:8081",
+      expect.objectContaining({ info: expect.any(Function) }),
+    );
+    expect(proxiedFetch).toHaveBeenCalledOnce();
+    // The original mockFetch (global) should NOT have been called
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("falls back to global fetch when createProxiedFetch returns undefined", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      createProxiedFetch: () => undefined,
+    });
+
+    expect(response.status).toBe(200);
+    // Falls through to global fetch
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("falls back to global fetch when createProxiedFetch throws", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "ftp://127.0.0.1:21" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      // createProxiedFetch from proxiedFetch.ts throws for unsupported schemes
+      createProxiedFetch,
+    });
+
+    // Falls through to global fetch despite the bad proxy URL
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("ignores X-Http-Proxy when createProxiedFetch is not configured", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest(
+      "/tv/123",
+      "https://api.themoviedb.org/3",
+      { extraHeaders: { "X-Http-Proxy": "http://127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("logs outbound proxy context when X-Http-Proxy is present", async () => {
+    const proxiedFetch = vi.fn().mockResolvedValue(jsonResponse({ proxied: true }));
+    const infoCalls: Record<string, unknown>[] = [];
+    const captureLogger: ReverseProxyConfig["logger"] = {
+      debug: vi.fn(),
+      info: (obj) => {
+        infoCalls.push(obj);
+      },
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+
+    const request = makeProxyRequest(
+      "/login",
+      "https://api4.thetvdb.com/v4",
+      { extraHeaders: { "X-Http-Proxy": "http://user:secret@127.0.0.1:8081" } },
+    );
+    const response = await handleProxyRequest(request, {
+      logger: captureLogger,
+      createProxiedFetch: () => proxiedFetch,
+    });
+
+    expect(response.status).toBe(200);
+    expect(infoCalls[0]).toMatchObject({
+      viaHttpProxy: true,
+      httpProxyHost: "127.0.0.1:8081",
+      incomingPath: "/login",
+      upstreamBaseURL: "https://api4.thetvdb.com/v4",
+      proxyMode: expect.any(String),
+    });
+    expect(infoCalls[0]?.proxyMode).not.toBe("direct");
   });
 });
 
@@ -307,6 +533,52 @@ describe("CORS headers", () => {
     expect(response.headers.get("Access-Control-Allow-Methods")).toContain("GET");
     expect(response.headers.get("Access-Control-Max-Age")).toBe("86400");
     expect(mockFetch).not.toHaveBeenCalled();
+  });
+});
+
+// ---- createProxiedFetch ----
+
+describe("createProxiedFetch", () => {
+  it("accepts SOCKS5 proxy URLs", () => {
+    const proxied = createProxiedFetch("socks5://127.0.0.1:1080");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts SOCKS5h proxy URLs", () => {
+    const proxied = createProxiedFetch("socks5h://127.0.0.1:1080");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts http:// proxy URLs", () => {
+    const proxied = createProxiedFetch("http://127.0.0.1:8081");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("accepts https:// proxy URLs", () => {
+    const proxied = createProxiedFetch("https://proxy.example.com:8443");
+    expect(proxied).toBeTypeOf("function");
+  });
+
+  it("throws for unsupported proxy schemes", () => {
+    expect(() => createProxiedFetch("ftp://proxy:21"))
+      .toThrowError(/Unsupported proxy scheme/);
+  });
+
+  it("formatProxyHostForLog redacts credentials and keeps host:port", () => {
+    expect(formatProxyHostForLog("http://user:pass@192.168.1.10:7897"))
+      .toBe("192.168.1.10:7897");
+  });
+
+  it("getOutboundProxyMode uses node-forward for HTTP upstream targets on Node", () => {
+    const mode = getOutboundProxyMode(
+      "http://127.0.0.1:8081",
+      "http://example.com/api",
+    );
+    if (typeof (globalThis as { Bun?: unknown }).Bun !== "undefined") {
+      expect(mode).toBe("bun-native");
+    } else {
+      expect(mode).toBe("node-forward");
+    }
   });
 });
 

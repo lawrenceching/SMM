@@ -6,6 +6,11 @@
   "invalidInput": "輸入無效",
   "operationFailed": "操作失敗",
   "searchNoResults": "未找到結果",
-  "searchFailed": "搜尋TMDB失敗"
+  "searchFailed": "搜尋TMDB失敗",
+  "searchFailedUnauthorized": "搜尋失敗：API key 無效（HTTP 401）。請檢查 API key 和主機配置。",
+  "searchFailedUnauthorizedTmdb": "搜尋失敗（TMDB）：API key 無效（HTTP 401）。請在設定中檢查 TMDB 主機和 API key。",
+  "searchFailedUnauthorizedTvdb": "搜尋失敗（TVDB）：API key 無效（HTTP 401）。請在設定中檢查 TVDB 主機和 API key。",
+  "searchFailedReverseProxy": "無法連接到 TMDB({{url}}): {{detail}}",
+  "searchFailedUpstream": "上游服務返回錯誤"
 }
 

@@ -44,6 +44,35 @@ describe('handleDiscover', () => {
       { type: 'tmdb', url: 'https://other.com/api/tmdb', authorizationMethod: 'date-token' },
       { type: 'tvdb', url: 'https://example.com/api/tvdb', authorizationMethod: 'none' },
     ]);
+    expect(body.data.reverseProxies).toEqual([]);
+  });
+
+  it('returns normalized reverseProxies on success', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [{ type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' }],
+        reverseProxies: [
+          {
+            id: 'gz1',
+            type: 'general',
+            url: 'https://proxy.example.com',
+            authMethod: 'date-token',
+          },
+        ],
+      })
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.reverseProxies).toEqual([
+      {
+        id: 'gz1',
+        type: 'general',
+        url: 'https://proxy.example.com',
+        authorizationMethod: 'date-token',
+      },
+    ]);
   });
 
   it('returns empty array when remote fetch fails (non-OK)', async () => {
@@ -53,6 +82,7 @@ describe('handleDiscover', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.reverseProxies).toEqual([]);
   });
 
   it('returns empty array when remote fetch throws', async () => {
@@ -62,6 +92,7 @@ describe('handleDiscover', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.reverseProxies).toEqual([]);
   });
 
   it('returns empty array when body is missing mediaDatabases', async () => {
@@ -71,6 +102,7 @@ describe('handleDiscover', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.reverseProxies).toEqual([]);
   });
 
   it('skips entries with missing or unknown type', async () => {
@@ -101,6 +133,36 @@ describe('handleDiscover', () => {
     expect(body.data.mediaDatabases[0].authorizationMethod).toBe('none');
   });
 
+  it('skips reverse proxy entries with missing id, url, or unknown type', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [],
+        reverseProxies: [
+          { type: 'general', url: 'https://proxy.example.com', authMethod: 'date-token' },
+          { id: 'gz1', type: 'unknown', url: 'https://proxy.example.com' },
+          { id: 'gz2', type: 'general', authMethod: 'date-token' },
+        ],
+      })
+    );
+
+    const res = await app.request('/api/discover');
+    const body = await res.json();
+    expect(body.data.reverseProxies).toEqual([]);
+  });
+
+  it('treats missing reverse proxy authMethod as none', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [],
+        reverseProxies: [{ id: 'gz1', type: 'general', url: 'https://proxy.example.com' }],
+      })
+    );
+
+    const res = await app.request('/api/discover');
+    const body = await res.json();
+    expect(body.data.reverseProxies[0].authorizationMethod).toBe('none');
+  });
+
   it('treats unknown authorizationMethod as none', async () => {
     mockFetch.mockImplementationOnce(() =>
       jsonResponse({
@@ -111,6 +173,28 @@ describe('handleDiscover', () => {
     const res = await app.request('/api/discover');
     const body = await res.json();
     expect(body.data.mediaDatabases[0].authorizationMethod).toBe('none');
+  });
+
+  it('keeps tmdb-asset and tvdb-asset entries', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [
+          { type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' },
+          { type: 'tmdb-asset', baseUrl: 'https://tmdb-asset.example.com' },
+          { type: 'tvdb-asset', url: 'https://tvdb-asset.example.com', authorizationMethod: 'none' },
+          { type: 'unknown', baseUrl: 'https://drop.me' },
+        ],
+      }),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.mediaDatabases).toEqual([
+      { type: 'tmdb', url: 'https://example.com/api/tmdb', authorizationMethod: 'none' },
+      { type: 'tmdb-asset', url: 'https://tmdb-asset.example.com', authorizationMethod: 'none' },
+      { type: 'tvdb-asset', url: 'https://tvdb-asset.example.com', authorizationMethod: 'none' },
+    ]);
   });
 });
 

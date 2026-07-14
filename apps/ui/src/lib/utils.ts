@@ -37,7 +37,7 @@ interface TvShowEpisodesProps {
 }
 import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
-import { downloadImageApi } from "@/api/downloadImage"
+import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { isError, ExistedFileError } from "@core/errors"
 
 
@@ -466,7 +466,7 @@ export async function downloadSeasonPoster(
     console.log(`[downloadSeasonPoster] Downloading season poster for season ${season.season_number} to ${seasonPosterPath}`)
 
     // Download the image
-    const resp = await downloadImageApi(posterUrl, seasonPosterPath)
+    const resp = await downloadImageWithFailover(posterUrl, seasonPosterPath)
     if (resp.error) {
       if (isError(resp.error, ExistedFileError)) {
         console.log(`[downloadSeasonPoster] Season poster already exists: ${seasonPosterPath}`)

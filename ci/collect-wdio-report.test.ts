@@ -63,6 +63,31 @@ describe('collect-wdio-report', () => {
     expect(fs.existsSync(dest)).toBe(true);
   });
 
+  test('copies network logs into task network-log dir', () => {
+    const networkDir = path.join(tmpRoot, 'apps/e2e/reports/network-logs');
+    fs.mkdirSync(networkDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(networkDir, 'SearchMovie.e2e.ts-0-0.json'),
+      '{"entries":[]}',
+    );
+
+    const outputDir = path.join(tmpRoot, 'artifacts/cicd/123');
+    const result = runCollect({
+      cwd: tmpRoot,
+      taskName: 'SearchMovie.e2e.ts',
+      outputDir,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain('network-logs');
+
+    const dest = path.join(
+      outputDir,
+      'SearchMovie.e2e.ts/network-log/SearchMovie.e2e.ts-0-0.json',
+    );
+    expect(fs.existsSync(dest)).toBe(true);
+  });
+
   test('skips when report dir is missing', () => {
     const outputDir = path.join(tmpRoot, 'artifacts/cicd/123');
     const result = runCollect({

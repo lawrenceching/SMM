@@ -18,7 +18,8 @@ export interface TMDBConfig {
 
 export interface TVDBConfig {
   host?: string
-  apiKey?: string
+  apiKey?: string,
+  httpProxy?: string
 }
 
 export type PrimaryDatabase = 'TMDB' | 'TVDB'
@@ -57,7 +58,7 @@ export interface UserConfig {
   /**
    * TVDB (TheTVDB) API configuration for search and metadata.
    */
-  tvdb?: TVDBConfig;
+  tvdb: TVDBConfig;
   /**
    * Which database to use as primary for media search (TMDB or TVDB).
    */

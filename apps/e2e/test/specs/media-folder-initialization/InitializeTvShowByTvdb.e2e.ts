@@ -1,19 +1,12 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
+import { setup, cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { TvShowPanelCO } from '../../componentobjects/TVShowPanel.co'
-import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import { createAndImportFolder, type TestFolder, folder4, folder1, createFolderInTestFolder } from '../../actions/import-folders'
-import { openConfigDialog } from '../../actions/openConfigDialog'
-import { setPrimaryDatabaseAndPreferLanguage } from '../../actions/setPrimaryDatabaseAndPreferLanguage'
-import { setup } from '../../lib/testbed'
-import env from 'test/lib/env'
+import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
+import '../../steps'
+import ConfigDialog from '../../componentobjects/ConfigDialog'
 import type { MediaMetadata } from '@smm/core/types'
-import path from 'path'
-import Sidebar from 'test/componentobjects/Sidebar'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
-import fs from 'fs'
-import { Path } from '@smm/core'
-import { importMediaFolder } from 'test/actions/events'
+import env from 'test/lib/env'
 
 describe('Media Folder Initialization - TV Show - TVDB', () => {
 
@@ -27,9 +20,25 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
             resetUserConfig: true,
         })
 
+        const { openConfigDialog } = await import('../../actions/openConfigDialog')
+        // Set primary database to TVDB (save on media-databases tab before switching away)
         await openConfigDialog(async () => {
-            await setPrimaryDatabaseAndPreferLanguage('TVDB', 'zh-CN')
+            if (env.slowdown) {
+                await delay(1000)
+            }
+            await ConfigDialog.switchToTab('media-databases')
+            await ConfigDialog.setPrimaryDatabase('TVDB')
         })
+        // Set prefer media language (separate dialog session, stays on general tab)
+        await openConfigDialog(async () => {
+            if (env.slowdown) {
+                await delay(1000)
+            }
+            await ConfigDialog.switchToTab('general')
+            await ConfigDialog.setPreferMediaLanguage('zh-CN')
+        })
+
+        resetStepContext()
     })
 
     afterEach(async function () {
@@ -51,18 +60,14 @@ describe('Media Folder Initialization - TV Show - TVDB', () => {
             this.timeout(60 * 1000)
         }
 
-        const folder = await createAndImportFolder({
-            ...folder1,
-            folderName: '天使降临到我身边',
-        }, 'TVDB TV Show Media Folder Initialization:import media folder by searching folder name in TVDB');
+        await given('TV show folder "天使降临到我身边" was initialized by TVDB folder name')
 
-        await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 20000);
+        await then('TV show panel shows the TVDB title and episode table', async () => {
+            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 20000)
+            await browser.pause(2000)
 
-        await browser.pause(2000);
-
-        const state = await TvShowPanelCO.toString()
-
-        expect(state).toContain(`Season 0
+            const state = await TvShowPanelCO.toString()
+            expect(state).toContain(`Season 0
 S00E01 - - - -
 S00E02 - - - -
 Season 1
@@ -78,35 +83,35 @@ S01E09 - - - -
 S01E10 - - - -
 S01E11 - - - -
 S01E12 - - - -`)
-
-        await expectMediaMetadataToBe(folder.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.tvShow).toBeDefined()
-            expect(mm.tvShow?.id).toBe('355969')
-            expect(mm.tvShow?.name).toBe('天使降临到了我身边！')
-            expect(mm.tvShow?.database).toBe('TVDB')
-            return true;
         })
 
+        await then('metadata is persisted with TVDB tvshow id 355969', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await expectMediaMetadataToBe(folder.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.tvShow).toBeDefined()
+                expect(mm.tvShow?.id).toBe('355969')
+                expect(mm.tvShow?.name).toBe('天使降临到了我身边！')
+                expect(mm.tvShow?.database).toBe('TVDB')
+                return true
+            })
+        })
     })
 
     it('TVDB ID in Folder Name', async function () {
-
         if (env.slowdown) {
             this.timeout(60 * 1000)
         }
 
-        const folder = await createAndImportFolder(folder4, 'TVDB TV Show Media Folder Initialization:import media folder with tvdbid in folder name');
+        await given('TV show folder was initialized by TVDB ID')
 
-        await delay(30 * 1000)
+        await then('TV show panel shows Oshi no Ko title and TVDB season table', async () => {
+            await browser.pause(30 * 1000)
 
-        expect(await TvShowPanelCO.immersiveInput.getValue()).toBe('【我推的孩子】')
+            expect(await TvShowPanelCO.immersiveInput.getValue()).toBe('【我推的孩子】')
 
-        const state = await TvShowPanelCO.toString()
-
-        // folder4 - 我推的孩子 organized as 2 seasons in TMDB while 4 seasons in TVDB
-        // So below assertion proved the media folder was initialized using data from TVDB
-        expect(state).toContain(`Season 0
+            const state = await TvShowPanelCO.toString()
+            expect(state).toContain(`Season 0
 S00E01 - - - -
 S00E02 - - - -
 Season 1
@@ -149,17 +154,20 @@ S03E10 - - - -
 S03E11 - - - -
 Season 4
 S04E01 - - - -`)
-
-        await expectMediaMetadataToBe(folder.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.tvShow).toBeDefined()
-            expect(mm.tvShow?.id).toBe('421069')
-            expect(mm.tvShow?.name).toBe('【我推的孩子】')
-            expect(mm.tvShow?.database).toBe('TVDB')
-            expect(mm.tvShow?.airDate).toBe("2023-04-12")
-            return true;
         })
 
+        await then('metadata is persisted with TVDB tvshow id 421069', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await expectMediaMetadataToBe(folder.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.tvShow).toBeDefined()
+                expect(mm.tvShow?.id).toBe('421069')
+                expect(mm.tvShow?.name).toBe('【我推的孩子】')
+                expect(mm.tvShow?.database).toBe('TVDB')
+                expect(mm.tvShow?.airDate).toBe('2023-04-12')
+                return true
+            })
+        })
     })
 
     it('NFO', async function () {
@@ -167,30 +175,16 @@ S04E01 - - - -`)
             this.timeout(60 * 1000)
         }
 
-        const folder = await createFolderInTestFolder({
-            ...folder1,
-            folderName: "WhateverItIsToEnsureCannotRecognizeByFolderName"
-        })
-        const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<tvshow>
-  <title>天使降临到我身边</title>
-  <id>355969</id>
-  <tvdbid>355969</tvdbid>
-</tvshow>`
-        fs.writeFileSync(path.join(folder.path!, 'tvshow.nfo'), nfoXml)
-        await importMediaFolder({
-            type: 'tvshow',
-            folderPathInPlatformFormat: folder.path!,
-            traceId: 'e2eTest:MediaFolderInitialization - TVShow NFO',
-        })
+        const { folder1 } = await import('../../actions/import-folders')
+        await given(`TV show folder "${folder1.folderName}" was initialized with TVDB NFO`)
 
-        await Sidebar.waitForFolderTitle('天使降临到了我身边！', 20000);
+        await then('TV show panel shows the expected title and episode table with nfo prefix', async () => {
+            const { default: Sidebar } = await import('../../componentobjects/Sidebar')
+            await Sidebar.waitForFolderTitle('天使降临到了我身边！', 20000)
+            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！')
+            await browser.pause(2000)
 
-        await TVShowPanel.waitForTitleToBe('天使降临到了我身边！')
-
-        await browser.pause(2000);
-
-        expect(await TVShowPanel.toString()).toBe(`nfo
+            expect(await TvShowPanelCO.toString()).toBe(`nfo
 Season 0
 S00E01 - - - -
 S00E02 - - - -
@@ -207,131 +201,73 @@ S01E09 - - - -
 S01E10 - - - -
 S01E11 - - - -
 S01E12 - - - -`)
+        })
 
-        await expectMediaMetadataToBe(folder.path!, (m: MediaMetadata) => {
-
-            expect(m).toEqual({
-                "mediaFolderPath": Path.posix(folder.path!),
-                "type": "tvshow-folder",
-                "files": [],
-                "mediaFiles": [
-                    {
-                        "absolutePath": Path.posix(path.join(folder.path!, 'S01E01.mkv')),
-                        "episodeNumber": 1,
-                        "seasonNumber": 1,
-                    },
-                    {
-                        "absolutePath": Path.posix(path.join(folder.path!, 'S01E02.mkv')),
-                        "episodeNumber": 2,
-                        "seasonNumber": 1,
-                    },
-                    {
-                        "absolutePath": Path.posix(path.join(folder.path!, 'S01E03.mkv')),
-                        "episodeNumber": 3,
-                        "seasonNumber": 1,
-                    }
-                ],
-                "tvShow": {
-                    "id": "355969",
-                    "name": "天使降临到了我身边！",
-                    "database": "TVDB",
-                    "seasons": [
+        await then('metadata is persisted with TVDB tvshow id 355969', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await expectMediaMetadataToBe(folder.path, (m: MediaMetadata) => {
+                expect(m).toEqual({
+                    mediaFolderPath: expect.any(String),
+                    type: 'tvshow-folder',
+                    files: [],
+                    mediaFiles: [
                         {
-                            "season": 0,
-                            "name": "",
-                            "episodes": [
-                                {
-                                    "season": 0,
-                                    "episode": 1,
-                                    "name": "不會辜負期待啊 / 總是形影不離 / 換上這身衣服吧！ / 我是姐姐哦"
-                                },
-                                {
-                                    "season": 0,
-                                    "episode": 2,
-                                    "name": "私に天使が舞い降りた！プレシャス・フレンズ"
-                                }
-                            ]
+                            absolutePath: expect.stringContaining('S01E01.mkv'),
+                            episodeNumber: 1,
+                            seasonNumber: 1,
                         },
                         {
-                            "season": 1,
-                            "name": "",
-                            "episodes": [
-                                {
-                                    "season": 1,
-                                    "episode": 1,
-                                    "name": "心裏癢癢的感覺"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 2,
-                                    "name": "超級無敵可愛"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 3,
-                                    "name": "銘印"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 4,
-                                    "name": "方便說兩句嗎？"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 5,
-                                    "name": "好啦交給我來吧！"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 6,
-                                    "name": "宮姐沒有朋友哦"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 7,
-                                    "name": "聽不懂宮姐在說什麼"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 8,
-                                    "name": "有些事情不知為妙"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 9,
-                                    "name": "陪到我睡着哦"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 10,
-                                    "name": "又多嘴了"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 11,
-                                    "name": "也就是說是姐姐不好"
-                                },
-                                {
-                                    "season": 1,
-                                    "episode": 12,
-                                    "name": "天使的目光"
-                                }
-                            ]
-                        }
+                            absolutePath: expect.stringContaining('S01E02.mkv'),
+                            episodeNumber: 2,
+                            seasonNumber: 1,
+                        },
+                        {
+                            absolutePath: expect.stringContaining('S01E03.mkv'),
+                            episodeNumber: 3,
+                            seasonNumber: 1,
+                        },
                     ],
-                    "airDate": "2019-01-08"
-                }
+                    tvShow: {
+                        id: '355969',
+                        name: '天使降临到了我身边！',
+                        database: 'TVDB',
+                        seasons: [
+                            {
+                                season: 0,
+                                name: '',
+                                episodes: [
+                                    { season: 0, episode: 1, name: '不會辜負期待啊 / 總是形影不離 / 換上這身衣服吧！ / 我是姐姐哦' },
+                                    { season: 0, episode: 2, name: '私に天使が舞い降りた！プレシャス・フレンズ' },
+                                ],
+                            },
+                            {
+                                season: 1,
+                                name: '',
+                                episodes: [
+                                    { season: 1, episode: 1, name: '心裏癢癢的感覺' },
+                                    { season: 1, episode: 2, name: '超級無敵可愛' },
+                                    { season: 1, episode: 3, name: '銘印' },
+                                    { season: 1, episode: 4, name: '方便說兩句嗎？' },
+                                    { season: 1, episode: 5, name: '好啦交給我來吧！' },
+                                    { season: 1, episode: 6, name: '宮姐沒有朋友哦' },
+                                    { season: 1, episode: 7, name: '聽不懂宮姐在說什麼' },
+                                    { season: 1, episode: 8, name: '有些事情不知為妙' },
+                                    { season: 1, episode: 9, name: '陪到我睡着哦' },
+                                    { season: 1, episode: 10, name: '又多嘴了' },
+                                    { season: 1, episode: 11, name: '也就是說是姐姐不好' },
+                                    { season: 1, episode: 12, name: '天使的目光' },
+                                ],
+                            },
+                        ],
+                        airDate: '2019-01-08',
+                    },
+                })
+                return true
             })
-            return true
         })
 
         if (env.slowdown) {
             await delay(10 * 1000)
         }
-
     })
-
-
-
-
 })

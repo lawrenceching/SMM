@@ -1,4 +1,4 @@
-export { TVDBv4 } from "./client";
+export { TVDBv4, TVDBv4Error } from "./client";
 export type {
   TVDBv4ClientOptions,
   TVDBv4SearchParams,

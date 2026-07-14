@@ -1,16 +1,11 @@
-import { expect } from '@wdio/globals'
-import { cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
+import { expect, browser } from '@wdio/globals'
+import { setup, cleanup, expectMediaMetadataToBe } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
-import { type TestFolder, createFolderInTestFolder, folder1, folder2 } from '../../actions/import-folders'
-import { setup } from '../../lib/testbed'
+import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
+import '../../steps'
 import env from 'test/lib/env'
 import type { MediaMetadata } from '@smm/core/types'
-import ConfigDialog from 'test/componentobjects/ConfigDialog'
-import Menu from 'test/componentobjects/Menu'
-import { importMediaLibrary } from 'test/actions/events'
-import path, { dirname } from 'node:path'
 import { Path } from '@smm/core'
-import fs from 'node:fs'
 
 describe('Import Media Library', () => {
 
@@ -24,6 +19,8 @@ describe('Import Media Library', () => {
             resetUserConfig: true,
         })
 
+        const { default: Menu } = await import('../../componentobjects/Menu')
+        const { default: ConfigDialog } = await import('../../componentobjects/ConfigDialog')
         await Menu.openConfigDialog()
         await ConfigDialog.waitForDisplayed()
         expect(await ConfigDialog.isDisplayed()).toBe(true)
@@ -32,14 +29,14 @@ describe('Import Media Library', () => {
             await delay(1000)
         }
 
+        await ConfigDialog.switchToTab('media-databases')
         await ConfigDialog.setPrimaryDatabase('TMDB')
-        console.log(`set primary database to TVDB in ConfigDialog`)
         if (env.slowdown) {
             await delay(1000)
         }
 
+        await ConfigDialog.switchToTab('general')
         await ConfigDialog.setPreferMediaLanguage('zh-CN')
-        console.log(`set prefer media language to zh-CN in ConfigDialog`)
         if (env.slowdown) {
             await delay(1000)
         }
@@ -47,6 +44,8 @@ describe('Import Media Library', () => {
         await ConfigDialog.clickSave()
         await ConfigDialog.pressEscape()
         await browser.pause(1000)
+
+        resetStepContext()
     })
 
     afterEach(async () => {
@@ -59,163 +58,117 @@ describe('Import Media Library', () => {
         })
     })
 
-    it('Import TV Show Library', async function() {
-        if(env.slowdown) {
+    it('Import TV Show Library', async function () {
+        if (env.slowdown) {
             this.timeout(60 * 1000)
         }
 
-        const folders: TestFolder[] = []
-
-        const unknownFolder = createFolderInTestFolder({
-            ...folder1,
-            folderName: "UnknownFolder",
-        })
-        folders.push(unknownFolder)
-
-        const folderRecognizedBySearchingFolderName = createFolderInTestFolder(folder1)
-        folders.push(folderRecognizedBySearchingFolderName)
-
-        const folderRecognizedByTmdbIdInFolderName = createFolderInTestFolder({
-            ...folder1,
-            folderName: "{tmdbid=84666}",
-        })
-        folders.push(folderRecognizedByTmdbIdInFolderName)
-
-        
-        const folderRecognizedByNfo = createFolderInTestFolder({
-            ...folder1,
-            folderName: "FolderContainsTvShowNfo",
-        })
-        const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<tvshow>
-  <title>天使降临到我身边</title>
-  <id>84666</id>
-  <tmdbid>84666</tmdbid>
-</tvshow>`
-        fs.writeFileSync(path.join(folderRecognizedByNfo.path!, 'tvshow.nfo'), nfoXml)
-        folders.push(folderRecognizedByNfo)
-
-        const mediaFolder = dirname(folders[0]?.path!)!
-        
-        await importMediaLibrary({
-            libraryPathInPlatformFormat: mediaFolder,
-            type: "tvshow",
-            traceId: "e2e:Import Media Library:Import TV Show Library",
-        })
+        await given('Media library was imported with TV show folders')
 
         await delay(30 * 1000)
 
-        await expectMediaMetadataToBe(unknownFolder.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(unknownFolder.path!))
-            expect(mm.type).toBe("tvshow-folder")
-            expect(mm.tvShow).toBeUndefined()
-            return true;
+        const folders = getStepContext()._folders as Array<{ folderName: string; path: string; type: string }>
+
+        await then('unknown folder has no tvshow metadata', async () => {
+            const f = folders.find(f => f.folderName === 'UnknownFolder')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('tvshow-folder')
+                expect(mm.tvShow).toBeUndefined()
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedBySearchingFolderName.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedBySearchingFolderName.path!))
-            expect(mm.type).toBe("tvshow-folder")
-            expect(mm.tvShow?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by name has TMDB tvshow metadata', async () => {
+            const { folder1 } = await import('../../actions/import-folders')
+            const f = folders.find(f => f.folderName === folder1.folderName)!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('tvshow-folder')
+                expect(mm.tvShow?.database).toBe('TMDB')
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedByTmdbIdInFolderName.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByTmdbIdInFolderName.path!))
-            expect(mm.type).toBe("tvshow-folder")
-            expect(mm.tvShow?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by tmdbid has TMDB tvshow metadata', async () => {
+            const f = folders.find(f => f.folderName === '{tmdbid=84666}')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('tvshow-folder')
+                expect(mm.tvShow?.database).toBe('TMDB')
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedByNfo.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByNfo.path!))
-            expect(mm.type).toBe("tvshow-folder")
-            expect(mm.tvShow?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by NFO has TMDB tvshow metadata', async () => {
+            const f = folders.find(f => f.folderName === 'FolderContainsTvShowNfo')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('tvshow-folder')
+                expect(mm.tvShow?.database).toBe('TMDB')
+                return true
+            })
         })
-
     })
 
-    it('Import Movie Library', async function() {
-        if(env.slowdown) {
+    it('Import Movie Library', async function () {
+        if (env.slowdown) {
             this.timeout(60 * 1000)
         }
 
-        const folders: TestFolder[] = []
-
-        const unknownFolder = createFolderInTestFolder({
-            ...folder2,
-            folderName: "UnknownFolder",
-        })
-        folders.push(unknownFolder)
-
-        const folderRecognizedBySearchingFolderName = createFolderInTestFolder(folder2)
-        folders.push(folderRecognizedBySearchingFolderName)
-
-        const folderRecognizedByTmdbIdInFolderName = createFolderInTestFolder({
-            ...folder2,
-            folderName: "{tmdbid=1539104}",
-        })
-        folders.push(folderRecognizedByTmdbIdInFolderName)
-
-        
-        const folderRecognizedByNfo = createFolderInTestFolder({
-            ...folder2,
-            folderName: "FolderContainsTvShowNfo",
-        })
-        const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<movie>
-  <title>咒术回战 涩谷事变×死灭回游 剧场版</title>
-  <id>1539104</id>
-  <tmdbid>1539104</tmdbid>
-</movie>`
-        fs.writeFileSync(path.join(folderRecognizedByNfo.path!, 'movie.nfo'), nfoXml)
-        folders.push(folderRecognizedByNfo)
-
-        const mediaFolder = dirname(folders[0]?.path!)!
-        
-        await importMediaLibrary({
-            libraryPathInPlatformFormat: mediaFolder,
-            type: "movie",
-            traceId: "e2e:Import Media Library:Import Movie Library",
-        })
+        await given('Media library was imported with movie folders')
 
         await delay(30 * 1000)
 
-        await expectMediaMetadataToBe(unknownFolder.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(unknownFolder.path!))
-            expect(mm.type).toBe("movie-folder")
-            expect(mm.movie).toBeUndefined()
-            return true;
+        const folders = getStepContext()._folders as Array<{ folderName: string; path: string; type: string }>
+
+        await then('unknown folder has no movie metadata', async () => {
+            const f = folders.find(f => f.folderName === 'UnknownFolder')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('movie-folder')
+                expect(mm.movie).toBeUndefined()
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedBySearchingFolderName.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedBySearchingFolderName.path!))
-            expect(mm.type).toBe("movie-folder")
-            expect(mm.movie?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by name has TMDB movie metadata', async () => {
+            const { folder2 } = await import('../../actions/import-folders')
+            const f = folders.find(f => f.folderName === folder2.folderName)!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('movie-folder')
+                expect(mm.movie?.database).toBe('TMDB')
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedByTmdbIdInFolderName.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByTmdbIdInFolderName.path!))
-            expect(mm.type).toBe("movie-folder")
-            expect(mm.movie?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by tmdbid has TMDB movie metadata', async () => {
+            const f = folders.find(f => f.folderName === '{tmdbid=1539104}')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('movie-folder')
+                expect(mm.movie?.database).toBe('TMDB')
+                return true
+            })
         })
 
-        await expectMediaMetadataToBe(folderRecognizedByNfo.path!, (obj) => {
-            const mm = obj as MediaMetadata;
-            expect(mm.mediaFolderPath).toBe(Path.posix(folderRecognizedByNfo.path!))
-            expect(mm.type).toBe("movie-folder")
-            expect(mm.movie?.database).toBe("TMDB")
-            return true;
+        await then('folder recognized by NFO has TMDB movie metadata', async () => {
+            const f = folders.find(f => f.folderName === 'FolderContainsMovieNfo')!
+            await expectMediaMetadataToBe(f.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
+                expect(mm.type).toBe('movie-folder')
+                expect(mm.movie?.database).toBe('TMDB')
+                return true
+            })
         })
     })
-
 })

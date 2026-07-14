@@ -29,6 +29,29 @@ describe("fetchDiscoveredMediaDatabases", () => {
     ]);
   });
 
+  it("parses tmdb-asset and tvdb-asset entries", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            mediaDatabases: [
+              { type: "tmdb-asset", url: "https://tmdb-asset.example.com", authorizationMethod: "none" },
+              { type: "tvdb-asset", url: "https://tvdb-asset.example.com", authorizationMethod: "date-token" },
+            ],
+          },
+        }),
+      }),
+    );
+
+    const result = await fetchDiscoveredMediaDatabases();
+    expect(result).toEqual([
+      { type: "tmdb-asset", url: "https://tmdb-asset.example.com", authorizationMethod: "none" },
+      { type: "tvdb-asset", url: "https://tvdb-asset.example.com", authorizationMethod: "date-token" },
+    ]);
+  });
+
   it("returns empty array when response.data is missing", async () => {
     vi.stubGlobal(
       "fetch",

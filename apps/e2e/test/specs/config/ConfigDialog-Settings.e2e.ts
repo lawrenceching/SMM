@@ -78,44 +78,57 @@ describe('Config Dialog Settings - General Settings', () => {
         await ConfigDialog.waitForDisplayed()
         expect(await ConfigDialog.isDisplayed()).toBe(true)
 
-        // 2) Update all writable GeneralSettings fields
+        // 2) Update and save General tab settings first (GeneralSettings unmounts on tab switch)
         await ConfigDialog.selectLanguage(newSettings.applicationLanguage)
         await ConfigDialog.selectTheme(newSettings.theme)
+        await ConfigDialog.setPreferMediaLanguage(newSettings.preferMediaLanguage)
+        await ConfigDialog.toggleMcpServer(newSettings.enableMcpServer)
+        await ConfigDialog.setMcpHost(newSettings.mcpHost)
+        await ConfigDialog.setMcpPort(newSettings.mcpPort)
+
+        await ConfigDialog.clickSave()
+        await browser.pause(300)
+
+        // Switch to Media Databases tab for TMDB / TVDB / primary database settings
+        await ConfigDialog.switchToTab('media-databases')
         await ConfigDialog.setTmdbHost(newSettings.tmdbHost)
         await ConfigDialog.setTmdbApiKey(newSettings.tmdbApiKey)
         await ConfigDialog.setTmdbProxy(newSettings.tmdbProxy)
         await ConfigDialog.setPrimaryDatabase(newSettings.primaryDatabase)
-        await ConfigDialog.setPreferMediaLanguage(newSettings.preferMediaLanguage)
         await ConfigDialog.setTvdbHost(newSettings.tvdbHost)
         await ConfigDialog.setTvdbApiKey(newSettings.tvdbApiKey)
-        await ConfigDialog.toggleMcpServer(newSettings.enableMcpServer)
-        await ConfigDialog.setMcpHost(newSettings.mcpHost)
-        await ConfigDialog.setMcpPort(newSettings.mcpPort)
 
         if (slowdown) {
             await delay(600)
         }
 
-        // 3) Save then refresh page
-        await saveAndCloseDialog()
+        // 3) Save Media Databases settings, then close dialog and refresh page
+        await ConfigDialog.clickSave()
+        await ConfigDialog.pressEscape()
+        await browser.pause(200)
+        await ConfigDialog.pressEscape()
+        await ConfigDialog.waitForClosed()
         await reloadAndWaitForReady()
 
         // 4) Re-open ConfigDialog
         await Menu.openConfigDialog()
         await ConfigDialog.waitForDisplayed()
 
-        // 5) Validate all values are the updated values
+        // 5) Validate General tab values
         expect(await ConfigDialog.getSelectedLanguage()).toContain('English')
         expect(await ConfigDialog.getSelectedTheme()).toContain('Dark')
+        expect(await ConfigDialog.getSelectedPreferMediaLanguage()).toContain(newSettings.preferMediaLanguage)
+        expect(await ConfigDialog.isMcpServerEnabled()).toBe(newSettings.enableMcpServer)
+        expect(await ConfigDialog.getMcpHost()).toBe(newSettings.mcpHost)
+        expect(await ConfigDialog.getMcpPort()).toBe(newSettings.mcpPort)
+
+        // Switch to Media Databases tab and validate those values
+        await ConfigDialog.switchToTab('media-databases')
         expect(await ConfigDialog.getTmdbHost()).toBe(newSettings.tmdbHost)
         expect(await ConfigDialog.getTmdbApiKey()).toBe(newSettings.tmdbApiKey)
         expect(await ConfigDialog.getTmdbProxy()).toBe(newSettings.tmdbProxy)
         expect(await ConfigDialog.getSelectedPrimaryDatabase()).toContain('TVDB')
-        expect(await ConfigDialog.getSelectedPreferMediaLanguage()).toContain(newSettings.preferMediaLanguage)
         expect(await ConfigDialog.getTvdbHost()).toBe(newSettings.tvdbHost)
         expect(await ConfigDialog.getTvdbApiKey()).toBe(newSettings.tvdbApiKey)
-        expect(await ConfigDialog.isMcpServerEnabled()).toBe(newSettings.enableMcpServer)
-        expect(await ConfigDialog.getMcpHost()).toBe(newSettings.mcpHost)
-        expect(await ConfigDialog.getMcpPort()).toBe(newSettings.mcpPort)
     })
 })

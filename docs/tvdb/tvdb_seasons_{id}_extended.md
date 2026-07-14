@@ -3,7 +3,7 @@
 The id (season id) comes from `/series/{seriesId}/extended` API.
 
 ```bash
-curl `https://tmdb-mcp-server.imlc.me/api/tvdb/v4/seasons/421069/extended`
+curl `https://mediadb.vercel.app/api/tvdb/v4/seasons/421069/extended`
 ```
 
 ```json

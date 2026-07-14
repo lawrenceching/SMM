@@ -11,6 +11,7 @@ const {
   mockSeasonExtendedById,
   MockTVDBv4,
   mockTvdbConstructor,
+  mockFetchTvdb,
 } = vi.hoisted(() => {
   const movieTranslationByLangCode = vi.fn()
   const movieExtendedById = vi.fn()
@@ -22,6 +23,7 @@ const {
     message: "not used in this test file",
   })
   const constructorSpy = vi.fn()
+  const fetchTvdb = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }))
   class MockTVDBv4 {
     constructor(options: unknown) {
       constructorSpy(options)
@@ -42,6 +44,7 @@ const {
     mockSeasonExtendedById: seasonExtendedById,
     MockTVDBv4,
     mockTvdbConstructor: constructorSpy,
+    mockFetchTvdb: fetchTvdb,
   }
 })
 
@@ -49,33 +52,63 @@ vi.mock("@smm/tvdb4", () => ({
   TVDBv4: MockTVDBv4,
 }))
 
+vi.mock("@/api/tvdb", () => ({
+  fetchTvdb: mockFetchTvdb,
+}))
+
+vi.mock("@/api/hello", () => ({
+  hello: vi.fn(),
+}))
+
+vi.mock("@/api/readUserConfig", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/api/readUserConfig")>()
+  return {
+    ...actual,
+    readUserConfig: vi.fn(),
+  }
+})
+
 import {
   fetchTvdbAndBuildMovieMediaMetadata,
   fetchTvdbAndBuildTvShowMediaMetadata,
   getTVDBv4Client,
   _resetTvdbClientCacheForTesting,
 } from "./TvdbUtils"
+import { hello } from "@/api/hello"
+import { readUserConfig } from "@/api/readUserConfig"
+import { defaultUserConfig } from "@/api/readUserConfig"
+import { _resetInternalReverseProxyCacheForTesting } from "@/api/fetchByInternalReverseProxy"
+
+const mockReadUserConfig = vi.mocked(readUserConfig)
+const mockHello = vi.mocked(hello)
 
 const REVERSE_PROXY_URL = "http://127.0.0.1:30005"
-const SMM_TVDB_DEFAULT_UPSTREAM = "https://tmdb-mcp-server.imlc.me/api/tvdb"
+const SMM_TVDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tvdb"
 const TVDB_DIRECT_UPSTREAM = "https://api4.thetvdb.com/v4"
 
 beforeEach(() => {
   vi.clearAllMocks()
   _resetTvdbClientCacheForTesting()
+  _resetInternalReverseProxyCacheForTesting()
+  mockHello.mockResolvedValue({ reverseProxyUrl: REVERSE_PROXY_URL } as Awaited<ReturnType<typeof hello>>)
+  mockReadUserConfig.mockResolvedValue({
+    ...defaultUserConfig,
+    tvdb: { host: TVDB_DIRECT_UPSTREAM, apiKey: "tvdb-api-key", httpProxy: "" },
+  })
 })
 
 afterEach(() => {
 })
 
 describe("getTVDBv4Client", () => {
-  it("targets reverse proxy and SMM-managed default upstream when no TVDB host is configured", () => {
+  it("uses fetchTvdb fetchImpl for the SMM-managed default upstream when no TVDB host is configured", () => {
     getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL })
     expect(mockTvdbConstructor).toHaveBeenCalledTimes(1)
-    const options = mockTvdbConstructor.mock.calls[0][0] as { baseUrl?: string; disableAuth?: boolean; apiKey?: string }
-    expect(options.baseUrl).toBe(REVERSE_PROXY_URL)
+    const options = mockTvdbConstructor.mock.calls[0][0] as { baseUrl?: string; disableAuth?: boolean; apiKey?: string; fetchImpl?: unknown }
+    expect(options.baseUrl).toBe(SMM_TVDB_DEFAULT_UPSTREAM)
     expect(options.disableAuth).toBe(true)
     expect(options.apiKey).toBe("")
+    expect(typeof options.fetchImpl).toBe("function")
   })
 
   it("enables auth and forwards apiKey when configured TVDB host is direct and apiKey is set", () => {
@@ -110,25 +143,24 @@ describe("getTVDBv4Client", () => {
     expect(mockTvdbConstructor).toHaveBeenCalledTimes(1)
   })
 
-  it("throws when no reverse proxy URL is available", () => {
-    expect(() => getTVDBv4Client({ reverseProxyUrl: null })).toThrow(/Reverse proxy URL is not available/)
+  it("throws when no reverse proxy URL is available (custom upstream)", () => {
+    expect(() =>
+      getTVDBv4Client({
+        reverseProxyUrl: null,
+        upstreamBaseURL: "https://custom-tvdb.example/v4",
+      }),
+    ).toThrow(/Reverse proxy URL is not available/)
   })
 
-  it("injects X-SMM-Proxy-Upstream-BaseURL on every fetchImpl call (SMM-managed upstream)", async () => {
-    const fetchSpy = vi
-      .spyOn(window, "fetch")
-      .mockResolvedValue(new Response("{}", { status: 200 }))
-    getTVDBv4Client({ reverseProxyUrl: REVERSE_PROXY_URL })
-    const options = mockTvdbConstructor.mock.calls[0][0] as { fetchImpl?: typeof window.fetch }
-    expect(options.fetchImpl).toBeTypeOf("function")
-    await options.fetchImpl!("http://127.0.0.1:30005/series/123/extended", { method: "GET" })
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Headers
-    expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(SMM_TVDB_DEFAULT_UPSTREAM)
-  })
-
-  it("injects X-SMM-Proxy-Upstream-BaseURL with configured TVDB host", async () => {
+  it("routes TVDB login through the internal reverse proxy with upstream and optional HTTP proxy headers", async () => {
+    mockReadUserConfig.mockResolvedValue({
+      ...defaultUserConfig,
+      tvdb: {
+        host: TVDB_DIRECT_UPSTREAM,
+        apiKey: "tvdb-api-key",
+        httpProxy: "http://127.0.0.1:7890",
+      },
+    })
     const fetchSpy = vi
       .spyOn(window, "fetch")
       .mockResolvedValue(new Response("{}", { status: 200 }))
@@ -143,9 +175,48 @@ describe("getTVDBv4Client", () => {
       body: JSON.stringify({ apikey: "tvdb-api-key" }),
     })
     expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const init = fetchSpy.mock.calls[0][1] as RequestInit
-    const headers = init.headers as Headers
-    expect(headers.get("X-SMM-Proxy-Upstream-BaseURL")).toBe(TVDB_DIRECT_UPSTREAM)
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe(`${REVERSE_PROXY_URL}/login`)
+    const headers = init.headers as Record<string, string>
+    expect(headers["X-SMM-Proxy-Upstream-BaseURL"]).toBe(TVDB_DIRECT_UPSTREAM)
+    expect(headers["X-Http-Proxy"]).toBe("http://127.0.0.1:7890")
+    expect(init.method).toBe("POST")
+  })
+
+  it("does not set X-Http-Proxy on TVDB login when httpProxy is empty", async () => {
+    const fetchSpy = vi
+      .spyOn(window, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 200 }))
+    getTVDBv4Client({
+      reverseProxyUrl: REVERSE_PROXY_URL,
+      upstreamBaseURL: TVDB_DIRECT_UPSTREAM,
+      apiKey: "tvdb-api-key",
+    })
+    const options = mockTvdbConstructor.mock.calls[0][0] as { fetchImpl?: typeof window.fetch }
+    await options.fetchImpl!("http://127.0.0.1:30005/login", {
+      method: "POST",
+      body: JSON.stringify({ apikey: "tvdb-api-key" }),
+    })
+    const headers = (fetchSpy.mock.calls[0][1] as RequestInit).headers as Record<string, string>
+    expect(headers["X-SMM-Proxy-Upstream-BaseURL"]).toBe(TVDB_DIRECT_UPSTREAM)
+    expect(headers["X-Http-Proxy"]).toBeUndefined()
+  })
+
+  it("routes post-login TVDBv4 calls through fetchTvdb with the extracted JWT", async () => {
+    getTVDBv4Client({
+      reverseProxyUrl: REVERSE_PROXY_URL,
+      upstreamBaseURL: TVDB_DIRECT_UPSTREAM,
+      apiKey: "tvdb-api-key",
+    })
+    const options = mockTvdbConstructor.mock.calls[0][0] as { fetchImpl?: typeof window.fetch }
+    const headers = new Headers({ Authorization: "Bearer jwt-from-login" })
+    await options.fetchImpl!(
+      `${REVERSE_PROXY_URL}/search?query=naruto&type=series&language=eng`,
+      { method: "GET", headers },
+    )
+    expect(mockFetchTvdb).toHaveBeenCalledTimes(1)
+    expect(mockFetchTvdb.mock.calls[0]![0]).toBe("/search?query=naruto&type=series&language=eng")
+    expect(mockFetchTvdb.mock.calls[0]![1]).toMatchObject({ jwt: "jwt-from-login" })
   })
 })
 

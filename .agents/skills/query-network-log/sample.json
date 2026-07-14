@@ -1,0 +1,549 @@
+{
+  "cid": "0-0",
+  "spec": "SearchTvShow.e2e.ts",
+  "capturedAt": "2026-07-10T18:23:01.191Z",
+  "entries": [
+    {
+      "timestamp": "2026-07-10T18:22:44.148Z",
+      "phase": "response",
+      "event": {
+        "context": "20FAD2E1468E4D2379661F9B9231293C",
+        "isBlocked": false,
+        "navigation": null,
+        "redirectCount": 0,
+        "request": {
+          "bodySize": 0,
+          "cookies": [],
+          "destination": "script",
+          "goog:resourceInitiator": {
+            "columnNumber": 7,
+            "lineNumber": 5,
+            "type": "script",
+            "url": "http://localhost:5173/src/main.tsx"
+          },
+          "goog:resourceType": "Script",
+          "headers": [
+            {
+              "name": "Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": {
+                "type": "string",
+                "value": "\"Windows\""
+              }
+            },
+            {
+              "name": "Referer",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173/src/main.tsx"
+              }
+            },
+            {
+              "name": "Accept-Language",
+              "value": {
+                "type": "string",
+                "value": "zh-CN,zh;q=0.9"
+              }
+            },
+            {
+              "name": "sec-ch-ua",
+              "value": {
+                "type": "string",
+                "value": "\"Not-A.Brand\";v=\"24\", \"Chromium\";v=\"146\""
+              }
+            },
+            {
+              "name": "User-Agent",
+              "value": {
+                "type": "string",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+              }
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": {
+                "type": "string",
+                "value": "?0"
+              }
+            },
+            {
+              "name": "Accept",
+              "value": {
+                "type": "string",
+                "value": "*/*"
+              }
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": {
+                "type": "string",
+                "value": "gzip, deflate, br, zstd"
+              }
+            },
+            {
+              "name": "Accept-Language",
+              "value": {
+                "type": "string",
+                "value": "zh-CN,zh;q=0.9"
+              }
+            },
+            {
+              "name": "Connection",
+              "value": {
+                "type": "string",
+                "value": "keep-alive"
+              }
+            },
+            {
+              "name": "Host",
+              "value": {
+                "type": "string",
+                "value": "localhost:5173"
+              }
+            },
+            {
+              "name": "Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "Referer",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173/src/main.tsx"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Dest",
+              "value": {
+                "type": "string",
+                "value": "script"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Mode",
+              "value": {
+                "type": "string",
+                "value": "cors"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Site",
+              "value": {
+                "type": "string",
+                "value": "same-origin"
+              }
+            },
+            {
+              "name": "User-Agent",
+              "value": {
+                "type": "string",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+              }
+            },
+            {
+              "name": "sec-ch-ua",
+              "value": {
+                "type": "string",
+                "value": "\"Not-A.Brand\";v=\"24\", \"Chromium\";v=\"146\""
+              }
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": {
+                "type": "string",
+                "value": "?0"
+              }
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": {
+                "type": "string",
+                "value": "\"Windows\""
+              }
+            }
+          ],
+          "headersSize": 856,
+          "initiatorType": null,
+          "method": "GET",
+          "request": "16728.11",
+          "timings": {
+            "connectEnd": 4.6286380000161005,
+            "connectStart": 0,
+            "dnsEnd": 0,
+            "dnsStart": 0,
+            "fetchStart": 0,
+            "redirectEnd": 0,
+            "redirectStart": 0,
+            "requestStart": 4.661638000016101,
+            "requestTime": 0,
+            "responseEnd": 1537.974638000016,
+            "responseStart": 1537.9506380000162,
+            "timeOrigin": 1783707762604,
+            "tlsStart": 0
+          },
+          "url": "http://localhost:5173/src/index.css"
+        },
+        "response": {
+          "bodySize": 214515,
+          "bytesReceived": 214515,
+          "content": {
+            "size": 214221
+          },
+          "fromCache": false,
+          "headers": [
+            {
+              "name": "Cache-Control",
+              "value": {
+                "type": "string",
+                "value": "no-cache"
+              }
+            },
+            {
+              "name": "Etag",
+              "value": {
+                "type": "string",
+                "value": "W/\"344cd-6WpFGnmJ/2jkKOKNzBagX2tGyqo\""
+              }
+            },
+            {
+              "name": "Connection",
+              "value": {
+                "type": "string",
+                "value": "keep-alive"
+              }
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "Keep-Alive",
+              "value": {
+                "type": "string",
+                "value": "timeout=5"
+              }
+            },
+            {
+              "name": "Content-Length",
+              "value": {
+                "type": "string",
+                "value": "214221"
+              }
+            },
+            {
+              "name": "Date",
+              "value": {
+                "type": "string",
+                "value": "Fri, 10 Jul 2026 18:22:42 GMT"
+              }
+            },
+            {
+              "name": "Content-Type",
+              "value": {
+                "type": "string",
+                "value": "text/javascript"
+              }
+            },
+            {
+              "name": "Vary",
+              "value": {
+                "type": "string",
+                "value": "Origin"
+              }
+            }
+          ],
+          "headersSize": 275,
+          "mimeType": "text/javascript",
+          "protocol": "http/1.1",
+          "status": 200,
+          "statusText": "OK",
+          "url": "http://localhost:5173/src/index.css"
+        },
+        "timestamp": 1783707762604
+      }
+    },
+    {
+      "timestamp": "2026-07-10T18:22:46.319Z",
+      "phase": "response",
+      "event": {
+        "context": "20FAD2E1468E4D2379661F9B9231293C",
+        "isBlocked": false,
+        "navigation": null,
+        "redirectCount": 0,
+        "request": {
+          "bodySize": 0,
+          "cookies": [],
+          "destination": "script",
+          "goog:resourceInitiator": {
+            "columnNumber": 22,
+            "lineNumber": 10,
+            "type": "script",
+            "url": "http://localhost:5173/src/AppV2.tsx"
+          },
+          "goog:resourceType": "Script",
+          "headers": [
+            {
+              "name": "Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": {
+                "type": "string",
+                "value": "\"Windows\""
+              }
+            },
+            {
+              "name": "Referer",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173/src/AppV2.tsx"
+              }
+            },
+            {
+              "name": "Accept-Language",
+              "value": {
+                "type": "string",
+                "value": "zh-CN,zh;q=0.9"
+              }
+            },
+            {
+              "name": "sec-ch-ua",
+              "value": {
+                "type": "string",
+                "value": "\"Not-A.Brand\";v=\"24\", \"Chromium\";v=\"146\""
+              }
+            },
+            {
+              "name": "User-Agent",
+              "value": {
+                "type": "string",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+              }
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": {
+                "type": "string",
+                "value": "?0"
+              }
+            },
+            {
+              "name": "Accept",
+              "value": {
+                "type": "string",
+                "value": "*/*"
+              }
+            },
+            {
+              "name": "Accept-Encoding",
+              "value": {
+                "type": "string",
+                "value": "gzip, deflate, br, zstd"
+              }
+            },
+            {
+              "name": "Accept-Language",
+              "value": {
+                "type": "string",
+                "value": "zh-CN,zh;q=0.9"
+              }
+            },
+            {
+              "name": "Connection",
+              "value": {
+                "type": "string",
+                "value": "keep-alive"
+              }
+            },
+            {
+              "name": "Host",
+              "value": {
+                "type": "string",
+                "value": "localhost:5173"
+              }
+            },
+            {
+              "name": "Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "Referer",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173/src/AppV2.tsx"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Dest",
+              "value": {
+                "type": "string",
+                "value": "script"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Mode",
+              "value": {
+                "type": "string",
+                "value": "cors"
+              }
+            },
+            {
+              "name": "Sec-Fetch-Site",
+              "value": {
+                "type": "string",
+                "value": "same-origin"
+              }
+            },
+            {
+              "name": "User-Agent",
+              "value": {
+                "type": "string",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+              }
+            },
+            {
+              "name": "sec-ch-ua",
+              "value": {
+                "type": "string",
+                "value": "\"Not-A.Brand\";v=\"24\", \"Chromium\";v=\"146\""
+              }
+            },
+            {
+              "name": "sec-ch-ua-mobile",
+              "value": {
+                "type": "string",
+                "value": "?0"
+              }
+            },
+            {
+              "name": "sec-ch-ua-platform",
+              "value": {
+                "type": "string",
+                "value": "\"Windows\""
+              }
+            }
+          ],
+          "headersSize": 858,
+          "initiatorType": null,
+          "method": "GET",
+          "request": "16728.55",
+          "timings": {
+            "connectEnd": 0,
+            "connectStart": 0,
+            "dnsEnd": 0,
+            "dnsStart": 0,
+            "fetchStart": 0,
+            "redirectEnd": 0,
+            "redirectStart": 0,
+            "requestStart": 2043.026514000014,
+            "requestTime": 0,
+            "responseEnd": 2057.525514000014,
+            "responseStart": 2057.502514000014,
+            "timeOrigin": 1783707764253,
+            "tlsStart": 0
+          },
+          "url": "http://localhost:5173/node_modules/.vite/deps/sonner.js?v=feecc13d"
+        },
+        "response": {
+          "bodySize": 58722,
+          "bytesReceived": 58722,
+          "content": {
+            "size": 58412
+          },
+          "fromCache": false,
+          "headers": [
+            {
+              "name": "Cache-Control",
+              "value": {
+                "type": "string",
+                "value": "max-age=31536000,immutable"
+              }
+            },
+            {
+              "name": "Etag",
+              "value": {
+                "type": "string",
+                "value": "W/\"e42c-gNeu2V7bjUdUOOjEihyey31QEEc\""
+              }
+            },
+            {
+              "name": "Connection",
+              "value": {
+                "type": "string",
+                "value": "keep-alive"
+              }
+            },
+            {
+              "name": "Access-Control-Allow-Origin",
+              "value": {
+                "type": "string",
+                "value": "http://localhost:5173"
+              }
+            },
+            {
+              "name": "Keep-Alive",
+              "value": {
+                "type": "string",
+                "value": "timeout=5"
+              }
+            },
+            {
+              "name": "Content-Length",
+              "value": {
+                "type": "string",
+                "value": "58412"
+              }
+            },
+            {
+              "name": "Date",
+              "value": {
+                "type": "string",
+                "value": "Fri, 10 Jul 2026 18:22:46 GMT"
+              }
+            },
+            {
+              "name": "Content-Type",
+              "value": {
+                "type": "string",
+                "value": "text/javascript"
+              }
+            },
+            {
+              "name": "Vary",
+              "value": {
+                "type": "string",
+                "value": "Origin"
+              }
+            }
+          ],
+          "headersSize": 291,
+          "mimeType": "text/javascript",
+          "protocol": "http/1.1",
+          "status": 200,
+          "statusText": "OK",
+          "url": "http://localhost:5173/node_modules/.vite/deps/sonner.js?v=feecc13d"
+        },
+        "timestamp": 1783707764253
+      }
+    }     
+  ]
+}

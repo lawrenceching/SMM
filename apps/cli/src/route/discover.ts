@@ -2,11 +2,12 @@ import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 
 const DISCOVER_CONFIG_URL =
+  process.env.EXTERNAL_CONFIG_FILE_URL ||
   'https://raw.gitcode.com/lawrenceching/simple-media-manager/raw/main/assets/config.json';
 
 const DISCOVER_TIMEOUT_MS = 10_000;
 
-export type MediaDatabaseType = 'tmdb' | 'tvdb';
+export type MediaDatabaseType = 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset';
 export type MediaDatabaseAuthorizationMethod = 'date-token' | 'none';
 
 /**
@@ -32,10 +33,36 @@ export interface MediaDatabaseEntry {
   authorizationMethod: MediaDatabaseAuthorizationMethod;
 }
 
+export type ReverseProxyType = 'general';
+
+/**
+ * Raw entry as it appears in the remote config.json. The remote file
+ * uses `authMethod` for the authorization scheme.
+ */
+export interface RemoteReverseProxyEntry {
+  id?: string;
+  type?: string;
+  url?: string;
+  authMethod?: string | null;
+}
+
+/**
+ * Normalized reverse-proxy entry returned to the UI.
+ */
+export interface ReverseProxyEntry {
+  id: string;
+  type: ReverseProxyType;
+  url: string;
+  authorizationMethod: MediaDatabaseAuthorizationMethod;
+}
+
+export interface DiscoverConfig {
+  mediaDatabases: MediaDatabaseEntry[];
+  reverseProxies: ReverseProxyEntry[];
+}
+
 export interface DiscoverResponseBody {
-  data?: {
-    mediaDatabases: MediaDatabaseEntry[];
-  };
+  data?: DiscoverConfig;
   error?: string;
 }
 
@@ -45,12 +72,14 @@ function normalizeAuthorizationMethod(value: unknown): MediaDatabaseAuthorizatio
   return 'none';
 }
 
-function normalizeEntry(entry: RemoteMediaDatabaseEntry): MediaDatabaseEntry | null {
+function normalizeMediaDatabaseEntry(entry: RemoteMediaDatabaseEntry): MediaDatabaseEntry | null {
   const endpointUrl = (entry.baseUrl ?? entry.url ?? '').trim();
   if (!endpointUrl) return null;
 
   const type = entry.type;
-  if (type !== 'tmdb' && type !== 'tvdb') return null;
+  if (type !== 'tmdb' && type !== 'tvdb' && type !== 'tmdb-asset' && type !== 'tvdb-asset') {
+    return null;
+  }
 
   return {
     type,
@@ -59,11 +88,56 @@ function normalizeEntry(entry: RemoteMediaDatabaseEntry): MediaDatabaseEntry | n
   };
 }
 
+function normalizeReverseProxyEntry(entry: RemoteReverseProxyEntry): ReverseProxyEntry | null {
+  const id = (entry.id ?? '').trim();
+  const url = (entry.url ?? '').trim();
+  if (!id || !url) return null;
+
+  const type = entry.type;
+  if (type !== 'general') return null;
+
+  return {
+    id,
+    type,
+    url,
+    authorizationMethod: normalizeAuthorizationMethod(entry.authMethod),
+  };
+}
+
+function normalizeMediaDatabases(rawEntries: unknown): MediaDatabaseEntry[] {
+  if (!Array.isArray(rawEntries)) {
+    logger.warn('[Discover] remote config missing mediaDatabases array');
+    return [];
+  }
+
+  const normalized: MediaDatabaseEntry[] = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== 'object') continue;
+    const entry = normalizeMediaDatabaseEntry(raw as RemoteMediaDatabaseEntry);
+    if (entry) normalized.push(entry);
+  }
+  return normalized;
+}
+
+function normalizeReverseProxies(rawEntries: unknown): ReverseProxyEntry[] {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+
+  const normalized: ReverseProxyEntry[] = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== 'object') continue;
+    const entry = normalizeReverseProxyEntry(raw as RemoteReverseProxyEntry);
+    if (entry) normalized.push(entry);
+  }
+  return normalized;
+}
+
 /**
- * Fetch and normalize the remote media database config.
- * Returns an empty list on any error so the UI can gracefully fall back.
+ * Fetch and normalize the remote discovery config.
+ * Returns empty lists on any error so the UI can gracefully fall back.
  */
-export async function fetchDiscoveredMediaDatabases(): Promise<MediaDatabaseEntry[]> {
+export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DISCOVER_TIMEOUT_MS);
 
@@ -78,37 +152,41 @@ export async function fetchDiscoveredMediaDatabases(): Promise<MediaDatabaseEntr
         { status: response.status, statusText: response.statusText },
         '[Discover] remote config returned non-OK status',
       );
-      return [];
+      return { mediaDatabases: [], reverseProxies: [] };
     }
 
-    const body = (await response.json()) as { mediaDatabases?: unknown };
-    const rawEntries = body.mediaDatabases;
-    if (!Array.isArray(rawEntries)) {
-      logger.warn('[Discover] remote config missing mediaDatabases array');
-      return [];
-    }
+    const body = (await response.json()) as {
+      mediaDatabases?: unknown;
+      reverseProxies?: unknown;
+    };
 
-    const normalized: MediaDatabaseEntry[] = [];
-    for (const raw of rawEntries) {
-      if (!raw || typeof raw !== 'object') continue;
-      const entry = normalizeEntry(raw as RemoteMediaDatabaseEntry);
-      if (entry) normalized.push(entry);
-    }
-    return normalized;
+    return {
+      mediaDatabases: normalizeMediaDatabases(body.mediaDatabases),
+      reverseProxies: normalizeReverseProxies(body.reverseProxies),
+    };
   } catch (error) {
     logger.warn(
       { err: error instanceof Error ? error.message : String(error) },
       '[Discover] failed to fetch remote config',
     );
-    return [];
+    return { mediaDatabases: [], reverseProxies: [] };
   } finally {
     clearTimeout(timeout);
   }
 }
 
+/**
+ * Fetch and normalize the remote media database config.
+ * Returns an empty list on any error so the UI can gracefully fall back.
+ */
+export async function fetchDiscoveredMediaDatabases(): Promise<MediaDatabaseEntry[]> {
+  const config = await fetchDiscoverConfig();
+  return config.mediaDatabases;
+}
+
 export function handleDiscover(app: Hono) {
   app.get('/api/discover', async (c) => {
-    const mediaDatabases = await fetchDiscoveredMediaDatabases();
-    return c.json({ data: { mediaDatabases } });
+    const config = await fetchDiscoverConfig();
+    return c.json({ data: config });
   });
 }

@@ -1,3 +1,5 @@
+import { useTranslation } from "@/lib/i18n"
+import { TmdbFetchError, classifyTmdbError, formatTmdbErrorForDisplay, SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
 import { useLatest } from "react-use";
 import { useJobManager } from "@/hooks/useJobManager";
 import { useConfig } from "@/hooks/userConfig";
@@ -42,10 +44,11 @@ export function useInitializeImportedMediaFolder() {
     const setSelectedFolder = useUIMediaFolderStore(state => state.setSelectedFolder)
     const folders = useUIMediaFolderStore(state => state.folders)
     const latestFolders = useLatest(folders);
-    const { addMediaFolderInUserConfig, userConfig, appConfig } = useConfig();
+    const { addMediaFolderInUserConfig, userConfig } = useConfig();
     const latestUserConfig = useLatest(userConfig);
     const helloQuery = useHelloQuery();
     const latestOsLocale = useLatest(helloQuery.data?.osLocale);
+    const { t } = useTranslation(["errors"])
 
     const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const { mutateAsync: initializeMediaMetadata } = useInitializeMediaMetadataMutation()
@@ -108,11 +111,6 @@ export function useInitializeImportedMediaFolder() {
             browserLocale: getBrowserLocale(),
             osLocale: latestOsLocale.current,
         }).mediaLanguage;
-        const tmdb = {
-            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
-            apiKey: latestUserConfig.current.tmdb?.apiKey,
-            reverseProxyUrl: appConfig.reverseProxyUrl,
-        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -132,7 +130,6 @@ export function useInitializeImportedMediaFolder() {
                         recognizeTvShowByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
-                            tmdb,
                         }),
                 },
                 {
@@ -153,7 +150,6 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeTvShowBySearchTvShowFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
-                                tmdb,
                             })
                             : recognizeTvShowBySearchTvShowFolderNameInTvdb({
                                 mediaMetadata: mm,
@@ -212,11 +208,6 @@ export function useInitializeImportedMediaFolder() {
             browserLocale: getBrowserLocale(),
             osLocale: latestOsLocale.current,
         }).mediaLanguage;
-        const tmdb = {
-            upstreamBaseURL: latestUserConfig.current.tmdb?.host,
-            apiKey: latestUserConfig.current.tmdb?.apiKey,
-            reverseProxyUrl: appConfig.reverseProxyUrl,
-        };
         const searchOrder = searchOrderForPrimaryDb(
             latestUserConfig.current.primaryDatabase
         );
@@ -237,7 +228,6 @@ export function useInitializeImportedMediaFolder() {
                         recognizeMovieByTmdbIdInFolderName({
                             mediaMetadata: mm,
                             language: recognitionLanguage,
-                            tmdb,
                         }),
                 },
                 {
@@ -258,7 +248,6 @@ export function useInitializeImportedMediaFolder() {
                             ? recognizeMovieBySearchFolderNameInTmdb({
                                 mediaMetadata: mm,
                                 language: recognitionLanguage,
-                                tmdb,
                             })
                             : recognizeMovieBySearchFolderNameInTvdb({
                                 mediaMetadata: mm,
@@ -465,6 +454,22 @@ export function useInitializeImportedMediaFolder() {
                 errorMessage,
             }, 'initialization: timeout')
             toast.error('初始化目录超时');
+        } else if (error instanceof TmdbFetchError) {
+            const tmdbUrl = latestUserConfig.current?.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
+            const display = classifyTmdbError(error, tmdbUrl)
+            const message = formatTmdbErrorForDisplay(display, t)
+            logger.error({
+                stage: 'initialization',
+                folder: _folder,
+                errorName,
+                errorMessage,
+                tmdbError: {
+                    kind: error.info.kind,
+                    statusCode: error.info.statusCode,
+                    problemDetail: error.info.problemDetail,
+                },
+            }, 'initialization: tmdb failed')
+            toast.error(`目录初始化失败:\n${message}`);
         } else {
             const unknownErrorStack = error instanceof Error
                 ? (error.stack || error.message)
@@ -490,7 +495,7 @@ export function useInitializeImportedMediaFolder() {
             updateJob(jobId.current, { status: "failed" });
         }
 
-    }, [updateJob])
+    }, [updateJob, t, latestUserConfig])
 
     const initializeImportedMediaFolder = async (event: Event) => {
         const data = (event as CustomEvent<OnMediaFolderImportedEventData>).detail;

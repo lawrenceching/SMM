@@ -333,7 +333,7 @@ var import_node_path3 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
 
 // src/version.ts
-var APP_VERSION = "1.4.3";
+var APP_VERSION = "1.4.4";
 
 // src/http/hello-config.ts
 function buildHelloConfig(reverseProxyUrl) {
@@ -776,6 +776,7 @@ async function startMainHttpServer() {
   console.log("[SERVER] globalThis.fetch replaced with streaming node:http fetch");
   const {
     createCoreRoutesRequestHandler,
+    createProxiedFetch,
     createReverseProxyManager,
     createReverseProxyRequestHandler,
     createSocketIOManager,
@@ -792,7 +793,8 @@ async function startMainHttpServer() {
   const reverseProxyConfig = {
     allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
     logger: proxyLogger,
-    fetchImpl: nodeHttpFetch
+    fetchImpl: nodeHttpFetch,
+    createProxiedFetch
   };
   const reverseProxyManager = createReverseProxyManager(reverseProxyConfig);
   try {

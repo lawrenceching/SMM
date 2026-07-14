@@ -1,17 +1,23 @@
 /**
- * Copies WDIO HTML reports into the cicd output dir after each spec task.
+ * Copies WDIO HTML reports and network logs into the cicd output dir after each spec task.
  *
  * Invoked by apps/cicd afterEach hooks. Expects:
  *   CICD_TASK_NAME   — completed task name (e.g. SearchMovie.e2e.ts)
  *   CICD_OUTPUT_DIR  — cicd run output directory
  *
- * Source: apps/e2e/reports/html-reports/ (relative to repo root / cwd)
- * Dest:   {CICD_OUTPUT_DIR}/{CICD_TASK_NAME}/wdio-report/
+ * Sources (relative to repo root / cwd):
+ *   apps/e2e/reports/html-reports/
+ *   apps/e2e/reports/network-logs/
+ *
+ * Destinations:
+ *   {CICD_OUTPUT_DIR}/{CICD_TASK_NAME}/wdio-report/
+ *   {CICD_OUTPUT_DIR}/{CICD_TASK_NAME}/network-log/
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const WDIO_REPORT_REL = path.join('apps', 'e2e', 'reports', 'html-reports');
+const NETWORK_LOG_REL = path.join('apps', 'e2e', 'reports', 'network-logs');
 
 function log(message: string): void {
   console.log(`[collect-wdio-report] ${message}`);
@@ -20,6 +26,21 @@ function log(message: string): void {
 function hasReportFiles(dir: string): boolean {
   if (!fs.existsSync(dir)) return false;
   return fs.readdirSync(dir).length > 0;
+}
+
+function copyReportDir(sourceRel: string, destSubdir: string, taskName: string, outputDir: string): boolean {
+  const sourceDir = path.resolve(process.cwd(), sourceRel);
+  if (!hasReportFiles(sourceDir)) {
+    log(`skip: no reports in ${sourceRel}`);
+    return false;
+  }
+
+  const destDir = path.join(path.resolve(outputDir), taskName, destSubdir);
+  fs.mkdirSync(path.dirname(destDir), { recursive: true });
+  fs.cpSync(sourceDir, destDir, { recursive: true, force: true });
+
+  // log(`copied ${sourceRel} -> ${path.relative(process.cwd(), destDir)}`);
+  return true;
 }
 
 function main(): number {
@@ -31,17 +52,8 @@ function main(): number {
     return 0;
   }
 
-  const sourceDir = path.resolve(process.cwd(), WDIO_REPORT_REL);
-  if (!hasReportFiles(sourceDir)) {
-    log(`skip: no reports in ${WDIO_REPORT_REL}`);
-    return 0;
-  }
-
-  const destDir = path.join(path.resolve(outputDir), taskName, 'wdio-report');
-  fs.mkdirSync(path.dirname(destDir), { recursive: true });
-  fs.cpSync(sourceDir, destDir, { recursive: true, force: true });
-
-  log(`copied ${WDIO_REPORT_REL} -> ${path.relative(process.cwd(), destDir)}`);
+  copyReportDir(WDIO_REPORT_REL, 'wdio-report', taskName, outputDir);
+  copyReportDir(NETWORK_LOG_REL, 'network-log', taskName, outputDir);
   return 0;
 }
 

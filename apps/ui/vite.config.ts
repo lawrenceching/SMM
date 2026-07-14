@@ -15,6 +15,7 @@ const pkg = JSON.parse(
 // https://vite.dev/config/
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
+  envPrefix: ["VITE_", "TEST_"],
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
   },
@@ -27,6 +28,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
+    port: 8000,
     proxy: {
       '/api': {
         target: 'http://localhost:30000',

@@ -73,6 +73,56 @@ describe('parseConfig', () => {
     }
   });
 
+  test('accepts onArtifactsReady hooks', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+      onArtifactsReady: [{ name: 'check-log', command: 'echo check' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.onArtifactsReady).toHaveLength(1);
+      expect(result.config.onArtifactsReady[0]?.name).toBe('check-log');
+      expect(result.config.onArtifactsReady[0]?.when).toBe('always');
+    }
+  });
+
+  test('accepts onArtifactsReady when=success', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+      onArtifactsReady: [
+        { name: 'check-log', command: 'echo check', when: 'success' },
+      ],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.onArtifactsReady[0]?.when).toBe('success');
+    }
+  });
+
+  test('rejects invalid onArtifactsReady when value', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+      onArtifactsReady: [
+        { name: 'check-log', command: 'echo check', when: 'never' },
+      ],
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  test('defaults onArtifactsReady to empty array', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      tasks: [{ name: 't1', command: 'echo hi' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.onArtifactsReady).toEqual([]);
+    }
+  });
+
   test('rejects missing tasks', () => {
     const result = parseConfig({ name: 'broken' });
     expect(result.ok).toBe(false);

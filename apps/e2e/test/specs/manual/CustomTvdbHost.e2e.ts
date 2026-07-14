@@ -1,31 +1,29 @@
-
 import { browser } from '@wdio/globals'
-import * as path from 'node:path'
-import { setup, cleanup, importFolderWithMediaMetadata, isOfficialTmdbHostAccessible, isOfficialTvdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
-import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
+import { setup, cleanup, isOfficialTvdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
 import type { UserConfig } from '@smm/core/types'
-import Sidebar from 'test/componentobjects/Sidebar'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
+import { given, when, then, resetStepContext } from '../../lib/gherkin'
+import '../../steps'
 
 describe('Custom TVDB Host', () => {
 
     before(async () => {
         const accessible = await isOfficialTvdbHostAccessible()
-        if(!accessible) {
+        if (!accessible) {
             throw new Error('Official TVDB host is not accessible')
         }
         const proxyAccessible = await isReverseProxyAccessible()
-        if(!proxyAccessible) {
+        if (!proxyAccessible) {
             throw new Error('Reverse proxy is not accessible — CLI proxy may have failed to start')
         }
     })
 
     beforeEach(async () => {
 
-        const tvdbApiKey: string = process.env.TVDB_API_KEY || '';
+        const tvdbApiKey: string = process.env.TVDB_API_KEY || ''
         if (!tvdbApiKey || tvdbApiKey.trim() === '') {
-            throw new Error('TMDB_API_KEY is not set');
+            throw new Error('TVDB_API_KEY is not set')
         }
 
         await setup({
@@ -42,6 +40,7 @@ describe('Custom TVDB Host', () => {
                 return config
             },
         })
+        resetStepContext()
     })
 
     afterEach(async () => {
@@ -54,53 +53,35 @@ describe('Custom TVDB Host', () => {
         })
     })
 
-    it('Search from custom TVDB host', async function () {
+    it('Scenario: TVDB search from custom TVDB host returns results', async function () {
         this.timeout(90 * 1000)
 
-        const folder = createFolderInTestFolder({
-            ...folder1,
-            files: [
-                "S01E01.mkv",
-            ],
-        });
+        // GIVEN: a TV show folder with one episode and TMDB id 84666 was imported.
+        await given('TV show folder with TMDB id 84666 and one episode was imported')
 
-        await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
-            mediaMetadata.mediaFiles = [
+        // WHEN: I focus the searchbox, select TVDB, and click search.
+        await when('searchbox input is focused')
+        await when('I select "TVDB" as the search database')
+        await when('I click the search button in the searchbox')
+
+        // THEN: TVDB search returns at least one result.
+        await then('TVDB search returns at least one result', async () => {
+            await browser.waitUntil(
+                async () => {
+                    const results = await TVShowPanel.searchbox.results
+                    const count = await results.length
+                    return count > 0
+                },
                 {
-                    absolutePath: path.join(folder.path!, folder.files[0]!),
-                    seasonNumber: 1,
-                    episodeNumber: 1,
+                    timeout: 30000,
+                    interval: 500,
+                    timeoutMsg: 'TVDB search results did not appear within 30s',
                 }
-            ]
-            if (mediaMetadata.tvShow !== undefined) {
-                mediaMetadata.tvShow.database = 'TMDB'
-                mediaMetadata.tvShow.id = '84666'
-            }
-            return mediaMetadata
+            )
         })
 
-        await Sidebar.waitForFolderName(folder1.folderName);
-
-        await TVShowPanel.searchbox.input.waitForDisplayed();
-        await TVShowPanel.searchbox.input.click();
-        await TVShowPanel.searchbox.setDatabase('TVDB')
-        await TVShowPanel.searchbox.searchButton.click();
-
-        await browser.waitUntil(
-            async () => {
-                const results = await TVShowPanel.searchbox.results
-                const count = await results.length
-                return count > 0
-            },
-            {
-                timeout: 30000,
-                interval: 500,
-                timeoutMsg: 'TMDB search results did not appear within 30s',
-            }
-        )
-
-        if(env.slowdown) {
-            await browser.pause(5000);
+        if (env.slowdown) {
+            await browser.pause(5000)
         }
     })
 })

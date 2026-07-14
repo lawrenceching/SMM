@@ -314,7 +314,7 @@ describe("getYtdlpErrorMessage", () => {
       "downloadVideo.errors.cookieExpired": "Cookies expired or invalid. [i18n]",
       "downloadVideo.errors.connectionTimeout": "Connection to {{host}} timed out [i18n]",
       "downloadVideo.errors.unknown": "Unknown error. [i18n]",
-      "downloadVideo.errors.httpError": "Unknown error (HTTP {{status}}). Please restart. [i18n]",
+      "downloadVideo.errors.httpError": "Internal API server returned an error (HTTP {{status}}). Please restart. [i18n]",
       "downloadVideo.errors.executableNotFound": "Executable not found. [i18n]",
       "downloadVideo.errors.apiNetworkError": "API network error. [i18n]",
     }
@@ -340,13 +340,13 @@ describe("getYtdlpErrorMessage", () => {
       { type: "http-error", context: "400" },
       mockT,
     )
-    expect(msg).toBe("Unknown error (HTTP 400). Please restart. [i18n]")
+    expect(msg).toBe("Internal API server returned an error (HTTP 400). Please restart. [i18n]")
   })
 
   it("returns fallback for http-error with status when no t", () => {
     const msg = getYtdlpErrorMessage({ type: "http-error", context: "500" })
     expect(msg).toBe(
-      "未知错误(HTTP 500), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
+      "内部 API 服务器返回错误 (HTTP 500), 请尝试重启本应用. 如果问题持续, 请联系开发者修复.",
     )
   })
 

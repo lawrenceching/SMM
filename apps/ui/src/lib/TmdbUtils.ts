@@ -33,6 +33,6 @@ export async function getMovieByIdFromTMDB(
     id: number,
     language?: string,
     signal?: AbortSignal): Promise<MovieMediaMetadata> {
-    const movie = await getMovieById(id, language, signal);
+    const movie = await getMovieById(id, language, { signal });
     return movieMediaMetadataFromTmdbMovie(movie);
 }

@@ -57,19 +57,23 @@ MediaDatabaseSearchbox → searchLanguage: string
 
 ## 3. Service Discovery & Reachability
 
-从远端配置文件动态发现媒体数据库服务地址，可达性检测选择最快地址。检测逻辑已从 React 组件解耦为纯 JS 函数。
+从远端配置发现 **通用 OpenResty reverseProxies**，可达性检测选择最快远端；Searchbox 搜索时 **本地 SMM 反向代理优先**，再回退到远端。
 
 ### 3.1 Architecture (Decoupled)
 
 ```
 main.tsx (vanilla JS bootstrap)
-  └─ startMediaDatabaseServiceDiscovery()
-      ├─ fetch GET /api/discover          ← 直接 fetch，不走 TanStack Query
-      ├─ probeEndpointReachability() × N   ← 并行探测
-      └─ localStorages.preferTmdbBaseUrl / preferTvdbBaseUrl ← 写 localStorage
+  └─ startReverseProxyServiceDiscovery()
+      ├─ fetch GET /api/discover → reverseProxies
+      ├─ probeReverseProxyReachability() × N   ← OpenResty 头 + SMM TMDB upstream
+      └─ localStorages.preferReverseProxyBaseUrl
 
 App (React)
-  └─ useMediaDatabaseBaseUrls(type)       ← 只读 localStorage + 模块级缓存
+  └─ useReverseProxyBaseUrls()
+       order: local appConfig.reverseProxyUrl → preferred remote → other remotes
+  └─ MediaDatabaseSearchbox
+       ├─ local: X-SMM-Proxy-Upstream-BaseURL
+       └─ openresty: X-Upstream-Base-Url + X-Proxy-Authorization (UTC yyyyMMdd)
 ```
 
 ### 3.2 Key Design Decisions
@@ -78,13 +82,18 @@ App (React)
 - **模块级 guard** `hasStartedThisSession` 防止重复
 - **失败静默** — 探测失败不影响应用
 - **发布订阅** (`subscribeToDiscovery`) 供 React hook 在探测完成后更新
-- 旧的 React 组件 `MediaDatabaseServiceDiscovery` 已删除
+- **双协议**：本地 SMM 代理与远端 OpenResty 头字段不同（见 `reverse-proxy-readme.md`）
+- Upstream 固定为 SMM 托管 `…/api/tmdb` / `…/api/tvdb`
+- 旧的 per-type `preferTmdbBaseUrl` / `preferTvdbBaseUrl` 与 `mediaDatabases` direct 搜索路径已移除
 
 ### 3.3 Data Flow
 
 ```
-/api/discover → [{ type: "tmdb"|"tvdb", url }]
-  → probeEndpointReachability(url) × 3 次/URL
-  → 选取最快 URL → localStorage
-  → useMediaDatabaseBaseUrls(type) → [fastest, ...others]
+/api/discover → reverseProxies[{ id, type, url, authorizationMethod }]
+  → probe (OpenResty) × 3 次/URL
+  → 选取最快 → preferReverseProxyBaseUrl
+
+Searchbox → useReverseProxyBaseUrls()
+  → [local, preferred, ...remotes]
+  → searchTmdb / getTVDBv4Client(proxyKind)
 ```

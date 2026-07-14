@@ -43,6 +43,7 @@ export {
   createNodeHttpFetch,
   createStreamingNodeHttpFetch,
 } from "./nodeHttpFetch.ts";
+export { createProxiedFetch } from "./proxiedFetch.ts";
 export {
   checkFolderPathAvailable,
   doIsFolderAvailable,

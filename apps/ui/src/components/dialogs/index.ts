@@ -26,6 +26,7 @@ export { ProcessPipelineDialog } from "./ProcessPipelineDialog"
 export { UIProcessPipelineDialog } from "./UIProcessPipelineDialog"
 export { ExecuteCmdDialog } from "./ExecuteCmdDialog"
 export { AddTestBackgroundJobDialog } from "./AddTestBackgroundJobDialog"
+export { FunctionCheckDialog } from "./FunctionCheckDialog"
 export { LogDialog } from "./LogDialog"
 
 export type {
