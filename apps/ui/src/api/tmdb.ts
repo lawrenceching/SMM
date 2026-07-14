@@ -11,6 +11,7 @@ import { readUserConfig } from './readUserConfig'
 import { fetchWithFailover } from '@/lib/http'
 import staticConfig from './staticConfig'
 import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
+import { buildTmdbErrorFromResponse } from './tmdbErrors'
 
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
 
@@ -115,11 +116,8 @@ export async function searchTmdb(
     `/search/${type}?${queryParams.toString()}`,
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to search TMDB: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to search TMDB: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<TmdbSearchResponseBody>
 }
@@ -138,11 +136,8 @@ export async function getTvShowById(
     `/tv/${id}?${queryParams.toString()}`,
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to get TV show: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to get TV show: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<TmdbSeriesDetails>
 }
@@ -161,11 +156,8 @@ export async function getMovieById(
     `/movie/${id}?${queryParams.toString()}`,
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to get movie: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to get movie: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<TmdbMovieDetails>
 }
@@ -192,11 +184,8 @@ export async function getTmdbPrimaryTranslations(
     '/configuration/primary_translations',
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to fetch TMDB primary translations: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch TMDB primary translations: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<string[]>
 }
@@ -213,11 +202,8 @@ export async function getTmdbLanguages(
     '/configuration/languages',
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to fetch TMDB languages: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to fetch TMDB languages: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<TmdbLanguageEntry[]>
 }
@@ -261,12 +247,11 @@ export async function getSeason(
     `/tv/${seriesId}/season/${seasonNumber}?${queryParams.toString()}`,
     { signal: options?.signal },
   )
-  if (!resp) {
-    throw new Error('Failed to get TV season: all attempts failed')
-  }
-  if (!resp.ok) {
-    throw new Error(`Failed to get TV season: ${resp.status} ${resp.statusText}`)
+  if (!resp || !resp.ok) {
+    throw await buildTmdbErrorFromResponse(resp)
   }
   return resp.json() as Promise<TmdbSeasonDetails>
 }
+
+export { TmdbFetchError, classifyTmdbError, formatTmdbErrorForDisplay, buildTmdbErrorFromResponse } from './tmdbErrors'
 

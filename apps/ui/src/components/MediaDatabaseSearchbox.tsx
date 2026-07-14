@@ -1,6 +1,13 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
-import { fetchTmdb, getTMDBImageUrl, SMM_TMDB_DEFAULT_UPSTREAM } from "@/api/tmdb"
+import {
+  fetchTmdb,
+  getTMDBImageUrl,
+  SMM_TMDB_DEFAULT_UPSTREAM,
+  buildTmdbErrorFromResponse,
+  classifyTmdbError,
+  formatTmdbErrorForDisplay,
+} from "@/api/tmdb"
 import { useConfig } from "@/hooks/userConfig"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useTranslation } from "@/lib/i18n"
@@ -253,39 +260,10 @@ export function MediaDatabaseSearchbox({
       params.set("language", searchLanguage)
       const resp = await fetchTmdb(`/search/${mediaType}?${params.toString()}`)
       if (!resp || !resp.ok) {
-        if (!resp) {
-          setSearchError(t("errors:searchFailed"))
-          return
-        }
-        if (resp.status === 401) {
-          setSearchError(t("errors:searchFailedUnauthorizedTmdb"))
-          return
-        }
-        if (resp.status === 502) {
-          // Reverse proxy (gateway) error — extract ProblemDetails detail field
-          let detail = ""
-          try {
-            const text = await resp.text()
-            const parsed = JSON.parse(text)
-            if (parsed?.detail) detail = parsed.detail
-          } catch {
-            // ignore parse failure
-          }
-          const tmdbUrl =
-            userConfig?.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
-          setSearchError(
-            t("errors:searchFailedReverseProxy", { url: tmdbUrl, detail }),
-          )
-          return
-        }
-        // Upstream error — show full response body
-        const bodyText = await formatResponseBody(resp)
-        const statusLine = `HTTP ${resp.status} ${resp.statusText}`
-        setSearchError(
-          bodyText
-            ? `${t("errors:searchFailedUpstream")}\n${statusLine}\n${bodyText}`
-            : `${t("errors:searchFailedUpstream")}\n${statusLine}`,
-        )
+        const tmdbUrl = userConfig?.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
+        const tmdbError = await buildTmdbErrorFromResponse(resp)
+        const display = classifyTmdbError(tmdbError, tmdbUrl)
+        setSearchError(formatTmdbErrorForDisplay(display, t))
         return
       }
 
@@ -438,24 +416,3 @@ function resolveInitialSearchLanguage(
 }
 
 export { DEFAULT_TMDB_SEARCH_LANGUAGE, DEFAULT_TVDB_SEARCH_LANGUAGE }
-
-/**
- * Read the response body and format it for display in the search error UI.
- * If the body is valid JSON, return a pretty-printed version; otherwise
- * return the raw text.
- */
-async function formatResponseBody(resp: Response): Promise<string> {
-  try {
-    const text = await resp.text()
-    if (!text) return ""
-    try {
-      const parsed = JSON.parse(text)
-      return JSON.stringify(parsed, null, 2)
-    } catch {
-      // Not JSON — return the raw text, truncated to 2000 chars
-      return text.length > 2000 ? `${text.slice(0, 2000)}...` : text
-    }
-  } catch {
-    return ""
-  }
-}
