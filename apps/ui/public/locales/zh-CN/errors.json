@@ -9,6 +9,8 @@
   "searchFailed": "搜索TMDB失败",
   "searchFailedUnauthorized": "搜索失败：API key 无效（HTTP 401）。请检查 API key 和主机配置。",
   "searchFailedUnauthorizedTmdb": "搜索失败（TMDB）：API key 无效（HTTP 401）。请在设置中检查 TMDB 主机和 API key。",
-  "searchFailedUnauthorizedTvdb": "搜索失败（TVDB）：API key 无效（HTTP 401）。请在设置中检查 TVDB 主机和 API key。"
+  "searchFailedUnauthorizedTvdb": "搜索失败（TVDB）：API key 无效（HTTP 401）。请在设置中检查 TVDB 主机和 API key。",
+  "searchFailedReverseProxy": "无法连接到 TMDB({{url}}): {{detail}}",
+  "searchFailedUpstream": "上游服务返回错误"
 }
 

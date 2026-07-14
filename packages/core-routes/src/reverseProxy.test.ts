@@ -264,13 +264,120 @@ describe("handleProxyRequest", () => {
     expect(response.headers.get("Transfer-Encoding")).toBeNull();
   });
 
-  it("returns 502 when the upstream fetch throws", async () => {
+  it("returns 502 ProblemDetails when the upstream fetch throws", async () => {
     mockFetch.mockRejectedValueOnce(new Error("network down"));
 
     const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
     const response = await handleProxyRequest(request, { logger: silentLogger });
 
     expect(response.status).toBe(502);
+    expect(response.headers.get("content-type")).toBe("application/problem+json");
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "network down",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ECONNREFUSED (undici)", async () => {
+    const cause = Object.assign(new Error("connect ECONNREFUSED 192.168.1.1:443"), { code: "ECONNREFUSED" });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    expect(response.headers.get("content-type")).toBe("application/problem+json");
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection refused by upstream host",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ENOTFOUND (undici)", async () => {
+    const cause = Object.assign(new Error("getaddrinfo ENOTFOUND api.themoviedb.org"), {
+      code: "ENOTFOUND",
+      hostname: "api.themoviedb.org",
+    });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "DNS resolution failed for upstream host",
+    });
+  });
+
+  it("returns 502 ProblemDetails for ETIMEDOUT (undici)", async () => {
+    const cause = Object.assign(new Error("connect ETIMEDOUT 192.168.1.1:443"), { code: "ETIMEDOUT" });
+    mockFetch.mockRejectedValueOnce(
+      Object.assign(new TypeError("fetch failed"), { cause }),
+    );
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection to upstream host timed out",
+    });
+  });
+
+  it("returns 502 ProblemDetails for proxy timeout", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("HTTP proxy request timeout"));
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Proxy request timed out",
+    });
+  });
+
+  it("returns 502 ProblemDetails for Bun-style ConnectionRefused", async () => {
+    const bunError = Object.assign(
+      new Error("Unable to connect. Is the computer able to access the url?"),
+      { code: "ConnectionRefused" },
+    );
+    mockFetch.mockRejectedValueOnce(bunError);
+
+    const request = makeProxyRequest("/test", "https://api.themoviedb.org/3");
+    const response = await handleProxyRequest(request, { logger: silentLogger });
+
+    expect(response.status).toBe(502);
+    const body = await response.json() as Record<string, unknown>;
+    // classifyProxyError prioritises the system code over message pattern,
+    // so ConnectionRefused maps to "Connection refused by upstream host".
+    expect(body).toEqual({
+      type: "about:blank",
+      title: "Bad Gateway",
+      status: 502,
+      detail: "Connection refused by upstream host",
+    });
   });
 
   it("uses createProxiedFetch when X-Http-Proxy header is present", async () => {

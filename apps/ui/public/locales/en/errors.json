@@ -9,6 +9,8 @@
   "searchFailed": "Failed to search TMDB",
   "searchFailedUnauthorized": "Search failed: invalid API key (HTTP 401). Please check your API key and host configuration.",
   "searchFailedUnauthorizedTmdb": "Search failed (TMDB): invalid API key (HTTP 401). Check TMDB host and API key in Settings.",
-  "searchFailedUnauthorizedTvdb": "Search failed (TVDB): invalid API key (HTTP 401). Check TVDB host and API key in Settings."
+  "searchFailedUnauthorizedTvdb": "Search failed (TVDB): invalid API key (HTTP 401). Check TVDB host and API key in Settings.",
+  "searchFailedReverseProxy": "Unable to connect to TMDB({{url}}): {{detail}}",
+  "searchFailedUpstream": "Upstream server returned an error"
 }
 
