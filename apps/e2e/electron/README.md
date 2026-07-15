@@ -1,0 +1,1 @@
+This folder holds the e2e test for Electron of SMM.

@@ -17,7 +17,6 @@ registerStep('TV show folder "xxx" was recognized', async (ctx, args) => {
     ctx._folder = folder
     ctx._folderName = folderName
 
-    await page.open()
     await Sidebar.waitForFolderName(folder.folderName, 10000)
 })
 
