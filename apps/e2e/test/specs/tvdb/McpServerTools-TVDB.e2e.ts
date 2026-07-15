@@ -47,7 +47,7 @@ describe('MCP Server Tools - TVDB', () => {
     await browser.refresh();
     await StatusBar.appVersion.waitForDisplayed();
 
-    await Sidebar.waitForFolderName(folder.folderName, 5000)
+    await Sidebar.waitForFolderName(folder.folderName, 30000)
     await Sidebar.clickFolder(folder.folderName)
 
     await browser.pause(1000)

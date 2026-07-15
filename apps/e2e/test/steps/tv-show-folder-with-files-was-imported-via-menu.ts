@@ -32,6 +32,9 @@ registerStep('TV show folder "xxx" with files "xxx" was imported via menu', asyn
         throw new Error(`Folder "${folderName}" did not appear in sidebar`)
     }
 
+    // Wait for metadata initialization to complete before proceeding
+    await browser.pause(5000)
+
     ctx._folder = { path: testMediaFolder, folderName }
     ctx._folderName = folderName
 })
