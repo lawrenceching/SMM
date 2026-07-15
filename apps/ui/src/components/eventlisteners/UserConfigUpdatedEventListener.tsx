@@ -10,7 +10,7 @@ export function UserConfigUpdatedEventListener() {
 
     useMount(() => {
         eventListener.current = (_event) => {
-            console.log('[UserConfigUpdatedEventListener] Received userConfigUpdated, reloading user config');
+            console.log('[DIAG] UserConfigUpdatedEventListener: Received userConfigUpdated, calling refreshUserConfig');
             void refreshUserConfig();
         };
 

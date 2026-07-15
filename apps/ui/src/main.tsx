@@ -188,6 +188,17 @@ function AppSwitcher() {
 async function bootstrap() {
   const frontendLogBuffer = new FrontendLogBuffer()
   installConsoleInterceptor(frontendLogBuffer)
+  console.log(`[DIAG] main.tsx bootstrap: page loaded at ${new Date().toISOString()} userAgent=${navigator.userAgent}`)
+  
+  if (import.meta.hot) {
+    import.meta.hot.on('vite:beforeUpdate', () => {
+      console.log('[DIAG] Vite HMR: beforeUpdate')
+    })
+    import.meta.hot.on('vite:beforeFullReload', () => {
+      console.log('[DIAG] Vite HMR: beforeFullReload — page will reload')
+    })
+  }
+  
   startFrontendLogFlusher(frontendLogBuffer)
   initAuthTokenFromUrl()
   installAuthenticatedFetch()

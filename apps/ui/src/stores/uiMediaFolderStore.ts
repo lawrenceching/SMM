@@ -31,15 +31,17 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
   selectedFolder: "",
   selectedFolders: [],
 
-  setFolders: (folders) => set({ folders }),
+  setFolders: (folders) => { console.log(`[DIAG] uiMediaFolderStore.setFolders: ${folders.length} folders`); set({ folders }) },
 
   upsertFolder: (folder) =>
     set((state) => {
       const path = folder.path
       const i = state.folders.findIndex((f) => f.path === path)
       if (i < 0) {
+        console.log(`[DIAG] uiMediaFolderStore.upsertFolder: insert path=${path} status=${folder.status} newCount=${state.folders.length + 1}`)
         return { folders: [...state.folders, { ...folder, path }] }
       }
+      console.log(`[DIAG] uiMediaFolderStore.upsertFolder: update path=${path} status=${folder.status} currentCount=${state.folders.length}`)
       const next = [...state.folders]
       next[i] = { ...folder, path }
       return { folders: next }

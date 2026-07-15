@@ -31,6 +31,7 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
   const { t } = useTranslation(["components"])
   const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
   const { folders } = useUIMediaFolderStoreState()
+  console.log(`[DIAG] Sidebar render: ${folders.length} folders in store: [${folders.map(f => f.path).join(', ')}]`)
   const { applyFolderClick, selectAllFolderPaths, removeFolder } = useUIMediaFolderStoreActions()
   const { selectedFolder, selectedFolderPathsSet } = useUIMediaFolderSelection()
   const { userConfig, setAndSaveUserConfig } = useConfig()

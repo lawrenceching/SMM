@@ -187,6 +187,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
     
     fs.writeFileSync(userConfigPath, JSON.stringify(userConfig, null, 2), 'utf-8')
     console.log(`Reset user config at: ${userConfigPath}`)
+    console.log(`[DIAG] resetUserConfig: wrote folders=[] to ${userConfigPath}`)
 }
 
 export async function prepareMediaMetadata(mediaFolderPathInPosix: string, mediaMetadataFileNameInTestFolder: string): Promise<string> {

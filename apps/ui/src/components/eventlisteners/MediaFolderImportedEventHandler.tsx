@@ -12,7 +12,7 @@ export function MediaFolderImportedEventHandler() {
 
     useMount(() => {
         eventListener.current = (event) => {
-            console.log("Socket event:", (event as CustomEvent<OnMediaFolderImportedEventData>).detail);
+            console.log("[DIAG] MediaFolderImportedEventHandler: event received", (event as CustomEvent<OnMediaFolderImportedEventData>).detail);
 
             (async () => {
                 try {

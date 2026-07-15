@@ -77,6 +77,7 @@ export function useInitializeImportedMediaFolder() {
     const jobId = useRef<string | null>(null);
 
     const onStart = useCallback((folder: string, folderType: FolderType) => {
+        console.log(`[DIAG] useInitializeImportedMediaFolder.onStart: folder=${folder} type=${folderType}`)
         const _jobId = addJob(`初始化 ${new Path(folder).name()}`);
         updateJob(_jobId, { status: "running", progress: 50 });
         jobId.current = _jobId;
@@ -84,6 +85,7 @@ export function useInitializeImportedMediaFolder() {
             folderType === "tvshow" ? "tvshow-folder"
             : folderType === "movie" ? "movie-folder"
             : "music-folder"
+        console.log(`[DIAG] useInitializeImportedMediaFolder.onStart: calling upsertFolder status=initializing`)
         upsertFolder({
             path: folder,
             status: "initializing",
@@ -416,6 +418,7 @@ export function useInitializeImportedMediaFolder() {
             return;
         }
 
+        console.log(`[DIAG] useInitializeImportedMediaFolder.onFinish: calling upsertFolder status=ok folder=${folder}`)
         logger.info({
             jobId: jobId.current,
             stage: 'initialization',
@@ -502,6 +505,8 @@ export function useInitializeImportedMediaFolder() {
 
         const { type, folderPathInPlatformFormat } = data;
         const traceId = data.traceId || `${nextTraceId()}`;
+
+        console.log(`[DIAG] initializeImportedMediaFolder: invoked folder=${folderPathInPlatformFormat} type=${type} traceId=${traceId}`)
 
 
         try {

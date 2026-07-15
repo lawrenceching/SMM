@@ -342,6 +342,7 @@ export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<voi
 
     fs.writeFileSync(userConfigPath, JSON.stringify(next, null, 2), 'utf-8')
     console.log(`Updated user config at: ${userConfigPath}`)
+    console.log(`[DIAG] updateUserConfig: wrote folders=${JSON.stringify(next.folders)} to ${userConfigPath}`)
 }
 
 export async function importFolderWithMediaMetadata(
@@ -354,12 +355,15 @@ export async function importFolderWithMediaMetadata(
         throw new Error('importFolderWithMediaMetadata: folder.path is required')
     }
 
+    console.log(`[DIAG] importFolderWithMediaMetadata: writing userConfig folder=${folderPath}`)
     await updateUserConfig((userConfig) => {
         return {
             ...userConfig,
             folders: [folderPath],
         }
     })
+
+    console.log(`[DIAG] importFolderWithMediaMetadata: writing mediaMetadata folder=${folderPath}`)
 
     const mediaMetadataTemplatePath = path.join(
         __dirname,
@@ -401,6 +405,7 @@ export async function importFolderWithMediaMetadata(
         ...updatedMediaMetadata,
         mediaFolderPath: Path.posix(folderPath),
     })
+    console.log(`[DIAG] importFolderWithMediaMetadata: DONE folder=${folderPath}`)
 }
 
 

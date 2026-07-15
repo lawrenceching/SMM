@@ -17,26 +17,30 @@ export function UIMediaFolderStoreInitializer() {
  const initializedRef = useRef(false)
  const reactivatedRef = useRef(false)
 
- useEffect(() => {
- if (isLoading || !isUserConfigLoaded) {
- return
- }
+  useEffect(() => {
+  console.log(`[DIAG] UIMediaFolderStoreInitializer: effect running, folders=${userConfig.folders.length} initialized=${initializedRef.current} isLoading=${isLoading} isLoaded=${isUserConfigLoaded}`)
+  if (isLoading || !isUserConfigLoaded) {
+  console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — config not loaded`)
+  return
+  }
 
- if (!reactivatedRef.current && userConfig.folders.length > 0) {
- reactivatedRef.current = true
- void reactivateHarmonyOSFileAccess(userConfig.folders)
- }
+  if (!reactivatedRef.current && userConfig.folders.length > 0) {
+  reactivatedRef.current = true
+  void reactivateHarmonyOSFileAccess(userConfig.folders)
+  }
 
- if (initializedRef.current) {
- return
- }
+  if (initializedRef.current) {
+  console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — already initialized, ignoring folders change`)
+  return
+  }
 
- const folders = userConfig.folders.map((folder) => ({
- path: Path.toPlatformPath(folder),
- status: "ok" as const,
- test: false,
- }))
- setFolders(folders)
+  const folders = userConfig.folders.map((folder) => ({
+  path: Path.toPlatformPath(folder),
+  status: "ok" as const,
+  test: false,
+  }))
+  console.log(`[DIAG] UIMediaFolderStoreInitializer: calling setFolders(${folders.length} folders)`)
+  setFolders(folders)
 
  const persistedSelectedFolder = localStorages.sidebarSelectedFolder
  const restoredSelection = persistedSelectedFolder
