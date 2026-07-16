@@ -17,5 +17,7 @@ interface JobOrchestratorBridge {
 declare global {
   interface Window {
     __jobOrchestrator?: JobOrchestratorBridge
+    /** E2E readiness: `not-ready` until folder-store init finishes its first run. */
+    _smm_status?: "not-ready" | "ready"
   }
 }

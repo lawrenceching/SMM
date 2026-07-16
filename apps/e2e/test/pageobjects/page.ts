@@ -7,11 +7,32 @@ import { resolveUiPageUrl } from '../lib/ui-page-url'
 */
 class Page {
     /**
+    * Wait until the UI has finished its first folder-store init.
+    * Avoids racing imports against UIMediaFolderStoreInitializer.
+    */
+    private async waitUntilAppReady() {
+        await browser.waitUntil(
+            async () => {
+                const status = await browser.execute(
+                    () => (window as Window & { _smm_status?: string })._smm_status,
+                )
+                return status === 'ready'
+            },
+            {
+                timeout: 30000,
+                timeoutMsg: 'Expected window._smm_status to become "ready"',
+                interval: 200,
+            },
+        )
+    }
+
+    /**
     * Opens a sub page of the page
     * @param path path of the sub page (e.g. /path/to/page.html)
     */
     public async open (url?: string) {
-        return browser.url(resolveUiPageUrl(url))
+        await browser.url(resolveUiPageUrl(url))
+        await this.waitUntilAppReady()
     }
 
     /**
@@ -19,6 +40,7 @@ class Page {
     */
     public async refresh() {
         await browser.refresh()
+        await this.waitUntilAppReady()
     }
 }
 

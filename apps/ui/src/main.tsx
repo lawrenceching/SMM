@@ -186,6 +186,7 @@ function AppSwitcher() {
 }
 
 async function bootstrap() {
+  window._smm_status = "not-ready"
   const frontendLogBuffer = new FrontendLogBuffer()
   installConsoleInterceptor(frontendLogBuffer)
   console.log(`[DIAG] main.tsx bootstrap: page loaded at ${new Date().toISOString()} userAgent=${navigator.userAgent}`)

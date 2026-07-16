@@ -48,10 +48,16 @@ export function UIMediaFolderStoreInitializer() {
  : undefined
  const rawFallback = restoredSelection ?? userConfig.folders[0] ?? ""
  const fallbackSelection = rawFallback ? Path.toPlatformPath(rawFallback) : ""
- setSelectedFolder(fallbackSelection)
- initializedRef.current = true
+  setSelectedFolder(fallbackSelection)
+  initializedRef.current = true
+  // TODO: the global _smm_status should be set when all initializers succeeded
+  // AppInitializer, UIMediaFolderStoreInitializer or other initializers that may added in the future
+  // Below is a quick fix for e2e test but not production-ready solution
+  // Need to deeply refactor below code in the future
+  window._smm_status = "ready"
+  console.log(`[DIAG] UIMediaFolderStoreInitializer: folder store init done, _smm_status=ready`)
 
- void (async () => {
+  void (async () => {
  for (const row of folders) {
  try {
  const available = await isFolderAvailable(row.path)
