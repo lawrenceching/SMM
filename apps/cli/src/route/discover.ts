@@ -1,5 +1,12 @@
 import type { Hono } from 'hono';
-import { logger, logHttpReqOut, logHttpRespIn } from '../../lib/logger';
+
+function discoverLog(message: string, details?: Record<string, unknown>): void {
+  if (details === undefined) {
+    console.log(`[Discover] ${message}`);
+    return;
+  }
+  console.log(`[Discover] ${message} ${JSON.stringify(details)}`);
+}
 
 const DISCOVER_CONFIG_URL =
   process.env.EXTERNAL_CONFIG_FILE_URL ||
@@ -171,42 +178,33 @@ function logEmptyDiscoverResult(
     : null;
 
   if (rawMediaDatabasesCount === null) {
-    logger.warn(
-      {
-        url,
-        durationMs,
-        hasMediaDatabasesField: false,
-        rawReverseProxiesCount,
-      },
-      '[Discover] remote config missing mediaDatabases array',
-    );
+    discoverLog('remote config missing mediaDatabases array', {
+      url,
+      durationMs,
+      hasMediaDatabasesField: false,
+      rawReverseProxiesCount,
+    });
     return;
   }
 
   if (rawMediaDatabasesCount === 0) {
-    logger.warn(
-      {
-        url,
-        durationMs,
-        rawMediaDatabasesCount,
-        rawReverseProxiesCount,
-      },
-      '[Discover] remote config has empty mediaDatabases array',
-    );
+    discoverLog('remote config has empty mediaDatabases array', {
+      url,
+      durationMs,
+      rawMediaDatabasesCount,
+      rawReverseProxiesCount,
+    });
     return;
   }
 
   if (mediaDatabases.length === 0) {
-    logger.warn(
-      {
-        url,
-        durationMs,
-        rawMediaDatabasesCount,
-        normalizedMediaDatabasesCount: 0,
-        rawReverseProxiesCount,
-      },
-      '[Discover] remote config mediaDatabases entries were all filtered out during normalization',
-    );
+    discoverLog('remote config mediaDatabases entries were all filtered out during normalization', {
+      url,
+      durationMs,
+      rawMediaDatabasesCount,
+      normalizedMediaDatabasesCount: 0,
+      rawReverseProxiesCount,
+    });
   }
 }
 
@@ -220,8 +218,7 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DISCOVER_TIMEOUT_MS);
 
-  logger.info({ url, timeoutMs: DISCOVER_TIMEOUT_MS }, '[Discover] fetching remote config');
-  logHttpReqOut(url, 'GET');
+  discoverLog('fetching remote config', { url, timeoutMs: DISCOVER_TIMEOUT_MS, method: 'GET' });
 
   try {
     const response = await fetch(url, {
@@ -230,19 +227,22 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
       headers: { Accept: 'application/json' },
     });
     const durationMs = Date.now() - startedAt;
-    logHttpRespIn(url, response.status);
+    discoverLog('remote config HTTP response', {
+      url,
+      durationMs,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type'),
+    });
 
     if (!response.ok) {
-      logger.warn(
-        {
-          url,
-          durationMs,
-          status: response.status,
-          statusText: response.statusText,
-          contentType: response.headers.get('content-type'),
-        },
-        '[Discover] remote config returned non-OK status',
-      );
+      discoverLog('remote config returned non-OK status', {
+        url,
+        durationMs,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type'),
+      });
       return { mediaDatabases: [], reverseProxies: [] };
     }
 
@@ -250,15 +250,12 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
     try {
       body = (await response.json()) as typeof body;
     } catch (parseError) {
-      logger.warn(
-        {
-          url,
-          durationMs,
-          contentType: response.headers.get('content-type'),
-          err: formatFetchError(parseError),
-        },
-        '[Discover] remote config response is not valid JSON',
-      );
+      discoverLog('remote config response is not valid JSON', {
+        url,
+        durationMs,
+        contentType: response.headers.get('content-type'),
+        err: formatFetchError(parseError),
+      });
       return { mediaDatabases: [], reverseProxies: [] };
     }
 
@@ -268,23 +265,23 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
     if (mediaDatabases.length === 0) {
       logEmptyDiscoverResult(url, durationMs, body, mediaDatabases);
     } else {
-      logger.info(
-        {
-          url,
-          durationMs,
-          mediaDatabasesCount: mediaDatabases.length,
-          reverseProxiesCount: reverseProxies.length,
-          mediaDatabaseTypes: [...new Set(mediaDatabases.map((entry) => entry.type))],
-        },
-        '[Discover] remote config loaded',
-      );
+      discoverLog('remote config loaded', {
+        url,
+        durationMs,
+        mediaDatabasesCount: mediaDatabases.length,
+        reverseProxiesCount: reverseProxies.length,
+        mediaDatabaseTypes: [...new Set(mediaDatabases.map((entry) => entry.type))],
+      });
     }
 
     return { mediaDatabases, reverseProxies };
   } catch (error) {
     const durationMs = Date.now() - startedAt;
     const aborted = isAbortError(error);
-    logger.warn(
+    discoverLog(
+      aborted
+        ? 'remote config fetch aborted (timeout or cancellation)'
+        : 'failed to fetch remote config',
       {
         url,
         durationMs,
@@ -292,9 +289,6 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
         timedOut: aborted && durationMs >= DISCOVER_TIMEOUT_MS - 50,
         err: formatFetchError(error),
       },
-      aborted
-        ? '[Discover] remote config fetch aborted (timeout or cancellation)'
-        : '[Discover] failed to fetch remote config',
     );
     return { mediaDatabases: [], reverseProxies: [] };
   } finally {
