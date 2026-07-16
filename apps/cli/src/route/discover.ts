@@ -1,5 +1,5 @@
 import type { Hono } from 'hono';
-import { logger } from '../../lib/logger';
+import { logger, logHttpReqOut, logHttpRespIn } from '../../lib/logger';
 
 const DISCOVER_CONFIG_URL =
   process.env.EXTERNAL_CONFIG_FILE_URL ||
@@ -106,7 +106,6 @@ function normalizeReverseProxyEntry(entry: RemoteReverseProxyEntry): ReverseProx
 
 function normalizeMediaDatabases(rawEntries: unknown): MediaDatabaseEntry[] {
   if (!Array.isArray(rawEntries)) {
-    logger.warn('[Discover] remote config missing mediaDatabases array');
     return [];
   }
 
@@ -133,41 +132,169 @@ function normalizeReverseProxies(rawEntries: unknown): ReverseProxyEntry[] {
   return normalized;
 }
 
+function formatFetchError(error: unknown): {
+  message: string;
+  name?: string;
+  cause?: string;
+} {
+  if (!(error instanceof Error)) {
+    return { message: String(error) };
+  }
+  const cause = error.cause;
+  return {
+    message: error.message,
+    name: error.name,
+    cause:
+      cause instanceof Error
+        ? cause.message
+        : cause !== undefined
+          ? String(cause)
+          : undefined,
+  };
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function logEmptyDiscoverResult(
+  url: string,
+  durationMs: number,
+  body: { mediaDatabases?: unknown; reverseProxies?: unknown },
+  mediaDatabases: MediaDatabaseEntry[],
+): void {
+  const rawMediaDatabasesCount = Array.isArray(body.mediaDatabases)
+    ? body.mediaDatabases.length
+    : null;
+  const rawReverseProxiesCount = Array.isArray(body.reverseProxies)
+    ? body.reverseProxies.length
+    : null;
+
+  if (rawMediaDatabasesCount === null) {
+    logger.warn(
+      {
+        url,
+        durationMs,
+        hasMediaDatabasesField: false,
+        rawReverseProxiesCount,
+      },
+      '[Discover] remote config missing mediaDatabases array',
+    );
+    return;
+  }
+
+  if (rawMediaDatabasesCount === 0) {
+    logger.warn(
+      {
+        url,
+        durationMs,
+        rawMediaDatabasesCount,
+        rawReverseProxiesCount,
+      },
+      '[Discover] remote config has empty mediaDatabases array',
+    );
+    return;
+  }
+
+  if (mediaDatabases.length === 0) {
+    logger.warn(
+      {
+        url,
+        durationMs,
+        rawMediaDatabasesCount,
+        normalizedMediaDatabasesCount: 0,
+        rawReverseProxiesCount,
+      },
+      '[Discover] remote config mediaDatabases entries were all filtered out during normalization',
+    );
+  }
+}
+
 /**
  * Fetch and normalize the remote discovery config.
  * Returns empty lists on any error so the UI can gracefully fall back.
  */
 export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
+  const url = DISCOVER_CONFIG_URL;
+  const startedAt = Date.now();
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DISCOVER_TIMEOUT_MS);
 
+  logger.info({ url, timeoutMs: DISCOVER_TIMEOUT_MS }, '[Discover] fetching remote config');
+  logHttpReqOut(url, 'GET');
+
   try {
-    const response = await fetch(DISCOVER_CONFIG_URL, {
+    const response = await fetch(url, {
       method: 'GET',
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     });
+    const durationMs = Date.now() - startedAt;
+    logHttpRespIn(url, response.status);
+
     if (!response.ok) {
       logger.warn(
-        { status: response.status, statusText: response.statusText },
+        {
+          url,
+          durationMs,
+          status: response.status,
+          statusText: response.statusText,
+          contentType: response.headers.get('content-type'),
+        },
         '[Discover] remote config returned non-OK status',
       );
       return { mediaDatabases: [], reverseProxies: [] };
     }
 
-    const body = (await response.json()) as {
-      mediaDatabases?: unknown;
-      reverseProxies?: unknown;
-    };
+    let body: { mediaDatabases?: unknown; reverseProxies?: unknown };
+    try {
+      body = (await response.json()) as typeof body;
+    } catch (parseError) {
+      logger.warn(
+        {
+          url,
+          durationMs,
+          contentType: response.headers.get('content-type'),
+          err: formatFetchError(parseError),
+        },
+        '[Discover] remote config response is not valid JSON',
+      );
+      return { mediaDatabases: [], reverseProxies: [] };
+    }
 
-    return {
-      mediaDatabases: normalizeMediaDatabases(body.mediaDatabases),
-      reverseProxies: normalizeReverseProxies(body.reverseProxies),
-    };
+    const mediaDatabases = normalizeMediaDatabases(body.mediaDatabases);
+    const reverseProxies = normalizeReverseProxies(body.reverseProxies);
+
+    if (mediaDatabases.length === 0) {
+      logEmptyDiscoverResult(url, durationMs, body, mediaDatabases);
+    } else {
+      logger.info(
+        {
+          url,
+          durationMs,
+          mediaDatabasesCount: mediaDatabases.length,
+          reverseProxiesCount: reverseProxies.length,
+          mediaDatabaseTypes: [...new Set(mediaDatabases.map((entry) => entry.type))],
+        },
+        '[Discover] remote config loaded',
+      );
+    }
+
+    return { mediaDatabases, reverseProxies };
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
+    const aborted = isAbortError(error);
     logger.warn(
-      { err: error instanceof Error ? error.message : String(error) },
-      '[Discover] failed to fetch remote config',
+      {
+        url,
+        durationMs,
+        aborted,
+        timedOut: aborted && durationMs >= DISCOVER_TIMEOUT_MS - 50,
+        err: formatFetchError(error),
+      },
+      aborted
+        ? '[Discover] remote config fetch aborted (timeout or cancellation)'
+        : '[Discover] failed to fetch remote config',
     );
     return { mediaDatabases: [], reverseProxies: [] };
   } finally {
