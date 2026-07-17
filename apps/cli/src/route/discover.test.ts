@@ -196,6 +196,84 @@ describe('handleDiscover', () => {
       { type: 'tvdb-asset', url: 'https://tvdb-asset.example.com', authorizationMethod: 'none' },
     ]);
   });
+
+  it('returns latestVersion when present on remote config', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [{ type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' }],
+        latestVersion: '1.4.5',
+      }),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.latestVersion).toBe('1.4.5');
+  });
+
+  it('omits latestVersion when missing or blank on remote config', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [{ type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' }],
+        latestVersion: '   ',
+      }),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.latestVersion).toBeUndefined();
+  });
+
+  it('omits latestVersion when remote fetch fails', async () => {
+    mockFetch.mockImplementationOnce(() => jsonResponse('not found', 404));
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.latestVersion).toBeUndefined();
+    expect(body.data.mediaDatabases).toEqual([]);
+  });
+
+  it('returns empty config when JSON root is null', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      Promise.resolve(
+        new Response('null', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      ),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual({ mediaDatabases: [], reverseProxies: [] });
+  });
+
+  it('returns empty config when JSON root is an array', async () => {
+    mockFetch.mockImplementationOnce(() => jsonResponse([]));
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data).toEqual({ mediaDatabases: [], reverseProxies: [] });
+  });
+
+  it('ignores non-string latestVersion without failing', async () => {
+    mockFetch.mockImplementationOnce(() =>
+      jsonResponse({
+        mediaDatabases: [{ type: 'tmdb', baseUrl: 'https://example.com/api/tmdb' }],
+        latestVersion: 145,
+      }),
+    );
+
+    const res = await app.request('/api/discover');
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.latestVersion).toBeUndefined();
+    expect(body.data.mediaDatabases).toHaveLength(1);
+  });
 });
 
 describe('fetchDiscoveredMediaDatabases', () => {
