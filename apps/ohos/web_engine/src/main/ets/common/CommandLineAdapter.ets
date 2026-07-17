@@ -155,7 +155,10 @@ export class CommandLineAdapter {
       "--user-data-dir=/data/storage/el2/base/files/",
       "--force-renderer-accessibility=complete",
       "--disable-gpu-watchdog",
-      "--disable-features=EnableDrDc",
+      "--disable-features=EnableDrDc"
+
+      // Enable this for remote debugging and e2e tests
+      // "--remote-debugging-port=9222"
     ];
     return vec_args;
   }

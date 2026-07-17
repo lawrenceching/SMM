@@ -3857,7 +3857,7 @@ var require_helpers2 = __commonJS((exports2) => {
   var constants_1 = require_constants();
   var stream = require("stream");
   var ip_address_1 = require_ip_address();
-  var net2 = require("net");
+  var net = require("net");
   function validateSocksClientOptions(options, acceptedCommands = ["connect", "bind", "associate"]) {
     if (!constants_1.SocksCommand[options.command]) {
       throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksCommand, options);
@@ -3940,10 +3940,10 @@ var require_helpers2 = __commonJS((exports2) => {
   }
   exports2.int32ToIpv4 = int32ToIpv4;
   function ipToBuffer(ip) {
-    if (net2.isIPv4(ip)) {
+    if (net.isIPv4(ip)) {
       const address = new ip_address_1.Address4(ip);
       return Buffer.from(address.toArray());
-    } else if (net2.isIPv6(ip)) {
+    } else if (net.isIPv6(ip)) {
       const address = new ip_address_1.Address6(ip);
       return Buffer.from(address.canonicalForm().split(":").map((segment) => segment.padStart(4, "0")).join(""), "hex");
     } else {
@@ -4031,7 +4031,7 @@ var require_socksclient = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.SocksClientError = exports2.SocksClient = undefined;
   var events_1 = require("events");
-  var net2 = require("net");
+  var net = require("net");
   var smart_buffer_1 = require_smartbuffer();
   var constants_1 = require_constants();
   var helpers_1 = require_helpers2();
@@ -4134,10 +4134,10 @@ var require_socksclient = __commonJS((exports2) => {
       const buff = new smart_buffer_1.SmartBuffer;
       buff.writeUInt16BE(0);
       buff.writeUInt8(options.frameNumber || 0);
-      if (net2.isIPv4(options.remoteHost.host)) {
+      if (net.isIPv4(options.remoteHost.host)) {
         buff.writeUInt8(constants_1.Socks5HostType.IPv4);
         buff.writeUInt32BE((0, helpers_1.ipv4ToInt32)(options.remoteHost.host));
-      } else if (net2.isIPv6(options.remoteHost.host)) {
+      } else if (net.isIPv6(options.remoteHost.host)) {
         buff.writeUInt8(constants_1.Socks5HostType.IPv6);
         buff.writeBuffer((0, helpers_1.ipToBuffer)(options.remoteHost.host));
       } else {
@@ -4189,7 +4189,7 @@ var require_socksclient = __commonJS((exports2) => {
       if (existingSocket) {
         this.socket = existingSocket;
       } else {
-        this.socket = new net2.Socket;
+        this.socket = new net.Socket;
       }
       this.socket.once("close", this.onClose);
       this.socket.once("error", this.onError);
@@ -4287,7 +4287,7 @@ var require_socksclient = __commonJS((exports2) => {
       buff.writeUInt8(4);
       buff.writeUInt8(constants_1.SocksCommand[this.options.command]);
       buff.writeUInt16BE(this.options.destination.port);
-      if (net2.isIPv4(this.options.destination.host)) {
+      if (net.isIPv4(this.options.destination.host)) {
         buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
         buff.writeStringNT(userId);
       } else {
@@ -4438,10 +4438,10 @@ var require_socksclient = __commonJS((exports2) => {
       buff.writeUInt8(5);
       buff.writeUInt8(constants_1.SocksCommand[this.options.command]);
       buff.writeUInt8(0);
-      if (net2.isIPv4(this.options.destination.host)) {
+      if (net.isIPv4(this.options.destination.host)) {
         buff.writeUInt8(constants_1.Socks5HostType.IPv4);
         buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
-      } else if (net2.isIPv6(this.options.destination.host)) {
+      } else if (net.isIPv6(this.options.destination.host)) {
         buff.writeUInt8(constants_1.Socks5HostType.IPv6);
         buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
       } else {
@@ -4639,8 +4639,8 @@ var require_helpers3 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.req = exports2.json = exports2.toBuffer = undefined;
-  var http3 = __importStar(require("http"));
-  var https2 = __importStar(require("https"));
+  var http = __importStar(require("http"));
+  var https = __importStar(require("https"));
   async function toBuffer(stream) {
     let length = 0;
     const chunks = [];
@@ -4665,7 +4665,7 @@ var require_helpers3 = __commonJS((exports2) => {
   exports2.json = json3;
   function req(url2, opts = {}) {
     const href = typeof url2 === "string" ? url2 : url2.href;
-    const req2 = (href.startsWith("https:") ? https2 : http3).request(url2, opts);
+    const req2 = (href.startsWith("https:") ? https : http).request(url2, opts);
     const promise2 = new Promise((resolve2, reject) => {
       req2.once("response", resolve2).once("error", reject).end();
     });
@@ -4716,13 +4716,13 @@ var require_dist2 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Agent = undefined;
-  var net2 = __importStar(require("net"));
-  var http3 = __importStar(require("http"));
+  var net = __importStar(require("net"));
+  var http = __importStar(require("http"));
   var https_1 = require("https");
   __exportStar(require_helpers3(), exports2);
   var INTERNAL = Symbol("AgentBaseInternalState");
 
-  class Agent extends http3.Agent {
+  class Agent extends http.Agent {
     constructor(opts) {
       super(opts);
       this[INTERNAL] = {};
@@ -4749,7 +4749,7 @@ var require_dist2 = __commonJS((exports2) => {
       if (!this.sockets[name21]) {
         this.sockets[name21] = [];
       }
-      const fakeSocket = new net2.Socket({ writable: false });
+      const fakeSocket = new net.Socket({ writable: false });
       this.sockets[name21].push(fakeSocket);
       this.totalSocketCount++;
       return fakeSocket;
@@ -4784,7 +4784,7 @@ var require_dist2 = __commonJS((exports2) => {
       const fakeSocket = this.incrementSockets(name21);
       Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
         this.decrementSockets(name21, fakeSocket);
-        if (socket instanceof http3.Agent) {
+        if (socket instanceof http.Agent) {
           try {
             return socket.addRequest(req, connectOpts);
           } catch (err) {
@@ -5615,12 +5615,12 @@ var require_dist3 = __commonJS((exports2) => {
   var agent_base_1 = require_dist2();
   var debug_1 = __importDefault(require_src2());
   var dns = __importStar(require("dns"));
-  var net2 = __importStar(require("net"));
+  var net = __importStar(require("net"));
   var tls = __importStar(require("tls"));
   var url_1 = require("url");
   var debug = (0, debug_1.default)("socks-proxy-agent");
   var setServernameFromNonIpHost = (options) => {
-    if (options.servername === undefined && options.host && !net2.isIP(options.host)) {
+    if (options.servername === undefined && options.host && !net.isIP(options.host)) {
       return {
         ...options,
         servername: options.host
@@ -63416,12 +63416,430 @@ function migrateAIConfig(raw) {
   delete raw.selectedAI;
   return true;
 }
+// src/proxiedFetch.ts
+var import_node_http = __toESM(require("node:http"));
+var import_node_https = __toESM(require("node:https"));
+var import_node_net = __toESM(require("node:net"));
+var import_node_tls = __toESM(require("node:tls"));
+var import_node_events = require("node:events");
+var import_socks_proxy_agent = __toESM(require_dist3(), 1);
+function isBunRuntime() {
+  return typeof globalThis.Bun !== "undefined";
+}
+function formatProxyHostForLog(proxyUrl) {
+  try {
+    const u = new URL(proxyUrl);
+    const defaultPort = u.protocol === "https:" ? "443" : u.protocol === "http:" ? "80" : "";
+    const port = u.port || defaultPort;
+    return port ? `${u.hostname}:${port}` : u.hostname;
+  } catch {
+    return "(invalid-proxy-url)";
+  }
+}
+function getOutboundProxyMode(proxyUrl, targetUrl) {
+  const proxy = new URL(proxyUrl);
+  if (proxy.protocol === "socks5:" || proxy.protocol === "socks5h:") {
+    return "socks5";
+  }
+  if (isBunRuntime()) {
+    return "bun-native";
+  }
+  if (targetUrl) {
+    const target = new URL(targetUrl);
+    if (target.protocol === "http:") {
+      return "node-forward";
+    }
+  }
+  return "node-connect";
+}
+function wrapFetchWithLogging(inner, mode, logger) {
+  return async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    const target = new URL(request.url);
+    logger?.debug({
+      proxyMode: mode,
+      method: request.method,
+      targetHost: target.host,
+      targetPath: target.pathname
+    }, "[ProxiedFetch] outbound request");
+    try {
+      const response = await inner(request);
+      logger?.debug({
+        proxyMode: mode,
+        status: response.status,
+        targetHost: target.host
+      }, "[ProxiedFetch] outbound response");
+      return response;
+    } catch (err) {
+      logger?.debug({
+        proxyMode: mode,
+        targetHost: target.host,
+        err,
+        errorMessage: err instanceof Error ? err.message : String(err)
+      }, "[ProxiedFetch] outbound failed");
+      throw err;
+    }
+  };
+}
+function nodeHeadersToObject(headers) {
+  const result = {};
+  for (const [key, val] of Object.entries(headers)) {
+    if (val === undefined)
+      continue;
+    if (Array.isArray(val)) {
+      result[key] = val.join(", ");
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+function readHeaders(socket) {
+  return new Promise((resolve2, reject) => {
+    let data = "";
+    const onData = (chunk2) => {
+      data += chunk2.toString();
+      if (data.includes(`\r
+\r
+`)) {
+        socket.off("data", onData);
+        socket.off("error", onError);
+        resolve2(data);
+      }
+    };
+    const onError = (err) => {
+      socket.off("data", onData);
+      socket.off("error", onError);
+      reject(err);
+    };
+    socket.on("data", onData);
+    socket.on("error", onError);
+  });
+}
+function httpForwardRequest(request, proxyHost, proxyPort) {
+  const url2 = new URL(request.url);
+  const headers = new Headers(request.headers);
+  headers.set("Host", url2.host);
+  const method = request.method.toUpperCase();
+  const isBodyAllowed = method !== "GET" && method !== "HEAD";
+  return new Promise((resolve2, reject) => {
+    const options = {
+      hostname: proxyHost,
+      port: proxyPort,
+      path: request.url,
+      method,
+      headers: Object.fromEntries(headers.entries()),
+      timeout: 30000
+    };
+    const req = import_node_http.default.request(options, (res) => {
+      const chunks = [];
+      res.on("data", (chunk2) => chunks.push(chunk2));
+      res.on("end", () => {
+        resolve2(new Response(Buffer.concat(chunks), {
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          headers: nodeHeadersToObject(res.headers)
+        }));
+      });
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("HTTP proxy request timeout"));
+    });
+    if (isBodyAllowed) {
+      request.arrayBuffer().then((buf) => {
+        req.write(Buffer.from(buf));
+        req.end();
+      }, reject);
+    } else {
+      req.end();
+    }
+  });
+}
+async function httpsTunnelRequest(request, proxyHost, proxyPort) {
+  const url2 = new URL(request.url);
+  const upstreamPort = url2.port || 443;
+  const method = request.method.toUpperCase();
+  const isBodyAllowed = method !== "GET" && method !== "HEAD";
+  const socket = import_node_net.default.connect(proxyPort, proxyHost);
+  await import_node_events.once(socket, "connect");
+  const connectReq = `CONNECT ${url2.hostname}:${upstreamPort} HTTP/1.1\r
+` + `Host: ${url2.hostname}:${upstreamPort}\r
+` + `\r
+`;
+  socket.write(connectReq);
+  const rawResp = await readHeaders(socket);
+  const statusLine = rawResp.split(`\r
+`)[0] ?? "";
+  if (!statusLine.includes("200")) {
+    socket.destroy();
+    throw new Error(`Proxy CONNECT refused: ${statusLine}`);
+  }
+  const tlsSocket = import_node_tls.default.connect({
+    socket,
+    host: url2.hostname,
+    servername: url2.hostname
+  });
+  await import_node_events.once(tlsSocket, "secureConnect");
+  const headers = new Headers(request.headers);
+  headers.set("Host", url2.host);
+  return new Promise((resolve2, reject) => {
+    const options = {
+      method,
+      hostname: url2.hostname,
+      port: upstreamPort,
+      path: url2.pathname + url2.search,
+      headers: Object.fromEntries(headers.entries()),
+      createConnection: () => tlsSocket,
+      timeout: 30000
+    };
+    const req = import_node_http.default.request(options, (res) => {
+      const chunks = [];
+      res.on("data", (chunk2) => chunks.push(chunk2));
+      res.on("end", () => {
+        resolve2(new Response(Buffer.concat(chunks), {
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          headers: nodeHeadersToObject(res.headers)
+        }));
+      });
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("HTTPS tunnel request timeout"));
+    });
+    if (isBodyAllowed) {
+      request.arrayBuffer().then((buf) => {
+        req.write(Buffer.from(buf));
+        req.end();
+      }, reject);
+    } else {
+      req.end();
+    }
+  });
+}
+function socksProxyRequest(request, proxyUrl) {
+  const url2 = new URL(request.url);
+  const method = request.method.toUpperCase();
+  const isBodyAllowed = method !== "GET" && method !== "HEAD";
+  const isHttps = url2.protocol === "https:";
+  const headers = new Headers(request.headers);
+  headers.set("Host", url2.host);
+  const agent = new import_socks_proxy_agent.SocksProxyAgent(proxyUrl);
+  return new Promise((resolve2, reject) => {
+    const requestOptions = {
+      hostname: url2.hostname,
+      port: Number(url2.port) || (isHttps ? 443 : 80),
+      path: url2.pathname + url2.search,
+      method,
+      headers: Object.fromEntries(headers.entries()),
+      agent,
+      timeout: 30000
+    };
+    const req = (isHttps ? import_node_https.default : import_node_http.default).request(requestOptions, (res) => {
+      const chunks = [];
+      res.on("data", (chunk2) => chunks.push(chunk2));
+      res.on("end", () => {
+        resolve2(new Response(Buffer.concat(chunks), {
+          status: res.statusCode,
+          statusText: res.statusMessage,
+          headers: nodeHeadersToObject(res.headers)
+        }));
+      });
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error("SOCKS5 proxy request timeout"));
+    });
+    if (isBodyAllowed) {
+      request.arrayBuffer().then((buf) => {
+        req.write(Buffer.from(buf));
+        req.end();
+      }, reject);
+    } else {
+      req.end();
+    }
+  });
+}
+function createProxiedFetch(proxyUrl, logger) {
+  const proxy = new URL(proxyUrl);
+  const isSocks = proxy.protocol === "socks5:" || proxy.protocol === "socks5h:";
+  if (isSocks) {
+    logger?.debug({
+      proxyMode: "socks5",
+      httpProxyHost: formatProxyHostForLog(proxyUrl)
+    }, "[ProxiedFetch] using outbound proxy");
+    return wrapFetchWithLogging((request) => socksProxyRequest(request, proxyUrl), "socks5", logger);
+  }
+  if (proxy.protocol !== "http:" && proxy.protocol !== "https:") {
+    throw new Error(`Unsupported proxy scheme: "${proxy.protocol}". Use http://, https://, or socks5://.`);
+  }
+  if (isBunRuntime()) {
+    logger?.debug({
+      proxyMode: "bun-native",
+      httpProxyHost: formatProxyHostForLog(proxyUrl)
+    }, "[ProxiedFetch] using outbound proxy");
+    return wrapFetchWithLogging(async (request) => {
+      const method = request.method;
+      const headers = new Headers(request.headers);
+      const body = method.toUpperCase() !== "GET" && method.toUpperCase() !== "HEAD" ? await request.arrayBuffer() : undefined;
+      return fetch(request.url, {
+        method,
+        headers,
+        body,
+        proxy: proxyUrl
+      });
+    }, "bun-native", logger);
+  }
+  const proxyPort = Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80);
+  const proxyHost = proxy.hostname;
+  logger?.debug({
+    proxyMode: "node-connect",
+    httpProxyHost: formatProxyHostForLog(proxyUrl)
+  }, "[ProxiedFetch] using outbound proxy");
+  return async (input, init) => {
+    const request = input instanceof Request ? input : new Request(input, init);
+    const url2 = new URL(request.url);
+    const mode = url2.protocol === "https:" ? "node-connect" : "node-forward";
+    logger?.debug({
+      proxyMode: mode,
+      method: request.method,
+      targetHost: url2.host,
+      targetPath: url2.pathname
+    }, "[ProxiedFetch] outbound request");
+    try {
+      const response = !url2.protocol.startsWith("https:") ? await httpForwardRequest(request, proxyHost, proxyPort) : await httpsTunnelRequest(request, proxyHost, proxyPort);
+      logger?.debug({ proxyMode: mode, status: response.status, targetHost: url2.host }, "[ProxiedFetch] outbound response");
+      return response;
+    } catch (err) {
+      logger?.debug({
+        proxyMode: mode,
+        targetHost: url2.host,
+        err,
+        errorMessage: err instanceof Error ? err.message : String(err)
+      }, "[ProxiedFetch] outbound failed");
+      throw err;
+    }
+  };
+}
+
+// src/downloadImage.ts
+var import_node_buffer = require("node:buffer");
+var import_promises10 = require("node:fs/promises");
+var import_node_url = require("node:url");
+var import_node_path6 = require("node:path");
+var DEFAULT_CONTENT_TYPE = "image/jpeg";
+var EXTENSION_TO_CONTENT_TYPE = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".bmp": "image/bmp",
+  ".avif": "image/avif",
+  ".apng": "image/apng"
+};
+function getContentTypeFromExtension(ext) {
+  return EXTENSION_TO_CONTENT_TYPE[ext.toLowerCase()] ?? DEFAULT_CONTENT_TYPE;
+}
+function normalizeUrl(url2) {
+  if (url2.startsWith("//")) {
+    return `https:${url2}`;
+  }
+  return url2;
+}
+var REMOTE_IMAGE_REQUEST_HEADERS = {
+  accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "sec-fetch-dest": "image",
+  "sec-fetch-mode": "no-cors",
+  "sec-fetch-site": "cross-site",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+};
+function describeFetchError(error48) {
+  if (!(error48 instanceof Error)) {
+    return String(error48);
+  }
+  const cause = error48.cause;
+  const causeCode = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined;
+  const causeMessage = cause instanceof Error ? cause.message : undefined;
+  const directCode = !causeCode && typeof error48 === "object" && "code" in error48 ? String(error48.code) : undefined;
+  const directErrno = !causeCode && typeof error48 === "object" && "errno" in error48 ? String(error48.errno) : undefined;
+  const code = causeCode ?? directCode ?? directErrno;
+  const message = causeMessage;
+  const segments = [];
+  if (code)
+    segments.push(code);
+  if (message && message !== code) {
+    segments.push(message);
+  }
+  if (segments.length > 0) {
+    return `${error48.message} (${segments.join(": ")})`;
+  }
+  return error48.message;
+}
+function resolveUrl(url2) {
+  const normalizedUrl = normalizeUrl(url2);
+  if (normalizedUrl.startsWith("file://")) {
+    const platformPath = import_node_url.fileURLToPath(normalizedUrl);
+    return { kind: "file", normalizedUrl, platformPath };
+  }
+  if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
+    return { kind: "http", normalizedUrl };
+  }
+  throw new Error(`Invalid image URL: ${url2}. ` + `Must be http://, https://, protocol-relative (//), or file://`);
+}
+async function doDownloadImage(url2, config2) {
+  const { allowlist, logger, fetchImpl = fetch } = config2;
+  const resolved = resolveUrl(url2);
+  logger?.info({ url: resolved.normalizedUrl, kind: resolved.kind }, "[DownloadImage] processing request");
+  if (resolved.kind === "file") {
+    const platformPath = resolved.platformPath;
+    const posixPath = Path.posix(platformPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
+    }
+    const buffer2 = await import_promises10.readFile(platformPath);
+    const ext = import_node_path6.extname(platformPath);
+    const contentType2 = getContentTypeFromExtension(ext);
+    logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
+    return { buffer: buffer2, contentType: contentType2 };
+  }
+  let response;
+  try {
+    response = await fetchImpl(resolved.normalizedUrl, {
+      method: "GET",
+      headers: REMOTE_IMAGE_REQUEST_HEADERS
+    });
+  } catch (error48) {
+    throw new Error(`Failed to download image: ${describeFetchError(error48)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = import_node_buffer.Buffer.from(arrayBuffer);
+  logger?.info({ url: resolved.normalizedUrl, bytes: buffer.length, contentType }, "[DownloadImage] fetched remote image");
+  return { buffer, contentType };
+}
+
 // src/reverseProxy.ts
 var PORT_RANGE_START = 30000;
 var PORT_RANGE_END = 31000;
 var DEFAULT_ALLOWED_UPSTREAM_HOSTS = new Set([
   "api.themoviedb.org",
   "api4.thetvdb.com",
+  "mediadb.vercel.app",
   "tmdb-mcp-server.imlc.me",
   "httpbin.io",
   "api.deepseek.com",
@@ -63538,41 +63956,215 @@ function noopLogger() {
     error: () => {}
   };
 }
+function buildOutboundProxyLogFields(httpProxyHeader, usingProxiedFetch, forwardUrl) {
+  const trimmed = httpProxyHeader?.trim();
+  const viaHttpProxy = Boolean(trimmed);
+  if (!viaHttpProxy) {
+    return { viaHttpProxy: false, proxyMode: "direct" };
+  }
+  const httpProxyHost = formatProxyHostForLog(trimmed);
+  if (!usingProxiedFetch) {
+    return { viaHttpProxy: true, httpProxyHost, proxyMode: "direct-fallback" };
+  }
+  return {
+    viaHttpProxy: true,
+    httpProxyHost,
+    proxyMode: getOutboundProxyMode(trimmed, forwardUrl)
+  };
+}
+var PROXY_ERROR_CODES = {
+  ENOTFOUND: {
+    message: "DNS resolution failed for upstream host",
+    code: "DNS_RESOLUTION_FAILED"
+  },
+  ECONNREFUSED: {
+    message: "Connection refused by upstream host",
+    code: "CONNECTION_REFUSED"
+  },
+  ConnectionRefused: {
+    message: "Connection refused by upstream host",
+    code: "CONNECTION_REFUSED"
+  },
+  ECONNRESET: {
+    message: "Connection was reset by upstream host",
+    code: "CONNECTION_RESET"
+  },
+  ETIMEDOUT: {
+    message: "Connection to upstream host timed out",
+    code: "CONNECTION_TIMEOUT"
+  },
+  ENETUNREACH: {
+    message: "Upstream network is unreachable",
+    code: "NETWORK_UNREACHABLE"
+  },
+  ECONNABORTED: {
+    message: "Connection was aborted",
+    code: "CONNECTION_ABORTED"
+  },
+  UND_ERR_CONNECT_TIMEOUT: {
+    message: "Connection to upstream host timed out",
+    code: "CONNECTION_TIMEOUT"
+  },
+  UND_ERR_HEADERS_TIMEOUT: {
+    message: "Upstream host did not respond with headers in time",
+    code: "HEADERS_TIMEOUT"
+  }
+};
+var TLS_ERROR_CODES = new Set([
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+]);
+function extractLoggingErrorDetail(error48) {
+  if (!(error48 instanceof Error)) {
+    return { originalError: String(error48) };
+  }
+  const originalError = describeFetchError(error48);
+  let systemCode;
+  let causeMessage;
+  if (typeof error48 === "object" && "code" in error48) {
+    systemCode = String(error48.code);
+  } else if (typeof error48 === "object" && "errno" in error48) {
+    systemCode = String(error48.errno);
+  }
+  if (!systemCode) {
+    let current = error48;
+    for (let depth = 0;depth < 3; depth++) {
+      const cause = current.cause;
+      if (!(cause instanceof Error))
+        break;
+      if (!systemCode) {
+        systemCode = cause.code;
+      }
+      if (cause.message && cause.message !== error48.message) {
+        causeMessage = cause.message;
+      }
+      current = cause;
+    }
+  }
+  return { originalError, systemCode, causeMessage };
+}
+function lookupSystemCode(code) {
+  if (TLS_ERROR_CODES.has(code)) {
+    return { message: "TLS certificate validation failed for upstream host", code: "TLS_ERROR" };
+  }
+  return PROXY_ERROR_CODES[code];
+}
+function classifyProxyError(error48) {
+  if (!(error48 instanceof Error)) {
+    return { message: String(error48), code: "UPSTREAM_REQUEST_FAILED" };
+  }
+  let current = error48;
+  for (let depth = 0;depth < 3; depth++) {
+    if (!(current instanceof Error))
+      break;
+    const causeCode = current.code;
+    if (typeof causeCode === "string") {
+      const found = lookupSystemCode(causeCode);
+      if (found)
+        return found;
+    }
+    if (!causeCode) {
+      const causeErrno = current.errno;
+      if (typeof causeErrno === "string") {
+        const found = lookupSystemCode(causeErrno);
+        if (found)
+          return found;
+      }
+    }
+    current = current.cause;
+  }
+  const msg = error48.message;
+  if (msg.includes("timeout")) {
+    return { message: "Proxy request timed out", code: "PROXY_TIMEOUT" };
+  }
+  if (msg.includes("CONNECT refused")) {
+    const statusMatch = msg.match(/HTTP\/\d\.\d\s+(\d+)/);
+    return {
+      message: statusMatch ? `Proxy CONNECT tunnel refused with status ${statusMatch[1]}` : "Proxy CONNECT tunnel was refused by the proxy server",
+      code: "PROXY_CONNECT_REFUSED"
+    };
+  }
+  if (msg.includes("Unsupported proxy scheme")) {
+    return { message: msg, code: "UNSUPPORTED_PROXY_SCHEME" };
+  }
+  return { message: error48.message, code: "UPSTREAM_REQUEST_FAILED" };
+}
+function proxyErrorToProblemDetails(errInfo, status) {
+  return {
+    type: "about:blank",
+    title: status === 502 ? "Bad Gateway" : status === 400 ? "Bad Request" : "Upstream Error",
+    status,
+    detail: errInfo.message
+  };
+}
 async function handleProxyRequest(request, config2 = {}) {
   const logger = config2.logger ?? noopLogger();
-  const allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
   const fetchImpl = config2.fetchImpl ?? fetch;
+  let allowedUpstreamHosts;
+  if (config2.resolveAllowedUpstreamHosts) {
+    try {
+      allowedUpstreamHosts = await config2.resolveAllowedUpstreamHosts();
+    } catch (error48) {
+      logger.error({ err: error48, errorMessage: error48 instanceof Error ? error48.message : String(error48) }, "[Reverse Proxy] failed to resolve allowed upstream hosts, falling back to defaults");
+      allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+    }
+  } else {
+    allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+  }
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
   const httpProxyHeader = request.headers.get("X-Http-Proxy");
   let activeFetch = fetchImpl;
-  if (httpProxyHeader && config2.createProxiedFetch) {
+  let usingProxiedFetch = false;
+  if (httpProxyHeader?.trim() && config2.createProxiedFetch) {
     try {
-      const proxiedFetch = config2.createProxiedFetch(httpProxyHeader);
+      const proxiedFetch = config2.createProxiedFetch(httpProxyHeader, logger);
       if (proxiedFetch) {
         activeFetch = proxiedFetch;
+        usingProxiedFetch = true;
+      } else {
+        logger.warn({
+          httpProxyHost: formatProxyHostForLog(httpProxyHeader)
+        }, "[Reverse Proxy] createProxiedFetch returned undefined; using direct fetch");
       }
     } catch (error48) {
-      logger.warn({ proxyUrl: httpProxyHeader, err: error48 }, "[Reverse Proxy] failed to create proxied fetch, falling back to direct");
+      logger.error({
+        httpProxyHost: formatProxyHostForLog(httpProxyHeader),
+        err: error48,
+        errorMessage: error48 instanceof Error ? error48.message : String(error48)
+      }, "[Reverse Proxy] failed to create proxied fetch, falling back to direct");
     }
+  } else if (httpProxyHeader?.trim() && !config2.createProxiedFetch) {
+    logger.warn({
+      httpProxyHost: formatProxyHostForLog(httpProxyHeader)
+    }, "[Reverse Proxy] X-Http-Proxy set but createProxiedFetch is not configured; using direct fetch");
   }
   const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
   if (!upstreamBaseURL) {
-    return applyCorsToBody(JSON.stringify({ error: "Missing X-SMM-Proxy-Upstream-BaseURL header" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return applyCorsToBody(JSON.stringify({
+      type: "about:blank",
+      title: "Bad Request",
+      status: 400,
+      detail: "Missing X-SMM-Proxy-Upstream-BaseURL header"
+    }), { status: 400, headers: { "Content-Type": "application/problem+json" } });
   }
   let upstreamUrl;
   try {
     upstreamUrl = validateUpstreamBaseURL(upstreamBaseURL, allowedUpstreamHosts);
   } catch (error48) {
-    const message = error48 instanceof Error ? error48.message : "Invalid upstream base URL";
-    return applyCorsToBody(JSON.stringify({ error: message }), {
+    return applyCorsToBody(JSON.stringify({
+      type: "about:blank",
+      title: "Bad Request",
       status: 400,
-      headers: { "Content-Type": "application/json" }
-    });
+      detail: error48 instanceof Error ? error48.message : "Invalid upstream base URL"
+    }), { status: 400, headers: { "Content-Type": "application/problem+json" } });
   }
   const incomingUrl = new URL(request.url);
   const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingUrl.pathname, incomingUrl.search);
+  const proxyLogFields = buildOutboundProxyLogFields(httpProxyHeader, usingProxiedFetch, forwardUrl);
   try {
     const reqHeaders = filterRequestHeaders(request, upstreamUrl);
     const method = request.method;
@@ -63582,7 +64174,14 @@ async function handleProxyRequest(request, config2 = {}) {
       body: method !== "GET" && method !== "HEAD" ? request.body : undefined,
       ...method !== "GET" && method !== "HEAD" ? { duplex: "half" } : {}
     });
-    logger.info({ method, forwardUrl, upstreamHost: upstreamUrl.host }, "[Reverse Proxy] forwarding request");
+    logger.info({
+      method,
+      forwardUrl,
+      upstreamHost: upstreamUrl.host,
+      incomingPath: incomingUrl.pathname,
+      upstreamBaseURL,
+      ...proxyLogFields
+    }, "[Reverse Proxy] forwarding request");
     const response = await activeFetch(upstreamReq);
     const respHeaders = filterResponseHeaders(response);
     const respBody = await response.arrayBuffer();
@@ -63590,7 +64189,8 @@ async function handleProxyRequest(request, config2 = {}) {
       method,
       forwardUrl,
       status: response.status,
-      responseBytes: respBody.byteLength
+      responseBytes: respBody.byteLength,
+      ...proxyLogFields
     }, "[Reverse Proxy] upstream response");
     return applyCorsToBody(respBody, {
       status: response.status,
@@ -63598,13 +64198,30 @@ async function handleProxyRequest(request, config2 = {}) {
       headers: respHeaders
     });
   } catch (error48) {
-    logger.error({ err: error48, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
-    return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
+    const errInfo = classifyProxyError(error48);
+    const errDetail = extractLoggingErrorDetail(error48);
+    logger.error({
+      err: error48,
+      errorMessage: error48 instanceof Error ? error48.message : String(error48),
+      originalError: errDetail.originalError,
+      systemCode: errDetail.systemCode,
+      causeMessage: errDetail.causeMessage,
+      method: request.method,
+      forwardUrl,
+      incomingPath: incomingUrl.pathname,
+      upstreamBaseURL,
+      ...proxyLogFields
+    }, "[Reverse Proxy] upstream request failed");
+    const problem = proxyErrorToProblemDetails(errInfo, 502);
+    return applyCorsToBody(JSON.stringify(problem), {
+      status: 502,
+      headers: { "Content-Type": "application/problem+json" }
+    });
   }
 }
 // src/reverseProxyNode.ts
-var import_node_http = __toESM(require("node:http"));
-var import_node_net = __toESM(require("node:net"));
+var import_node_http2 = __toESM(require("node:http"));
+var import_node_net2 = __toESM(require("node:net"));
 var import_node_stream = require("node:stream");
 function createReverseProxyRequestHandler(config2 = {}) {
   return async (req, res) => {
@@ -63671,7 +64288,7 @@ async function sendNodeResponse(res, response) {
 }
 function tryListen(port, hostname3 = "127.0.0.1") {
   return new Promise((resolve2) => {
-    const tester = import_node_net.default.createServer();
+    const tester = import_node_net2.default.createServer();
     tester.once("error", () => {
       tester.removeAllListeners();
       resolve2(false);
@@ -63715,7 +64332,7 @@ function createReverseProxyManager(config2 = {}) {
       currentUrl = null;
       return;
     }
-    const newServer = import_node_http.default.createServer(handler);
+    const newServer = import_node_http2.default.createServer(handler);
     await new Promise((resolve2, reject) => {
       newServer.once("error", (err) => {
         newServer.removeListener("listening", onListening);
@@ -63754,8 +64371,8 @@ function createReverseProxyManager(config2 = {}) {
 }
 // src/nodeHttpFetch.ts
 var import_node_stream2 = require("node:stream");
-var import_node_http2 = __toESM(require("node:http"));
-var import_node_https = __toESM(require("node:https"));
+var import_node_http3 = __toESM(require("node:http"));
+var import_node_https2 = __toESM(require("node:https"));
 var import_node_zlib = __toESM(require("node:zlib"));
 var import_node_util = require("node:util");
 var gunzip = import_node_util.promisify(import_node_zlib.default.gunzip);
@@ -63898,7 +64515,7 @@ function requestViaNodeHttp(request) {
           method: request.method,
           headers
         };
-        const req = isHttps ? import_node_https.default.request(requestOptions, onResponse) : import_node_http2.default.request(requestOptions, onResponse);
+        const req = isHttps ? import_node_https2.default.request(requestOptions, onResponse) : import_node_http3.default.request(requestOptions, onResponse);
         req.on("error", reject);
         if (requestBody !== undefined && requestBody.length > 0) {
           req.write(requestBody);
@@ -63947,7 +64564,7 @@ function requestViaNodeHttpStreaming(request) {
           method: request.method,
           headers
         };
-        const req = isHttps ? import_node_https.default.request(requestOptions, onResponse) : import_node_http2.default.request(requestOptions, onResponse);
+        const req = isHttps ? import_node_https2.default.request(requestOptions, onResponse) : import_node_http3.default.request(requestOptions, onResponse);
         req.on("error", reject);
         if (requestBody !== undefined && requestBody.length > 0) {
           req.write(requestBody);
@@ -63971,226 +64588,9 @@ function createStreamingNodeHttpFetch() {
     return requestViaNodeHttpStreaming(request);
   };
 }
-// src/proxiedFetch.ts
-var import_node_http3 = __toESM(require("node:http"));
-var import_node_https2 = __toESM(require("node:https"));
-var import_node_net2 = __toESM(require("node:net"));
-var import_node_tls = __toESM(require("node:tls"));
-var import_node_events = require("node:events");
-var import_socks_proxy_agent = __toESM(require_dist3(), 1);
-function nodeHeadersToObject(headers) {
-  const result = {};
-  for (const [key, val] of Object.entries(headers)) {
-    if (val === undefined)
-      continue;
-    if (Array.isArray(val)) {
-      result[key] = val.join(", ");
-    } else {
-      result[key] = val;
-    }
-  }
-  return result;
-}
-function readHeaders(socket) {
-  return new Promise((resolve2, reject) => {
-    let data = "";
-    const onData = (chunk2) => {
-      data += chunk2.toString();
-      if (data.includes(`\r
-\r
-`)) {
-        socket.off("data", onData);
-        socket.off("error", onError);
-        resolve2(data);
-      }
-    };
-    const onError = (err) => {
-      socket.off("data", onData);
-      socket.off("error", onError);
-      reject(err);
-    };
-    socket.on("data", onData);
-    socket.on("error", onError);
-  });
-}
-function httpForwardRequest(request, proxyHost, proxyPort) {
-  const url2 = new URL(request.url);
-  const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-  return new Promise((resolve2, reject) => {
-    const options = {
-      hostname: proxyHost,
-      port: proxyPort,
-      path: request.url,
-      method,
-      headers: Object.fromEntries(headers.entries()),
-      timeout: 30000
-    };
-    const req = import_node_http3.default.request(options, (res) => {
-      const chunks = [];
-      res.on("data", (chunk2) => chunks.push(chunk2));
-      res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
-      });
-      res.on("error", reject);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTP proxy request timeout"));
-    });
-    if (isBodyAllowed) {
-      request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
-}
-async function httpsTunnelRequest(request, proxyHost, proxyPort) {
-  const url2 = new URL(request.url);
-  const upstreamPort = url2.port || 443;
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-  const socket = import_node_net2.default.connect(proxyPort, proxyHost);
-  await import_node_events.once(socket, "connect");
-  const connectReq = `CONNECT ${url2.hostname}:${upstreamPort} HTTP/1.1\r
-` + `Host: ${url2.hostname}:${upstreamPort}\r
-` + `\r
-`;
-  socket.write(connectReq);
-  const rawResp = await readHeaders(socket);
-  const statusLine = rawResp.split(`\r
-`)[0] ?? "";
-  if (!statusLine.includes("200")) {
-    socket.destroy();
-    throw new Error(`Proxy CONNECT refused: ${statusLine}`);
-  }
-  const tlsSocket = import_node_tls.default.connect({
-    socket,
-    host: url2.hostname,
-    servername: url2.hostname
-  });
-  await import_node_events.once(tlsSocket, "secureConnect");
-  const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  return new Promise((resolve2, reject) => {
-    const options = {
-      method,
-      hostname: url2.hostname,
-      port: upstreamPort,
-      path: url2.pathname + url2.search,
-      headers: Object.fromEntries(headers.entries()),
-      createConnection: () => tlsSocket,
-      timeout: 30000
-    };
-    const req = import_node_http3.default.request(options, (res) => {
-      const chunks = [];
-      res.on("data", (chunk2) => chunks.push(chunk2));
-      res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
-      });
-      res.on("error", reject);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTPS tunnel request timeout"));
-    });
-    if (isBodyAllowed) {
-      request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
-}
-function socksProxyRequest(request, proxyUrl) {
-  const url2 = new URL(request.url);
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-  const isHttps = url2.protocol === "https:";
-  const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  const agent = new import_socks_proxy_agent.SocksProxyAgent(proxyUrl);
-  return new Promise((resolve2, reject) => {
-    const requestOptions = {
-      hostname: url2.hostname,
-      port: Number(url2.port) || (isHttps ? 443 : 80),
-      path: url2.pathname + url2.search,
-      method,
-      headers: Object.fromEntries(headers.entries()),
-      agent,
-      timeout: 30000
-    };
-    const req = (isHttps ? import_node_https2.default : import_node_http3.default).request(requestOptions, (res) => {
-      const chunks = [];
-      res.on("data", (chunk2) => chunks.push(chunk2));
-      res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
-      });
-      res.on("error", reject);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("SOCKS5 proxy request timeout"));
-    });
-    if (isBodyAllowed) {
-      request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
-}
-function createProxiedFetch(proxyUrl) {
-  const proxy = new URL(proxyUrl);
-  const isSocks = proxy.protocol === "socks5:" || proxy.protocol === "socks5h:";
-  if (isSocks) {
-    return async (input, init) => {
-      const request = input instanceof Request ? input : new Request(input, init);
-      return socksProxyRequest(request, proxyUrl);
-    };
-  }
-  if (proxy.protocol !== "http:" && proxy.protocol !== "https:") {
-    throw new Error(`Unsupported proxy scheme: "${proxy.protocol}". Use http://, https://, or socks5://.`);
-  }
-  const proxyPort = Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80);
-  const proxyHost = proxy.hostname;
-  return async (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
-    const url2 = new URL(request.url);
-    const isHttpsUpstream = url2.protocol === "https:";
-    if (!isHttpsUpstream) {
-      return httpForwardRequest(request, proxyHost, proxyPort);
-    }
-    return httpsTunnelRequest(request, proxyHost, proxyPort);
-  };
-}
 // src/writeFile.ts
-var import_node_path6 = __toESM(require("node:path"));
-var import_promises10 = require("node:fs/promises");
+var import_node_path7 = __toESM(require("node:path"));
+var import_promises11 = require("node:fs/promises");
 var import_node_fs = require("node:fs");
 
 // ../core/errors.ts
@@ -64232,7 +64632,7 @@ async function acquireFileLock(resolvedPath) {
 }
 async function fileExists(filePath) {
   try {
-    await import_promises10.access(filePath, import_node_fs.constants.F_OK);
+    await import_promises11.access(filePath, import_node_fs.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -64251,7 +64651,7 @@ async function doWriteFile(body, config2, traceId = "") {
     }
     const { path: filePath, mode, data } = validationResult.data;
     logger?.debug({ traceId, filePath, mode, dataSize: data.length }, "doWriteFile: Processing write request");
-    const resolvedPath = import_node_path6.default.resolve(filePath);
+    const resolvedPath = import_node_path7.default.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: Path not in allowlist");
@@ -64262,9 +64662,9 @@ async function doWriteFile(body, config2, traceId = "") {
     const release = await acquireFileLock(resolvedPath);
     try {
       const validatedPath = resolvedPath;
-      const parentDir = import_node_path6.default.dirname(validatedPath);
+      const parentDir = import_node_path7.default.dirname(validatedPath);
       try {
-        await import_promises10.mkdir(parentDir, { recursive: true });
+        await import_promises11.mkdir(parentDir, { recursive: true });
         logger?.debug({ traceId, parentDir }, "doWriteFile: Parent directory ensured");
       } catch (error48) {
         logger?.warn({ traceId, error: error48 }, "doWriteFile: Failed to ensure parent directory");
@@ -64278,7 +64678,7 @@ async function doWriteFile(body, config2, traceId = "") {
           };
         }
         try {
-          await import_promises10.writeFile(validatedPath, data, "utf-8");
+          await import_promises11.writeFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, size: data.length }, "doWriteFile: File written successfully (create mode)");
           return {};
         } catch (error48) {
@@ -64291,7 +64691,7 @@ async function doWriteFile(body, config2, traceId = "") {
       if (mode === "overwrite") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Overwrite mode");
         try {
-          await import_promises10.writeFile(validatedPath, data, "utf-8");
+          await import_promises11.writeFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, size: data.length }, "doWriteFile: File written successfully (overwrite mode)");
           return {};
         } catch (error48) {
@@ -64304,7 +64704,7 @@ async function doWriteFile(body, config2, traceId = "") {
       if (mode === "append") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Append mode");
         try {
-          await import_promises10.appendFile(validatedPath, data, "utf-8");
+          await import_promises11.appendFile(validatedPath, data, "utf-8");
           logger?.info({ traceId, path: validatedPath, appendedSize: data.length }, "doWriteFile: Data appended successfully");
           return {};
         } catch (error48) {
@@ -64334,8 +64734,8 @@ async function doWriteFile(body, config2, traceId = "") {
   }
 }
 // src/readFile.ts
-var import_node_path7 = __toESM(require("node:path"));
-var import_promises11 = require("node:fs/promises");
+var import_node_path8 = __toESM(require("node:path"));
+var import_promises12 = require("node:fs/promises");
 var import_node_fs2 = require("node:fs");
 var readFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required"),
@@ -64343,7 +64743,7 @@ var readFileRequestSchema = exports_external2.object({
 });
 async function fileExists2(filePath) {
   try {
-    await import_promises11.access(filePath, import_node_fs2.constants.F_OK);
+    await import_promises12.access(filePath, import_node_fs2.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -64354,7 +64754,7 @@ async function checkFileIsReadable(filePath) {
     return null;
   }
   try {
-    return await import_promises11.readFile(filePath, "utf-8");
+    return await import_promises12.readFile(filePath, "utf-8");
   } catch {
     return null;
   }
@@ -64372,7 +64772,7 @@ async function doReadFile(body, config2) {
     const { path: filePath, requireValidPath } = validationResult.data;
     logger?.debug({ filePath, requireValidPath }, "doReadFile: processing request");
     const posixPath = Path.posix(filePath);
-    const resolvedPath = import_node_path7.default.posix.resolve(posixPath);
+    const resolvedPath = import_node_path8.default.posix.resolve(posixPath);
     if (requireValidPath === undefined || requireValidPath === true) {
       const isAllowed = validatePathIsInAllowlist(resolvedPath, allowlist);
       if (!isAllowed) {
@@ -64406,8 +64806,8 @@ async function doReadFile(body, config2) {
   }
 }
 // src/deleteFile.ts
-var import_node_path8 = __toESM(require("node:path"));
-var import_promises12 = require("node:fs/promises");
+var import_node_path9 = __toESM(require("node:path"));
+var import_promises13 = require("node:fs/promises");
 var deleteFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required")
 });
@@ -64423,7 +64823,7 @@ async function doDeleteFile(body, config2) {
     }
     const { path: filePath } = validationResult.data;
     logger?.debug({ filePath }, "doDeleteFile: processing request");
-    const resolvedPath = import_node_path8.default.resolve(filePath);
+    const resolvedPath = import_node_path9.default.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
@@ -64433,7 +64833,7 @@ async function doDeleteFile(body, config2) {
     }
     const platformPath = Path.toPlatformPath(posixPath);
     try {
-      const fileStats = await import_promises12.stat(platformPath);
+      const fileStats = await import_promises13.stat(platformPath);
       if (!fileStats.isFile()) {
         logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
         return {
@@ -64452,7 +64852,7 @@ async function doDeleteFile(body, config2) {
       };
     }
     try {
-      await import_promises12.unlink(platformPath);
+      await import_promises13.unlink(platformPath);
       logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
       return { data: { path: platformPath } };
     } catch (error48) {
@@ -64537,11 +64937,11 @@ function getMediaFolder(filePath, folderPaths) {
 }
 
 // src/renameFileExecution.ts
-var import_promises13 = require("node:fs/promises");
-var import_node_path9 = __toESM(require("node:path"));
+var import_promises14 = require("node:fs/promises");
+var import_node_path10 = __toESM(require("node:path"));
 async function directoryExists(dirPath) {
   try {
-    const stats = await import_promises13.stat(dirPath);
+    const stats = await import_promises14.stat(dirPath);
     return stats.isDirectory();
   } catch {
     return false;
@@ -64551,15 +64951,15 @@ async function executeRenameOperation(from, to) {
   const fromPathPlatform = new Path(from).platformAbsPath();
   const toPathPlatform = new Path(to).platformAbsPath();
   try {
-    const destDir = import_node_path9.default.dirname(toPathPlatform);
-    await import_promises13.mkdir(destDir, { recursive: true });
+    const destDir = import_node_path10.default.dirname(toPathPlatform);
+    await import_promises14.mkdir(destDir, { recursive: true });
     if (!await directoryExists(destDir)) {
       return {
         success: false,
         error: `Destination directory does not exist and could not be created: ${destDir}`
       };
     }
-    await import_promises13.rename(fromPathPlatform, toPathPlatform);
+    await import_promises14.rename(fromPathPlatform, toPathPlatform);
     return { success: true };
   } catch (error48) {
     const errorMessage = error48 instanceof Error ? error48.message : "Unknown error";
@@ -64600,13 +65000,13 @@ async function executeBatchRenameOperations(renameMappings, _options = {}) {
 }
 
 // src/validateRenameOperations.ts
-var import_promises14 = require("node:fs/promises");
+var import_promises15 = require("node:fs/promises");
 async function validateSourceFileExist2(tasks) {
   const missingFiles = [];
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.from);
-      const stats = await import_promises14.stat(platformPath);
+      const stats = await import_promises15.stat(platformPath);
       if (!stats.isFile()) {
         missingFiles.push(task.from);
       }
@@ -64624,7 +65024,7 @@ async function validateDestFileNotExist2(tasks) {
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.to);
-      const stats = await import_promises14.stat(platformPath);
+      const stats = await import_promises15.stat(platformPath);
       if (stats.isFile()) {
         existingFiles.push(task.to);
       }
@@ -64852,109 +65252,6 @@ async function doUpdatePlan(body, config2 = { allowlist: [] }) {
 // src/cleanup.ts
 async function cleanupStalePlans(appDataDir, fs = defaultChatFs(), logger) {
   return cleanPreparingPlans(appDataDir, fs, logger);
-}
-// src/downloadImage.ts
-var import_node_buffer = require("node:buffer");
-var import_promises15 = require("node:fs/promises");
-var import_node_url = require("node:url");
-var import_node_path10 = require("node:path");
-var DEFAULT_CONTENT_TYPE = "image/jpeg";
-var EXTENSION_TO_CONTENT_TYPE = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".bmp": "image/bmp",
-  ".avif": "image/avif",
-  ".apng": "image/apng"
-};
-function getContentTypeFromExtension(ext) {
-  return EXTENSION_TO_CONTENT_TYPE[ext.toLowerCase()] ?? DEFAULT_CONTENT_TYPE;
-}
-function normalizeUrl(url2) {
-  if (url2.startsWith("//")) {
-    return `https:${url2}`;
-  }
-  return url2;
-}
-var REMOTE_IMAGE_REQUEST_HEADERS = {
-  accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-  "accept-language": "en-US,en;q=0.9",
-  "cache-control": "no-cache",
-  "sec-fetch-dest": "image",
-  "sec-fetch-mode": "no-cors",
-  "sec-fetch-site": "cross-site",
-  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
-function describeFetchError(error48) {
-  if (!(error48 instanceof Error)) {
-    return String(error48);
-  }
-  const cause = error48.cause;
-  const causeCode = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined;
-  const causeMessage = cause instanceof Error ? cause.message : undefined;
-  const directCode = !causeCode && typeof error48 === "object" && "code" in error48 ? String(error48.code) : undefined;
-  const directErrno = !causeCode && typeof error48 === "object" && "errno" in error48 ? String(error48.errno) : undefined;
-  const code = causeCode ?? directCode ?? directErrno;
-  const message = causeMessage;
-  const segments = [];
-  if (code)
-    segments.push(code);
-  if (message && message !== code) {
-    segments.push(message);
-  }
-  if (segments.length > 0) {
-    return `${error48.message} (${segments.join(": ")})`;
-  }
-  return error48.message;
-}
-function resolveUrl(url2) {
-  const normalizedUrl = normalizeUrl(url2);
-  if (normalizedUrl.startsWith("file://")) {
-    const platformPath = import_node_url.fileURLToPath(normalizedUrl);
-    return { kind: "file", normalizedUrl, platformPath };
-  }
-  if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
-    return { kind: "http", normalizedUrl };
-  }
-  throw new Error(`Invalid image URL: ${url2}. ` + `Must be http://, https://, protocol-relative (//), or file://`);
-}
-async function doDownloadImage(url2, config2) {
-  const { allowlist, logger, fetchImpl = fetch } = config2;
-  const resolved = resolveUrl(url2);
-  logger?.info({ url: resolved.normalizedUrl, kind: resolved.kind }, "[DownloadImage] processing request");
-  if (resolved.kind === "file") {
-    const platformPath = resolved.platformPath;
-    const posixPath = Path.posix(platformPath);
-    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
-      throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
-    }
-    const buffer2 = await import_promises15.readFile(platformPath);
-    const ext = import_node_path10.extname(platformPath);
-    const contentType2 = getContentTypeFromExtension(ext);
-    logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
-    return { buffer: buffer2, contentType: contentType2 };
-  }
-  let response;
-  try {
-    response = await fetchImpl(resolved.normalizedUrl, {
-      method: "GET",
-      headers: REMOTE_IMAGE_REQUEST_HEADERS
-    });
-  } catch (error48) {
-    throw new Error(`Failed to download image: ${describeFetchError(error48)}`);
-  }
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = import_node_buffer.Buffer.from(arrayBuffer);
-  logger?.info({ url: resolved.normalizedUrl, bytes: buffer.length, contentType }, "[DownloadImage] fetched remote image");
-  return { buffer, contentType };
 }
 // src/downloadImageAsFile.ts
 var import_node_buffer2 = require("node:buffer");

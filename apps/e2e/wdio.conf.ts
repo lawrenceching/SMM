@@ -1,8 +1,8 @@
-import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { ReportAggregator } from 'wdio-html-nice-reporter';
 import { browser } from '@wdio/globals';
+import { WDIO_CACHE_DIR } from './lib/wdioCacheDir';
 import { setup, updateUserConfig } from './test/lib/testbed';
 import { registerExpectExtensions } from './test/lib/expect-extensions';
 import {
@@ -19,7 +19,6 @@ import {
 
 const HTML_REPORT_DIR = './reports/html-reports';
 const PINNED_CHROME_VERSION = '146.0.7680.153';
-const WDIO_CACHE_DIR = path.join(os.homedir(), 'wdio-cache');
 const LOCAL_CHROME_BINARY = path.join(
     WDIO_CACHE_DIR,
     'chrome',

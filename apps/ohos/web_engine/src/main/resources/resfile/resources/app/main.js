@@ -333,7 +333,7 @@ var import_node_path3 = __toESM(require("node:path"));
 var import_electron6 = require("electron");
 
 // src/version.ts
-var APP_VERSION = "1.4.4";
+var APP_VERSION = "1.4.5";
 
 // src/http/hello-config.ts
 function buildHelloConfig(reverseProxyUrl) {
