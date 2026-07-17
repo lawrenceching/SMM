@@ -26,6 +26,7 @@ export interface ReverseProxyEndpoint {
 export interface DiscoverConfig {
   mediaDatabases: MediaDatabaseEndpoint[]
   reverseProxies: ReverseProxyEndpoint[]
+  latestVersion?: string
 }
 
 const endpointSchema = z.object({
@@ -51,6 +52,7 @@ const responseSchema = z.object({
     .object({
       mediaDatabases: z.array(endpointSchema),
       reverseProxies: z.array(reverseProxySchema).optional(),
+      latestVersion: z.string().min(1).optional(),
     })
     .optional(),
   error: z.string().optional(),
@@ -76,6 +78,7 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
   return {
     mediaDatabases: parsed.data.data?.mediaDatabases ?? [],
     reverseProxies: parsed.data.data?.reverseProxies ?? [],
+    latestVersion: parsed.data.data?.latestVersion,
   }
 }
 

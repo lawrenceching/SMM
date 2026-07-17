@@ -53,8 +53,8 @@ vi.mock("@/hooks/useFeatures", () => ({
     })),
 }))
 
-vi.mock("@/hooks/useConvexSettings", () => ({
-    useConvexSettings: vi.fn(),
+vi.mock("@/hooks/useDiscoverConfig", () => ({
+    useDiscoverConfig: vi.fn(),
 }))
 
 vi.mock("@/components/ui/separator", () => ({
@@ -66,7 +66,7 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useConvexSettings } from "@/hooks/useConvexSettings"
+import { useDiscoverConfig } from "@/hooks/useDiscoverConfig"
 
 vi.mock("@/lib/i18n", () => ({
     useTranslation: () => ({
@@ -95,7 +95,7 @@ const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<
 const mockUseDatabaseConnectionStatus = useDatabaseConnectionStatus as ReturnType<typeof vi.fn>
 const mockUseVideoCaptionerStatus = useVideoCaptionerStatus as ReturnType<typeof vi.fn>
 const mockUseFeatures = useFeatures as ReturnType<typeof vi.fn>
-const mockUseConvexSettings = useConvexSettings as ReturnType<typeof vi.fn>
+const mockUseDiscoverConfig = useDiscoverConfig as ReturnType<typeof vi.fn>
 
 describe("mapWebSocketStatusToConnectionStatus", () => {
     it("maps connected to connected", () => {
@@ -142,7 +142,7 @@ describe("StatusBar", () => {
             isTencentAsrTranscribeEnabled: false,
             setTencentAsrTranscribeEnabled: vi.fn(),
         })
-        mockUseConvexSettings.mockReturnValue({
+        mockUseDiscoverConfig.mockReturnValue({
             data: undefined,
             isPending: false,
             isError: false,
@@ -306,7 +306,7 @@ describe("StatusBar", () => {
 
     it("shows update dot when remote version is greater", () => {
         mockUseStatusBar.mockReturnValue({ version: "1.2.3" })
-        mockUseConvexSettings.mockReturnValue({
+        mockUseDiscoverConfig.mockReturnValue({
             data: { latestVersion: "1.2.4" },
             isPending: false,
             isError: false,
@@ -319,7 +319,7 @@ describe("StatusBar", () => {
 
     it("does not show update dot when remote version is not greater", () => {
         mockUseStatusBar.mockReturnValue({ version: "1.2.4" })
-        mockUseConvexSettings.mockReturnValue({
+        mockUseDiscoverConfig.mockReturnValue({
             data: { latestVersion: "1.2.4" },
             isPending: false,
             isError: false,
@@ -332,7 +332,7 @@ describe("StatusBar", () => {
 
     it("opens new version dialog when version button is clicked and update is available", () => {
         mockUseStatusBar.mockReturnValue({ version: "1.2.3" })
-        mockUseConvexSettings.mockReturnValue({
+        mockUseDiscoverConfig.mockReturnValue({
             data: { latestVersion: "1.2.5" },
             isPending: false,
             isError: false,

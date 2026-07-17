@@ -13,7 +13,7 @@ import { useDatabaseConnectionStatus } from "@/hooks/useDatabaseConnectionStatus
 import type { DatabaseConnectionStatus } from "@/lib/databaseConnectionCheck"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import { useFeatures } from "@/hooks/useFeatures"
-import { useConvexSettings } from "@/hooks/useConvexSettings"
+import { useDiscoverConfig } from "@/hooks/useDiscoverConfig"
 import { NewVersionDialog } from "./dialogs/NewVersionDialog"
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -50,7 +50,7 @@ export function StatusBar({
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isTranscribeEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
-    const { data: convexSettings } = useConvexSettings()
+    const { data: discoverConfig } = useDiscoverConfig()
     const [newVersionDialogOpen, setNewVersionDialogOpen] = useState(false)
     const folderPathMessage = useMemo(
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
@@ -59,7 +59,7 @@ export function StatusBar({
     const displayMessage = message !== undefined ? message : folderPathMessage
 
     const { version } = useStatusBar({ versionOverride })
-    const latestVersion = convexSettings?.latestVersion
+    const latestVersion = discoverConfig?.latestVersion
     const hasUpdate = Boolean(
         latestVersion && isVersionGreater(latestVersion, version),
     )

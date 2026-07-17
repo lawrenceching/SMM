@@ -73,6 +73,14 @@ export async function buildTmdbErrorFromResponse(
     // ignore body-read failure
   }
 
+  // Full body helps diagnose reverse-proxy 502 (ProblemDetails) and upstream errors.
+  console.log("[TMDB] reverse proxy / upstream error response", {
+    url: resp.url,
+    status: resp.status,
+    statusText: resp.statusText,
+    body: bodyText,
+  })
+
   const kind: TmdbErrorKind =
     resp.status === 401 ? "unauthorized"
       : resp.status === 502 ? "reverse-proxy"

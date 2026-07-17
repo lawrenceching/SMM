@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { fetchDiscoveredMediaDatabases } from "./discover";
+import { fetchDiscoverConfig, fetchDiscoveredMediaDatabases } from "./discover";
 
 describe("fetchDiscoveredMediaDatabases", () => {
   afterEach(() => {
@@ -87,5 +87,51 @@ describe("fetchDiscoveredMediaDatabases", () => {
     await expect(fetchDiscoveredMediaDatabases()).rejects.toThrow(
       "Discover request failed: 500",
     );
+  });
+});
+
+describe("fetchDiscoverConfig", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("parses latestVersion from the response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            mediaDatabases: [
+              { type: "tmdb", url: "https://a.com/api/tmdb", authorizationMethod: "none" },
+            ],
+            latestVersion: "1.4.5",
+          },
+        }),
+      }),
+    );
+
+    const result = await fetchDiscoverConfig();
+    expect(result.latestVersion).toBe("1.4.5");
+    expect(result.mediaDatabases).toHaveLength(1);
+  });
+
+  it("omits latestVersion when absent", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          data: {
+            mediaDatabases: [
+              { type: "tmdb", url: "https://a.com/api/tmdb", authorizationMethod: "none" },
+            ],
+          },
+        }),
+      }),
+    );
+
+    const result = await fetchDiscoverConfig();
+    expect(result.latestVersion).toBeUndefined();
   });
 });

@@ -470,6 +470,7 @@ export function useInitializeImportedMediaFolder() {
                     kind: error.info.kind,
                     statusCode: error.info.statusCode,
                     problemDetail: error.info.problemDetail,
+                    responseBodyText: error.info.responseBodyText,
                 },
             }, 'initialization: tmdb failed')
             toast.error(`目录初始化失败:\n${message}`);

@@ -54,7 +54,7 @@ describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
             openBrowserPage: true,
             resetUserConfig: (config: UserConfig) => {
                 config.tmdb = {
-                    host: process.env.TMDB_HOST || 'https://api.themoviedb.org/3',
+                    host: process.env.TMDB_HOST || 'https://mediadb.vercel.app/api/tmdb',
                     apiKey: process.env.TMDB_API_KEY || '',
                     httpProxy: getCurrentProxyAddress() ?? (process.env.TMDB_HTTP_PROXY || '').trim(),
                 }

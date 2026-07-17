@@ -3,8 +3,8 @@ import { useConfig } from "@/hooks/userConfig";
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { useRef } from "react";
 import Debug from "debug"
-import { fetchConvexSettings, getConvexSiteUrl } from "@/api/convexSettings"
-import { convexSettingsQueryKey } from "@/lib/appQueryKeys"
+import { fetchDiscoverConfig } from "@/api/discover"
+import { discoverConfigQueryKey } from "@/lib/appQueryKeys"
 import { queryClient } from "@/lib/queryClient"
 import { DvdGuideUrlInitializer } from "@/components/initialization/DvdGuideUrlInitializer"
 const debug = Debug("AppInitializer")
@@ -46,12 +46,10 @@ export function AppInitializer() {
 
         debug(`start to initialize app`)
 
-        if (getConvexSiteUrl()) {
-            void queryClient.prefetchQuery({
-                queryKey: convexSettingsQueryKey,
-                queryFn: fetchConvexSettings,
-            })
-        }
+        void queryClient.prefetchQuery({
+            queryKey: discoverConfigQueryKey,
+            queryFn: fetchDiscoverConfig,
+        })
 
         reload({
             onSuccess: async () => {
