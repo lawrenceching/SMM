@@ -1,0 +1,29 @@
+{
+  "mediaDatabases": [
+    {
+      "type": "tmdb",
+      "baseUrl": "https://mediadb.vercel.app/api/tmdb"
+    },
+    {
+      "type": "tmdb",
+      "baseUrl": "https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com"
+    },
+    {
+      "type": "tvdb",
+      "baseUrl": "https://mediadb.vercel.app/api/tvdb"
+    },
+    {
+      "type": "tvdb",
+      "baseUrl": "https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com"
+    },
+    {
+      "type": "tmdb-asset",
+      "baseUrl": "https://1255396852-19bqcvs6wn.ap-hongkong.tencentscf.com"
+    },
+    {
+      "type": "tvdb-asset",
+      "baseUrl": "https://1255396852-2gz8ynvtkt.ap-hongkong.tencentscf.com"
+    }
+  ],
+  "latestVersion": "1.4.5"
+}
