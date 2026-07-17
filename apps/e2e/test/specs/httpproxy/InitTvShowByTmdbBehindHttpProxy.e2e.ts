@@ -15,6 +15,7 @@ import { delay } from 'es-toolkit'
 import { given, when, then, resetStepContext, getStepContext } from '../../lib/gherkin'
 import '../../steps'
 import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import type { TestFolder } from '../../actions/import-folders'
 import TvShowPanel from '../../componentobjects/TVShowPanel.co'
 import { env } from 'node:process'
 
@@ -85,7 +86,14 @@ describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
         await browser.pause(5000)
 
         const { folder1 } = await import('../../actions/import-folders')
-        await when(`Import media folder "${folder1.folderName}"`)
+        // Neutral folder name (no Chinese title) so a failed recognition cannot be
+        // mistaken for a preferMediaLanguage / UI language issue. Keep {tmdbid=...}
+        // so recognition still uses the TMDB-id-in-folder-name path.
+        const unknownFolderName = `Unknown - ${Date.now()} {tmdbid=84666}`
+        await when('Import media folder', {
+            ...folder1,
+            folderName: unknownFolderName,
+        } satisfies TestFolder)
 
         if (env.slowdown) {
             await delay(5 * 1000)
