@@ -248,6 +248,8 @@ interface ComponentsResources {
       videoCaptionerNotFound: string
       transcribeUnavailableOnOs: string
       learnMore: string
+      initializing: string
+      initializationError: string
     }
     versionUpdate: {
       title: string
