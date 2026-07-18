@@ -1,5 +1,10 @@
 import { execSync } from 'node:child_process'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
+import {
+    startFrontendConsoleCapture,
+    stopFrontendConsoleCapture,
+} from './lib/frontend-console-capture'
+import { startHilogCapture, stopHilogCapture } from './lib/hilog-capture'
 
 const REMOTE_DEBUG_PORT = process.env.OHOS_REMOTE_DEBUG_PORT ?? '9222'
 const DEBUGGER_ADDRESS = `127.0.0.1:${REMOTE_DEBUG_PORT}`
@@ -74,6 +79,13 @@ function teardownPortForward() {
  * - Auto `hdc fport` / `fport rm` around the suite unless `HDC_PORT_FORWARD_ENABLED=false`.
  * - When disabled, set up forwarding manually before the run.
  *
+ * HiLog capture (default on): streams `hdc shell hilog -T Electron` to
+ * `reports/ohos-hilog/device-hilog.log`. Disable with `OHOS_HILOG_CAPTURE=false`.
+ *
+ * Frontend console capture (default on): CDP `Runtime.consoleAPICalled` via the
+ * same debugger port → `reports/ohos-hilog/frontend-console.log`.
+ * Disable with `OHOS_FRONTEND_CONSOLE_CAPTURE=false`.
+ *
  * Note: `browserVersion` alone makes WDIO download Chrome for Testing. Attach mode only
  * needs Chromedriver, so `goog:chromeOptions.binary` is set to skip the browser download
  * (see @wdio/utils setupPuppeteerBrowser). Chromedriver still resolves from browserVersion.
@@ -118,14 +130,38 @@ export const config: WebdriverIO.Config = {
     },
 
     onPrepare: () => {
+        assertDeviceConnected()
+        startHilogCapture()
+
         if (!HDC_PORT_FORWARD_ENABLED) return
 
-        assertDeviceConnected()
         assertPortNotAlreadyForwarded()
         setupPortForward()
     },
 
-    onComplete: () => {
+    /**
+     * After Chromedriver attaches to debuggerAddress, open a CDP page session
+     * and stream renderer console to disk (Classic WebDriver — no BiDi).
+     */
+    before: async () => {
+        try {
+            await startFrontendConsoleCapture(DEBUGGER_ADDRESS)
+        } catch (err) {
+            console.warn(
+                '[ohos] Frontend console capture failed to start:',
+                err instanceof Error ? err.message : err,
+            )
+        }
+    },
+
+    after: async () => {
+        await stopFrontendConsoleCapture()
+    },
+
+    onComplete: async () => {
+        await stopFrontendConsoleCapture()
+        stopHilogCapture()
+
         if (!HDC_PORT_FORWARD_ENABLED) return
 
         teardownPortForward()
