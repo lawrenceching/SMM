@@ -8,15 +8,21 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig, getUserConfigPath, getMetadataDir, removeMetadataDir, removeTestMediaTmpDir, removePlansDir, prepareMediaMetadata, removePlanFolder, hello } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig as resetUserConfigV1, getUserConfigPath as getUserConfigPathV1, getMetadataDir, removeMetadataDir as removeMetadataDirV1, removeTestMediaTmpDir as removeTestMediaTmpDirV1, removePlansDir as removePlansDirV1, prepareMediaMetadata, removePlanFolder, hello } from '@smm/test'
 import { Path } from '@smm/core'
 import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaMetadata'
 import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
 import type { TestFolder } from 'test/actions/import-folders'
 import Sidebar from '../componentobjects/Sidebar'
 import StatusBar from '../componentobjects/StatusBar'
-// Re-export for convenience
-export { setupTestMediaFolders, resetUserConfig, getUserConfigPath, removeMetadataDir, removeTestMediaTmpDir, removePlansDir }
+import {
+    deleteAppDataSubdirViaBrowser,
+    ensureBrowserOnUiPage,
+    resetUserConfigViaBrowser,
+    updateUserConfigViaBrowser,
+} from './browser-fs'
+// Re-export for convenience (switched wrappers are `export async function` below)
+export { setupTestMediaFolders, getMetadataDir }
 
 export {
     useEmbeddedHttpProxy,
@@ -50,7 +56,16 @@ export interface TestBedBeforeOptions {
     userConfig?: Partial<UserConfig>
 }
 
+export type UserConfigUpdater = (
+    userConfig: UserConfig
+) => UserConfig | void | Promise<UserConfig | void>
+
 export type ResetUserConfigOption = boolean | UserConfigUpdater
+
+/**
+ * Flip to `false` to roll back all browser-protocol setup/cleanup paths to host Node fs.
+ */
+const TESTBED_V2: boolean = true
 
 async function applyResetUserConfig(option: ResetUserConfigOption): Promise<void> {
     if (option === false) {
@@ -62,8 +77,7 @@ async function applyResetUserConfig(option: ResetUserConfigOption): Promise<void
         return
     }
 
-    const userConfigPath = await getUserConfigPath()
-    await resetUserConfig(userConfigPath)
+    await resetUserConfig()
     await updateUserConfig(async (userConfig) => {
         const updated = await Promise.resolve(option(userConfig))
         return updated ?? userConfig
@@ -79,6 +93,9 @@ export async function setup(options: {
     openBrowserPage: boolean,
     clearLocalStorage?: boolean,
 }) {
+    // Browser-protocol cleanup (e.g. removeMetadataDir v2) needs a real app origin
+    // so relative fetch('/api/...') can resolve. Open only when not already there.
+    await ensureBrowserOnUiPage()
 
     await cleanup({
         removePlansDir: options.removePlansDir,
@@ -94,6 +111,7 @@ export async function setup(options: {
 
     if(options.openBrowserPage) {
         const { default: Page } = await import('../pageobjects/page')
+        // Always re-open to refresh into a clean page for the test body.
         await Page.open()
         
         await browser.waitUntil(async () => {
@@ -224,6 +242,74 @@ export async function cleanup(options?: {
     }
 }
 
+/**
+ * Remove `{appDataDir}/metadata` for e2e cleanup.
+ * `TESTBED_V2`: browser `deleteFolder`; else host Node fs via `@smm/test`.
+ */
+export async function removeMetadataDir(): Promise<string | null> {
+    if (TESTBED_V2) {
+        const pathRemoved = await deleteAppDataSubdirViaBrowser('metadata')
+        console.log(`Removed metadata directory (v2): ${pathRemoved}`)
+        return pathRemoved
+    }
+    return removeMetadataDirV1()
+}
+
+/**
+ * Remove `{appDataDir}/plans` for e2e cleanup.
+ * `TESTBED_V2`: browser `deleteFolder`; else host Node fs via `@smm/test`.
+ */
+export async function removePlansDir(): Promise<string | null> {
+    if (TESTBED_V2) {
+        const pathRemoved = await deleteAppDataSubdirViaBrowser('plans')
+        console.log(`Removed plans directory (v2): ${pathRemoved}`)
+        return pathRemoved
+    }
+    return removePlansDirV1()
+}
+
+/**
+ * Remove host test media tmp dir (`os.tmpdir()/smm-test-media`).
+ *
+ * Stays on host Node fs even when `TESTBED_V2` is true: that path is often
+ * outside the CLI allowlist (`getTmpDir()` is `.../Temp/smm`, not `os.tmpdir()`).
+ * Ohos device-side fixture deletion is deferred (see ohos-test-infrastructure.md).
+ */
+export async function removeTestMediaTmpDir(
+    options?: { waitForUnlockMs?: number },
+): Promise<string | null> {
+    return removeTestMediaTmpDirV1(options)
+}
+
+/**
+ * Resolve `userDataDir/smm.json`. v2 uses browser hello; v1 uses host hello.
+ */
+export async function getUserConfigPath(): Promise<string> {
+    if (TESTBED_V2) {
+        const { joinPlatformPath, fetchHelloPathsViaBrowser } = await import('./browser-fs')
+        const { userDataDir } = await fetchHelloPathsViaBrowser()
+        return joinPlatformPath(userDataDir, 'smm.json')
+    }
+    return getUserConfigPathV1()
+}
+
+/**
+ * Reset `smm.json` to defaults (optional partial override).
+ * `TESTBED_V2`: browser `writeFile`; else host Node fs via `@smm/test`.
+ */
+export async function resetUserConfig(
+    userConfigPath?: string,
+    initConfig?: Partial<UserConfig>,
+): Promise<void> {
+    if (TESTBED_V2) {
+        // Path arg ignored in v2 — always resolve via hello inside the browser.
+        void userConfigPath
+        await resetUserConfigViaBrowser(initConfig)
+        return
+    }
+    await resetUserConfigV1(userConfigPath, initConfig)
+}
+
 export async function removeDirInSidebar(): Promise<void> {
     await Sidebar.deleteAllFolders()
 }
@@ -322,16 +408,18 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
     console.log(`Wrote media metadata to ${metadataFilePath}`)
 }
 
-export type UserConfigUpdater = (
-    userConfig: UserConfig
-) => UserConfig | void | Promise<UserConfig | void>
-
 /**
  * Read smm.json, apply {@link updateFn}, and write the result back.
  * {@link updateFn} may be synchronous or return a Promise.
+ * `TESTBED_V2`: browser readFile/writeFile; else host Node fs.
  */
 export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<void> {
-    const userConfigPath = await getUserConfigPath()
+    if (TESTBED_V2) {
+        await updateUserConfigViaBrowser(updateFn)
+        return
+    }
+
+    const userConfigPath = await getUserConfigPathV1()
     if (!fs.existsSync(userConfigPath)) {
         throw new Error(`updateUserConfig: user config not found at ${userConfigPath}`)
     }
@@ -339,10 +427,11 @@ export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<voi
     const raw = fs.readFileSync(userConfigPath, 'utf-8')
     const current = JSON.parse(raw) as UserConfig
     const next = await Promise.resolve(updateFn(current))
+    const toWrite = next ?? current
 
-    fs.writeFileSync(userConfigPath, JSON.stringify(next, null, 2), 'utf-8')
+    fs.writeFileSync(userConfigPath, JSON.stringify(toWrite, null, 2), 'utf-8')
     console.log(`Updated user config at: ${userConfigPath}`)
-    console.log(`[DIAG] updateUserConfig: wrote folders=${JSON.stringify(next.folders)} to ${userConfigPath}`)
+    console.log(`[DIAG] updateUserConfig: wrote folders=${JSON.stringify(toWrite.folders)} to ${userConfigPath}`)
 }
 
 export async function importFolderWithMediaMetadata(

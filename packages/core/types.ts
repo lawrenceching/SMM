@@ -1161,4 +1161,16 @@ export interface DeleteFileResponseBody {
   error?: string
 }
 
+export interface DeleteFolderRequestBody {
+  /** Platform absolute path to a managed directory (must be under the allowlist). */
+  path: string
+}
+
+export interface DeleteFolderResponseBody {
+  data?: {
+    path: string
+  }
+  error?: string
+}
+
 export type FolderType = "tvshow" | "movie" | "music"

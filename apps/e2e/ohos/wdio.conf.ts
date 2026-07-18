@@ -84,7 +84,7 @@ export const config: WebdriverIO.Config = {
 
     cacheDir: WDIO_CACHE_DIR,
 
-    specs: ['./*.e2e.ts'],
+    specs: ['./**/*.e2e.ts'],
 
     maxInstances: 1,
 

@@ -65,6 +65,11 @@ export {
   type DeleteFileResponseBody,
 } from "./deleteFile.ts";
 export {
+  doDeleteFolder,
+  type DeleteFolderRequestBody,
+  type DeleteFolderResponseBody,
+} from "./deleteFolder.ts";
+export {
   doGetEpisodes,
   type GetEpisodesRequestBody,
 } from "./getEpisodes.ts";
@@ -117,6 +122,7 @@ export {
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDeleteFolderPost,
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,

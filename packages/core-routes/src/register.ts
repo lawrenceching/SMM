@@ -7,6 +7,7 @@ import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts"
 import { handleReadFilePost } from "./routes/readFileRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
 import { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
+import { handleDeleteFolderPost } from "./routes/deleteFolderRoute.ts";
 import { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 import { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 import { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
@@ -41,6 +42,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDeleteFolderPost,
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
@@ -102,6 +104,7 @@ export { handleHelloPost } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 export { handleReadFilePost } from "./routes/readFileRoute.ts";
 export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
+export { handleDeleteFolderPost } from "./routes/deleteFolderRoute.ts";
 export { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
 export { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
 export { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";

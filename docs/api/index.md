@@ -18,6 +18,12 @@ HTTP: `POST /api/deleteFile` — permanently deletes a managed file. Request bod
 
 Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/DeleteFile.ts` delegates to `doDeleteFile` from `@smm/core-routes`.
 
+## DeleteFolder
+Source Code: packages/core-routes/src/deleteFolder.ts
+HTTP: `POST /api/deleteFolder` — permanently deletes a managed directory (recursive). Request body: `{ path: string }` (platform absolute path). The path must be inside the same server-side allowlist as `deleteFile` (`validatePathIsInAllowlist` + `buildAllowlist()` — covers `userDataDir`, `appDataDir`, `tmpDir`, and configured media folders; thus `{appDataDir}/metadata`, `{appDataDir}/plans`, and media folders are allowed). Rejects when the path exists but is a file (`Path Is File`). ENOENT (folder already absent) is treated as idempotent success.
+
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (same ports as DeleteFile). The Hono shell at `apps/cli/src/route/DeleteFolder.ts` delegates to `doDeleteFolder` from `@smm/core-routes`.
+
 ## DeleteMediaMetadata (REMOVED)
 The `POST /api/deleteMediaMetadata` route was removed in favor of the unified `/api/deleteFile` API. The UI now computes the metadata cache file path (`metadataCacheFilePath(appDataDir, folderPath)`) and calls `/api/deleteFile` directly. The MCP `deleteMediaMetadata` tool continues to work in-process and is not affected.
 

@@ -30,6 +30,7 @@ import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
 import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
 import { handleDeleteFile } from './src/route/DeleteFile';
+import { handleDeleteFolder } from './src/route/DeleteFolder';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
@@ -243,6 +244,7 @@ export class Server {
     handleOpenFile(this.app);
     handleMoveFileToTrash(this.app);
     handleDeleteFile(this.app);
+    handleDeleteFolder(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugRenameFilesTaskRoutes(this.app);
