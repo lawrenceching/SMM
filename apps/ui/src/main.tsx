@@ -8,7 +8,6 @@ import AppV2 from './AppV2.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { AppLanguageSync } from './hooks/userConfig'
-import { UIMediaFolderStoreInitializer } from './components/initialization/UIMediaFolderStoreInitializer'
 import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
@@ -220,7 +219,6 @@ async function bootstrap() {
             <JobOrchestratorProvider>
               <DialogProvider>
                 <AppLanguageSync />
-                <UIMediaFolderStoreInitializer />
                 <AppInitializer />
                 <DragDropReceiver>
                   <AuthGate>

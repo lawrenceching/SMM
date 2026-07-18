@@ -3,7 +3,10 @@ import { useStatusbarStore } from './statusbarStore'
 
 describe('statusbarStore', () => {
   beforeEach(() => {
-    useStatusbarStore.setState({ isBackgroundJobsPopoverOpen: false })
+    useStatusbarStore.setState({
+      isBackgroundJobsPopoverOpen: false,
+      initializationMessage: null,
+    })
   })
 
   it('setBackgroundJobsPopoverOpen updates popover visibility', () => {
@@ -12,5 +15,13 @@ describe('statusbarStore', () => {
 
     useStatusbarStore.getState().setBackgroundJobsPopoverOpen(false)
     expect(useStatusbarStore.getState().isBackgroundJobsPopoverOpen).toBe(false)
+  })
+
+  it('setInitializationMessage updates initialization status text', () => {
+    useStatusbarStore.getState().setInitializationMessage('Initializing...')
+    expect(useStatusbarStore.getState().initializationMessage).toBe('Initializing...')
+
+    useStatusbarStore.getState().setInitializationMessage(null)
+    expect(useStatusbarStore.getState().initializationMessage).toBeNull()
   })
 })

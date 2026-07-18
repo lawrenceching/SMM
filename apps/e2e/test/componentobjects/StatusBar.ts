@@ -303,6 +303,40 @@ class StatusBar {
         const message = await this.getMessage()
         return message.includes(text)
     }
+
+    /**
+     * Get the initialization message displayed during app startup.
+     * Returns empty string if no initialization message is visible.
+     */
+    get initializationMessage() {
+        return $('[data-testid="status-bar-message"]')
+    }
+
+    /**
+     * Wait until the initialization message disappears (app is ready or errored).
+     * @param timeout Max wait time in ms
+     */
+    async waitForInitializationComplete(timeout: number = 30000): Promise<void> {
+        await browser.waitUntil(
+            async () => {
+                const text = await this.initializationMessage.getText()
+                return !text.includes("Initializing") && !text.includes("正在初始化")
+            },
+            {
+                timeout,
+                timeoutMsg: "Expected initialization message to disappear",
+                interval: 500,
+            }
+        )
+    }
+
+    /**
+     * Check if the initialization message indicates an error.
+     */
+    async hasInitializationError(): Promise<boolean> {
+        const text = await this.initializationMessage.getText()
+        return text.includes("Initialization Error") || text.includes("初始化错误") || text.includes("初始化錯誤")
+    }
 }
 
 export default new StatusBar();

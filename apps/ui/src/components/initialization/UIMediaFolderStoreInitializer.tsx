@@ -7,76 +7,81 @@ import { useEffect, useRef } from "react"
 import { Path } from "@core/path"
 import localStorages from "@/lib/localStorages"
 
-export function UIMediaFolderStoreInitializer() {
- useRecheckSelectedFolderAvailability()
+interface UIMediaFolderStoreInitializerProps {
+  onReady: (status: "success" | "error", errorMessage?: string) => void
+}
 
- const { userConfig, isLoading, isUserConfigLoaded } = useConfig()
- const setFolders = useUIMediaFolderStore((s) => s.setFolders)
- const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder)
- const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
- const initializedRef = useRef(false)
- const reactivatedRef = useRef(false)
+export function UIMediaFolderStoreInitializer({ onReady }: UIMediaFolderStoreInitializerProps) {
+  useRecheckSelectedFolderAvailability()
+
+  const { userConfig, isLoading, isUserConfigLoaded } = useConfig()
+  const setFolders = useUIMediaFolderStore((s) => s.setFolders)
+  const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder)
+  const updateFolderStatus = useUIMediaFolderStore((s) => s.updateFolderStatus)
+  const initializedRef = useRef(false)
+  const reactivatedRef = useRef(false)
 
   useEffect(() => {
-  console.log(`[DIAG] UIMediaFolderStoreInitializer: effect running, folders=${userConfig.folders.length} initialized=${initializedRef.current} isLoading=${isLoading} isLoaded=${isUserConfigLoaded}`)
-  if (isLoading || !isUserConfigLoaded) {
-  console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — config not loaded`)
-  return
-  }
+    console.log(`[DIAG] UIMediaFolderStoreInitializer: effect running, folders=${userConfig.folders.length} initialized=${initializedRef.current} isLoading=${isLoading} isLoaded=${isUserConfigLoaded}`)
+    if (isLoading || !isUserConfigLoaded) {
+      console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — config not loaded`)
+      return
+    }
 
-  if (!reactivatedRef.current && userConfig.folders.length > 0) {
-  reactivatedRef.current = true
-  void reactivateHarmonyOSFileAccess(userConfig.folders)
-  }
+    if (!reactivatedRef.current && userConfig.folders.length > 0) {
+      reactivatedRef.current = true
+      void reactivateHarmonyOSFileAccess(userConfig.folders)
+    }
 
-  if (initializedRef.current) {
-  console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — already initialized, ignoring folders change`)
-  return
-  }
+    if (initializedRef.current) {
+      console.log(`[DIAG] UIMediaFolderStoreInitializer: skip — already initialized, ignoring folders change`)
+      return
+    }
 
-  const folders = userConfig.folders.map((folder) => ({
-  path: Path.toPlatformPath(folder),
-  status: "ok" as const,
-  test: false,
-  }))
-  console.log(`[DIAG] UIMediaFolderStoreInitializer: calling setFolders(${folders.length} folders)`)
-  setFolders(folders)
+    try {
+      const folders = userConfig.folders.map((folder) => ({
+        path: Path.toPlatformPath(folder),
+        status: "ok" as const,
+        test: false,
+      }))
+      console.log(`[DIAG] UIMediaFolderStoreInitializer: calling setFolders(${folders.length} folders)`)
+      setFolders(folders)
 
- const persistedSelectedFolder = localStorages.sidebarSelectedFolder
- const restoredSelection = persistedSelectedFolder
- ? userConfig.folders.find((folder) => Path.posix(folder) === Path.posix(persistedSelectedFolder))
- : undefined
- const rawFallback = restoredSelection ?? userConfig.folders[0] ?? ""
- const fallbackSelection = rawFallback ? Path.toPlatformPath(rawFallback) : ""
-  setSelectedFolder(fallbackSelection)
-  initializedRef.current = true
-  // TODO: the global _smm_status should be set when all initializers succeeded
-  // AppInitializer, UIMediaFolderStoreInitializer or other initializers that may added in the future
-  // Below is a quick fix for e2e test but not production-ready solution
-  // Need to deeply refactor below code in the future
-  window._smm_status = "ready"
-  console.log(`[DIAG] UIMediaFolderStoreInitializer: folder store init done, _smm_status=ready`)
+      const persistedSelectedFolder = localStorages.sidebarSelectedFolder
+      const restoredSelection = persistedSelectedFolder
+        ? userConfig.folders.find((folder) => Path.posix(folder) === Path.posix(persistedSelectedFolder))
+        : undefined
+      const rawFallback = restoredSelection ?? userConfig.folders[0] ?? ""
+      const fallbackSelection = rawFallback ? Path.toPlatformPath(rawFallback) : ""
+      setSelectedFolder(fallbackSelection)
+      initializedRef.current = true
+      console.log(`[DIAG] UIMediaFolderStoreInitializer: folder store init done`)
+      onReady("success")
 
-  void (async () => {
- for (const row of folders) {
- try {
- const available = await isFolderAvailable(row.path)
- if (!available) {
- updateFolderStatus(row.path, "folder_not_found")
- }
- } catch {
- /* keep ok — network/server errors should not blank the UI */
- }
- }
- })()
- }, [
- setFolders,
- setSelectedFolder,
- updateFolderStatus,
- userConfig.folders,
- isLoading,
- isUserConfigLoaded,
-])
+      void (async () => {
+        for (const row of folders) {
+          try {
+            const available = await isFolderAvailable(row.path)
+            if (!available) {
+              updateFolderStatus(row.path, "folder_not_found")
+            }
+          } catch {
+            /* keep ok — network/server errors should not blank the UI */
+          }
+        }
+      })()
+    } catch (error: unknown) {
+      onReady("error", String(error))
+    }
+  }, [
+    setFolders,
+    setSelectedFolder,
+    updateFolderStatus,
+    userConfig.folders,
+    isLoading,
+    isUserConfigLoaded,
+    onReady,
+  ])
 
- return null
+  return null
 }

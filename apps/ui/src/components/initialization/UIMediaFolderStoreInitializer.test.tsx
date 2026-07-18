@@ -54,10 +54,13 @@ const mockUseConfig = useConfig as unknown as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStore = useUIMediaFolderStore as unknown as ReturnType<typeof vi.fn>
 const mockIsFolderAvailable = vi.mocked(isFolderAvailable)
 
-function renderInitializer(queryClient = new QueryClient()) {
+function renderInitializer(
+ onReady: (status: "success" | "error", errorMessage?: string) => void = vi.fn(),
+ queryClient = new QueryClient(),
+) {
  return render(
  <QueryClientProvider client={queryClient}>
- <UIMediaFolderStoreInitializer />
+ <UIMediaFolderStoreInitializer onReady={onReady} />
  </QueryClientProvider>,
  )
 }
@@ -74,6 +77,7 @@ describe("UIMediaFolderStoreInitializer", () => {
  updateFolderStatus: mockUpdateFolderStatus,
  }),
  )
+ window._smm_status = "not-ready"
  })
 
  it("does not initialize when config is still loading", () => {
@@ -99,14 +103,15 @@ describe("UIMediaFolderStoreInitializer", () => {
  })
 
  const queryClient = new QueryClient()
+ const onReady = vi.fn()
  const { rerender } = render(
  <QueryClientProvider client={queryClient}>
- <UIMediaFolderStoreInitializer />
+ <UIMediaFolderStoreInitializer onReady={onReady} />
  </QueryClientProvider>,
  )
  rerender(
  <QueryClientProvider client={queryClient}>
- <UIMediaFolderStoreInitializer />
+ <UIMediaFolderStoreInitializer onReady={onReady} />
  </QueryClientProvider>,
  )
 
@@ -219,5 +224,48 @@ describe("UIMediaFolderStoreInitializer", () => {
  expect(mockIsFolderAvailable).toHaveBeenCalled()
  })
  expect(mockUpdateFolderStatus).not.toHaveBeenCalled()
+ })
+
+ it("calls onReady('success') after initialization completes", () => {
+ const onReady = vi.fn()
+ mockUseConfig.mockReturnValue({
+ userConfig: { folders: ["C:/Movies/A"] },
+ isLoading: false,
+ isUserConfigLoaded: true,
+ })
+
+ renderInitializer(onReady)
+
+ expect(onReady).toHaveBeenCalledTimes(1)
+ expect(onReady).toHaveBeenCalledWith("success")
+ })
+
+ it("calls onReady('error') when folder init fails", () => {
+ const onReady = vi.fn()
+ mockSetFolders.mockImplementationOnce(() => {
+ throw new Error("setFolders failed")
+ })
+ mockUseConfig.mockReturnValue({
+ userConfig: { folders: ["C:/Movies/A"] },
+ isLoading: false,
+ isUserConfigLoaded: true,
+ })
+
+ renderInitializer(onReady)
+
+ expect(onReady).toHaveBeenCalledTimes(1)
+ expect(onReady).toHaveBeenCalledWith("error", "Error: setFolders failed")
+ })
+
+ it("does not set window._smm_status internally", () => {
+ mockUseConfig.mockReturnValue({
+ userConfig: { folders: ["C:/Movies/A"] },
+ isLoading: false,
+ isUserConfigLoaded: true,
+ })
+
+ renderInitializer()
+
+ expect(window._smm_status).toBe("not-ready")
  })
 })

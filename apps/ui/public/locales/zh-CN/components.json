@@ -228,7 +228,9 @@
       "videoCaptionerAvailable": "VideoCaptioner 可用",
       "videoCaptionerNotFound": "未找到 videocaptioner",
       "transcribeUnavailableOnOs": "生成字幕功能在当前操作系统上不可用",
-      "learnMore": "了解更多"
+      "learnMore": "了解更多",
+      "initializing": "正在初始化...",
+      "initializationError": "初始化错误：{{message}}"
     },
     "backgroundJobs": {
       "title": "后台任务",

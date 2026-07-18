@@ -4,6 +4,7 @@ import { isVersionGreater } from "@core/versionCompare"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useStatusbarStore } from "@/stores/statusbarStore"
 import { useStatusBar, mapWebSocketStatusToConnectionStatus } from "./hooks/useStatusBar"
 import { MessageIndicator, type Message } from "./ConnectionStatusIndicator"
 import { BackgroundJobsPopover } from "./background-jobs/BackgroundJobsPopover"
@@ -47,6 +48,7 @@ export function StatusBar({
 }: StatusBarProps) {
     const { t } = useTranslation("components")
     const { selectedFolder } = useUIMediaFolderStoreState()
+    const initializationMessage = useStatusbarStore((s) => s.initializationMessage)
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isTranscribeEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
@@ -56,7 +58,12 @@ export function StatusBar({
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
     )
-    const displayMessage = message !== undefined ? message : folderPathMessage
+    // Priority: prop message > initialization message > folder path
+    const displayMessage = useMemo(() => {
+        if (message !== undefined) return message
+        if (initializationMessage !== null) return initializationMessage
+        return folderPathMessage
+    }, [message, initializationMessage, folderPathMessage])
 
     const { version } = useStatusBar({ versionOverride })
     const latestVersion = discoverConfig?.latestVersion
