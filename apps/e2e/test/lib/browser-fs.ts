@@ -242,8 +242,10 @@ export async function clearFolderViaBrowser(folderPath: string): Promise<void> {
     }
 
     if (listed.failure) {
-        // Folder already gone — treat as cleared.
-        if (/ENOENT|no such file|not found|Cannot access/i.test(listed.failure)) {
+        // Folder already gone, or HarmonyOS Download/ sandbox denying scandir —
+        // treat as cleared so fixtures can recreate under the same base path.
+        if (/ENOENT|EPERM|EACCES|no such file|not found|Cannot access|operation not permitted/i.test(listed.failure)) {
+            console.warn(`clearFolderViaBrowser: skip list for "${folderPath}": ${listed.failure}`)
             return
         }
         throw new Error(`clearFolderViaBrowser listFiles failed for "${folderPath}": ${listed.failure}`)
@@ -311,6 +313,191 @@ export async function readFileViaBrowser(filePath: string): Promise<string> {
     return result.data
 }
 
+export type ListedFileItem = {
+    path: string
+    size: number
+    mtime: number
+    isDirectory: boolean
+}
+
+/**
+ * List files/folders via `POST /api/listFiles`.
+ */
+export async function listFilesViaBrowser(
+    folderPath: string,
+    options?: {
+        recursively?: boolean
+        includeHiddenFiles?: boolean
+        onlyFiles?: boolean
+        onlyFolders?: boolean
+    },
+): Promise<ListedFileItem[]> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+
+    const result = await browser.execute(
+        async (
+            token: string | undefined,
+            pathToList: string,
+            opts: {
+                recursively?: boolean
+                includeHiddenFiles?: boolean
+                onlyFiles?: boolean
+                onlyFolders?: boolean
+            },
+        ) => {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            }
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
+            }
+            const res = await fetch('/api/listFiles', {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    path: pathToList,
+                    recursively: opts.recursively ?? false,
+                    includeHiddenFiles: opts.includeHiddenFiles ?? false,
+                    onlyFiles: opts.onlyFiles,
+                    onlyFolders: opts.onlyFolders,
+                }),
+            })
+            const body = await res.json() as {
+                data?: {
+                    items?: Array<{
+                        path: string
+                        size: number
+                        mtime: number
+                        isDirectory: boolean
+                    }>
+                }
+                error?: string
+            }
+            return {
+                failure: body.error ?? null,
+                items: body.data?.items ?? [],
+            }
+        },
+        authToken,
+        folderPath,
+        {
+            recursively: options?.recursively,
+            includeHiddenFiles: options?.includeHiddenFiles,
+            onlyFiles: options?.onlyFiles,
+            onlyFolders: options?.onlyFolders,
+        },
+    ) as unknown as { failure: string | null; items: ListedFileItem[] }
+
+    if (result.failure) {
+        throw new Error(`listFilesViaBrowser failed for "${folderPath}": ${result.failure}`)
+    }
+    return result.items
+}
+
+/** Basename of a platform path (POSIX or Windows). */
+export function basenamePlatformPath(filePath: string): string {
+    const parts = filePath.split(/[/\\]/).filter(Boolean)
+    return parts[parts.length - 1] ?? filePath
+}
+
+/**
+ * List entry names (files + dirs) in a folder — browser equivalent of `fs.readdirSync`.
+ */
+export async function listFileNamesViaBrowser(
+    folderPath: string,
+    options?: { recursively?: boolean; includeHiddenFiles?: boolean },
+): Promise<string[]> {
+    const items = await listFilesViaBrowser(folderPath, options)
+    return items.map((item) => basenamePlatformPath(item.path))
+}
+
+/**
+ * True when `filePath` exists as a non-directory entry under its parent folder.
+ */
+export async function fileExistsViaBrowser(filePath: string): Promise<boolean> {
+    const parent = filePath.replace(/[/\\][^/\\]+$/, '')
+    if (!parent || parent === filePath) {
+        return false
+    }
+    const name = basenamePlatformPath(filePath)
+    const items = await listFilesViaBrowser(parent)
+    return items.some((item) => !item.isDirectory && basenamePlatformPath(item.path) === name)
+}
+
+/**
+ * Size in bytes for a file listed under its parent directory.
+ */
+export async function getFileSizeViaBrowser(filePath: string): Promise<number> {
+    const parent = filePath.replace(/[/\\][^/\\]+$/, '')
+    const name = basenamePlatformPath(filePath)
+    const items = await listFilesViaBrowser(parent)
+    const match = items.find((item) => !item.isDirectory && basenamePlatformPath(item.path) === name)
+    if (!match) {
+        throw new Error(`getFileSizeViaBrowser: file not found "${filePath}"`)
+    }
+    return match.size
+}
+
+/**
+ * `{tmpDir}/smm-test-folder` from `POST /api/hello` — shared fixture root for common specs.
+ */
+export async function resolveSmmTestFolderViaBrowser(): Promise<string> {
+    const { tmpDir } = await fetchHelloPathsViaBrowser()
+    if (!tmpDir) {
+        throw new Error('POST /api/hello did not return tmpDir')
+    }
+    return joinPlatformPath(tmpDir, 'smm-test-folder')
+}
+
+/**
+ * Create a media-folder fixture under `base` via `POST /api/writeFile`
+ * (empty files for each entry in `folder.files`).
+ * When `files` is empty, writes a tiny keep file so the directory is created.
+ */
+export async function createTestFolderViaBrowser(
+    base: string,
+    folder: { folderName: string; files: string[]; path?: string },
+): Promise<string> {
+    const folderPath = joinPlatformPath(base, folder.folderName)
+    const files = folder.files.length > 0 ? folder.files : ['.smm-e2e-keep']
+    for (const file of files) {
+        const filePath = file
+            .split(/[/\\]/)
+            .filter(Boolean)
+            .reduce((acc, segment) => joinPlatformPath(acc, segment), folderPath)
+        await writeFileViaBrowser(filePath, '')
+    }
+    folder.path = folderPath
+    return folderPath
+}
+
+/**
+ * Create a fixture under `{tmpDir}/smm-test-folder` (or `base`) and emit
+ * `ui.mediaFolderImported` via {@link importMediaFolder}.
+ */
+export async function createAndImportFolderViaBrowser(
+    folder: {
+        folderName: string
+        files: string[]
+        type: 'tvshow' | 'movie' | 'music'
+        path?: string
+    },
+    traceId: string,
+    base?: string,
+): Promise<string> {
+    const { importMediaFolder } = await import('test/actions/events')
+    const root = base ?? (await resolveSmmTestFolderViaBrowser())
+    const folderPath = await createTestFolderViaBrowser(root, folder)
+    await importMediaFolder({
+        type: folder.type,
+        folderPathInPlatformFormat: folderPath,
+        traceId,
+    })
+    folder.path = folderPath
+    return folderPath
+}
+
 export async function writeFileViaBrowser(filePath: string, content: string): Promise<void> {
     await ensureBrowserOnUiPage()
     const authToken = process.env.SMM_AUTH_TOKEN
@@ -343,6 +530,15 @@ export async function writeFileViaBrowser(filePath: string, content: string): Pr
     if (result.error) {
         throw new Error(`writeFileViaBrowser failed for "${filePath}": ${result.error}`)
     }
+}
+
+/**
+ * Rename a file under the app allowlist by writing the new path and deleting the old one.
+ * Content is not preserved (e2e fixtures use empty files).
+ */
+export async function renameFileViaBrowser(fromPath: string, toPath: string): Promise<void> {
+    await writeFileViaBrowser(toPath, '')
+    await deleteFileViaBrowser(fromPath)
 }
 
 export function buildDefaultUserConfig(initConfig?: Partial<UserConfig>): UserConfig {

@@ -241,7 +241,7 @@ bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 * `apps\e2e\test\actions\import-folders.ts` 创建和导入测试媒体目录
   
 模板
-* 测试音乐和视频目录: `apps\e2e\test\specs\music\MusicPanel.template.ts`
+* 测试音乐和视频目录: `apps\e2e\common\music\MusicPanel.template.ts`
 
 
 ## apps/cli API 列表

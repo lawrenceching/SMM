@@ -127,7 +127,8 @@ export const config: WebdriverIO.Config = {
 
     mochaOpts: {
         ui: 'bdd',
-        timeout: 120000,
+        // Common specs (e.g. ImportMediaLibrary) use this.timeout(6min) and long TMDB waits.
+        timeout: 6 * 60 * 1000,
     },
 
     onPrepare: () => {

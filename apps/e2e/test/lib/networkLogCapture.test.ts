@@ -105,7 +105,7 @@ describe('networkLogCapture', () => {
     })
 
     test('networkLogOutputPath uses current worker metadata', () => {
-        initNetworkLogCapture('1-0', ['test/specs/movie/SearchMovie.e2e.ts'])
+        initNetworkLogCapture('1-0', ['common/movie/SearchMovie.e2e.ts'])
         expect(networkLogOutputPath()).toBe(
             path.join(NETWORK_LOG_DIR, 'SearchMovie.e2e.ts-1-0.json'),
         )

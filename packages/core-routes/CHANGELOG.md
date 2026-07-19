@@ -1,5 +1,19 @@
 # @smm/core-routes
 
+## Unreleased
+
+### Minor Changes
+
+- feat(core-routes): add `GET /api/discover` (shared with CLI) so OHOS can resolve media-database / reverse-proxy endpoints
+
+  Previously `/api/discover` lived only in the CLI Hono server. OHOS routes
+  `/api/*` through `core-routes`, so discover returned 404 and folder
+  initialization failed with `Discover request failed: 404 Not Found`.
+
+  - New `doFetchDiscoverConfig` / `doFetchDiscoveredMediaDatabases`
+  - New `handleDiscoverGet` registered on the core-routes request handler
+  - CLI `handleDiscover` now delegates to `@smm/core-routes/discover`
+
 ## 1.4.5
 
 ### Patch Changes

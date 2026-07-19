@@ -1,7 +1,10 @@
-import * as path from 'node:path'
-import * as fs from 'node:fs'
 import { registerStep } from '../lib/gherkin'
-import { createFolderInTestFolder, folder1, folder2 } from 'test/actions/import-folders'
+import {
+    createTestFolderViaBrowser,
+    joinPlatformPath,
+    writeFileViaBrowser,
+} from '../lib/browser-fs'
+import { folder1, folder2 } from 'test/actions/import-folders'
 import { importMediaLibrary } from 'test/actions/events'
 
 interface InitializedFolder {
@@ -10,25 +13,44 @@ interface InitializedFolder {
     type: string
 }
 
+type LibraryBaseArg = {
+    /** Parent directory that becomes the imported media library root. */
+    base: string
+}
+
+function requireLibraryBase(ctx: Record<string, unknown>): string {
+    const payload = ctx._stepArg as LibraryBaseArg | undefined
+    const base = payload?.base
+    if (!base) {
+        throw new Error(
+            'Media library import step: missing "base". ' +
+                'Pass { base } as the second argument to given(), e.g. ' +
+                'given("Media library was imported with TV show folders", { base: testFolder }).',
+        )
+    }
+    return base
+}
+
 registerStep('Media library was imported with TV show folders', async (ctx) => {
+    const base = requireLibraryBase(ctx)
     const folders: InitializedFolder[] = []
 
-    const unknownFolder = createFolderInTestFolder({
+    const unknownPath = await createTestFolderViaBrowser(base, {
         ...folder1,
         folderName: 'UnknownFolder',
     })
-    folders.push({ folderName: 'UnknownFolder', path: unknownFolder.path!, type: 'tvshow-folder' })
+    folders.push({ folderName: 'UnknownFolder', path: unknownPath, type: 'tvshow-folder' })
 
-    const folderByName = createFolderInTestFolder(folder1)
-    folders.push({ folderName: folder1.folderName, path: folderByName.path!, type: 'tvshow-folder' })
+    const byNamePath = await createTestFolderViaBrowser(base, folder1)
+    folders.push({ folderName: folder1.folderName, path: byNamePath, type: 'tvshow-folder' })
 
-    const folderByTmdbId = createFolderInTestFolder({
+    const byTmdbPath = await createTestFolderViaBrowser(base, {
         ...folder1,
         folderName: '{tmdbid=84666}',
     })
-    folders.push({ folderName: '{tmdbid=84666}', path: folderByTmdbId.path!, type: 'tvshow-folder' })
+    folders.push({ folderName: '{tmdbid=84666}', path: byTmdbPath, type: 'tvshow-folder' })
 
-    const folderByNfo = createFolderInTestFolder({
+    const byNfoPath = await createTestFolderViaBrowser(base, {
         ...folder1,
         folderName: 'FolderContainsTvShowNfo',
     })
@@ -38,13 +60,11 @@ registerStep('Media library was imported with TV show folders', async (ctx) => {
   <id>84666</id>
   <tmdbid>84666</tmdbid>
 </tvshow>`
-    fs.writeFileSync(path.join(folderByNfo.path!, 'tvshow.nfo'), nfoXml)
-    folders.push({ folderName: 'FolderContainsTvShowNfo', path: folderByNfo.path!, type: 'tvshow-folder' })
-
-    const mediaFolder = path.dirname(folders[0]!.path)
+    await writeFileViaBrowser(joinPlatformPath(byNfoPath, 'tvshow.nfo'), nfoXml)
+    folders.push({ folderName: 'FolderContainsTvShowNfo', path: byNfoPath, type: 'tvshow-folder' })
 
     await importMediaLibrary({
-        libraryPathInPlatformFormat: mediaFolder,
+        libraryPathInPlatformFormat: base,
         type: 'tvshow',
         traceId: 'e2e:Import Media Library:Import TV Show Library',
     })
@@ -53,24 +73,25 @@ registerStep('Media library was imported with TV show folders', async (ctx) => {
 })
 
 registerStep('Media library was imported with movie folders', async (ctx) => {
+    const base = requireLibraryBase(ctx)
     const folders: InitializedFolder[] = []
 
-    const unknownFolder = createFolderInTestFolder({
+    const unknownPath = await createTestFolderViaBrowser(base, {
         ...folder2,
         folderName: 'UnknownFolder',
     })
-    folders.push({ folderName: 'UnknownFolder', path: unknownFolder.path!, type: 'movie-folder' })
+    folders.push({ folderName: 'UnknownFolder', path: unknownPath, type: 'movie-folder' })
 
-    const folderByName = createFolderInTestFolder(folder2)
-    folders.push({ folderName: folder2.folderName, path: folderByName.path!, type: 'movie-folder' })
+    const byNamePath = await createTestFolderViaBrowser(base, folder2)
+    folders.push({ folderName: folder2.folderName, path: byNamePath, type: 'movie-folder' })
 
-    const folderByTmdbId = createFolderInTestFolder({
+    const byTmdbPath = await createTestFolderViaBrowser(base, {
         ...folder2,
         folderName: '{tmdbid=1539104}',
     })
-    folders.push({ folderName: '{tmdbid=1539104}', path: folderByTmdbId.path!, type: 'movie-folder' })
+    folders.push({ folderName: '{tmdbid=1539104}', path: byTmdbPath, type: 'movie-folder' })
 
-    const folderByNfo = createFolderInTestFolder({
+    const byNfoPath = await createTestFolderViaBrowser(base, {
         ...folder2,
         folderName: 'FolderContainsMovieNfo',
     })
@@ -80,13 +101,11 @@ registerStep('Media library was imported with movie folders', async (ctx) => {
   <id>1539104</id>
   <tmdbid>1539104</tmdbid>
 </movie>`
-    fs.writeFileSync(path.join(folderByNfo.path!, 'movie.nfo'), nfoXml)
-    folders.push({ folderName: 'FolderContainsMovieNfo', path: folderByNfo.path!, type: 'movie-folder' })
-
-    const mediaFolder = path.dirname(folders[0]!.path)
+    await writeFileViaBrowser(joinPlatformPath(byNfoPath, 'movie.nfo'), nfoXml)
+    folders.push({ folderName: 'FolderContainsMovieNfo', path: byNfoPath, type: 'movie-folder' })
 
     await importMediaLibrary({
-        libraryPathInPlatformFormat: mediaFolder,
+        libraryPathInPlatformFormat: base,
         type: 'movie',
         traceId: 'e2e:Import Media Library:Import Movie Library',
     })

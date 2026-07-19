@@ -11,7 +11,7 @@ And the test status of v1.1.0
 | Import media library - Web GUI/Electron          | MANUAL | DONE    |
 |                                                  |        |         |
 | Media Folder Initialization                      |        |         |
-| test/specs/media-folder-initialization/          |        |         |
+| common/tv/ + common/movie/                       |        |         |
 | - TV Show - TMDB ID in folder name               | AUTO   |         |
 | - TV Show - nfo                                  | AUTO   |         |
 | - TV Show - Folder Name                          | AUTO   |         |

@@ -18,9 +18,13 @@ import StatusBar from '../componentobjects/StatusBar'
 import {
     deleteAppDataSubdirViaBrowser,
     ensureBrowserOnUiPage,
+    fetchHelloPathsViaBrowser,
+    joinPlatformPath,
+    readFileViaBrowser,
     resetUserConfigViaBrowser,
     setActiveTestbedOs,
     updateUserConfigViaBrowser,
+    writeFileViaBrowser,
 } from './browser-fs'
 import type { TestbedOs } from './ui-page-url'
 
@@ -400,6 +404,58 @@ export async function expectMediaMetadataToBe(
 }
 
 /**
+ * Same assertions as {@link expectMediaMetadataToBe}, but reads metadata via
+ * browser `POST /api/readFile` (works on ohos / electron / desktop).
+ */
+export async function expectMediaMetadataViaBrowser(
+    mediaFolderPathInPlatformFormat: string,
+    predicate: (json: unknown) => boolean,
+    options?: { timeoutMs?: number; intervalMs?: number },
+): Promise<void> {
+    const { appDataDir } = await fetchHelloPathsViaBrowser()
+    const metadataDir = joinPlatformPath(appDataDir, 'metadata')
+    const mediaFolderPosix = Path.posix(mediaFolderPathInPlatformFormat)
+    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const metadataFilePath = joinPlatformPath(metadataDir, `${safeFileName}.json`)
+
+    const timeoutMs = options?.timeoutMs ?? 90_000
+    const intervalMs = options?.intervalMs ?? 2_000
+    const deadline = Date.now() + timeoutMs
+    let lastError: unknown
+
+    while (Date.now() < deadline) {
+        try {
+            const metadataRaw = await readFileViaBrowser(metadataFilePath)
+            const metadataJson = JSON.parse(metadataRaw) as MediaMetadata
+            if (predicate(metadataJson)) {
+                return
+            }
+            const m = metadataJson
+            const obj = {
+                ...m,
+                tvShow: m.tvShow !== undefined
+                    ? { id: m.tvShow.id, name: m.tvShow.name, database: m.tvShow.database }
+                    : undefined,
+                movie: m.movie !== undefined
+                    ? { id: m.movie.id, name: m.movie.name, database: m.movie.database }
+                    : undefined,
+            }
+            lastError = new Error(
+                `predicate not satisfied yet. Actual: ${JSON.stringify(obj)}`,
+            )
+        } catch (err) {
+            lastError = err
+        }
+        await browser.pause(intervalMs)
+    }
+
+    throw new Error(
+        `expectMediaMetadataViaBrowser timed out after ${timeoutMs}ms for "${metadataFilePath}". ` +
+            `Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    )
+}
+
+/**
  * Write a media metadata JSON file into the app's metadata cache directory.
  *
  * The output path matches {@link expectMediaMetadataToBe}: `getMetadataDir()` plus
@@ -413,16 +469,28 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
         throw new Error('writeMediaMetadata: mediaMetadata.mediaFolderPath is required')
     }
 
+    const mediaFolderPosix = Path.posix(folderPath)
+    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
+    const payload = JSON.stringify(mediaMetadata, null, 4)
+
+    if (TESTBED_V2) {
+        const { appDataDir } = await fetchHelloPathsViaBrowser()
+        const metadataFilePath = joinPlatformPath(
+            joinPlatformPath(appDataDir, 'metadata'),
+            `${safeFileName}.json`,
+        )
+        await writeFileViaBrowser(metadataFilePath, payload)
+        console.log(`Wrote media metadata (v2) to ${metadataFilePath}`)
+        return
+    }
+
     const metadataDir = await getMetadataDir()
     if (!fs.existsSync(metadataDir)) {
         fs.mkdirSync(metadataDir, { recursive: true })
     }
 
-    const mediaFolderPosix = Path.posix(folderPath)
-    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
     const metadataFilePath = path.join(metadataDir, `${safeFileName}.json`)
-
-    fs.writeFileSync(metadataFilePath, JSON.stringify(mediaMetadata, null, 4), 'utf-8')
+    fs.writeFileSync(metadataFilePath, payload, 'utf-8')
     console.log(`Wrote media metadata to ${metadataFilePath}`)
 }
 
@@ -500,7 +568,7 @@ export async function importFolderWithMediaMetadata(
              * Assume the absolutePath in template is the relative path to the media folder.
              * Need to complete it with folder path
              */
-            absolutePath: Path.posix(path.join(folder.path!, file.absolutePath))
+            absolutePath: Path.posix(joinPlatformPath(folder.path!, file.absolutePath))
         }
     })
 

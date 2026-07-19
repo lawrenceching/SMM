@@ -122,7 +122,11 @@ function workerSpecsIncludeMcp(specs: string[] | undefined): boolean {
     if (!specs?.length) return false;
     return specs.some((specPath) => {
         const n = specPath.replace(/\\/g, '/');
-        return n.includes('/specs/mcp/') || n.includes('/specs/tvdb/McpServerTools-TVDB');
+        return (
+            n.includes('/specs/mcp/') ||
+            n.includes('/specs/tvdb/McpServerTools-TVDB') ||
+            n.includes('/common/tvdb/McpServerTools-TVDB')
+        );
     });
 }
 

@@ -110,6 +110,7 @@ export {
   doFetchDiscoverConfig,
   doFetchDiscoveredMediaDatabases,
   EMPTY_DISCOVER_CONFIG,
+  FALLBACK_DISCOVER_CONFIG,
   DEFAULT_DISCOVER_CONFIG_URL,
   DISCOVER_TIMEOUT_MS,
   type DiscoverConfig,

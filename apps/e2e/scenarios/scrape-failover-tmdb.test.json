@@ -23,7 +23,7 @@
         },
         {
             "name": "ScrapeFailover.e2e.ts",
-            "command": "pnpm wdio --spec ././test/specs/tv/ScrapeFailover.e2e.ts",
+            "command": "pnpm wdio --spec ./common/tv/ScrapeFailover.e2e.ts",
             "cwd": "apps/e2e"
         }
     ],

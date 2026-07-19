@@ -1,6 +1,12 @@
-import { registerStep, getStepContext } from '../lib/gherkin'
-import { createFolderInTestFolder, folder1, renameFileInFolder } from 'test/actions/import-folders'
+import { registerStep } from '../lib/gherkin'
+import { folder1 } from 'test/actions/import-folders'
 import { importFolderWithMediaMetadata } from '../lib/testbed'
+import {
+    createTestFolderViaBrowser,
+    joinPlatformPath,
+    renameFileViaBrowser,
+    resolveSmmTestFolderViaBrowser,
+} from 'test/lib/browser-fs'
 import page from 'test/pageobjects/page'
 import Sidebar from 'test/componentobjects/Sidebar'
 
@@ -13,11 +19,18 @@ import Sidebar from 'test/componentobjects/Sidebar'
 registerStep('TV show folder "xxx" was recognized with partial coverage', async (ctx, args) => {
     const [folderName] = args
 
-    const folder = createFolderInTestFolder({
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = {
         ...folder1,
-        folderName,
-    })
-    renameFileInFolder(folder.folderName, 'S01E03.mkv', 'S01E03-renamed.mkv')
+        folderName: folderName!,
+    }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
+    folder.path = folderPath
+
+    await renameFileViaBrowser(
+        joinPlatformPath(folderPath, 'S01E03.mkv'),
+        joinPlatformPath(folderPath, 'S01E03-renamed.mkv'),
+    )
 
     await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
         mediaMetadata.mediaFiles = []

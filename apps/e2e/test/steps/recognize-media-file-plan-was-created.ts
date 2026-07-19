@@ -1,14 +1,16 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { registerStep } from '../lib/gherkin'
 import { Path } from '@smm/core'
-import { getPlanDir } from '@smm/test'
 import type { RecognizeMediaFilePlan } from '@smm/core/types/RecognizeMediaFilePlan.ts'
+import {
+    fetchHelloPathsViaBrowser,
+    joinPlatformPath,
+    writeFileViaBrowser,
+} from 'test/lib/browser-fs'
 
 registerStep('recognize media file plan was created for S01E01..03', async (ctx) => {
     const folder = ctx._folder as { path: string }
-    const plansDir = await getPlanDir()
-    fs.mkdirSync(plansDir, { recursive: true })
+    const { appDataDir } = await fetchHelloPathsViaBrowser()
+    const plansDir = joinPlatformPath(appDataDir, 'plans')
 
     const planId = crypto.randomUUID()
     const mediaFolderPathPosix = Path.posix(folder.path)
@@ -26,8 +28,8 @@ registerStep('recognize media file plan was created for S01E01..03', async (ctx)
         ],
     }
 
-    const planFilePath = path.join(plansDir, planId + '.plan.json')
-    fs.writeFileSync(planFilePath, JSON.stringify(plan, null, 2), 'utf-8')
+    const planFilePath = joinPlatformPath(plansDir, planId + '.plan.json')
+    await writeFileViaBrowser(planFilePath, JSON.stringify(plan, null, 2))
     ctx._planFilePath = planFilePath
-    console.log('Created recognize plan:', planFilePath)
+    console.log('Created recognize plan (v2):', planFilePath)
 })

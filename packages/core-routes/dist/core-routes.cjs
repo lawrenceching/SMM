@@ -31148,6 +31148,7 @@ __export(exports_src, {
   PORT_RANGE_START: () => PORT_RANGE_START,
   PORT_RANGE_END: () => PORT_RANGE_END,
   MCP_TOOL_NAMES: () => MCP_TOOL_NAMES,
+  FALLBACK_DISCOVER_CONFIG: () => FALLBACK_DISCOVER_CONFIG,
   ExistedFileError: () => ExistedFileError,
   EMPTY_DISCOVER_CONFIG: () => EMPTY_DISCOVER_CONFIG,
   DISCOVER_TIMEOUT_MS: () => DISCOVER_TIMEOUT_MS,
@@ -65561,6 +65562,52 @@ var EMPTY_DISCOVER_CONFIG = {
   mediaDatabases: [],
   reverseProxies: []
 };
+var FALLBACK_MEDIA_DATABASES = [
+  {
+    type: "tmdb",
+    url: "https://mediadb.vercel.app/api/tmdb",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tmdb",
+    url: "https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb",
+    url: "https://mediadb.vercel.app/api/tvdb",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb",
+    url: "https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tmdb-asset",
+    url: "https://1255396852-19bqcvs6wn.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb-asset",
+    url: "https://1255396852-2gz8ynvtkt.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  }
+];
+var FALLBACK_DISCOVER_CONFIG = {
+  mediaDatabases: FALLBACK_MEDIA_DATABASES,
+  reverseProxies: []
+};
+function fallbackDiscoverConfig(logger, reason, details) {
+  discoverLog(logger, "warn", `using hardcoded fallback mediaDatabases (${reason})`, {
+    mediaDatabasesCount: FALLBACK_MEDIA_DATABASES.length,
+    ...details
+  });
+  return {
+    mediaDatabases: [...FALLBACK_MEDIA_DATABASES],
+    reverseProxies: []
+  };
+}
 function resolveDiscoverConfigUrl() {
   const fromEnv = process.env.EXTERNAL_CONFIG_FILE_URL?.trim();
   if (fromEnv) {
@@ -65740,7 +65787,11 @@ async function doFetchDiscoverConfig(config2 = {}) {
         timedOut: aborted2 && durationMs2 >= DISCOVER_TIMEOUT_MS - 50,
         err: formatFetchError(fetchError)
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, aborted2 ? "fetch aborted" : "fetch failed", {
+        url: url2,
+        urlFromEnv,
+        durationMs: durationMs2
+      });
     }
     const durationMs = Date.now() - startedAt;
     discoverLog(logger, "info", "remote config HTTP response", {
@@ -65764,7 +65815,10 @@ async function doFetchDiscoverConfig(config2 = {}) {
         contentType: response.headers.get("content-type"),
         bodyPreview
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "non-OK status", {
+        url: url2,
+        status: response.status
+      });
     }
     let rawJson;
     try {
@@ -65777,7 +65831,7 @@ async function doFetchDiscoverConfig(config2 = {}) {
         contentType: response.headers.get("content-type"),
         err: formatFetchError(parseError)
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "invalid JSON", { url: url2 });
     }
     if (!isPlainObject3(rawJson)) {
       discoverLog(logger, "error", "remote config JSON root is not an object", {
@@ -65786,7 +65840,7 @@ async function doFetchDiscoverConfig(config2 = {}) {
         durationMs,
         rootType: rawJson === null ? "null" : Array.isArray(rawJson) ? "array" : typeof rawJson
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "JSON root is not an object", { url: url2 });
     }
     let mediaDatabases;
     let reverseProxies;
@@ -65810,24 +65864,31 @@ async function doFetchDiscoverConfig(config2 = {}) {
         durationMs,
         err: formatFetchError(normalizeError)
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "normalize failed", { url: url2 });
     }
     if (mediaDatabases.length === 0) {
       logEmptyDiscoverResult(logger, url2, durationMs, rawJson, mediaDatabases, latestVersion);
-    } else {
-      discoverLog(logger, "info", "remote config loaded", {
-        url: url2,
-        urlFromEnv,
-        durationMs,
-        mediaDatabasesCount: mediaDatabases.length,
-        reverseProxiesCount: reverseProxies.length,
-        mediaDatabaseTypes: [
-          ...new Set(mediaDatabases.map((entry) => entry.type))
-        ],
-        latestVersion,
-        hasLatestVersionField: "latestVersion" in rawJson
+      const fallback = fallbackDiscoverConfig(logger, "empty mediaDatabases", {
+        url: url2
       });
+      return {
+        mediaDatabases: fallback.mediaDatabases,
+        reverseProxies,
+        latestVersion
+      };
     }
+    discoverLog(logger, "info", "remote config loaded", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      mediaDatabasesCount: mediaDatabases.length,
+      reverseProxiesCount: reverseProxies.length,
+      mediaDatabaseTypes: [
+        ...new Set(mediaDatabases.map((entry) => entry.type))
+      ],
+      latestVersion,
+      hasLatestVersionField: "latestVersion" in rawJson
+    });
     return { mediaDatabases, reverseProxies, latestVersion };
   } catch (error48) {
     const durationMs = Date.now() - startedAt;
@@ -65838,7 +65899,7 @@ async function doFetchDiscoverConfig(config2 = {}) {
       signalAborted: controller.signal.aborted,
       err: formatFetchError(error48)
     });
-    return { ...EMPTY_DISCOVER_CONFIG };
+    return fallbackDiscoverConfig(logger, "unexpected error", { url: url2, durationMs });
   } finally {
     clearTimeout(timeout2);
   }

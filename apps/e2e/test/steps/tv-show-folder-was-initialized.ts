@@ -1,7 +1,12 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { registerStep } from '../lib/gherkin'
-import { createFolderInTestFolder, createAndImportFolder, folder1, folder4 } from 'test/actions/import-folders'
+import {
+    createAndImportFolderViaBrowser,
+    createTestFolderViaBrowser,
+    joinPlatformPath,
+    resolveSmmTestFolderViaBrowser,
+    writeFileViaBrowser,
+} from 'test/lib/browser-fs'
+import { folder1, folder4 } from 'test/actions/import-folders'
 import { importMediaFolder } from 'test/actions/events'
 
 /**
@@ -11,32 +16,43 @@ import { importMediaFolder } from 'test/actions/events'
  */
 registerStep('TV show folder "xxx" was initialized by folder name', async (ctx, args) => {
     const [folderName] = args
-    const folder = await createAndImportFolder({
+    const folder = {
         ...folder1,
         folderName: folderName ?? folder1.mediaName!,
-    }, 'e2eTest:MediaFolderInitialization - TVShow TMDB')
-    ctx._folder = folder
+    }
+    const folderPath = await createAndImportFolderViaBrowser(
+        folder,
+        'e2eTest:MediaFolderInitialization - TVShow TMDB',
+    )
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = folderName
 })
 
 /**
- * Creates a TV show folder with an unrecognizable name, imports it, then writes
- * a tvshow.nfo pointing to TMDB id 84666. The NFO is picked up asynchronously.
+ * Creates a TV show folder with an unrecognizable name, writes a tvshow.nfo pointing
+ * to TMDB id 84666, then imports it.
  */
 registerStep('TV show folder "xxx" was initialized with TMDB NFO', async (ctx, args) => {
     const [folderName] = args
-    const folder = await createAndImportFolder({
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = {
         ...folder1,
         folderName: folderName!,
-    }, 'e2eTest:MediaFolderInitialization - TVShow NFO')
+    }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
     const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <tvshow>
   <title>天使降临到我身边</title>
   <id>84666</id>
   <tmdbid>84666</tmdbid>
 </tvshow>`
-    fs.writeFileSync(path.join(folder.path!, 'tvshow.nfo'), nfoXml)
-    ctx._folder = folder
+    await writeFileViaBrowser(joinPlatformPath(folderPath, 'tvshow.nfo'), nfoXml)
+    await importMediaFolder({
+        type: 'tvshow',
+        folderPathInPlatformFormat: folderPath,
+        traceId: 'e2eTest:MediaFolderInitialization - TVShow NFO',
+    })
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = folderName
 })
 
@@ -46,11 +62,15 @@ registerStep('TV show folder "xxx" was initialized with TMDB NFO', async (ctx, a
  */
 registerStep('TV show folder was initialized as unknown', async (ctx) => {
     const randomName = `Unknown-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    const folder = await createAndImportFolder({
+    const folder = {
         ...folder1,
         folderName: randomName,
-    }, 'e2eTest:MediaFolderInitialization - TVShow Unknown')
-    ctx._folder = folder
+    }
+    const folderPath = await createAndImportFolderViaBrowser(
+        folder,
+        'e2eTest:MediaFolderInitialization - TVShow Unknown',
+    )
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = randomName
 })
 
@@ -60,48 +80,56 @@ registerStep('TV show folder was initialized as unknown', async (ctx) => {
  */
 registerStep('TV show folder "xxx" was initialized by TVDB folder name', async (ctx, args) => {
     const [folderName] = args
-    const folder = await createAndImportFolder({
+    const folder = {
         ...folder1,
         folderName: folderName!,
-    }, 'TVDB TV Show Media Folder Initialization:searching folder name')
-    ctx._folder = folder
+    }
+    const folderPath = await createAndImportFolderViaBrowser(
+        folder,
+        'TVDB TV Show Media Folder Initialization:searching folder name',
+    )
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = folderName
 })
 
 /**
  * Creates a TV show folder with TVDB ID embedded in the folder name (folder4 fixture:
- * "我推的孩子 {tvdbid=421069}") and imports it. The system recognizes the show directly
- * from the TVDB ID in the folder name.
+ * "我推的孩子 {tvdbid=421069}") and imports it.
  */
 registerStep('TV show folder was initialized by TVDB ID', async (ctx) => {
-    const folder = await createAndImportFolder(folder4, 'TVDB TV Show Media Folder Initialization:tvdbid in folder name')
-    ctx._folder = folder
+    const folder = { ...folder4 }
+    const folderPath = await createAndImportFolderViaBrowser(
+        folder,
+        'TVDB TV Show Media Folder Initialization:tvdbid in folder name',
+    )
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = folder4.folderName
 })
 
 /**
  * Creates a TV show folder with an unrecognizable name, writes a tvshow.nfo pointing
- * to TVDB id 355969, then imports the folder. The system picks up the NFO during
- * initialization.
+ * to TVDB id 355969, then imports the folder.
  */
 registerStep('TV show folder "xxx" was initialized with TVDB NFO', async (ctx, args) => {
     const [folderName] = args
-    const folder = createFolderInTestFolder({
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = {
         ...folder1,
         folderName: folderName!,
-    })
+    }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
     const nfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <tvshow>
   <title>天使降临到我身边</title>
   <id>355969</id>
   <tvdbid>355969</tvdbid>
 </tvshow>`
-    fs.writeFileSync(path.join(folder.path!, 'tvshow.nfo'), nfoXml)
+    await writeFileViaBrowser(joinPlatformPath(folderPath, 'tvshow.nfo'), nfoXml)
     await importMediaFolder({
         type: 'tvshow',
-        folderPathInPlatformFormat: folder.path!,
+        folderPathInPlatformFormat: folderPath,
         traceId: 'e2eTest:MediaFolderInitialization - TVShow NFO',
     })
-    ctx._folder = folder
+    ctx._folder = { ...folder, path: folderPath }
     ctx._folderName = folderName
 })

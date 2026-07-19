@@ -1,6 +1,10 @@
-import { registerStep, getStepContext } from '../lib/gherkin'
-import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
+import { registerStep } from '../lib/gherkin'
+import { folder1 } from 'test/actions/import-folders'
 import { importFolderWithMediaMetadata } from '../lib/testbed'
+import {
+    createTestFolderViaBrowser,
+    resolveSmmTestFolderViaBrowser,
+} from 'test/lib/browser-fs'
 import page from 'test/pageobjects/page'
 import Sidebar from 'test/componentobjects/Sidebar'
 
@@ -9,10 +13,13 @@ registerStep('TV show folder "xxx" was recognized', async (ctx, args) => {
 
     console.log(`[DIAG] step: "TV show folder was recognized" START folderName="${folderName}"`)
 
-    const folder = createFolderInTestFolder({
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = {
         ...folder1,
-        folderName,
-    })
+        folderName: folderName!,
+    }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
+    folder.path = folderPath
 
     const t0 = Date.now()
     await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json')
@@ -32,9 +39,10 @@ registerStep('TV show folder "xxx" was recognized', async (ctx, args) => {
 })
 
 registerStep('TV show folder with three episodes was imported and recognized', async (ctx) => {
-    const folder = createFolderInTestFolder({
-        ...folder1,
-    })
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = { ...folder1 }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
+    folder.path = folderPath
 
     const t0 = Date.now()
     console.log(`[DIAG] step: "TV show folder with three episodes" importFolderWithMediaMetadata START`)

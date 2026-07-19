@@ -95,6 +95,64 @@ const EMPTY_DISCOVER_CONFIG: DiscoverConfig = {
   reverseProxies: [],
 };
 
+/**
+ * Hardcoded media-database endpoints used when the remote discover config
+ * cannot be fetched or yields no usable mediaDatabases.
+ * Keep in sync with `apps/site/config.json`.
+ */
+const FALLBACK_MEDIA_DATABASES: MediaDatabaseEntry[] = [
+  {
+    type: "tmdb",
+    url: "https://mediadb.vercel.app/api/tmdb",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tmdb",
+    url: "https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tvdb",
+    url: "https://mediadb.vercel.app/api/tvdb",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tvdb",
+    url: "https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tmdb-asset",
+    url: "https://1255396852-19bqcvs6wn.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tvdb-asset",
+    url: "https://1255396852-2gz8ynvtkt.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
+];
+
+const FALLBACK_DISCOVER_CONFIG: DiscoverConfig = {
+  mediaDatabases: FALLBACK_MEDIA_DATABASES,
+  reverseProxies: [],
+};
+
+function fallbackDiscoverConfig(
+  logger: CoreRoutesLogger | undefined,
+  reason: string,
+  details?: Record<string, unknown>,
+): DiscoverConfig {
+  discoverLog(logger, "warn", `using hardcoded fallback mediaDatabases (${reason})`, {
+    mediaDatabasesCount: FALLBACK_MEDIA_DATABASES.length,
+    ...details,
+  });
+  return {
+    mediaDatabases: [...FALLBACK_MEDIA_DATABASES],
+    reverseProxies: [],
+  };
+}
+
 function resolveDiscoverConfigUrl(): { url: string; urlFromEnv: boolean } {
   const fromEnv = process.env.EXTERNAL_CONFIG_FILE_URL?.trim();
   if (fromEnv) {
@@ -308,7 +366,8 @@ export type FetchDiscoverConfigOptions = Pick<
 
 /**
  * Fetch and normalize the remote discovery config.
- * Returns empty lists on any error so the UI can gracefully fall back.
+ * On fetch/parse/normalize failure (or empty mediaDatabases), returns
+ * {@link FALLBACK_DISCOVER_CONFIG} so TMDB/TVDB hosts remain available.
  */
 export async function doFetchDiscoverConfig(
   config: FetchDiscoverConfigOptions = {},
@@ -353,7 +412,11 @@ export async function doFetchDiscoverConfig(
           err: formatFetchError(fetchError),
         },
       );
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, aborted ? "fetch aborted" : "fetch failed", {
+        url,
+        urlFromEnv,
+        durationMs,
+      });
     }
 
     const durationMs = Date.now() - startedAt;
@@ -379,7 +442,10 @@ export async function doFetchDiscoverConfig(
         contentType: response.headers.get("content-type"),
         bodyPreview,
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "non-OK status", {
+        url,
+        status: response.status,
+      });
     }
 
     let rawJson: unknown;
@@ -393,7 +459,7 @@ export async function doFetchDiscoverConfig(
         contentType: response.headers.get("content-type"),
         err: formatFetchError(parseError),
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "invalid JSON", { url });
     }
 
     if (!isPlainObject(rawJson)) {
@@ -408,7 +474,7 @@ export async function doFetchDiscoverConfig(
               ? "array"
               : typeof rawJson,
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "JSON root is not an object", { url });
     }
 
     let mediaDatabases: MediaDatabaseEntry[];
@@ -433,7 +499,7 @@ export async function doFetchDiscoverConfig(
         durationMs,
         err: formatFetchError(normalizeError),
       });
-      return { ...EMPTY_DISCOVER_CONFIG };
+      return fallbackDiscoverConfig(logger, "normalize failed", { url });
     }
 
     if (mediaDatabases.length === 0) {
@@ -445,20 +511,28 @@ export async function doFetchDiscoverConfig(
         mediaDatabases,
         latestVersion,
       );
-    } else {
-      discoverLog(logger, "info", "remote config loaded", {
+      const fallback = fallbackDiscoverConfig(logger, "empty mediaDatabases", {
         url,
-        urlFromEnv,
-        durationMs,
-        mediaDatabasesCount: mediaDatabases.length,
-        reverseProxiesCount: reverseProxies.length,
-        mediaDatabaseTypes: [
-          ...new Set(mediaDatabases.map((entry) => entry.type)),
-        ],
-        latestVersion,
-        hasLatestVersionField: "latestVersion" in rawJson,
       });
+      return {
+        mediaDatabases: fallback.mediaDatabases,
+        reverseProxies,
+        latestVersion,
+      };
     }
+
+    discoverLog(logger, "info", "remote config loaded", {
+      url,
+      urlFromEnv,
+      durationMs,
+      mediaDatabasesCount: mediaDatabases.length,
+      reverseProxiesCount: reverseProxies.length,
+      mediaDatabaseTypes: [
+        ...new Set(mediaDatabases.map((entry) => entry.type)),
+      ],
+      latestVersion,
+      hasLatestVersionField: "latestVersion" in rawJson,
+    });
 
     return { mediaDatabases, reverseProxies, latestVersion };
   } catch (error) {
@@ -470,7 +544,7 @@ export async function doFetchDiscoverConfig(
       signalAborted: controller.signal.aborted,
       err: formatFetchError(error),
     });
-    return { ...EMPTY_DISCOVER_CONFIG };
+    return fallbackDiscoverConfig(logger, "unexpected error", { url, durationMs });
   } finally {
     clearTimeout(timeout);
   }
@@ -478,7 +552,7 @@ export async function doFetchDiscoverConfig(
 
 /**
  * Fetch and normalize the remote media database config.
- * Returns an empty list on any error so the UI can gracefully fall back.
+ * Falls back to {@link FALLBACK_DISCOVER_CONFIG} when remote discover fails.
  */
 export async function doFetchDiscoveredMediaDatabases(
   config: FetchDiscoverConfigOptions = {},
@@ -487,4 +561,9 @@ export async function doFetchDiscoveredMediaDatabases(
   return discoverConfig.mediaDatabases;
 }
 
-export { EMPTY_DISCOVER_CONFIG, DEFAULT_DISCOVER_CONFIG_URL, DISCOVER_TIMEOUT_MS };
+export {
+  EMPTY_DISCOVER_CONFIG,
+  FALLBACK_DISCOVER_CONFIG,
+  DEFAULT_DISCOVER_CONFIG_URL,
+  DISCOVER_TIMEOUT_MS,
+};

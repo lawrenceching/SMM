@@ -16,28 +16,28 @@ jobs:
             spec: "./test/specs/ai/*.e2e.ts"
             artifact_prefix: ai
           - name: Run Config and HTTP Proxy Tests
-            spec: "./test/specs/config/*.e2e.ts ./test/specs/httpproxy/*.e2e.ts"
+            spec: "./common/config/*.e2e.ts ./common/httpproxy/*.e2e.ts"
             artifact_prefix: config-httpproxy
           - name: Run MCP Tests
             spec: "./test/specs/mcp/*.e2e.ts"
             artifact_prefix: mcp
-          - name: Run Media Folder Initialization Tests
-            spec: "./test/specs/media-folder-initialization/*.e2e.ts"
+          - name: Run Common Media Init Tests
+            spec: "./common/tv/ImportTvShowLibrary.e2e.ts ./common/tv/Initialize*.e2e.ts ./common/movie/ImportMovieLibrary.e2e.ts ./common/movie/Initialize*.e2e.ts"
             artifact_prefix: media-folder-initialization
           - name: Run Movie Tests
-            spec: "./test/specs/movie/*.e2e.ts"
+            spec: "./common/movie/SearchMovie.e2e.ts ./common/movie/Movie-RenameVideoFile.e2e.ts"
             artifact_prefix: movie
           - name: Run Music Tests
-            spec: "./test/specs/music/*.e2e.ts"
+            spec: "./common/music/*.e2e.ts"
             artifact_prefix: music
           - name: Run Other Tests
             spec: "./test/specs/other/*.e2e.ts"
             artifact_prefix: other
           - name: Run TV Show Tests
-            spec: "./test/specs/tv/*.e2e.ts"
+            spec: "./common/tv/SearchTvShow.e2e.ts ./common/tv/Scrape*.e2e.ts ./common/tv/TVShow-*.e2e.ts"
             artifact_prefix: tv
           - name: Run TVDB Tests
-            spec: "./test/specs/tvdb/*.e2e.ts"
+            spec: "./common/tvdb/*.e2e.ts"
             artifact_prefix: tvdb
 
     steps:

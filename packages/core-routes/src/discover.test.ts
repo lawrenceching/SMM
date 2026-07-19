@@ -71,20 +71,26 @@ describe("doFetchDiscoverConfig", () => {
     expect(result.latestVersion).toBe("1.4.5");
   });
 
-  it("returns empty lists when remote fetch fails (non-OK)", async () => {
-    const { doFetchDiscoverConfig } = await import("./discover.ts");
+  it("returns hardcoded fallback mediaDatabases when remote fetch fails (non-OK)", async () => {
+    const { doFetchDiscoverConfig, FALLBACK_DISCOVER_CONFIG } = await import(
+      "./discover.ts"
+    );
     const result = await doFetchDiscoverConfig({
       fetchImpl: () => jsonResponse("not found", 404),
     });
-    expect(result).toEqual({ mediaDatabases: [], reverseProxies: [] });
+    expect(result.mediaDatabases).toEqual(FALLBACK_DISCOVER_CONFIG.mediaDatabases);
+    expect(result.reverseProxies).toEqual([]);
   });
 
-  it("returns empty lists when remote fetch throws", async () => {
-    const { doFetchDiscoverConfig } = await import("./discover.ts");
+  it("returns hardcoded fallback mediaDatabases when remote fetch throws", async () => {
+    const { doFetchDiscoverConfig, FALLBACK_DISCOVER_CONFIG } = await import(
+      "./discover.ts"
+    );
     const result = await doFetchDiscoverConfig({
       fetchImpl: () => Promise.reject(new Error("network")),
     });
-    expect(result).toEqual({ mediaDatabases: [], reverseProxies: [] });
+    expect(result.mediaDatabases).toEqual(FALLBACK_DISCOVER_CONFIG.mediaDatabases);
+    expect(result.reverseProxies).toEqual([]);
   });
 
   it("skips invalid mediaDatabases and reverseProxies entries", async () => {

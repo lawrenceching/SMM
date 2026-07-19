@@ -1,40 +1,56 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
-import * as os from 'node:os'
-import { browser } from '@wdio/globals'
+import { Path } from '@smm/core'
 import { registerStep } from '../lib/gherkin'
-import Menu from '../componentobjects/Menu'
-import Sidebar from '../componentobjects/Sidebar'
+import { importFolderWithMediaMetadata } from '../lib/testbed'
+import {
+    createTestFolderViaBrowser,
+    joinPlatformPath,
+    resolveSmmTestFolderViaBrowser,
+} from 'test/lib/browser-fs'
+import page from 'test/pageobjects/page'
+import Sidebar from 'test/componentobjects/Sidebar'
 
-const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
-const mediaDir = path.join(tmpMediaRoot, 'media')
+const VIDEO_EXT = /\.(mp4|mkv|avi|m4v|mov|wmv|ts|m2ts)$/i
+const EPISODE_RE = /[Ss](\d+)[Ee](\d+)/
 
+/**
+ * Create folder fixtures via browser protocol and import with seeded metadata.
+ * (Step name keeps "via menu" for Gherkin compatibility with existing specs.)
+ */
 registerStep('TV show folder "xxx" with files "xxx" was imported via menu', async (ctx, args) => {
     const [folderName, filesCsv] = args
     const files = filesCsv.split(',').map((f) => f.trim()).filter(Boolean)
-    const testMediaFolder = path.join(mediaDir, folderName)
-    fs.mkdirSync(testMediaFolder, { recursive: true })
-
-    for (const file of files) {
-        fs.writeFileSync(path.join(testMediaFolder, file), '')
+    const base = await resolveSmmTestFolderViaBrowser()
+    const folder = {
+        folderName: folderName!,
+        files,
+        type: 'tvshow' as const,
     }
+    const folderPath = await createTestFolderViaBrowser(base, folder)
 
-    await Menu.importMediaFolder({
-        type: 'tvshow',
-        folderPathInPlatformFormat: testMediaFolder,
-        traceId: 'e2eTest:Import TV show folder via menu',
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+        mediaMetadata.mediaFiles = files
+            .filter((name) => VIDEO_EXT.test(name))
+            .map((name) => {
+                const match = name.match(EPISODE_RE)
+                const absolutePath = Path.posix(joinPlatformPath(folderPath, name))
+                if (match) {
+                    return {
+                        absolutePath,
+                        seasonNumber: Number.parseInt(match[1]!, 10),
+                        episodeNumber: Number.parseInt(match[2]!, 10),
+                    }
+                }
+                return { absolutePath }
+            })
+        return mediaMetadata
     })
 
-    await browser.pause(3000)
-
-    const isDisplayed = await Sidebar.waitForFolderName(folderName, 60000)
+    await page.open()
+    const isDisplayed = await Sidebar.waitForFolderName(folderName!, 60000)
     if (!isDisplayed) {
         throw new Error(`Folder "${folderName}" did not appear in sidebar`)
     }
 
-    // Wait for metadata initialization to complete before proceeding
-    await browser.pause(5000)
-
-    ctx._folder = { path: testMediaFolder, folderName }
+    ctx._folder = { path: folderPath, folderName }
     ctx._folderName = folderName
 })

@@ -8,9 +8,9 @@
  *    with the shared context and extracted args.
  * 2. **Inline steps:** pass a fallback function directly:
  *    `given('some label', async () => { ... })`
- * 3. **Object payload (when/then):** pass a plain object as the second arg;
- *    it is stored on the shared context (`_importFolderDef` for `when`,
- *    `_stepArg` for `then`) for the registered step to read.
+ * 3. **Object payload (given/when/then):** pass a plain object as the second arg;
+ *    it is stored on the shared context (`_stepArg` for `given`/`then`,
+ *    `_importFolderDef` for `when`) for the registered step to read.
  *
  * Usage in a Mocha `it` block:
  *
@@ -61,8 +61,16 @@ async function executeStep(
     console.warn(`  [gherkin] No step registered for: "${stepString}"`)
 }
 
-export async function given(label: string, fn?: () => Promise<void>): Promise<void> {
-    await executeStep('Given', label, fn)
+export async function given(
+    label: string,
+    arg?: (() => Promise<void>) | Record<string, unknown>,
+): Promise<void> {
+    if (arg !== undefined && typeof arg !== 'function') {
+        currentContext._stepArg = arg
+        await executeStep('Given', label, undefined)
+        return
+    }
+    await executeStep('Given', label, arg as (() => Promise<void>) | undefined)
 }
 
 export async function when(
