@@ -124,6 +124,7 @@ function workerSpecsIncludeMcp(specs: string[] | undefined): boolean {
         const n = specPath.replace(/\\/g, '/');
         return (
             n.includes('/specs/mcp/') ||
+            n.includes('/common/mcp/') ||
             n.includes('/specs/tvdb/McpServerTools-TVDB') ||
             n.includes('/common/tvdb/McpServerTools-TVDB')
         );
@@ -286,6 +287,7 @@ export const config: WebdriverIO.Config = {
         // Manual-only specs depend on external tools (yt-dlp, video captioner)
         // and network access. They are excluded from CI runs and run on-demand
         // by developers. See ci/run-e2e-test.ts for the matching CI exclusion.
+        ['common/manual/**/*.ts'],
         ['test/specs/manual/**/*.ts'],
     ],
     //

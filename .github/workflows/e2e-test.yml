@@ -19,7 +19,7 @@ jobs:
             spec: "./common/config/*.e2e.ts ./common/httpproxy/*.e2e.ts"
             artifact_prefix: config-httpproxy
           - name: Run MCP Tests
-            spec: "./test/specs/mcp/*.e2e.ts"
+            spec: "./common/mcp/*.e2e.ts"
             artifact_prefix: mcp
           - name: Run Common Media Init Tests
             spec: "./common/tv/ImportTvShowLibrary.e2e.ts ./common/tv/Initialize*.e2e.ts ./common/movie/ImportMovieLibrary.e2e.ts ./common/movie/Initialize*.e2e.ts"
@@ -31,7 +31,7 @@ jobs:
             spec: "./common/music/*.e2e.ts"
             artifact_prefix: music
           - name: Run Other Tests
-            spec: "./test/specs/other/*.e2e.ts"
+            spec: "./common/other/*.e2e.ts"
             artifact_prefix: other
           - name: Run TV Show Tests
             spec: "./common/tv/SearchTvShow.e2e.ts ./common/tv/Scrape*.e2e.ts ./common/tv/TVShow-*.e2e.ts"

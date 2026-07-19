@@ -9,11 +9,20 @@ import {
 } from 'test/lib/browser-fs'
 import Sidebar from 'test/componentobjects/Sidebar'
 import StatusBar from 'test/componentobjects/StatusBar'
-import { cleanupMcpTest, createMcpSpecContext, setupMcpTest } from 'test/lib/mcpSpecShared'
+import {
+    cleanupMcpTest,
+    createMcpSpecContext,
+    setupMcpTest,
+    skipIfOhos,
+} from 'test/lib/mcpSpecShared'
 
 describe('MCP Server Tools - TVDB', () => {
     const ctx = createMcpSpecContext()
     let testFolder = ''
+
+    before(function () {
+        skipIfOhos(this)
+    })
 
     beforeEach(async () => {
         await setup({

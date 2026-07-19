@@ -55,7 +55,7 @@ And the test status of v1.1.0
 |                                                  |        |         |
 | Sidebar - Filter and Sort                        | AUTO   |         |
 | Sidebar - Rename Folder                          | AUTO   |         |
-| > RenameFolder.e2e.ts                            |        |         |
+| > common/other/RenameFolder.e2e.ts               |        |         |
 | Sidebar - Delete Single Folder                   | AUTO   |         |
 | Sidebar - Multiple Selection                     | MANUAL |         |
 | Sidebar - Multiple Deletion                      | MANUAL |         |
@@ -118,7 +118,7 @@ And the test status of v1.1.0
 | Background Jobs                                  |        |         |
 | - Start/Stop/Remove Download Video Job           |        |         |
 | - Failure Notification of Download Video Job     |        |         |
-| apps\e2e\test\specs\other\BackgroundJob.e2e.ts   |        |         |
+| apps\e2e\common\other\BackgroundJob.e2e.ts       |        |         |
 |                                                  |        |         |
 | Messages                                         |        |         |
 | TMDB/TVDB Connectivity                           |        |         |
@@ -135,9 +135,9 @@ And the test status of v1.1.0
  - 格式转换
    > apps\e2e\test\specs\other\ConvertVideoFormat.e2e.ts
  - 字幕
-   > apps\e2e\test\specs\other\Subtitle.e2e.ts
+   > apps\e2e\common\other\Subtitle.e2e.ts
  - 删除
-   > apps\e2e\test\specs\music\DeleteFile.e2e.ts
+   > apps\e2e\common\music\DeleteFile.e2e.ts
 
 ## Test Cases
 
@@ -212,7 +212,7 @@ And the test status of v1.1.0
 | Search by Custom TVDB host behind HTTP Proxy | CustomTvdbHost-WithHttpProxy.e2e.ts | AUTO | |
 | Wrong TMDB API Key          | CustomTmdbHost-WrongApiKey.e2e.ts | AUTO | |
 | Wrong TVDB API Key          | CustomTvdbHost-WrongApiKey.e2e.ts | AUTO | |
-| TMDB Host Failover          | TmdbHostFailover.e2e.ts | AUTO ||
+| TMDB Host Failover          | common/TmdbHostFailover.e2e.ts | AUTO ||
 | Init Folder                 | InitTvShowByCustomTmdbHost.e2e.ts | AUTO ||
 |                             | InitTvShowByCustomTvdbHost.e2e.ts | AUTO ||
 |                             | InitTvShowByTmdbBehindHttpProxy.e2e.ts | AUTO ||

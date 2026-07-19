@@ -33,10 +33,10 @@
     "wdio:movie": "wdio run ./wdio.conf.ts --spec \"./common/movie/SearchMovie.e2e.ts\" --spec \"./common/movie/Movie-RenameVideoFile.e2e.ts\"",
     "wdio:music": "wdio run ./wdio.conf.ts --spec \"./common/music/*.e2e.ts\"",
     "wdio:tvdb": "wdio run ./wdio.conf.ts --spec \"./common/tvdb/*.e2e.ts\"",
-    "wdio:other": "wdio run ./wdio.conf.ts --spec \"./test/specs/other/*.e2e.ts\"",
+    "wdio:other": "wdio run ./wdio.conf.ts --spec \"./common/other/*.e2e.ts\"",
     "wdio:config": "wdio run ./wdio.conf.ts --spec \"./common/config/*.e2e.ts\" --spec \"./common/httpproxy/*.e2e.ts\"",
     "wdio:ai": "wdio run ./wdio.conf.ts --spec \"./test/specs/ai/*.e2e.ts\"",
-    "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./test/specs/mcp/*.e2e.ts\""
+    "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./common/mcp/*.e2e.ts\""
   },
   "dependencies": {
     "@smm/core": "workspace:*",

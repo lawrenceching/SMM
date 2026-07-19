@@ -141,7 +141,12 @@ function specFiles(patterns: string[], excludeManual: boolean): string[] {
   for (const pattern of patterns) {
     const glob = new Glob(pattern.replace(/\\/g, '/'));
     for (const match of glob.scanSync({ cwd: E2E_ROOT, absolute: false })) {
-      if (excludeManual && match.includes('test/specs/manual/')) continue;
+      if (
+        excludeManual &&
+        (match.includes('common/manual/') || match.includes('test/specs/manual/'))
+      ) {
+        continue;
+      }
       if (match.endsWith('.ts')) files.add(match.replace(/\\/g, '/'));
     }
   }

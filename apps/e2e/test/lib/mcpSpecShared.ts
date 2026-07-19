@@ -8,6 +8,8 @@ export const SMM_MCP_GLOBAL_ADDRESS_KEY = '__SMM_MCP_ADDRESS__' as const
 
 export const SMM_MCP_WORKER_FLAG_KEY = '__SMM_MCP_WORKER_ENABLED__' as const
 
+export { isOhosE2e, skipIfOhos } from './e2e-platform'
+
 export type McpSpecContext = {
   readonly clientCwd: string
   /** MCP HTTP URL from StatusBar (populated in WDIO global `before`). */
