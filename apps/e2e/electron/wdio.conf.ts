@@ -56,6 +56,7 @@ export const config: WebdriverIO.Config = {
 
     mochaOpts: {
         ui: 'bdd',
-        timeout: 60000,
+        // Common specs (e.g. TVShow-Import) may raise per-test timeouts further.
+        timeout: 6 * 60 * 1000,
     },
 }

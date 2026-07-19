@@ -42,8 +42,28 @@ export function isOnUiPageOrigin(
 
 /**
  * If the browser is not already on the UI origin, navigate via Page.open.
+ *
+ * Electron: wdio-electron-service already attached to the app window (embedded
+ * CLI UI origin). Do not navigate to the Vite desktop URL.
  */
 export async function ensureBrowserOnUiPage(os: TestbedOs = getActiveTestbedOs()): Promise<void> {
+    if (process.env.E2E_PLATFORM === 'electron') {
+        let currentUrl = ''
+        try {
+            currentUrl = await browser.getUrl()
+        } catch (error) {
+            throw new Error(
+                `ensureBrowserOnUiPage (electron): getUrl failed: ${error instanceof Error ? error.message : String(error)}`,
+            )
+        }
+        if (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) {
+            return
+        }
+        throw new Error(
+            `ensureBrowserOnUiPage (electron): expected http(s) app URL, got "${currentUrl}"`,
+        )
+    }
+
     const targetUrl = resolveUiPageUrl(undefined, os)
     let currentUrl = ''
     try {

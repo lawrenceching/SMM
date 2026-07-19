@@ -316,6 +316,21 @@ apps/e2e/
 
 `apps/e2e/ohos/tv/TVShow-Import.e2e.ts` 已在 `beforeEach` / `afterEach` 调用完整 `setup` / `cleanup` 选项集，是 ohos 适配的首要验证点。
 
+### CI 入口（方案 2：`--platform ohos`）
+
+```bash
+# 单 spec（设备上应用已启动、hdc 已连接）
+bun ci/run-e2e-test.ts --platform ohos --spec ./ohos/tv/TVShow-Import.e2e.ts
+
+# 或根脚本
+pnpm e2e:ohos
+```
+
+- 不启动本机 cli/ui；命令为 `pnpm wdio:ohos`
+- 采集仍由 `ohos/wdio.conf.ts` 写入 `apps/e2e/reports/ohos-hilog/`
+- `afterEach` 跑 `ci/collect-ohos-logs.ts`，拷贝到：
+  `artifacts/cicd/<commandId>/<spec>/ohos-log/{hilog,electron,frontend-console}.log`
+
 ---
 
 ## 日志
@@ -329,7 +344,7 @@ apps/e2e/
 | 主进程 / core-routes | `console.*` → HiLog；tag=`Electron`，bundle=`com.huawei.ohos_electron` |
 | UI / renderer | 桌面有 `POST /api/log` → `browser.log`；ohos 侧多为 console，未见完整 pino 文件落盘 |
 | hello 声明的 `logDir` | `{userDataDir}/logs`（设备沙箱）；host 侧 Node `fs` **碰不到** |
-| ohos e2e | `ohos/wdio.conf.ts`：`hdc fport` attach + **A HiLog** + **D1 CDP 前端 console**（见下） |
+| ohos e2e | `ohos/wdio.conf.ts`：`hdc fport` attach + **A** `hilog.log`/`electron.log` + **D1** 前端 console |
 
 设备上已能滤出应用日志：
 
@@ -361,17 +376,24 @@ hdc shell "hilog -x -e Electron"
 
 ```bash
 hdc shell hilog -r                         # 清 buffer
-hdc shell hilog -T Electron                # 流式写入 reports/ohos-hilog/device-hilog.log
-# 落盘时对 apiKey / sk-* 做简单脱敏
+hdc shell hilog                            # 无过滤，流式写入 reports/ohos-hilog/hilog.log
+# onComplete: 从 hilog.log 派生 electron.log（仅 Electron tag，并去掉 pid/tid/level/identity）
 ```
 
-开关：`OHOS_HILOG_CAPTURE=false` 可关闭；`OHOS_HILOG_TAG` 可改 tag（默认 `Electron`）。
+开关：`OHOS_HILOG_CAPTURE=false` 可关闭；`OHOS_ELECTRON_HILOG_TAG` 控制派生过滤 tag（默认 `Electron`）。
+
+落盘文件：
+
+| 文件 | 内容 |
+|------|------|
+| `reports/ohos-hilog/hilog.log` | 原始未过滤 HiLog |
+| `reports/ohos-hilog/electron.log` | 仅 Electron 行；形如 `MM-DD HH:mm:ss.mmm message` |
 
 | 优点 | 缺点 |
 |------|------|
-| 零改应用；已有日志直接可用 | 噪声依赖 tag 过滤；buffer 有上限，长测可能丢早期行 |
-| 与现有 hdc 生命周期对齐 | 主进程多行 object 日志会被拆行 |
-| 失败时立刻有本地文件 | 不含沙箱内专属文件日志（若以后有） |
+| 原始 hilog 保留应用层 / 系统噪声，便于事后排查 | hilog.log 体积更大 |
+| electron.log 便于对照主进程业务日志 | 主进程多行 object 仍按行拆开 |
+| 失败时立刻有本地文件 | — |
 
 **验证**（故意失败的 smoke，用于确认关键日志可捕捉）：
 
@@ -382,8 +404,8 @@ pnpm wdio:ohos --spec ./ohos/tv/TVShow-Import.e2e.ts
 结果（2026-07-19）：
 
 - 用例失败：`Timeout`（设计预期；含 5min pause / mocha timeout）
-- 本地文件：`apps/e2e/reports/ohos-hilog/device-hilog.log`（约 68KB）
-- 已捕捉关键主进程行：`[core-routes] [DeleteFolder]` / `doWriteFile` / `doIsFolderAvailable` / `[ListFiles]` / `traceId: 'e2eTest:ImportFolderInHarmonyOS'` / 路径 `/storage/Users/currentUser/Download/Music`
+- 初版曾用 `-T Electron` 写入 `device-hilog.log`；现改为未过滤 `hilog.log` + 派生 `electron.log`
+- 已确认可捕捉：`[core-routes] [DeleteFolder]` / `doWriteFile` / `doIsFolderAvailable` / `[ListFiles]` / `traceId: 'e2eTest:ImportFolderInHarmonyOS'`
 
 #### B. 设备文件日志 + `hdc file recv` — `pending-for-verification`
 

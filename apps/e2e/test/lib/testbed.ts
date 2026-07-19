@@ -121,9 +121,14 @@ export async function setup(options: {
 
     if(options.openBrowserPage) {
         const { default: Page } = await import('../pageobjects/page')
-        // Always re-open to refresh into a clean page for the test body.
-        await Page.open(undefined, os)
-        
+        // Electron: stay on the app window (embedded UI); refresh for a clean page.
+        // Browser/ohos: navigate to the platform UI origin.
+        if (process.env.E2E_PLATFORM === 'electron') {
+            await Page.refresh()
+        } else {
+            await Page.open(undefined, os)
+        }
+
         await browser.waitUntil(async () => {
             return await StatusBar.isDisplayed()
         }, {
