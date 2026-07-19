@@ -94,6 +94,35 @@ export const folder5: TestFolder = {
   type: "movie"
 }
 
+export const folder6: TestFolder = {
+  folderName: "天使降临到我身边！ (2019) {tmdbid=84666}",
+  mediaName: '天使降临到我身边！',
+  translations: {
+    title: {
+      'en-US': 'WATATEN!: an Angel Flew Down to Me',
+      'zh-CN': '天使降临到我身边！'
+    }
+  },
+  files: [
+      "S01E01.mkv",
+      "S01E01.jpg",
+      "S01E01.sc.ass",
+      "S01E01.tc.ass",
+      "S01E01.nfo",
+      "S01E02.mkv",
+      "S01E02.jpg",
+      "S01E02.sc.ass",
+      "S01E02.tc.ass",
+      "S01E02.nfo",
+      "S01E03.mkv",
+      "S01E03.jpg",
+      "S01E03.sc.ass",
+      "S01E03.tc.ass",
+      "S01E03.nfo",
+  ],
+  type: "tvshow"
+}
+
 export function createFolderInTestFolder(folder: TestFolder) {
   const testMediaFolder = path.join(mediaDir, folder.folderName)
   fs.mkdirSync(testMediaFolder, { recursive: true })

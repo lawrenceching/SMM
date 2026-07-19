@@ -11,6 +11,11 @@ import { fileURLToPath } from 'node:url'
 
 const VITE_DEFAULT_DEV_PORT = 5173
 
+/** Matches apps/ohos MAIN_HTTP_ORIGIN (device-local UI HTTP server). */
+export const HARMONYOS_UI_ORIGIN = 'http://127.0.0.1:18081/'
+
+export type TestbedOs = 'general' | 'HarmonyOS'
+
 const UI_VITE_CONFIG = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '../../../ui/vite.config.ts',
@@ -34,8 +39,19 @@ export function readUiDevServerPort(
   return parseViteDevServerPort(source)
 }
 
-export function resolveUiPageUrl(url?: string): string {
-  const base = url ?? `http://localhost:${readUiDevServerPort()}`
+function defaultBaseUrlForOs(os: TestbedOs): string {
+  if (os === 'HarmonyOS') {
+    return HARMONYOS_UI_ORIGIN
+  }
+  return `http://localhost:${readUiDevServerPort()}`
+}
+
+/**
+ * @param url - Explicit page URL. When omitted, derived from `os`.
+ * @param os - Target platform. Default `"general"` (Vite / desktop). `"HarmonyOS"` uses device-local 18081.
+ */
+export function resolveUiPageUrl(url?: string, os: TestbedOs = 'general'): string {
+  const base = url ?? defaultBaseUrlForOs(os)
   const token = process.env.SMM_AUTH_TOKEN
   return token ? `${base}?token=${encodeURIComponent(token)}` : base
 }

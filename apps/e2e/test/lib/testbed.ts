@@ -19,8 +19,12 @@ import {
     deleteAppDataSubdirViaBrowser,
     ensureBrowserOnUiPage,
     resetUserConfigViaBrowser,
+    setActiveTestbedOs,
     updateUserConfigViaBrowser,
 } from './browser-fs'
+import type { TestbedOs } from './ui-page-url'
+
+export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
 export { setupTestMediaFolders, getMetadataDir }
 
@@ -92,10 +96,15 @@ export async function setup(options: {
     resetUserConfig: ResetUserConfigOption,
     openBrowserPage: boolean,
     clearLocalStorage?: boolean,
+    /** Target platform for Page.open / UI origin. Default `"general"`. */
+    os?: TestbedOs,
 }) {
+    const os = options.os ?? 'general'
+    setActiveTestbedOs(os)
+
     // Browser-protocol cleanup (e.g. removeMetadataDir v2) needs a real app origin
     // so relative fetch('/api/...') can resolve. Open only when not already there.
-    await ensureBrowserOnUiPage()
+    await ensureBrowserOnUiPage(os)
 
     await cleanup({
         removePlansDir: options.removePlansDir,
@@ -104,6 +113,7 @@ export async function setup(options: {
         removeDirInSidebar: options.removeDirInSidebar,
         resetUserConfig: options.resetUserConfig,
         clearLocalStorage: options.clearLocalStorage,
+        os,
     })
 
 
@@ -112,7 +122,7 @@ export async function setup(options: {
     if(options.openBrowserPage) {
         const { default: Page } = await import('../pageobjects/page')
         // Always re-open to refresh into a clean page for the test body.
-        await Page.open()
+        await Page.open(undefined, os)
         
         await browser.waitUntil(async () => {
             return await StatusBar.isDisplayed()
@@ -220,10 +230,13 @@ export async function cleanup(options?: {
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
     clearLocalStorage?: boolean,
+    /** Target platform for UI origin used by browser-protocol helpers. Default `"general"`. */
+    os?: TestbedOs,
 }): Promise<void> {
-    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig, clearLocalStorage } = options ?? {
+    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig, clearLocalStorage, os = 'general' } = options ?? {
         removeMetadataDir: true,
     };
+    setActiveTestbedOs(os)
     if (isToRemoveMediaFolders) {
         await removeTestMediaTmpDir({ waitForUnlockMs: 30_000 })
     }

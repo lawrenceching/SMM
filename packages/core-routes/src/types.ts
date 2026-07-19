@@ -39,8 +39,9 @@ export interface CoreRoutesConfig {
   broadcast?: (message: WebSocketMessage) => void;
   /**
    * Optional fetch implementation for routes that perform outbound HTTP
-   * (e.g. downloadImage). Use {@link createNodeHttpFetch} on runtimes where
-   * global `fetch` is unavailable (OHOS Electron / WebAssembly missing).
+   * (e.g. downloadImage, discover). Use {@link createNodeHttpFetch} on
+   * runtimes where global `fetch` is unavailable (OHOS Electron /
+   * WebAssembly missing).
    */
   fetchImpl?: typeof fetch;
   /**

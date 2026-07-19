@@ -1,11 +1,14 @@
-import { browser } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 import { setup, cleanup } from 'test/lib/testbed'
-import { given, resetStepContext } from 'test/lib/gherkin'
+import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
+import Sidebar from 'test/componentobjects/Sidebar'
+import { then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
 /**
- * Smoke check that cucumber import steps work when WDIO attaches to HarmonyOS Electron.
- * Not a full functional TV-show import assertion — only exercises the statement and holds.
+ * Import an on-device TV show folder via HarmonyOS.
+ * When online TMDB recognition fails (common on device network), the folder stays
+ * unknown: sidebar shows the folder name and TvShowPanel lists folder files only.
  */
 describe('TVShow - Import (HarmonyOS)', () => {
     beforeEach(async () => {
@@ -17,6 +20,7 @@ describe('TVShow - Import (HarmonyOS)', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: 'HarmonyOS',
         })
     })
 
@@ -27,16 +31,35 @@ describe('TVShow - Import (HarmonyOS)', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: 'HarmonyOS',
         })
     })
 
     it('Import TV show folder and initialize as unknown TV show folder', async function () {
         this.timeout(6 * 60 * 1000)
 
-        await given('unknown TV show folder was imported')
+        const folderName = '古见同学有交流障碍症'
+        const folderPathInOhos = `/storage/Users/currentUser/Download/Anime/${folderName}`
+        await then(`Import folder "${folderPathInOhos}" in HarmonyOS`)
 
-        console.log(`${new Date().toISOString()} PAUSED 5 minutes (ohos cucumber import smoke)`)
-        await browser.pause(5 * 60 * 1000)
-        console.log(`${new Date().toISOString()} RESUMED`)
+        await then('folder name is displayed in sidebar', async () => {
+            await Sidebar.waitForFolderName(folderName, 60000)
+        })
+
+        // Unknown TV show: no season/episode rows — only folder-level files.
+        await then('TvShowPanel shows folder files only', async () => {
+            await TvShowPanelCO.waitFor(
+                (state) =>
+                    state.includes('fanart') &&
+                    state.includes('poster') &&
+                    state.includes('nfo') &&
+                    !state.includes('S01E'),
+                60000,
+                500,
+            )
+            expect(await TvShowPanelCO.toString()).toBe(`fanart
+poster
+nfo`)
+        })
     })
 })

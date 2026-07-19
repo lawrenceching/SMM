@@ -14850,11 +14850,11 @@ var require_mime_types = __commonJS((exports2) => {
     }
     return exts[0];
   }
-  function lookup(path12) {
-    if (!path12 || typeof path12 !== "string") {
+  function lookup(path13) {
+    if (!path13 || typeof path13 !== "string") {
       return false;
     }
-    var extension2 = extname2("x." + path12).toLowerCase().substr(1);
+    var extension2 = extname2("x." + path13).toLowerCase().substr(1);
     if (!extension2) {
       return false;
     }
@@ -20024,11 +20024,11 @@ var require_server = __commonJS((exports2) => {
       this.init();
     }
     _computePath(options) {
-      let path12 = (options.path || "/engine.io").replace(/\/$/, "");
+      let path13 = (options.path || "/engine.io").replace(/\/$/, "");
       if (options.addTrailingSlash !== false) {
-        path12 += "/";
+        path13 += "/";
       }
-      return path12;
+      return path13;
     }
     upgrades(transport) {
       if (!this.opts.allowUpgrades)
@@ -20446,10 +20446,10 @@ var require_server = __commonJS((exports2) => {
       }
     }
     attach(server, options = {}) {
-      const path12 = this._computePath(options);
+      const path13 = this._computePath(options);
       const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1000;
       function check2(req) {
-        return path12 === req.url.slice(0, path12.length);
+        return path13 === req.url.slice(0, path13.length);
       }
       const listeners = server.listeners("request").slice(0);
       server.removeAllListeners("request");
@@ -20457,7 +20457,7 @@ var require_server = __commonJS((exports2) => {
       server.on("listening", this.init.bind(this));
       server.on("request", (req, res) => {
         if (check2(req)) {
-          debug('intercepting request for path "%s"', path12);
+          debug('intercepting request for path "%s"', path13);
           this.handleRequest(req, res);
         } else {
           let i = 0;
@@ -21172,8 +21172,8 @@ var require_userver = __commonJS((exports2) => {
       return new transports_uws_1.default[transportName](req);
     }
     attach(app, options = {}) {
-      const path12 = this._computePath(options);
-      app.any(path12, this.handleRequest.bind(this)).ws(path12, {
+      const path13 = this._computePath(options);
+      app.any(path13, this.handleRequest.bind(this)).ws(path13, {
         compression: options.compression,
         idleTimeout: options.idleTimeout,
         maxBackpressure: options.maxBackpressure,
@@ -24196,7 +24196,7 @@ var require_dist5 = __commonJS((exports2, module2) => {
   var zlib_1 = require("zlib");
   var accepts = require_accepts();
   var stream_1 = require("stream");
-  var path12 = require("path");
+  var path13 = require("path");
   var engine_io_1 = require_engine_io();
   var client_1 = require_client();
   var events_1 = require("events");
@@ -24364,7 +24364,7 @@ var require_dist5 = __commonJS((exports2, module2) => {
           res.writeHeader("cache-control", "public, max-age=0");
           res.writeHeader("content-type", "application/" + (isMap2 ? "json" : "javascript") + "; charset=utf-8");
           res.writeHeader("etag", expectedEtag);
-          const filepath = path12.join(__dirname, "../client-dist/", filename);
+          const filepath = path13.join(__dirname, "../client-dist/", filename);
           (0, uws_1.serveFile)(res, filepath);
         });
       }
@@ -24420,7 +24420,7 @@ var require_dist5 = __commonJS((exports2, module2) => {
       Server.sendFile(filename, req, res);
     }
     static sendFile(filename, req, res) {
-      const readStream = (0, fs_1.createReadStream)(path12.join(__dirname, "../client-dist/", filename));
+      const readStream = (0, fs_1.createReadStream)(path13.join(__dirname, "../client-dist/", filename));
       const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
       const onError = (err) => {
         if (err) {
@@ -27711,8 +27711,8 @@ var require_utils4 = __commonJS((exports2, module2) => {
     }
     return ind;
   }
-  function removeDotSegments(path12) {
-    let input = path12;
+  function removeDotSegments(path13) {
+    let input = path13;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -27902,8 +27902,8 @@ var require_schemes = __commonJS((exports2, module2) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path12, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path12 && path12 !== "/" ? path12 : undefined;
+      const [path13, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path13 && path13 !== "/" ? path13 : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -31091,6 +31091,8 @@ __export(exports_src, {
   handleGetEpisodesPost: () => handleGetEpisodesPost,
   handleDownloadImageGet: () => handleDownloadImageGet,
   handleDownloadImageAsFilePost: () => handleDownloadImageAsFilePost,
+  handleDiscoverGet: () => handleDiscoverGet,
+  handleDeleteFolderPost: () => handleDeleteFolderPost,
   handleDeleteFilePost: () => handleDeleteFilePost,
   handleCreatePlanPost: () => handleCreatePlanPost,
   handleCoreRoutesRequest: () => handleCoreRoutesRequest,
@@ -31115,8 +31117,11 @@ __export(exports_src, {
   doGetPlans: () => doGetPlans,
   doGetPlanById: () => doGetPlanById,
   doGetEpisodes: () => doGetEpisodes,
+  doFetchDiscoveredMediaDatabases: () => doFetchDiscoveredMediaDatabases,
+  doFetchDiscoverConfig: () => doFetchDiscoverConfig,
   doDownloadImageAsFile: () => doDownloadImageAsFile,
   doDownloadImage: () => doDownloadImage,
+  doDeleteFolder: () => doDeleteFolder,
   doDeleteFile: () => doDeleteFile,
   doCreatePlan: () => doCreatePlan,
   doChat: () => doChat,
@@ -31144,6 +31149,9 @@ __export(exports_src, {
   PORT_RANGE_END: () => PORT_RANGE_END,
   MCP_TOOL_NAMES: () => MCP_TOOL_NAMES,
   ExistedFileError: () => ExistedFileError,
+  EMPTY_DISCOVER_CONFIG: () => EMPTY_DISCOVER_CONFIG,
+  DISCOVER_TIMEOUT_MS: () => DISCOVER_TIMEOUT_MS,
+  DEFAULT_DISCOVER_CONFIG_URL: () => DEFAULT_DISCOVER_CONFIG_URL,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS: () => DEFAULT_ALLOWED_UPSTREAM_HOSTS
 });
 module.exports = __toCommonJS(exports_src);
@@ -64879,6 +64887,80 @@ async function doDeleteFile(body, config2) {
     };
   }
 }
+// src/deleteFolder.ts
+var import_node_path10 = __toESM(require("node:path"));
+var import_promises14 = require("node:fs/promises");
+var deleteFolderRequestSchema = exports_external2.object({
+  path: exports_external2.string().min(1, "Path is required")
+});
+async function doDeleteFolder(body, config2) {
+  const { logger, allowlist } = config2;
+  try {
+    const validationResult = deleteFolderRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doDeleteFolder: validation failed");
+      return {
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: folderPath } = validationResult.data;
+    logger?.debug({ folderPath }, "doDeleteFolder: processing request");
+    const resolvedPath = import_node_path10.default.resolve(folderPath);
+    const posixPath = Path.posix(resolvedPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ folderPath: posixPath }, "doDeleteFolder: path not in allowlist");
+      return {
+        error: `Path "${folderPath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    try {
+      const folderStats = await import_promises14.stat(platformPath);
+      if (!folderStats.isDirectory()) {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: path is not a directory");
+        return {
+          error: `Path Is File: ${folderPath} is a file, not a directory`
+        };
+      }
+    } catch (error48) {
+      const errorCode = error48.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder already absent");
+        return { data: { path: platformPath } };
+      }
+      logger?.error({ folderPath: platformPath, error: error48 }, "doDeleteFolder: cannot access path");
+      return {
+        error: `Cannot access path: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+      };
+    }
+    try {
+      await import_promises14.rm(platformPath, { recursive: true, force: true });
+      logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder deleted successfully");
+      return { data: { path: platformPath } };
+    } catch (error48) {
+      const errorCode = error48.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder already absent during rm");
+        return { data: { path: platformPath } };
+      }
+      if (errorCode === "EACCES" || errorCode === "EPERM") {
+        logger?.warn({ folderPath: platformPath }, "doDeleteFolder: permission denied");
+        return {
+          error: `Permission denied: Cannot delete folder ${folderPath}`
+        };
+      }
+      logger?.error({ folderPath: platformPath, error: error48 }, "doDeleteFolder: rm failed");
+      return {
+        error: `Failed to delete folder ${folderPath}: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+      };
+    }
+  } catch (error48) {
+    logger?.error({ error: error48 }, "doDeleteFolder: unexpected error");
+    return {
+      error: `Unexpected Error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    };
+  }
+}
 // src/listFilesInMediaFolder.ts
 var listFilesInMediaFolderRequestSchema = exports_external2.object({
   mediaFolderPath: exports_external2.string().min(1, "The absolute path of the media folder is required"),
@@ -64937,11 +65019,11 @@ function getMediaFolder(filePath, folderPaths) {
 }
 
 // src/renameFileExecution.ts
-var import_promises14 = require("node:fs/promises");
-var import_node_path10 = __toESM(require("node:path"));
+var import_promises15 = require("node:fs/promises");
+var import_node_path11 = __toESM(require("node:path"));
 async function directoryExists(dirPath) {
   try {
-    const stats = await import_promises14.stat(dirPath);
+    const stats = await import_promises15.stat(dirPath);
     return stats.isDirectory();
   } catch {
     return false;
@@ -64951,15 +65033,15 @@ async function executeRenameOperation(from, to) {
   const fromPathPlatform = new Path(from).platformAbsPath();
   const toPathPlatform = new Path(to).platformAbsPath();
   try {
-    const destDir = import_node_path10.default.dirname(toPathPlatform);
-    await import_promises14.mkdir(destDir, { recursive: true });
+    const destDir = import_node_path11.default.dirname(toPathPlatform);
+    await import_promises15.mkdir(destDir, { recursive: true });
     if (!await directoryExists(destDir)) {
       return {
         success: false,
         error: `Destination directory does not exist and could not be created: ${destDir}`
       };
     }
-    await import_promises14.rename(fromPathPlatform, toPathPlatform);
+    await import_promises15.rename(fromPathPlatform, toPathPlatform);
     return { success: true };
   } catch (error48) {
     const errorMessage = error48 instanceof Error ? error48.message : "Unknown error";
@@ -65000,13 +65082,13 @@ async function executeBatchRenameOperations(renameMappings, _options = {}) {
 }
 
 // src/validateRenameOperations.ts
-var import_promises15 = require("node:fs/promises");
+var import_promises16 = require("node:fs/promises");
 async function validateSourceFileExist2(tasks) {
   const missingFiles = [];
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.from);
-      const stats = await import_promises15.stat(platformPath);
+      const stats = await import_promises16.stat(platformPath);
       if (!stats.isFile()) {
         missingFiles.push(task.from);
       }
@@ -65024,7 +65106,7 @@ async function validateDestFileNotExist2(tasks) {
   for (const task of tasks) {
     try {
       const platformPath = Path.toPlatformPath(task.to);
-      const stats = await import_promises15.stat(platformPath);
+      const stats = await import_promises16.stat(platformPath);
       if (stats.isFile()) {
         existingFiles.push(task.to);
       }
@@ -65255,16 +65337,16 @@ async function cleanupStalePlans(appDataDir, fs = defaultChatFs(), logger) {
 }
 // src/downloadImageAsFile.ts
 var import_node_buffer2 = require("node:buffer");
-var import_promises16 = require("node:fs/promises");
+var import_promises17 = require("node:fs/promises");
 var import_node_fs3 = require("node:fs");
-var import_node_path11 = __toESM(require("node:path"));
+var import_node_path12 = __toESM(require("node:path"));
 var downloadImageAsFileRequestSchema = exports_external2.object({
   url: exports_external2.string().min(1, "url is required"),
   path: exports_external2.string().min(1, "path is required")
 });
 async function fileExists3(filePath) {
   try {
-    await import_promises16.access(filePath, import_node_fs3.constants.F_OK);
+    await import_promises17.access(filePath, import_node_fs3.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -65292,7 +65374,7 @@ async function doDownloadImageAsFile(body, config2) {
     }
     const { url: url2, path: destPath } = validationResult.data;
     logger?.debug({ url: url2, destPath }, "[DownloadImageAsFile] processing request");
-    const posixDestPath = import_node_path11.default.posix.resolve(Path.posix(destPath));
+    const posixDestPath = import_node_path12.default.posix.resolve(Path.posix(destPath));
     if (!validatePathIsInAllowlist(posixDestPath, allowlist)) {
       logger?.warn({ destPath, posixDestPath }, "[DownloadImageAsFile] destination not in allowlist");
       return {
@@ -65345,7 +65427,7 @@ async function doDownloadImageAsFile(body, config2) {
     }
     const arrayBuffer = await response.arrayBuffer();
     const buffer = import_node_buffer2.Buffer.from(arrayBuffer);
-    await import_promises16.writeFile(platformDestPath, buffer);
+    await import_promises17.writeFile(platformDestPath, buffer);
     logger?.info({ url: normalizedUrl, destPath: platformDestPath, bytes: buffer.length }, "[DownloadImageAsFile] wrote file");
     return { data: { url: url2, path: destPath } };
   } catch (error48) {
@@ -65361,9 +65443,9 @@ async function doDownloadImageAsFile(body, config2) {
 }
 // src/readImage.ts
 var import_node_buffer3 = require("node:buffer");
-var import_promises17 = require("node:fs/promises");
+var import_promises18 = require("node:fs/promises");
 var import_node_fs4 = require("node:fs");
-var import_node_path12 = __toESM(require("node:path"));
+var import_node_path13 = __toESM(require("node:path"));
 var readImageRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "path is required")
 });
@@ -65392,16 +65474,16 @@ var EXTENSION_TO_MIME = {
   ".tif": "image/tiff"
 };
 function isValidImageFile(filePath) {
-  const ext = import_node_path12.default.extname(filePath).toLowerCase();
+  const ext = import_node_path13.default.extname(filePath).toLowerCase();
   return VALID_IMAGE_EXTENSIONS.includes(ext);
 }
 function getImageMimeType(filePath) {
-  const ext = import_node_path12.default.extname(filePath).toLowerCase();
+  const ext = import_node_path13.default.extname(filePath).toLowerCase();
   return EXTENSION_TO_MIME[ext] ?? "image/jpeg";
 }
 async function fileExists4(filePath) {
   try {
-    await import_promises17.access(filePath, import_node_fs4.constants.F_OK);
+    await import_promises18.access(filePath, import_node_fs4.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -65418,7 +65500,7 @@ async function doReadImage(body, config2) {
       };
     }
     const { path: filePath } = validationResult.data;
-    const posixPath = import_node_path12.default.posix.resolve(Path.posix(filePath));
+    const posixPath = import_node_path13.default.posix.resolve(Path.posix(filePath));
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath, posixPath }, "[ReadImage] path not in allowlist");
       return {
@@ -65437,7 +65519,7 @@ async function doReadImage(body, config2) {
       };
     }
     try {
-      const arrayBuffer = await import_promises17.readFile(platformPath);
+      const arrayBuffer = await import_promises18.readFile(platformPath);
       const base643 = import_node_buffer3.Buffer.from(arrayBuffer).toString("base64");
       const mimeType = getImageMimeType(platformPath);
       return {
@@ -65455,6 +65537,315 @@ async function doReadImage(body, config2) {
       error: `Unexpected error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
     };
   }
+}
+// src/discover.ts
+function discoverLog(logger, level, message, details) {
+  const payload = details ?? {};
+  const msg = `[Discover] ${message}`;
+  if (logger) {
+    logger[level](payload, msg);
+    return;
+  }
+  const line = details === undefined ? msg : `${msg} ${JSON.stringify(details)}`;
+  if (level === "error") {
+    console.error(line);
+  } else if (level === "warn") {
+    console.warn(line);
+  } else {
+    console.log(line);
+  }
+}
+var DEFAULT_DISCOVER_CONFIG_URL = "https://lawrenceching.github.io/SMM/config.json";
+var DISCOVER_TIMEOUT_MS = 1e4;
+var EMPTY_DISCOVER_CONFIG = {
+  mediaDatabases: [],
+  reverseProxies: []
+};
+function resolveDiscoverConfigUrl() {
+  const fromEnv = process.env.EXTERNAL_CONFIG_FILE_URL?.trim();
+  if (fromEnv) {
+    return { url: fromEnv, urlFromEnv: true };
+  }
+  return { url: DEFAULT_DISCOVER_CONFIG_URL, urlFromEnv: false };
+}
+function normalizeAuthorizationMethod(value) {
+  if (typeof value !== "string")
+    return "none";
+  if (value === "date-token")
+    return "date-token";
+  return "none";
+}
+function normalizeMediaDatabaseEntry(entry) {
+  const endpointUrl = (entry.baseUrl ?? entry.url ?? "").trim();
+  if (!endpointUrl)
+    return null;
+  const type = entry.type;
+  if (type !== "tmdb" && type !== "tvdb" && type !== "tmdb-asset" && type !== "tvdb-asset") {
+    return null;
+  }
+  return {
+    type,
+    url: endpointUrl,
+    authorizationMethod: normalizeAuthorizationMethod(entry.authorizationMethod)
+  };
+}
+function normalizeReverseProxyEntry(entry) {
+  const id = (entry.id ?? "").trim();
+  const url2 = (entry.url ?? "").trim();
+  if (!id || !url2)
+    return null;
+  const type = entry.type;
+  if (type !== "general")
+    return null;
+  return {
+    id,
+    type,
+    url: url2,
+    authorizationMethod: normalizeAuthorizationMethod(entry.authMethod)
+  };
+}
+function normalizeMediaDatabases(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+  const normalized = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== "object")
+      continue;
+    const entry = normalizeMediaDatabaseEntry(raw);
+    if (entry)
+      normalized.push(entry);
+  }
+  return normalized;
+}
+function normalizeReverseProxies(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+  const normalized = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== "object")
+      continue;
+    const entry = normalizeReverseProxyEntry(raw);
+    if (entry)
+      normalized.push(entry);
+  }
+  return normalized;
+}
+function normalizeLatestVersion(value) {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  if (typeof value !== "string") {
+    return { invalidReason: `expected string, got ${typeof value}` };
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return { invalidReason: "blank string" };
+  }
+  return { latestVersion: trimmed };
+}
+function formatFetchError(error48) {
+  if (!(error48 instanceof Error)) {
+    return { message: String(error48) };
+  }
+  const cause = error48.cause;
+  return {
+    message: error48.message,
+    name: error48.name,
+    cause: cause instanceof Error ? cause.message : cause !== undefined ? String(cause) : undefined,
+    stack: error48.stack
+  };
+}
+function isAbortError2(error48) {
+  return error48 instanceof Error && error48.name === "AbortError" || typeof DOMException !== "undefined" && error48 instanceof DOMException && error48.name === "AbortError";
+}
+function isPlainObject3(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+async function readResponseBodyPreview(logger, response) {
+  try {
+    const text2 = await response.text();
+    if (!text2)
+      return;
+    return text2.length > 300 ? `${text2.slice(0, 300)}…` : text2;
+  } catch (error48) {
+    discoverLog(logger, "warn", "failed to read response body for preview", {
+      err: formatFetchError(error48)
+    });
+    return;
+  }
+}
+function logEmptyDiscoverResult(logger, url2, durationMs, body, mediaDatabases, latestVersion) {
+  const rawMediaDatabasesCount = Array.isArray(body.mediaDatabases) ? body.mediaDatabases.length : null;
+  const rawReverseProxiesCount = Array.isArray(body.reverseProxies) ? body.reverseProxies.length : null;
+  const common = {
+    url: url2,
+    durationMs,
+    latestVersion,
+    hasLatestVersionField: "latestVersion" in body,
+    rawReverseProxiesCount
+  };
+  if (rawMediaDatabasesCount === null) {
+    discoverLog(logger, "warn", "remote config missing mediaDatabases array", {
+      ...common,
+      hasMediaDatabasesField: false
+    });
+    return;
+  }
+  if (rawMediaDatabasesCount === 0) {
+    discoverLog(logger, "warn", "remote config has empty mediaDatabases array", {
+      ...common,
+      rawMediaDatabasesCount
+    });
+    return;
+  }
+  if (mediaDatabases.length === 0) {
+    discoverLog(logger, "warn", "remote config mediaDatabases entries were all filtered out during normalization", {
+      ...common,
+      rawMediaDatabasesCount,
+      normalizedMediaDatabasesCount: 0
+    });
+  }
+}
+async function doFetchDiscoverConfig(config2 = {}) {
+  const { logger, fetchImpl = fetch } = config2;
+  const { url: url2, urlFromEnv } = resolveDiscoverConfigUrl();
+  const startedAt = Date.now();
+  const controller = new AbortController;
+  const timeout2 = setTimeout(() => controller.abort(), DISCOVER_TIMEOUT_MS);
+  discoverLog(logger, "info", "fetching remote config", {
+    url: url2,
+    urlFromEnv,
+    timeoutMs: DISCOVER_TIMEOUT_MS,
+    method: "GET"
+  });
+  try {
+    let response;
+    try {
+      response = await fetchImpl(url2, {
+        method: "GET",
+        signal: controller.signal,
+        headers: { Accept: "application/json" }
+      });
+    } catch (fetchError) {
+      const durationMs2 = Date.now() - startedAt;
+      const aborted2 = isAbortError2(fetchError) || controller.signal.aborted;
+      discoverLog(logger, "error", aborted2 ? "remote config fetch aborted (timeout or cancellation)" : "failed to fetch remote config", {
+        url: url2,
+        urlFromEnv,
+        durationMs: durationMs2,
+        aborted: aborted2,
+        signalAborted: controller.signal.aborted,
+        timedOut: aborted2 && durationMs2 >= DISCOVER_TIMEOUT_MS - 50,
+        err: formatFetchError(fetchError)
+      });
+      return { ...EMPTY_DISCOVER_CONFIG };
+    }
+    const durationMs = Date.now() - startedAt;
+    discoverLog(logger, "info", "remote config HTTP response", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get("content-type"),
+      redirected: response.redirected,
+      responseUrl: response.url
+    });
+    if (!response.ok) {
+      const bodyPreview = await readResponseBodyPreview(logger, response);
+      discoverLog(logger, "error", "remote config returned non-OK status", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get("content-type"),
+        bodyPreview
+      });
+      return { ...EMPTY_DISCOVER_CONFIG };
+    }
+    let rawJson;
+    try {
+      rawJson = await response.json();
+    } catch (parseError) {
+      discoverLog(logger, "error", "remote config response is not valid JSON", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        contentType: response.headers.get("content-type"),
+        err: formatFetchError(parseError)
+      });
+      return { ...EMPTY_DISCOVER_CONFIG };
+    }
+    if (!isPlainObject3(rawJson)) {
+      discoverLog(logger, "error", "remote config JSON root is not an object", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        rootType: rawJson === null ? "null" : Array.isArray(rawJson) ? "array" : typeof rawJson
+      });
+      return { ...EMPTY_DISCOVER_CONFIG };
+    }
+    let mediaDatabases;
+    let reverseProxies;
+    let latestVersion;
+    try {
+      mediaDatabases = normalizeMediaDatabases(rawJson.mediaDatabases);
+      reverseProxies = normalizeReverseProxies(rawJson.reverseProxies);
+      const versionResult = normalizeLatestVersion(rawJson.latestVersion);
+      if (versionResult.invalidReason) {
+        discoverLog(logger, "warn", "remote config latestVersion ignored", {
+          url: url2,
+          reason: versionResult.invalidReason,
+          rawType: typeof rawJson.latestVersion
+        });
+      }
+      latestVersion = versionResult.latestVersion;
+    } catch (normalizeError) {
+      discoverLog(logger, "error", "failed to normalize remote config", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        err: formatFetchError(normalizeError)
+      });
+      return { ...EMPTY_DISCOVER_CONFIG };
+    }
+    if (mediaDatabases.length === 0) {
+      logEmptyDiscoverResult(logger, url2, durationMs, rawJson, mediaDatabases, latestVersion);
+    } else {
+      discoverLog(logger, "info", "remote config loaded", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        mediaDatabasesCount: mediaDatabases.length,
+        reverseProxiesCount: reverseProxies.length,
+        mediaDatabaseTypes: [
+          ...new Set(mediaDatabases.map((entry) => entry.type))
+        ],
+        latestVersion,
+        hasLatestVersionField: "latestVersion" in rawJson
+      });
+    }
+    return { mediaDatabases, reverseProxies, latestVersion };
+  } catch (error48) {
+    const durationMs = Date.now() - startedAt;
+    discoverLog(logger, "error", "unexpected error while loading remote config", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      signalAborted: controller.signal.aborted,
+      err: formatFetchError(error48)
+    });
+    return { ...EMPTY_DISCOVER_CONFIG };
+  } finally {
+    clearTimeout(timeout2);
+  }
+}
+async function doFetchDiscoveredMediaDatabases(config2 = {}) {
+  const discoverConfig = await doFetchDiscoverConfig(config2);
+  return discoverConfig.mediaDatabases;
 }
 // src/routes/listFilesRoute.ts
 var emptyListFilesResponse = {
@@ -65642,6 +66033,27 @@ async function handleDeleteFilePost(req, res, ctx) {
   }
 }
 
+// src/routes/deleteFolderRoute.ts
+async function handleDeleteFolderPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/deleteFolder") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DeleteFolder] POST /api/deleteFolder");
+    const result = await doDeleteFolder(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "DeleteFolder POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error48 instanceof Error ? error48.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
 // src/routes/getEpisodesRoute.ts
 async function handleGetEpisodesPost(req, res, ctx) {
   if (req.method !== "POST" || ctx.url.pathname !== "/api/getEpisodes") {
@@ -65796,6 +66208,27 @@ async function handleReadImagePost(req, res, ctx) {
       error: "Invalid JSON body",
       details: error48 instanceof Error ? error48.message : "Unknown error"
     });
+    return true;
+  }
+}
+
+// src/routes/discoverRoute.ts
+async function handleDiscoverGet(req, res, ctx) {
+  if (req.method !== "GET" || ctx.url.pathname !== "/api/discover") {
+    return false;
+  }
+  try {
+    const config2 = await doFetchDiscoverConfig({
+      logger: ctx.config.logger,
+      fetchImpl: ctx.config.fetchImpl
+    });
+    const body = { data: config2 };
+    sendJson(res, 200, body);
+    return true;
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    ctx.config.logger?.error({ error: message }, "[Discover] handleDiscoverGet unexpected throw");
+    sendJson(res, 200, { data: { ...EMPTY_DISCOVER_CONFIG } });
     return true;
   }
 }
@@ -65992,9 +66425,11 @@ var coreRouteHandlers = [
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDeleteFolderPost,
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleDiscoverGet,
   handleChatPost,
   handleMcpStartPut,
   handleMcpStopPut,
@@ -69400,7 +69835,7 @@ class Protocol {
     };
   }
 }
-function isPlainObject3(value) {
+function isPlainObject4(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function mergeCapabilities(base, additional) {
@@ -69411,7 +69846,7 @@ function mergeCapabilities(base, additional) {
     if (addValue === undefined)
       continue;
     const baseValue = result[k];
-    if (isPlainObject3(baseValue) && isPlainObject3(addValue)) {
+    if (isPlainObject4(baseValue) && isPlainObject4(addValue)) {
       result[k] = { ...baseValue, ...addValue };
     } else {
       result[k] = addValue;
@@ -71243,7 +71678,7 @@ function registerAddRecognizedFileTool(server, config2) {
     description: agentTool.description,
     inputSchema
   }, async (args) => {
-    const { taskId, season, episode, path: path12 } = args ?? {};
+    const { taskId, season, episode, path: path13 } = args ?? {};
     if (typeof taskId !== "string" || taskId.trim() === "") {
       return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
     }
@@ -71253,7 +71688,7 @@ function registerAddRecognizedFileTool(server, config2) {
     if (typeof episode !== "number" || episode < 0) {
       return createErrorResponse("Invalid episode: 'episode' must be a non-negative number");
     }
-    if (typeof path12 !== "string" || path12.trim() === "") {
+    if (typeof path13 !== "string" || path13.trim() === "") {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
@@ -71261,7 +71696,7 @@ function registerAddRecognizedFileTool(server, config2) {
         taskId,
         season,
         episode,
-        path: Path.posix(path12)
+        path: Path.posix(path13)
       });
       if (typeof result === "object" && result !== null && "error" in result && typeof result.error === "string") {
         return createSuccessResponse({
@@ -71277,7 +71712,7 @@ function registerAddRecognizedFileTool(server, config2) {
 }
 
 // src/mcp/toolHandlers/addRenameFile.ts
-var import_node_path13 = require("node:path");
+var import_node_path14 = require("node:path");
 function registerAddRenameFileTool(server, config2, deps) {
   const fs = config2.fs ?? defaultChatFs();
   const agentTool = buildAddRenameFileToTaskTool("mcp", config2.appDataDir, fs, deps, config2.logger, undefined);
@@ -71333,7 +71768,7 @@ function registerAddRenameFileTool(server, config2, deps) {
   });
 }
 function isVideoFile2(filePath) {
-  const extension = import_node_path13.extname(filePath).toLowerCase();
+  const extension = import_node_path14.extname(filePath).toLowerCase();
   return videoFileExtensions.includes(extension);
 }
 
@@ -71689,12 +72124,12 @@ function registerIsFolderExistTool(server, config2) {
     inputSchema: isFolderExistInputSchema,
     outputSchema: isFolderExistOutputSchema
   }, async (args) => {
-    const { path: path12 } = args ?? {};
-    if (typeof path12 !== "string" || path12.trim() === "") {
+    const { path: path13 } = args ?? {};
+    if (typeof path13 !== "string" || path13.trim() === "") {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
-      const result = await executeIsFolderExist(path12);
+      const result = await executeIsFolderExist(path13);
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));

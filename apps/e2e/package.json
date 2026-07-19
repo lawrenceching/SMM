@@ -30,6 +30,7 @@
     "wdio:run": "wdio run ./wdio.conf.ts --spec ./test/specs/ImportMediaLibrary.e2e.ts",
     "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts",
     "wdio:electron:hello": "wdio run ./electron/wdio.conf.ts --spec ./electron/hello.e2e.ts",
+    "wdio:ohos": "wdio run ./ohos/wdio.conf.ts",
     "wdio:ohos:hello": "wdio run ./ohos/wdio.conf.ts --spec ./ohos/hello.attach.e2e.ts",
     "wdio:ohos:layout": "wdio run ./ohos/wdio.conf.ts --spec ./ohos/layout.e2e.ts",
     "wdio:init": "wdio run ./wdio.conf.ts --spec \"./test/specs/media-folder-initialization/*.e2e.ts\"",

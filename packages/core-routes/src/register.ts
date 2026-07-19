@@ -15,6 +15,7 @@ import { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
 import { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
 import { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
 import { handleReadImagePost } from "./routes/readImageRoute.ts";
+import { handleDiscoverGet } from "./routes/discoverRoute.ts";
 import { handleChatPost } from "./chat.ts";
 import {
   handleMcpStartPut,
@@ -46,6 +47,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleDiscoverGet,
   handleChatPost,
   handleMcpStartPut,
   handleMcpStopPut,
@@ -112,6 +114,7 @@ export { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
 export { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
 export { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
 export { handleReadImagePost } from "./routes/readImageRoute.ts";
+export { handleDiscoverGet } from "./routes/discoverRoute.ts";
 export {
   handleGetPlansPost,
   handleGetPlanByIdPost,

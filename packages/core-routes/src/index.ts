@@ -107,6 +107,21 @@ export {
   type ReadImageResponseBody,
 } from "./readImage.ts";
 export {
+  doFetchDiscoverConfig,
+  doFetchDiscoveredMediaDatabases,
+  EMPTY_DISCOVER_CONFIG,
+  DEFAULT_DISCOVER_CONFIG_URL,
+  DISCOVER_TIMEOUT_MS,
+  type DiscoverConfig,
+  type DiscoverResponseBody,
+  type MediaDatabaseEntry,
+  type MediaDatabaseType,
+  type MediaDatabaseAuthorizationMethod,
+  type ReverseProxyEntry,
+  type ReverseProxyType,
+  type FetchDiscoverConfigOptions,
+} from "./discover.ts";
+export {
   coreRouteHandlers,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
@@ -126,6 +141,7 @@ export {
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleDiscoverGet,
   handleGetPlansPost,
   handleCreatePlanPost,
   handleUpdatePlanPost,

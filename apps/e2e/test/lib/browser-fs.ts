@@ -3,7 +3,18 @@
  * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
  */
 import type { UserConfig } from '@smm/core/types'
-import { resolveUiPageUrl } from './ui-page-url'
+import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
+
+/** Active OS for nested helpers during setup/cleanup (default `"general"`). */
+let activeTestbedOs: TestbedOs = 'general'
+
+export function setActiveTestbedOs(os: TestbedOs): void {
+    activeTestbedOs = os
+}
+
+export function getActiveTestbedOs(): TestbedOs {
+    return activeTestbedOs
+}
 
 export function joinPlatformPath(base: string, segment: string): string {
     const sep = base.includes('\\') ? '\\' : '/'
@@ -13,7 +24,10 @@ export function joinPlatformPath(base: string, segment: string): string {
 /**
  * True when `currentUrl` shares the same http(s) origin as the e2e UI target URL.
  */
-export function isOnUiPageOrigin(currentUrl: string, targetUrl: string = resolveUiPageUrl()): boolean {
+export function isOnUiPageOrigin(
+    currentUrl: string,
+    targetUrl: string = resolveUiPageUrl(undefined, getActiveTestbedOs()),
+): boolean {
     try {
         const current = new URL(currentUrl)
         const target = new URL(targetUrl)
@@ -29,8 +43,8 @@ export function isOnUiPageOrigin(currentUrl: string, targetUrl: string = resolve
 /**
  * If the browser is not already on the UI origin, navigate via Page.open.
  */
-export async function ensureBrowserOnUiPage(): Promise<void> {
-    const targetUrl = resolveUiPageUrl()
+export async function ensureBrowserOnUiPage(os: TestbedOs = getActiveTestbedOs()): Promise<void> {
+    const targetUrl = resolveUiPageUrl(undefined, os)
     let currentUrl = ''
     try {
         currentUrl = await browser.getUrl()
@@ -46,7 +60,7 @@ export async function ensureBrowserOnUiPage(): Promise<void> {
         `ensureBrowserOnUiPage: current="${currentUrl}" is not on UI origin of "${targetUrl}", opening page`,
     )
     const { default: Page } = await import('../pageobjects/page')
-    await Page.open()
+    await Page.open(undefined, os)
 }
 
 type HelloPaths = {

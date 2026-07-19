@@ -1,5 +1,5 @@
 import { browser } from '@wdio/globals'
-import { resolveUiPageUrl } from '../lib/ui-page-url'
+import { resolveUiPageUrl, type TestbedOs } from '../lib/ui-page-url'
 
 /**
 * main page object containing all methods, selectors and functionality
@@ -28,10 +28,11 @@ class Page {
 
     /**
     * Opens a sub page of the page
-    * @param path path of the sub page (e.g. /path/to/page.html)
+    * @param url Explicit URL (optional). When omitted, derived from `os`.
+    * @param os `"general"` → Vite/desktop; `"HarmonyOS"` → `http://127.0.0.1:18081/`
     */
-    public async open (url?: string) {
-        await browser.url(resolveUiPageUrl(url))
+    public async open (url?: string, os: TestbedOs = 'general') {
+        await browser.url(resolveUiPageUrl(url, os))
         await this.waitUntilAppReady()
     }
 

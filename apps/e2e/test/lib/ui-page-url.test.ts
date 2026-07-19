@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { resolveUiPageUrl } from './ui-page-url.ts';
+import { HARMONYOS_UI_ORIGIN, resolveUiPageUrl } from './ui-page-url.ts';
 
 describe('resolveUiPageUrl', () => {
   test('defaults to localhost with port from apps/ui/vite.config.ts', () => {
@@ -8,6 +8,22 @@ describe('resolveUiPageUrl', () => {
 
     try {
       expect(resolveUiPageUrl()).toBe('http://localhost:8000');
+      expect(resolveUiPageUrl(undefined, 'general')).toBe('http://localhost:8000');
+    } finally {
+      if (prev === undefined) {
+        delete process.env.SMM_AUTH_TOKEN;
+      } else {
+        process.env.SMM_AUTH_TOKEN = prev;
+      }
+    }
+  });
+
+  test('HarmonyOS uses device-local MAIN_HTTP_ORIGIN', () => {
+    const prev = process.env.SMM_AUTH_TOKEN;
+    delete process.env.SMM_AUTH_TOKEN;
+
+    try {
+      expect(resolveUiPageUrl(undefined, 'HarmonyOS')).toBe(HARMONYOS_UI_ORIGIN);
     } finally {
       if (prev === undefined) {
         delete process.env.SMM_AUTH_TOKEN;
@@ -23,6 +39,9 @@ describe('resolveUiPageUrl', () => {
 
     try {
       expect(resolveUiPageUrl()).toBe('http://localhost:8000?token=ChangeMe123');
+      expect(resolveUiPageUrl(undefined, 'HarmonyOS')).toBe(
+        `${HARMONYOS_UI_ORIGIN}?token=ChangeMe123`,
+      );
     } finally {
       if (prev === undefined) {
         delete process.env.SMM_AUTH_TOKEN;

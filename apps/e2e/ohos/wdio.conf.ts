@@ -79,8 +79,9 @@ function teardownPortForward() {
  * - Auto `hdc fport` / `fport rm` around the suite unless `HDC_PORT_FORWARD_ENABLED=false`.
  * - When disabled, set up forwarding manually before the run.
  *
- * HiLog capture (default on): streams `hdc shell hilog -T Electron` to
- * `reports/ohos-hilog/device-hilog.log`. Disable with `OHOS_HILOG_CAPTURE=false`.
+ * HiLog capture (default on): streams unfiltered `hdc shell hilog` to
+ * `reports/ohos-hilog/hilog.log`, then derives `electron.log` on stop.
+ * Disable with `OHOS_HILOG_CAPTURE=false`.
  *
  * Frontend console capture (default on): CDP `Runtime.consoleAPICalled` via the
  * same debugger port → `reports/ohos-hilog/frontend-console.log`.
@@ -160,7 +161,7 @@ export const config: WebdriverIO.Config = {
 
     onComplete: async () => {
         await stopFrontendConsoleCapture()
-        stopHilogCapture()
+        await stopHilogCapture()
 
         if (!HDC_PORT_FORWARD_ENABLED) return
 
