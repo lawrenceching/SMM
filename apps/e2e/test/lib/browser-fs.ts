@@ -117,12 +117,45 @@ export async function fetchHelloPathsViaBrowser(): Promise<HelloPaths> {
 }
 
 /**
+ * Delete a file under the app allowlist via `POST /api/deleteFile`.
+ * ENOENT is treated as success by the API.
+ */
+export async function deleteFileViaBrowser(filePath: string): Promise<void> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+
+    // Use `failure` (not `error`) as the return key — some WDIO/Chromedriver
+    // paths surface a returned `{ error: string }` as WebDriverError.
+    const result = await browser.execute(async (token: string | undefined, pathToDelete: string) => {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        }
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+        const delRes = await fetch('/api/deleteFile', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ path: pathToDelete }),
+        })
+        const delBody = await delRes.json() as { error?: string }
+        return { failure: delBody.error ?? null }
+    }, authToken, filePath) as unknown as { failure: string | null }
+
+    if (result.failure) {
+        throw new Error(`deleteFileViaBrowser failed for "${filePath}": ${result.failure}`)
+    }
+}
+
+/**
  * Delete a directory under the app allowlist via `POST /api/deleteFolder`.
  */
 export async function deleteFolderViaBrowser(folderPath: string): Promise<string> {
     await ensureBrowserOnUiPage()
     const authToken = process.env.SMM_AUTH_TOKEN
 
+    // Use `failure` (not `error`) as the return key — some WDIO/Chromedriver
+    // paths surface a returned `{ error: string }` as WebDriverError.
     const result = await browser.execute(async (token: string | undefined, pathToDelete: string) => {
         const headers: Record<string, string> = {
             'Content-Type': 'application/json',
@@ -137,15 +170,89 @@ export async function deleteFolderViaBrowser(folderPath: string): Promise<string
         })
         const delBody = await delRes.json() as { data?: { path?: string }; error?: string }
         return {
-            error: delBody.error ?? null,
+            failure: delBody.error ?? null,
             path: pathToDelete,
         }
-    }, authToken, folderPath) as unknown as { error: string | null; path: string }
+    }, authToken, folderPath) as unknown as { failure: string | null; path: string }
 
-    if (result.error) {
-        throw new Error(`deleteFolderViaBrowser failed for "${folderPath}": ${result.error}`)
+    if (result.failure) {
+        throw new Error(`deleteFolderViaBrowser failed for "${folderPath}": ${result.failure}`)
     }
     return result.path
+}
+
+/**
+ * Empty a directory on-device: delete all files (recursive), then remove empty dirs.
+ *
+ * Prefer this over {@link deleteFolderViaBrowser} for HarmonyOS `Download/` paths,
+ * where recursive `rm` of the directory itself can return EPERM even though
+ * individual file deletes succeed.
+ */
+export async function clearFolderViaBrowser(folderPath: string): Promise<void> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+
+    const listed = await browser.execute(async (token: string | undefined, pathToList: string) => {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        }
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+        const res = await fetch('/api/listFiles', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                path: pathToList,
+                recursively: true,
+                includeHiddenFiles: true,
+            }),
+        })
+        const body = await res.json() as {
+            data?: { items?: Array<{ path: string; isDirectory?: boolean }> }
+            error?: string
+        }
+        return {
+            failure: body.error ?? null,
+            items: body.data?.items ?? [],
+        }
+    }, authToken, folderPath) as unknown as {
+        failure: string | null
+        items: Array<{ path: string; isDirectory?: boolean }>
+    }
+
+    if (listed.failure) {
+        // Folder already gone — treat as cleared.
+        if (/ENOENT|no such file|not found|Cannot access/i.test(listed.failure)) {
+            return
+        }
+        throw new Error(`clearFolderViaBrowser listFiles failed for "${folderPath}": ${listed.failure}`)
+    }
+
+    const files = listed.items.filter((i) => !i.isDirectory)
+    const dirs = listed.items
+        .filter((i) => i.isDirectory)
+        .map((i) => i.path)
+        // deepest paths first so parents are removed after children
+        .sort((a, b) => b.length - a.length)
+
+    for (const file of files) {
+        await deleteFileViaBrowser(file.path)
+    }
+
+    for (const dir of dirs) {
+        try {
+            await deleteFolderViaBrowser(dir)
+        } catch (err) {
+            console.warn(`clearFolderViaBrowser: skip dir delete "${dir}":`, err)
+        }
+    }
+
+    try {
+        await deleteFolderViaBrowser(folderPath)
+    } catch (err) {
+        console.warn(`clearFolderViaBrowser: skip root delete "${folderPath}":`, err)
+    }
 }
 
 export async function deleteAppDataSubdirViaBrowser(subdir: string): Promise<string> {
