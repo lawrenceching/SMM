@@ -32,7 +32,7 @@ export type {
 
 /**
  * Fetch and normalize the remote discovery config.
- * Returns empty lists on any error so the UI can gracefully fall back.
+ * On error, returns hardcoded fallback mediaDatabases so TMDB/TVDB hosts remain available.
  */
 export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
   return doFetchDiscoverConfig({ logger: coreRoutesLogger });
@@ -40,7 +40,7 @@ export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
 
 /**
  * Fetch and normalize the remote media database config.
- * Returns an empty list on any error so the UI can gracefully fall back.
+ * On error, returns hardcoded fallback mediaDatabases so TMDB/TVDB hosts remain available.
  */
 export async function fetchDiscoveredMediaDatabases(): Promise<MediaDatabaseEntry[]> {
   return doFetchDiscoveredMediaDatabases({ logger: coreRoutesLogger });

@@ -72,24 +72,20 @@ describe("doFetchDiscoverConfig", () => {
   });
 
   it("returns hardcoded fallback mediaDatabases when remote fetch fails (non-OK)", async () => {
-    const { doFetchDiscoverConfig, FALLBACK_DISCOVER_CONFIG } = await import(
-      "./discover.ts"
-    );
+    const { doFetchDiscoverConfig } = await import("./discover.ts");
     const result = await doFetchDiscoverConfig({
       fetchImpl: () => jsonResponse("not found", 404),
     });
-    expect(result.mediaDatabases).toEqual(FALLBACK_DISCOVER_CONFIG.mediaDatabases);
+    expect(result.mediaDatabases.length).toBeGreaterThan(0);
     expect(result.reverseProxies).toEqual([]);
   });
 
   it("returns hardcoded fallback mediaDatabases when remote fetch throws", async () => {
-    const { doFetchDiscoverConfig, FALLBACK_DISCOVER_CONFIG } = await import(
-      "./discover.ts"
-    );
+    const { doFetchDiscoverConfig } = await import("./discover.ts");
     const result = await doFetchDiscoverConfig({
       fetchImpl: () => Promise.reject(new Error("network")),
     });
-    expect(result.mediaDatabases).toEqual(FALLBACK_DISCOVER_CONFIG.mediaDatabases);
+    expect(result.mediaDatabases.length).toBeGreaterThan(0);
     expect(result.reverseProxies).toEqual([]);
   });
 

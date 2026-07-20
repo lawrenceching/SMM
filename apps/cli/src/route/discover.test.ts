@@ -75,37 +75,37 @@ describe('handleDiscover', () => {
     ]);
   });
 
-  it('returns empty array when remote fetch fails (non-OK)', async () => {
+  it('returns fallback mediaDatabases when remote fetch fails (non-OK)', async () => {
     mockFetch.mockImplementationOnce(() => jsonResponse('not found', 404));
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
 
-  it('returns empty array when remote fetch throws', async () => {
+  it('returns fallback mediaDatabases when remote fetch throws', async () => {
     mockFetch.mockImplementationOnce(() => Promise.reject(new Error('network')));
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
 
-  it('returns empty array when body is missing mediaDatabases', async () => {
+  it('returns fallback mediaDatabases when body is missing mediaDatabases', async () => {
     mockFetch.mockImplementationOnce(() => jsonResponse({ unrelated: true }));
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
 
-  it('skips entries with missing or unknown type', async () => {
+  it('returns fallback mediaDatabases when all remote entries are invalid', async () => {
     mockFetch.mockImplementationOnce(() =>
       jsonResponse({
         mediaDatabases: [
@@ -118,7 +118,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     const body = await res.json();
-    expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
   });
 
   it('treats missing authorizationMethod as none', async () => {
@@ -232,10 +232,10 @@ describe('handleDiscover', () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.data.latestVersion).toBeUndefined();
-    expect(body.data.mediaDatabases).toEqual([]);
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
   });
 
-  it('returns empty config when JSON root is null', async () => {
+  it('returns fallback mediaDatabases when JSON root is null', async () => {
     mockFetch.mockImplementationOnce(() =>
       Promise.resolve(
         new Response('null', {
@@ -248,16 +248,18 @@ describe('handleDiscover', () => {
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data).toEqual({ mediaDatabases: [], reverseProxies: [] });
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
+    expect(body.data.reverseProxies).toEqual([]);
   });
 
-  it('returns empty config when JSON root is an array', async () => {
+  it('returns fallback mediaDatabases when JSON root is an array', async () => {
     mockFetch.mockImplementationOnce(() => jsonResponse([]));
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.data).toEqual({ mediaDatabases: [], reverseProxies: [] });
+    expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
+    expect(body.data.reverseProxies).toEqual([]);
   });
 
   it('ignores non-string latestVersion without failing', async () => {
@@ -287,13 +289,13 @@ describe('fetchDiscoveredMediaDatabases', () => {
     mockFetch.mockRestore();
   });
 
-  it('returns empty array on any error (does not throw)', async () => {
+  it('returns fallback mediaDatabases on any error (does not throw)', async () => {
     mockFetch.mockImplementationOnce(() => Promise.reject(new Error('boom')));
     const result = await fetchDiscoveredMediaDatabases();
-    expect(result).toEqual([]);
+    expect(result.length).toBeGreaterThan(0);
   });
 
-  it('returns empty array when fetch rejects via signal abort', async () => {
+  it('returns fallback mediaDatabases when fetch rejects via signal abort', async () => {
     // The function has a 10s timeout, so we pass a matching test timeout
     // to make the abort fire before the test itself times out.
     mockFetch.mockImplementationOnce((_url, init) =>
@@ -302,6 +304,6 @@ describe('fetchDiscoveredMediaDatabases', () => {
       })
     );
     const result = await fetchDiscoveredMediaDatabases();
-    expect(result).toEqual([]);
+    expect(result.length).toBeGreaterThan(0);
   }, 15_000);
 });
