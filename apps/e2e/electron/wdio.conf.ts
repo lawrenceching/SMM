@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
+import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
 
 const DEFAULT_SMM_BINARY = String.raw`C:\Users\lawrence\AppData\Local\Programs\SMM\SMM.exe`
 
@@ -58,5 +59,9 @@ export const config: WebdriverIO.Config = {
         ui: 'bdd',
         // Common specs (e.g. TVShow-Import) may raise per-test timeouts further.
         timeout: 6 * 60 * 1000,
+    },
+
+    before: async () => {
+        await applyE2eWindowSize()
     },
 }

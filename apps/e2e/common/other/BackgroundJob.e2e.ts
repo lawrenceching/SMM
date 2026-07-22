@@ -4,6 +4,8 @@ import StatusBar from 'test/componentobjects/StatusBar'
 import { cleanup, setup } from 'test/lib/testbed'
 import { delay } from 'es-toolkit'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const JOB_DELAY_MS = 5000
 const JOB_NAME = 'E2E 测试任务'
 
@@ -16,6 +18,7 @@ describe('Background Job', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 
@@ -26,6 +29,7 @@ describe('Background Job', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

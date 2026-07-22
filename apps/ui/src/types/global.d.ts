@@ -19,5 +19,20 @@ declare global {
     __jobOrchestrator?: JobOrchestratorBridge
     /** E2E readiness: `not-ready` until all initializers finish; `error` if any failed. */
     _smm_status?: "not-ready" | "ready" | "error"
+    /** Read-only snapshot of selected UIMediaFolderStore folder for e2e diagnostics. */
+    __uiMediaFolderStore?: {
+      getSelectedFolderSnapshot(): {
+        path: string
+        status:
+          | "idle"
+          | "pending_for_initialization"
+          | "initializing"
+          | "ok"
+          | "folder_not_found"
+          | "error_loading_metadata"
+          | "loading"
+          | "updating"
+      } | null
+    }
   }
 }

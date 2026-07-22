@@ -15,6 +15,8 @@ import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
 import { env } from 'node:process'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const EXPECTED_EPISODE_TABLE = `Specials
 S00E01 - - - -
 Season 1
@@ -84,6 +86,9 @@ const EXPECTED_TMDB_TVSHOW = {
     ],
 }
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Initialize TV Show by TMDB', () => {
     let testFolder = ''
 
@@ -99,6 +104,7 @@ describe('Initialize TV Show by TMDB', () => {
                 config.primaryDatabase = 'TMDB'
                 config.preferMediaLanguage = 'en-US'
             },
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -115,6 +121,7 @@ describe('Initialize TV Show by TMDB', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -135,7 +142,7 @@ describe('Initialize TV Show by TMDB', () => {
 
         await then('sidebar shows TV show title', async () => {
             const { default: Sidebar } = await import('test/componentobjects/Sidebar')
-            await Sidebar.waitForFolderTitle(expectedTitle, 60000)
+            await Sidebar.waitForFolderTitle(expectedTitle, 3 * 60 * 1000)
         })
 
         await then('TV show panel shows the expected title and episode table', async () => {
@@ -166,7 +173,7 @@ describe('Initialize TV Show by TMDB', () => {
 
         await then('sidebar shows TV show title', async () => {
             const { default: Sidebar } = await import('test/componentobjects/Sidebar')
-            await Sidebar.waitForFolderTitle(expectedTitle, 60000)
+            await Sidebar.waitForFolderTitle(expectedTitle, 3 * 60 * 1000)
         })
 
         await then('TV show panel shows the expected title and episode table', async () => {
@@ -196,7 +203,7 @@ describe('Initialize TV Show by TMDB', () => {
 
         await then('sidebar shows TV show title', async () => {
             const { default: Sidebar } = await import('test/componentobjects/Sidebar')
-            await Sidebar.waitForFolderTitle(expectedTitle, 60000)
+            await Sidebar.waitForFolderTitle(expectedTitle, 3 * 60 * 1000)
         })
 
         await then('TV show panel shows the expected title and episode table with nfo prefix', async () => {
@@ -214,15 +221,14 @@ describe('Initialize TV Show by TMDB', () => {
     })
 
     it('Unknown', async function () {
-        this.timeout(15 * 1000)
+        // Ohos attach batches can leave import/init slower than a cold solo run.
+        this.timeout(3 * 60 * 1000)
 
         await given('TV show folder was initialized as unknown')
 
-        await browser.pause(5000)
-
         await then('immersive input is empty', async () => {
             const immersiveInput = await $('[data-testid="immersive-input"]')
-            await immersiveInput.waitForDisplayed({ timeout: 5000 })
+            await immersiveInput.waitForDisplayed({ timeout: 3 * 60 * 1000 })
             const value = await immersiveInput.getValue()
             expect(value).toBe('')
         })

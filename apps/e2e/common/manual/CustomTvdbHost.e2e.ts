@@ -6,6 +6,8 @@ import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 describe('Custom TVDB Host', () => {
 
     before(async () => {
@@ -39,6 +41,7 @@ describe('Custom TVDB Host', () => {
                 }
                 return config
             },
+            os: testbedOs,
         })
         resetStepContext()
     })
@@ -50,6 +53,7 @@ describe('Custom TVDB Host', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

@@ -40,6 +40,6 @@ registerStep('TV show folder "xxx" was recognized with partial coverage', async 
     ctx._folder = folder
     ctx._folderName = folderName
 
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName, 10000)
 })

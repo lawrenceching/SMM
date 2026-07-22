@@ -1,5 +1,6 @@
 import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     cleanup,
     expectMediaMetadataViaBrowser,
@@ -40,6 +41,7 @@ describe('Rename Media Folder', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -57,6 +59,7 @@ describe('Rename Media Folder', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

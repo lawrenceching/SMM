@@ -2,6 +2,7 @@ import { expect, browser } from '@wdio/globals'
 import { cleanup, importFolderWithMediaMetadata, setup } from 'test/lib/testbed'
 import mcpClient from 'test/lib/McpClient'
 import { folder3 } from 'test/actions/import-folders'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createTestFolderViaBrowser,
@@ -32,6 +33,7 @@ describe('MCP Server Tools - TVDB', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
         await setupMcpTest()
 
@@ -47,6 +49,7 @@ describe('MCP Server Tools - TVDB', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: false,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

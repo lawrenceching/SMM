@@ -1,6 +1,7 @@
 import { expect } from '@wdio/globals'
 import mcpClient from 'test/lib/McpClient'
 import { cleanup, setup } from 'test/lib/testbed'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
@@ -23,6 +24,7 @@ describe('MCP AppData - GetApplicationContextTool', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
   })
@@ -35,6 +37,7 @@ describe('MCP AppData - GetApplicationContextTool', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
   })
 

@@ -4,6 +4,15 @@ This folder holds e2e spec files that capable to run in both browser(local and r
 
 Technically, it requires test implemented only rely on browser API.
 
+## Test Environment
+
+| Env | Test Target |
+| --- | --- |
+| Local | apps/ui (frontend server) + apps/cli (backend server) |
+| Electron | The Electron distribution SMM.exe | 
+| Docker | Docker Container and access via browser |
+| HarmonyOS(ohos) | Connects to HarmonyOS app via electron remote debugging port | 
+
 ## `common/manual`
 
 On-demand / long-running specs (yt-dlp, transcription, ffmpeg, real media fixtures).

@@ -4,6 +4,7 @@ import Prompts from 'test/componentobjects/Prompts'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
   createAndImportFolderViaBrowser,
@@ -32,6 +33,7 @@ describe('MCP Prompt - Cancel Preparing Plan', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
 
@@ -47,6 +49,7 @@ describe('MCP Prompt - Cancel Preparing Plan', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
     if (testFolder) {
       await clearFolderViaBrowser(testFolder)

@@ -11,10 +11,14 @@ type CreateFolderInHarmonyOSArg = {
  * Create a media folder fixture on the HarmonyOS device via `POST /api/writeFile`.
  *
  * Usage:
+ *   const base = await resolveSmmTestFolderViaBrowser()
  *   await then('Create folder in HarmonyOS', {
- *     base: '/storage/Users/currentUser/Download/smm-test-folder',
+ *     base,
  *     folder: { ...folder1 },
  *   })
+ *
+ * Prefer {@link resolveSmmTestFolderViaBrowser} for `base` (app temp sandbox).
+ * Do not hardcode Download/ paths — they often fail with ENOENT/EPERM on Ohos.
  *
  * Writes empty files at `{base}/{folderName}/{filename}` for each entry in
  * `folder.files` (e.g. `…/天使降临到我身边！ (2019) {tmdbid=84666}/S01E01.mkv`).

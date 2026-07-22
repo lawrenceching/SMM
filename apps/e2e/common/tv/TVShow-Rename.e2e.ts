@@ -9,6 +9,11 @@ import Prompts from 'test/componentobjects/Prompts'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TVShow - Rename', () => {
     let testFolder = ''
 
@@ -21,6 +26,7 @@ describe('TVShow - Rename', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -34,6 +40,7 @@ describe('TVShow - Rename', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

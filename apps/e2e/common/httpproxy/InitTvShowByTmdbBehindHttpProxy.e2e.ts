@@ -23,6 +23,8 @@ import type { TestFolder } from 'test/actions/import-folders'
 import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { env } from 'node:process'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
     let testFolder = ''
 
@@ -66,6 +68,7 @@ describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
                 config.preferMediaLanguage = 'en-US'
                 return config
             },
+            os: testbedOs,
         })
         resetStepContext()
 
@@ -80,6 +83,7 @@ describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

@@ -8,7 +8,7 @@ import Menu from 'test/componentobjects/Menu'
 import Sidebar from 'test/componentobjects/Sidebar'
 import StatusBar from 'test/componentobjects/StatusBar'
 import { cleanup, setup } from 'test/lib/testbed'
-import { skipIfOhos } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 
 const testMp4Path = path.join(import.meta.dirname, '../../../../test/local/test.mp4')
 
@@ -96,6 +96,7 @@ describe('MediaFileProperties', () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
     })
 
@@ -107,6 +108,7 @@ describe('MediaFileProperties', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
     })
 

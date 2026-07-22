@@ -2,20 +2,15 @@ import { expect } from '@wdio/globals'
 import { setup, cleanup } from 'test/lib/testbed'
 import {
     clearFolderViaBrowser,
-    fetchHelloPathsViaBrowser,
     joinPlatformPath,
+    resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import { folder1 } from 'test/actions/import-folders'
-import type { TestbedOs } from 'test/lib/ui-page-url'
-
-const OHOS_TEST_FOLDER = '/storage/Users/currentUser/Download/smm-test-folder'
-
-const isOhos = process.env.E2E_PLATFORM === 'ohos'
-const testbedOs: TestbedOs | undefined = isOhos ? 'HarmonyOS' : undefined
+import { testbedOs } from 'test/lib/e2e-platform'
 
 /** Expected panel after folder1 ({tmdbid=84666}) init — matches InitializeTvShowByTmdb. */
 const EXPECTED_EPISODE_TABLE = `Specials
@@ -34,25 +29,13 @@ S01E10 - - - -
 S01E11 - - - -
 S01E12 - - - -`
 
-async function resolveTestFolder(): Promise<string> {
-    if (isOhos) {
-        return OHOS_TEST_FOLDER
-    }
-
-    const { tmpDir } = await fetchHelloPathsViaBrowser()
-    if (!tmpDir) {
-        throw new Error('POST /api/hello did not return tmpDir')
-    }
-    return joinPlatformPath(tmpDir, 'smm-test-folder')
-}
-
 /**
  * Import a TV show folder (common spec: browser / Electron / HarmonyOS).
  * folder1 embeds {tmdbid=84666}; recognition should populate TvShowPanel episodes.
  *
- * testFolder:
- * - ohos: hardcoded Download path
- * - browser / electron: `{tmpDir}/smm-test-folder` from POST /api/hello
+ * testFolder: `{tmpDir}/smm-test-folder` from {@link resolveSmmTestFolderViaBrowser}
+ * (app temp sandbox on Ohos — not Download/).
+ * @supports local, Electron, HarmonyOS
  */
 describe('TVShow - Import', () => {
     let testFolder = ''
@@ -69,7 +52,7 @@ describe('TVShow - Import', () => {
             os: testbedOs,
         })
 
-        testFolder = await resolveTestFolder()
+        testFolder = await resolveSmmTestFolderViaBrowser()
     })
 
     afterEach(async () => {

@@ -36,7 +36,7 @@ registerStep('TV show folder with TMDB id 84666 and one episode was imported', a
 
     ctx._folder = folder
     ctx._folderName = folder.folderName
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName)
 })
 
@@ -66,7 +66,7 @@ registerStep('TV show folder with TVDB id 355969 and one episode was imported', 
 
     ctx._folder = folder
     ctx._folderName = folder.folderName
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName)
 })
 
@@ -98,7 +98,7 @@ registerStep('movie folder with TMDB id 552524 was imported', async (ctx) => {
 
     ctx._folder = folder
     ctx._folderName = folder.folderName
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName)
 })
 
@@ -129,6 +129,6 @@ registerStep('movie folder with TVDB id 116 was imported', async (ctx) => {
 
     ctx._folder = folder
     ctx._folderName = folder.folderName
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName)
 })

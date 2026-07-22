@@ -27,6 +27,7 @@ import {
     writeFileViaBrowser,
 } from './browser-fs'
 import type { TestbedOs } from './ui-page-url'
+import { testbedOs as defaultTestbedOs } from './e2e-platform'
 
 export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
@@ -99,11 +100,20 @@ export async function setup(options: {
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
     openBrowserPage: boolean,
+    /**
+     * Clear `localStorage` during cleanup and again after opening the page.
+     * Defaults to `true` so Ohos/Electron attach sessions do not leak debug
+     * overrides (e.g. wronghost TMDB asset host) across specs.
+     */
     clearLocalStorage?: boolean,
-    /** Target platform for Page.open / UI origin. Default `"general"`. */
+    /**
+     * Target platform for Page.open / UI origin.
+     * Default: `"HarmonyOS"` when `E2E_PLATFORM=ohos`, else `"general"`.
+     */
     os?: TestbedOs,
 }) {
-    const os = options.os ?? 'general'
+    const os = options.os ?? defaultTestbedOs ?? 'general'
+    const clearLocalStorage = options.clearLocalStorage !== false
     setActiveTestbedOs(os)
 
     // Browser-protocol cleanup (e.g. removeMetadataDir v2) needs a real app origin
@@ -116,7 +126,7 @@ export async function setup(options: {
         removeMediaFolders: options.removeMediaFolders,
         removeDirInSidebar: options.removeDirInSidebar,
         resetUserConfig: options.resetUserConfig,
-        clearLocalStorage: options.clearLocalStorage,
+        clearLocalStorage,
         os,
     })
 
@@ -140,7 +150,7 @@ export async function setup(options: {
             timeoutMsg: 'Status bar was not displayed after 10 seconds'
         })
 
-        if (options.clearLocalStorage) {
+        if (clearLocalStorage) {
             await clearBrowserLocalStorage()
         }
     }
@@ -238,11 +248,19 @@ export async function cleanup(options?: {
     removeMediaFolders: boolean,
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
+    /**
+     * Clear `localStorage` (debug overrides, agreement flags, etc.).
+     * Defaults to `true` so leftover keys do not pollute the next spec
+     * when the session is reused (Ohos/Electron attach).
+     */
     clearLocalStorage?: boolean,
-    /** Target platform for UI origin used by browser-protocol helpers. Default `"general"`. */
+    /**
+     * Target platform for UI origin used by browser-protocol helpers.
+     * Default: `"HarmonyOS"` when `E2E_PLATFORM=ohos`, else `"general"`.
+     */
     os?: TestbedOs,
 }): Promise<void> {
-    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig, clearLocalStorage, os = 'general' } = options ?? {
+    const { removeMetadataDir: isToRemoveMetadataDir = true, removePlansDir: isToRemovePlansDir = true, removeMediaFolders: isToRemoveMediaFolders = true, removeDirInSidebar: isToRemoveDirInSidebar = true, resetUserConfig: needToResetUserConfig, clearLocalStorage = true, os = defaultTestbedOs ?? 'general' } = options ?? {
         removeMetadataDir: true,
     };
     setActiveTestbedOs(os)

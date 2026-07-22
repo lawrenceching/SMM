@@ -15,6 +15,11 @@ import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
 import env from 'test/lib/env'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Initialize TV Show by TVDB', () => {
     let testFolder = ''
 
@@ -30,6 +35,7 @@ describe('Initialize TV Show by TVDB', () => {
                 config.primaryDatabase = 'TVDB'
                 config.preferMediaLanguage = 'zh-CN'
             },
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -50,6 +56,7 @@ describe('Initialize TV Show by TVDB', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -62,7 +69,8 @@ describe('Initialize TV Show by TVDB', () => {
         await given('TV show folder "天使降临到我身边" was initialized by TVDB folder name')
 
         await then('TV show panel shows the TVDB title and episode table', async () => {
-            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 20000)
+            // Ohos batch runs can need longer than a cold solo for TVDB search-by-name.
+            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 3 * 60 * 1000)
             await browser.pause(2000)
 
             const state = await TvShowPanelCO.toString()
@@ -103,9 +111,7 @@ S01E12 - - - -`)
         await given('TV show folder was initialized by TVDB ID')
 
         await then('TV show panel shows Oshi no Ko title and TVDB season table', async () => {
-            await browser.pause(30 * 1000)
-
-            expect(await TvShowPanelCO.immersiveInput.getValue()).toBe('【我推的孩子】')
+            await TvShowPanelCO.waitForTitleToBe('【我推的孩子】', 3 * 60 * 1000)
 
             const state = await TvShowPanelCO.toString()
             expect(state).toContain(`Season 0
@@ -175,8 +181,8 @@ S04E01 - - - -`)
 
         await then('TV show panel shows the expected title and episode table with nfo prefix', async () => {
             const { default: Sidebar } = await import('test/componentobjects/Sidebar')
-            await Sidebar.waitForFolderTitle('天使降临到了我身边！', 20000)
-            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！')
+            await Sidebar.waitForFolderTitle('天使降临到了我身边！', 3 * 60 * 1000)
+            await TvShowPanelCO.waitForTitleToBe('天使降临到了我身边！', 3 * 60 * 1000)
             await browser.pause(2000)
 
             expect(await TvShowPanelCO.toString()).toBe(`nfo

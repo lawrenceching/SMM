@@ -25,6 +25,8 @@ import {
 import MusicPanel from "test/componentobjects/MusicPanel.co"
 import DownloadVideoDialogCO from "test/componentobjects/DownloadVideoDialog.co"
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const VALID_BILIBILI_URL = "https://www.bilibili.com/video/BV17NrWBaE87/"
 const VALID_BILIBILI_URL_2 = "https://www.bilibili.com/video/BV1bW411a7jV/"
 const YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -43,6 +45,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -83,6 +86,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

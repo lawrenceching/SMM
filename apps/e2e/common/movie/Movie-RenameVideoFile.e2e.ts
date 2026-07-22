@@ -1,6 +1,7 @@
 import { expect, browser } from '@wdio/globals'
 import RenameDialog from 'test/componentobjects/RenameDialog'
 import Sidebar from 'test/componentobjects/Sidebar'
+import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import { setup, cleanup } from 'test/lib/testbed'
 import {
     clearFolderViaBrowser,
@@ -11,9 +12,14 @@ import {
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import { delay } from 'es-toolkit'
+import { waitUntilSelectedFolderReady } from 'test/lib/ui-media-folder-store'
 
-// Movie folder with TMDB ID so the app loads TMDB data and shows the movie panel with Files section
-const FOLDER_NAME = '哪吒之魔童降世 (2019) {tmdbid=552524}'
+import { testbedOs } from 'test/lib/e2e-platform'
+
+// Movie folder with TMDB ID so the app loads TMDB data and shows the movie panel with Files section.
+// 615453 = 哪吒之魔童降世 (2019). Do not use 552524 — that id is Lilo & Stitch on TMDB.
+const FOLDER_NAME = '哪吒之魔童降世 (2019) {tmdbid=615453}'
+const EXPECTED_MOVIE_TITLES = ['哪吒之魔童降世', 'Ne Zha'] as const
 const VIDEO_FILE_NAME = 'movie.mp4'
 const RENAMED_FILE_NAME = 'movie_renamed.mp4'
 
@@ -34,6 +40,9 @@ const RENAME_MENU_ITEM_LABELS = ['Rename', '重命名']
 const SIDEBAR_FOLDER_DISPLAY_NAME = FOLDER_NAME
 
 async function waitForMoviePanelRenameButtonDisplayed() {
+    // Header shows Skeleton (no Rename) while status is initializing/loading.
+    await waitUntilSelectedFolderReady(3 * 60 * 1000)
+    await MoviePanelCO.searchbox.waitForTitleToBeOneOf(EXPECTED_MOVIE_TITLES, 3 * 60 * 1000)
     await browser.waitUntil(
         async () => {
             for (const label of RENAME_BUTTON_LABELS) {
@@ -71,6 +80,9 @@ async function clickContextMenuItem(labels: string[]) {
     throw new Error(`Context menu item [${labels.join(', ')}] not found`)
 }
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Movie - Rename Video File', () => {
     let testFolder = ''
     let movieFolderPath = ''
@@ -82,7 +94,11 @@ describe('Movie - Rename Video File', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             openBrowserPage: true,
-            resetUserConfig: true,
+            resetUserConfig: (config) => {
+                config.preferMediaLanguage = 'zh-CN'
+                return config
+            },
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -96,6 +112,7 @@ describe('Movie - Rename Video File', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -103,7 +120,7 @@ describe('Movie - Rename Video File', () => {
     })
 
     it('renames the video file and its associated files (subtitles, etc.) via context menu', async function () {
-        this.timeout(90 * 1000)
+        this.timeout(6 * 60 * 1000)
 
         // 1. Create movie folder with video and associated files sharing the same stem
         movieFolderPath = await createAndImportFolderViaBrowser(

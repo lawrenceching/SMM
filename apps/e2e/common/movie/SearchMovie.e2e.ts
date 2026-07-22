@@ -12,12 +12,19 @@ import SearchboxCO from 'test/componentobjects/Searchbox.co'
 import env from 'test/lib/env'
 import type { UserConfig } from '@smm/core/types'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const folder2RecognizedTitles = [
     folder2.translations?.title?.['en-US'],
     folder2.translations?.title?.['zh-CN'],
     folder2.mediaName,
 ].filter((title): title is string => Boolean(title))
 
+const TITLE_WAIT_MS = 3 * 60 * 1000
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Search Movie', () => {
     let testFolder = ''
 
@@ -32,6 +39,7 @@ describe('Search Movie', () => {
                 config.preferMediaLanguage = 'en-US'
                 return config
             },
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -45,6 +53,7 @@ describe('Search Movie', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -52,12 +61,13 @@ describe('Search Movie', () => {
     })
 
     it('TMDB, English', async function () {
-        this.timeout(90 * 1000)
+        this.timeout(6 * 60 * 1000)
 
         await createAndImportFolderViaBrowser(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
+        // folder2 has no {tmdbid=} — Ohos folder-name search can exceed 60s.
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, TITLE_WAIT_MS)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TMDB')
@@ -82,12 +92,12 @@ describe('Search Movie', () => {
 
     // TODO: Unable to search movie by chinese keyword in TVDB, such as "蝙蝠侠"
     it.skip('TVDB, Chinese', async function () {
-        this.timeout(90 * 1000)
+        this.timeout(6 * 60 * 1000)
 
         await createAndImportFolderViaBrowser(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, TITLE_WAIT_MS)
         await SearchboxCO.input.click()
         await SearchboxCO.input.setValue('蝙蝠侠')
 
@@ -112,12 +122,12 @@ describe('Search Movie', () => {
     })
 
     it('TMDB, Chinese', async function () {
-        this.timeout(90 * 1000)
+        this.timeout(6 * 60 * 1000)
 
         await createAndImportFolderViaBrowser(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, TITLE_WAIT_MS)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TMDB')
@@ -141,12 +151,12 @@ describe('Search Movie', () => {
     })
 
     it('TMDB, Japanese', async function () {
-        this.timeout(90 * 1000)
+        this.timeout(6 * 60 * 1000)
 
         await createAndImportFolderViaBrowser(folder2, 'e2eTest:Search Movie')
 
         await Sidebar.waitForFolderName(folder2.folderName, 60000)
-        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, 60000)
+        await SearchboxCO.waitForTitleToBeOneOf(folder2RecognizedTitles, TITLE_WAIT_MS)
         await SearchboxCO.input.click()
 
         await SearchboxCO.setDatabase('TMDB')

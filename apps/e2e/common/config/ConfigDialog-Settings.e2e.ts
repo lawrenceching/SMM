@@ -6,6 +6,8 @@ import Page from 'test/pageobjects/page'
 import { setup, cleanup } from 'test/lib/testbed'
 import { delay } from 'es-toolkit'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const slowdown = process.env.SLOWDOWN === 'true'
 
 describe('Config Dialog Settings - General Settings', () => {
@@ -17,6 +19,7 @@ describe('Config Dialog Settings - General Settings', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
     })
 
@@ -27,6 +30,7 @@ describe('Config Dialog Settings - General Settings', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

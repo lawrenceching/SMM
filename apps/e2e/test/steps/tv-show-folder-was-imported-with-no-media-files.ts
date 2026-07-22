@@ -32,6 +32,6 @@ registerStep('TV show folder "xxx" was imported with no media files', async (ctx
     ctx._folder = folder
     ctx._folderName = folderName
 
-    await page.open()
+    await page.refresh()
     await Sidebar.waitForFolderName(folder.folderName, 10000)
 })

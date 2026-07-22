@@ -5,6 +5,7 @@ import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
 import Sidebar from 'test/componentobjects/Sidebar'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   expectMediaMetadataViaBrowser,
   cleanup,
@@ -40,6 +41,7 @@ describe('MCP Other - RecognizeTaskFlow', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
 
@@ -55,6 +57,7 @@ describe('MCP Other - RecognizeTaskFlow', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
     if (testFolder) {
       await clearFolderViaBrowser(testFolder)

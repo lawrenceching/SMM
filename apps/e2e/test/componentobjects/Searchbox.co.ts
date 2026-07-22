@@ -1,6 +1,10 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
+import {
+    formatImmersiveInputTimeoutMsg,
+    getSelectedFolderSnapshot,
+} from '../lib/ui-media-folder-store'
 import { waitForDisplay } from '../lib/waitForDisplay'
 
 class SearchboxComponentObject {
@@ -33,16 +37,25 @@ class SearchboxComponentObject {
         return this.results
     }
 
+    async waitForImmersiveInputDisplayed(timeout: number = 15000): Promise<void> {
+        try {
+            await waitForDisplay('[data-testid="immersive-input"]', {
+                timeout,
+                interval: 200,
+                timeoutMsg: `immersive-input was not displayed after ${timeout}ms`,
+            })
+        } catch (err) {
+            const snapshot = await getSelectedFolderSnapshot().catch(() => null)
+            throw new Error(formatImmersiveInputTimeoutMsg(timeout, snapshot))
+        }
+    }
+
     async waitForTitleToBe(expected: string, timeout: number = 10000): Promise<void> {
         await this.waitForTitleToBeOneOf([expected], timeout)
     }
 
     async waitForTitleToBeOneOf(expectedTitles: readonly string[], timeout: number = 10000): Promise<void> {
-        await waitForDisplay('[data-testid="immersive-input"]', {
-            timeout,
-            interval: 200,
-            timeoutMsg: `immersive-input was not displayed after ${timeout}ms`,
-        })
+        await this.waitForImmersiveInputDisplayed(timeout)
 
         await browser.waitUntil(
             async () => {

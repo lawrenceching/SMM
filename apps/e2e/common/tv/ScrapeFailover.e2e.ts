@@ -13,6 +13,8 @@ import {
 import { given, when, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
 async function getImagePathWithPrefix(folderPath: string, prefix: string): Promise<string | undefined> {
@@ -28,6 +30,9 @@ async function getImagePathWithPrefix(folderPath: string, prefix: string): Promi
     return match?.path
 }
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Scrape Failover', () => {
     let testFolder = ''
 
@@ -40,6 +45,7 @@ describe('Scrape Failover', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -53,6 +59,7 @@ describe('Scrape Failover', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

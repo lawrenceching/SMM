@@ -13,6 +13,11 @@ import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import { given, when, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TVShow - Rule Based Recognize', () => {
     let testFolder = ''
 
@@ -25,6 +30,7 @@ describe('TVShow - Rule Based Recognize', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -38,6 +44,7 @@ describe('TVShow - Rule Based Recognize', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

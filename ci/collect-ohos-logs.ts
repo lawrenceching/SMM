@@ -40,7 +40,7 @@ function copyLogFile(
   fs.mkdirSync(destDir, { recursive: true });
   const destPath = path.join(destDir, fileName);
   fs.copyFileSync(sourcePath, destPath);
-  log(`copied ${path.join(sourceRelDir, fileName)} -> ${path.relative(process.cwd(), destPath)}`);
+  // log(`copied ${path.join(sourceRelDir, fileName)} -> ${path.relative(process.cwd(), destPath)}`);
   return true;
 }
 

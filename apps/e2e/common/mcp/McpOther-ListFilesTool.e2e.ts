@@ -3,6 +3,7 @@ import { expect as expectChai } from 'chai'
 import mcpClient from 'test/lib/McpClient'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
   createAndImportFolderViaBrowser,
@@ -32,6 +33,7 @@ describe('MCP Other - ListFilesTool', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
 
@@ -47,6 +49,7 @@ describe('MCP Other - ListFilesTool', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
     if (testFolder) {
       await clearFolderViaBrowser(testFolder)

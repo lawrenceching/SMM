@@ -30,7 +30,7 @@ registerStep('TV show folder "xxx" was recognized', async (ctx, args) => {
 
     // Disk writes via importFolderWithMediaMetadata do not update the UI store;
     // reload so UIMediaFolderStoreInitializer picks up the new folder.
-    await page.open()
+    await page.refresh()
 
     const t1 = Date.now()
     console.log(`[DIAG] step: "TV show folder was recognized" calling waitForFolderName "${folder.folderName}"`)
@@ -52,7 +52,7 @@ registerStep('TV show folder with three episodes was imported and recognized', a
     ctx._folder = folder
     ctx._folderName = folder.folderName
 
-    await page.open()
+    await page.refresh()
 
     const t1 = Date.now()
     console.log(`[DIAG] step: "TV show folder with three episodes" calling waitForFolderName "${folder.folderName}"`)

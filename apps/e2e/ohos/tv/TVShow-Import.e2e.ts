@@ -1,13 +1,15 @@
 import { expect } from '@wdio/globals'
 import { setup, cleanup } from 'test/lib/testbed'
-import { clearFolderViaBrowser } from 'test/lib/browser-fs'
+import {
+    clearFolderViaBrowser,
+    joinPlatformPath,
+    resolveSmmTestFolderViaBrowser,
+} from 'test/lib/browser-fs'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import { folder1 } from 'test/actions/import-folders'
-
-const TEST_FOLDER = '/storage/Users/currentUser/Download/smm-test-folder'
 
 /** Expected panel after folder1 ({tmdbid=84666}) init — matches InitializeTvShowByTmdb. */
 const EXPECTED_EPISODE_TABLE = `Specials
@@ -29,8 +31,11 @@ S01E12 - - - -`
 /**
  * Import an on-device TV show folder via HarmonyOS.
  * folder1 embeds {tmdbid=84666}; recognition should populate TvShowPanel episodes.
+ * Fixture root: {@link resolveSmmTestFolderViaBrowser} (app temp, not Download/).
  */
 describe('TVShow - Import (HarmonyOS)', () => {
+    let testFolder = ''
+
     beforeEach(async () => {
         resetStepContext()
         await setup({
@@ -42,6 +47,8 @@ describe('TVShow - Import (HarmonyOS)', () => {
             openBrowserPage: true,
             os: 'HarmonyOS',
         })
+
+        testFolder = await resolveSmmTestFolderViaBrowser()
     })
 
     afterEach(async () => {
@@ -53,7 +60,9 @@ describe('TVShow - Import (HarmonyOS)', () => {
             resetUserConfig: true,
             os: 'HarmonyOS',
         })
-        await clearFolderViaBrowser(TEST_FOLDER)
+        if (testFolder) {
+            await clearFolderViaBrowser(testFolder)
+        }
     })
 
     it('Import TV show folder with tmdbid and show recognized episodes', async function () {
@@ -63,10 +72,10 @@ describe('TVShow - Import (HarmonyOS)', () => {
             ...folder1,
         }
 
-        const folderPathInOhos = `${TEST_FOLDER}/${folder.folderName}`
+        const folderPathInOhos = joinPlatformPath(testFolder, folder.folderName)
 
         await then('Create folder in HarmonyOS', {
-            base: TEST_FOLDER,
+            base: testFolder,
             folder: folder,
         })
 

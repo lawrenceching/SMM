@@ -15,6 +15,8 @@ import {
 } from "test/lib/download-folder"
 import env from "test/lib/env"
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 describe('MusicPanel - Download', () => {
     let testFolder = ''
 
@@ -27,6 +29,7 @@ describe('MusicPanel - Download', () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -41,6 +44,7 @@ describe('MusicPanel - Download', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

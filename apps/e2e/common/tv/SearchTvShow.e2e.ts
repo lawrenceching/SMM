@@ -14,6 +14,8 @@ import 'test/steps'
 import env from 'test/lib/env'
 import type { MediaMetadata, UserConfig } from '@smm/core/types'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const OSHI_NO_KO_TMDB_EPISODE_TABLE = `特别篇
 S00E01 - - - -
 S00E02 - - - -
@@ -54,6 +56,9 @@ S01E33 - - - -
 S01E34 - - - -
 S01E35 - - - -`
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Search TV Show', () => {
     let testFolder = ''
 
@@ -71,6 +76,7 @@ describe('Search TV Show', () => {
             },
             openBrowserPage: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -88,6 +94,7 @@ describe('Search TV Show', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

@@ -5,6 +5,7 @@ import { cleanup, setup } from 'test/lib/testbed'
 import { delay } from 'es-toolkit'
 import type { TestFolder } from 'test/actions/import-folders'
 import { env } from 'node:process'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -30,6 +31,7 @@ describe('Sidebar', () => {
                 userConfig.preferMediaLanguage = 'zh-CN'
                 return userConfig
             },
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -43,6 +45,7 @@ describe('Sidebar', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

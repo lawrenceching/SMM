@@ -2,6 +2,7 @@ import { expect } from '@wdio/globals'
 import type { MediaMetadata } from '@smm/core/types'
 import { Path } from '@smm/core'
 import mcpClient from 'test/lib/McpClient'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   expectMediaMetadataViaBrowser,
   cleanup,
@@ -40,6 +41,7 @@ describe('MCP Other - RenameFolderTool', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
 
@@ -55,6 +57,7 @@ describe('MCP Other - RenameFolderTool', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
     if (testFolder) {
       await clearFolderViaBrowser(testFolder)

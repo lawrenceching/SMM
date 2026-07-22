@@ -17,6 +17,8 @@ import type { UserConfig } from '@smm/core/types'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const WRONG_TVDB_API_KEY = 'invalid-wrong-key-12345'
 
 describe('Custom TVDB Host (Wrong API Key)', () => {
@@ -61,6 +63,7 @@ describe('Custom TVDB Host (Wrong API Key)', () => {
                 }
                 return config
             },
+            os: testbedOs,
         })
         resetStepContext()
 
@@ -75,6 +78,7 @@ describe('Custom TVDB Host (Wrong API Key)', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

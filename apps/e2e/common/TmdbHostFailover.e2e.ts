@@ -15,6 +15,8 @@ import 'test/steps'
 import env from 'test/lib/env'
 import type { MediaMetadata, UserConfig } from '@smm/core/types'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 /**
  * Serves a discover config whose first TMDB host is unreachable so the app
  * must fail over to the second host. Must match EXTERNAL_CONFIG_FILE_URL
@@ -47,6 +49,7 @@ describe('TMDB Host Failover', () => {
             },
             openBrowserPage: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -64,6 +67,7 @@ describe('TMDB Host Failover', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

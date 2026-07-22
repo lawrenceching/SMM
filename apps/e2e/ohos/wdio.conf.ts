@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
+import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
 import {
     startFrontendConsoleCapture,
     stopFrontendConsoleCapture,
@@ -146,6 +147,8 @@ export const config: WebdriverIO.Config = {
      * and stream renderer console to disk (Classic WebDriver — no BiDi).
      */
     before: async () => {
+        await applyE2eWindowSize()
+
         try {
             await startFrontendConsoleCapture(DEBUGGER_ADDRESS)
         } catch (err) {

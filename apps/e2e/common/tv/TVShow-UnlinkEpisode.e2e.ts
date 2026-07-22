@@ -9,9 +9,14 @@ import { given, when, then, resetStepContext, getStepContext } from 'test/lib/gh
 import 'test/steps'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const FOLDER_NAME = '天使降临到我身边！ (2019) {tmdbid=84666}'
 const EPISODE_FILE_NAME = 'S01E01.mp4'
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TVShow - Unlink Episode', () => {
     let testFolder = ''
 
@@ -24,6 +29,7 @@ describe('TVShow - Unlink Episode', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -41,6 +47,7 @@ describe('TVShow - Unlink Episode', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

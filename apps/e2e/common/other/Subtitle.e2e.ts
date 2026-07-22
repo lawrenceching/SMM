@@ -1,6 +1,7 @@
 import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { cleanup, setup } from 'test/lib/testbed'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -52,6 +53,7 @@ describe('Subtitle', () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -69,6 +71,7 @@ describe('Subtitle', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

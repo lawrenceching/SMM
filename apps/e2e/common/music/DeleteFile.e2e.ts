@@ -2,6 +2,7 @@ import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import StatusBar from 'test/componentobjects/StatusBar'
 import { cleanup, setup } from 'test/lib/testbed'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -89,6 +90,7 @@ describe('DeleteFile', () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -107,6 +109,7 @@ describe('DeleteFile', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

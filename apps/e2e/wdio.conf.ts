@@ -16,6 +16,18 @@ import {
     saveNetworkLog,
     setupNetworkLogCapture,
 } from './test/lib/networkLogCapture';
+import { applyE2eWindowSize } from './test/lib/e2e-window-size';
+
+/** Re-export for older imports; prefer `test/lib/e2e-window-size`. */
+export {
+    DEFAULT_E2E_WINDOW_WIDTH,
+    DEFAULT_E2E_WINDOW_HEIGHT,
+    resolveE2eWindowSize,
+    fitE2eWindowSizeToScreen,
+    shouldFitE2eWindowToScreen,
+    resolveAppliedE2eWindowSize,
+    applyE2eWindowSize,
+} from './test/lib/e2e-window-size';
 
 const HTML_REPORT_DIR = './reports/html-reports';
 const PINNED_CHROME_VERSION = '146.0.7680.153';
@@ -168,82 +180,6 @@ const chromeOptionsForDockerEnv: string[] = [
     '--allow-running-insecure-content',
     '--unsafely-treat-insecure-origin-as-secure=http://*'
 ]
-
-/** WebDriver window: Chrome's --window-size does not reliably set the WebDriver window
- *  (especially in headless mode), so apply via setWindowSize in `before` whenever we have
- *  a target size. The default ensures layout tests that depend on container queries get
- *  a wide enough viewport locally, not just in CI.
- *
- *  On Windows high-DPI (e.g. 4K @ 200%), the logical work area is often ~1920x1080 already,
- *  so a hard 1920x1080 outer window overflows the screen. Headed Chrome also gets
- *  `--force-device-scale-factor=1` so CSS pixels match the requested size (half of 4K). */
-export const DEFAULT_E2E_WINDOW_WIDTH = 1920
-export const DEFAULT_E2E_WINDOW_HEIGHT = 1080
-
-export function resolveE2eWindowSize(): { width: number; height: number } {
-    const widthEnv = process.env.E2E_WINDOW_WIDTH
-    const heightEnv = process.env.E2E_WINDOW_HEIGHT
-    if (widthEnv && heightEnv) {
-        const width = Number(widthEnv)
-        const height = Number(heightEnv)
-        if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
-            return { width, height }
-        }
-    }
-    return { width: DEFAULT_E2E_WINDOW_WIDTH, height: DEFAULT_E2E_WINDOW_HEIGHT }
-}
-
-/** Clamp the target outer window size to the browser-reported work area (CSS/DIP pixels). */
-export function fitE2eWindowSizeToScreen(
-    target: { width: number; height: number },
-    screenAvail: { availWidth: number; availHeight: number },
-): { width: number; height: number } {
-    const availWidth = Math.max(1, Math.floor(screenAvail.availWidth))
-    const availHeight = Math.max(1, Math.floor(screenAvail.availHeight))
-    return {
-        width: Math.min(target.width, availWidth),
-        height: Math.min(target.height, availHeight),
-    }
-}
-
-/** CI/docker headless may report a tiny virtual screen (e.g. 800x600) before resize;
- *  clamping there would permanently shrink the target viewport. */
-export function shouldFitE2eWindowToScreen(): boolean {
-    return process.env.BUILD_ENV !== 'docker'
-}
-
-export function resolveAppliedE2eWindowSize(
-    target: { width: number; height: number },
-    screenAvail: { availWidth: number; availHeight: number },
-    options: { fitToScreen: boolean },
-): { width: number; height: number } {
-    if (!options.fitToScreen) {
-        return target
-    }
-    return fitE2eWindowSizeToScreen(target, screenAvail)
-}
-
-async function applyE2eWindowSize(): Promise<void> {
-    const target = resolveE2eWindowSize()
-    const fitToScreen = shouldFitE2eWindowToScreen()
-    const screenAvail = await browser.execute(() => ({
-        availWidth: window.screen.availWidth,
-        availHeight: window.screen.availHeight,
-        devicePixelRatio: window.devicePixelRatio,
-    }))
-    const size = resolveAppliedE2eWindowSize(target, screenAvail, { fitToScreen })
-
-    await browser.setWindowSize(size.width, size.height)
-    const rect = await browser.getWindowRect()
-    console.log(
-        `[E2E] setWindowSize target=${target.width}x${target.height} ` +
-            `fitted=${size.width}x${size.height} fitToScreen=${fitToScreen}; ` +
-            `getWindowRect=${rect.width}x${rect.height}; ` +
-            `screenAvail=${screenAvail.availWidth}x${screenAvail.availHeight} ` +
-            `dpr=${screenAvail.devicePixelRatio}; ` +
-            `inner=${await browser.execute(() => `${window.innerWidth}x${window.innerHeight}`)}`,
-    )
-}
 
 /**
  * https://webdriver.io/docs/capabilities/

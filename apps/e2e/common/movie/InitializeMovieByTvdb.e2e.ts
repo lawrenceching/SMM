@@ -8,12 +8,16 @@ import {
     clearFolderViaBrowser,
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
-import { delay } from 'es-toolkit'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Initialize Movie by TVDB', () => {
     let testFolder = ''
 
@@ -29,6 +33,7 @@ describe('Initialize Movie by TVDB', () => {
                 config.primaryDatabase = 'TVDB'
                 config.preferMediaLanguage = 'zh-CN'
             },
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -45,6 +50,7 @@ describe('Initialize Movie by TVDB', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -56,10 +62,9 @@ describe('Initialize Movie by TVDB', () => {
 
         await given('Movie folder was initialized by TVDB ID')
 
-        await delay(10 * 1000)
-
         await then('movie panel shows the expected TVDB movie title', async () => {
-            expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：黑暗骑士')
+            // Avoid fixed delay + getValue while status=initializing (Skeleton hides input).
+            await MoviePanelCO.waitForTitleToBe('蝙蝠侠：黑暗骑士', 3 * 60 * 1000)
         })
 
         await then('movie panel table shows the expected content', async () => {
@@ -88,10 +93,8 @@ The Dark Knight [1080P].mkv`)
 
         await given('Movie folder "Batman Return of the Caped Crusaders" was initialized by TVDB folder name')
 
-        await delay(10 * 1000)
-
         await then('movie panel shows the expected searched TVDB movie title', async () => {
-            expect(await MoviePanelCO.input.getValue()).toBe('蝙蝠侠：披风斗士归来')
+            await MoviePanelCO.waitForTitleToBe('蝙蝠侠：披风斗士归来', 3 * 60 * 1000)
         })
 
         await then('movie panel table shows the expected content', async () => {

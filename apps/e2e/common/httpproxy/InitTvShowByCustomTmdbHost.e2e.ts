@@ -16,6 +16,8 @@ import type { MediaMetadata, UserConfig } from '@smm/core/types'
 import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { env } from 'node:process'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const CUSTOM_TMDB_HOST = 'https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com'
 
 describe('Init TV Show via Custom TMDB Host', () => {
@@ -42,6 +44,7 @@ describe('Init TV Show via Custom TMDB Host', () => {
                 config.preferMediaLanguage = 'en-US'
                 return config
             },
+            os: testbedOs,
         })
         resetStepContext()
 
@@ -56,6 +59,7 @@ describe('Init TV Show via Custom TMDB Host', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

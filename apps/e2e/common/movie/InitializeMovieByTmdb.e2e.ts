@@ -1,4 +1,4 @@
-import { expect, browser } from '@wdio/globals'
+import { expect } from '@wdio/globals'
 import { setup, cleanup } from 'test/lib/testbed'
 import {
     clearFolderViaBrowser,
@@ -10,6 +10,11 @@ import 'test/steps'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import { env } from 'node:process'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Initialize Movie by TMDB', () => {
     let testFolder = ''
 
@@ -25,6 +30,7 @@ describe('Initialize Movie by TMDB', () => {
                 config.primaryDatabase = 'TMDB'
                 config.preferMediaLanguage = 'zh-CN'
             },
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -41,6 +47,7 @@ describe('Initialize Movie by TMDB', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
@@ -63,13 +70,8 @@ describe('Initialize Movie by TMDB', () => {
         })
 
         await then('immersive input shows the folder name as the movie title', async () => {
-            const immersiveInput = await $('[data-testid="immersive-input"]')
-            await immersiveInput.waitForDisplayed({ timeout: 15000 })
-            await browser.waitUntil(
-                async () => (await immersiveInput.getValue()) === '哪吒之魔童降世',
-                { timeout: 10000, timeoutMsg: 'ImmersiveMovieSearchbox title did not become "哪吒之魔童降世"' },
-            )
-            expect(await immersiveInput.getValue()).toBe('哪吒之魔童降世')
+            // Folder-name search keeps status=initializing (Skeleton, no immersive-input).
+            await MoviePanelCO.waitForTitleToBe('哪吒之魔童降世', 3 * 60 * 1000)
         })
     })
 
@@ -91,8 +93,7 @@ describe('Initialize Movie by TMDB', () => {
         })
 
         await then('movie panel shows the expected title', async () => {
-            await browser.pause(5000)
-            await MoviePanelCO.waitForTitleToBe(expectedMovieTitle, 20000)
+            await MoviePanelCO.waitForTitleToBe(expectedMovieTitle, 3 * 60 * 1000)
         })
     })
 
@@ -112,23 +113,17 @@ describe('Initialize Movie by TMDB', () => {
         })
 
         await then('movie panel input shows the expected title', async () => {
-            await browser.pause(20000)
-            expect(await MoviePanelCO.input.getValue()).toBe('流浪地球')
+            await MoviePanelCO.waitForTitleToBe('流浪地球', 3 * 60 * 1000)
         })
     })
 
     it('Movie - Unknown', async function () {
-        this.timeout(15 * 1000)
+        this.timeout(3 * 60 * 1000)
 
         await given('Movie folder was created as unknown')
 
-        await delay(2 * 1000)
-
         await then('immersive input is empty', async () => {
-            const immersiveInput = await $('[data-testid="immersive-input"]')
-            await immersiveInput.waitForDisplayed({ timeout: 5000 })
-            const value = await immersiveInput.getValue()
-            expect(value).toBe('')
+            await MoviePanelCO.waitForTitleToBe('', 3 * 60 * 1000)
         })
     })
 })

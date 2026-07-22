@@ -4,6 +4,7 @@ import { Path } from '@smm/core'
 import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
   expectMediaMetadataViaBrowser,
   cleanup,
@@ -39,6 +40,7 @@ describe('MCP Other - RenameTaskFlow', () => {
       removeMediaFolders: true,
       resetUserConfig: true,
       openBrowserPage: true,
+      os: testbedOs,
     })
     await setupMcpTest()
 
@@ -54,6 +56,7 @@ describe('MCP Other - RenameTaskFlow', () => {
       removePlansDir: true,
       removeMediaFolders: true,
       resetUserConfig: false,
+      os: testbedOs,
     })
     if (testFolder) {
       await clearFolderViaBrowser(testFolder)

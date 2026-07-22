@@ -45,7 +45,7 @@ registerStep('TV show folder "xxx" with files "xxx" was imported via menu', asyn
         return mediaMetadata
     })
 
-    await page.open()
+    await page.refresh()
     const isDisplayed = await Sidebar.waitForFolderName(folderName!, 60000)
     if (!isDisplayed) {
         throw new Error(`Folder "${folderName}" did not appear in sidebar`)

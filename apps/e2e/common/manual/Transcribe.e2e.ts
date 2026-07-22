@@ -7,7 +7,7 @@ import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
 import { readdirSync } from 'node:fs'
 import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
-import { skipIfOhos } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 
 describe('Transcribe', () => {
     before(function () {
@@ -24,6 +24,7 @@ describe('Transcribe', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
 
 
@@ -36,6 +37,7 @@ describe('Transcribe', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

@@ -4,7 +4,7 @@ import { copyAndImportFolder } from "test/actions/import-folders"
 import Sidebar from "test/componentobjects/Sidebar"
 import { cleanup, setup } from "test/lib/testbed"
 import MusicPanel from "test/componentobjects/MusicPanel.co"
-import { skipIfOhos } from "test/lib/e2e-platform"
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 const videoFolderPath = join(import.meta.dirname, '../../../../test/media/tutorials')
 
 describe('MusicPanel - Transcribe', () => {
@@ -39,6 +39,7 @@ describe('MusicPanel - Transcribe', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
   
@@ -49,6 +50,7 @@ describe('MusicPanel - Transcribe', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

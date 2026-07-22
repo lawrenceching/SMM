@@ -6,6 +6,8 @@ import Page from 'test/pageobjects/page'
 import { cleanup, setup } from 'test/lib/testbed'
 import { delay } from 'es-toolkit'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const slowdown = process.env.SLOWDOWN === 'true'
 
 /** Must not match resetUserConfig default (DeepSeek) or COMMON_AI_PROVIDER_NAMES presets. */
@@ -36,6 +38,7 @@ describe('Config Dialog AI Settings', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 
@@ -46,6 +49,7 @@ describe('Config Dialog AI Settings', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
     })
 

@@ -7,6 +7,7 @@ import env from 'test/lib/env'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import MusicPanelCO from 'test/componentobjects/MusicPanel.co'
 import StatusBar from 'test/componentobjects/StatusBar'
+import { testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -24,6 +25,7 @@ describe('App', () => {
             removeDirInSidebar: true,
             openBrowserPage: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -37,6 +39,7 @@ describe('App', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

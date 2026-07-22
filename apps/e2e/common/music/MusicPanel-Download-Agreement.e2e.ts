@@ -18,6 +18,8 @@ import {
 import MusicPanel from 'test/componentobjects/MusicPanel.co'
 import DownloadVideoDialogCO from 'test/componentobjects/DownloadVideoDialog.co'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const LOCALSTORAGE_AGREEMENT_KEY = 'DownloadVideoDialog.userAgreed'
 
 /**
@@ -55,6 +57,7 @@ describe('MusicPanel - Download - User Agreement (4.1)', () => {
             openBrowserPage: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -75,6 +78,7 @@ describe('MusicPanel - Download - User Agreement (4.1)', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             clearLocalStorage: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

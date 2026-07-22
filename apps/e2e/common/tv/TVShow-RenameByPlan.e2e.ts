@@ -10,6 +10,8 @@ import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import { logTvShowHeaderLayoutDiagnostics } from 'test/lib/tvShowHeaderLayoutDiagnostics'
 import { folder1 } from 'test/actions/import-folders'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const RENAMED_EPISODE_TABLE = `Specials
 S00E01 - - - -
 Season 1
@@ -26,6 +28,9 @@ S01E10 - - - -
 S01E11 - - - -
 S01E12 - - - -`
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TVShow - Rename By Plan', () => {
     let testFolder = ''
 
@@ -38,6 +43,7 @@ describe('TVShow - Rename By Plan', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -51,6 +57,7 @@ describe('TVShow - Rename By Plan', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

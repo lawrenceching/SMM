@@ -9,6 +9,8 @@ import { given, when, then, resetStepContext, getStepContext } from 'test/lib/gh
 import 'test/steps'
 import env from 'test/lib/env'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 const FOLDER_NAME = '天使降临到我身边！ (2019) {tmdbid=84666}'
 const EPISODE_FILE_NAME = 'S01E01.mp4'
 const RENAMED_FILE_NAME = 'S01E01_renamed.mp4'
@@ -42,6 +44,9 @@ function waitForFilesInFolder(
     )
 }
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TVShow - Rename Episode File', () => {
     let testFolder = ''
 
@@ -54,6 +59,7 @@ describe('TVShow - Rename Episode File', () => {
             removeDirInSidebar: true,
             resetUserConfig: true,
             openBrowserPage: true,
+            os: testbedOs,
         })
 
         testFolder = await resolveSmmTestFolderViaBrowser()
@@ -67,6 +73,7 @@ describe('TVShow - Rename Episode File', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

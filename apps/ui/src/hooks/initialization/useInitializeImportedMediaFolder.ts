@@ -524,7 +524,7 @@ export function useInitializeImportedMediaFolder() {
             await withTimeout(async () => {
                 await doInitialization(folderPathInPlatformFormat, type, traceId);
                 onSucceeded(folderPathInPlatformFormat);
-            }, 60 * 1000)
+            }, 3 * 60 * 1000)
 
         } catch (error) {
             logger.error(error, 'failed to initialize media folder');

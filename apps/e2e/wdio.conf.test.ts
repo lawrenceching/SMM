@@ -6,7 +6,7 @@ import {
   resolveAppliedE2eWindowSize,
   resolveE2eWindowSize,
   shouldFitE2eWindowToScreen,
-} from './wdio.conf.ts';
+} from './test/lib/e2e-window-size.ts';
 
 describe('fitE2eWindowSizeToScreen', () => {
   test('clamps 1920x1080 to 4K@200% work area so window fits logical screen', () => {

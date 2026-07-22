@@ -3,6 +3,7 @@ import { create } from "zustand"
 import { useShallow } from "zustand/shallow"
 import { Path } from "@core/path"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"
+import { installUIMediaFolderStoreBridge } from "./uiMediaFolderStoreBridge"
 
 interface UIMediaFolderStoreState {
   folders: UIMediaFolder[]
@@ -105,6 +106,11 @@ const useUIMediaFolderStore = create<UIMediaFolderStore>((set) => ({
       }
     }),
 }))
+
+installUIMediaFolderStoreBridge(() => {
+  const { folders, selectedFolder } = useUIMediaFolderStore.getState()
+  return { folders, selectedFolder }
+})
 
 /** Pure helper for later integration: map `UserConfig.folders` to {@link UIMediaFolder} rows. */
 export function uiMediaFoldersFromPaths(paths: string[]): UIMediaFolder[] {

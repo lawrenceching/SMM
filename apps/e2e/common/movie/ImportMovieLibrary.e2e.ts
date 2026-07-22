@@ -14,9 +14,13 @@ import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
 import { Path } from '@smm/core'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 /**
  * Import a movie media library (common: browser / Electron / HarmonyOS).
  * Fixtures, config, and metadata assertions use browser-protocol APIs only.
+ *
+ * @supports local, Electron, HarmonyOS
  */
 describe('Import Movie Library', () => {
     let testFolder = ''
@@ -33,6 +37,7 @@ describe('Import Movie Library', () => {
                 config.primaryDatabase = 'TMDB'
                 config.preferMediaLanguage = 'zh-CN'
             },
+            os: testbedOs,
         })
 
         const { default: Page } = await import('test/pageobjects/page')
@@ -49,6 +54,7 @@ describe('Import Movie Library', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)

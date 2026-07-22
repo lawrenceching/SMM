@@ -19,6 +19,8 @@ import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
+import { testbedOs } from 'test/lib/e2e-platform'
+
 // Intentionally invalid key. We only care that the request reaches the
 // official TMDB host through the configured HTTP proxy and is rejected
 // with HTTP 401 — that proves the full chain (UI → SMM reverse proxy →
@@ -71,6 +73,7 @@ describe('Custom TMDB Host (via HTTP Proxy)', () => {
                 }
                 return config
             },
+            os: testbedOs,
         })
         resetStepContext()
 
@@ -85,6 +88,7 @@ describe('Custom TMDB Host (via HTTP Proxy)', () => {
             removeMediaFolders: true,
             removeDirInSidebar: true,
             resetUserConfig: true,
+            os: testbedOs,
         })
         if (testFolder) {
             await clearFolderViaBrowser(testFolder)
