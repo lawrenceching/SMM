@@ -10,6 +10,9 @@ import { testbedOs } from 'test/lib/e2e-platform'
 
 const slowdown = process.env.SLOWDOWN === 'true'
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Config Dialog Settings - General Settings', () => {
     before(async () => {
         await setup({

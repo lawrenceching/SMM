@@ -6,12 +6,35 @@ let proxyAddress: string | null = null
 
 export const DEFAULT_EMBEDDED_PROXY_ADDRESS = 'http://127.0.0.1:8990'
 
+/**
+ * Whether to start the in-process proxy-chain server for HTTP-proxy specs.
+ *
+ * HarmonyOS: the app runs on device. An embedded proxy on the host's
+ * `127.0.0.1` is unreachable from the device, so always use
+ * `TMDB_HTTP_PROXY` / `TVDB_HTTP_PROXY` from `apps/e2e/.env.local` instead.
+ */
 export function useEmbeddedHttpProxy(): boolean {
+    if (process.env.E2E_PLATFORM === 'ohos') {
+        return false
+    }
     return process.env.USE_EMBEDDED_HTTP_PROXY !== 'false'
 }
 
 export function getCurrentProxyAddress(): string | null {
     return proxyAddress
+}
+
+/**
+ * HTTP proxy URL to write into userConfig for e2e.
+ * Prefer a running embedded proxy; otherwise TMDB_/TVDB_HTTP_PROXY from env.
+ */
+export function getConfiguredHttpProxyAddress(kind: 'tmdb' | 'tvdb' = 'tmdb'): string {
+    const fromEmbedded = getCurrentProxyAddress()
+    if (fromEmbedded) {
+        return fromEmbedded
+    }
+    const envKey = kind === 'tmdb' ? 'TMDB_HTTP_PROXY' : 'TVDB_HTTP_PROXY'
+    return (process.env[envKey] || '').trim()
 }
 
 export async function startEmbeddedHttpProxy(address: string): Promise<void> {

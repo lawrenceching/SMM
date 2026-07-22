@@ -27,7 +27,8 @@ import {
     writeFileViaBrowser,
 } from './browser-fs'
 import type { TestbedOs } from './ui-page-url'
-import { testbedOs as defaultTestbedOs } from './e2e-platform'
+import { isOhosE2e, testbedOs as defaultTestbedOs } from './e2e-platform'
+import { browser } from '@wdio/globals'
 
 export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
@@ -36,6 +37,7 @@ export { setupTestMediaFolders, getMetadataDir }
 export {
     useEmbeddedHttpProxy,
     getCurrentProxyAddress,
+    getConfiguredHttpProxyAddress,
     startEmbeddedHttpProxy,
     stopEmbeddedHttpProxy,
     DEFAULT_EMBEDDED_PROXY_ADDRESS,
@@ -620,8 +622,15 @@ export async function isOfficialTvdbHostAccessible(): Promise<boolean> {
  * Check if the CLI-managed reverse proxy is up and discoverable through the hello task.
  * Returns true when the hello response contains a `reverseProxyUrl` and that URL responds
  * to an OPTIONS preflight (which the proxy answers with `204 No Content`).
+ *
+ * On HarmonyOS there is no host CLI at localhost:30000 — hello and the reverse
+ * proxy both live on the device. Probe via the attached browser instead.
  */
 export async function isReverseProxyAccessible(): Promise<boolean> {
+    if (isOhosE2e) {
+        return isReverseProxyAccessibleViaBrowser()
+    }
+
     let proxyUrl: string | null = null
     try {
         const helloResp = await hello()
@@ -636,6 +645,43 @@ export async function isReverseProxyAccessible(): Promise<boolean> {
     }
 
     return _isRemoteAccessible(proxyUrl, 'OPTIONS')
+}
+
+async function isReverseProxyAccessibleViaBrowser(): Promise<boolean> {
+    try {
+        setActiveTestbedOs('HarmonyOS')
+        await ensureBrowserOnUiPage('HarmonyOS')
+        const authToken = process.env.SMM_AUTH_TOKEN
+        const result = await browser.execute(async (token: string | undefined) => {
+            const headers: Record<string, string> = {}
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
+            }
+            const helloRes = await fetch('/api/hello', { method: 'POST', headers })
+            const helloBody = await helloRes.json() as { reverseProxyUrl?: string | null }
+            const proxyUrl = helloBody.reverseProxyUrl
+            if (!proxyUrl) {
+                return { ok: false as const, detail: 'hello missing reverseProxyUrl' }
+            }
+            try {
+                const resp = await fetch(proxyUrl, { method: 'OPTIONS' })
+                return { ok: true as const, detail: `status=${resp.status}` }
+            } catch (error) {
+                return {
+                    ok: false as const,
+                    detail: error instanceof Error ? error.message : String(error),
+                }
+            }
+        }, authToken) as { ok: boolean; detail: string }
+
+        if (!result.ok) {
+            console.warn('Reverse proxy not accessible via browser:', result.detail)
+        }
+        return result.ok
+    } catch (error) {
+        console.warn('Failed to probe reverse proxy via browser', error)
+        return false
+    }
 }
 
 export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' | 'OPTIONS' = 'GET'): Promise<boolean> {

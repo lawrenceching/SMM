@@ -7,7 +7,7 @@ import {
     useEmbeddedHttpProxy,
     startEmbeddedHttpProxy,
     stopEmbeddedHttpProxy,
-    getCurrentProxyAddress,
+    getConfiguredHttpProxyAddress,
     DEFAULT_EMBEDDED_PROXY_ADDRESS,
 } from 'test/lib/testbed'
 import {
@@ -27,6 +27,9 @@ import { testbedOs } from 'test/lib/e2e-platform'
 // user HTTP proxy → TVDB) is wired up correctly. No real API key needed.
 const WRONG_TVDB_API_KEY = 'invalid-wrong-key-12345'
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Custom TVDB Host (via HTTP Proxy)', () => {
     let testFolder = ''
 
@@ -69,7 +72,7 @@ describe('Custom TVDB Host (via HTTP Proxy)', () => {
                 config.tvdb = {
                     host: 'https://api4.thetvdb.com/v4',
                     apiKey: WRONG_TVDB_API_KEY,
-                    httpProxy: getCurrentProxyAddress() ?? (process.env.TVDB_HTTP_PROXY || '').trim(),
+                    httpProxy: getConfiguredHttpProxyAddress('tvdb'),
                 }
                 return config
             },

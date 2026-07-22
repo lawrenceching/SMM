@@ -28,6 +28,9 @@ async function findProviderIndexByName(name: string): Promise<number> {
     return -1
 }
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Config Dialog AI Settings', () => {
 
     beforeEach(async () => {
