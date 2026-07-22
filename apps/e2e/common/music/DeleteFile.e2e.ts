@@ -77,6 +77,10 @@ async function findVisibleButton(
     throw new Error(`None of the buttons [${labels.join(', ')}] are visible`)
 }
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('DeleteFile', () => {
     let testFolder = ''
     let folderPath = ''

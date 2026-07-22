@@ -14,6 +14,10 @@ import {
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 
+/**
+ * @supports Electron
+ * @unsupported HarmonyOS
+ */
 describe('App', () => {
     let testFolder = ''
 

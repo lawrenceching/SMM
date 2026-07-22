@@ -9,6 +9,10 @@ import { testbedOs } from 'test/lib/e2e-platform'
 const JOB_DELAY_MS = 5000
 const JOB_NAME = 'E2E 测试任务'
 
+/**
+ * @supports local
+ * @unsupported HarmonyOS
+ */
 describe('Background Job', () => {
     beforeEach(async () => {
         await setup({

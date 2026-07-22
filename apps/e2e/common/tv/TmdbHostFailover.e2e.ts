@@ -24,6 +24,9 @@ import { testbedOs } from 'test/lib/e2e-platform'
  */
 const CONFIG_SERVER_ADDRESS = 'http://localhost:8000'
 
+/**
+ * @supports local, Electron, HarmonyOS
+ */
 describe('TMDB Host Failover', () => {
     let testFolder = ''
 

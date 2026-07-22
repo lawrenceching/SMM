@@ -24,6 +24,10 @@ import {
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP Other - RenameTaskFlow', () => {
   const ctx = createMcpSpecContext()
   let testFolder = ''

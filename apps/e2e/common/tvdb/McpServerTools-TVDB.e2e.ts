@@ -17,6 +17,10 @@ import {
     skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP Server Tools - TVDB', () => {
     const ctx = createMcpSpecContext()
     let testFolder = ''

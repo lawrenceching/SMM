@@ -16,6 +16,10 @@ import {
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP Other - GetEpisodesTool', () => {
   const ctx = createMcpSpecContext()
   let testFolder = ''

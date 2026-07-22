@@ -41,6 +41,10 @@ async function rightClickFirstTrackRow() {
     await dataRow.click({ button: 'right' })
 }
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('Subtitle', () => {
     let testFolder = ''
 

@@ -212,7 +212,7 @@ And the test status of v1.1.0
 | Search by Custom TVDB host behind HTTP Proxy | CustomTvdbHost-WithHttpProxy.e2e.ts | AUTO | |
 | Wrong TMDB API Key          | CustomTmdbHost-WrongApiKey.e2e.ts | AUTO | |
 | Wrong TVDB API Key          | CustomTvdbHost-WrongApiKey.e2e.ts | AUTO | |
-| TMDB Host Failover          | common/TmdbHostFailover.e2e.ts | AUTO ||
+| TMDB Host Failover          | common/tv/TmdbHostFailover.e2e.ts | AUTO ||
 | Init Folder                 | InitTvShowByCustomTmdbHost.e2e.ts | AUTO ||
 |                             | InitTvShowByCustomTvdbHost.e2e.ts | AUTO ||
 |                             | InitTvShowByTmdbBehindHttpProxy.e2e.ts | AUTO ||

@@ -30,6 +30,10 @@ function renamedFolderPath(folderPath: string, folderName: string): string {
     return joinPlatformPath(parent, `${folderName} - Renamed`)
 }
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('Rename Media Folder', () => {
     let testFolder = ''
 

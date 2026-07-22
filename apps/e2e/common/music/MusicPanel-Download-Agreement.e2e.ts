@@ -45,6 +45,10 @@ async function getLocalStorageAgreement(): Promise<string | null> {
     }, LOCALSTORAGE_AGREEMENT_KEY)
 }
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MusicPanel - Download - User Agreement (4.1)', () => {
     let testFolder = ''
 

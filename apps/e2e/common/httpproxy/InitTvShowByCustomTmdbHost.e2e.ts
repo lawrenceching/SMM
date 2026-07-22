@@ -20,6 +20,10 @@ import { testbedOs } from 'test/lib/e2e-platform'
 
 const CUSTOM_TMDB_HOST = 'https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('Init TV Show via Custom TMDB Host', () => {
     let testFolder = ''
 

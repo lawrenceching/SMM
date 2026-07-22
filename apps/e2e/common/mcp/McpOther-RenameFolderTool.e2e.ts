@@ -25,6 +25,10 @@ import {
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP Other - RenameFolderTool', () => {
   const ctx = createMcpSpecContext()
   let testFolder = ''

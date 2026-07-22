@@ -9,6 +9,10 @@ import {
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP Prompts - HowToRenameEpisodeVideoFilesTool', () => {
   const ctx = createMcpSpecContext()
 

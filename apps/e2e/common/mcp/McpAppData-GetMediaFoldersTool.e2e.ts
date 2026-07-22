@@ -15,6 +15,10 @@ import {
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MCP AppData - GetMediaFoldersTool', () => {
   const ctx = createMcpSpecContext()
   let testFolder = ''
