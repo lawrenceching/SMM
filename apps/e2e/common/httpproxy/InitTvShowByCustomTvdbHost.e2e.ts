@@ -3,6 +3,12 @@ import {
     setup,
     cleanup,
     isReverseProxyAccessible,
+    isHttpProxyAccessible,
+    useEmbeddedHttpProxy,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    getConfiguredHttpProxyAddress,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
     expectMediaMetadataViaBrowser,
 } from 'test/lib/testbed'
 import {
@@ -16,11 +22,21 @@ import type { MediaMetadata, UserConfig } from '@smm/core/types'
 import type { TestFolder } from 'test/actions/import-folders'
 import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { env } from 'node:process'
+import { randomUUID } from 'node:crypto'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
-const CUSTOM_TVDB_HOST = 'https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com'
+/** Official TVDB API (from apps/e2e/.env.local `TVDB_HOST`, not a SCF/mediadb proxy). */
+const OFFICIAL_TVDB_HOST =
+    (process.env.TVDB_HOST || '').trim() || 'https://api4.thetvdb.com/v4'
 
+/**
+ * Init TV show via user-configured official TVDB host + API key.
+ * Outbound access uses `TVDB_HTTP_PROXY` / embedded proxy when the LAN blocks
+ * api4.thetvdb.com (see apps/e2e/.env.example).
+ *
+ * @supports local, Electron, HarmonyOS
+ */
 describe('Init TV Show via Custom TVDB Host', () => {
     let testFolder = ''
 
@@ -29,6 +45,28 @@ describe('Init TV Show via Custom TVDB Host', () => {
         if (!proxyAccessible) {
             throw new Error('Reverse proxy is not accessible — CLI proxy may have failed to start')
         }
+
+        const apiKey = (process.env.TVDB_API_KEY || '').trim()
+        if (!apiKey) {
+            throw new Error('TVDB_API_KEY is not set in the e2e environment (apps/e2e/.env.local)')
+        }
+
+        if (useEmbeddedHttpProxy()) {
+            await startEmbeddedHttpProxy(DEFAULT_EMBEDDED_PROXY_ADDRESS)
+        } else {
+            const tvdbHttpProxy = (process.env.TVDB_HTTP_PROXY || '').trim()
+            if (!tvdbHttpProxy) {
+                throw new Error('TVDB_HTTP_PROXY is not set in the e2e environment')
+            }
+            const httpProxyUp = await isHttpProxyAccessible(tvdbHttpProxy)
+            if (!httpProxyUp) {
+                throw new Error(`TVDB HTTP proxy is not reachable: ${tvdbHttpProxy}`)
+            }
+        }
+    })
+
+    after(async () => {
+        await stopEmbeddedHttpProxy()
     })
 
     beforeEach(async () => {
@@ -40,11 +78,15 @@ describe('Init TV Show via Custom TVDB Host', () => {
             openBrowserPage: true,
             resetUserConfig: (config: UserConfig) => {
                 config.tvdb = {
-                    host: CUSTOM_TVDB_HOST,
-                    apiKey: 'custom-host-no-auth-needed',
+                    host: OFFICIAL_TVDB_HOST,
+                    apiKey: (process.env.TVDB_API_KEY || '').trim(),
+                    httpProxy: getConfiguredHttpProxyAddress('tvdb'),
                 }
+                config.preferMediaLanguage = 'en-US'
+                config.applicationLanguage = 'en'
                 return config
             },
+            clearLocalStorage: true,
             os: testbedOs,
         })
         resetStepContext()
@@ -67,13 +109,7 @@ describe('Init TV Show via Custom TVDB Host', () => {
         }
     })
 
-    // Skipped: the custom TVDB host (Tencent Cloud Function) returns 502 on
-    // POST /login because it does not proxy the TVDBv4 login endpoint.
-    // The custom host needs to handle the login flow (POST /login with any
-    // API key → JWT token) before this test can pass.  All GET requests
-    // (e.g. /series/{id}, /series/{id}/extended) work fine via the custom
-    // host — only the login handshake is missing.
-    it.skip('Scenario: TV show folder initialized via custom TVDB host', async function () {
+    it('Scenario: TV show folder initialized via custom TVDB host', async function () {
         if (env.slowdown) {
             this.timeout(60 * 1000)
         }
@@ -83,9 +119,12 @@ describe('Init TV Show via Custom TVDB Host', () => {
         await browser.pause(5000)
 
         const { folder1 } = await import('test/actions/import-folders')
+        // Random folder name (not the show title) so a stuck sidebar title
+        // means recognition failed; a Chinese show title means language wrong.
+        const opaqueFolderName = `e2e-tvdb-${randomUUID()} {tvdbid=355969}`
         await when('Import media folder', {
             ...folder1,
-            folderName: `${folder1.mediaName} {tvdbid=355969}`,
+            folderName: opaqueFolderName,
         } satisfies TestFolder)
 
         if (env.slowdown) {

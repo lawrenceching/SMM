@@ -2064,6 +2064,1354 @@ var require_src = __commonJS((exports2) => {
   };
 });
 
+// ../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
+var require_ms = __commonJS((exports2, module2) => {
+  var s = 1000;
+  var m = s * 60;
+  var h = m * 60;
+  var d = h * 24;
+  var w = d * 7;
+  var y = d * 365.25;
+  module2.exports = function(val, options) {
+    options = options || {};
+    var type = typeof val;
+    if (type === "string" && val.length > 0) {
+      return parse5(val);
+    } else if (type === "number" && isFinite(val)) {
+      return options.long ? fmtLong(val) : fmtShort(val);
+    }
+    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
+  };
+  function parse5(str) {
+    str = String(str);
+    if (str.length > 100) {
+      return;
+    }
+    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
+    if (!match) {
+      return;
+    }
+    var n = parseFloat(match[1]);
+    var type = (match[2] || "ms").toLowerCase();
+    switch (type) {
+      case "years":
+      case "year":
+      case "yrs":
+      case "yr":
+      case "y":
+        return n * y;
+      case "weeks":
+      case "week":
+      case "w":
+        return n * w;
+      case "days":
+      case "day":
+      case "d":
+        return n * d;
+      case "hours":
+      case "hour":
+      case "hrs":
+      case "hr":
+      case "h":
+        return n * h;
+      case "minutes":
+      case "minute":
+      case "mins":
+      case "min":
+      case "m":
+        return n * m;
+      case "seconds":
+      case "second":
+      case "secs":
+      case "sec":
+      case "s":
+        return n * s;
+      case "milliseconds":
+      case "millisecond":
+      case "msecs":
+      case "msec":
+      case "ms":
+        return n;
+      default:
+        return;
+    }
+  }
+  function fmtShort(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return Math.round(ms / d) + "d";
+    }
+    if (msAbs >= h) {
+      return Math.round(ms / h) + "h";
+    }
+    if (msAbs >= m) {
+      return Math.round(ms / m) + "m";
+    }
+    if (msAbs >= s) {
+      return Math.round(ms / s) + "s";
+    }
+    return ms + "ms";
+  }
+  function fmtLong(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return plural(ms, msAbs, d, "day");
+    }
+    if (msAbs >= h) {
+      return plural(ms, msAbs, h, "hour");
+    }
+    if (msAbs >= m) {
+      return plural(ms, msAbs, m, "minute");
+    }
+    if (msAbs >= s) {
+      return plural(ms, msAbs, s, "second");
+    }
+    return ms + " ms";
+  }
+  function plural(ms, msAbs, n, name21) {
+    var isPlural = msAbs >= n * 1.5;
+    return Math.round(ms / n) + " " + name21 + (isPlural ? "s" : "");
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/common.js
+var require_common = __commonJS((exports2, module2) => {
+  function setup(env) {
+    createDebug.debug = createDebug;
+    createDebug.default = createDebug;
+    createDebug.coerce = coerce2;
+    createDebug.disable = disable;
+    createDebug.enable = enable;
+    createDebug.enabled = enabled;
+    createDebug.humanize = require_ms();
+    createDebug.destroy = destroy;
+    Object.keys(env).forEach((key) => {
+      createDebug[key] = env[key];
+    });
+    createDebug.names = [];
+    createDebug.skips = [];
+    createDebug.formatters = {};
+    function selectColor(namespace) {
+      let hash2 = 0;
+      for (let i = 0;i < namespace.length; i++) {
+        hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i);
+        hash2 |= 0;
+      }
+      return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
+    }
+    createDebug.selectColor = selectColor;
+    function createDebug(namespace) {
+      let prevTime;
+      let enableOverride = null;
+      let namespacesCache;
+      let enabledCache;
+      function debug(...args) {
+        if (!debug.enabled) {
+          return;
+        }
+        const self = debug;
+        const curr = Number(new Date);
+        const ms = curr - (prevTime || curr);
+        self.diff = ms;
+        self.prev = prevTime;
+        self.curr = curr;
+        prevTime = curr;
+        args[0] = createDebug.coerce(args[0]);
+        if (typeof args[0] !== "string") {
+          args.unshift("%O");
+        }
+        let index = 0;
+        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+          if (match === "%%") {
+            return "%";
+          }
+          index++;
+          const formatter = createDebug.formatters[format];
+          if (typeof formatter === "function") {
+            const val = args[index];
+            match = formatter.call(self, val);
+            args.splice(index, 1);
+            index--;
+          }
+          return match;
+        });
+        createDebug.formatArgs.call(self, args);
+        const logFn = self.log || createDebug.log;
+        logFn.apply(self, args);
+      }
+      debug.namespace = namespace;
+      debug.useColors = createDebug.useColors();
+      debug.color = createDebug.selectColor(namespace);
+      debug.extend = extend2;
+      debug.destroy = createDebug.destroy;
+      Object.defineProperty(debug, "enabled", {
+        enumerable: true,
+        configurable: false,
+        get: () => {
+          if (enableOverride !== null) {
+            return enableOverride;
+          }
+          if (namespacesCache !== createDebug.namespaces) {
+            namespacesCache = createDebug.namespaces;
+            enabledCache = createDebug.enabled(namespace);
+          }
+          return enabledCache;
+        },
+        set: (v) => {
+          enableOverride = v;
+        }
+      });
+      if (typeof createDebug.init === "function") {
+        createDebug.init(debug);
+      }
+      return debug;
+    }
+    function extend2(namespace, delimiter) {
+      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+      newDebug.log = this.log;
+      return newDebug;
+    }
+    function enable(namespaces) {
+      createDebug.save(namespaces);
+      createDebug.namespaces = namespaces;
+      createDebug.names = [];
+      createDebug.skips = [];
+      const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+      for (const ns of split2) {
+        if (ns[0] === "-") {
+          createDebug.skips.push(ns.slice(1));
+        } else {
+          createDebug.names.push(ns);
+        }
+      }
+    }
+    function matchesTemplate(search, template) {
+      let searchIndex = 0;
+      let templateIndex = 0;
+      let starIndex = -1;
+      let matchIndex = 0;
+      while (searchIndex < search.length) {
+        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+          if (template[templateIndex] === "*") {
+            starIndex = templateIndex;
+            matchIndex = searchIndex;
+            templateIndex++;
+          } else {
+            searchIndex++;
+            templateIndex++;
+          }
+        } else if (starIndex !== -1) {
+          templateIndex = starIndex + 1;
+          matchIndex++;
+          searchIndex = matchIndex;
+        } else {
+          return false;
+        }
+      }
+      while (templateIndex < template.length && template[templateIndex] === "*") {
+        templateIndex++;
+      }
+      return templateIndex === template.length;
+    }
+    function disable() {
+      const namespaces = [
+        ...createDebug.names,
+        ...createDebug.skips.map((namespace) => "-" + namespace)
+      ].join(",");
+      createDebug.enable("");
+      return namespaces;
+    }
+    function enabled(name21) {
+      for (const skip of createDebug.skips) {
+        if (matchesTemplate(name21, skip)) {
+          return false;
+        }
+      }
+      for (const ns of createDebug.names) {
+        if (matchesTemplate(name21, ns)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function coerce2(val) {
+      if (val instanceof Error) {
+        return val.stack || val.message;
+      }
+      return val;
+    }
+    function destroy() {
+      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+    }
+    createDebug.enable(createDebug.load());
+    return createDebug;
+  }
+  module2.exports = setup;
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/browser.js
+var require_browser = __commonJS((exports2, module2) => {
+  exports2.formatArgs = formatArgs;
+  exports2.save = save;
+  exports2.load = load;
+  exports2.useColors = useColors;
+  exports2.storage = localstorage();
+  exports2.destroy = (() => {
+    let warned = false;
+    return () => {
+      if (!warned) {
+        warned = true;
+        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+      }
+    };
+  })();
+  exports2.colors = [
+    "#0000CC",
+    "#0000FF",
+    "#0033CC",
+    "#0033FF",
+    "#0066CC",
+    "#0066FF",
+    "#0099CC",
+    "#0099FF",
+    "#00CC00",
+    "#00CC33",
+    "#00CC66",
+    "#00CC99",
+    "#00CCCC",
+    "#00CCFF",
+    "#3300CC",
+    "#3300FF",
+    "#3333CC",
+    "#3333FF",
+    "#3366CC",
+    "#3366FF",
+    "#3399CC",
+    "#3399FF",
+    "#33CC00",
+    "#33CC33",
+    "#33CC66",
+    "#33CC99",
+    "#33CCCC",
+    "#33CCFF",
+    "#6600CC",
+    "#6600FF",
+    "#6633CC",
+    "#6633FF",
+    "#66CC00",
+    "#66CC33",
+    "#9900CC",
+    "#9900FF",
+    "#9933CC",
+    "#9933FF",
+    "#99CC00",
+    "#99CC33",
+    "#CC0000",
+    "#CC0033",
+    "#CC0066",
+    "#CC0099",
+    "#CC00CC",
+    "#CC00FF",
+    "#CC3300",
+    "#CC3333",
+    "#CC3366",
+    "#CC3399",
+    "#CC33CC",
+    "#CC33FF",
+    "#CC6600",
+    "#CC6633",
+    "#CC9900",
+    "#CC9933",
+    "#CCCC00",
+    "#CCCC33",
+    "#FF0000",
+    "#FF0033",
+    "#FF0066",
+    "#FF0099",
+    "#FF00CC",
+    "#FF00FF",
+    "#FF3300",
+    "#FF3333",
+    "#FF3366",
+    "#FF3399",
+    "#FF33CC",
+    "#FF33FF",
+    "#FF6600",
+    "#FF6633",
+    "#FF9900",
+    "#FF9933",
+    "#FFCC00",
+    "#FFCC33"
+  ];
+  function useColors() {
+    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
+      return true;
+    }
+    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+      return false;
+    }
+    let m;
+    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+  }
+  function formatArgs(args) {
+    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module2.exports.humanize(this.diff);
+    if (!this.useColors) {
+      return;
+    }
+    const c = "color: " + this.color;
+    args.splice(1, 0, c, "color: inherit");
+    let index = 0;
+    let lastC = 0;
+    args[0].replace(/%[a-zA-Z%]/g, (match) => {
+      if (match === "%%") {
+        return;
+      }
+      index++;
+      if (match === "%c") {
+        lastC = index;
+      }
+    });
+    args.splice(lastC, 0, c);
+  }
+  exports2.log = console.debug || console.log || (() => {});
+  function save(namespaces) {
+    try {
+      if (namespaces) {
+        exports2.storage.setItem("debug", namespaces);
+      } else {
+        exports2.storage.removeItem("debug");
+      }
+    } catch (error48) {}
+  }
+  function load() {
+    let r;
+    try {
+      r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
+    } catch (error48) {}
+    if (!r && typeof process !== "undefined" && "env" in process) {
+      r = process.env.DEBUG;
+    }
+    return r;
+  }
+  function localstorage() {
+    try {
+      return localStorage;
+    } catch (error48) {}
+  }
+  module2.exports = require_common()(exports2);
+  var { formatters } = module2.exports;
+  formatters.j = function(v) {
+    try {
+      return JSON.stringify(v);
+    } catch (error48) {
+      return "[UnexpectedJSONParseError]: " + error48.message;
+    }
+  };
+});
+
+// ../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js
+var require_has_flag = __commonJS((exports2, module2) => {
+  module2.exports = (flag, argv = process.argv) => {
+    const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+    const position = argv.indexOf(prefix + flag);
+    const terminatorPosition = argv.indexOf("--");
+    return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+  };
+});
+
+// ../../node_modules/.pnpm/supports-color@8.1.1/node_modules/supports-color/index.js
+var require_supports_color = __commonJS((exports2, module2) => {
+  var os2 = require("os");
+  var tty = require("tty");
+  var hasFlag = require_has_flag();
+  var { env } = process;
+  var flagForceColor;
+  if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+    flagForceColor = 0;
+  } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+    flagForceColor = 1;
+  }
+  function envForceColor() {
+    if ("FORCE_COLOR" in env) {
+      if (env.FORCE_COLOR === "true") {
+        return 1;
+      }
+      if (env.FORCE_COLOR === "false") {
+        return 0;
+      }
+      return env.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+    }
+  }
+  function translateLevel(level) {
+    if (level === 0) {
+      return false;
+    }
+    return {
+      level,
+      hasBasic: true,
+      has256: level >= 2,
+      has16m: level >= 3
+    };
+  }
+  function supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+    const noFlagForceColor = envForceColor();
+    if (noFlagForceColor !== undefined) {
+      flagForceColor = noFlagForceColor;
+    }
+    const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+    if (forceColor === 0) {
+      return 0;
+    }
+    if (sniffFlags) {
+      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+        return 3;
+      }
+      if (hasFlag("color=256")) {
+        return 2;
+      }
+    }
+    if (haveStream && !streamIsTTY && forceColor === undefined) {
+      return 0;
+    }
+    const min = forceColor || 0;
+    if (env.TERM === "dumb") {
+      return min;
+    }
+    if (process.platform === "win32") {
+      const osRelease = os2.release().split(".");
+      if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+        return Number(osRelease[2]) >= 14931 ? 3 : 2;
+      }
+      return 1;
+    }
+    if ("CI" in env) {
+      if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => (sign in env)) || env.CI_NAME === "codeship") {
+        return 1;
+      }
+      return min;
+    }
+    if ("TEAMCITY_VERSION" in env) {
+      return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+    }
+    if (env.COLORTERM === "truecolor") {
+      return 3;
+    }
+    if ("TERM_PROGRAM" in env) {
+      const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+      switch (env.TERM_PROGRAM) {
+        case "iTerm.app":
+          return version2 >= 3 ? 3 : 2;
+        case "Apple_Terminal":
+          return 2;
+      }
+    }
+    if (/-256(color)?$/i.test(env.TERM)) {
+      return 2;
+    }
+    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+      return 1;
+    }
+    if ("COLORTERM" in env) {
+      return 1;
+    }
+    return min;
+  }
+  function getSupportLevel(stream, options = {}) {
+    const level = supportsColor(stream, {
+      streamIsTTY: stream && stream.isTTY,
+      ...options
+    });
+    return translateLevel(level);
+  }
+  module2.exports = {
+    supportsColor: getSupportLevel,
+    stdout: getSupportLevel({ isTTY: tty.isatty(1) }),
+    stderr: getSupportLevel({ isTTY: tty.isatty(2) })
+  };
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/node.js
+var require_node2 = __commonJS((exports2, module2) => {
+  var tty = require("tty");
+  var util3 = require("util");
+  exports2.init = init;
+  exports2.log = log;
+  exports2.formatArgs = formatArgs;
+  exports2.save = save;
+  exports2.load = load;
+  exports2.useColors = useColors;
+  exports2.destroy = util3.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+  exports2.colors = [6, 2, 3, 4, 5, 1];
+  try {
+    const supportsColor = require_supports_color();
+    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+      exports2.colors = [
+        20,
+        21,
+        26,
+        27,
+        32,
+        33,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        56,
+        57,
+        62,
+        63,
+        68,
+        69,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        92,
+        93,
+        98,
+        99,
+        112,
+        113,
+        128,
+        129,
+        134,
+        135,
+        148,
+        149,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        178,
+        179,
+        184,
+        185,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        214,
+        215,
+        220,
+        221
+      ];
+    }
+  } catch (error48) {}
+  exports2.inspectOpts = Object.keys(process.env).filter((key) => {
+    return /^debug_/i.test(key);
+  }).reduce((obj, key) => {
+    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
+      return k.toUpperCase();
+    });
+    let val = process.env[key];
+    if (/^(yes|on|true|enabled)$/i.test(val)) {
+      val = true;
+    } else if (/^(no|off|false|disabled)$/i.test(val)) {
+      val = false;
+    } else if (val === "null") {
+      val = null;
+    } else {
+      val = Number(val);
+    }
+    obj[prop] = val;
+    return obj;
+  }, {});
+  function useColors() {
+    return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+  }
+  function formatArgs(args) {
+    const { namespace: name21, useColors: useColors2 } = this;
+    if (useColors2) {
+      const c = this.color;
+      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
+      const prefix = `  ${colorCode};1m${name21} \x1B[0m`;
+      args[0] = prefix + args[0].split(`
+`).join(`
+` + prefix);
+      args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
+    } else {
+      args[0] = getDate() + name21 + " " + args[0];
+    }
+  }
+  function getDate() {
+    if (exports2.inspectOpts.hideDate) {
+      return "";
+    }
+    return new Date().toISOString() + " ";
+  }
+  function log(...args) {
+    return process.stderr.write(util3.formatWithOptions(exports2.inspectOpts, ...args) + `
+`);
+  }
+  function save(namespaces) {
+    if (namespaces) {
+      process.env.DEBUG = namespaces;
+    } else {
+      delete process.env.DEBUG;
+    }
+  }
+  function load() {
+    return process.env.DEBUG;
+  }
+  function init(debug) {
+    debug.inspectOpts = {};
+    const keys = Object.keys(exports2.inspectOpts);
+    for (let i = 0;i < keys.length; i++) {
+      debug.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
+    }
+  }
+  module2.exports = require_common()(exports2);
+  var { formatters } = module2.exports;
+  formatters.o = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util3.inspect(v, this.inspectOpts).split(`
+`).map((str) => str.trim()).join(" ");
+  };
+  formatters.O = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util3.inspect(v, this.inspectOpts);
+  };
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/index.js
+var require_src2 = __commonJS((exports2, module2) => {
+  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
+    module2.exports = require_browser();
+  } else {
+    module2.exports = require_node2();
+  }
+});
+
+// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/helpers.js
+var require_helpers = __commonJS((exports2) => {
+  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports2 && exports2.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.req = exports2.json = exports2.toBuffer = undefined;
+  var http = __importStar(require("http"));
+  var https = __importStar(require("https"));
+  async function toBuffer(stream) {
+    let length = 0;
+    const chunks = [];
+    for await (const chunk2 of stream) {
+      length += chunk2.length;
+      chunks.push(chunk2);
+    }
+    return Buffer.concat(chunks, length);
+  }
+  exports2.toBuffer = toBuffer;
+  async function json3(stream) {
+    const buf = await toBuffer(stream);
+    const str = buf.toString("utf8");
+    try {
+      return JSON.parse(str);
+    } catch (_err) {
+      const err = _err;
+      err.message += ` (input: ${str})`;
+      throw err;
+    }
+  }
+  exports2.json = json3;
+  function req(url2, opts = {}) {
+    const href = typeof url2 === "string" ? url2 : url2.href;
+    const req2 = (href.startsWith("https:") ? https : http).request(url2, opts);
+    const promise2 = new Promise((resolve2, reject) => {
+      req2.once("response", resolve2).once("error", reject).end();
+    });
+    req2.then = promise2.then.bind(promise2);
+    return req2;
+  }
+  exports2.req = req;
+});
+
+// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/index.js
+var require_dist2 = __commonJS((exports2) => {
+  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports2 && exports2.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
+        __createBinding(exports3, m, p);
+  };
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.Agent = undefined;
+  var net = __importStar(require("net"));
+  var http = __importStar(require("http"));
+  var https_1 = require("https");
+  __exportStar(require_helpers(), exports2);
+  var INTERNAL = Symbol("AgentBaseInternalState");
+
+  class Agent extends http.Agent {
+    constructor(opts) {
+      super(opts);
+      this[INTERNAL] = {};
+    }
+    isSecureEndpoint(options) {
+      if (options) {
+        if (typeof options.secureEndpoint === "boolean") {
+          return options.secureEndpoint;
+        }
+        if (typeof options.protocol === "string") {
+          return options.protocol === "https:";
+        }
+      }
+      const { stack } = new Error;
+      if (typeof stack !== "string")
+        return false;
+      return stack.split(`
+`).some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
+    }
+    incrementSockets(name21) {
+      if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
+        return null;
+      }
+      if (!this.sockets[name21]) {
+        this.sockets[name21] = [];
+      }
+      const fakeSocket = new net.Socket({ writable: false });
+      this.sockets[name21].push(fakeSocket);
+      this.totalSocketCount++;
+      return fakeSocket;
+    }
+    decrementSockets(name21, socket) {
+      if (!this.sockets[name21] || socket === null) {
+        return;
+      }
+      const sockets = this.sockets[name21];
+      const index = sockets.indexOf(socket);
+      if (index !== -1) {
+        sockets.splice(index, 1);
+        this.totalSocketCount--;
+        if (sockets.length === 0) {
+          delete this.sockets[name21];
+        }
+      }
+    }
+    getName(options) {
+      const secureEndpoint = this.isSecureEndpoint(options);
+      if (secureEndpoint) {
+        return https_1.Agent.prototype.getName.call(this, options);
+      }
+      return super.getName(options);
+    }
+    createSocket(req, options, cb) {
+      const connectOpts = {
+        ...options,
+        secureEndpoint: this.isSecureEndpoint(options)
+      };
+      const name21 = this.getName(connectOpts);
+      const fakeSocket = this.incrementSockets(name21);
+      Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
+        this.decrementSockets(name21, fakeSocket);
+        if (socket instanceof http.Agent) {
+          try {
+            return socket.addRequest(req, connectOpts);
+          } catch (err) {
+            return cb(err);
+          }
+        }
+        this[INTERNAL].currentSocket = socket;
+        super.createSocket(req, options, cb);
+      }, (err) => {
+        this.decrementSockets(name21, fakeSocket);
+        cb(err);
+      });
+    }
+    createConnection() {
+      const socket = this[INTERNAL].currentSocket;
+      this[INTERNAL].currentSocket = undefined;
+      if (!socket) {
+        throw new Error("No socket was returned in the `connect()` function");
+      }
+      return socket;
+    }
+    get defaultPort() {
+      return this[INTERNAL].defaultPort ?? (this.protocol === "https:" ? 443 : 80);
+    }
+    set defaultPort(v) {
+      if (this[INTERNAL]) {
+        this[INTERNAL].defaultPort = v;
+      }
+    }
+    get protocol() {
+      return this[INTERNAL].protocol ?? (this.isSecureEndpoint() ? "https:" : "http:");
+    }
+    set protocol(v) {
+      if (this[INTERNAL]) {
+        this[INTERNAL].protocol = v;
+      }
+    }
+  }
+  exports2.Agent = Agent;
+});
+
+// ../../node_modules/.pnpm/http-proxy-agent@7.0.2/node_modules/http-proxy-agent/dist/index.js
+var require_dist3 = __commonJS((exports2) => {
+  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports2 && exports2.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.HttpProxyAgent = undefined;
+  var net = __importStar(require("net"));
+  var tls = __importStar(require("tls"));
+  var debug_1 = __importDefault(require_src2());
+  var events_1 = require("events");
+  var agent_base_1 = require_dist2();
+  var url_1 = require("url");
+  var debug = (0, debug_1.default)("http-proxy-agent");
+
+  class HttpProxyAgent extends agent_base_1.Agent {
+    constructor(proxy, opts) {
+      super(opts);
+      this.proxy = typeof proxy === "string" ? new url_1.URL(proxy) : proxy;
+      this.proxyHeaders = opts?.headers ?? {};
+      debug("Creating new HttpProxyAgent instance: %o", this.proxy.href);
+      const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, "");
+      const port = this.proxy.port ? parseInt(this.proxy.port, 10) : this.proxy.protocol === "https:" ? 443 : 80;
+      this.connectOpts = {
+        ...opts ? omit3(opts, "headers") : null,
+        host,
+        port
+      };
+    }
+    addRequest(req, opts) {
+      req._header = null;
+      this.setRequestProps(req, opts);
+      super.addRequest(req, opts);
+    }
+    setRequestProps(req, opts) {
+      const { proxy } = this;
+      const protocol = opts.secureEndpoint ? "https:" : "http:";
+      const hostname3 = req.getHeader("host") || "localhost";
+      const base = `${protocol}//${hostname3}`;
+      const url2 = new url_1.URL(req.path, base);
+      if (opts.port !== 80) {
+        url2.port = String(opts.port);
+      }
+      req.path = String(url2);
+      const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
+      if (proxy.username || proxy.password) {
+        const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+        headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+      }
+      if (!headers["Proxy-Connection"]) {
+        headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
+      }
+      for (const name21 of Object.keys(headers)) {
+        const value = headers[name21];
+        if (value) {
+          req.setHeader(name21, value);
+        }
+      }
+    }
+    async connect(req, opts) {
+      req._header = null;
+      if (!req.path.includes("://")) {
+        this.setRequestProps(req, opts);
+      }
+      let first;
+      let endOfHeaders;
+      debug("Regenerating stored HTTP header string for request");
+      req._implicitHeader();
+      if (req.outputData && req.outputData.length > 0) {
+        debug("Patching connection write() output buffer with updated header");
+        first = req.outputData[0].data;
+        endOfHeaders = first.indexOf(`\r
+\r
+`) + 4;
+        req.outputData[0].data = req._header + first.substring(endOfHeaders);
+        debug("Output buffer: %o", req.outputData[0].data);
+      }
+      let socket;
+      if (this.proxy.protocol === "https:") {
+        debug("Creating `tls.Socket`: %o", this.connectOpts);
+        socket = tls.connect(this.connectOpts);
+      } else {
+        debug("Creating `net.Socket`: %o", this.connectOpts);
+        socket = net.connect(this.connectOpts);
+      }
+      await (0, events_1.once)(socket, "connect");
+      return socket;
+    }
+  }
+  HttpProxyAgent.protocols = ["http", "https"];
+  exports2.HttpProxyAgent = HttpProxyAgent;
+  function omit3(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+      if (!keys.includes(key)) {
+        ret[key] = obj[key];
+      }
+    }
+    return ret;
+  }
+});
+
+// ../../node_modules/.pnpm/https-proxy-agent@7.0.6/node_modules/https-proxy-agent/dist/parse-proxy-response.js
+var require_parse_proxy_response = __commonJS((exports2) => {
+  var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.parseProxyResponse = undefined;
+  var debug_1 = __importDefault(require_src2());
+  var debug = (0, debug_1.default)("https-proxy-agent:parse-proxy-response");
+  function parseProxyResponse(socket) {
+    return new Promise((resolve2, reject) => {
+      let buffersLength = 0;
+      const buffers = [];
+      function read() {
+        const b = socket.read();
+        if (b)
+          ondata(b);
+        else
+          socket.once("readable", read);
+      }
+      function cleanup() {
+        socket.removeListener("end", onend);
+        socket.removeListener("error", onerror);
+        socket.removeListener("readable", read);
+      }
+      function onend() {
+        cleanup();
+        debug("onend");
+        reject(new Error("Proxy connection ended before receiving CONNECT response"));
+      }
+      function onerror(err) {
+        cleanup();
+        debug("onerror %o", err);
+        reject(err);
+      }
+      function ondata(b) {
+        buffers.push(b);
+        buffersLength += b.length;
+        const buffered = Buffer.concat(buffers, buffersLength);
+        const endOfHeaders = buffered.indexOf(`\r
+\r
+`);
+        if (endOfHeaders === -1) {
+          debug("have not received end of HTTP headers yet...");
+          read();
+          return;
+        }
+        const headerParts = buffered.slice(0, endOfHeaders).toString("ascii").split(`\r
+`);
+        const firstLine = headerParts.shift();
+        if (!firstLine) {
+          socket.destroy();
+          return reject(new Error("No header received from proxy CONNECT response"));
+        }
+        const firstLineParts = firstLine.split(" ");
+        const statusCode = +firstLineParts[1];
+        const statusText = firstLineParts.slice(2).join(" ");
+        const headers = {};
+        for (const header of headerParts) {
+          if (!header)
+            continue;
+          const firstColon = header.indexOf(":");
+          if (firstColon === -1) {
+            socket.destroy();
+            return reject(new Error(`Invalid header from proxy CONNECT response: "${header}"`));
+          }
+          const key = header.slice(0, firstColon).toLowerCase();
+          const value = header.slice(firstColon + 1).trimStart();
+          const current = headers[key];
+          if (typeof current === "string") {
+            headers[key] = [current, value];
+          } else if (Array.isArray(current)) {
+            current.push(value);
+          } else {
+            headers[key] = value;
+          }
+        }
+        debug("got proxy server response: %o %o", firstLine, headers);
+        cleanup();
+        resolve2({
+          connect: {
+            statusCode,
+            statusText,
+            headers
+          },
+          buffered
+        });
+      }
+      socket.on("error", onerror);
+      socket.on("end", onend);
+      read();
+    });
+  }
+  exports2.parseProxyResponse = parseProxyResponse;
+});
+
+// ../../node_modules/.pnpm/https-proxy-agent@7.0.6/node_modules/https-proxy-agent/dist/index.js
+var require_dist4 = __commonJS((exports2) => {
+  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports2 && exports2.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports2 && exports2.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports2, "__esModule", { value: true });
+  exports2.HttpsProxyAgent = undefined;
+  var net = __importStar(require("net"));
+  var tls = __importStar(require("tls"));
+  var assert_1 = __importDefault(require("assert"));
+  var debug_1 = __importDefault(require_src2());
+  var agent_base_1 = require_dist2();
+  var url_1 = require("url");
+  var parse_proxy_response_1 = require_parse_proxy_response();
+  var debug = (0, debug_1.default)("https-proxy-agent");
+  var setServernameFromNonIpHost = (options) => {
+    if (options.servername === undefined && options.host && !net.isIP(options.host)) {
+      return {
+        ...options,
+        servername: options.host
+      };
+    }
+    return options;
+  };
+
+  class HttpsProxyAgent extends agent_base_1.Agent {
+    constructor(proxy, opts) {
+      super(opts);
+      this.options = { path: undefined };
+      this.proxy = typeof proxy === "string" ? new url_1.URL(proxy) : proxy;
+      this.proxyHeaders = opts?.headers ?? {};
+      debug("Creating new HttpsProxyAgent instance: %o", this.proxy.href);
+      const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, "");
+      const port = this.proxy.port ? parseInt(this.proxy.port, 10) : this.proxy.protocol === "https:" ? 443 : 80;
+      this.connectOpts = {
+        ALPNProtocols: ["http/1.1"],
+        ...opts ? omit3(opts, "headers") : null,
+        host,
+        port
+      };
+    }
+    async connect(req, opts) {
+      const { proxy } = this;
+      if (!opts.host) {
+        throw new TypeError('No "host" provided');
+      }
+      let socket;
+      if (proxy.protocol === "https:") {
+        debug("Creating `tls.Socket`: %o", this.connectOpts);
+        socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
+      } else {
+        debug("Creating `net.Socket`: %o", this.connectOpts);
+        socket = net.connect(this.connectOpts);
+      }
+      const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
+      const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+      let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r
+`;
+      if (proxy.username || proxy.password) {
+        const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+        headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+      }
+      headers.Host = `${host}:${opts.port}`;
+      if (!headers["Proxy-Connection"]) {
+        headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
+      }
+      for (const name21 of Object.keys(headers)) {
+        payload += `${name21}: ${headers[name21]}\r
+`;
+      }
+      const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
+      socket.write(`${payload}\r
+`);
+      const { connect, buffered } = await proxyResponsePromise;
+      req.emit("proxyConnect", connect);
+      this.emit("proxyConnect", connect, req);
+      if (connect.statusCode === 200) {
+        req.once("socket", resume);
+        if (opts.secureEndpoint) {
+          debug("Upgrading socket connection to TLS");
+          return tls.connect({
+            ...omit3(setServernameFromNonIpHost(opts), "host", "path", "port"),
+            socket
+          });
+        }
+        return socket;
+      }
+      socket.destroy();
+      const fakeSocket = new net.Socket({ writable: false });
+      fakeSocket.readable = true;
+      req.once("socket", (s) => {
+        debug("Replaying proxy buffer for failed request");
+        (0, assert_1.default)(s.listenerCount("data") > 0);
+        s.push(buffered);
+        s.push(null);
+      });
+      return fakeSocket;
+    }
+  }
+  HttpsProxyAgent.protocols = ["http", "https"];
+  exports2.HttpsProxyAgent = HttpsProxyAgent;
+  function resume(socket) {
+    socket.resume();
+  }
+  function omit3(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+      if (!keys.includes(key)) {
+        ret[key] = obj[key];
+      }
+    }
+    return ret;
+  }
+});
+
 // ../../node_modules/.pnpm/smart-buffer@4.2.0/node_modules/smart-buffer/build/utils.js
 var require_utils3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
@@ -2760,7 +4108,7 @@ var require_util = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/common.js
-var require_common = __commonJS((exports2) => {
+var require_common2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.isInSubnet = isInSubnet;
   exports2.isCorrect = isCorrect;
@@ -2864,7 +4212,7 @@ var require_ipv4 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Address4 = undefined;
-  var common = __importStar(require_common());
+  var common = __importStar(require_common2());
   var constants = __importStar(require_constants2());
   var address_error_1 = require_address_error();
 
@@ -3068,7 +4416,7 @@ var require_constants3 = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/v6/helpers.js
-var require_helpers = __commonJS((exports2) => {
+var require_helpers2 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.spanAllZeroes = spanAllZeroes;
   exports2.spanAll = spanAll;
@@ -3229,14 +4577,14 @@ var require_ipv6 = __commonJS((exports2) => {
   };
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.Address6 = undefined;
-  var common = __importStar(require_common());
+  var common = __importStar(require_common2());
   var constants4 = __importStar(require_constants2());
   var constants6 = __importStar(require_constants3());
-  var helpers = __importStar(require_helpers());
+  var helpers = __importStar(require_helpers2());
   var ipv4_1 = require_ipv4();
   var regular_expressions_1 = require_regular_expressions();
   var address_error_1 = require_address_error();
-  var common_1 = require_common();
+  var common_1 = require_common2();
   function assert2(condition) {
     if (!condition) {
       throw new Error("Assertion failed.");
@@ -3845,12 +5193,12 @@ var require_ip_address = __commonJS((exports2) => {
   Object.defineProperty(exports2, "AddressError", { enumerable: true, get: function() {
     return address_error_1.AddressError;
   } });
-  var helpers = __importStar(require_helpers());
+  var helpers = __importStar(require_helpers2());
   exports2.v6 = { helpers };
 });
 
 // ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/common/helpers.js
-var require_helpers2 = __commonJS((exports2) => {
+var require_helpers3 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ipToBuffer = exports2.int32ToIpv4 = exports2.ipv4ToInt32 = exports2.validateSocksClientChainOptions = exports2.validateSocksClientOptions = undefined;
   var util_1 = require_util();
@@ -4034,7 +5382,7 @@ var require_socksclient = __commonJS((exports2) => {
   var net = require("net");
   var smart_buffer_1 = require_smartbuffer();
   var constants_1 = require_constants();
-  var helpers_1 = require_helpers2();
+  var helpers_1 = require_helpers3();
   var receivebuffer_1 = require_receivebuffer();
   var util_1 = require_util();
   Object.defineProperty(exports2, "SocksClientError", { enumerable: true, get: function() {
@@ -4603,977 +5951,8 @@ var require_build = __commonJS((exports2) => {
   __exportStar(require_socksclient(), exports2);
 });
 
-// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/helpers.js
-var require_helpers3 = __commonJS((exports2) => {
-  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() {
-        return m[k];
-      } };
-    }
-    Object.defineProperty(o, k2, desc);
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-  } : function(o, v) {
-    o["default"] = v;
-  });
-  var __importStar = exports2 && exports2.__importStar || function(mod) {
-    if (mod && mod.__esModule)
-      return mod;
-    var result = {};
-    if (mod != null) {
-      for (var k in mod)
-        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    }
-    __setModuleDefault(result, mod);
-    return result;
-  };
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.req = exports2.json = exports2.toBuffer = undefined;
-  var http = __importStar(require("http"));
-  var https = __importStar(require("https"));
-  async function toBuffer(stream) {
-    let length = 0;
-    const chunks = [];
-    for await (const chunk2 of stream) {
-      length += chunk2.length;
-      chunks.push(chunk2);
-    }
-    return Buffer.concat(chunks, length);
-  }
-  exports2.toBuffer = toBuffer;
-  async function json3(stream) {
-    const buf = await toBuffer(stream);
-    const str = buf.toString("utf8");
-    try {
-      return JSON.parse(str);
-    } catch (_err) {
-      const err = _err;
-      err.message += ` (input: ${str})`;
-      throw err;
-    }
-  }
-  exports2.json = json3;
-  function req(url2, opts = {}) {
-    const href = typeof url2 === "string" ? url2 : url2.href;
-    const req2 = (href.startsWith("https:") ? https : http).request(url2, opts);
-    const promise2 = new Promise((resolve2, reject) => {
-      req2.once("response", resolve2).once("error", reject).end();
-    });
-    req2.then = promise2.then.bind(promise2);
-    return req2;
-  }
-  exports2.req = req;
-});
-
-// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/index.js
-var require_dist2 = __commonJS((exports2) => {
-  var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() {
-        return m[k];
-      } };
-    }
-    Object.defineProperty(o, k2, desc);
-  } : function(o, m, k, k2) {
-    if (k2 === undefined)
-      k2 = k;
-    o[k2] = m[k];
-  });
-  var __setModuleDefault = exports2 && exports2.__setModuleDefault || (Object.create ? function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-  } : function(o, v) {
-    o["default"] = v;
-  });
-  var __importStar = exports2 && exports2.__importStar || function(mod) {
-    if (mod && mod.__esModule)
-      return mod;
-    var result = {};
-    if (mod != null) {
-      for (var k in mod)
-        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
-          __createBinding(result, mod, k);
-    }
-    __setModuleDefault(result, mod);
-    return result;
-  };
-  var __exportStar = exports2 && exports2.__exportStar || function(m, exports3) {
-    for (var p in m)
-      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports3, p))
-        __createBinding(exports3, m, p);
-  };
-  Object.defineProperty(exports2, "__esModule", { value: true });
-  exports2.Agent = undefined;
-  var net = __importStar(require("net"));
-  var http = __importStar(require("http"));
-  var https_1 = require("https");
-  __exportStar(require_helpers3(), exports2);
-  var INTERNAL = Symbol("AgentBaseInternalState");
-
-  class Agent extends http.Agent {
-    constructor(opts) {
-      super(opts);
-      this[INTERNAL] = {};
-    }
-    isSecureEndpoint(options) {
-      if (options) {
-        if (typeof options.secureEndpoint === "boolean") {
-          return options.secureEndpoint;
-        }
-        if (typeof options.protocol === "string") {
-          return options.protocol === "https:";
-        }
-      }
-      const { stack } = new Error;
-      if (typeof stack !== "string")
-        return false;
-      return stack.split(`
-`).some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
-    }
-    incrementSockets(name21) {
-      if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
-        return null;
-      }
-      if (!this.sockets[name21]) {
-        this.sockets[name21] = [];
-      }
-      const fakeSocket = new net.Socket({ writable: false });
-      this.sockets[name21].push(fakeSocket);
-      this.totalSocketCount++;
-      return fakeSocket;
-    }
-    decrementSockets(name21, socket) {
-      if (!this.sockets[name21] || socket === null) {
-        return;
-      }
-      const sockets = this.sockets[name21];
-      const index = sockets.indexOf(socket);
-      if (index !== -1) {
-        sockets.splice(index, 1);
-        this.totalSocketCount--;
-        if (sockets.length === 0) {
-          delete this.sockets[name21];
-        }
-      }
-    }
-    getName(options) {
-      const secureEndpoint = this.isSecureEndpoint(options);
-      if (secureEndpoint) {
-        return https_1.Agent.prototype.getName.call(this, options);
-      }
-      return super.getName(options);
-    }
-    createSocket(req, options, cb) {
-      const connectOpts = {
-        ...options,
-        secureEndpoint: this.isSecureEndpoint(options)
-      };
-      const name21 = this.getName(connectOpts);
-      const fakeSocket = this.incrementSockets(name21);
-      Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
-        this.decrementSockets(name21, fakeSocket);
-        if (socket instanceof http.Agent) {
-          try {
-            return socket.addRequest(req, connectOpts);
-          } catch (err) {
-            return cb(err);
-          }
-        }
-        this[INTERNAL].currentSocket = socket;
-        super.createSocket(req, options, cb);
-      }, (err) => {
-        this.decrementSockets(name21, fakeSocket);
-        cb(err);
-      });
-    }
-    createConnection() {
-      const socket = this[INTERNAL].currentSocket;
-      this[INTERNAL].currentSocket = undefined;
-      if (!socket) {
-        throw new Error("No socket was returned in the `connect()` function");
-      }
-      return socket;
-    }
-    get defaultPort() {
-      return this[INTERNAL].defaultPort ?? (this.protocol === "https:" ? 443 : 80);
-    }
-    set defaultPort(v) {
-      if (this[INTERNAL]) {
-        this[INTERNAL].defaultPort = v;
-      }
-    }
-    get protocol() {
-      return this[INTERNAL].protocol ?? (this.isSecureEndpoint() ? "https:" : "http:");
-    }
-    set protocol(v) {
-      if (this[INTERNAL]) {
-        this[INTERNAL].protocol = v;
-      }
-    }
-  }
-  exports2.Agent = Agent;
-});
-
-// ../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
-var require_ms = __commonJS((exports2, module2) => {
-  var s = 1000;
-  var m = s * 60;
-  var h = m * 60;
-  var d = h * 24;
-  var w = d * 7;
-  var y = d * 365.25;
-  module2.exports = function(val, options) {
-    options = options || {};
-    var type = typeof val;
-    if (type === "string" && val.length > 0) {
-      return parse5(val);
-    } else if (type === "number" && isFinite(val)) {
-      return options.long ? fmtLong(val) : fmtShort(val);
-    }
-    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
-  };
-  function parse5(str) {
-    str = String(str);
-    if (str.length > 100) {
-      return;
-    }
-    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
-    if (!match) {
-      return;
-    }
-    var n = parseFloat(match[1]);
-    var type = (match[2] || "ms").toLowerCase();
-    switch (type) {
-      case "years":
-      case "year":
-      case "yrs":
-      case "yr":
-      case "y":
-        return n * y;
-      case "weeks":
-      case "week":
-      case "w":
-        return n * w;
-      case "days":
-      case "day":
-      case "d":
-        return n * d;
-      case "hours":
-      case "hour":
-      case "hrs":
-      case "hr":
-      case "h":
-        return n * h;
-      case "minutes":
-      case "minute":
-      case "mins":
-      case "min":
-      case "m":
-        return n * m;
-      case "seconds":
-      case "second":
-      case "secs":
-      case "sec":
-      case "s":
-        return n * s;
-      case "milliseconds":
-      case "millisecond":
-      case "msecs":
-      case "msec":
-      case "ms":
-        return n;
-      default:
-        return;
-    }
-  }
-  function fmtShort(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return Math.round(ms / d) + "d";
-    }
-    if (msAbs >= h) {
-      return Math.round(ms / h) + "h";
-    }
-    if (msAbs >= m) {
-      return Math.round(ms / m) + "m";
-    }
-    if (msAbs >= s) {
-      return Math.round(ms / s) + "s";
-    }
-    return ms + "ms";
-  }
-  function fmtLong(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return plural(ms, msAbs, d, "day");
-    }
-    if (msAbs >= h) {
-      return plural(ms, msAbs, h, "hour");
-    }
-    if (msAbs >= m) {
-      return plural(ms, msAbs, m, "minute");
-    }
-    if (msAbs >= s) {
-      return plural(ms, msAbs, s, "second");
-    }
-    return ms + " ms";
-  }
-  function plural(ms, msAbs, n, name21) {
-    var isPlural = msAbs >= n * 1.5;
-    return Math.round(ms / n) + " " + name21 + (isPlural ? "s" : "");
-  }
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/common.js
-var require_common2 = __commonJS((exports2, module2) => {
-  function setup(env) {
-    createDebug.debug = createDebug;
-    createDebug.default = createDebug;
-    createDebug.coerce = coerce2;
-    createDebug.disable = disable;
-    createDebug.enable = enable;
-    createDebug.enabled = enabled;
-    createDebug.humanize = require_ms();
-    createDebug.destroy = destroy;
-    Object.keys(env).forEach((key) => {
-      createDebug[key] = env[key];
-    });
-    createDebug.names = [];
-    createDebug.skips = [];
-    createDebug.formatters = {};
-    function selectColor(namespace) {
-      let hash2 = 0;
-      for (let i = 0;i < namespace.length; i++) {
-        hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i);
-        hash2 |= 0;
-      }
-      return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
-    }
-    createDebug.selectColor = selectColor;
-    function createDebug(namespace) {
-      let prevTime;
-      let enableOverride = null;
-      let namespacesCache;
-      let enabledCache;
-      function debug(...args) {
-        if (!debug.enabled) {
-          return;
-        }
-        const self = debug;
-        const curr = Number(new Date);
-        const ms = curr - (prevTime || curr);
-        self.diff = ms;
-        self.prev = prevTime;
-        self.curr = curr;
-        prevTime = curr;
-        args[0] = createDebug.coerce(args[0]);
-        if (typeof args[0] !== "string") {
-          args.unshift("%O");
-        }
-        let index = 0;
-        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-          if (match === "%%") {
-            return "%";
-          }
-          index++;
-          const formatter = createDebug.formatters[format];
-          if (typeof formatter === "function") {
-            const val = args[index];
-            match = formatter.call(self, val);
-            args.splice(index, 1);
-            index--;
-          }
-          return match;
-        });
-        createDebug.formatArgs.call(self, args);
-        const logFn = self.log || createDebug.log;
-        logFn.apply(self, args);
-      }
-      debug.namespace = namespace;
-      debug.useColors = createDebug.useColors();
-      debug.color = createDebug.selectColor(namespace);
-      debug.extend = extend2;
-      debug.destroy = createDebug.destroy;
-      Object.defineProperty(debug, "enabled", {
-        enumerable: true,
-        configurable: false,
-        get: () => {
-          if (enableOverride !== null) {
-            return enableOverride;
-          }
-          if (namespacesCache !== createDebug.namespaces) {
-            namespacesCache = createDebug.namespaces;
-            enabledCache = createDebug.enabled(namespace);
-          }
-          return enabledCache;
-        },
-        set: (v) => {
-          enableOverride = v;
-        }
-      });
-      if (typeof createDebug.init === "function") {
-        createDebug.init(debug);
-      }
-      return debug;
-    }
-    function extend2(namespace, delimiter) {
-      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
-      newDebug.log = this.log;
-      return newDebug;
-    }
-    function enable(namespaces) {
-      createDebug.save(namespaces);
-      createDebug.namespaces = namespaces;
-      createDebug.names = [];
-      createDebug.skips = [];
-      const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-      for (const ns of split2) {
-        if (ns[0] === "-") {
-          createDebug.skips.push(ns.slice(1));
-        } else {
-          createDebug.names.push(ns);
-        }
-      }
-    }
-    function matchesTemplate(search, template) {
-      let searchIndex = 0;
-      let templateIndex = 0;
-      let starIndex = -1;
-      let matchIndex = 0;
-      while (searchIndex < search.length) {
-        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
-          if (template[templateIndex] === "*") {
-            starIndex = templateIndex;
-            matchIndex = searchIndex;
-            templateIndex++;
-          } else {
-            searchIndex++;
-            templateIndex++;
-          }
-        } else if (starIndex !== -1) {
-          templateIndex = starIndex + 1;
-          matchIndex++;
-          searchIndex = matchIndex;
-        } else {
-          return false;
-        }
-      }
-      while (templateIndex < template.length && template[templateIndex] === "*") {
-        templateIndex++;
-      }
-      return templateIndex === template.length;
-    }
-    function disable() {
-      const namespaces = [
-        ...createDebug.names,
-        ...createDebug.skips.map((namespace) => "-" + namespace)
-      ].join(",");
-      createDebug.enable("");
-      return namespaces;
-    }
-    function enabled(name21) {
-      for (const skip of createDebug.skips) {
-        if (matchesTemplate(name21, skip)) {
-          return false;
-        }
-      }
-      for (const ns of createDebug.names) {
-        if (matchesTemplate(name21, ns)) {
-          return true;
-        }
-      }
-      return false;
-    }
-    function coerce2(val) {
-      if (val instanceof Error) {
-        return val.stack || val.message;
-      }
-      return val;
-    }
-    function destroy() {
-      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-    }
-    createDebug.enable(createDebug.load());
-    return createDebug;
-  }
-  module2.exports = setup;
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/browser.js
-var require_browser = __commonJS((exports2, module2) => {
-  exports2.formatArgs = formatArgs;
-  exports2.save = save;
-  exports2.load = load;
-  exports2.useColors = useColors;
-  exports2.storage = localstorage();
-  exports2.destroy = (() => {
-    let warned = false;
-    return () => {
-      if (!warned) {
-        warned = true;
-        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-      }
-    };
-  })();
-  exports2.colors = [
-    "#0000CC",
-    "#0000FF",
-    "#0033CC",
-    "#0033FF",
-    "#0066CC",
-    "#0066FF",
-    "#0099CC",
-    "#0099FF",
-    "#00CC00",
-    "#00CC33",
-    "#00CC66",
-    "#00CC99",
-    "#00CCCC",
-    "#00CCFF",
-    "#3300CC",
-    "#3300FF",
-    "#3333CC",
-    "#3333FF",
-    "#3366CC",
-    "#3366FF",
-    "#3399CC",
-    "#3399FF",
-    "#33CC00",
-    "#33CC33",
-    "#33CC66",
-    "#33CC99",
-    "#33CCCC",
-    "#33CCFF",
-    "#6600CC",
-    "#6600FF",
-    "#6633CC",
-    "#6633FF",
-    "#66CC00",
-    "#66CC33",
-    "#9900CC",
-    "#9900FF",
-    "#9933CC",
-    "#9933FF",
-    "#99CC00",
-    "#99CC33",
-    "#CC0000",
-    "#CC0033",
-    "#CC0066",
-    "#CC0099",
-    "#CC00CC",
-    "#CC00FF",
-    "#CC3300",
-    "#CC3333",
-    "#CC3366",
-    "#CC3399",
-    "#CC33CC",
-    "#CC33FF",
-    "#CC6600",
-    "#CC6633",
-    "#CC9900",
-    "#CC9933",
-    "#CCCC00",
-    "#CCCC33",
-    "#FF0000",
-    "#FF0033",
-    "#FF0066",
-    "#FF0099",
-    "#FF00CC",
-    "#FF00FF",
-    "#FF3300",
-    "#FF3333",
-    "#FF3366",
-    "#FF3399",
-    "#FF33CC",
-    "#FF33FF",
-    "#FF6600",
-    "#FF6633",
-    "#FF9900",
-    "#FF9933",
-    "#FFCC00",
-    "#FFCC33"
-  ];
-  function useColors() {
-    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
-      return true;
-    }
-    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-      return false;
-    }
-    let m;
-    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
-  }
-  function formatArgs(args) {
-    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module2.exports.humanize(this.diff);
-    if (!this.useColors) {
-      return;
-    }
-    const c = "color: " + this.color;
-    args.splice(1, 0, c, "color: inherit");
-    let index = 0;
-    let lastC = 0;
-    args[0].replace(/%[a-zA-Z%]/g, (match) => {
-      if (match === "%%") {
-        return;
-      }
-      index++;
-      if (match === "%c") {
-        lastC = index;
-      }
-    });
-    args.splice(lastC, 0, c);
-  }
-  exports2.log = console.debug || console.log || (() => {});
-  function save(namespaces) {
-    try {
-      if (namespaces) {
-        exports2.storage.setItem("debug", namespaces);
-      } else {
-        exports2.storage.removeItem("debug");
-      }
-    } catch (error48) {}
-  }
-  function load() {
-    let r;
-    try {
-      r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
-    } catch (error48) {}
-    if (!r && typeof process !== "undefined" && "env" in process) {
-      r = process.env.DEBUG;
-    }
-    return r;
-  }
-  function localstorage() {
-    try {
-      return localStorage;
-    } catch (error48) {}
-  }
-  module2.exports = require_common2()(exports2);
-  var { formatters } = module2.exports;
-  formatters.j = function(v) {
-    try {
-      return JSON.stringify(v);
-    } catch (error48) {
-      return "[UnexpectedJSONParseError]: " + error48.message;
-    }
-  };
-});
-
-// ../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js
-var require_has_flag = __commonJS((exports2, module2) => {
-  module2.exports = (flag, argv = process.argv) => {
-    const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
-    const position = argv.indexOf(prefix + flag);
-    const terminatorPosition = argv.indexOf("--");
-    return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
-  };
-});
-
-// ../../node_modules/.pnpm/supports-color@8.1.1/node_modules/supports-color/index.js
-var require_supports_color = __commonJS((exports2, module2) => {
-  var os2 = require("os");
-  var tty = require("tty");
-  var hasFlag = require_has_flag();
-  var { env } = process;
-  var flagForceColor;
-  if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
-    flagForceColor = 0;
-  } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
-    flagForceColor = 1;
-  }
-  function envForceColor() {
-    if ("FORCE_COLOR" in env) {
-      if (env.FORCE_COLOR === "true") {
-        return 1;
-      }
-      if (env.FORCE_COLOR === "false") {
-        return 0;
-      }
-      return env.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
-    }
-  }
-  function translateLevel(level) {
-    if (level === 0) {
-      return false;
-    }
-    return {
-      level,
-      hasBasic: true,
-      has256: level >= 2,
-      has16m: level >= 3
-    };
-  }
-  function supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
-    const noFlagForceColor = envForceColor();
-    if (noFlagForceColor !== undefined) {
-      flagForceColor = noFlagForceColor;
-    }
-    const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
-    if (forceColor === 0) {
-      return 0;
-    }
-    if (sniffFlags) {
-      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
-        return 3;
-      }
-      if (hasFlag("color=256")) {
-        return 2;
-      }
-    }
-    if (haveStream && !streamIsTTY && forceColor === undefined) {
-      return 0;
-    }
-    const min = forceColor || 0;
-    if (env.TERM === "dumb") {
-      return min;
-    }
-    if (process.platform === "win32") {
-      const osRelease = os2.release().split(".");
-      if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
-        return Number(osRelease[2]) >= 14931 ? 3 : 2;
-      }
-      return 1;
-    }
-    if ("CI" in env) {
-      if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => (sign in env)) || env.CI_NAME === "codeship") {
-        return 1;
-      }
-      return min;
-    }
-    if ("TEAMCITY_VERSION" in env) {
-      return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
-    }
-    if (env.COLORTERM === "truecolor") {
-      return 3;
-    }
-    if ("TERM_PROGRAM" in env) {
-      const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
-      switch (env.TERM_PROGRAM) {
-        case "iTerm.app":
-          return version2 >= 3 ? 3 : 2;
-        case "Apple_Terminal":
-          return 2;
-      }
-    }
-    if (/-256(color)?$/i.test(env.TERM)) {
-      return 2;
-    }
-    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
-      return 1;
-    }
-    if ("COLORTERM" in env) {
-      return 1;
-    }
-    return min;
-  }
-  function getSupportLevel(stream, options = {}) {
-    const level = supportsColor(stream, {
-      streamIsTTY: stream && stream.isTTY,
-      ...options
-    });
-    return translateLevel(level);
-  }
-  module2.exports = {
-    supportsColor: getSupportLevel,
-    stdout: getSupportLevel({ isTTY: tty.isatty(1) }),
-    stderr: getSupportLevel({ isTTY: tty.isatty(2) })
-  };
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/node.js
-var require_node2 = __commonJS((exports2, module2) => {
-  var tty = require("tty");
-  var util3 = require("util");
-  exports2.init = init;
-  exports2.log = log;
-  exports2.formatArgs = formatArgs;
-  exports2.save = save;
-  exports2.load = load;
-  exports2.useColors = useColors;
-  exports2.destroy = util3.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-  exports2.colors = [6, 2, 3, 4, 5, 1];
-  try {
-    const supportsColor = require_supports_color();
-    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
-      exports2.colors = [
-        20,
-        21,
-        26,
-        27,
-        32,
-        33,
-        38,
-        39,
-        40,
-        41,
-        42,
-        43,
-        44,
-        45,
-        56,
-        57,
-        62,
-        63,
-        68,
-        69,
-        74,
-        75,
-        76,
-        77,
-        78,
-        79,
-        80,
-        81,
-        92,
-        93,
-        98,
-        99,
-        112,
-        113,
-        128,
-        129,
-        134,
-        135,
-        148,
-        149,
-        160,
-        161,
-        162,
-        163,
-        164,
-        165,
-        166,
-        167,
-        168,
-        169,
-        170,
-        171,
-        172,
-        173,
-        178,
-        179,
-        184,
-        185,
-        196,
-        197,
-        198,
-        199,
-        200,
-        201,
-        202,
-        203,
-        204,
-        205,
-        206,
-        207,
-        208,
-        209,
-        214,
-        215,
-        220,
-        221
-      ];
-    }
-  } catch (error48) {}
-  exports2.inspectOpts = Object.keys(process.env).filter((key) => {
-    return /^debug_/i.test(key);
-  }).reduce((obj, key) => {
-    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
-      return k.toUpperCase();
-    });
-    let val = process.env[key];
-    if (/^(yes|on|true|enabled)$/i.test(val)) {
-      val = true;
-    } else if (/^(no|off|false|disabled)$/i.test(val)) {
-      val = false;
-    } else if (val === "null") {
-      val = null;
-    } else {
-      val = Number(val);
-    }
-    obj[prop] = val;
-    return obj;
-  }, {});
-  function useColors() {
-    return "colors" in exports2.inspectOpts ? Boolean(exports2.inspectOpts.colors) : tty.isatty(process.stderr.fd);
-  }
-  function formatArgs(args) {
-    const { namespace: name21, useColors: useColors2 } = this;
-    if (useColors2) {
-      const c = this.color;
-      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
-      const prefix = `  ${colorCode};1m${name21} \x1B[0m`;
-      args[0] = prefix + args[0].split(`
-`).join(`
-` + prefix);
-      args.push(colorCode + "m+" + module2.exports.humanize(this.diff) + "\x1B[0m");
-    } else {
-      args[0] = getDate() + name21 + " " + args[0];
-    }
-  }
-  function getDate() {
-    if (exports2.inspectOpts.hideDate) {
-      return "";
-    }
-    return new Date().toISOString() + " ";
-  }
-  function log(...args) {
-    return process.stderr.write(util3.formatWithOptions(exports2.inspectOpts, ...args) + `
-`);
-  }
-  function save(namespaces) {
-    if (namespaces) {
-      process.env.DEBUG = namespaces;
-    } else {
-      delete process.env.DEBUG;
-    }
-  }
-  function load() {
-    return process.env.DEBUG;
-  }
-  function init(debug) {
-    debug.inspectOpts = {};
-    const keys = Object.keys(exports2.inspectOpts);
-    for (let i = 0;i < keys.length; i++) {
-      debug.inspectOpts[keys[i]] = exports2.inspectOpts[keys[i]];
-    }
-  }
-  module2.exports = require_common2()(exports2);
-  var { formatters } = module2.exports;
-  formatters.o = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts).split(`
-`).map((str) => str.trim()).join(" ");
-  };
-  formatters.O = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts);
-  };
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/index.js
-var require_src2 = __commonJS((exports2, module2) => {
-  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
-    module2.exports = require_browser();
-  } else {
-    module2.exports = require_node2();
-  }
-});
-
 // ../../node_modules/.pnpm/socks-proxy-agent@8.0.5/node_modules/socks-proxy-agent/dist/index.js
-var require_dist3 = __commonJS((exports2) => {
+var require_dist5 = __commonJS((exports2) => {
   var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
     if (k2 === undefined)
       k2 = k;
@@ -16894,7 +17273,7 @@ var require_limiter = __commonJS((exports2, module2) => {
 
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS((exports2, module2) => {
-  var zlib2 = require("zlib");
+  var zlib3 = require("zlib");
   var bufferUtil = require_buffer_util();
   var Limiter = require_limiter();
   var { kStatusCode } = require_constants4();
@@ -17058,8 +17437,8 @@ var require_permessage_deflate = __commonJS((exports2, module2) => {
       const endpoint = this._isServer ? "client" : "server";
       if (!this._inflate) {
         const key = `${endpoint}_max_window_bits`;
-        const windowBits = typeof this.params[key] !== "number" ? zlib2.Z_DEFAULT_WINDOWBITS : this.params[key];
-        this._inflate = zlib2.createInflateRaw({
+        const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._inflate = zlib3.createInflateRaw({
           ...this._options.zlibInflateOptions,
           windowBits
         });
@@ -17099,8 +17478,8 @@ var require_permessage_deflate = __commonJS((exports2, module2) => {
       const endpoint = this._isServer ? "server" : "client";
       if (!this._deflate) {
         const key = `${endpoint}_max_window_bits`;
-        const windowBits = typeof this.params[key] !== "number" ? zlib2.Z_DEFAULT_WINDOWBITS : this.params[key];
-        this._deflate = zlib2.createDeflateRaw({
+        const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._deflate = zlib3.createDeflateRaw({
           ...this._options.zlibDeflateOptions,
           windowBits
         });
@@ -17110,7 +17489,7 @@ var require_permessage_deflate = __commonJS((exports2, module2) => {
       }
       this._deflate[kCallback] = callback;
       this._deflate.write(data);
-      this._deflate.flush(zlib2.Z_SYNC_FLUSH, () => {
+      this._deflate.flush(zlib3.Z_SYNC_FLUSH, () => {
         if (!this._deflate) {
           return;
         }
@@ -18399,8 +18778,8 @@ var require_websocket2 = __commonJS((exports2, module2) => {
   var EventEmitter = require("events");
   var https3 = require("https");
   var http4 = require("http");
-  var net3 = require("net");
-  var tls2 = require("tls");
+  var net2 = require("net");
+  var tls = require("tls");
   var { randomBytes, createHash } = require("crypto");
   var { Duplex, Readable: Readable3 } = require("stream");
   var { URL: URL2 } = require("url");
@@ -19006,14 +19385,14 @@ var require_websocket2 = __commonJS((exports2, module2) => {
   }
   function netConnect(options) {
     options.path = options.socketPath;
-    return net3.connect(options);
+    return net2.connect(options);
   }
   function tlsConnect(options) {
     options.path = undefined;
     if (!options.servername && options.servername !== "") {
-      options.servername = net3.isIP(options.host) ? "" : options.host;
+      options.servername = net2.isIP(options.host) ? "" : options.host;
     }
-    return tls2.connect(options);
+    return tls.connect(options);
   }
   function abortHandshake(websocket, stream, message) {
     websocket._readyState = WebSocket.CLOSING;
@@ -23846,7 +24225,7 @@ var require_cluster_adapter = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.pnpm/socket.io-adapter@2.5.6/node_modules/socket.io-adapter/dist/index.js
-var require_dist4 = __commonJS((exports2) => {
+var require_dist6 = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.MessageType = exports2.ClusterAdapterWithHeartbeat = exports2.ClusterAdapter = exports2.SessionAwareAdapter = exports2.Adapter = undefined;
   var in_memory_adapter_1 = require_in_memory_adapter();
@@ -23876,7 +24255,7 @@ var require_parent_namespace = __commonJS((exports2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   exports2.ParentNamespace = undefined;
   var namespace_1 = require_namespace();
-  var socket_io_adapter_1 = require_dist4();
+  var socket_io_adapter_1 = require_dist6();
   var debug_1 = __importDefault(require_src2());
   var debug = (0, debug_1.default)("socket.io:parent-namespace");
 
@@ -23942,7 +24321,7 @@ var require_uws = __commonJS((exports2) => {
   exports2.patchAdapter = patchAdapter;
   exports2.restoreAdapter = restoreAdapter;
   exports2.serveFile = serveFile;
-  var socket_io_adapter_1 = require_dist4();
+  var socket_io_adapter_1 = require_dist6();
   var fs_1 = require("fs");
   var debug_1 = __importDefault(require_src2());
   var debug = (0, debug_1.default)("socket.io:adapter-uws");
@@ -24152,7 +24531,7 @@ var require_package = __commonJS((exports2, module2) => {
 });
 
 // ../../node_modules/.pnpm/socket.io@4.8.3/node_modules/socket.io/dist/index.js
-var require_dist5 = __commonJS((exports2, module2) => {
+var require_dist7 = __commonJS((exports2, module2) => {
   var __dirname = "C:\\Users\\lawrence\\workspace\\smm_github\\node_modules\\.pnpm\\socket.io@4.8.3\\node_modules\\socket.io\\dist";
   var __createBinding = exports2 && exports2.__createBinding || (Object.create ? function(o, m, k, k2) {
     if (k2 === undefined)
@@ -24205,7 +24584,7 @@ var require_dist5 = __commonJS((exports2, module2) => {
     return namespace_1.Namespace;
   } });
   var parent_namespace_1 = require_parent_namespace();
-  var socket_io_adapter_1 = require_dist4();
+  var socket_io_adapter_1 = require_dist6();
   var parser = __importStar(require_cjs3());
   var debug_1 = __importDefault(require_src2());
   var socket_1 = require_socket2();
@@ -31021,7 +31400,7 @@ var require_limit = __commonJS((exports2) => {
 });
 
 // ../../node_modules/.pnpm/ajv-formats@3.0.1_ajv@8.18.0/node_modules/ajv-formats/dist/index.js
-var require_dist6 = __commonJS((exports2, module2) => {
+var require_dist8 = __commonJS((exports2, module2) => {
   Object.defineProperty(exports2, "__esModule", { value: true });
   var formats_1 = require_formats();
   var limit_1 = require_limit();
@@ -63428,10 +63807,66 @@ function migrateAIConfig(raw) {
 // src/proxiedFetch.ts
 var import_node_http = __toESM(require("node:http"));
 var import_node_https = __toESM(require("node:https"));
-var import_node_net = __toESM(require("node:net"));
-var import_node_tls = __toESM(require("node:tls"));
-var import_node_events = require("node:events");
-var import_socks_proxy_agent = __toESM(require_dist3(), 1);
+var import_http_proxy_agent = __toESM(require_dist3(), 1);
+var import_https_proxy_agent = __toESM(require_dist4(), 1);
+var import_socks_proxy_agent = __toESM(require_dist5(), 1);
+
+// src/httpContentEncoding.ts
+var import_node_zlib = __toESM(require("node:zlib"));
+var import_node_util = require("node:util");
+var gunzip = import_node_util.promisify(import_node_zlib.default.gunzip);
+var inflate = import_node_util.promisify(import_node_zlib.default.inflate);
+var brotliDecompress = import_node_util.promisify(import_node_zlib.default.brotliDecompress);
+async function decompressBody(buf, contentEncoding) {
+  if (!contentEncoding || typeof contentEncoding !== "string") {
+    return buf;
+  }
+  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
+  if (encoding === "gzip" || encoding === "x-gzip") {
+    return gunzip(buf);
+  }
+  if (encoding === "deflate") {
+    return inflate(buf);
+  }
+  if (encoding === "br") {
+    return brotliDecompress(buf);
+  }
+  return buf;
+}
+function toFetchApiStatus(statusCode) {
+  const status = statusCode ?? 502;
+  if (status === 304)
+    return 200;
+  return status;
+}
+function incomingHeadersToObject(headers) {
+  const result = {};
+  for (const [key, val] of Object.entries(headers)) {
+    if (val === undefined)
+      continue;
+    const lower = key.toLowerCase();
+    if (lower === "content-encoding" || lower === "content-length")
+      continue;
+    if (Array.isArray(val)) {
+      result[key] = val.join(", ");
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+async function nodeHttpMessageToFetchResponse(res, wireBody) {
+  const body = await decompressBody(wireBody, res.headers["content-encoding"]);
+  const headers = incomingHeadersToObject(res.headers);
+  headers["Content-Length"] = String(body.length);
+  return new Response(body, {
+    status: toFetchApiStatus(res.statusCode),
+    statusText: res.statusMessage ?? "",
+    headers
+  });
+}
+
+// src/proxiedFetch.ts
 function isBunRuntime() {
   return typeof globalThis.Bun !== "undefined";
 }
@@ -63490,162 +63925,25 @@ function wrapFetchWithLogging(inner, mode, logger) {
     }
   };
 }
-function nodeHeadersToObject(headers) {
-  const result = {};
-  for (const [key, val] of Object.entries(headers)) {
-    if (val === undefined)
-      continue;
-    if (Array.isArray(val)) {
-      result[key] = val.join(", ");
-    } else {
-      result[key] = val;
-    }
-  }
-  return result;
-}
-function readHeaders(socket) {
-  return new Promise((resolve2, reject) => {
-    let data = "";
-    const onData = (chunk2) => {
-      data += chunk2.toString();
-      if (data.includes(`\r
-\r
-`)) {
-        socket.off("data", onData);
-        socket.off("error", onError);
-        resolve2(data);
-      }
-    };
-    const onError = (err) => {
-      socket.off("data", onData);
-      socket.off("error", onError);
-      reject(err);
-    };
-    socket.on("data", onData);
-    socket.on("error", onError);
-  });
-}
-function httpForwardRequest(request, proxyHost, proxyPort) {
-  const url2 = new URL(request.url);
+function buildAgentRequestHeaders(request) {
   const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-  return new Promise((resolve2, reject) => {
-    const options = {
-      hostname: proxyHost,
-      port: proxyPort,
-      path: request.url,
-      method,
-      headers: Object.fromEntries(headers.entries()),
-      timeout: 30000
-    };
-    const req = import_node_http.default.request(options, (res) => {
-      const chunks = [];
-      res.on("data", (chunk2) => chunks.push(chunk2));
-      res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
-      });
-      res.on("error", reject);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTP proxy request timeout"));
-    });
-    if (isBodyAllowed) {
-      request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
+  headers.delete("accept-encoding");
+  headers.set("Host", new URL(request.url).host);
+  return Object.fromEntries(headers.entries());
 }
-async function httpsTunnelRequest(request, proxyHost, proxyPort) {
-  const url2 = new URL(request.url);
-  const upstreamPort = url2.port || 443;
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-  const socket = import_node_net.default.connect(proxyPort, proxyHost);
-  await import_node_events.once(socket, "connect");
-  const connectReq = `CONNECT ${url2.hostname}:${upstreamPort} HTTP/1.1\r
-` + `Host: ${url2.hostname}:${upstreamPort}\r
-` + `\r
-`;
-  socket.write(connectReq);
-  const rawResp = await readHeaders(socket);
-  const statusLine = rawResp.split(`\r
-`)[0] ?? "";
-  if (!statusLine.includes("200")) {
-    socket.destroy();
-    throw new Error(`Proxy CONNECT refused: ${statusLine}`);
-  }
-  const tlsSocket = import_node_tls.default.connect({
-    socket,
-    host: url2.hostname,
-    servername: url2.hostname
-  });
-  await import_node_events.once(tlsSocket, "secureConnect");
-  const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  return new Promise((resolve2, reject) => {
-    const options = {
-      method,
-      hostname: url2.hostname,
-      port: upstreamPort,
-      path: url2.pathname + url2.search,
-      headers: Object.fromEntries(headers.entries()),
-      createConnection: () => tlsSocket,
-      timeout: 30000
-    };
-    const req = import_node_http.default.request(options, (res) => {
-      const chunks = [];
-      res.on("data", (chunk2) => chunks.push(chunk2));
-      res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
-      });
-      res.on("error", reject);
-    });
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTPS tunnel request timeout"));
-    });
-    if (isBodyAllowed) {
-      request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
-}
-function socksProxyRequest(request, proxyUrl) {
+function requestViaAgent(request, agent, timeoutMessage) {
   const url2 = new URL(request.url);
   const method = request.method.toUpperCase();
   const isBodyAllowed = method !== "GET" && method !== "HEAD";
   const isHttps = url2.protocol === "https:";
-  const headers = new Headers(request.headers);
-  headers.set("Host", url2.host);
-  const agent = new import_socks_proxy_agent.SocksProxyAgent(proxyUrl);
+  const headers = buildAgentRequestHeaders(request);
   return new Promise((resolve2, reject) => {
     const requestOptions = {
       hostname: url2.hostname,
       port: Number(url2.port) || (isHttps ? 443 : 80),
       path: url2.pathname + url2.search,
       method,
-      headers: Object.fromEntries(headers.entries()),
+      headers,
       agent,
       timeout: 30000
     };
@@ -63653,18 +63951,14 @@ function socksProxyRequest(request, proxyUrl) {
       const chunks = [];
       res.on("data", (chunk2) => chunks.push(chunk2));
       res.on("end", () => {
-        resolve2(new Response(Buffer.concat(chunks), {
-          status: res.statusCode,
-          statusText: res.statusMessage,
-          headers: nodeHeadersToObject(res.headers)
-        }));
+        nodeHttpMessageToFetchResponse(res, Buffer.concat(chunks)).then(resolve2, reject);
       });
       res.on("error", reject);
     });
     req.on("error", reject);
     req.on("timeout", () => {
       req.destroy();
-      reject(new Error("SOCKS5 proxy request timeout"));
+      reject(new Error(timeoutMessage));
     });
     if (isBodyAllowed) {
       request.arrayBuffer().then((buf) => {
@@ -63675,6 +63969,15 @@ function socksProxyRequest(request, proxyUrl) {
       req.end();
     }
   });
+}
+function httpProxyAgentRequest(request, proxyUrl) {
+  const url2 = new URL(request.url);
+  const isHttps = url2.protocol === "https:";
+  const agent = isHttps ? new import_https_proxy_agent.HttpsProxyAgent(proxyUrl) : new import_http_proxy_agent.HttpProxyAgent(proxyUrl);
+  return requestViaAgent(request, agent, isHttps ? "HTTPS proxy request timeout" : "HTTP proxy request timeout");
+}
+function socksProxyRequest(request, proxyUrl) {
+  return requestViaAgent(request, new import_socks_proxy_agent.SocksProxyAgent(proxyUrl), "SOCKS5 proxy request timeout");
 }
 function createProxiedFetch(proxyUrl, logger) {
   const proxy = new URL(proxyUrl);
@@ -63706,8 +64009,6 @@ function createProxiedFetch(proxyUrl, logger) {
       });
     }, "bun-native", logger);
   }
-  const proxyPort = Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80);
-  const proxyHost = proxy.hostname;
   logger?.debug({
     proxyMode: "node-connect",
     httpProxyHost: formatProxyHostForLog(proxyUrl)
@@ -63723,7 +64024,7 @@ function createProxiedFetch(proxyUrl, logger) {
       targetPath: url2.pathname
     }, "[ProxiedFetch] outbound request");
     try {
-      const response = !url2.protocol.startsWith("https:") ? await httpForwardRequest(request, proxyHost, proxyPort) : await httpsTunnelRequest(request, proxyHost, proxyPort);
+      const response = await httpProxyAgentRequest(request, proxyUrl);
       logger?.debug({ proxyMode: mode, status: response.status, targetHost: url2.host }, "[ProxiedFetch] outbound response");
       return response;
     } catch (err) {
@@ -64230,7 +64531,7 @@ async function handleProxyRequest(request, config2 = {}) {
 }
 // src/reverseProxyNode.ts
 var import_node_http2 = __toESM(require("node:http"));
-var import_node_net2 = __toESM(require("node:net"));
+var import_node_net = __toESM(require("node:net"));
 var import_node_stream = require("node:stream");
 function createReverseProxyRequestHandler(config2 = {}) {
   return async (req, res) => {
@@ -64297,7 +64598,7 @@ async function sendNodeResponse(res, response) {
 }
 function tryListen(port, hostname3 = "127.0.0.1") {
   return new Promise((resolve2) => {
-    const tester = import_node_net2.default.createServer();
+    const tester = import_node_net.default.createServer();
     tester.once("error", () => {
       tester.removeAllListeners();
       resolve2(false);
@@ -64382,11 +64683,7 @@ function createReverseProxyManager(config2 = {}) {
 var import_node_stream2 = require("node:stream");
 var import_node_http3 = __toESM(require("node:http"));
 var import_node_https2 = __toESM(require("node:https"));
-var import_node_zlib = __toESM(require("node:zlib"));
-var import_node_util = require("node:util");
-var gunzip = import_node_util.promisify(import_node_zlib.default.gunzip);
-var inflate = import_node_util.promisify(import_node_zlib.default.inflate);
-var brotliDecompress = import_node_util.promisify(import_node_zlib.default.brotliDecompress);
+var import_node_zlib2 = __toESM(require("node:zlib"));
 var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
   "connection",
   "keep-alive",
@@ -64408,22 +64705,6 @@ var STRIPPED_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length"
 ]);
-async function decompressBody(buf, contentEncoding) {
-  if (!contentEncoding || typeof contentEncoding !== "string") {
-    return buf;
-  }
-  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
-  if (encoding === "gzip" || encoding === "x-gzip") {
-    return gunzip(buf);
-  }
-  if (encoding === "deflate") {
-    return inflate(buf);
-  }
-  if (encoding === "br") {
-    return brotliDecompress(buf);
-  }
-  return buf;
-}
 function buildOutgoingHeaders(request) {
   const headers = {};
   request.headers.forEach((value, key) => {
@@ -64438,7 +64719,7 @@ function buildOutgoingHeaders(request) {
   });
   return headers;
 }
-function toFetchApiStatus(statusCode) {
+function toFetchApiStatus2(statusCode) {
   const status = statusCode ?? 502;
   if (status === 304)
     return 200;
@@ -64446,7 +64727,7 @@ function toFetchApiStatus(statusCode) {
 }
 function createNodeHttpResponse(body, statusCode, statusMessage, sourceHeaders, bodyLength) {
   return new Response(body, {
-    status: toFetchApiStatus(statusCode),
+    status: toFetchApiStatus2(statusCode),
     statusText: statusMessage ?? "",
     headers: buildResponseHeaders(sourceHeaders, bodyLength)
   });
@@ -64476,11 +64757,11 @@ function decompressorFor(contentEncoding) {
     return null;
   const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
   if (encoding === "gzip" || encoding === "x-gzip")
-    return import_node_zlib.default.createGunzip();
+    return import_node_zlib2.default.createGunzip();
   if (encoding === "deflate")
-    return import_node_zlib.default.createInflate();
+    return import_node_zlib2.default.createInflate();
   if (encoding === "br")
-    return import_node_zlib.default.createBrotliDecompress();
+    return import_node_zlib2.default.createBrotliDecompress();
   return null;
 }
 function requestViaNodeHttp(request) {
@@ -66525,7 +66806,7 @@ function registerCoreRoutes(server, config2) {
   server.on("request", createCoreRoutesRequestHandler(config2, { fallbackPort }));
 }
 // ../../node_modules/.pnpm/socket.io@4.8.3/node_modules/socket.io/wrapper.mjs
-var import_dist = __toESM(require_dist5(), 1);
+var import_dist = __toESM(require_dist7(), 1);
 var { Server, Namespace, Socket } = import_dist.default;
 
 // src/socketIO/connection.ts
@@ -69918,7 +70199,7 @@ function mergeCapabilities(base, additional) {
 
 // ../../node_modules/.pnpm/@modelcontextprotocol+sdk@1.27.0_zod@4.3.6/node_modules/@modelcontextprotocol/sdk/dist/esm/validation/ajv-provider.js
 var import_ajv = __toESM(require_ajv(), 1);
-var import_ajv_formats = __toESM(require_dist6(), 1);
+var import_ajv_formats = __toESM(require_dist8(), 1);
 function createDefaultAjvInstance() {
   const ajv = new import_ajv.default({
     strict: false,

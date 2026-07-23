@@ -1,6 +1,6 @@
 import { expect } from '@wdio/globals'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
-import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
     cleanup,
     expectMediaMetadataViaBrowser,
@@ -31,11 +31,20 @@ function renamedFolderPath(folderPath: string, folderName: string): string {
 }
 
 /**
+ * Rename media folder via UI.
+ *
+ * HarmonyOS: the sandbox does not allow renaming folders — skip rather than
+ * assert a rename that cannot succeed.
+ *
  * @supports local, Electron
  * @unsupported HarmonyOS
  */
 describe('Rename Media Folder', () => {
     let testFolder = ''
+
+    before(function () {
+        skipIfOhos(this)
+    })
 
     beforeEach(async () => {
         await setup({

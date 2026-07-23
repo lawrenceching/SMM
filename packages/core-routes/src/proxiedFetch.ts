@@ -1,26 +1,19 @@
 /**
- * Proxied `fetch` implementation using Node.js built-in modules for HTTP
- * proxies and `socks-proxy-agent` for SOCKS5 proxies.
+ * Proxied `fetch` implementation for HTTP(S) and SOCKS5 outbound proxies.
  *
- * Routes outgoing HTTP/HTTPS requests through an HTTP proxy
- * (HTTP CONNECT for HTTPS targets, direct forward-proxy for HTTP targets)
- * or through a SOCKS5 proxy (via `SocksProxyAgent`).
- *
- * Under Bun, HTTP(S) proxies use Bun's native `fetch({ proxy })` because
- * Bun ignores `http.request({ createConnection })`, which breaks the
- * Node CONNECT-tunnel path.
- *
- * External dependencies: `socks-proxy-agent` (for SOCKS5 support only).
- * HTTP proxy support uses only Node built-ins (`node:http`, `node:https`,
- * `node:net`, `node:tls`) when not running on Bun.
+ * - Bun: native `fetch({ proxy })` (Bun ignores Node CONNECT/`createConnection`).
+ * - Node / OHOS: `https-proxy-agent` / `http-proxy-agent` for HTTP proxies,
+ *   `socks-proxy-agent` for SOCKS5. Responses are decompressed like Undici
+ *   (gzip / deflate / br) so reverse-proxy clients receive plaintext JSON.
  */
 
 import http from "node:http";
 import https from "node:https";
-import net from "node:net";
-import tls from "node:tls";
-import { once } from "node:events";
+import type { Agent } from "node:http";
+import { HttpProxyAgent } from "http-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { SocksProxyAgent } from "socks-proxy-agent";
+import { nodeHttpMessageToFetchResponse } from "./httpContentEncoding.ts";
 
 function isBunRuntime(): boolean {
   return typeof (globalThis as { Bun?: unknown }).Bun !== "undefined";
@@ -116,208 +109,27 @@ function wrapFetchWithLogging(
   };
 }
 
-function nodeHeadersToObject(headers: http.IncomingHttpHeaders): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const [key, val] of Object.entries(headers)) {
-    if (val === undefined) continue;
-    if (Array.isArray(val)) {
-      result[key] = val.join(", ");
-    } else {
-      result[key] = val;
-    }
-  }
-  return result;
-}
-
 /**
- * Read from a socket until \r\n\r\n (end of HTTP headers) is found.
- * Returns the raw header block as a string.
+ * Outgoing headers for Node agent requests.
+ * Drop Accept-Encoding so upstream prefers identity; still decompress if gzip arrives.
  */
-function readHeaders(socket: net.Socket): Promise<string> {
-  return new Promise<string>((resolve, reject) => {
-    let data = "";
-    const onData = (chunk: Buffer) => {
-      data += chunk.toString();
-      if (data.includes("\r\n\r\n")) {
-        socket.off("data", onData);
-        socket.off("error", onError);
-        resolve(data);
-      }
-    };
-    const onError = (err: Error) => {
-      socket.off("data", onData);
-      socket.off("error", onError);
-      reject(err);
-    };
-    socket.on("data", onData);
-    socket.on("error", onError);
-  });
-}
-
-// ─── HTTP upstream → HTTP proxy (forward proxy) ─────────────────────
-
-function httpForwardRequest(
-  request: Request,
-  proxyHost: string,
-  proxyPort: number,
-): Promise<Response> {
-  const url = new URL(request.url);
-
-  // Build headers — preserve originals but override Host to the upstream
-  // so the upstream sees the correct virtual host.
+function buildAgentRequestHeaders(request: Request): Record<string, string> {
   const headers = new Headers(request.headers);
-  headers.set("Host", url.host);
-
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-
-  return new Promise<Response>((resolve, reject) => {
-    const options: http.RequestOptions = {
-      hostname: proxyHost,
-      port: proxyPort,
-      // Forward proxy: request line contains the full URL
-      path: request.url,
-      method,
-      headers: Object.fromEntries(headers.entries()),
-      timeout: 30_000,
-    };
-
-    const req = http.request(options, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer) => chunks.push(chunk));
-      res.on("end", () => {
-        resolve(
-          new Response(Buffer.concat(chunks), {
-            status: res.statusCode,
-            statusText: res.statusMessage,
-            headers: nodeHeadersToObject(res.headers),
-          }),
-        );
-      });
-      res.on("error", reject);
-    });
-
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTP proxy request timeout"));
-    });
-
-    if (isBodyAllowed) {
-      void request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
+  headers.delete("accept-encoding");
+  headers.set("Host", new URL(request.url).host);
+  return Object.fromEntries(headers.entries());
 }
 
-// ─── HTTPS upstream → HTTP proxy (CONNECT tunnel) ──────────────────
-
-async function httpsTunnelRequest(
+function requestViaAgent(
   request: Request,
-  proxyHost: string,
-  proxyPort: number,
-): Promise<Response> {
-  const url = new URL(request.url);
-  const upstreamPort = url.port || 443;
-  const method = request.method.toUpperCase();
-  const isBodyAllowed = method !== "GET" && method !== "HEAD";
-
-  // Step 1 — open TCP connection to proxy
-  const socket = net.connect(proxyPort, proxyHost);
-  await once(socket, "connect");
-
-  // Step 2 — send CONNECT request
-  const connectReq =
-    `CONNECT ${url.hostname}:${upstreamPort} HTTP/1.1\r\n` +
-    `Host: ${url.hostname}:${upstreamPort}\r\n` +
-    "\r\n";
-  socket.write(connectReq);
-
-  // Step 3 — read CONNECT response
-  const rawResp = await readHeaders(socket);
-  const statusLine = rawResp.split("\r\n")[0] ?? "";
-  if (!statusLine.includes("200")) {
-    socket.destroy();
-    throw new Error(`Proxy CONNECT refused: ${statusLine}`);
-  }
-
-  // Step 4 — upgrade TCP socket to TLS
-  const tlsSocket = tls.connect({
-    socket,
-    host: url.hostname,
-    servername: url.hostname,
-  });
-  await once(tlsSocket, "secureConnect");
-
-  // Step 5 — send the actual HTTP request through the TLS tunnel.
-  // Use `http.request` (NOT `https.request`) because the socket is
-  // already TLS-wrapped.  `http.request` sends plain HTTP/1.1 over it,
-  // which travels encrypted through the tunnel.
-  const headers = new Headers(request.headers);
-  headers.set("Host", url.host);
-
-  return new Promise<Response>((resolve, reject) => {
-    const options: http.RequestOptions = {
-      method,
-      hostname: url.hostname,
-      port: upstreamPort,
-      path: url.pathname + url.search,
-      headers: Object.fromEntries(headers.entries()),
-      createConnection: () => tlsSocket,
-      timeout: 30_000,
-    };
-
-    const req = http.request(options, (res) => {
-      const chunks: Buffer[] = [];
-      res.on("data", (chunk: Buffer) => chunks.push(chunk));
-      res.on("end", () => {
-        resolve(
-          new Response(Buffer.concat(chunks), {
-            status: res.statusCode,
-            statusText: res.statusMessage,
-            headers: nodeHeadersToObject(res.headers),
-          }),
-        );
-      });
-      res.on("error", reject);
-    });
-
-    req.on("error", reject);
-    req.on("timeout", () => {
-      req.destroy();
-      reject(new Error("HTTPS tunnel request timeout"));
-    });
-
-    if (isBodyAllowed) {
-      void request.arrayBuffer().then((buf) => {
-        req.write(Buffer.from(buf));
-        req.end();
-      }, reject);
-    } else {
-      req.end();
-    }
-  });
-}
-
-// ─── SOCKS5 proxy (via socks-proxy-agent) ──────────────────────────
-
-function socksProxyRequest(
-  request: Request,
-  proxyUrl: string,
+  agent: Agent,
+  timeoutMessage: string,
 ): Promise<Response> {
   const url = new URL(request.url);
   const method = request.method.toUpperCase();
   const isBodyAllowed = method !== "GET" && method !== "HEAD";
   const isHttps = url.protocol === "https:";
-
-  const headers = new Headers(request.headers);
-  headers.set("Host", url.host);
-
-  const agent = new SocksProxyAgent(proxyUrl);
+  const headers = buildAgentRequestHeaders(request);
 
   return new Promise<Response>((resolve, reject) => {
     const requestOptions: http.RequestOptions = {
@@ -325,7 +137,7 @@ function socksProxyRequest(
       port: Number(url.port) || (isHttps ? 443 : 80),
       path: url.pathname + url.search,
       method,
-      headers: Object.fromEntries(headers.entries()),
+      headers,
       agent,
       timeout: 30_000,
     };
@@ -334,12 +146,9 @@ function socksProxyRequest(
       const chunks: Buffer[] = [];
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
-        resolve(
-          new Response(Buffer.concat(chunks), {
-            status: res.statusCode,
-            statusText: res.statusMessage,
-            headers: nodeHeadersToObject(res.headers),
-          }),
+        void nodeHttpMessageToFetchResponse(res, Buffer.concat(chunks)).then(
+          resolve,
+          reject,
         );
       });
       res.on("error", reject);
@@ -348,7 +157,7 @@ function socksProxyRequest(
     req.on("error", reject);
     req.on("timeout", () => {
       req.destroy();
-      reject(new Error("SOCKS5 proxy request timeout"));
+      reject(new Error(timeoutMessage));
     });
 
     if (isBodyAllowed) {
@@ -362,7 +171,28 @@ function socksProxyRequest(
   });
 }
 
-// ─── Public API ─────────────────────────────────────────────────────
+function httpProxyAgentRequest(request: Request, proxyUrl: string): Promise<Response> {
+  const url = new URL(request.url);
+  const isHttps = url.protocol === "https:";
+  // HttpsProxyAgent: CONNECT tunnel for https:// targets.
+  // HttpProxyAgent: absolute-URL forward for http:// targets.
+  const agent = isHttps
+    ? new HttpsProxyAgent(proxyUrl)
+    : new HttpProxyAgent(proxyUrl);
+  return requestViaAgent(
+    request,
+    agent,
+    isHttps ? "HTTPS proxy request timeout" : "HTTP proxy request timeout",
+  );
+}
+
+function socksProxyRequest(request: Request, proxyUrl: string): Promise<Response> {
+  return requestViaAgent(
+    request,
+    new SocksProxyAgent(proxyUrl),
+    "SOCKS5 proxy request timeout",
+  );
+}
 
 /**
  * Create a `fetch`-compatible function that routes all requests through
@@ -399,9 +229,7 @@ export function createProxiedFetch(
     throw new Error(`Unsupported proxy scheme: "${proxy.protocol}". Use http://, https://, or socks5://.`);
   }
 
-  // Bun ignores Node's `http.request({ createConnection })`, so the CONNECT
-  // tunnel path below never sends traffic through the proxy under Bun.
-  // Bun's fetch accepts a `proxy` option and handles CONNECT correctly.
+  // Bun ignores Node's agent/`createConnection` CONNECT path; use native proxy.
   if (isBunRuntime()) {
     logger?.debug(
       {
@@ -430,9 +258,6 @@ export function createProxiedFetch(
     );
   }
 
-  const proxyPort = Number(proxy.port) || (proxy.protocol === "https:" ? 443 : 80);
-  const proxyHost = proxy.hostname;
-
   logger?.debug(
     {
       proxyMode: "node-connect",
@@ -456,9 +281,7 @@ export function createProxiedFetch(
       "[ProxiedFetch] outbound request",
     );
     try {
-      const response = !url.protocol.startsWith("https:")
-        ? await httpForwardRequest(request, proxyHost, proxyPort)
-        : await httpsTunnelRequest(request, proxyHost, proxyPort);
+      const response = await httpProxyAgentRequest(request, proxyUrl);
       logger?.debug(
         { proxyMode: mode, status: response.status, targetHost: url.host },
         "[ProxiedFetch] outbound response",

@@ -20,11 +20,7 @@ import { Readable } from "node:stream";
 import http from "node:http";
 import https from "node:https";
 import zlib from "node:zlib";
-import { promisify } from "node:util";
-
-const gunzip = promisify(zlib.gunzip);
-const inflate = promisify(zlib.inflate);
-const brotliDecompress = promisify(zlib.brotliDecompress);
+import { decompressBody } from "./httpContentEncoding.ts";
 
 const HOP_BY_HOP_REQUEST_HEADERS: ReadonlySet<string> = new Set([
   "connection",
@@ -50,27 +46,6 @@ const STRIPPED_RESPONSE_HEADERS: ReadonlySet<string> = new Set([
   "content-encoding",
   "content-length",
 ]);
-
-async function decompressBody(
-  buf: Buffer,
-  contentEncoding: string | string[] | undefined,
-): Promise<Buffer> {
-  if (!contentEncoding || typeof contentEncoding !== "string") {
-    return buf;
-  }
-
-  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
-  if (encoding === "gzip" || encoding === "x-gzip") {
-    return gunzip(buf);
-  }
-  if (encoding === "deflate") {
-    return inflate(buf);
-  }
-  if (encoding === "br") {
-    return brotliDecompress(buf);
-  }
-  return buf;
-}
 
 function buildOutgoingHeaders(request: Request): http.OutgoingHttpHeaders {
   const headers: http.OutgoingHttpHeaders = {};

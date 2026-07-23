@@ -70,8 +70,10 @@ import { useDiscoverConfig } from "@/hooks/useDiscoverConfig"
 
 vi.mock("@/lib/i18n", () => ({
     useTranslation: () => ({
-        t: (key: string) => {
+        t: (key: string, opts?: { message?: string }) => {
             const messages: Record<string, string> = {
+                "statusBar.messages.initializing": "Initializing...",
+                "statusBar.messages.initializationError": `Initialization Error: ${opts?.message ?? ""}`,
                 "statusBar.messages.tmdbUnavailable": "TMDB is unavailable",
                 "statusBar.messages.tmdbAvailable": "TMDB is available",
                 "statusBar.messages.tmdbCheckFailed": "TMDB check failed",
@@ -116,8 +118,10 @@ describe("mapWebSocketStatusToConnectionStatus", () => {
 })
 
 describe("StatusBar", () => {
-    beforeEach(() => {
+    beforeEach(async () => {
         vi.clearAllMocks()
+        const { useStatusbarStore } = await import("@/stores/statusbarStore")
+        useStatusbarStore.setState({ bootstrap: { status: "ready" } })
         mockUseUIMediaFolderStoreState.mockReturnValue({
             folders: [],
             selectedFolder: "",
@@ -356,6 +360,49 @@ describe("StatusBar", () => {
 
         expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
             Path.toPlatformPath("/media/library"),
+        )
+    })
+
+    it("shows initializing label while bootstrap.status is initializing", async () => {
+        const { useStatusbarStore } = await import("@/stores/statusbarStore")
+        useStatusbarStore.setState({ bootstrap: { status: "initializing" } })
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [],
+            selectedFolder: "/media/tv",
+            selectedFolders: [],
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent("Initializing...")
+    })
+
+    it("shows folder path when bootstrap is ready even if a folder is selected", async () => {
+        const { useStatusbarStore } = await import("@/stores/statusbarStore")
+        useStatusbarStore.setState({ bootstrap: { status: "ready" } })
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [],
+            selectedFolder: "/media/tv",
+            selectedFolders: [],
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
+            Path.toPlatformPath("/media/tv"),
+        )
+    })
+
+    it("shows initialization error from bootstrap.error message", async () => {
+        const { useStatusbarStore } = await import("@/stores/statusbarStore")
+        useStatusbarStore.setState({
+            bootstrap: { status: "error", message: "disk full" },
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
+            "Initialization Error: disk full",
         )
     })
 })

@@ -36,11 +36,12 @@ export interface CoreRoutesModule {
   createReverseProxyRequestHandler: (
     config: ReverseProxyConfig,
   ) => (req: IncomingMessage, res: ServerResponse) => void
+  createProxiedFetch?: unknown
   createSocketIOManager: (
     httpServer: HttpServer,
     config?: SocketIOConfig,
   ) => SocketIOManager
-  DEFAULT_ALLOWED_UPSTREAM_HOSTS: readonly string[]
+  DEFAULT_ALLOWED_UPSTREAM_HOSTS: readonly string[] | ReadonlySet<string>
   createOpenAICompatible?: (
     opts: { name: string; baseURL: string; apiKey: string },
   ) => unknown
@@ -106,9 +107,16 @@ export interface CoreRoutesConfig {
 }
 
 export interface ReverseProxyConfig {
-  allowedUpstreamHosts: readonly string[]
+  allowedUpstreamHosts?: readonly string[] | ReadonlySet<string>
+  /**
+   * Dynamic allowlist resolver (same as CLI). When set, each reverse-proxy
+   * request rebuilds the allowlist from the latest user config so custom
+   * TMDB/TVDB and AI provider hosts are accepted without restart.
+   */
+  resolveAllowedUpstreamHosts?: () => Promise<ReadonlySet<string>>
   logger: CoreRoutesLogger
   fetchImpl: typeof fetch
+  createProxiedFetch?: unknown
 }
 
 export interface ReverseProxyManager {

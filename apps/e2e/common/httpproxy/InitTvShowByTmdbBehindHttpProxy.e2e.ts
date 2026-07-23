@@ -26,8 +26,7 @@ import { env } from 'node:process'
 import { testbedOs } from 'test/lib/e2e-platform'
 
 /**
- * @supports local, Electron
- * @unsupported HarmonyOS
+ * @supports local, Electron, HarmonyOS
  */
 describe('Init TV Show via TMDB Behind HTTP Proxy', () => {
     let testFolder = ''

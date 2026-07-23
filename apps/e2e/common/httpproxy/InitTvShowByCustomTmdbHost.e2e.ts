@@ -13,16 +13,17 @@ import { delay } from 'es-toolkit'
 import { when, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import type { TestFolder } from 'test/actions/import-folders'
 import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { env } from 'node:process'
+import { randomUUID } from 'node:crypto'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
 const CUSTOM_TMDB_HOST = 'https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com'
 
 /**
- * @supports local, Electron
- * @unsupported HarmonyOS
+ * @supports local, Electron, HarmonyOS
  */
 describe('Init TV Show via Custom TMDB Host', () => {
     let testFolder = ''
@@ -80,7 +81,13 @@ describe('Init TV Show via Custom TMDB Host', () => {
         await browser.pause(5000)
 
         const { folder1 } = await import('test/actions/import-folders')
-        await when(`Import media folder "${folder1.folderName}"`)
+        // Random folder name (not the show title) so a stuck sidebar title
+        // means recognition failed; a Chinese show title means language wrong.
+        const opaqueFolderName = `e2e-tmdb-${randomUUID()} {tmdbid=84666}`
+        await when('Import media folder', {
+            ...folder1,
+            folderName: opaqueFolderName,
+        } satisfies TestFolder)
 
         if (env.slowdown) {
             await delay(5 * 1000)

@@ -790,8 +790,58 @@ async function startMainHttpServer() {
     error: (obj, msg) => console.error(`[reverse-proxy] ${msg ?? "error"}`, obj)
   };
   const nodeHttpFetch = createNodeHttpFetch();
+  let userDataDir;
+  try {
+    userDataDir = import_electron8.app.getPath("userData");
+  } catch (err) {
+    console.warn("[main] app.getPath(userData) failed, falling back to os.homedir():", err);
+    userDataDir = import_node_os2.default.homedir();
+  }
+  const smmConfigPath = import_node_path5.default.join(userDataDir, "smm.json");
+  const ohosGetUserConfig = async () => {
+    try {
+      const content = await import_promises.default.readFile(smmConfigPath, "utf-8");
+      const raw = JSON.parse(content);
+      const coreRoutesModule2 = loadCoreRoutes();
+      const migrate = coreRoutesModule2.migrateAIConfig;
+      if (migrate)
+        migrate(raw);
+      return raw;
+    } catch {
+      return { folders: [] };
+    }
+  };
+  const resolveAllowedUpstreamHosts = async () => {
+    const allowedUpstreamHosts = new Set(DEFAULT_ALLOWED_UPSTREAM_HOSTS);
+    try {
+      const userConfig = await ohosGetUserConfig();
+      if (userConfig.aiProviders?.length) {
+        for (const p of userConfig.aiProviders) {
+          if (!p.baseURL)
+            continue;
+          try {
+            allowedUpstreamHosts.add(new URL(p.baseURL).hostname);
+          } catch {
+            proxyLogger.warn({ baseURL: p.baseURL }, "Invalid baseURL in AI provider config");
+          }
+        }
+      }
+      for (const candidate of [userConfig.tmdb?.host, userConfig.tvdb?.host]) {
+        if (!candidate)
+          continue;
+        try {
+          allowedUpstreamHosts.add(new URL(candidate).hostname);
+        } catch {
+          proxyLogger.warn({ host: candidate }, "Invalid custom media database host URL");
+        }
+      }
+    } catch (err) {
+      proxyLogger.warn({ err }, "Failed to load user config for allowed upstream hosts");
+    }
+    return allowedUpstreamHosts;
+  };
   const reverseProxyConfig = {
-    allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    resolveAllowedUpstreamHosts,
     logger: proxyLogger,
     fetchImpl: nodeHttpFetch,
     createProxiedFetch
@@ -808,22 +858,7 @@ async function startMainHttpServer() {
   console.log("[main] core-routes allowlist:", allowlist);
   const hello = buildHelloConfig(reverseProxyUrl);
   let socketManager = null;
-  const userDataDir = typeof hello.userDataDir === "string" ? hello.userDataDir : import_node_os2.default.homedir();
-  const smmConfigPath = import_node_path5.default.join(userDataDir, "smm.json");
-  const ohosAppDataDir = typeof hello.appDataDir === "string" ? hello.appDataDir : "";
-  const ohosGetUserConfig = async () => {
-    try {
-      const content = await import_promises.default.readFile(smmConfigPath, "utf-8");
-      const raw = JSON.parse(content);
-      const coreRoutesModule2 = loadCoreRoutes();
-      const migrate = coreRoutesModule2.migrateAIConfig;
-      if (migrate)
-        migrate(raw);
-      return raw;
-    } catch {
-      return { folders: [] };
-    }
-  };
+  const ohosAppDataDir = typeof hello.appDataDir === "string" ? hello.appDataDir : userDataDir;
   const chatConfig = {
     appDataDir: ohosAppDataDir,
     logger: createCoreRoutesLogger(),

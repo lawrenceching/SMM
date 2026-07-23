@@ -2,7 +2,7 @@ import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import StatusBar from 'test/componentobjects/StatusBar'
 import { cleanup, setup } from 'test/lib/testbed'
-import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -78,12 +78,21 @@ async function findVisibleButton(
 }
 
 /**
+ * Delete music track via right-click context menu.
+ *
+ * HarmonyOS: Delete is intentionally hidden in `LocalFileRow` (`!isHarmonyOSRuntime`)
+ * to avoid accidental deletion under the OHOS file-access model — not a test flake.
+ *
  * @supports local, Electron
  * @unsupported HarmonyOS
  */
 describe('DeleteFile', () => {
     let testFolder = ''
     let folderPath = ''
+
+    before(function () {
+        skipIfOhos(this)
+    })
 
     beforeEach(async () => {
         await setup({

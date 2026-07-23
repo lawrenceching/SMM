@@ -139,8 +139,78 @@ export async function startMainHttpServer(): Promise<void> {
 
   const nodeHttpFetch = createNodeHttpFetch()
 
+  // Resolve userDataDir before reverse proxy so the allowlist can
+  // include custom TMDB/TVDB hosts from smm.json (same as CLI).
+  let userDataDir: string
+  try {
+    userDataDir = app.getPath("userData")
+  } catch (err) {
+    console.warn("[main] app.getPath(userData) failed, falling back to os.homedir():", err)
+    userDataDir = os.homedir()
+  }
+  const smmConfigPath = path.join(userDataDir, "smm.json")
+
+  // Shared `getUserConfig` reader — used by reverse proxy allowlist,
+  // chat pipeline, and MCP server. Reads the same `smm.json` the
+  // renderer writes through `POST /api/writeFile`.
+  const ohosGetUserConfig = async () => {
+    try {
+      const content = await fs.readFile(smmConfigPath, "utf-8")
+      const raw = JSON.parse(content) as Record<string, unknown>
+      // `migrateAIConfig` is bundled inside `core-routes.js`.
+      // Call it via the loaded module to avoid a direct
+      // dependency on `@smm/core/configMigration` (which is not
+      // available when OHOS builds with `--external ./core-routes.js`).
+      const coreRoutesModule = loadCoreRoutes() as Record<string, unknown>
+      const migrate = coreRoutesModule.migrateAIConfig as
+        | ((raw_: Record<string, unknown>) => boolean)
+        | undefined
+      if (migrate) migrate(raw)
+      return raw as import("@smm/core/types").UserConfig
+    } catch {
+      // File doesn't exist or is malformed — return empty config.
+      return { folders: [] } as unknown as import("@smm/core/types").UserConfig
+    }
+  }
+
+  // Dynamic allowlist: pick up custom TMDB/TVDB + AI hosts on each request
+  // (mirrors apps/cli/server.ts buildReverseProxyConfig).
+  const resolveAllowedUpstreamHosts = async (): Promise<ReadonlySet<string>> => {
+    const allowedUpstreamHosts = new Set<string>(
+      DEFAULT_ALLOWED_UPSTREAM_HOSTS as Iterable<string>,
+    )
+
+    try {
+      const userConfig = await ohosGetUserConfig()
+
+      if (userConfig.aiProviders?.length) {
+        for (const p of userConfig.aiProviders) {
+          if (!p.baseURL) continue
+          try {
+            allowedUpstreamHosts.add(new URL(p.baseURL).hostname)
+          } catch {
+            proxyLogger.warn({ baseURL: p.baseURL }, "Invalid baseURL in AI provider config")
+          }
+        }
+      }
+
+      for (const candidate of [userConfig.tmdb?.host, userConfig.tvdb?.host]) {
+        if (!candidate) continue
+        try {
+          allowedUpstreamHosts.add(new URL(candidate).hostname)
+        } catch {
+          proxyLogger.warn({ host: candidate }, "Invalid custom media database host URL")
+        }
+      }
+    } catch (err) {
+      proxyLogger.warn({ err }, "Failed to load user config for allowed upstream hosts")
+    }
+
+    return allowedUpstreamHosts
+  }
+
   const reverseProxyConfig = {
-    allowedUpstreamHosts: DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    resolveAllowedUpstreamHosts,
     logger: proxyLogger,
     fetchImpl: nodeHttpFetch,
     createProxiedFetch,
@@ -171,36 +241,8 @@ export async function startMainHttpServer(): Promise<void> {
   //      renderer writes through `POST /api/writeFile`, so the AI
   //      Assistant uses the same provider configuration the user
   //      selected in Settings.
-  const userDataDir =
-    typeof hello.userDataDir === "string"
-      ? (hello.userDataDir as string)
-      : os.homedir()
-  const smmConfigPath = path.join(userDataDir, "smm.json")
   const ohosAppDataDir =
-    typeof hello.appDataDir === "string" ? hello.appDataDir : ""
-
-  // Shared `getUserConfig` reader — used by both the chat pipeline
-  // and the MCP server. Reads the same `smm.json` the renderer
-  // writes through `POST /api/writeFile`.
-  const ohosGetUserConfig = async () => {
-    try {
-      const content = await fs.readFile(smmConfigPath, "utf-8")
-      const raw = JSON.parse(content) as Record<string, unknown>
-      // `migrateAIConfig` is bundled inside `core-routes.js`.
-      // Call it via the loaded module to avoid a direct
-      // dependency on `@smm/core/configMigration` (which is not
-      // available when OHOS builds with `--external ./core-routes.js`).
-      const coreRoutesModule = loadCoreRoutes() as Record<string, unknown>
-      const migrate = coreRoutesModule.migrateAIConfig as
-        | ((raw_: Record<string, unknown>) => boolean)
-        | undefined
-      if (migrate) migrate(raw)
-      return raw as import("@smm/core/types").UserConfig
-    } catch {
-      // File doesn't exist or is malformed — return empty config.
-      return { folders: [] } as unknown as import("@smm/core/types").UserConfig
-    }
-  }
+    typeof hello.appDataDir === "string" ? hello.appDataDir : userDataDir
 
   const chatConfig = {
     appDataDir: ohosAppDataDir,

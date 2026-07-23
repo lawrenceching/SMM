@@ -48,7 +48,7 @@ export function StatusBar({
 }: StatusBarProps) {
     const { t } = useTranslation("components")
     const { selectedFolder } = useUIMediaFolderStoreState()
-    const initializationMessage = useStatusbarStore((s) => s.initializationMessage)
+    const bootstrap = useStatusbarStore((s) => s.bootstrap)
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isTranscribeEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
@@ -58,12 +58,20 @@ export function StatusBar({
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
     )
-    // Priority: prop message > initialization message > folder path
+    // Priority: prop message > bootstrap phase label > folder path.
+    // Translate at render time so i18n `t` changes never rewrite store state.
     const displayMessage = useMemo(() => {
         if (message !== undefined) return message
-        if (initializationMessage !== null) return initializationMessage
+        if (bootstrap.status === "initializing") {
+            return t("statusBar.messages.initializing")
+        }
+        if (bootstrap.status === "error") {
+            return t("statusBar.messages.initializationError", {
+                message: bootstrap.message,
+            })
+        }
         return folderPathMessage
-    }, [message, initializationMessage, folderPathMessage])
+    }, [message, bootstrap, folderPathMessage, t])
 
     const { version } = useStatusBar({ versionOverride })
     const latestVersion = discoverConfig?.latestVersion

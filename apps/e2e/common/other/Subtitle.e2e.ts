@@ -1,7 +1,7 @@
 import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { cleanup, setup } from 'test/lib/testbed'
-import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -42,11 +42,20 @@ async function rightClickFirstTrackRow() {
 }
 
 /**
+ * Subtitle associated-file row + context menu (Subtitle submenu).
+ *
+ * HarmonyOS: subtitle pipeline is disabled (`isSubtitleFeaturesEnabled`) —
+ * the Subtitle context menu item is not rendered.
+ *
  * @supports local, Electron
  * @unsupported HarmonyOS
  */
 describe('Subtitle', () => {
     let testFolder = ''
+
+    before(function () {
+        skipIfOhos(this)
+    })
 
     beforeEach(async () => {
         await setup({

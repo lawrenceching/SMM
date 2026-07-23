@@ -5,7 +5,7 @@ describe('statusbarStore', () => {
   beforeEach(() => {
     useStatusbarStore.setState({
       isBackgroundJobsPopoverOpen: false,
-      initializationMessage: null,
+      bootstrap: { status: 'initializing' },
     })
   })
 
@@ -17,11 +17,14 @@ describe('statusbarStore', () => {
     expect(useStatusbarStore.getState().isBackgroundJobsPopoverOpen).toBe(false)
   })
 
-  it('setInitializationMessage updates initialization status text', () => {
-    useStatusbarStore.getState().setInitializationMessage('Initializing...')
-    expect(useStatusbarStore.getState().initializationMessage).toBe('Initializing...')
+  it('setBootstrap updates bootstrap phase', () => {
+    useStatusbarStore.getState().setBootstrap({ status: 'ready' })
+    expect(useStatusbarStore.getState().bootstrap).toEqual({ status: 'ready' })
 
-    useStatusbarStore.getState().setInitializationMessage(null)
-    expect(useStatusbarStore.getState().initializationMessage).toBeNull()
+    useStatusbarStore.getState().setBootstrap({ status: 'error', message: 'disk full' })
+    expect(useStatusbarStore.getState().bootstrap).toEqual({
+      status: 'error',
+      message: 'disk full',
+    })
   })
 })

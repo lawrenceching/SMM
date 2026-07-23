@@ -7,7 +7,6 @@ import { discoverConfigQueryKey } from "@/lib/appQueryKeys"
 import { queryClient } from "@/lib/queryClient"
 import { DvdGuideUrlInitializer } from "@/components/initialization/DvdGuideUrlInitializer"
 import { UIMediaFolderStoreInitializer } from "@/components/initialization/UIMediaFolderStoreInitializer"
-import { useTranslation } from "@/lib/i18n"
 import { useStatusbarStore } from "@/stores/statusbarStore"
 
 const debug = Debug("AppInitializer")
@@ -37,8 +36,7 @@ export async function buildMediaMetadata(
  */
 export function AppInitializer() {
     const { reload } = useConfig()
-    const { t } = useTranslation("components")
-    const setInitializationMessage = useStatusbarStore((s) => s.setInitializationMessage)
+    const setBootstrap = useStatusbarStore((s) => s.setBootstrap)
 
     const bootstrapStartedRef = useRef(false)
     const pendingRef = useRef(new Set(["dvd-guide-url", "media-folder-store"]))
@@ -59,18 +57,14 @@ export function AppInitializer() {
                 doneRef.current = true
                 if (firstErrorRef.current) {
                     window._smm_status = "error"
-                    setInitializationMessage(
-                        t("statusBar.messages.initializationError", {
-                            message: firstErrorRef.current,
-                        }),
-                    )
+                    setBootstrap({ status: "error", message: firstErrorRef.current })
                 } else {
                     window._smm_status = "ready"
-                    setInitializationMessage(null)
+                    setBootstrap({ status: "ready" })
                 }
             }
         },
-        [t, setInitializationMessage],
+        [setBootstrap],
     )
 
     const onDvdGuideReady = useCallback(
@@ -82,12 +76,11 @@ export function AppInitializer() {
         [handleReady],
     )
 
+    // Reset phase on mount (page refresh / remount). StatusBar translates the
+    // label from `bootstrap.status` — no translated string is stored.
     useEffect(() => {
-        setInitializationMessage(t("statusBar.messages.initializing"))
-        return () => {
-            setInitializationMessage(null)
-        }
-    }, [t, setInitializationMessage])
+        setBootstrap({ status: "initializing" })
+    }, [setBootstrap])
 
     useEffect(() => {
         if (bootstrapStartedRef.current) {

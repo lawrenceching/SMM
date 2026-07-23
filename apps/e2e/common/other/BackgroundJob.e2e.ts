@@ -10,8 +10,7 @@ const JOB_DELAY_MS = 5000
 const JOB_NAME = 'E2E 测试任务'
 
 /**
- * @supports local
- * @unsupported HarmonyOS
+ * @supports local, Electron, HarmonyOS
  */
 describe('Background Job', () => {
     beforeEach(async () => {
@@ -180,11 +179,16 @@ describe('Background Job', () => {
         })
         console.log(`Toast appeared with text: ${toastText}`)
 
+        // Sonner pauses auto-dismiss while the pointer is over the toaster. E2E
+        // clicks leave the cursor near the status-bar popover (bottom-right),
+        // so move away before asserting dismiss — especially on Electron.
+        await browser.action('pointer').move({ origin: 'viewport', x: 8, y: 8 }).perform()
+
         await browser.waitUntil(async () => {
             return !(await $('[data-sonner-toast]').isExisting())
         }, {
-            timeout: 6000,
-            timeoutMsg: 'Failure toast did not dismiss within 6s',
+            timeout: 10_000,
+            timeoutMsg: 'Failure toast did not dismiss within 10s',
         })
 
         const popoverOpenAfterWait = await StatusBar.isBackgroundJobsPopoverOpen()

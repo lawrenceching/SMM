@@ -126,7 +126,7 @@ describe("doFetchDiscoverConfig", () => {
 
 describe("GET /api/discover", () => {
   async function requestDiscover(config: CoreRoutesConfig) {
-    const { handleCoreRoutesRequest } = await import("./register.ts");
+    const { handleDiscoverGet } = await import("./routes/discoverRoute.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
     const { Socket } = await import("node:net");
 
@@ -148,26 +148,31 @@ describe("GET /api/discover", () => {
       return res;
     }) as typeof res.end;
 
-    await handleCoreRoutesRequest(req, res, config, 3001);
+    const handled = await handleDiscoverGet(req, res, {
+      config,
+      url: new URL("http://127.0.0.1:3001/api/discover"),
+    });
     socket.destroy();
     return {
+      handled,
       status,
       body: body ? (JSON.parse(body) as Record<string, unknown>) : {},
     };
   }
 
-  it("returns 200 with discover data via core-routes", async () => {
+  it("returns 200 with discover data via discover route", async () => {
     const fetchImpl = vi.fn(() =>
       jsonResponse({
         mediaDatabases: [{ type: "tmdb", baseUrl: "https://example.com/api/tmdb" }],
       }),
     );
 
-    const { status, body } = await requestDiscover({
+    const { handled, status, body } = await requestDiscover({
       allowlist: [],
       fetchImpl,
     });
 
+    expect(handled).toBe(true);
     expect(status).toBe(200);
     expect(body).toEqual({
       data: {

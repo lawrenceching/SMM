@@ -18,7 +18,7 @@ import {
 import MusicPanel from 'test/componentobjects/MusicPanel.co'
 import DownloadVideoDialogCO from 'test/componentobjects/DownloadVideoDialog.co'
 
-import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 
 const LOCALSTORAGE_AGREEMENT_KEY = 'DownloadVideoDialog.userAgreed'
 
@@ -46,11 +46,20 @@ async function getLocalStorageAgreement(): Promise<string | null> {
 }
 
 /**
+ * DownloadVideoDialog user-agreement flow from MusicPanel.
+ *
+ * HarmonyOS: download is gated off (`isDownloadVideoEnabled` / `downloadVideo`) —
+ * no yt-dlp — so `music-download-button` is not rendered.
+ *
  * @supports local, Electron
  * @unsupported HarmonyOS
  */
 describe('MusicPanel - Download - User Agreement (4.1)', () => {
     let testFolder = ''
+
+    before(function () {
+        skipIfOhos(this)
+    })
 
     beforeEach(async () => {
         await setup({
