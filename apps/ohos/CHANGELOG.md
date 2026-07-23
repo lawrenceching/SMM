@@ -1,5 +1,13 @@
 # @smm/ohos-electron-main
 
+## 0.0.8
+
+### Patch Changes
+
+- v1.4.6
+- Updated dependencies
+  - @smm/electron-common@1.3.15
+
 ## 0.0.7
 
 ### Patch Changes

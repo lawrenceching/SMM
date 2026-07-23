@@ -1,5 +1,13 @@
 # @smm/core-routes
 
+## 1.4.6
+
+### Patch Changes
+
+- v1.4.6
+- Updated dependencies
+  - @smm/core@1.4.6
+
 ## Unreleased
 
 ### Minor Changes
@@ -9,7 +17,6 @@
   Previously `/api/discover` lived only in the CLI Hono server. OHOS routes
   `/api/*` through `core-routes`, so discover returned 404 and folder
   initialization failed with `Discover request failed: 404 Not Found`.
-
   - New `doFetchDiscoverConfig` / `doFetchDiscoveredMediaDatabases`
   - New `handleDiscoverGet` registered on the core-routes request handler
   - CLI `handleDiscover` now delegates to `@smm/core-routes/discover`

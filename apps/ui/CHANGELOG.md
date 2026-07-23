@@ -1,5 +1,14 @@
 # ui
 
+## 1.4.6
+
+### Patch Changes
+
+- v1.4.6
+- Updated dependencies
+  - @smm/core@1.4.6
+  - @smm/tvdb4@1.3.15
+
 ## 1.4.5
 
 ### Patch Changes
