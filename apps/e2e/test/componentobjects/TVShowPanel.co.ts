@@ -551,9 +551,28 @@ class TVShowPanel {
         return $('[data-testid="scrape-button"]')
     }
 
+    /** Matches {@link TvShowPanelHeader} subtitle dropdown trigger. */
+    get subtitleMenuButton() {
+        return $('[data-testid="tvshow-header-subtitle"]')
+    }
+
     /** Matches {@link TvShowPanelHeader} transcribe control. */
     get transcribeButton() {
         return $('[data-testid="tvshow-header-transcribe"]')
+    }
+
+    async openSubtitleMenu(): Promise<void> {
+        const button = await this.subtitleMenuButton
+        await button.waitForClickable({ timeout: 10_000 })
+        await button.click()
+        await browser.pause(200)
+    }
+
+    async clickHeaderTranscribe(): Promise<void> {
+        await this.openSubtitleMenu()
+        const item = await this.transcribeButton
+        await item.waitForClickable({ timeout: 5000 })
+        await item.click()
     }
 
     get newVideoFilePaths() {

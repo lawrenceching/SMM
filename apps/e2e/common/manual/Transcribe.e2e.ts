@@ -1,13 +1,18 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
+import { Path } from '@smm/core'
 import Sidebar from 'test/componentobjects/Sidebar'
-import { setup, cleanup } from 'test/lib/testbed'
-import { createAndImportFolder, folder1, folder5 } from 'test/actions/import-folders'
+import { setup, cleanup, importFolderWithMediaMetadata } from 'test/lib/testbed'
+import { createFolderInTestFolder, folder1, folder5 } from 'test/actions/import-folders'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
 import { readdirSync } from 'node:fs'
 import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
 import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import { joinPlatformPath } from 'test/lib/browser-fs'
+import page from 'test/pageobjects/page'
+
+const tutorialVideoDir = path.join(import.meta.dirname, '../../../../test/media/tutorials')
 
 describe('Transcribe', () => {
     before(function () {
@@ -45,30 +50,44 @@ describe('Transcribe', () => {
 
         this.timeout(5 * 60 * 1000)
 
-        const folder = await createAndImportFolder({
+        if (!fs.existsSync(tutorialVideoDir)) {
+            throw new Error(
+                `[Transcribe] Required test media folder does not exist: ${tutorialVideoDir}. ` +
+                'Please create this folder and put sample video files in it (e.g. p1.mp4, p2.mp4).',
+            )
+        }
+
+        const episodeFiles = ['S01E01.mp4', 'S01E02.mp4', 'S01E03.mp4'] as const
+        const folder = createFolderInTestFolder({
             ...folder1,
-            files: [
-                'S01E01.mp4',
-                'S01E02.mp4',
-                'S01E03.mp4',
-            ],
-        }, 'e2eTest:Transcribe TV show')
-
-        await Sidebar.waitForFolderName(folder.folderName, 60000);
-        await TvShowPanelCO.waitForTitleToBe(folder.translations?.title?.['en-US'] ?? 'N/A');
-
-        [{
-            src: path.join(import.meta.dirname, '../../../../test/media/tutorials/p1.mp4'),
-            dest: path.join(folder.path!, 'S01E01.mp4'),
-        }, {
-            src: path.join(import.meta.dirname, '../../../../test/media/tutorials/p2.mp4'),
-            dest: path.join(folder.path!, 'S01E02.mp4'),
-        }].forEach(({ src, dest }) => {
-            fs.rmSync(dest)
-            fs.copyFileSync(src, dest)
+            files: [...episodeFiles],
         })
 
-        await TvShowPanelCO.transcribeButton.click()
+        for (const [srcName, destName] of [
+            ['p1.mp4', 'S01E01.mp4'],
+            ['p2.mp4', 'S01E02.mp4'],
+        ] as const) {
+            const src = path.join(tutorialVideoDir, srcName)
+            const dest = path.join(folder.path!, destName)
+            fs.rmSync(dest)
+            fs.copyFileSync(src, dest)
+        }
+
+        await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+            mediaMetadata.mediaFiles = episodeFiles.map((fileName, index) => ({
+                absolutePath: Path.posix(joinPlatformPath(folder.path!, fileName)),
+                seasonNumber: 1,
+                episodeNumber: index + 1,
+            }))
+            return mediaMetadata
+        })
+
+        await page.refresh()
+        await Sidebar.waitForFolderName(folder.folderName, 60000)
+        await Sidebar.clickFolder(folder.folderName)
+        await TvShowPanelCO.waitForTable(30_000)
+
+        await TvShowPanelCO.clickHeaderTranscribe()
 
         await TranscribeDialogCO.confirmButton.waitForExist()
         await TranscribeDialogCO.confirmButton.click()
@@ -88,20 +107,46 @@ describe('Transcribe', () => {
 
         this.timeout(5 * 60 * 1000)
 
-        const folder = await createAndImportFolder({
+        if (!fs.existsSync(tutorialVideoDir)) {
+            throw new Error(
+                `[Transcribe] Required test media folder does not exist: ${tutorialVideoDir}. ` +
+                'Please create this folder and put sample video files in it (e.g. p1.mp4).',
+            )
+        }
+
+        const movieFileName = 'movie.mp4'
+        const folder = createFolderInTestFolder({
             ...folder5,
-            files: ['movie.mp4'],
-        }, 'e2eTest:Search Movie')
+            files: [movieFileName],
+        })
 
-        await Sidebar.waitForFolderName(folder.folderName, 60000)
-
-        const sourceFile = path.join(import.meta.dirname, '../../../../test/media/tutorials/p1.mp4')
-        const destFile = path.join(folder.path!, folder.files[0]!)
-
+        const destFile = path.join(folder.path!, movieFileName)
         fs.rmSync(destFile)
-        fs.copyFileSync(sourceFile, destFile)
+        fs.copyFileSync(path.join(tutorialVideoDir, 'p1.mp4'), destFile)
 
-        await MoviePanelCO.transcribeButton.click()
+        const expectedTitle = folder5.translations?.title?.['en-US'] ?? 'The Dark Knight'
+        await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+            mediaMetadata.type = 'movie-folder'
+            mediaMetadata.tvShow = undefined
+            mediaMetadata.mediaFiles = [
+                {
+                    absolutePath: Path.posix(joinPlatformPath(folder.path!, movieFileName)),
+                },
+            ]
+            mediaMetadata.movie = {
+                database: 'TVDB',
+                id: '116',
+                name: expectedTitle,
+            }
+            return mediaMetadata
+        })
+
+        await page.refresh()
+        await Sidebar.waitForFolderName(folder.folderName, 60000)
+        await Sidebar.clickFolder(folder.folderName)
+        await MoviePanelCO.waitForTitleToBe(expectedTitle, 30_000)
+
+        await MoviePanelCO.clickHeaderTranscribe()
 
         await TranscribeDialogCO.confirmButton.waitForExist()
         await TranscribeDialogCO.confirmButton.click()
