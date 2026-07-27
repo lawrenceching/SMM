@@ -183,4 +183,40 @@ describe('parseConfig', () => {
       expect(result.errors.some(e => e.path === 'tasks.0.timeoutMs')).toBe(true);
     }
   });
+
+  test('accepts top-level taskTimeout', () => {
+    const result = parseConfig({
+      name: 'e2e',
+      taskTimeout: 1_800_000,
+      tasks: [{ name: 't1', command: 'echo hi' }],
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.config.taskTimeout).toBe(1_800_000);
+    }
+  });
+
+  test('rejects taskTimeout of 0', () => {
+    const result = parseConfig({
+      name: 'broken',
+      taskTimeout: 0,
+      tasks: [{ name: 't', command: 'x' }],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some(e => e.path === 'taskTimeout')).toBe(true);
+    }
+  });
+
+  test('rejects negative taskTimeout', () => {
+    const result = parseConfig({
+      name: 'broken',
+      taskTimeout: -1,
+      tasks: [{ name: 't', command: 'x' }],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.errors.some(e => e.path === 'taskTimeout')).toBe(true);
+    }
+  });
 });

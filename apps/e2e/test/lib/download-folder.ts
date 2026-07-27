@@ -12,15 +12,30 @@ const VIDEO_FILE_EXTENSIONS = [
     ".m4v",
 ] as const
 
-function isCompletedVideoFileName(name: string): boolean {
+/**
+ * yt-dlp DASH/HLS intermediates look like `title [id].f100026.mp4` before merge.
+ * They must not count as completed downloads.
+ */
+export function isYtdlpFormatFragment(name: string): boolean {
+    return /\.f\d+\./i.test(name)
+}
+
+/** True for a finished media file (not `.part`, not a yt-dlp format fragment). */
+export function isCompletedVideoFileName(name: string): boolean {
     return (
         !name.includes(".part") &&
+        !isYtdlpFormatFragment(name) &&
         VIDEO_FILE_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext))
     )
 }
 
+/** True while yt-dlp still has `.part` or unmerged `.fNNNN.` format fragments. */
+export function isIncompleteDownloadFileName(name: string): boolean {
+    return name.includes(".part") || isYtdlpFormatFragment(name)
+}
+
 export function hasPartialDownloads(folderPath: string): boolean {
-    return readdirSync(folderPath).some((name) => name.includes(".part"))
+    return readdirSync(folderPath).some(isIncompleteDownloadFileName)
 }
 
 export function countVideoFilesInFolder(folderPath: string): number {
@@ -29,7 +44,7 @@ export function countVideoFilesInFolder(folderPath: string): number {
 
 export async function hasPartialDownloadsViaBrowser(folderPath: string): Promise<boolean> {
     const names = await listFileNamesViaBrowser(folderPath)
-    return names.some((name) => name.includes(".part"))
+    return names.some(isIncompleteDownloadFileName)
 }
 
 export async function countVideoFilesInFolderViaBrowser(folderPath: string): Promise<number> {
@@ -38,7 +53,8 @@ export async function countVideoFilesInFolderViaBrowser(folderPath: string): Pro
 }
 
 /**
- * Waits until yt-dlp finishes (no `.part` files) and the folder has enough completed videos.
+ * Waits until yt-dlp finishes (no `.part` / `.fNNNN.` intermediates) and the folder
+ * has enough merged completed videos.
  */
 export async function waitForFolderVideosReady(
     folderPath: string,
@@ -54,7 +70,7 @@ export async function waitForFolderVideosReady(
     const interval = options?.interval ?? 1000
     const timeoutMsg =
         options?.timeoutMsg ??
-        `Expected at least ${minVideos} completed video file(s) with no .part files in folder`
+        `Expected at least ${minVideos} completed video file(s) with no in-progress downloads in folder`
 
     try {
         await browser.waitUntil(
@@ -76,6 +92,20 @@ export async function waitForFolderVideosReady(
     }
 }
 
+export async function expectFolderHasFileMatching(
+    folderPath: string,
+    pattern: RegExp,
+): Promise<string> {
+    const names = await listFileNamesViaBrowser(folderPath)
+    const match = names.find((name) => pattern.test(name))
+    if (!match) {
+        throw new Error(
+            `Expected file matching ${pattern} in folder; found: ${names.join(", ") || "(empty)"}`,
+        )
+    }
+    return match
+}
+
 /** Same as {@link waitForFolderVideosReady} but lists the folder via browser API. */
 export async function waitForFolderVideosReadyViaBrowser(
     folderPath: string,
@@ -91,7 +121,7 @@ export async function waitForFolderVideosReadyViaBrowser(
     const interval = options?.interval ?? 1000
     const timeoutMsg =
         options?.timeoutMsg ??
-        `Expected at least ${minVideos} completed video file(s) with no .part files in folder`
+        `Expected at least ${minVideos} completed video file(s) with no in-progress downloads in folder`
 
     try {
         await browser.waitUntil(

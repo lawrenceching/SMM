@@ -59,6 +59,10 @@ Top-level `env` is shallow-merged into every background and task subprocess
 (after `process.env`, before per-item `env`). Use per-background or per-task
 `env` to override a single key.
 
+**taskTimeout:** optional default timeout in milliseconds for tasks that omit
+per-task `timeoutMs`. Per-task `timeoutMs` wins when both are set. Unset = no
+timeout (same as today).
+
 **cwd:** omitted → project root (`run()` / CLI `--cwd`, default `process.cwd()`).
 Relative paths resolve against that project root. Absolute paths are used as-is.
 

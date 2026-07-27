@@ -1,11 +1,68 @@
 import { join } from "path"
-import { existsSync, statSync } from "node:fs"
+import { existsSync, readdirSync, statSync } from "node:fs"
 import { copyAndImportFolder } from "test/actions/import-folders"
 import Sidebar from "test/componentobjects/Sidebar"
 import { cleanup, setup } from "test/lib/testbed"
 import MusicPanel from "test/componentobjects/MusicPanel.co"
+import TranscribeDialogCO from "test/componentobjects/TranscribeDialog.co"
 import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+
 const videoFolderPath = join(import.meta.dirname, '../../../../test/media/tutorials')
+const LOG_PREFIX = "[MusicPanel-Transcribe]"
+
+function logStep(step: string, detail?: Record<string, unknown>) {
+    if (detail) {
+        console.log(`${LOG_PREFIX} ${step}:`, JSON.stringify(detail))
+    } else {
+        console.log(`${LOG_PREFIX} ${step}`)
+    }
+}
+
+async function logMusicPanelState(step: string) {
+    await MusicPanel.dumpDebugInfo(step)
+}
+
+async function openImportedMusicFolder(folderName: string, minRows: number) {
+    await Sidebar.waitForFolderName(folderName)
+    logStep("sidebar folder visible", { folderName })
+    await Sidebar.clickFolder(folderName)
+    logStep("sidebar folder clicked", { folderName })
+    await MusicPanel.waitForDataRows(minRows)
+    await logMusicPanelState(`after ${minRows} data row(s) visible`)
+}
+
+async function confirmTranscribeDialog() {
+    await TranscribeDialogCO.waitForDisplayed()
+    logStep("transcribe dialog displayed")
+    await TranscribeDialogCO.clickConfirm()
+    logStep("transcribe dialog confirmed")
+}
+
+async function waitForFolderFiles(
+    folderPath: string,
+    fileNames: string[],
+    timeoutMs = 4 * 60 * 1000,
+) {
+    logStep("waiting for output files", { folderPath, fileNames, timeoutMs })
+    await browser.waitUntil(
+        () => {
+            if (!existsSync(folderPath)) {
+                return false
+            }
+            const files = readdirSync(folderPath)
+            return fileNames.every((name) => files.includes(name))
+        },
+        {
+            timeout: timeoutMs,
+            interval: 2000,
+            timeoutMsg: () => {
+                const files = existsSync(folderPath) ? readdirSync(folderPath) : []
+                return `[MusicPanel-Transcribe] Timed out waiting for ${fileNames.join(", ")} in ${folderPath}. Found: ${files.join(", ") || "(empty)"}`
+            },
+        },
+    )
+    logStep("output files ready", { fileNames })
+}
 
 describe('MusicPanel - Transcribe', () => {
     before(function () {
@@ -56,65 +113,85 @@ describe('MusicPanel - Transcribe', () => {
 
     it('Transcribe Single File', async function() {
 
-        this.timeout(60 * 1000)
+        this.timeout(5 * 60 * 1000)
 
+        logStep("start", { videoFolderPath, testbedOs })
         const folder = await copyAndImportFolder(videoFolderPath, "e2eTest:MusicPanel-Transcribe:Transcribe Single File")
-        await Sidebar.waitForFolderName(folder.folderName)
+        logStep("folder imported", {
+            folderName: folder.folderName,
+            fileCount: folder.files.length,
+            files: folder.files,
+            path: folder.path,
+        })
 
-        await browser.pause(5000)
+        await openImportedMusicFolder(folder.folderName, 1)
 
         await MusicPanel.rightClick(0)
         await MusicPanel.contextMenus.waitForDisplayed()
-        await MusicPanel.clickContextMenu("transcribe")
-        await browser.pause(50 * 1000)
+        logStep("context menu displayed")
+        await MusicPanel.clickContextMenuSubtitleItem("transcribe")
+        await confirmTranscribeDialog()
+        await waitForFolderFiles(folder.path!, ["p1.srt"])
         expect(folder).toContainFile("p1.srt")
     })
 
     it('Transcribe Multiple Files', async function() {
 
-        this.timeout(2 * 60 * 1000)
+        this.timeout(5 * 60 * 1000)
 
+        logStep("start multiple files")
         const folder = await copyAndImportFolder(videoFolderPath, "e2eTest:MusicPanel-Transcribe:Transcribe Single File")
-        await Sidebar.waitForFolderName(folder.folderName)
+        logStep("folder imported", {
+            folderName: folder.folderName,
+            fileCount: folder.files.length,
+            files: folder.files,
+        })
 
-        await browser.pause(5000)
-
-        await expect(MusicPanel.transcribeButton).toBeDisabled()
+        await openImportedMusicFolder(folder.folderName, 2)
 
         await MusicPanel.selectButton.click()
         await browser.pause(200)
+        await logMusicPanelState("after select mode enabled")
 
         await MusicPanel.click(0)
         await MusicPanel.click(1)
+        await logMusicPanelState("after selecting rows 0 and 1")
 
-        await MusicPanel.transcribeButton.click()
-        await browser.pause(1.5 * 60 * 1000)
+        await MusicPanel.clickHeaderTranscribe()
+        await confirmTranscribeDialog()
+        await waitForFolderFiles(folder.path!, ["p1.srt", "p2.srt"])
         expect(folder).toContainFile("p1.srt")
         expect(folder).toContainFile("p2.srt")
     })
 
     it('Transcribe Multiple Files with partial files', async function() {
 
-        this.timeout(1 * 60 * 1000)
+        this.timeout(5 * 60 * 1000)
 
+        logStep("start partial selection")
         const folder = await copyAndImportFolder(videoFolderPath, "e2eTest:MusicPanel-Transcribe:Transcribe Single File")
-        await Sidebar.waitForFolderName(folder.folderName)
+        logStep("folder imported", {
+            folderName: folder.folderName,
+            fileCount: folder.files.length,
+            files: folder.files,
+        })
 
-        await browser.pause(5000)
-
-        await expect(MusicPanel.transcribeButton).toBeDisabled()
+        await openImportedMusicFolder(folder.folderName, 2)
 
         await MusicPanel.selectButton.click()
         await browser.pause(200)
+        await logMusicPanelState("after select mode enabled")
 
         await MusicPanel.click(0)
         await MusicPanel.click(1)
 
         // another click uncheck the first row
         await MusicPanel.click(0)
+        await logMusicPanelState("after selecting only row 1")
 
-        await MusicPanel.transcribeButton.click()
-        await browser.pause(50 * 1000)
+        await MusicPanel.clickHeaderTranscribe()
+        await confirmTranscribeDialog()
+        await waitForFolderFiles(folder.path!, ["p2.srt"])
         expect(folder).toContainFile("p2.srt")
     })
 })

@@ -180,6 +180,20 @@ function RowHarness({ fileMenu, onSummarize, canSummarize = true }: RowHarnessPr
   )
 }
 
+describe("LocalFileRow Properties context-menu item", () => {
+  it("renders Properties and invokes fileMenu.onProperties when clicked", () => {
+    const fileMenu = { ...baseFileMenu, onProperties: vi.fn() }
+    render(<RowHarness fileMenu={fileMenu} />)
+
+    const propertiesButton = screen.getByRole("button", {
+      name: /mediaPlayer.trackContextMenu.properties/i,
+    })
+    expect(propertiesButton).toBeInTheDocument()
+    propertiesButton.click()
+    expect(fileMenu.onProperties).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe("LocalFileRow Summarize context-menu item gating", () => {
   it("renders the Summarize item when isAiFeatureEnabled is true", () => {
     mockUseFeatures.mockReturnValue(defaultFeatures({ isAiFeatureEnabled: true }))

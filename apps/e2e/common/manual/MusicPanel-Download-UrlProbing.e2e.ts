@@ -1,6 +1,8 @@
 /**
  * DownloadVideoDialog - URL Input & Format Probing (4.2)
  *
+ * @supports local, Electron
+ *
  * Tests TC-URL-01 through TC-URL-09 covering:
  * - Valid URL + Go triggers format probing
  * - Invalid URL shows validation error
@@ -27,11 +29,97 @@ import DownloadVideoDialogCO from "test/componentobjects/DownloadVideoDialog.co"
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
+const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError"
+const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson"
+
 const VALID_BILIBILI_URL = "https://www.bilibili.com/video/BV17NrWBaE87/"
 const VALID_BILIBILI_URL_2 = "https://www.bilibili.com/video/BV1bW411a7jV/"
 const YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 const VALID_BUT_NONVIDEO_URL = "https://www.bilibili.com/video/BV1nonexistent999/"
 const INVALID_URL = "not-a-valid-url"
+
+const MOCK_SINGLE_VIDEO_JSON = JSON.stringify({
+    _type: "video",
+    id: "BV17NrWBaE87",
+    title: "E2E probe single video",
+    webpage_url: VALID_BILIBILI_URL,
+    formats: [
+        {
+            format_id: "30216",
+            ext: "m4a",
+            resolution: "audio only",
+            vcodec: "none",
+            acodec: "mp4a.40.2",
+        },
+        {
+            format_id: "100026",
+            ext: "mp4",
+            resolution: "1920x1080",
+            vcodec: "avc1",
+            acodec: "none",
+            height: 1080,
+        },
+    ],
+})
+
+const MOCK_PLAYLIST_JSON = JSON.stringify({
+    _type: "playlist",
+    id: "BV1bW411a7jV",
+    title: "E2E probe playlist",
+    entries: [
+        {
+            _type: "video",
+            id: "BV1bW411a7jV_p1",
+            title: "Episode 1",
+            webpage_url: VALID_BILIBILI_URL_2,
+            formats: [
+                {
+                    format_id: "30216",
+                    ext: "m4a",
+                    resolution: "audio only",
+                    vcodec: "none",
+                    acodec: "mp4a.40.2",
+                },
+            ],
+        },
+        {
+            _type: "video",
+            id: "BV1bW411a7jV_p2",
+            title: "Episode 2",
+            webpage_url: "https://www.bilibili.com/video/BV1bW411a7jV/?p=2",
+            formats: [
+                {
+                    format_id: "30216",
+                    ext: "m4a",
+                    resolution: "audio only",
+                    vcodec: "none",
+                    acodec: "mp4a.40.2",
+                },
+            ],
+        },
+    ],
+})
+
+async function clearYtdlpListFormatsMocks() {
+    await browser.execute(
+        (errorKey, jsonKey) => {
+            localStorage.removeItem(errorKey)
+            localStorage.removeItem(jsonKey)
+        },
+        TEST_MOCK_LIST_FORMATS_ERROR_KEY,
+        TEST_MOCK_LIST_FORMATS_JSON_KEY,
+    )
+}
+
+async function mockYtdlpListFormatsSuccess(json: string) {
+    await browser.execute(
+        (jsonKey, payload) => {
+            localStorage.setItem(jsonKey, payload)
+        },
+        TEST_MOCK_LIST_FORMATS_JSON_KEY,
+        json,
+    )
+}
 
 describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     let testFolder = ""
@@ -79,6 +167,8 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
             await DownloadVideoDialogCO.waitForClosed(3000)
         }
 
+        await clearYtdlpListFormatsMocks()
+
         await cleanup({
             removeMetadataDir: true,
             removePlansDir: true,
@@ -99,22 +189,15 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     it("TC-URL-01: entering valid URL and clicking Go triggers format probing", async function () {
         this.timeout(60 * 1000)
 
+        await mockYtdlpListFormatsSuccess(MOCK_SINGLE_VIDEO_JSON)
         await DownloadVideoDialogCO.setUrl(VALID_BILIBILI_URL)
 
-        // Before Go: format mode radio should NOT exist
-        expect(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()).toBe(false)
+        // Before Go: no post-probe format UI
+        expect(await DownloadVideoDialogCO.hasFormatProbeResults()).toBe(false)
 
         await DownloadVideoDialogCO.clickGo()
 
-        // Wait for format mode radio buttons to appear → probing completed
-        await browser.waitUntil(
-            async () => await DownloadVideoDialogCO.formatModePresetRadio.isExisting(),
-            {
-                timeout: 45_000,
-                interval: 500,
-                timeoutMsg: "Format mode radio did not appear after clicking Go (probing may have failed)",
-            },
-        )
+        await DownloadVideoDialogCO.waitForFormatProbeSuccess()
 
         // Verify Go button is re-enabled after probing
         expect(await DownloadVideoDialogCO.goButton.isEnabled()).toBe(true)
@@ -149,9 +232,9 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         expect(await DownloadVideoDialogCO.goButton.isEnabled()).toBe(true)
         await DownloadVideoDialogCO.clickGo()
 
-        // Pause briefly to ensure no format mode appeared
+        // Pause briefly to ensure no format probe UI appeared
         await browser.pause(1000)
-        expect(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()).toBe(false)
+        expect(await DownloadVideoDialogCO.hasFormatProbeResults()).toBe(false)
     })
 
     // ────────────────────────────────────────────────────────────────
@@ -160,18 +243,11 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     it("TC-URL-03: pressing Enter in URL input triggers format probing", async function () {
         this.timeout(60 * 1000)
 
+        await mockYtdlpListFormatsSuccess(MOCK_SINGLE_VIDEO_JSON)
         // Use Enter key to submit the URL instead of clicking Go
         await DownloadVideoDialogCO.triggerUrlWithEnter(VALID_BILIBILI_URL)
 
-        // Wait for format mode radio buttons to appear → probing completed
-        await browser.waitUntil(
-            async () => await DownloadVideoDialogCO.formatModePresetRadio.isExisting(),
-            {
-                timeout: 45_000,
-                interval: 500,
-                timeoutMsg: "Format mode radio did not appear after pressing Enter",
-            },
-        )
+        await DownloadVideoDialogCO.waitForFormatProbeSuccess()
     })
 
     // ────────────────────────────────────────────────────────────────
@@ -180,6 +256,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     it("TC-URL-04: Go button shows spinner and is disabled during format probing", async function () {
         this.timeout(60 * 1000)
 
+        await mockYtdlpListFormatsSuccess(MOCK_SINGLE_VIDEO_JSON)
         await DownloadVideoDialogCO.setUrl(VALID_BILIBILI_URL)
         await DownloadVideoDialogCO.clickGo()
 
@@ -231,7 +308,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         expect(errorText.length).toBeGreaterThan(0)
 
         // Format section should NOT appear after a failed probe
-        expect(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()).toBe(false)
+        expect(await DownloadVideoDialogCO.hasFormatProbeResults()).toBe(false)
     })
 
     // ────────────────────────────────────────────────────────────────
@@ -241,46 +318,25 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         this.timeout(90 * 1000)
 
         // Step 1: Probe URL-1 successfully
+        await mockYtdlpListFormatsSuccess(MOCK_SINGLE_VIDEO_JSON)
         await DownloadVideoDialogCO.setUrl(VALID_BILIBILI_URL)
         await DownloadVideoDialogCO.clickGo()
 
-        await browser.waitUntil(
-            async () => await DownloadVideoDialogCO.formatModePresetRadio.isExisting(),
-            {
-                timeout: 45_000,
-                interval: 500,
-                timeoutMsg: "Format mode radio did not appear for first URL",
-            },
-        )
+        await DownloadVideoDialogCO.waitForFormatProbeSuccess()
 
         // Step 2: Change to a different URL.
         // Use setValue which properly triggers React onChange → handleUrlChange
         // → resetListFormats → videoMetadata=null → showCookiesAtTopLevel=true
-        // → FormatSection (and radio) unrendered.
+        // → FormatSection (and probe results) unrendered.
         await DownloadVideoDialogCO.setUrl(VALID_BILIBILI_URL_2)
 
-        // Wait for React to finish processing state updates from the URL change.
-        // The format mode radio should disappear once resetListFormats completes.
-        await browser.waitUntil(
-            async () => !(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()),
-            {
-                timeout: 10_000,
-                interval: 200,
-                timeoutMsg: "Format mode radio did not disappear after URL change",
-            },
-        )
+        await DownloadVideoDialogCO.waitForFormatProbeCleared()
 
-        // Step 3: Probe the new URL
+        // Step 3: Probe the new URL (playlist → video list UI, no format-mode radios)
+        await mockYtdlpListFormatsSuccess(MOCK_PLAYLIST_JSON)
         await DownloadVideoDialogCO.clickGo()
 
-        await browser.waitUntil(
-            async () => await DownloadVideoDialogCO.formatModePresetRadio.isExisting(),
-            {
-                timeout: 45_000,
-                interval: 500,
-                timeoutMsg: "Format mode radio did not appear for second URL",
-            },
-        )
+        await DownloadVideoDialogCO.waitForFormatProbeSuccess()
     })
 
     // ────────────────────────────────────────────────────────────────
@@ -322,7 +378,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         await browser.waitUntil(
             async () =>
                 (await DownloadVideoDialogCO.quickjsError.isExisting()) ||
-                (await DownloadVideoDialogCO.formatModePresetRadio.isExisting()) ||
+                (await DownloadVideoDialogCO.hasFormatProbeResults()) ||
                 (await DownloadVideoDialogCO.listingError.isExisting()),
             {
                 timeout: 45_000,
@@ -337,7 +393,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
             console.log(
                 "[TC-URL-07] QuickJS is unavailable — Go blocked. Expected if QuickJS not installed.",
             )
-        } else if (await DownloadVideoDialogCO.formatModePresetRadio.isExisting()) {
+        } else if (await DownloadVideoDialogCO.hasFormatProbeResults()) {
             console.log("[TC-URL-07] YouTube format probing succeeded.")
         } else {
             const errorText = await DownloadVideoDialogCO.listingError.getText()
@@ -370,6 +426,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     it("TC-URL-09: Bilibili URL does not check QuickJS on Go", async function () {
         this.timeout(60 * 1000)
 
+        await mockYtdlpListFormatsSuccess(MOCK_SINGLE_VIDEO_JSON)
         await DownloadVideoDialogCO.setUrl(VALID_BILIBILI_URL)
 
         // QuickJS error should not be present before Go
@@ -380,7 +437,7 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         // Wait for probing to complete
         await browser.waitUntil(
             async () =>
-                (await DownloadVideoDialogCO.formatModePresetRadio.isExisting()) ||
+                (await DownloadVideoDialogCO.hasFormatProbeResults()) ||
                 (await DownloadVideoDialogCO.listingError.isExisting()),
             {
                 timeout: 45_000,
@@ -400,12 +457,15 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         this.timeout(60 * 1000)
 
         // Inject yt-dlp "Unsupported URL" stderr; URL value is irrelevant to this case.
-        await browser.execute(() => {
-            localStorage.setItem(
-                "test.mockYtdlpListFormatsError",
-                "ERROR: Unsupported URL: https://mock.invalid/video",
-            )
-        })
+        await browser.execute(
+            (errorKey) => {
+                localStorage.setItem(
+                    errorKey,
+                    "ERROR: Unsupported URL: https://mock.invalid/video",
+                )
+            },
+            TEST_MOCK_LIST_FORMATS_ERROR_KEY,
+        )
 
         await DownloadVideoDialogCO.setUrl("https://mock.invalid/video")
 
@@ -429,10 +489,6 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
         expect(errorText).toMatch(/不支持|not supported|暂不支援/i)
 
         // Format section should NOT appear after a failed probe
-        expect(await DownloadVideoDialogCO.formatModePresetRadio.isExisting()).toBe(false)
-
-        await browser.execute(() => {
-            localStorage.removeItem("test.mockYtdlpListFormatsError")
-        })
+        expect(await DownloadVideoDialogCO.hasFormatProbeResults()).toBe(false)
     })
 })

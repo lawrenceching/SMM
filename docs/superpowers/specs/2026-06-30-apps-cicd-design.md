@@ -116,6 +116,7 @@ export const ConfigSchema = z.object({
   outputDir: z.string().default('./artifacts/cicd'),     // resolved relative to orchestrator cwd
   stopOnFailure: z.boolean().default(true),
   keepRawTimeline: z.boolean().default(true),
+  taskTimeout: z.number().int().positive().optional(),   // default timeout for tasks without timeoutMs
 });
 
 export type BackgroundTask = z.infer<typeof BackgroundTaskSchema>;
@@ -129,7 +130,8 @@ export type Config = z.infer<typeof ConfigSchema>;
 - `cwd` — optional. Omitted → project root (`run({ cwd })` / CLI `--cwd`, default `process.cwd()`). Relative paths resolve against project root. Absolute paths are used as-is.
 - `env` — shallow-merged with `process.env`; user-provided keys win.
 - `delayMs` — applied per-background after its own spawn; backgrounds may have different delays.
-- `timeoutMs` — if exceeded, task is killed (SIGTERM → 5s → SIGKILL) and treated as failure.
+- `timeoutMs` — if exceeded, task is killed (SIGTERM → 5s → SIGKILL) and treated as failure. Overrides top-level `taskTimeout` when set.
+- `taskTimeout` — optional default timeout (ms) for tasks that omit `timeoutMs`. Unset = no default timeout.
 - `outputDir` — created if missing; relative paths resolve against project root. Each run produces a subdirectory `<commandId>/` (commandId = `Math.floor(Date.now() / 1000)`).
 - `stopOnFailure` — when true, the first failing task triggers background cleanup and skips remaining tasks.
 - `keepRawTimeline` — when false, `_timeline/` is deleted after slicing (and after `onArtifactsReady`).
@@ -145,7 +147,7 @@ export type Config = z.infer<typeof ConfigSchema>;
 5. For each task (serial):
    - `startTime = Date.now()`
    - Spawn with piped stdio, stream to `_timeline/<task-name>.jsonl`.
-   - Await exit; if `timeoutMs` is set, race against a timer.
+   - Await exit; if effective timeout (`task.timeoutMs ?? config.taskTimeout`) is set, race against a timer.
    - `endTime = Date.now()`
    - Record `{ name, exitCode, startTime, endTime }`.
    - Run `afterEach` hooks (if any).

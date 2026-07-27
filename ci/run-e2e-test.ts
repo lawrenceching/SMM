@@ -194,6 +194,7 @@ function buildDesktopConfig(specs: string[]) {
     ],
     stopOnFailure: false,
     keepRawTimeline: true,
+    taskTimeout: 30 * 60 * 1000,
   };
 }
 
@@ -234,6 +235,7 @@ function buildOhosConfig(specs: string[]) {
     ],
     stopOnFailure: false,
     keepRawTimeline: true,
+    taskTimeout: 30 * 60 * 1000,
   };
 }
 
@@ -266,6 +268,7 @@ function buildElectronConfig(specs: string[]) {
     afterEach: [] as { name: string; command: string; cwd: string }[],
     stopOnFailure: false,
     keepRawTimeline: true,
+    taskTimeout: 30 * 60 * 1000,
   };
 }
 

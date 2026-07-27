@@ -154,6 +154,51 @@ describe('run — failure handling', () => {
     expect(result.taskResults[0]!.timedOut).toBe(true);
     expect(elapsed).toBeLessThan(10000); // Well under the 30s sleep.
   });
+
+  test('top-level taskTimeout applies when task omits timeoutMs', async () => {
+    const configPath = writeConfig({
+      name: 'default-timeout',
+      outputDir: path.join(tmpRoot, 'out'),
+      taskTimeout: 300,
+      tasks: [
+        {
+          name: 'slow',
+          command: isWindows() ? 'cmd /c ping -n 30 127.0.0.1 > nul' : 'sh -c "sleep 30"',
+        },
+      ],
+    });
+
+    const before = Date.now();
+    const result = await run({ configPath, cwd: tmpRoot });
+    const elapsed = Date.now() - before;
+
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults[0]!.timedOut).toBe(true);
+    expect(elapsed).toBeLessThan(10000);
+  });
+
+  test('per-task timeoutMs overrides top-level taskTimeout', async () => {
+    const configPath = writeConfig({
+      name: 'override-timeout',
+      outputDir: path.join(tmpRoot, 'out'),
+      taskTimeout: 30_000,
+      tasks: [
+        {
+          name: 'slow',
+          command: isWindows() ? 'cmd /c ping -n 30 127.0.0.1 > nul' : 'sh -c "sleep 30"',
+          timeoutMs: 300,
+        },
+      ],
+    });
+
+    const before = Date.now();
+    const result = await run({ configPath, cwd: tmpRoot });
+    const elapsed = Date.now() - before;
+
+    expect(result.exitCode).toBe(1);
+    expect(result.taskResults[0]!.timedOut).toBe(true);
+    expect(elapsed).toBeLessThan(10000);
+  });
 });
 
 describe('run — output layout', () => {

@@ -371,11 +371,12 @@ export async function runOrchestrator(
 
     const startTime = Date.now();
     const cwd = resolveItemCwd(task.cwd, projectRoot);
+    const timeoutMs = task.timeoutMs ?? config.taskTimeout;
     debugLog.emit('task_start', {
       name: task.name,
       cwd,
       command: task.command,
-      timeoutMs: task.timeoutMs ?? null,
+      timeoutMs: timeoutMs ?? null,
     });
 
     const child = spawnChild({
@@ -398,20 +399,20 @@ export async function runOrchestrator(
     let closeCode: number | null = null;
     let closeSignal: NodeJS.Signals | null = null;
 
-    if (task.timeoutMs !== undefined) {
+    if (timeoutMs !== undefined) {
       const timeoutHandle = setTimeout(() => {
         timedOut = true;
         debugLog.emit('task_timeout', {
           name: task.name,
           pid: child.pid ?? null,
-          timeoutMs: task.timeoutMs,
+          timeoutMs,
         });
         void killTreeAndWait(child, 1000, {
           log: debugLog,
           label: task.name,
           reason: 'task_timeout',
         });
-      }, task.timeoutMs);
+      }, timeoutMs);
       const result = await waitForChildExitOrAbort(child, signal);
       clearTimeout(timeoutHandle);
       if (result.aborted) {

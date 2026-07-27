@@ -33,6 +33,8 @@ export const ConfigSchema = z.object({
   outputDir: z.string().default('./artifacts/cicd'),
   stopOnFailure: z.boolean().default(true),
   keepRawTimeline: z.boolean().default(true),
+  /** Default timeout (ms) for tasks that omit per-task `timeoutMs`. */
+  taskTimeout: z.number().int().positive().optional(),
 });
 
 export type BackgroundTask = z.infer<typeof BackgroundTaskSchema>;

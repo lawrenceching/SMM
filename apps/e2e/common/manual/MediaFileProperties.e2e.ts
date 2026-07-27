@@ -16,20 +16,48 @@ const testMp4Path = path.join(import.meta.dirname, '../../../../test/local/test.
 const ffmpegBin = path.join(import.meta.dirname, '../../../../bin/ffmpeg/ffmpeg.exe')
 
 /**
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
+async function waitForFirstTrackRow() {
+    await browser.waitUntil(
+        async () => {
+            const rows = await $$('div[role="table"] > div[role="row"]')
+            return rows.length >= 2
+        },
+        {
+            timeout: 30_000,
+            interval: 500,
+            timeoutMsg: 'Music file table never showed a data row',
+        },
+    )
+}
+
+/**
  * Helper: right-click on the first data row in the music file table.
- * The MusicFileTable uses a CSS grid with role="table" and role="row".
- * The first row (index 0) is the header, so we skip to index 1.
+ * Index 0 is the header row; index 1 is the first track.
  */
 async function rightClickFirstTrackRow() {
-    const rows = await $$('div[role="table"] > div[role="row"]')
-    // Index 0 = header row, index 1 = first data row
-    const dataRow = rows[1]
-    if (!dataRow) {
-        throw new Error('No data row found in music file table')
-    }
-    await dataRow.scrollIntoView()
-    await dataRow.waitForDisplayed({ timeout: 5000 })
-    await dataRow.click({ button: 'right' })
+    await browser.waitUntil(
+        async () => {
+            try {
+                const rows = await $$('div[role="table"] > div[role="row"]')
+                const dataRow = rows[1]
+                if (!dataRow) return false
+                await dataRow.scrollIntoView()
+                await dataRow.waitForDisplayed({ timeout: 2000 })
+                await dataRow.click({ button: 'right' })
+                return true
+            } catch {
+                return false
+            }
+        },
+        {
+            timeout: 10_000,
+            interval: 500,
+            timeoutMsg: 'No data row found in music file table',
+        },
+    )
 }
 
 /**
@@ -138,8 +166,7 @@ describe('MediaFileProperties', () => {
         await Sidebar.waitForFolderName('TestVideoProperties')
         await Sidebar.clickFolder('TestVideoProperties')
 
-        // Give the MusicPanel time to initialise and read file tags
-        await browser.pause(5000)
+        await waitForFirstTrackRow()
 
         // ── 4. Right-click the track and open Properties ──────────────────────
         await rightClickFirstTrackRow()
@@ -215,8 +242,7 @@ describe('MediaFileProperties', () => {
         await Sidebar.waitForFolderName('TestVideoProperties')
         await Sidebar.clickFolder('TestVideoProperties')
 
-        // Allow the MusicPanel to load and re-read file tags
-        await browser.pause(5000)
+        await waitForFirstTrackRow()
 
         // ── 7. Right-click and open Properties again; assert the saved tags ───
         await rightClickFirstTrackRow()

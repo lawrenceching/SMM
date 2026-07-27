@@ -225,6 +225,52 @@ class DownloadVideoDialogCO {
         await button.click()
     }
 
+    /**
+     * Set URL, optionally configure manual cookies, click Go, and wait for format probe UI.
+     * Start stays disabled until probe completes (showCookiesAtTopLevel clears).
+     */
+    async probeUrl(
+        url: string,
+        options?: { cookiesText?: string; timeout?: number },
+    ): Promise<void> {
+        await this.setUrl(url)
+        if (options?.cookiesText) {
+            await this.setCookies(options.cookiesText)
+        }
+        await this.clickGo()
+        await this.waitForFormatProbeSuccess({ timeout: options?.timeout })
+    }
+
+    /** Probe a URL using cookies extracted from a local browser profile. */
+    async probeUrlWithBrowserCookies(
+        url: string,
+        browserId: CookiesBrowserId = 'chrome',
+        options?: { timeout?: number },
+    ): Promise<void> {
+        await this.setUrl(url)
+        await this.selectBrowser(browserId)
+        await this.clickGo()
+        await this.waitForFormatProbeSuccess({ timeout: options?.timeout ?? 90_000 })
+    }
+
+    async waitForStartEnabled(options?: { timeout?: number }): Promise<void> {
+        const timeout = options?.timeout ?? 30_000
+        await browser.waitUntil(
+            async () => {
+                const button = await this.startButton
+                if (!(await button.isExisting().catch(() => false))) {
+                    return false
+                }
+                return (await button.isEnabled()) && (await button.isClickable())
+            },
+            {
+                timeout,
+                interval: 500,
+                timeoutMsg: `Start button did not become enabled within ${timeout}ms`,
+            },
+        )
+    }
+
     async triggerUrlWithEnter(value: string): Promise<void> {
         const input = await this.urlInput
         await input.waitForDisplayed({ timeout: 5000 })
@@ -262,26 +308,46 @@ class DownloadVideoDialogCO {
      * Opens the cookies editor (Configure), enters Netscape cookie text, and confirms.
      */
     async setCookies(text: string): Promise<void> {
+        await this.setUseCookies(true)
+
+        const cookiesSection = await this.cookiesSection
+        await cookiesSection.waitForDisplayed({ timeout: 10_000 })
+
         await this.clickConfigureCookies()
 
         const dialog = await this.cookiesTextDialog
-        await dialog.waitForDisplayed({ timeout: 5000 })
+        await dialog.waitForDisplayed({ timeout: 10_000 })
 
-        const input = await this.cookiesTextDialogInput
-        await input.waitForDisplayed({ timeout: 5000 })
-        await input.click()
-        await input.clearValue()
-        if (text.length > 0) {
-            await input.setValue(text)
-        }
+        await browser.waitUntil(
+            async () => await (await this.cookiesTextDialogInput).isDisplayed(),
+            { timeout: 10_000, timeoutMsg: 'Cookies text dialog input did not appear' },
+        )
+
+        // Large Netscape cookie files exceed reliable WebDriver setValue limits.
+        await browser.execute((cookieText: string) => {
+            const input = document.querySelector<HTMLTextAreaElement>(
+                '[data-testid="text-dialog-input"]',
+            )
+            if (!input) {
+                throw new Error('text-dialog-input not found')
+            }
+            const setter = Object.getOwnPropertyDescriptor(
+                HTMLTextAreaElement.prototype,
+                'value',
+            )?.set
+            setter?.call(input, cookieText)
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+            input.dispatchEvent(new Event('change', { bubbles: true }))
+        }, text)
 
         const confirm = await this.cookiesTextDialogConfirm
-        await confirm.waitForClickable({ timeout: 5000 })
+        await confirm.scrollIntoView()
+        await confirm.waitForClickable({ timeout: 15_000 })
         await confirm.click()
 
         await browser.waitUntil(async () => !(await dialog.isDisplayed()), {
-            timeout: 5000,
-            timeoutMsg: "Cookies text dialog did not close after confirm",
+            timeout: 10_000,
+            timeoutMsg: 'Cookies text dialog did not close after confirm',
         })
     }
 
@@ -487,10 +553,13 @@ class DownloadVideoDialogCO {
             if (!item) {
                 continue
             }
-            const checkbox = await item.$('input[type="checkbox"]')
-            await checkbox.waitForExist({ timeout: 5000 })
+            const checkbox = await item.$('[data-testid^="download-video-dialog-episode-checkbox-"]')
+            await checkbox.waitForExist({ timeout: 10_000 })
 
-            if (await checkbox.isSelected()) {
+            const state = await checkbox.getAttribute('data-state')
+            const ariaChecked = await checkbox.getAttribute('aria-checked')
+            const isChecked = state === 'checked' || ariaChecked === 'true'
+            if (isChecked) {
                 await checkbox.click()
             }
         }
@@ -577,8 +646,11 @@ class DownloadVideoDialogCO {
         for (let index = 0; index < itemCount; index += 1) {
             const item = items[index]
             if (!item) continue
-            const checkbox = await item.$('input[type="checkbox"]')
-            if (await checkbox.isSelected()) {
+            const checkbox = await item.$('[data-testid^="download-video-dialog-episode-checkbox-"]')
+            if (!(await checkbox.isExisting().catch(() => false))) continue
+            const state = await checkbox.getAttribute('data-state')
+            const ariaChecked = await checkbox.getAttribute('aria-checked')
+            if (state === 'checked' || ariaChecked === 'true') {
                 selectedCount += 1
             }
         }
@@ -608,9 +680,9 @@ class DownloadVideoDialogCO {
     }
 
     async clickStart(): Promise<void> {
-        const button = await this.startButton
         try {
-            await button.waitForClickable({ timeout: 5000 })
+            await this.waitForStartEnabled({ timeout: 30_000 })
+            const button = await this.startButton
             await button.click()
             return
         } catch (error) {
@@ -623,6 +695,53 @@ class DownloadVideoDialogCO {
         const button = await this.cancelButton
         await button.waitForClickable({ timeout: 5000 })
         await button.click()
+    }
+
+    /**
+     * True when format probing produced UI (preset/code radios, format select, or video list).
+     * Format mode radios are hidden when yt-dlp returns a multi-entry video list.
+     */
+    async hasFormatProbeResults(): Promise<boolean> {
+        return (
+            (await this.formatModePresetRadio.isExisting().catch(() => false)) ||
+            (await this.formatSelectTrigger.isExisting().catch(() => false)) ||
+            (await this.videoList.isExisting().catch(() => false))
+        )
+    }
+
+    /** Wait until Go/listFormats finished successfully (any post-probe UI). */
+    async waitForFormatProbeSuccess(options?: { timeout?: number }): Promise<void> {
+        const timeout = options?.timeout ?? 45_000
+        await browser.waitUntil(
+            async () => {
+                if (await this.listingError.isExisting().catch(() => false)) {
+                    if (await this.listingError.isDisplayed().catch(() => false)) {
+                        const text = await this.listingError.getText()
+                        throw new Error(`Format probing failed: ${text}`)
+                    }
+                }
+                return await this.hasFormatProbeResults()
+            },
+            {
+                timeout,
+                interval: 500,
+                timeoutMsg:
+                    "Format probe did not complete (no format select, mode radio, or video list)",
+            },
+        )
+    }
+
+    /** Wait until URL change reset cleared prior probe results. */
+    async waitForFormatProbeCleared(options?: { timeout?: number }): Promise<void> {
+        const timeout = options?.timeout ?? 10_000
+        await browser.waitUntil(
+            async () => !(await this.hasFormatProbeResults()),
+            {
+                timeout,
+                interval: 200,
+                timeoutMsg: "Format probe results did not clear after URL change",
+            },
+        )
     }
 }
 

@@ -1,10 +1,10 @@
 # Common e2e — platform verification
 
-`apps/e2e/common/{config,movie,httpproxy,tv,other,mcp,music,tvdb}` on **local**, **Electron**, **ohos**.
+`apps/e2e/common/{config,movie,httpproxy,tv,other,mcp,music,tvdb,manual}` on **local**, **Electron**, **ohos**.
 
-Specs carry `@supports …` after green on that platform; `@unsupported HarmonyOS` when skipped by design (`skipIfOhos`). `common/manual/` is out of scope.
+Specs carry `@supports …` after green on that platform; `@unsupported HarmonyOS` when skipped by design (`skipIfOhos`). `common/manual/` is on-demand (yt-dlp, ffmpeg, transcription); excluded from default CI unless `--spec` targets it explicitly.
 
-**Legend:** ✓ pass · ~ flaky (known; fix deferred) · — unsupported / skip · ✗ fail
+**Legend:** ✓ pass · ~ flaky (known; fix deferred) · — unsupported / skip · ✗ fail · ◐ partial (spec fails; some `it` pass)
 
 ---
 
@@ -20,6 +20,9 @@ Specs carry `@supports …` after green on that platform; `@unsupported HarmonyO
 | mcp | 14 | 14/14 | 14/14 | — |
 | music | 2 | 2/2 | 2/2 | — |
 | tvdb | 1 | 1/1 | 1/1 | — |
+| **manual** | 10 | 6/10§ | 6/10§ | pending |
+
+§ Ohos not verified yet. Windows skips `AppWarningBanner` (macOS/Linux-only). No `@supports` markers until green.
 
 † 14 specs via `pnpm e2e:local:tv` / `e2e:electron:tv` / `e2e:ohos:tv`; `TmdbHostFailover` via `pnpm e2e:failover`.
 
@@ -122,6 +125,21 @@ Columns: **L** local · **E** electron · **O** ohos
 | --- | --- | --- | --- |
 | McpServerTools-TVDB | ✓ | ✓ | — |
 
+### manual (10) — no `@supports` yet (verification in progress)
+
+| Spec | L | E | O | Notes |
+| --- | --- | --- | --- | --- |
+| AppWarningBanner | — | — | pending | Windows: entire spec skipped (macOS/Linux banner) |
+| CustomTmdbHost | ✓ | ✓ | pending | |
+| CustomTvdbHost | ✓ | ✓ | pending | |
+| Sidebar | ✓ | ✓ | pending | 4/4 `it` |
+| ConvertVideoFormat | ✓ | ✓ | — | `@supports local, Electron` · `@unsupported HarmonyOS` (host ffmpeg + `skipIfOhos`) |
+| MediaFileProperties | ✓ | ✓ | pending | `@supports local, Electron` · `@unsupported HarmonyOS` · Electron needs **`SMM_ELECTRON_BINARY=…/dist/win-unpacked/SMM.exe`** after rebuild |
+| MusicPanel-Download-UrlProbing | ✓ | ✓ | pending | `@supports local, Electron` · mock `test.mockYtdlpListFormatsJson` for Bilibili success path |
+| MusicPanel-Download | ◐ | pending | pending | L `1784999258`: Collection ✓; single video 0 files / title timeout / Episodes `.png` name mismatch; YouTube skip (no Firefox cookies). Probe+cookies path OK. |
+| MusicPanel-Transcribe | ✓ | pending | pending | L `1785000802`: 3/3 pass after CO selector fix (`div[role="table"]`), `Sidebar.clickFolder`, subtitle dropdown + TranscribeDialog confirm, poll for `.srt`. |
+| Transcribe | ✗ | ✗ | pending | `*-header-transcribe` not found (viewport / feature flag?) |
+
 ---
 
 ## Deferred
@@ -129,6 +147,7 @@ Columns: **L** local · **E** electron · **O** ohos
 | Item | Notes |
 | --- | --- |
 | **ImportTvShowLibrary** (Electron batch stability) | NFO folder can miss TMDB init when hosts time out before failover recovers (`tvShow.database` stays undefined). Solo often passes; batch ~ flaky. **Fix later** — not blocking `@supports Electron`. |
+| **manual suite** (local + Electron) | See **Manual suite (first pass)** under Lessons — context menu, download dialog, transcribe headers, Bilibili probe. Fix in follow-up tasks. |
 
 ---
 
@@ -148,7 +167,7 @@ Columns: **L** local · **E** electron · **O** ohos
 | --- | --- |
 | `net::ERR_CONNECTION_REFUSED` at `page.open()` (no URL → Vite localhost) | Shared steps: **`page.refresh()`** instead of bare `page.open()`; Electron embeds its own origin |
 | Recognize / plan buttons “missing” on Electron | Default window ~900px hides `@container` actions; **`applyE2eWindowSize`** via Electron execute or Puppeteer viewport |
-| Solo PASS, installed `Programs/SMM` FAIL | Prebuilt UI lacks bridge; use **`SMM_ELECTRON_BINARY=…/dist/win-unpacked/SMM.exe`** after rebuild |
+| Solo PASS, installed `Programs/SMM` FAIL | Prebuilt UI lacks latest features; use **`SMM_ELECTRON_BINARY=…/dist/win-unpacked/SMM.exe`** after `pnpm build:electron && pnpm --filter SMM build:unpack` |
 
 ### Ohos / TMDB / init
 
@@ -185,7 +204,21 @@ Columns: **L** local · **E** electron · **O** ohos
 | --- | --- |
 | Device / artifact collisions | **Run platforms serially**; logs under `artifacts/cicd/<commandId>/` |
 
-**Related:** `docs/superpowers/design/e2e-ui-media-folder-store-bridge.md`, `test/lib/testbed.ts`, `apps/tools/query-network-log.md`
+### Manual suite (first pass)
+
+| Problem | Solution / next step |
+| --- | --- |
+| Right-click **Properties** on music row — menu item never appears (`MediaFileProperties`) on installed `Programs/SMM` | Rebuild unpack + set **`SMM_ELECTRON_BINARY`**; poll for track row before right-click (same pattern as ConvertVideoFormat) |
+| **ConvertVideoFormat** — stale element after Start / wrong row when leftover `test (1).webm` exists | Use **Format conversion** menu; unique folder per run; poll dialog state via `browser.execute` instead of WebDriver element refs |
+| Download dialog — **`write-thumbnail-checkbox`** missing (`MusicPanel-Download`) | Extra args appear only after format probe (`showExtraArgs`); test must **Go/probe** first, then More options. Cookies via `setCookies` (`browser.execute` for large Netscape text). |
+| **MusicPanel-Download** L `1784999258` | Collection ✓; single BV download timed out (0 videos); title wait failed; Episodes downloaded but hard-coded `.png` name mismatch; YouTube skip without Firefox/`YOUTUBE_COOKIES*` |
+| Bilibili **format probing** — HTTP 412 / anti-bot; tests waited for `format-mode-preset` radio only | Mock `test.mockYtdlpListFormatsJson` for success cases; assert `hasFormatProbeResults()` (format select, mode radio, or video list when playlist) |
+| **`tvshow-header-transcribe` / `movie-header-transcribe`** not found (`Transcribe`) | Same class as TV Recognize: widen viewport or enable transcribe in test config |
+| **`music-multi-select-transcribe`** not found (`MusicPanel-Transcribe`) | Transcribe lives inside **Subtitle** dropdown (`music-header-subtitle`); open menu before clicking. Also **`Sidebar.clickFolder`**, `div[role="table"]` rows (not `tbody tr`), and poll for `.srt` with 5min timeout. Fixed L `1785000802`. |
+| `MusicPanel-Transcribe` fixture | Requires **`test/media/tutorials/`** with real videos (not in git) — present locally (`p1.mp4`, `p2.mp4`) |
+| `AppWarningBanner` on Windows | By design — spec targets macOS/Linux only |
+
+**Related:** `docs/superpowers/design/e2e-ui-media-folder-store-bridge.md`, `test/lib/testbed.ts`, `apps/tools/query-network-log.md`, `common/manual/README.md`
 
 ---
 
@@ -200,6 +233,8 @@ bun ci/run-e2e-test.ts --spec "./common/other/*.e2e.ts"
 bun ci/run-e2e-test.ts --spec "./common/mcp/*.e2e.ts"
 bun ci/run-e2e-test.ts --spec "./common/music/*.e2e.ts"
 bun ci/run-e2e-test.ts --spec "./common/tvdb/*.e2e.ts"
+bun ci/run-e2e-test.ts --spec "./common/manual/*.e2e.ts"
+bun ci/run-e2e-test.ts --platform electron --spec "./common/manual/*.e2e.ts"
 
 pnpm e2e:local:tv
 pnpm e2e:electron:tv
