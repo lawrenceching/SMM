@@ -16,6 +16,7 @@ import {
   type ScrapeTaskId,
   type ScrapeTaskView,
 } from "@/lib/scrapeDialog"
+import { normalizeScrapeTaskError } from "@/lib/scrapeError"
 
 export interface UseScrapeDialogInput {
   isOpen: boolean
@@ -123,9 +124,13 @@ export function useScrapeDialog({
           await executeTask(id, mediaMetadata)
           dispatch({ type: "MARK_COMPLETED", id })
         } catch (error) {
-          const reason = error instanceof Error ? error.message : String(error)
-          dispatch({ type: "MARK_FAILED", id, reason })
-          console.error(`[ScrapeDialog] task ${id} failed:`, error)
+          const { messageKey, debugDetail } = normalizeScrapeTaskError(error)
+          dispatch({
+            type: "MARK_FAILED",
+            id,
+            reason: debugDetail.trim() ? messageKey : undefined,
+          })
+          console.error(`[ScrapeDialog] task ${id} failed:`, debugDetail, error)
         }
       }
       if (mediaMetadata.mediaFolderPath) {

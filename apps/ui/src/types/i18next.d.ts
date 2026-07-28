@@ -683,6 +683,12 @@ interface DialogsResources {
       imageUrlNotFound: string
       imageUrlConnectionRefused: string
       imageUrlNetworkFailed: string
+      metadataNetworkFailed: string
+      tmdbUnavailable: string
+      tvdbUnavailable: string
+      reverseProxyUnavailable: string
+      internal: string
+      unknown: string
     }
     noTasks: string
     start: string

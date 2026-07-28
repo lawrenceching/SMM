@@ -156,7 +156,13 @@
       "imageUrlTimeout": "圖片連結存取逾時",
       "imageUrlNotFound": "圖片連結主機名稱無法解析",
       "imageUrlConnectionRefused": "圖片連結連線被拒",
-      "imageUrlNetworkFailed": "圖片連結網路連線失敗"
+      "imageUrlNetworkFailed": "圖片連結網路連線失敗",
+      "metadataNetworkFailed": "無法連線至媒體資料庫",
+      "tmdbUnavailable": "TMDB 服務不可用",
+      "tvdbUnavailable": "TVDB 服務不可用",
+      "reverseProxyUnavailable": "本機反向代理不可用",
+      "internal": "發生內部錯誤，請稍後重試",
+      "unknown": "任務失敗，請稍後重試"
     },
     "noTasks": "沒有任務",
     "start": "開始",

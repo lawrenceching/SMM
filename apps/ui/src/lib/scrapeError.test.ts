@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { TFunction } from "i18next"
-import { localizeScrapeError } from "./scrapeError"
+import { TmdbFetchError } from "@/api/tmdb"
+import { HttpFailoverExhaustedError } from "@/lib/http"
+import { localizeScrapeError, normalizeScrapeTaskError } from "./scrapeError"
+import { TVDBv4Error } from "@smm/tvdb4"
 
 function makeT(): TFunction<"dialogs"> {
   // Minimal mock of i18next's TFunction: returns the key itself so
@@ -90,15 +93,31 @@ describe("localizeScrapeError", () => {
     ).toBe("scrape.errors.imageUrlNetworkFailed")
   })
 
-  it("falls back to the raw message for unrecognized errors", () => {
-    const raw = "Some completely unknown failure mode"
-    expect(localizeScrapeError(raw, t)).toBe(raw)
+  it("passes through normalized i18n keys", () => {
+    expect(
+      localizeScrapeError("scrape.errors.tvdbUnavailable", t),
+    ).toBe("scrape.errors.tvdbUnavailable")
   })
 
-  it("falls back to the raw message when the cause is just a non-network HTTP error", () => {
+  it("maps internal TypeError messages to the internal key", () => {
+    expect(
+      localizeScrapeError(
+        "Cannot read properties of undefined (reading 'status')",
+        t,
+      ),
+    ).toBe("scrape.errors.internal")
+  })
+
+  it("falls back to the unknown key for unrecognized errors", () => {
+    expect(
+      localizeScrapeError("Some completely unknown failure mode", t),
+    ).toBe("scrape.errors.unknown")
+  })
+
+  it("falls back to the unknown key when the cause is just a non-network HTTP error", () => {
     expect(
       localizeScrapeError("HTTP error! status: 500", t),
-    ).toBe("HTTP error! status: 500")
+    ).toBe("scrape.errors.unknown")
   })
 
   it("is case-insensitive", () => {
@@ -153,14 +172,78 @@ describe("localizeScrapeError", () => {
   })
 
   it("does not match partial substrings like 'ETIMEDOUTED' or 'subnetwork'", () => {
-    // ETIMEDOUT must be a standalone token; "ETIMEDOUTED" should
-    // not be misclassified as timeout. Use the literal "timed out"
-    // phrase matcher instead, which is more conservative.
     expect(
       localizeScrapeError("ETIMEDOUTED during reconnect", t),
-    ).toBe("ETIMEDOUTED during reconnect")
+    ).toBe("scrape.errors.unknown")
     expect(
       localizeScrapeError("subnetwork unreachable", t),
-    ).toBe("subnetwork unreachable")
+    ).toBe("scrape.errors.unknown")
+  })
+})
+
+describe("normalizeScrapeTaskError", () => {
+  it("maps HttpFailoverExhaustedError to metadataNetworkFailed", () => {
+    const error = new HttpFailoverExhaustedError(["https://example.com"])
+    expect(normalizeScrapeTaskError(error)).toEqual({
+      messageKey: "scrape.errors.metadataNetworkFailed",
+      debugDetail: "All HTTP failover attempts failed",
+    })
+  })
+
+  it("maps TmdbFetchError to tmdbUnavailable", () => {
+    const error = new TmdbFetchError({
+      kind: "no-response",
+      statusCode: 0,
+      statusText: "",
+      responseBodyText: "",
+      problemDetail: "",
+    })
+    expect(normalizeScrapeTaskError(error)).toEqual({
+      messageKey: "scrape.errors.tmdbUnavailable",
+      debugDetail: "Failed to search TMDB: all attempts failed",
+    })
+  })
+
+  it("maps TVDBv4Error to tvdbUnavailable", () => {
+    const error = new TVDBv4Error("TVDB request failed: 503 unavailable", {
+      url: "https://example.com/artwork/types",
+      status: 503,
+    })
+    expect(normalizeScrapeTaskError(error)).toEqual({
+      messageKey: "scrape.errors.tvdbUnavailable",
+      debugDetail: "TVDB request failed: 503 unavailable",
+    })
+  })
+
+  it("maps internal TypeError messages to internal", () => {
+    const error = new TypeError("Cannot read properties of undefined (reading 'status')")
+    expect(normalizeScrapeTaskError(error)).toEqual({
+      messageKey: "scrape.errors.internal",
+      debugDetail: "Cannot read properties of undefined (reading 'status')",
+    })
+  })
+
+  it("maps reverse proxy availability errors", () => {
+    const error = new Error(
+      "Reverse proxy URL is not available. Ensure the CLI started successfully and the hello task has completed.",
+    )
+    expect(normalizeScrapeTaskError(error)).toEqual({
+      messageKey: "scrape.errors.reverseProxyUnavailable",
+      debugDetail: error.message,
+    })
+  })
+
+  it("maps legacy network strings to imageUrlNetworkFailed", () => {
+    expect(normalizeScrapeTaskError(new Error("fetch failed"))).toEqual({
+      messageKey: "scrape.errors.imageUrlNetworkFailed",
+      debugDetail: "fetch failed",
+    })
+  })
+
+  it("falls back to unknown for unrecognized errors", () => {
+    expect(normalizeScrapeTaskError(new Error("HTTP error! status: 500"))).toEqual({
+      messageKey: "scrape.errors.unknown",
+      debugDetail: "HTTP error! status: 500",
+    })
   })
 })

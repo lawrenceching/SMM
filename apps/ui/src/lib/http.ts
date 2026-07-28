@@ -7,6 +7,16 @@ import { clearDisabledDomains } from "../api/tmdb"
 // TODO: Remove once reverse proxy support is fully removed.
 // import staticConfig from "@/api/staticConfig"
 
+export class HttpFailoverExhaustedError extends Error {
+    readonly baseUrls: string[]
+
+    constructor(baseUrls: string[]) {
+        super("All HTTP failover attempts failed")
+        this.name = "HttpFailoverExhaustedError"
+        this.baseUrls = baseUrls
+    }
+}
+
 export function getDomainName(url: string): string {
     try {
         return new URL(url).hostname
@@ -176,4 +186,5 @@ export async function fetchWithFailover(
   
       clearDisabledDomains([...domainForHosts, ...domainForReverseProxies])
       console.log(`Removed domains from disabledDomains: ${domainForHosts.join(', ')} and ${domainForReverseProxies.join(', ')}`)
+      throw new HttpFailoverExhaustedError(baseUrls)
 }

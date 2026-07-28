@@ -156,7 +156,13 @@
       "imageUrlTimeout": "Image URL access timed out",
       "imageUrlNotFound": "Image URL host not found",
       "imageUrlConnectionRefused": "Image URL connection refused",
-      "imageUrlNetworkFailed": "Image URL network connection failed"
+      "imageUrlNetworkFailed": "Image URL network connection failed",
+      "metadataNetworkFailed": "Unable to connect to the media database",
+      "tmdbUnavailable": "TMDB service is unavailable",
+      "tvdbUnavailable": "TVDB service is unavailable",
+      "reverseProxyUnavailable": "Local reverse proxy is not available",
+      "internal": "An internal error occurred. Please try again later",
+      "unknown": "Task failed. Please try again later"
     },
     "noTasks": "No tasks",
     "start": "Start",

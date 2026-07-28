@@ -53,6 +53,12 @@ const I18N_KEYS: Record<string, string> = {
   "scrape.errors.imageUrlNotFound": "图片链接域名无法解析",
   "scrape.errors.imageUrlConnectionRefused": "图片链接连接被拒绝",
   "scrape.errors.imageUrlNetworkFailed": "图片链接网络连接失败",
+  "scrape.errors.metadataNetworkFailed": "无法连接媒体数据库",
+  "scrape.errors.tmdbUnavailable": "TMDB 服务不可用",
+  "scrape.errors.tvdbUnavailable": "TVDB 服务不可用",
+  "scrape.errors.reverseProxyUnavailable": "本地反向代理不可用",
+  "scrape.errors.internal": "发生内部错误，请稍后重试",
+  "scrape.errors.unknown": "任务失败，请稍后重试",
   "scrape.defaultTitle": "任务进度",
   "scrape.defaultDescription": "当前任务执行状态",
   "scrape.start": "开始",
@@ -173,6 +179,26 @@ describe("useScrapeDialog — error propagation", () => {
     await waitFor(() => {
       const posterStatus = screen.getByTestId("scrape-dialog-task-status-poster")
       expect(posterStatus.textContent).toContain("失败")
+    })
+  })
+
+  it("localizes internal TypeError as a user-friendly internal error", async () => {
+    scrapePosterMock.mockResolvedValue(undefined)
+    scrapeFanartMock.mockRejectedValue(
+      new TypeError("Cannot read properties of undefined (reading 'status')"),
+    )
+    scrapeThumbnailMock.mockResolvedValue(undefined)
+    scrapeNfoMock.mockResolvedValue(undefined)
+
+    render(
+      <Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: "开始" }))
+
+    await waitFor(() => {
+      const fanartStatus = screen.getByTestId("scrape-dialog-task-status-fanart")
+      expect(fanartStatus.textContent).toContain("发生内部错误，请稍后重试")
     })
   })
 

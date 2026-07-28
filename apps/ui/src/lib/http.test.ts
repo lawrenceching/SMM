@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { DiscoverConfig } from "@/api/discover"
-import { fetchWithFailover, getDomainName } from "./http"
+import { fetchWithFailover, getDomainName, HttpFailoverExhaustedError } from "./http"
 import localStorages from "./localStorages"
 
 function okResponse(body: unknown = {}): Response {
@@ -162,16 +162,18 @@ describe("fetchWithFailover", () => {
         .spyOn(globalThis, "fetch")
         .mockRejectedValue(new TypeError("Failed to fetch"))
 
-      await fetchWithFailover([HOST_A, HOST_B], "/x", {
-        _config: configWith([
-          {
-            id: "proxy-a",
-            type: "general",
-            url: PROXY_A,
-            authorizationMethod: "none",
-          },
-        ]),
-      })
+      await expect(
+        fetchWithFailover([HOST_A, HOST_B], "/x", {
+          _config: configWith([
+            {
+              id: "proxy-a",
+              type: "general",
+              url: PROXY_A,
+              authorizationMethod: "none",
+            },
+          ]),
+        }),
+      ).rejects.toBeInstanceOf(HttpFailoverExhaustedError)
 
       expect(fetchSpy).toHaveBeenCalledTimes(3)
       expect(fetchSpy.mock.calls.map((c) => c[0])).toEqual([
@@ -398,20 +400,20 @@ describe("fetchWithFailover", () => {
       ])
       vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("Failed to fetch"))
 
-      const resp = await fetchWithFailover([HOST_A], "/search/tv", {
-        // empty in-memory set so this attempt still tries the candidates
-        _disabledDomains: new Set(),
-        _config: configWith([
-          {
-            id: "proxy-a",
-            type: "general",
-            url: PROXY_A,
-            authorizationMethod: "none",
-          },
-        ]),
-      })
-
-      expect(resp).toBeUndefined()
+      await expect(
+        fetchWithFailover([HOST_A], "/search/tv", {
+          // empty in-memory set so this attempt still tries the candidates
+          _disabledDomains: new Set(),
+          _config: configWith([
+            {
+              id: "proxy-a",
+              type: "general",
+              url: PROXY_A,
+              authorizationMethod: "none",
+            },
+          ]),
+        }),
+      ).rejects.toBeInstanceOf(HttpFailoverExhaustedError)
       expect([...localStorages.disabledDomains]).toEqual(["unrelated.example"])
     })
   })

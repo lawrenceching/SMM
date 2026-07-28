@@ -40,6 +40,11 @@ function ScrapeTaskRow({ task }: { task: ScrapeTaskView }) {
             : t("scrape.status.failed")
           : t("scrape.status.pending")
 
+  const failedDetail =
+    task.status === "failed" && task.failedReason
+      ? localizeScrapeError(task.failedReason, t)
+      : undefined
+
   return (
     <TableRow data-testid={`scrape-dialog-task-row-${task.id}`}>
       <TableCell className="py-2 px-2">
@@ -53,9 +58,7 @@ function ScrapeTaskRow({ task }: { task: ScrapeTaskView }) {
           {icon}
           <span
             className="text-xs text-muted-foreground"
-            title={
-              task.status === "failed" && task.failedReason ? task.failedReason : undefined
-            }
+            title={failedDetail}
           >
             {text}
           </span>
