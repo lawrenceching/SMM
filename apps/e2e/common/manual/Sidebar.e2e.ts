@@ -17,6 +17,9 @@ import {
 
 const slowdown = env.slowdown
 
+/**
+ * @supports local, Electron
+ */
 describe('Sidebar', () => {
     let testFolder = ''
 

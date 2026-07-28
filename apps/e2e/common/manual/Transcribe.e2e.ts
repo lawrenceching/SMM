@@ -14,6 +14,12 @@ import page from 'test/pageobjects/page'
 
 const tutorialVideoDir = path.join(import.meta.dirname, '../../../../test/media/tutorials')
 
+/**
+ * TV show and movie header transcribe flows. Requires `test/media/tutorials/` fixtures.
+ *
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('Transcribe', () => {
     before(function () {
         skipIfOhos(this)

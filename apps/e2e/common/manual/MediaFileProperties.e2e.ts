@@ -15,10 +15,6 @@ const testMp4Path = path.join(import.meta.dirname, '../../../../test/local/test.
 /** Path to the bundled ffmpeg executable used by SMM. */
 const ffmpegBin = path.join(import.meta.dirname, '../../../../bin/ffmpeg/ffmpeg.exe')
 
-/**
- * @supports local, Electron
- * @unsupported HarmonyOS
- */
 async function waitForFirstTrackRow() {
     await browser.waitUntil(
         async () => {
@@ -110,6 +106,12 @@ if (!isFfmpegAvailable) {
   })
 } else {
 
+/**
+ * Edit media file properties via music panel (ffprobe/ffmpeg).
+ *
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MediaFileProperties', () => {
     before(function () {
         skipIfOhos(this)

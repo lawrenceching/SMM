@@ -64,6 +64,12 @@ async function waitForFolderFiles(
     logStep("output files ready", { fileNames })
 }
 
+/**
+ * Music panel transcribe flows (videocaptioner). Requires `test/media/tutorials/` fixtures.
+ *
+ * @supports local, Electron
+ * @unsupported HarmonyOS
+ */
 describe('MusicPanel - Transcribe', () => {
     before(function () {
         skipIfOhos(this)

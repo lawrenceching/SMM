@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
 import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
+import { registerExpectExtensions } from '../test/lib/expect-extensions'
 
 const DEFAULT_SMM_BINARY = String.raw`C:\Users\lawrence\AppData\Local\Programs\SMM\SMM.exe`
 
@@ -62,6 +63,7 @@ export const config: WebdriverIO.Config = {
     },
 
     before: async () => {
+        registerExpectExtensions()
         await applyE2eWindowSize()
     },
 }

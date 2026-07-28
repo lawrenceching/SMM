@@ -8,6 +8,9 @@ import 'test/steps'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
+/**
+ * @supports local, Electron
+ */
 describe('Custom TVDB Host', () => {
 
     before(async () => {

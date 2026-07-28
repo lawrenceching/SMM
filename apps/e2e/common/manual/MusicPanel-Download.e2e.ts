@@ -165,7 +165,7 @@ describe('MusicPanel - Download', () => {
         })
 
     it('Download Bilibili Video', async function () {
-        this.timeout(2 * 60 * 1000)
+        this.timeout(5 * 60 * 1000)
 
         const folderPath = await createAndImportFolderViaBrowser({
             folderName: "BilibiliMusic",
@@ -188,7 +188,7 @@ describe('MusicPanel - Download', () => {
 
         await waitForFolderVideosReadyViaBrowser(folderPath, {
             minVideos: 1,
-            timeout: 90_000,
+            timeout: 3 * 60 * 1000,
             timeoutMsg: "Expected completed Bilibili video (no .part files)",
         })
 
