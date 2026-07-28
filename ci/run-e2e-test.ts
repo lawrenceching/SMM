@@ -133,7 +133,7 @@ function assertSpecsMatchPlatform(platform: Platform, specs: string[]): void {
 function defaultPatternsForPlatform(platform: Platform): string[] {
   if (platform === 'ohos') return ['ohos/**/*.e2e.ts'];
   if (platform === 'electron') return ['electron/**/*.e2e.ts'];
-  return ['test/specs/**/*.ts'];
+  return ['test/specs/**/*.ts', 'common/**/*.e2e.ts'];
 }
 
 function specFiles(patterns: string[], excludeManual: boolean): string[] {
@@ -141,13 +141,15 @@ function specFiles(patterns: string[], excludeManual: boolean): string[] {
   for (const pattern of patterns) {
     const glob = new Glob(pattern.replace(/\\/g, '/'));
     for (const match of glob.scanSync({ cwd: E2E_ROOT, absolute: false })) {
+      const normalizedMatch = match.replace(/\\/g, '/');
       if (
         excludeManual &&
-        (match.includes('common/manual/') || match.includes('test/specs/manual/'))
+        (normalizedMatch.includes('common/manual/') ||
+          normalizedMatch.includes('test/specs/manual/'))
       ) {
         continue;
       }
-      if (match.endsWith('.ts')) files.add(match.replace(/\\/g, '/'));
+      if (match.endsWith('.ts')) files.add(normalizedMatch);
     }
   }
   const resolved = [...files].sort();

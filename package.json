@@ -33,7 +33,7 @@
     "e2e:movie": "bun ci/run-e2e-test.ts --spec \"./common/movie/SearchMovie.e2e.ts\" --spec \"./common/movie/Movie-RenameVideoFile.e2e.ts\"",
     "e2e:music": "bun ci/run-e2e-test.ts --spec \"./common/music/*.e2e.ts\"",
     "e2e:other": "bun ci/run-e2e-test.ts --spec \"./common/other/*.e2e.ts\"",
-    "e2e:transcribe": "bun ci/run-e2e-test.ts --spec \"./test/specs/transcribe/*.e2e.ts\"",
+    "e2e:transcribe": "bun ci/run-e2e-test.ts --spec \"./common/manual/Transcribe.e2e.ts\" --spec \"./common/manual/MusicPanel-Transcribe.e2e.ts\"",
     "e2e:tv": "bun ci/run-e2e-test.ts --spec \"./common/tv/*.e2e.ts\"",
     "e2e:tvdb": "bun ci/run-e2e-test.ts --spec \"./common/tvdb/*.e2e.ts\"",
     "e2e:ohos": "bun ci/run-e2e-test.ts --platform ohos --spec \"./ohos/**/*.e2e.ts\"",
