@@ -31,6 +31,7 @@
     "wdio:hello": "wdio run ./wdio.conf.ts --spec ./test/specs/hello.e2e.ts",
     "wdio:electron": "wdio run ./electron/wdio.conf.ts",
     "wdio:electron:hello": "wdio run ./electron/wdio.conf.ts --spec ./electron/hello.e2e.ts",
+    "wdio:docker": "wdio run ./docker/wdio.conf.ts",
     "wdio:ohos": "wdio run ./ohos/wdio.conf.ts",
     "wdio:ohos:hello": "wdio run ./ohos/wdio.conf.ts --spec ./ohos/hello.attach.e2e.ts",
     "wdio:ohos:layout": "wdio run ./ohos/wdio.conf.ts --spec ./ohos/layout.e2e.ts",
