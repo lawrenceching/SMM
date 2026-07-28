@@ -21,7 +21,6 @@ describe('e2e-docker-container helpers', () => {
     });
     expect(args).toEqual([
       'run',
-      '-d',
       '--rm',
       '--name',
       DOCKER_CONTAINER_NAME,

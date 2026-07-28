@@ -1,8 +1,10 @@
 /**
- * Cicd background for docker e2e: start `smm` container and stream `docker logs -f`.
- * Teardown on SIGTERM/SIGINT stops the container (`--rm` removes it).
+ * Cicd background for docker e2e: run `smm` container in the foreground so
+ * stdout/stderr stream into the cicd timeline (`container.log` after slicing).
+ * Teardown kills this process tree; `--rm` removes the container. We also
+ * `docker stop` on signals / exit for Windows taskkill races.
  */
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
@@ -14,13 +16,13 @@ export function resolveDockerMediaHostDir(): string {
   return path.join(os.tmpdir(), 'smm');
 }
 
+/** Foreground `docker run` (no `-d`) so killing this process stops the container. */
 export function buildDockerRunArgs(options: {
   authToken: string;
   mediaHostDir: string;
 }): string[] {
   return [
     'run',
-    '-d',
     '--rm',
     '--name',
     DOCKER_CONTAINER_NAME,
@@ -36,9 +38,9 @@ export function buildDockerRunArgs(options: {
   ];
 }
 
-function runDocker(args: string[]): Promise<number> {
+function runDocker(args: string[], stdio: 'inherit' | 'ignore' = 'inherit'): Promise<number> {
   return new Promise((resolve, reject) => {
-    const child = spawn('docker', args, { stdio: 'inherit', shell: false });
+    const child = spawn('docker', args, { stdio, shell: false });
     child.on('error', reject);
     child.on('close', (code) => resolve(code ?? 1));
   });
@@ -46,10 +48,17 @@ function runDocker(args: string[]): Promise<number> {
 
 async function stopContainerQuietly(): Promise<void> {
   try {
-    await runDocker(['stop', DOCKER_CONTAINER_NAME]);
+    await runDocker(['stop', DOCKER_CONTAINER_NAME], 'ignore');
   } catch {
     // Container may not exist yet / docker unavailable during shutdown races.
   }
+}
+
+function waitForClose(child: ChildProcess): Promise<number> {
+  return new Promise((resolve, reject) => {
+    child.on('error', reject);
+    child.on('close', (code) => resolve(code ?? 0));
+  });
 }
 
 async function main(): Promise<void> {
@@ -60,22 +69,17 @@ async function main(): Promise<void> {
   console.log(`[e2e-docker-container] media host dir: ${mediaHostDir}`);
   await stopContainerQuietly();
 
-  const runCode = await runDocker(buildDockerRunArgs({ authToken, mediaHostDir }));
-  if (runCode !== 0) {
-    throw new Error(`docker run failed with exit ${runCode}`);
-  }
+  const args = buildDockerRunArgs({ authToken, mediaHostDir });
+  console.log(`[e2e-docker-container] docker ${args.join(' ')}`);
 
-  const follow = spawn('docker', ['logs', '-f', DOCKER_CONTAINER_NAME], {
-    stdio: 'inherit',
-    shell: false,
-  });
+  const run = spawn('docker', args, { stdio: 'inherit', shell: false });
 
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
     try {
-      follow.kill('SIGTERM');
+      run.kill('SIGTERM');
     } catch {
       // already exited
     }
@@ -88,15 +92,14 @@ async function main(): Promise<void> {
   process.on('SIGINT', () => {
     void shutdown().finally(() => process.exit(0));
   });
-
-  const followCode = await new Promise<number>((resolve, reject) => {
-    follow.on('error', reject);
-    follow.on('close', (code) => resolve(code ?? 0));
+  process.on('SIGHUP', () => {
+    void shutdown().finally(() => process.exit(0));
   });
 
+  const runCode = await waitForClose(run);
   await shutdown();
-  if (followCode !== 0 && !stopping) {
-    process.exit(followCode);
+  if (runCode !== 0 && !stopping) {
+    process.exit(runCode);
   }
 }
 

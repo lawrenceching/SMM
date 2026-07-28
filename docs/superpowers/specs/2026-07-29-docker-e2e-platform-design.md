@@ -23,7 +23,7 @@ ci/run-e2e-test.ts  --platform docker --spec <required>
 artifacts/e2e/config.json  →  apps/cicd/run.ts
         │
         ├── background: container  →  ci/e2e-docker-container.ts
-        │                             (docker stop/run + docker logs -f)
+        │                             (docker stop + foreground docker run --rm)
         ├── wait-ready             →  poll http://localhost:30000
         ├── tasks                  →  pnpm wdio:docker --spec ...
         └── afterEach              →  ci/collect-wdio-report.ts
@@ -53,9 +53,8 @@ Long-lived cicd background process:
 
 1. Ensure host media dir: `path.join(os.tmpdir(), 'smm')`.
 2. `docker stop smm` (ignore if missing).
-3. `docker run -d --rm --name smm -p 30000:30000 -p 30002:30002 -e SMM_AUTH_TOKEN=... -v <media>:/media smm:latest`.
-4. `docker logs -f smm` — stdout/stderr become the cicd timeline for background `container`.
-5. On process signal / exit: stop following logs and `docker stop smm` (`--rm` removes the container).
+3. `docker run --rm --name smm -p 30000:30000 -p 30002:30002 -e SMM_AUTH_TOKEN=... -v <media>:/media smm:latest` (foreground — stdout is the cicd `container` timeline).
+4. On process signal / exit: `docker stop smm` (`--rm` removes the container).
 
 Assumes Docker CLI is available and `smm:latest` is present. Does not build the image.
 
@@ -83,7 +82,7 @@ Package script: `"wdio:docker": "wdio run ./docker/wdio.conf.ts"`.
 
 ## 2.3 Key Design
 
-1. **Container as cicd background** — align with desktop’s `cli` background: stream `docker logs -f`, let cicd slice per-task `{task}/container.log`. Do not dump full `docker logs` only in `afterEach`.
+1. **Container as cicd background** — align with desktop’s `cli` background: foreground `docker run --rm` streams container stdout; cicd slices per-task `{task}/container.log`. Do not dump full `docker logs` only in `afterEach`.
 2. **Browser console via BiDi** — same as desktop `BROWSER_LOG_ENABLED`; do not `docker cp` the in-container `browser.log` file.
 3. **Dedicated WDIO config** — `apps/e2e/docker/wdio.conf.ts` keeps docker Chrome/baseUrl concerns out of the main desktop conf.
 4. **Explicit specs only** — no default glob for docker; CI/agents must pass `--spec`.
@@ -108,14 +107,13 @@ sequenceDiagram
   Runner->>CICD: write config + run
   CICD->>BG: start background container
   BG->>Docker: stop smm (ignore miss)
-  BG->>Docker: run -d smm:latest
-  BG->>Docker: logs -f smm
+  BG->>Docker: run --rm smm:latest (foreground)
   CICD->>CICD: wait-ready :30000
   CICD->>WDIO: run spec
   WDIO->>Docker: HTTP UI/API :30000
   CICD->>CICD: afterEach collect-wdio-report
-  CICD->>BG: tear down (SIGTERM)
-  BG->>Docker: stop smm
+  CICD->>BG: tear down (kill process tree)
+  BG->>Docker: stop smm (and --rm)
   CICD->>CICD: slice container.log per task
 ```
 
