@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem } from "./ImmersiveSearchbox"
 import {
-  fetchTmdb,
+  fetchTmdbOrUndefined,
   getTMDBImageUrl,
   SMM_TMDB_DEFAULT_UPSTREAM,
   buildTmdbErrorFromResponse,
@@ -258,7 +258,7 @@ export function MediaDatabaseSearchbox({
       const params = new URLSearchParams()
       params.set("query", searchQuery.trim())
       params.set("language", searchLanguage)
-      const resp = await fetchTmdb(`/search/${mediaType}?${params.toString()}`)
+      const resp = await fetchTmdbOrUndefined(`/search/${mediaType}?${params.toString()}`)
       if (!resp || !resp.ok) {
         const tmdbUrl = userConfig?.tmdb?.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM
         const tmdbError = await buildTmdbErrorFromResponse(resp)

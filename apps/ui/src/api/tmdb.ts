@@ -8,7 +8,7 @@ import localStorages from '@/lib/localStorages'
 import { fetchDiscoverConfig, type DiscoverConfig, type ReverseProxyEndpoint } from './discover'
 import { isEmpty } from 'es-toolkit/compat'
 import { readUserConfig } from './readUserConfig'
-import { fetchWithFailover } from '@/lib/http'
+import { fetchWithFailover, HttpFailoverExhaustedError } from '@/lib/http'
 import staticConfig from './staticConfig'
 import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 import { buildTmdbErrorFromResponse } from './tmdbErrors'
@@ -101,6 +101,26 @@ export async function fetchTmdb(urlPath: string, options?: {
 }
 
 /**
+ * Like {@link fetchTmdb}, but turns exhausted HTTP failover into `undefined`
+ * so search callers can map it to {@link TmdbFetchError} via
+ * {@link buildTmdbErrorFromResponse}. Scrape/metadata callers should use
+ * {@link fetchTmdb} directly so {@link HttpFailoverExhaustedError} propagates.
+ */
+export async function fetchTmdbOrUndefined(
+  urlPath: string,
+  options?: Parameters<typeof fetchTmdb>[1],
+): Promise<Response | undefined> {
+  try {
+    return await fetchTmdb(urlPath, options)
+  } catch (error) {
+    if (error instanceof HttpFailoverExhaustedError) {
+      return undefined
+    }
+    throw error
+  }
+}
+
+/**
  * Search TMDB for movies or TV shows.
  */
 export async function searchTmdb(
@@ -112,7 +132,7 @@ export async function searchTmdb(
   const queryParams = new URLSearchParams()
   queryParams.append('query', keyword)
   queryParams.append('language', language)
-  const resp = await fetchTmdb(
+  const resp = await fetchTmdbOrUndefined(
     `/search/${type}?${queryParams.toString()}`,
     { signal: options?.signal },
   )

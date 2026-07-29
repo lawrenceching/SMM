@@ -84,7 +84,7 @@ const { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => 
 
 vi.mock('@/api/tmdb', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/tmdb')>()
-  return { ...actual, fetchTmdb: mockFetchTmdb }
+  return { ...actual, fetchTmdbOrUndefined: mockFetchTmdb }
 })
 
 vi.mock('@/lib/TvdbUtils', () => ({
@@ -486,7 +486,7 @@ describe('MediaDatabaseSearchbox', () => {
     ])
   })
 
-  it('handleSearch calls fetchTmdb with /search/tv? when database is TMDB', async () => {
+  it('handleSearch calls fetchTmdbOrUndefined with /search/tv? when database is TMDB', async () => {
     mockFetchTmdb.mockResolvedValue(
       new Response(JSON.stringify({ results: [] }), { status: 200 }),
     )

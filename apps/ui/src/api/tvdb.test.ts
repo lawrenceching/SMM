@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { UserConfig } from '@core/types'
 import { fetchDiscoverConfig, type DiscoverConfig } from './discover'
 import localStorages from '@/lib/localStorages'
+import { HttpFailoverExhaustedError } from '@/lib/http'
 import { defaultUserConfig, readUserConfig } from './readUserConfig'
 import { hello } from './hello'
 
@@ -325,12 +326,13 @@ describe('fetchTvdb', () => {
       ])
       vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
 
-      const resp = await fetchTvdb('/search', {
-        config: discoverConfig,
-        disabledDomains: new Set(),
-      })
+      await expect(
+        fetchTvdb('/search', {
+          config: discoverConfig,
+          disabledDomains: new Set(),
+        }),
+      ).rejects.toBeInstanceOf(HttpFailoverExhaustedError)
 
-      expect(resp).toBeUndefined()
       expect([...localStorages.disabledDomains]).toEqual(['unrelated.example'])
     })
 
