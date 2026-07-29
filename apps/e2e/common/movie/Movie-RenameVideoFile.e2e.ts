@@ -81,7 +81,7 @@ async function clickContextMenuItem(labels: string[]) {
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Movie - Rename Video File', () => {
     let testFolder = ''

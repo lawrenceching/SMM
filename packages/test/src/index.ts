@@ -215,6 +215,7 @@ export async function prepareMediaMetadata(mediaFolderPathInPosix: string, media
 export interface HelloResponse {
     uptime: number
     version: string
+    platform: string
     userDataDir: string
     appDataDir: string
     logDir: string

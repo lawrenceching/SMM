@@ -13,7 +13,7 @@ import { env } from 'node:process'
 import { testbedOs } from 'test/lib/e2e-platform'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Initialize Movie by TMDB', () => {
     let testFolder = ''

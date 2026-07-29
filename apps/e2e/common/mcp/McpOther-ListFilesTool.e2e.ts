@@ -18,7 +18,7 @@ import {
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - ListFilesTool', () => {

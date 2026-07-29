@@ -27,5 +27,11 @@ describe("doHello", () => {
     expect(result.tmpDir).toBe(options.tmpDir);
     expect(result.reverseProxyUrl).toBe(options.reverseProxyUrl);
     expect(result.osLocale).toBe(options.osLocale);
+    expect(result.platform).toBe(process.platform);
+  });
+
+  it("uses explicit platform when provided", () => {
+    const result = doHello({ ...options, platform: "linux" });
+    expect(result.platform).toBe("linux");
   });
 });

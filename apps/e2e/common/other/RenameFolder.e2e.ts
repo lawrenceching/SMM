@@ -1,9 +1,10 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
     cleanup,
     expectMediaMetadataViaBrowser,
+    importFolderWithMediaMetadata,
     setup,
 } from 'test/lib/testbed'
 import { delay } from 'es-toolkit'
@@ -20,7 +21,7 @@ import { Path } from '@smm/core'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import {
     clearFolderViaBrowser,
-    createAndImportFolderViaBrowser,
+    createTestFolderViaBrowser,
     joinPlatformPath,
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
@@ -30,13 +31,51 @@ function renamedFolderPath(folderPath: string, folderName: string): string {
     return joinPlatformPath(parent, `${folderName} - Renamed`)
 }
 
+async function importRecognizedTvShowFolder(
+    folder: TestFolder,
+    testFolder: string,
+): Promise<string> {
+    const folderPath = await createTestFolderViaBrowser(testFolder, folder)
+    folder.path = folderPath
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json')
+    const { default: Page } = await import('test/pageobjects/page')
+    await Page.refresh()
+    await Sidebar.waitForFolderName(folder.folderName, 60_000)
+    return folderPath
+}
+
+async function importRecognizedMovieFolder(
+    folder: TestFolder,
+    testFolder: string,
+): Promise<string> {
+    const folderPath = await createTestFolderViaBrowser(testFolder, folder)
+    folder.path = folderPath
+    await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
+        mediaMetadata.type = 'movie-folder'
+        mediaMetadata.tvShow = undefined
+        mediaMetadata.mediaFiles = folder.files.map((file) => ({
+            absolutePath: Path.posix(joinPlatformPath(folder.path!, file)),
+        }))
+        mediaMetadata.movie = {
+            database: 'TVDB',
+            id: '116',
+            name: folder5.translations?.title?.['en-US'] ?? 'The Dark Knight',
+        }
+        return mediaMetadata
+    })
+    const { default: Page } = await import('test/pageobjects/page')
+    await Page.refresh()
+    await Sidebar.waitForFolderName(folder.folderName, 60_000)
+    return folderPath
+}
+
 /**
  * Rename media folder via UI.
  *
  * HarmonyOS: the sandbox does not allow renaming folders — skip rather than
  * assert a rename that cannot succeed.
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('Rename Media Folder', () => {
@@ -84,22 +123,12 @@ describe('Rename Media Folder', () => {
             this.timeout(60 * 1000)
         }
 
-        const folderPath = await createAndImportFolderViaBrowser(
-            folder1,
-            'e2eTest:RenameFolder',
-            testFolder,
-        )
-        if (env.slowdown) {
-            await delay(1 * 1000)
-        }
-
-        await Sidebar.waitForFolderTitle(folder1.translations?.title?.['en-US']!, 5000)
+        const folderPath = await importRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
         if (env.slowdown) {
             await delay(1 * 1000)
         }
 
-        await browser.pause(2000)
         expect(await TvShowPanelCO.toString()).toBe(`Specials
 S00E01 - - - -
 Season 1
@@ -197,22 +226,12 @@ S01E12 - - - -`)
             this.timeout(60 * 1000)
         }
 
-        const folderPath = await createAndImportFolderViaBrowser(
-            folder5,
-            'e2eTest:RnameMovieFolder',
-            testFolder,
-        )
-        if (env.slowdown) {
-            await delay(1 * 1000)
-        }
-
-        await Sidebar.waitForFolderTitle(folder5.translations?.title?.['en-US']!, 5000)
+        const folderPath = await importRecognizedMovieFolder({ ...folder5 }, testFolder)
 
         if (env.slowdown) {
             await delay(1 * 1000)
         }
 
-        await browser.pause(4000)
         expect(await MoviePanelCO.table.getText()).toBe(`ID Video File Thumb Sub NFO
 Movie
 S01E01
@@ -284,11 +303,7 @@ The Dark Knight [1080P].mkv`)
             files: ['song1.mp3', 'song2.mp3'],
             type: 'music',
         }
-        const folderPath = await createAndImportFolderViaBrowser(
-            folder,
-            'e2eTest:RnameMusicFolder',
-            testFolder,
-        )
+        const folderPath = await createTestFolderViaBrowser(testFolder, folder)
 
         await Sidebar.waitForFolderName(folder.folderName, 5000)
 

@@ -62,6 +62,7 @@ import {
   createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
   isRequestAuthorized,
+  resolveWebUiBindAddress,
   type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
   type ReverseProxyConfig,
@@ -97,6 +98,7 @@ export class Server {
   private app: Hono;
   private httpServer: http.Server | null = null;
   private port: number;
+  private webUiBindAddress: string;
   private root: string;
   private socketManager: SocketIOManager | null = null;
   private proxyManager: ReverseProxyManager | null = null;
@@ -106,6 +108,7 @@ export class Server {
 
   constructor(config: ServerConfig = {}) {
     this.port = config.port ?? parseInt(process.env.PORT || '3000');
+    this.webUiBindAddress = resolveWebUiBindAddress();
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
     this.beforeStop = config.beforeStop;
@@ -349,11 +352,13 @@ export class Server {
 
     await new Promise<void>((resolve, reject) => {
       this.httpServer!.once('error', reject);
-      this.httpServer!.listen(this.port, () => resolve());
+      this.httpServer!.listen(this.port, this.webUiBindAddress, () => resolve());
     });
 
     logger.info(`📁 Static file root: ${this.root}`);
-    logger.info(`🚀 Static file server running on http://localhost:${this.port}`);
+    logger.info(
+      `🚀 Static file server running on http://${this.webUiBindAddress === '0.0.0.0' ? 'localhost' : this.webUiBindAddress}:${this.port} (bind ${this.webUiBindAddress})`,
+    );
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
 
     // Start the reverse proxy before MCP config so it's available for metadata operations

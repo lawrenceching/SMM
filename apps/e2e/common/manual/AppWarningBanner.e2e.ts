@@ -8,6 +8,10 @@ const WARNING_DISMISSED_KEY = 'warning.appNotFullyTestedInMacOsOrLinux'
 
 const isWindows = env.os === 'win32'
 
+/**
+ * @supports local, Electron
+ * @unsupported HarmonyOS, Docker
+ */
 if (isWindows) {
   describe.skip('AppWarningBanner - Skip on Windows', () => {})
 } else {

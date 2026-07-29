@@ -9,12 +9,12 @@ export const DEFAULT_EMBEDDED_PROXY_ADDRESS = 'http://127.0.0.1:8990'
 /**
  * Whether to start the in-process proxy-chain server for HTTP-proxy specs.
  *
- * HarmonyOS: the app runs on device. An embedded proxy on the host's
- * `127.0.0.1` is unreachable from the device, so always use
+ * HarmonyOS / Docker: the app runs on device or in a container. An embedded
+ * proxy on the host's `127.0.0.1` is unreachable from there, so always use
  * `TMDB_HTTP_PROXY` / `TVDB_HTTP_PROXY` from `apps/e2e/.env.local` instead.
  */
 export function useEmbeddedHttpProxy(): boolean {
-    if (process.env.E2E_PLATFORM === 'ohos') {
+    if (process.env.E2E_PLATFORM === 'ohos' || process.env.E2E_PLATFORM === 'docker') {
         return false
     }
     return process.env.USE_EMBEDDED_HTTP_PROXY !== 'false'

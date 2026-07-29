@@ -6,6 +6,8 @@ import {
   DOCKER_IMAGE,
   buildDockerRunArgs,
   resolveDockerMediaHostDir,
+  stopDockerE2eContainer,
+  stopDockerE2eContainerSync,
 } from './e2e-docker-container.ts';
 
 describe('e2e-docker-container helpers', () => {
@@ -27,12 +29,25 @@ describe('e2e-docker-container helpers', () => {
       '-p',
       '30000:30000',
       '-p',
+      '30001:30001',
+      '-p',
       '30002:30002',
       '-e',
       'SMM_AUTH_TOKEN=ChangeMe123',
+      '-e',
+      'WEBUI_ADDRESS=0.0.0.0',
+      '-e',
+      'REVERSE_PROXY_ADDRESS=0.0.0.0',
+      '-e',
+      'MCP_ADDRESS=0.0.0.0',
       '-v',
       `${media}:/media`,
       DOCKER_IMAGE,
     ]);
+  });
+
+  test('stop helpers are exported functions', () => {
+    expect(typeof stopDockerE2eContainer).toBe('function');
+    expect(typeof stopDockerE2eContainerSync).toBe('function');
   });
 });

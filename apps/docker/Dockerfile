@@ -44,6 +44,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV SMM_RESOURCES_PATH=/app/resources
 ENV SMM_AUTH_ENABLED=true
+ENV WEBUI_ADDRESS=0.0.0.0
+ENV REVERSE_PROXY_ADDRESS=0.0.0.0
 EXPOSE 30000
+EXPOSE 30002
 
 CMD ["/app/cli", "--staticDir", "/app/public", "--port", "30000"]

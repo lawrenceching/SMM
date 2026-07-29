@@ -18,7 +18,8 @@ import {
 const slowdown = env.slowdown
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
+ * @unsupported HarmonyOS
  */
 describe('Sidebar', () => {
     let testFolder = ''

@@ -22,7 +22,7 @@ import { testbedOs } from 'test/lib/e2e-platform'
 const WRONG_TMDB_API_KEY = 'invalid-wrong-key-12345'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Custom TMDB Host (Wrong API Key)', () => {
     let testFolder = ''

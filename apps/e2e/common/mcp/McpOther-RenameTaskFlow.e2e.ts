@@ -13,19 +13,19 @@ import {
 import { folder1 } from 'test/actions/import-folders'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   joinPlatformPath,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - RenameTaskFlow', () => {
@@ -68,12 +68,7 @@ describe('MCP Other - RenameTaskFlow', () => {
   })
 
   it('MCP rename task tools should rename episode video file via begin/add/end flow', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:McpRenameTaskTools',
-      testFolder,
-    )
-    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     expect(await TVShowPanel.toString()).toContain('S01E01 S01E01.mkv V V V')
 

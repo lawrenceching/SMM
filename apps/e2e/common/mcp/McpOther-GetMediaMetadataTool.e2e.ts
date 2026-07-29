@@ -1,23 +1,22 @@
 import { expect } from '@wdio/globals'
 import mcpClient from 'test/lib/McpClient'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - GetMediaMetadataTool', () => {
@@ -60,12 +59,12 @@ describe('MCP Other - GetMediaMetadataTool', () => {
   })
 
   it('GetMediaMetadataTool should return cached metadata for folder', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:GetMediaMetadataTool',
-      testFolder,
-    )
-    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder, (mm) => {
+      if (mm.tvShow) {
+        mm.tvShow.name = folder1.mediaName!
+      }
+      return mm
+    })
 
     const r = await mcpClient.getMediaMetadata(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,

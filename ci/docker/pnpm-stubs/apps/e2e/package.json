@@ -19,6 +19,7 @@
     "expect-webdriverio": "^5.6.1",
     "shelljs": "^0.10.0",
     "typescript": "^5.0.0",
+    "wdio-electron-service": "9.2.1",
     "wdio-html-nice-reporter": "^8.1.7",
     "wdio-wait-for": "^3.1.1"
   },
@@ -43,6 +44,7 @@
     "@smm/test": "workspace:*",
     "chai": "^6.2.2",
     "dotenv": "^17.3.1",
-    "es-toolkit": "^1.44.0"
+    "es-toolkit": "^1.44.0",
+    "proxy-chain": "^3.0.0"
   }
 }

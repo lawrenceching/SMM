@@ -1,6 +1,7 @@
 import type { HelloResponseBody } from '@core/types';
 import { buildAuthorizationHeader } from '@/lib/authToken';
 import { with401Suppressed } from '@/lib/authSession';
+import { syncPathServerPlatformFromHello } from '@/lib/syncPathServerPlatform';
 
 /**
  * Validates an auth token by calling POST /api/hello with an explicit Bearer header.
@@ -29,6 +30,7 @@ export async function verifyHelloWithToken(token: string): Promise<HelloResponse
       throw new Error(body.error ?? `HTTP ${resp.status}`);
     }
 
+    syncPathServerPlatformFromHello(body);
     return body;
   });
 }

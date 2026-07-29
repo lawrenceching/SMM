@@ -1,4 +1,4 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
 import type { MediaMetadata } from '@smm/core/types'
 import { Path } from '@smm/core'
 import mcpClient from 'test/lib/McpClient'
@@ -12,7 +12,6 @@ import { folder1, folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   joinPlatformPath,
   listFilesViaBrowser,
   basenamePlatformPath,
@@ -21,12 +20,14 @@ import {
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedMovieFolder,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - RenameFolderTool', () => {
@@ -69,13 +70,7 @@ describe('MCP Other - RenameFolderTool', () => {
   })
 
   it('TV Show', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:RenameFolderTool',
-      testFolder,
-    )
-
-    await browser.pause(4000)
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     const newFolderName = `new-${folder1.folderName}`
     const newFolderPath = joinPlatformPath(testFolder, newFolderName)
@@ -87,7 +82,7 @@ describe('MCP Other - RenameFolderTool', () => {
     expect(r.from).toBe(folderPath)
     expect(r.to).toBe(newFolderPath)
 
-    await browser.pause(5000)
+    await browser.pause(2000)
 
     await expectMediaMetadataViaBrowser(newFolderPath, (obj) => {
       const mm = obj as MediaMetadata
@@ -104,13 +99,15 @@ describe('MCP Other - RenameFolderTool', () => {
   })
 
   it('Movie', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder2,
-      'e2eTest:RenameFolderTool',
+    const folderPath = await seedRecognizedMovieFolder(
+      { ...folder2 },
       testFolder,
+      {
+        database: 'TMDB',
+        id: '1311031',
+        name: folder2.translations?.title?.['en-US'] ?? folder2.mediaName!,
+      },
     )
-
-    await browser.pause(4000)
 
     const newFolderName = `new-${folder2.folderName}`
     const newFolderPath = joinPlatformPath(testFolder, newFolderName)
@@ -122,7 +119,7 @@ describe('MCP Other - RenameFolderTool', () => {
     expect(r.from).toBe(folderPath)
     expect(r.to).toBe(newFolderPath)
 
-    await browser.pause(5000)
+    await browser.pause(2000)
 
     await expectMediaMetadataViaBrowser(newFolderPath, (obj) => {
       const mm = obj as MediaMetadata

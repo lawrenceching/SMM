@@ -1,23 +1,22 @@
 import { expect } from '@wdio/globals'
 import mcpClient from 'test/lib/McpClient'
-import Sidebar from 'test/componentobjects/Sidebar'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - GetEpisodeTool', () => {
@@ -60,14 +59,7 @@ describe('MCP Other - GetEpisodeTool', () => {
   })
 
   it('GetEpisodeTool should return mapped video file path', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:McpGetEpisodeTool',
-      testFolder,
-    )
-    await Sidebar.waitForFolderName(folder1.folderName, 2000)
-
-    await browser.pause(4000)
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     const r = await mcpClient.getEpisode(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,

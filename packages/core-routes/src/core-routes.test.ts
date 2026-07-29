@@ -149,6 +149,7 @@ describe("handleCoreRoutesRequest", () => {
     expect(body.version).toBe("1.3.8");
     expect(body.userDataDir).toBe("/tmp/userData");
     expect(typeof body.uptime).toBe("number");
+    expect(body.platform).toBe(process.platform);
   });
 
   it('returns { error: "hello not configured" } when config.hello is undefined', async () => {

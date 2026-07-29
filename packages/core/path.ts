@@ -25,6 +25,12 @@ export function split(path: string) {
  */
 export class Path {
 
+    /**
+     * When set (typically from `HelloResponseBody.platform` in the browser UI),
+     * path helpers use the CLI server platform instead of the client OS.
+     */
+    private static serverPlatform: string | null = null;
+
     private root: string[];
     private sub: string[];
 
@@ -217,10 +223,31 @@ export class Path {
     }
 
     /**
+     * Bind path format to the CLI server (from `POST /api/hello`).
+     * Call after bootstrap in browser UI; no-op in Node/Bun CLI where `process.platform` applies.
+     */
+    static setServerPlatform(platform: string): void {
+        Path.serverPlatform = platform;
+    }
+
+    /** @internal Resets {@link setServerPlatform} — for unit tests only. */
+    static resetServerPlatformForTests(): void {
+        Path.serverPlatform = null;
+    }
+
+    static getServerPlatform(): string | null {
+        return Path.serverPlatform;
+    }
+
+    /**
      * support running in both Node.js and browser environment
      * @returns true if running on Windows, false otherwise
      */
     static isWindows(): boolean {
+        if (Path.serverPlatform !== null) {
+            return Path.serverPlatform === "win32";
+        }
+
         // Node.js/Bun environment
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const proc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
@@ -237,15 +264,9 @@ export class Path {
             if (electron?.process?.platform) {
                 return electron.process.platform === "win32";
             }
-
-            // Fallback: detect Windows from user agent in browser
-            const nav = win.navigator;
-            if (nav?.userAgent) {
-                return /Win/i.test(nav.userAgent);
-            }
         }
 
-        // Default to false if we can't determine
+        // Default to POSIX when client platform is unknown (e.g. browser before hello).
         return false;
     }
 

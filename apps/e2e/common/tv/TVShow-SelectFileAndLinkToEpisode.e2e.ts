@@ -20,7 +20,7 @@ const FOLDER_NAME = '天使降临到我身边！ (2019) {tmdbid=84666}'
 const DUMMY_FILE_NAME = 'DummyTest.mp4'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Select File and Link To Episode', () => {
     let testFolder = ''

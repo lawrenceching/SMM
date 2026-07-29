@@ -19,6 +19,10 @@ import {
   PORT_RANGE_START,
   type ReverseProxyConfig,
 } from "./reverseProxy.ts";
+import {
+  resolveReverseProxyAdvertisedHost,
+  resolveReverseProxyBindAddress,
+} from "./bindAddresses.ts";
 /**
  * Create a Node `http` request handler that forwards to
  * {@link handleProxyRequest}. Use with `http.createServer(handler)` or
@@ -149,10 +153,11 @@ export async function findAvailableReverseProxyPort(
     start: PORT_RANGE_START,
     end: PORT_RANGE_END,
   },
+  bindAddress: string = resolveReverseProxyBindAddress(),
 ): Promise<number> {
   for (let port = portRange.start; port <= portRange.end; port++) {
     if (reservedPorts.has(port)) continue;
-    if (await tryListen(port)) return port;
+    if (await tryListen(port, bindAddress)) return port;
   }
   throw new Error(
     `Could not find an available port in range ${portRange.start}-${portRange.end}`,
@@ -177,6 +182,8 @@ export interface ReverseProxyManager {
 export interface ReverseProxyManagerConfig extends ReverseProxyConfig {
   /** Force a specific port; bypasses scanning when set. */
   port?: number;
+  /** Listen address (default: `REVERSE_PROXY_ADDRESS` env or `127.0.0.1`). */
+  bindAddress?: string;
 }
 
 export function createReverseProxyManager(
@@ -193,6 +200,9 @@ export function createReverseProxyManager(
       return;
     }
 
+    const bindAddress = config.bindAddress ?? resolveReverseProxyBindAddress();
+    const advertisedHost = resolveReverseProxyAdvertisedHost(bindAddress);
+
     let port: number;
     try {
       if (typeof config.port === "number") {
@@ -201,6 +211,7 @@ export function createReverseProxyManager(
         port = await findAvailableReverseProxyPort(
           config.reservedPorts,
           config.portRange,
+          bindAddress,
         );
       }
     } catch (error) {
@@ -224,13 +235,13 @@ export function createReverseProxyManager(
       };
       const onError = (err: Error) => reject(err);
       newServer.once("listening", onListening);
-      newServer.listen(port, "127.0.0.1");
+      newServer.listen(port, bindAddress);
     });
 
     server = newServer;
-    currentUrl = `http://127.0.0.1:${port}`;
+    currentUrl = `http://${advertisedHost}:${port}`;
     config.logger?.info(
-      { url: currentUrl },
+      { url: currentUrl, bindAddress },
       "[Reverse Proxy] started",
     );
   }

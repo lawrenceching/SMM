@@ -988,6 +988,12 @@ export interface HelloResponseBody {
   version: string;
 
   /**
+   * CLI process platform (`process.platform`), e.g. `win32`, `linux`, `darwin`.
+   * The UI uses this (not the browser OS) when converting paths to the server's platform format.
+   */
+  platform: string;
+
+  /**
    * path in platform-specific format
    */
   userDataDir: string;

@@ -294,6 +294,22 @@ export function buildElectronConfig(specs: string[]): CicdConfig {
  * Docker profile: managed `smm:latest` container, Chrome → :30000.
  * Requires explicit --spec (no default suite).
  */
+/** Rewrite host-local proxy URLs so the container can reach the host forwarder. */
+export function dockerHttpProxyEnvForContainer(envKey: 'TMDB_HTTP_PROXY' | 'TVDB_HTTP_PROXY'): string | undefined {
+  const raw = process.env[envKey]?.trim();
+  if (!raw) return undefined;
+  try {
+    const url = new URL(raw);
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      url.hostname = 'host.docker.internal';
+      return url.toString();
+    }
+  } catch {
+    // Keep the raw value when it is not a valid URL.
+  }
+  return raw;
+}
+
 export function buildDockerConfig(specs: string[]): CicdConfig {
   const env: Record<string, string> = {
     E2E_PLATFORM: 'docker',
@@ -303,6 +319,14 @@ export function buildDockerConfig(specs: string[]): CicdConfig {
   };
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
+  }
+  const tmdbHttpProxy = dockerHttpProxyEnvForContainer('TMDB_HTTP_PROXY');
+  if (tmdbHttpProxy) {
+    env.TMDB_HTTP_PROXY = tmdbHttpProxy;
+  }
+  const tvdbHttpProxy = dockerHttpProxyEnvForContainer('TVDB_HTTP_PROXY');
+  if (tvdbHttpProxy) {
+    env.TVDB_HTTP_PROXY = tvdbHttpProxy;
   }
 
   return {

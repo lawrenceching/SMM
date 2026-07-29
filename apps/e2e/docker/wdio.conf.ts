@@ -111,7 +111,8 @@ export const config: WebdriverIO.Config = {
     cacheDir: WDIO_CACHE_DIR,
 
     specs: ['../common/**/*.e2e.ts'],
-    exclude: ['../common/manual/**/*.ts'],
+    // Manual specs are opt-in via explicit --spec (ci/run-e2e-test.ts); do not exclude here
+    // or wdio drops them even when --spec targets common/manual/*.e2e.ts.
 
     maxInstances: 1,
 

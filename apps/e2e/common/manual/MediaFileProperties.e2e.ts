@@ -110,7 +110,7 @@ if (!isFfmpegAvailable) {
  * Edit media file properties via music panel (ffprobe/ffmpeg).
  *
  * @supports local, Electron
- * @unsupported HarmonyOS
+ * @unsupported HarmonyOS, Docker
  */
 describe('MediaFileProperties', () => {
     before(function () {

@@ -1,33 +1,41 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
 import { Path } from '@smm/core'
+import { expect, browser } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { setup, cleanup, importFolderWithMediaMetadata } from 'test/lib/testbed'
 import { createFolderInTestFolder, folder1, folder5 } from 'test/actions/import-folders'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
-import { readdirSync } from 'node:fs'
 import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
-import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
-import { joinPlatformPath } from 'test/lib/browser-fs'
+import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import {
+    createTestFolderViaBrowser,
+    joinPlatformPath,
+    listFileNamesViaBrowser,
+    resolveSmmTestFolderViaBrowser,
+} from 'test/lib/browser-fs'
+import {
+    assertTutorialFixturesForCurrentPlatform,
+    copyTutorialFileInDockerContainer,
+    copyTutorialFileOnHost,
+    waitForFolderFileNames,
+} from 'test/lib/e2e-tutorial-fixtures'
 import page from 'test/pageobjects/page'
-
-const tutorialVideoDir = path.join(import.meta.dirname, '../../../../test/media/tutorials')
+import type { TestFolder } from 'test/actions/import-folders'
 
 /**
  * TV show and movie header transcribe flows. Requires `test/media/tutorials/` fixtures.
  *
  * @supports local, Electron
- * @unsupported HarmonyOS
+ * @unsupported HarmonyOS, Docker
  */
 describe('Transcribe', () => {
     before(function () {
         skipIfOhos(this)
     })
 
-
     beforeEach(async () => {
-
         await setup({
             removeMetadataDir: true,
             removePlansDir: true,
@@ -37,8 +45,6 @@ describe('Transcribe', () => {
             resetUserConfig: true,
             os: testbedOs,
         })
-
-
     })
 
     afterEach(async () => {
@@ -52,32 +58,61 @@ describe('Transcribe', () => {
         })
     })
 
-    it('Transcribe TV show', async function() {
+    async function prepareTvShowFolderWithTutorialVideos(): Promise<TestFolder> {
+        const episodeFiles = ['S01E01.mp4', 'S01E02.mp4', 'S01E03.mp4'] as const
+        const folderDef: TestFolder = { ...folder1, files: [...episodeFiles] }
 
-        this.timeout(5 * 60 * 1000)
-
-        if (!fs.existsSync(tutorialVideoDir)) {
-            throw new Error(
-                `[Transcribe] Required test media folder does not exist: ${tutorialVideoDir}. ` +
-                'Please create this folder and put sample video files in it (e.g. p1.mp4, p2.mp4).',
-            )
+        if (isDockerE2e) {
+            const root = await resolveSmmTestFolderViaBrowser()
+            const folderPath = await createTestFolderViaBrowser(root, folderDef)
+            folderDef.path = folderPath
+            copyTutorialFileInDockerContainer('p1.mp4', joinPlatformPath(folderPath, 'S01E01.mp4'))
+            copyTutorialFileInDockerContainer('p2.mp4', joinPlatformPath(folderPath, 'S01E02.mp4'))
+            return folderDef
         }
 
-        const episodeFiles = ['S01E01.mp4', 'S01E02.mp4', 'S01E03.mp4'] as const
-        const folder = createFolderInTestFolder({
-            ...folder1,
-            files: [...episodeFiles],
-        })
-
+        const folder = createFolderInTestFolder(folderDef)
         for (const [srcName, destName] of [
             ['p1.mp4', 'S01E01.mp4'],
             ['p2.mp4', 'S01E02.mp4'],
         ] as const) {
-            const src = path.join(tutorialVideoDir, srcName)
             const dest = path.join(folder.path!, destName)
-            fs.rmSync(dest)
-            fs.copyFileSync(src, dest)
+            fs.rmSync(dest, { force: true })
+            copyTutorialFileOnHost(srcName, dest)
         }
+        return folder
+    }
+
+    async function prepareMovieFolderWithTutorialVideo(): Promise<{
+        folder: TestFolder
+        movieFileName: string
+        expectedTitle: string
+    }> {
+        const movieFileName = 'movie.mp4'
+        const folderDef: TestFolder = { ...folder5, files: [movieFileName] }
+        const expectedTitle = folder5.translations?.title?.['en-US'] ?? 'The Dark Knight'
+
+        if (isDockerE2e) {
+            const root = await resolveSmmTestFolderViaBrowser()
+            const folderPath = await createTestFolderViaBrowser(root, folderDef)
+            folderDef.path = folderPath
+            copyTutorialFileInDockerContainer('p1.mp4', joinPlatformPath(folderPath, movieFileName))
+            return { folder: folderDef, movieFileName, expectedTitle }
+        }
+
+        const folder = createFolderInTestFolder(folderDef)
+        const destFile = path.join(folder.path!, movieFileName)
+        fs.rmSync(destFile, { force: true })
+        copyTutorialFileOnHost('p1.mp4', destFile)
+        return { folder, movieFileName, expectedTitle }
+    }
+
+    it('Transcribe TV show', async function () {
+        this.timeout(5 * 60 * 1000)
+        assertTutorialFixturesForCurrentPlatform()
+
+        const episodeFiles = ['S01E01.mp4', 'S01E02.mp4', 'S01E03.mp4'] as const
+        const folder = await prepareTvShowFolderWithTutorialVideos()
 
         await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
             mediaMetadata.mediaFiles = episodeFiles.map((fileName, index) => ({
@@ -98,39 +133,15 @@ describe('Transcribe', () => {
         await TranscribeDialogCO.confirmButton.waitForExist()
         await TranscribeDialogCO.confirmButton.click()
 
-        await browser.waitUntil(async () => {
-            const files = readdirSync(folder.path!)
-            const containsSrt1 = files.find(file => file.endsWith('S01E01.srt')) !== undefined
-            const containsSrt2 = files.find(file => file.endsWith('S01E02.srt')) !== undefined
-            return containsSrt1 && containsSrt2
-        }, {
-            timeout: 4 * 60 * 1000,
-            timeoutMsg: 'Expected to see S01E01.srt and S01E02.srt in folder',
-        })
+        await waitForFolderFileNames(folder.path!, ['S01E01.srt', 'S01E02.srt'])
     })
 
-    it('Transcribe Movie', async function() {
-
+    it('Transcribe Movie', async function () {
         this.timeout(5 * 60 * 1000)
+        assertTutorialFixturesForCurrentPlatform()
 
-        if (!fs.existsSync(tutorialVideoDir)) {
-            throw new Error(
-                `[Transcribe] Required test media folder does not exist: ${tutorialVideoDir}. ` +
-                'Please create this folder and put sample video files in it (e.g. p1.mp4).',
-            )
-        }
+        const { folder, movieFileName, expectedTitle } = await prepareMovieFolderWithTutorialVideo()
 
-        const movieFileName = 'movie.mp4'
-        const folder = createFolderInTestFolder({
-            ...folder5,
-            files: [movieFileName],
-        })
-
-        const destFile = path.join(folder.path!, movieFileName)
-        fs.rmSync(destFile)
-        fs.copyFileSync(path.join(tutorialVideoDir, 'p1.mp4'), destFile)
-
-        const expectedTitle = folder5.translations?.title?.['en-US'] ?? 'The Dark Knight'
         await importFolderWithMediaMetadata(folder, '天使降临到我身边.metadata.json', (mediaMetadata) => {
             mediaMetadata.type = 'movie-folder'
             mediaMetadata.tvShow = undefined
@@ -157,17 +168,20 @@ describe('Transcribe', () => {
         await TranscribeDialogCO.confirmButton.waitForExist()
         await TranscribeDialogCO.confirmButton.click()
 
-        await browser.waitUntil(async () => {
-            const files = readdirSync(folder.path!)
-            return files.find(file => file.endsWith('.srt')) !== undefined
-        }, {
-            timeout: 4 * 60 * 1000,
-            timeoutMsg: 'Expected to see movie.srt in folder',
-        })
+        await browser.waitUntil(
+            async () => {
+                const names = await listFileNamesViaBrowser(folder.path!)
+                return names.some((name) => name.endsWith('.srt'))
+            },
+            {
+                timeout: 4 * 60 * 1000,
+                timeoutMsg: 'Expected to see a .srt file in movie folder',
+            },
+        )
 
-        expect(folder).toContainFile("movie.srt")
+        const names = await listFileNamesViaBrowser(folder.path!)
+        expect(names.some((name) => name.endsWith('.srt'))).toBe(true)
     })
-
 
     // MusicPanel transcribe cases: apps/e2e/common/manual/MusicPanel-Transcribe.e2e.ts
 })

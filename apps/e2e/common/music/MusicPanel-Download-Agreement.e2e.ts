@@ -51,7 +51,7 @@ async function getLocalStorageAgreement(): Promise<string | null> {
  * HarmonyOS: download is gated off (`isDownloadVideoEnabled` / `downloadVideo`) —
  * no yt-dlp — so `music-download-button` is not rendered.
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MusicPanel - Download - User Agreement (4.1)', () => {

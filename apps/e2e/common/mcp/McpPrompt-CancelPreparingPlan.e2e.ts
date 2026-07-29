@@ -1,24 +1,23 @@
 import { expect, browser } from '@wdio/globals'
 import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Prompt - Cancel Preparing Plan', () => {
@@ -61,12 +60,7 @@ describe('MCP Prompt - Cancel Preparing Plan', () => {
   })
 
   it('should show AI rename prompt after begin and dismiss it on cancel', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:CancelPreparingRenamePlan',
-      testFolder,
-    )
-    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     await mcpClient.beginRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,

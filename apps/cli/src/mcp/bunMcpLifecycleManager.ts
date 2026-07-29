@@ -9,6 +9,10 @@ import type {
   McpServerState,
   StartMcpOptions,
 } from "@smm/core-routes";
+import {
+  resolveMcpAdvertisedHost,
+  resolveMcpBindAddress,
+} from "@smm/core-routes";
 
 const DEFAULT_MCP_HOST = "127.0.0.1";
 const DEFAULT_MCP_PORT = 30001;
@@ -21,11 +25,13 @@ function buildMcpUrl(host: string, port: number): string {
 }
 
 function getRunningState(): McpServerState {
+  const bindHost = mcpServer!.hostname;
+  const advertisedHost = resolveMcpAdvertisedHost(bindHost);
   return {
     status: "running",
-    host: mcpServer!.hostname,
+    host: advertisedHost,
     port: mcpServer!.port,
-    url: buildMcpUrl(mcpServer!.hostname, mcpServer!.port),
+    url: buildMcpUrl(advertisedHost, mcpServer!.port),
   };
 }
 
@@ -40,18 +46,25 @@ const bunMcpLifecycleManager: McpLifecycleManager = {
     mcpServerError = null;
     resetMcpStreamableHttpHandler();
 
-    const hostname =
+    const requestedHostname =
       options?.hostname ?? userConfig.mcpHost ?? DEFAULT_MCP_HOST;
+    const bindHostname = resolveMcpBindAddress(requestedHostname);
     const port = options?.port ?? userConfig.mcpPort ?? DEFAULT_MCP_PORT;
 
     const handler = await getMcpStreamableHttpHandler();
     mcpServer = Bun.serve({
-      hostname,
+      hostname: bindHostname,
       port,
       fetch: handler,
     });
+    const advertisedHost = resolveMcpAdvertisedHost(mcpServer.hostname);
     logger.info(
-      { hostname, port: mcpServer.port, url: buildMcpUrl(mcpServer.hostname, mcpServer.port) },
+      {
+        hostname: bindHostname,
+        advertisedHost,
+        port: mcpServer.port,
+        url: buildMcpUrl(advertisedHost, mcpServer.port),
+      },
       "MCP server started",
     );
   },

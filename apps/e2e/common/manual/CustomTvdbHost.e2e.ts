@@ -6,17 +6,20 @@ import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
-import { testbedOs } from 'test/lib/e2e-platform'
+import { testbedOs, isDockerE2e } from 'test/lib/e2e-platform'
 
 /**
  * @supports local, Electron
+ * @unsupported Docker
  */
 describe('Custom TVDB Host', () => {
 
     before(async () => {
-        const accessible = await isOfficialTvdbHostAccessible()
-        if (!accessible) {
-            throw new Error('Official TVDB host is not accessible')
+        if (!isDockerE2e) {
+            const accessible = await isOfficialTvdbHostAccessible()
+            if (!accessible) {
+                throw new Error('Official TVDB host is not accessible')
+            }
         }
         const proxyAccessible = await isReverseProxyAccessible()
         if (!proxyAccessible) {

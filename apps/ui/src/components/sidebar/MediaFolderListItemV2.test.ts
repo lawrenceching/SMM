@@ -60,6 +60,18 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
   const path = "/media/tvshows/Missing"
   const mediaName = "Missing Show"
 
+  it("shows folder basename in sidebar-folder-name", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path: "/root/.cache/smm/smm-test-folder/Missing Show",
+        mediaName: "Missing Show",
+        mediaType: "tvshow",
+      }),
+    )
+
+    expect(screen.getByTestId("sidebar-folder-name")).toHaveTextContent("Missing Show")
+  })
+
   it("renders warning icon with aria-label from translation key", () => {
     render(
       React.createElement(MediaFolderListItemV2, {

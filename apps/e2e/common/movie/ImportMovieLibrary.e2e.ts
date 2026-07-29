@@ -20,7 +20,7 @@ import { testbedOs } from 'test/lib/e2e-platform'
  * Import a movie media library (common: browser / Electron / HarmonyOS).
  * Fixtures, config, and metadata assertions use browser-protocol APIs only.
  *
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Import Movie Library', () => {
     let testFolder = ''

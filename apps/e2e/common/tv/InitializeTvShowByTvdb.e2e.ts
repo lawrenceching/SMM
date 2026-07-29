@@ -18,7 +18,7 @@ import env from 'test/lib/env'
 import { testbedOs } from 'test/lib/e2e-platform'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Initialize TV Show by TVDB', () => {
     let testFolder = ''

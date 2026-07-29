@@ -45,7 +45,7 @@ function waitForFilesInFolder(
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Rename Episode File', () => {
     let testFolder = ''

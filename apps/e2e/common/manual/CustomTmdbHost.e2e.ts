@@ -6,17 +6,22 @@ import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
-import { testbedOs } from 'test/lib/e2e-platform'
+import { testbedOs, isDockerE2e } from 'test/lib/e2e-platform'
 
 /**
  * @supports local, Electron
+ * @unsupported Docker
  */
 describe('Custom TMDB Host', () => {
 
     before(async () => {
-        const accessible = await isOfficialTmdbHostAccessible()
-        if (!accessible) {
-            throw new Error('Official TMDB host is not accessible')
+        // Docker: TMDB is reached from the container network (may use TMDB_HTTP_PROXY),
+        // not from the test runner host — skip the host-side probe.
+        if (!isDockerE2e) {
+            const accessible = await isOfficialTmdbHostAccessible()
+            if (!accessible) {
+                throw new Error('Official TMDB host is not accessible')
+            }
         }
         const proxyAccessible = await isReverseProxyAccessible()
         if (!proxyAccessible) {

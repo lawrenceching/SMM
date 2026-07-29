@@ -110,7 +110,7 @@ async function openDownloadDialog() {
  * Real yt-dlp download flows (Bilibili / YouTube). Requires network, cookies, and bundled yt-dlp.
  *
  * @supports local, Electron
- * @unsupported HarmonyOS
+ * @unsupported HarmonyOS, Docker
  */
 describe('MusicPanel - Download', () => {
     let testFolder = ''

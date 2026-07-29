@@ -26,6 +26,17 @@ bun ci/run-e2e-test.ts --platform docker --spec ./common/movie/SearchMovie.e2e.t
 ## `common/manual`
 
 On-demand / long-running specs (yt-dlp, transcription, ffmpeg, real media fixtures).
-Excluded from default CI (`wdio.conf.ts` / `ci/run-e2e-test.ts`), same as the former `test/specs/manual`.
+Not in default CI batch; run explicitly with `--spec ./common/manual/*.e2e.ts` (including Docker).
+
+Platform matrix and `@supports` audit: [common-e2e-tests-verification.md](../common-e2e-tests-verification.md).
 
 Host-FS-heavy cases (`Transcribe`, `ConvertVideoFormat`, `MediaFileProperties`, `MusicPanel-Transcribe`) call `skipIfOhos` because they still need local disk + host tools.
+
+## Test data: init vs seed
+
+| Goal | Setup |
+| --- | --- |
+| **Test initialization / search / proxy / custom hosts** | Import via menu/event (`createAndImportFolderViaBrowser`, Gherkin init steps); expect TMDB/TVDB traffic and long waits |
+| **Test anything else** (rename, scrape, unlink, MCP, …) | **Seed recognized folder:** `createTestFolderViaBrowser` → `importFolderWithMediaMetadata` → `page.refresh()` → `waitForFolderName`. Avoids external DB calls and batch/Docker flake |
+
+Details and examples: [common-e2e-tests-verification.md § Non-init specs](../common-e2e-tests-verification.md#non-init-specs-seed-recognized-folders).

@@ -3,6 +3,11 @@ import type { HelloResponseBody } from "@smm/core/types";
 export interface HelloOptions {
   /** CLI/ohos app version, e.g. "1.3.8". */
   version: string;
+  /**
+   * CLI process platform. Defaults to `process.platform` in {@link doHello}.
+   * Tests may override.
+   */
+  platform?: string;
   /** POSIX or platform-specific user-data dir. */
   userDataDir: string;
   appDataDir: string;
@@ -26,5 +31,6 @@ export function doHello(options: HelloOptions): HelloResponseBody {
   return {
     uptime: process.uptime(),
     ...options,
+    platform: options.platform ?? process.platform,
   };
 }

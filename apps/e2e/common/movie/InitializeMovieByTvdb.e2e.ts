@@ -16,7 +16,7 @@ import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import { testbedOs } from 'test/lib/e2e-platform'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Initialize Movie by TVDB', () => {
     let testFolder = ''

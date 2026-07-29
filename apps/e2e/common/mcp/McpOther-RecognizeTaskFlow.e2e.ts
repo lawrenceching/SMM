@@ -3,7 +3,6 @@ import type { MediaMetadata } from '@smm/core/types'
 import { Path } from '@smm/core'
 import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
-import Sidebar from 'test/componentobjects/Sidebar'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
@@ -14,19 +13,19 @@ import {
 import { folder1, type TestFolder } from 'test/actions/import-folders'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   joinPlatformPath,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - RecognizeTaskFlow', () => {
@@ -69,16 +68,15 @@ describe('MCP Other - RecognizeTaskFlow', () => {
   })
 
   it('MCP recognize task tools should recognize episode video file via begin/add/end flow', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      {
-        ...folder1,
-        files: ['[1].mp4'],
-      } as TestFolder,
-      'e2eTest:McpRecognizeTaskTools',
-      testFolder,
-    )
+    const folder: TestFolder = {
+      ...folder1,
+      files: ['[1].mp4'],
+    }
+    const folderPath = await seedRecognizedTvShowFolder(folder, testFolder, (mm) => {
+      mm.mediaFiles = []
+      return mm
+    })
 
-    await Sidebar.waitForFolderName(folder1.folderName, 2000)
     await TVShowPanel.waitForTable()
     await browser.waitUntil(async () => (await TVShowPanel.toString()).includes('S01E01 - - - -'), {
       timeout: 20000,

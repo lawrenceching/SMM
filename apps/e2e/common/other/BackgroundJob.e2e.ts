@@ -10,7 +10,7 @@ const JOB_DELAY_MS = 5000
 const JOB_NAME = 'E2E 测试任务'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Background Job', () => {
     beforeEach(async () => {

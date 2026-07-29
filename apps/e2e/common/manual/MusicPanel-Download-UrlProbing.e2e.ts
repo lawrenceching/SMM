@@ -1,7 +1,7 @@
 /**
  * DownloadVideoDialog - URL Input & Format Probing (4.2)
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  *
  * Tests TC-URL-01 through TC-URL-09 covering:

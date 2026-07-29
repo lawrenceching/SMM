@@ -25,6 +25,7 @@ import {
   requireSpecsForPlatform,
   specFiles,
 } from './run-e2e-test-lib.ts';
+import { stopDockerE2eContainer } from './e2e-docker-container.ts';
 
 async function main(): Promise<number> {
   const argv = process.argv.slice(2);
@@ -42,12 +43,20 @@ async function main(): Promise<number> {
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
-  const result = await $`bun apps/cicd/run.ts -f ${CONFIG_REL_PATH} --cwd ${ROOT}`
-    .cwd(ROOT)
-    .env(process.env)
-    .nothrow();
+  try {
+    const result = await $`bun apps/cicd/run.ts -f ${CONFIG_REL_PATH} --cwd ${ROOT}`
+      .cwd(ROOT)
+      .env(process.env)
+      .nothrow();
 
-  return result.exitCode;
+    return result.exitCode;
+  } finally {
+    // Cicd tears down the background bun process via taskkill on Windows;
+    // that often skips async shutdown in e2e-docker-container.ts, leaving `smm` running.
+    if (platform === 'docker') {
+      await stopDockerE2eContainer();
+    }
+  }
 }
 
 main()

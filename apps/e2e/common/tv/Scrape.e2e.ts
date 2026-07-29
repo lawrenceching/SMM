@@ -61,7 +61,7 @@ async function checkTvdbConnection(): Promise<boolean> {
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Scrape', () => {
     let testFolder = ''

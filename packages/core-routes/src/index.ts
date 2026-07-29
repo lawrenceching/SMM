@@ -13,6 +13,13 @@ export {
   rejectUnauthorized,
 } from "./auth.ts";
 export { validatePathIsInAllowlist } from "./allowlist.ts";
+export {
+  resolveMcpAdvertisedHost,
+  resolveMcpBindAddress,
+  resolveReverseProxyAdvertisedHost,
+  resolveReverseProxyBindAddress,
+  resolveWebUiBindAddress,
+} from "./bindAddresses.ts";
 export { doHello, type HelloOptions } from "./hello.ts";
 export { doChat, handleChatPost } from "./chat.ts";
 export { createOpenAICompatible } from "@ai-sdk/openai-compatible";

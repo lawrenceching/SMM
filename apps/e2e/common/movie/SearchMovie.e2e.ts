@@ -23,7 +23,7 @@ const folder2RecognizedTitles = [
 const TITLE_WAIT_MS = 3 * 60 * 1000
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Search Movie', () => {
     let testFolder = ''

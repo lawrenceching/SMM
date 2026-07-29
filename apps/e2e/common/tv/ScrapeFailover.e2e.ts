@@ -31,7 +31,7 @@ async function getImagePathWithPrefix(folderPath: string, prefix: string): Promi
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Scrape Failover', () => {
     let testFolder = ''

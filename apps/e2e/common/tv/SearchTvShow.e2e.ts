@@ -57,7 +57,7 @@ S01E34 - - - -
 S01E35 - - - -`
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Search TV Show', () => {
     let testFolder = ''

@@ -27,7 +27,7 @@ import {
  * (see apps/e2e/.env.local). Without that, TV recognition holds the import
  * mutex and never reaches `status=ok`, so immersive-input stays a Skeleton.
  *
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('App', () => {
     let testFolder = ''

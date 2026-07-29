@@ -35,7 +35,7 @@ S01E12 - - - -`
  *
  * testFolder: `{tmpDir}/smm-test-folder` from {@link resolveSmmTestFolderViaBrowser}
  * (app temp sandbox on Ohos — not Download/).
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Import', () => {
     let testFolder = ''

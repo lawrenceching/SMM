@@ -47,7 +47,7 @@ async function rightClickFirstTrackRow() {
  * HarmonyOS: subtitle pipeline is disabled (`isSubtitleFeaturesEnabled`) —
  * the Subtitle context menu item is not rendered.
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('Subtitle', () => {

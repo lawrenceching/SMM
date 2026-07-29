@@ -87,7 +87,7 @@ const EXPECTED_TMDB_TVSHOW = {
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Initialize TV Show by TMDB', () => {
     let testFolder = ''

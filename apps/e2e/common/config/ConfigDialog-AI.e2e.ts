@@ -29,7 +29,7 @@ async function findProviderIndexByName(name: string): Promise<number> {
 }
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Config Dialog AI Settings', () => {
 

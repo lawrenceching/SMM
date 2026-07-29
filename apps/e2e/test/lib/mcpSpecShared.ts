@@ -1,7 +1,15 @@
 import { expect, browser } from '@wdio/globals'
 import * as path from 'node:path'
 import { delay } from 'es-toolkit'
+import { Path } from '@smm/core'
+import type { MediaMetadata } from '@smm/core/types'
 import StatusBar from '../componentobjects/StatusBar'
+import Sidebar from '../componentobjects/Sidebar'
+import page from '../pageobjects/page'
+import type { TestFolder } from '../actions/import-folders'
+import { importFolderWithMediaMetadata } from './testbed'
+import { createTestFolderViaBrowser, joinPlatformPath } from './browser-fs'
+import { resolveMcpAddressForE2eRunner } from './e2e-platform'
 
 /** Set by `wdio.conf.ts` global `before` when this worker runs MCP-related specs. */
 export const SMM_MCP_GLOBAL_ADDRESS_KEY = '__SMM_MCP_ADDRESS__' as const
@@ -87,8 +95,11 @@ export function createMcpSpecContext(): McpSpecContext {
   return {
     clientCwd: path.resolve(repoRoot, 'test/mcp-test-client'),
     get mcpAddress() {
-      // return getMcpAddressForWorker()
-      return 'http://127.0.0.1:30001'
+      const stored = (globalThis as Record<string, unknown>)[SMM_MCP_GLOBAL_ADDRESS_KEY]
+      if (typeof stored === 'string' && stored.includes('http://')) {
+        return stored
+      }
+      return resolveMcpAddressForE2eRunner()
     },
   }
 }
@@ -120,4 +131,46 @@ export async function setupMcpTest(): Promise<void> {
 export async function cleanupMcpTest(): Promise<void> {
   await browser.refresh()
   await StatusBar.appVersion.waitForDisplayed()
+}
+
+const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
+
+/** Create fixture + seed TV show metadata (no TMDB/TVDB init). */
+export async function seedRecognizedTvShowFolder(
+  folder: TestFolder,
+  testFolder: string,
+  updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata,
+): Promise<string> {
+  const folderPath = await createTestFolderViaBrowser(testFolder, folder)
+  folder.path = folderPath
+  await importFolderWithMediaMetadata(folder, TV_SHOW_METADATA_TEMPLATE, updateMediaMetadata)
+  await page.refresh()
+  await Sidebar.waitForFolderName(folder.folderName, 60_000)
+  return folderPath
+}
+
+/** Create fixture + seed movie metadata (no TMDB/TVDB init). */
+export async function seedRecognizedMovieFolder(
+  folder: TestFolder,
+  testFolder: string,
+  movie: { database: 'TMDB' | 'TVDB'; id: string; name: string },
+): Promise<string> {
+  const folderPath = await createTestFolderViaBrowser(testFolder, folder)
+  folder.path = folderPath
+  await importFolderWithMediaMetadata(folder, TV_SHOW_METADATA_TEMPLATE, (mediaMetadata) => {
+    mediaMetadata.type = 'movie-folder'
+    mediaMetadata.tvShow = undefined
+    mediaMetadata.mediaFiles = folder.files.map((file) => ({
+      absolutePath: Path.posix(joinPlatformPath(folder.path!, file)),
+    }))
+    mediaMetadata.movie = {
+      database: movie.database,
+      id: movie.id,
+      name: movie.name,
+    }
+    return mediaMetadata
+  })
+  await page.refresh()
+  await Sidebar.waitForFolderName(folder.folderName, 60_000)
+  return folderPath
 }

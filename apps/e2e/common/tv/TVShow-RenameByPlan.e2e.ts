@@ -29,7 +29,7 @@ S01E11 - - - -
 S01E12 - - - -`
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Rename By Plan', () => {
     let testFolder = ''

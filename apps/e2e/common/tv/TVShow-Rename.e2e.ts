@@ -12,7 +12,7 @@ import 'test/steps'
 import { testbedOs } from 'test/lib/e2e-platform'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Rename', () => {
     let testFolder = ''

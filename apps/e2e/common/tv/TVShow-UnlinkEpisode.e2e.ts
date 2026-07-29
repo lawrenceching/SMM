@@ -15,7 +15,7 @@ const FOLDER_NAME = '天使降临到我身边！ (2019) {tmdbid=84666}'
 const EPISODE_FILE_NAME = 'S01E01.mp4'
 
 /**
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('TVShow - Unlink Episode', () => {
     let testFolder = ''

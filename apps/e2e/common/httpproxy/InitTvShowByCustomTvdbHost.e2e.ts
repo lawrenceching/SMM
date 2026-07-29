@@ -35,7 +35,7 @@ const OFFICIAL_TVDB_HOST =
  * Outbound access uses `TVDB_HTTP_PROXY` / embedded proxy when the LAN blocks
  * api4.thetvdb.com (see apps/e2e/.env.example).
  *
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Init TV Show via Custom TVDB Host', () => {
     let testFolder = ''

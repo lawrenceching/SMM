@@ -1,14 +1,14 @@
 import * as cp from 'node:child_process'
-import * as fs from 'node:fs'
-import * as path from 'node:path'
 import { browser, expect } from '@wdio/globals'
-import { createFolderInTestFolder } from 'test/actions/import-folders'
-import Menu from 'test/componentobjects/Menu'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { cleanup, setup } from 'test/lib/testbed'
-import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
-
-const testMp4Path = path.join(import.meta.dirname, '../../../../test/local/test.mp4')
+import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import {
+    createAndImportFolderViaBrowser,
+    deleteFileViaBrowser,
+    joinPlatformPath,
+    listFileNamesViaBrowser,
+} from 'test/lib/browser-fs'
 
 async function waitForFirstTrackRow() {
     await browser.waitUntil(
@@ -27,7 +27,21 @@ async function waitForFirstTrackRow() {
 /**
  * Remove numbered conversion outputs (e.g. test (1).webm) left from prior runs.
  */
-function removeConvertedOutputFiles(dir: string) {
+async function removeConvertedOutputFiles(dir: string) {
+    if (isDockerE2e) {
+        const names = await listFileNamesViaBrowser(dir)
+        for (const name of names) {
+            if (/^test\s*\(\d+\)\.[a-z0-9]+$/i.test(name)) {
+                const filePath = joinPlatformPath(dir, name)
+                await deleteFileViaBrowser(filePath)
+                console.log(`[CLEANUP] Removed converted output: ${filePath}`)
+            }
+        }
+        return
+    }
+
+    const fs = await import('node:fs')
+    const path = await import('node:path')
     if (!fs.existsSync(dir)) return
     for (const name of fs.readdirSync(dir)) {
         if (/^test\s*\(\d+\)\.[a-z0-9]+$/i.test(name)) {
@@ -137,7 +151,7 @@ function checkFfmpegAvailable(): boolean {
   }
 }
 
-const isFfmpegAvailable = checkFfmpegAvailable()
+const isFfmpegAvailable = isDockerE2e || checkFfmpegAvailable()
 
 if (!isFfmpegAvailable) {
   describe.skip('ConvertVideoFormat - ffmpeg not available in this environment', () => {
@@ -150,7 +164,7 @@ if (!isFfmpegAvailable) {
  *
  * HarmonyOS: requires host-side ffmpeg and host test media fixtures (`skipIfOhos`).
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('ConvertVideoFormat', () => {
@@ -175,7 +189,7 @@ describe('ConvertVideoFormat', () => {
 
     afterEach(async () => {
         if (folderPath) {
-            removeConvertedOutputFiles(folderPath)
+            await removeConvertedOutputFiles(folderPath)
         }
 
         // Dismiss any open dialog by pressing Escape, so the sidebar is accessible
@@ -183,7 +197,7 @@ describe('ConvertVideoFormat', () => {
         await browser.pause(500)
 
         if (folderPath) {
-            removeConvertedOutputFiles(folderPath)
+            await removeConvertedOutputFiles(folderPath)
         }
 
         await cleanup({
@@ -200,28 +214,19 @@ describe('ConvertVideoFormat', () => {
     it('Convert video format via track context menu', async function () {
         this.timeout(60_000)
 
-        // ── 1. Create a Music-type folder with test.mp4 ────────────────────────
+        // ── 1. Create a Music-type folder with test.mp4 (container path on Docker) ─
         const folderName = `TestConvertFormat-${Date.now()}`
-        const folder = createFolderInTestFolder({
-            folderName,
-            type: 'music',
-            files: ['test.mp4'],
-        })
-        folderPath = folder.path
-        removeConvertedOutputFiles(folderPath)
+        folderPath = await createAndImportFolderViaBrowser(
+            {
+                folderName,
+                type: 'music',
+                files: ['test.mp4'],
+            },
+            'e2eTest:ConvertVideoFormat',
+        )
+        await removeConvertedOutputFiles(folderPath)
 
-        // Copy the real test.mp4 file (the helper creates an empty file)
-        const testMp4Dest = path.join(folderPath, 'test.mp4')
-        fs.copyFileSync(testMp4Path, testMp4Dest)
-
-        // ── 2. Import the folder via the app's custom event ────────────────────
-        await Menu.importMediaFolder({
-            type: 'music',
-            folderPathInPlatformFormat: folder.path!,
-            traceId: 'e2eTest:ConvertVideoFormat',
-        })
-
-        // ── 3. Wait for the folder in the sidebar and click it ────────────────
+        // ── 2. Wait for the folder in the sidebar and click it ────────────────
         await Sidebar.waitForFolderName(folderName)
         await Sidebar.clickFolder(folderName)
 

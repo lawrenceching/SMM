@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import {
   assertSpecsMatchPlatform,
   buildConfig,
+  dockerHttpProxyEnvForContainer,
   parseArgv,
   requireSpecsForPlatform,
 } from './run-e2e-test-lib.ts';
@@ -49,5 +50,30 @@ describe('run-e2e-test docker platform', () => {
     expect(config.tasks[0]!.command).toContain('wait-for-docker-e2e-ready');
     expect(config.tasks.some((t) => t.command.includes('wdio:docker'))).toBe(true);
     expect(config.afterEach[0]!.command).toContain('collect-wdio-report');
+  });
+
+  test('dockerHttpProxyEnvForContainer rewrites loopback to host.docker.internal', () => {
+    const prev = process.env.TMDB_HTTP_PROXY;
+    process.env.TMDB_HTTP_PROXY = 'http://127.0.0.1:7897';
+    try {
+      expect(dockerHttpProxyEnvForContainer('TMDB_HTTP_PROXY')).toBe(
+        'http://host.docker.internal:7897/',
+      );
+    } finally {
+      if (prev === undefined) delete process.env.TMDB_HTTP_PROXY;
+      else process.env.TMDB_HTTP_PROXY = prev;
+    }
+  });
+
+  test('buildConfig docker forwards rewritten TMDB_HTTP_PROXY', () => {
+    const prev = process.env.TMDB_HTTP_PROXY;
+    process.env.TMDB_HTTP_PROXY = 'http://127.0.0.1:7897';
+    try {
+      const config = buildConfig('docker', ['common/config/ConfigDialog-Settings.e2e.ts']);
+      expect(config.env.TMDB_HTTP_PROXY).toBe('http://host.docker.internal:7897/');
+    } finally {
+      if (prev === undefined) delete process.env.TMDB_HTTP_PROXY;
+      else process.env.TMDB_HTTP_PROXY = prev;
+    }
   });
 });

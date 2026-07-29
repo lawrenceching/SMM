@@ -1,23 +1,22 @@
 import { expect } from '@wdio/globals'
 import mcpClient from 'test/lib/McpClient'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { folder1 } from 'test/actions/import-folders'
 import { cleanup, setup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
-  createAndImportFolderViaBrowser,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
   cleanupMcpTest,
   createMcpSpecContext,
+  seedRecognizedTvShowFolder,
   setupMcpTest,
   skipIfOhos,
 } from 'test/lib/mcpSpecShared'
 
 /**
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('MCP Other - GetEpisodesTool', () => {
@@ -60,14 +59,7 @@ describe('MCP Other - GetEpisodesTool', () => {
   })
 
   it('GetEpisodesTool should return episodes list with mapped video path', async () => {
-    const folderPath = await createAndImportFolderViaBrowser(
-      folder1,
-      'e2eTest:McpGetEpisodesTool',
-      testFolder,
-    )
-    await TVShowPanel.waitForTitleToBe(folder1.translations?.title?.['en-US'] ?? 'N/A')
-
-    await browser.pause(4000)
+    const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     const r = await mcpClient.getEpisodes(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,

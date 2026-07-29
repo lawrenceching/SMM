@@ -19,7 +19,7 @@ import { testbedOs } from 'test/lib/e2e-platform'
 /**
  * Import a TV show media library (common: browser / Electron / HarmonyOS).
  * Fixtures, config, and metadata assertions use browser-protocol APIs only.
- * @supports local, Electron, HarmonyOS
+ * @supports local, Electron, HarmonyOS, Docker
  */
 describe('Import TV Show Library', () => {
     let testFolder = ''

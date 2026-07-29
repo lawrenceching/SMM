@@ -83,7 +83,7 @@ async function findVisibleButton(
  * HarmonyOS: Delete is intentionally hidden in `LocalFileRow` (`!isHarmonyOSRuntime`)
  * to avoid accidental deletion under the OHOS file-access model — not a test flake.
  *
- * @supports local, Electron
+ * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
 describe('DeleteFile', () => {
