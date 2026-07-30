@@ -1,0 +1,40 @@
+# Docker e2e: smm under test + HTTP forward proxy on one Compose network.
+# Driven by ci/e2e-docker-container.ts (Host Runner WDIO → published :30000).
+#
+# Media host path is injected via SMM_E2E_MEDIA_HOST_DIR (default /tmp/smm).
+# Auth via SMM_AUTH_TOKEN (default ChangeMe123).
+
+name: smm-e2e
+
+services:
+  http-proxy:
+    build:
+      context: ./http-proxy
+    container_name: smm-e2e-http-proxy
+    ports:
+      - '8990:8990'
+    networks:
+      - e2e
+
+  smm:
+    image: smm:latest
+    container_name: smm
+    depends_on:
+      - http-proxy
+    ports:
+      - '30000:30000'
+      - '30001:30001'
+      - '30002:30002'
+    environment:
+      SMM_AUTH_TOKEN: ${SMM_AUTH_TOKEN:-ChangeMe123}
+      WEBUI_ADDRESS: '0.0.0.0'
+      REVERSE_PROXY_ADDRESS: '0.0.0.0'
+      MCP_ADDRESS: '0.0.0.0'
+    volumes:
+      - ${SMM_E2E_MEDIA_HOST_DIR:-/tmp/smm}:/media
+    networks:
+      - e2e
+
+networks:
+  e2e:
+    driver: bridge

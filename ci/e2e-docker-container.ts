@@ -1,8 +1,8 @@
 /**
- * Cicd background for docker e2e: run `smm` container in the foreground so
- * stdout/stderr stream into the cicd timeline (`container.log` after slicing).
- * Teardown kills this process tree; `--rm` removes the container. We also
- * `docker stop` on signals / exit for Windows taskkill races.
+ * Cicd background for docker e2e: run Compose (`smm` + `http-proxy`) in the
+ * foreground so stdout/stderr stream into the cicd timeline (`container.log`
+ * after slicing). Teardown runs `compose down`; we also stop on signals /
+ * exit for Windows taskkill races.
  */
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -12,9 +12,14 @@ import { fileURLToPath } from 'node:url';
 
 export const DOCKER_CONTAINER_NAME = 'smm';
 export const DOCKER_IMAGE = 'smm:latest';
+export const DOCKER_COMPOSE_PROJECT = 'smm-e2e';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const TUTORIALS_SRC = path.join(REPO_ROOT, 'apps/e2e/test/media/tutorials');
+export const DOCKER_COMPOSE_FILE = path.join(
+  REPO_ROOT,
+  'apps/e2e/docker/docker-compose.yml',
+);
 
 export function resolveDockerMediaHostDir(): string {
   return path.join(os.tmpdir(), 'smm');
@@ -34,34 +39,43 @@ export function syncTutorialFixturesToMediaHostDir(mediaHostDir: string): void {
   console.log(`[e2e-docker-container] synced tutorials -> ${dest}`);
 }
 
-/** Foreground `docker run` (no `-d`) so killing this process stops the container. */
-export function buildDockerRunArgs(options: {
+/** Args for `docker compose … up` (no detached mode — foreground for cicd). */
+export function buildDockerComposeUpArgs(options: {
   authToken: string;
   mediaHostDir: string;
 }): string[] {
   return [
-    'run',
-    '--rm',
-    '--name',
-    DOCKER_CONTAINER_NAME,
+    'compose',
+    '-f',
+    DOCKER_COMPOSE_FILE,
     '-p',
-    '30000:30000',
-    '-p',
-    '30001:30001',
-    '-p',
-    '30002:30002',
-    '-e',
-    `SMM_AUTH_TOKEN=${options.authToken}`,
-    '-e',
-    'WEBUI_ADDRESS=0.0.0.0',
-    '-e',
-    'REVERSE_PROXY_ADDRESS=0.0.0.0',
-    '-e',
-    'MCP_ADDRESS=0.0.0.0',
-    '-v',
-    `${options.mediaHostDir}:/media`,
-    DOCKER_IMAGE,
+    DOCKER_COMPOSE_PROJECT,
+    'up',
+    '--build',
+    '--abort-on-container-exit',
+    '--exit-code-from',
+    'smm',
   ];
+}
+
+/** Env for compose: media bind path + auth token. */
+export function buildDockerComposeEnv(options: {
+  authToken: string;
+  mediaHostDir: string;
+}): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    SMM_AUTH_TOKEN: options.authToken,
+    SMM_E2E_MEDIA_HOST_DIR: options.mediaHostDir,
+  };
+}
+
+/** @deprecated Prefer buildDockerComposeUpArgs — kept for callers that still expect run-shape docs. */
+export function buildDockerRunArgs(options: {
+  authToken: string;
+  mediaHostDir: string;
+}): string[] {
+  return buildDockerComposeUpArgs(options);
 }
 
 function runDocker(args: string[], stdio: 'inherit' | 'ignore' = 'inherit'): Promise<number> {
@@ -72,17 +86,36 @@ function runDocker(args: string[], stdio: 'inherit' | 'ignore' = 'inherit'): Pro
   });
 }
 
-/** Stop the named e2e container; safe to call when none is running. */
+function composeDownArgs(): string[] {
+  return ['compose', '-f', DOCKER_COMPOSE_FILE, '-p', DOCKER_COMPOSE_PROJECT, 'down', '--remove-orphans'];
+}
+
+/** Stop the e2e compose stack; safe to call when none is running. */
 export async function stopDockerE2eContainer(): Promise<void> {
+  try {
+    await runDocker(composeDownArgs(), 'ignore');
+  } catch {
+    // Stack may not exist yet / docker unavailable during shutdown races.
+  }
+  // Best-effort: named container from older docker-run lifecycle.
   try {
     await runDocker(['stop', DOCKER_CONTAINER_NAME], 'ignore');
   } catch {
-    // Container may not exist yet / docker unavailable during shutdown races.
+    // ignore
   }
 }
 
 /** Sync stop for process exit hooks (Windows taskkill may skip async shutdown). */
 export function stopDockerE2eContainerSync(): void {
+  try {
+    spawnSync('docker', composeDownArgs(), {
+      stdio: 'ignore',
+      shell: false,
+      windowsHide: true,
+    });
+  } catch {
+    // Best-effort last resort.
+  }
   try {
     spawnSync('docker', ['stop', DOCKER_CONTAINER_NAME], {
       stdio: 'ignore',
@@ -112,13 +145,15 @@ async function main(): Promise<void> {
   syncTutorialFixturesToMediaHostDir(mediaHostDir);
 
   console.log(`[e2e-docker-container] media host dir: ${mediaHostDir}`);
+  console.log(`[e2e-docker-container] compose file: ${DOCKER_COMPOSE_FILE}`);
   registerProcessExitCleanup();
   await stopDockerE2eContainer();
 
-  const args = buildDockerRunArgs({ authToken, mediaHostDir });
+  const args = buildDockerComposeUpArgs({ authToken, mediaHostDir });
+  const env = buildDockerComposeEnv({ authToken, mediaHostDir });
   console.log(`[e2e-docker-container] docker ${args.join(' ')}`);
 
-  const run = spawn('docker', args, { stdio: 'inherit', shell: false });
+  const run = spawn('docker', args, { stdio: 'inherit', shell: false, env });
 
   let stopping = false;
   const shutdown = async () => {

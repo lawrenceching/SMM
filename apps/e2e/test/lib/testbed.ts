@@ -34,14 +34,25 @@ export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
 export { setupTestMediaFolders, getMetadataDir }
 
-export {
+import {
     useEmbeddedHttpProxy,
     getCurrentProxyAddress,
     getConfiguredHttpProxyAddress,
+    resolveHttpProxyProbeUrl,
     startEmbeddedHttpProxy,
     stopEmbeddedHttpProxy,
     DEFAULT_EMBEDDED_PROXY_ADDRESS,
 } from './httpProxyServer'
+
+export {
+    useEmbeddedHttpProxy,
+    getCurrentProxyAddress,
+    getConfiguredHttpProxyAddress,
+    resolveHttpProxyProbeUrl,
+    startEmbeddedHttpProxy,
+    stopEmbeddedHttpProxy,
+    DEFAULT_EMBEDDED_PROXY_ADDRESS,
+}
 
 export { startConfigServer, stopConfigServer } from './configServer'
 
@@ -709,14 +720,18 @@ export async function _isRemoteAccessible(url: string, method: 'GET' | 'HEAD' | 
  * accepting connections? If the port is open we treat the proxy as
  * "ready"; a 4xx/5xx response from the actual proxied call would surface
  * as a different failure mode that the spec already exercises.
+ *
+ * When `E2E_HTTP_PROXY_PROBE_URL` is set, probes that URL instead of
+ * `proxyUrl` (Compose Host Runner: probe 127.0.0.1 while config keeps service DNS).
  */
 export async function isHttpProxyAccessible(proxyUrl: string | null | undefined): Promise<boolean> {
-    if (!proxyUrl || typeof proxyUrl !== 'string') return false
+    const probeTarget = resolveHttpProxyProbeUrl(proxyUrl)
+    if (!probeTarget || typeof probeTarget !== 'string') return false
     let parsed: URL
     try {
-        parsed = new URL(proxyUrl)
+        parsed = new URL(probeTarget)
     } catch {
-        console.warn(`Invalid HTTP proxy URL: ${proxyUrl}`)
+        console.warn(`Invalid HTTP proxy URL: ${probeTarget}`)
         return false
     }
     const protocol = parsed.protocol.toLowerCase()
@@ -747,7 +762,7 @@ export async function isHttpProxyAccessible(proxyUrl: string | null | undefined)
         })
         socket.once('error', (error) => {
             clearTimeout(timer)
-            console.warn(`HTTP proxy not accessible: ${proxyUrl}`, error)
+            console.warn(`HTTP proxy not accessible: ${probeTarget}`, error)
             finish(false)
         })
     })

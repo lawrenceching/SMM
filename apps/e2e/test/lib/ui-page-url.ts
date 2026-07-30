@@ -14,8 +14,23 @@ const VITE_DEFAULT_DEV_PORT = 5173
 /** Matches apps/ohos MAIN_HTTP_ORIGIN (device-local UI HTTP server). */
 export const HARMONYOS_UI_ORIGIN = 'http://127.0.0.1:18081/'
 
-/** Docker image serves UI+API on host-mapped port 30000. */
-export const DOCKER_UI_ORIGIN = 'http://localhost:30000/'
+/** Default docker UI origin (host-mapped port 30000). Override with `E2E_DOCKER_UI_ORIGIN`. */
+export const DEFAULT_DOCKER_UI_ORIGIN = 'http://localhost:30000/'
+
+/** @deprecated Prefer resolveDockerUiOrigin() — kept for existing imports/tests. */
+export const DOCKER_UI_ORIGIN = DEFAULT_DOCKER_UI_ORIGIN
+
+/**
+ * Docker UI origin for Host Runner WDIO / wait-ready.
+ * `E2E_DOCKER_UI_ORIGIN` wins when set (trailing slash normalized).
+ */
+export function resolveDockerUiOrigin(): string {
+  const fromEnv = process.env.E2E_DOCKER_UI_ORIGIN?.trim()
+  if (!fromEnv) {
+    return DEFAULT_DOCKER_UI_ORIGIN
+  }
+  return fromEnv.endsWith('/') ? fromEnv : `${fromEnv}/`
+}
 
 export type TestbedOs = 'general' | 'HarmonyOS'
 
@@ -47,7 +62,7 @@ function defaultBaseUrlForOs(os: TestbedOs): string {
     return HARMONYOS_UI_ORIGIN
   }
   if (process.env.E2E_PLATFORM === 'docker') {
-    return DOCKER_UI_ORIGIN
+    return resolveDockerUiOrigin()
   }
   return `http://localhost:${readUiDevServerPort()}`
 }

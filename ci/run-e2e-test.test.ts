@@ -76,4 +76,39 @@ describe('run-e2e-test docker platform', () => {
       else process.env.TMDB_HTTP_PROXY = prev;
     }
   });
+
+  test('dockerHttpProxyEnvForContainer leaves compose service URLs unchanged', () => {
+    const prev = process.env.TMDB_HTTP_PROXY;
+    process.env.TMDB_HTTP_PROXY = 'http://http-proxy:8990';
+    try {
+      expect(dockerHttpProxyEnvForContainer('TMDB_HTTP_PROXY')).toBe(
+        'http://http-proxy:8990',
+      );
+    } finally {
+      if (prev === undefined) delete process.env.TMDB_HTTP_PROXY;
+      else process.env.TMDB_HTTP_PROXY = prev;
+    }
+  });
+
+  test('buildConfig docker forwards E2E_DOCKER_UI_ORIGIN and probe URL', () => {
+    const prevOrigin = process.env.E2E_DOCKER_UI_ORIGIN;
+    const prevProbe = process.env.E2E_HTTP_PROXY_PROBE_URL;
+    const prevProxy = process.env.TMDB_HTTP_PROXY;
+    process.env.E2E_DOCKER_UI_ORIGIN = 'http://127.0.0.1:30000/';
+    process.env.E2E_HTTP_PROXY_PROBE_URL = 'http://127.0.0.1:8990';
+    process.env.TMDB_HTTP_PROXY = 'http://http-proxy:8990';
+    try {
+      const config = buildConfig('docker', ['common/config/ConfigDialog-Settings.e2e.ts']);
+      expect(config.env.E2E_DOCKER_UI_ORIGIN).toBe('http://127.0.0.1:30000/');
+      expect(config.env.E2E_HTTP_PROXY_PROBE_URL).toBe('http://127.0.0.1:8990');
+      expect(config.env.TMDB_HTTP_PROXY).toBe('http://http-proxy:8990');
+    } finally {
+      if (prevOrigin === undefined) delete process.env.E2E_DOCKER_UI_ORIGIN;
+      else process.env.E2E_DOCKER_UI_ORIGIN = prevOrigin;
+      if (prevProbe === undefined) delete process.env.E2E_HTTP_PROXY_PROBE_URL;
+      else process.env.E2E_HTTP_PROXY_PROBE_URL = prevProbe;
+      if (prevProxy === undefined) delete process.env.TMDB_HTTP_PROXY;
+      else process.env.TMDB_HTTP_PROXY = prevProxy;
+    }
+  });
 });

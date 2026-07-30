@@ -1,0 +1,89 @@
+name: E2E Tests for Docker
+
+# Host Runner + Compose (smm + http-proxy). First suite: common/config only.
+on:
+  workflow_dispatch:
+
+jobs:
+  e2e-docker-config:
+    name: Docker E2E (common/config)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install CJK fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: '146.0.7680.153'
+          install-dependencies: true
+          install-chromedriver: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build intermediate Docker images (amd64)
+        run: |
+          set -euo pipefail
+          PLATFORM=linux/amd64
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
+
+      - name: Assemble smm:latest
+        run: |
+          docker buildx build --load --platform linux/amd64 \
+            -t smm:latest -f apps/docker/Dockerfile .
+
+      - name: Run Docker E2E (common/config)
+        id: e2e
+        run: |
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/config/*.e2e.ts"
+        env:
+          SMM_AUTH_TOKEN: ChangeMe123
+          TMDB_HTTP_PROXY: http://http-proxy:8990
+          TVDB_HTTP_PROXY: http://http-proxy:8990
+          E2E_HTTP_PROXY_PROBE_URL: http://127.0.0.1:8990
+          E2E_DOCKER_UI_ORIGIN: http://localhost:30000/
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+
+      - name: Upload E2E logs and reports
+        if: always() && steps.e2e.outcome != 'skipped'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-config-logs-${{ github.run_id }}
+          path: artifacts/cicd/
+          if-no-files-found: ignore
+          retention-days: 7

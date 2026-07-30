@@ -320,6 +320,12 @@ export function buildDockerConfig(specs: string[]): CicdConfig {
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
+  if (process.env.E2E_DOCKER_UI_ORIGIN?.trim()) {
+    env.E2E_DOCKER_UI_ORIGIN = process.env.E2E_DOCKER_UI_ORIGIN.trim();
+  }
+  if (process.env.E2E_HTTP_PROXY_PROBE_URL?.trim()) {
+    env.E2E_HTTP_PROXY_PROBE_URL = process.env.E2E_HTTP_PROXY_PROBE_URL.trim();
+  }
   const tmdbHttpProxy = dockerHttpProxyEnvForContainer('TMDB_HTTP_PROXY');
   if (tmdbHttpProxy) {
     env.TMDB_HTTP_PROXY = tmdbHttpProxy;

@@ -1,8 +1,16 @@
 /**
- * Polls docker-served SMM on :30000 until /api/hello responds, or exits 1 on timeout.
+ * Polls docker-served SMM until /api/hello responds, or exits 1 on timeout.
  * Used as the first apps/cicd task for --platform docker (no Vite UI wait).
+ *
+ * Base origin: `E2E_DOCKER_UI_ORIGIN` (default `http://localhost:30000/`).
  */
-const READY_URL = 'http://localhost:30000/api/hello';
+function resolveReadyUrl(): string {
+  const origin = (process.env.E2E_DOCKER_UI_ORIGIN?.trim() || 'http://localhost:30000/').replace(
+    /\/?$/,
+    '/',
+  );
+  return new URL('api/hello', origin).toString();
+}
 
 async function waitForHttp(
   url: string,
@@ -48,8 +56,9 @@ async function waitForHttp(
 
 async function main(): Promise<void> {
   const token = process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123';
-  console.log('[wait-for-docker-e2e-ready] waiting for', READY_URL);
-  await waitForHttp(READY_URL, {
+  const readyUrl = resolveReadyUrl();
+  console.log('[wait-for-docker-e2e-ready] waiting for', readyUrl);
+  await waitForHttp(readyUrl, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });

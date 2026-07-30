@@ -2,9 +2,11 @@ import { describe, expect, test } from 'bun:test';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {
+  DOCKER_COMPOSE_FILE,
+  DOCKER_COMPOSE_PROJECT,
   DOCKER_CONTAINER_NAME,
-  DOCKER_IMAGE,
-  buildDockerRunArgs,
+  buildDockerComposeEnv,
+  buildDockerComposeUpArgs,
   resolveDockerMediaHostDir,
   stopDockerE2eContainer,
   stopDockerE2eContainerSync,
@@ -15,35 +17,41 @@ describe('e2e-docker-container helpers', () => {
     expect(resolveDockerMediaHostDir()).toBe(path.join(os.tmpdir(), 'smm'));
   });
 
-  test('buildDockerRunArgs matches required docker run shape', () => {
+  test('buildDockerComposeUpArgs uses compose file and project', () => {
     const media = path.join(os.tmpdir(), 'smm');
-    const args = buildDockerRunArgs({
+    const args = buildDockerComposeUpArgs({
       authToken: 'ChangeMe123',
       mediaHostDir: media,
     });
     expect(args).toEqual([
-      'run',
-      '--rm',
-      '--name',
-      DOCKER_CONTAINER_NAME,
+      'compose',
+      '-f',
+      DOCKER_COMPOSE_FILE,
       '-p',
-      '30000:30000',
-      '-p',
-      '30001:30001',
-      '-p',
-      '30002:30002',
-      '-e',
-      'SMM_AUTH_TOKEN=ChangeMe123',
-      '-e',
-      'WEBUI_ADDRESS=0.0.0.0',
-      '-e',
-      'REVERSE_PROXY_ADDRESS=0.0.0.0',
-      '-e',
-      'MCP_ADDRESS=0.0.0.0',
-      '-v',
-      `${media}:/media`,
-      DOCKER_IMAGE,
+      DOCKER_COMPOSE_PROJECT,
+      'up',
+      '--build',
+      '--abort-on-container-exit',
+      '--exit-code-from',
+      'smm',
     ]);
+    expect(DOCKER_COMPOSE_FILE.replace(/\\/g, '/')).toMatch(
+      /apps\/e2e\/docker\/docker-compose\.yml$/,
+    );
+  });
+
+  test('buildDockerComposeEnv sets auth and media host dir', () => {
+    const media = path.join(os.tmpdir(), 'smm');
+    const env = buildDockerComposeEnv({
+      authToken: 'tok',
+      mediaHostDir: media,
+    });
+    expect(env.SMM_AUTH_TOKEN).toBe('tok');
+    expect(env.SMM_E2E_MEDIA_HOST_DIR).toBe(media);
+  });
+
+  test('DOCKER_CONTAINER_NAME remains smm for docker exec helpers', () => {
+    expect(DOCKER_CONTAINER_NAME).toBe('smm');
   });
 
   test('stop helpers are exported functions', () => {

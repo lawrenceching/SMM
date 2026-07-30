@@ -37,6 +37,19 @@ export function getConfiguredHttpProxyAddress(kind: 'tmdb' | 'tvdb' = 'tmdb'): s
     return (process.env[envKey] || '').trim()
 }
 
+/**
+ * Host-side TCP probe URL for HTTP proxy readiness.
+ * Prefer `E2E_HTTP_PROXY_PROBE_URL` when set (Compose Host Runner: published
+ * localhost while userConfig keeps Compose DNS such as `http://http-proxy:8990`).
+ */
+export function resolveHttpProxyProbeUrl(
+    proxyUrl: string | null | undefined,
+): string | null | undefined {
+    const probe = process.env.E2E_HTTP_PROXY_PROBE_URL?.trim()
+    if (probe) return probe
+    return proxyUrl
+}
+
 export async function startEmbeddedHttpProxy(address: string): Promise<void> {
     if (server) {
         return

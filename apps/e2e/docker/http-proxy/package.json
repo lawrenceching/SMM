@@ -1,0 +1,8 @@
+{
+  "name": "smm-e2e-http-proxy",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "proxy-chain": "^3.0.0"
+  }
+}
