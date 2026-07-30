@@ -102,7 +102,14 @@ sequenceDiagram
 - Migrating suites beyond `common/config` in the first CI workflow
 - Changing Ohos / Electron / desktop proxy behavior beyond shared probe env
 
+### CI: Assemble uses host image store
+
+GitHub Actions `docker/setup-buildx-action` defaults to the `docker-container` driver. Intermediate images built with `buildx --load` land in the **host** daemon; a subsequent assemble `FROM smm-cli-build:latest` on the container builder cannot see them (BuildKit tries Docker Hub and fails).
+
+**Fix:** set `driver: docker` on setup-buildx in `.github/workflows/e2e-docker.yml` so build and assemble share the same image store (amd64-only is enough for this workflow).
+
 ## 5. Verification
 
 - Unit tests for compose helpers, UI origin env, proxy probe env.
 - Manual / CI: six `common/config` specs green under `--platform docker`.
+- CI assemble step succeeds after intermediates are `--load`'d (buildx `driver: docker`).

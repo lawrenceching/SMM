@@ -43,8 +43,13 @@ jobs:
           install-dependencies: true
           install-chromedriver: true
 
+      # docker driver shares the host image store so assemble can FROM
+      # locally --load'ed intermediate tags (smm-cli-build, etc.).
+      # The default docker-container driver cannot see those tags.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
 
       - name: Build intermediate Docker images (amd64)
         run: |
