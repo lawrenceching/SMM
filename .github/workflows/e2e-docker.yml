@@ -65,12 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      SMM_AUTH_TOKEN: ${{ env.SMM_AUTH_TOKEN }}
-      TMDB_HTTP_PROXY: ${{ env.TMDB_HTTP_PROXY }}
-      TVDB_HTTP_PROXY: ${{ env.TVDB_HTTP_PROXY }}
-      E2E_HTTP_PROXY_PROBE_URL: ${{ env.E2E_HTTP_PROXY_PROBE_URL }}
-      E2E_DOCKER_UI_ORIGIN: ${{ env.E2E_DOCKER_UI_ORIGIN }}
-      EXTERNAL_CONFIG_FILE_URL: ${{ env.EXTERNAL_CONFIG_FILE_URL }}
+      # Workflow-level env (SMM_AUTH_TOKEN, proxies, etc.) is inherited automatically.
       # Repository Actions secrets (Settings → Secrets and variables → Actions)
       TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
       TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
