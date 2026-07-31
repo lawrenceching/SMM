@@ -17,13 +17,21 @@
 #   pnpm --filter docker build:ffmpeg
 #   pnpm --filter docker build:ytdlp
 #   pnpm --filter docker build:videocaptioner
+#
+# CI may override intermediate sources with GHCR tags via --build-arg (see SMM_*_IMAGE below).
 
-# Intermediate sources
-FROM smm-cli-build:latest AS cli
-FROM smm-ui-build:latest AS ui
-FROM smm-ffmpeg:latest AS ffmpeg
-FROM smm-ytdlp:latest AS ytdlp
-FROM smm-videocaptioner:latest AS videocaptioner
+# Intermediate sources (override via --build-arg for CI/GHCR multi-arch assemble)
+ARG SMM_CLI_IMAGE=smm-cli-build:latest
+ARG SMM_UI_IMAGE=smm-ui-build:latest
+ARG SMM_FFMPEG_IMAGE=smm-ffmpeg:latest
+ARG SMM_YTDLP_IMAGE=smm-ytdlp:latest
+ARG SMM_VIDEOCAPTIONER_IMAGE=smm-videocaptioner:latest
+
+FROM ${SMM_CLI_IMAGE} AS cli
+FROM ${SMM_UI_IMAGE} AS ui
+FROM ${SMM_FFMPEG_IMAGE} AS ffmpeg
+FROM ${SMM_YTDLP_IMAGE} AS ytdlp
+FROM ${SMM_VIDEOCAPTIONER_IMAGE} AS videocaptioner
 
 # Final stage
 FROM debian:bookworm-slim
