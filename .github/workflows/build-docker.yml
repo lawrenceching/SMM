@@ -1,28 +1,88 @@
 name: Build Docker
 
 on:
-  # Docker image build is slow (multi-arch); run it only via Actions → Run workflow.
+  # Multi-arch publish is slow; run only via Actions → Run workflow.
   workflow_dispatch:
 
-jobs:
-  build-docker:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
+  packages: write
 
+jobs:
+  build-and-push:
+    name: Build and push lawrenceching/smm (multi-arch)
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set image coordinates
+        id: meta
+        run: |
+          set -euo pipefail
+          OWNER_LC="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          SHA='${{ github.sha }}'
+          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "cli_image=ghcr.io/${OWNER_LC}/smm-cli-build:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ui_image=ghcr.io/${OWNER_LC}/smm-ui-build:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ffmpeg_image=ghcr.io/${OWNER_LC}/smm-ffmpeg:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ytdlp_image=ghcr.io/${OWNER_LC}/smm-ytdlp:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "videocaptioner_image=ghcr.io/${OWNER_LC}/smm-videocaptioner:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        # Default docker-container driver — required for multi-platform --push
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
         with:
-          context: .
-          file: apps/docker/Dockerfile
-          push: false
-          tags: smm:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push intermediate images
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+        run: |
+          set -euo pipefail
+          docker buildx build --platform "$PLATFORMS" --push \
+            -t "${{ steps.meta.outputs.cli_image }}" \
+            -f apps/docker/cli.Dockerfile .
+          docker buildx build --platform "$PLATFORMS" --push \
+            -t "${{ steps.meta.outputs.ui_image }}" \
+            -f apps/docker/ui.Dockerfile .
+          docker buildx build --platform "$PLATFORMS" --push \
+            -t "${{ steps.meta.outputs.ffmpeg_image }}" \
+            -f apps/docker/ffmpeg.Dockerfile .
+          docker buildx build --platform "$PLATFORMS" --push \
+            -t "${{ steps.meta.outputs.ytdlp_image }}" \
+            -f apps/docker/ytdlp.Dockerfile .
+          docker buildx build --platform "$PLATFORMS" --push \
+            -t "${{ steps.meta.outputs.videocaptioner_image }}" \
+            -f apps/docker/videocaptioner.Dockerfile .
+
+      - name: Assemble and push lawrenceching/smm
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+        run: |
+          set -euo pipefail
+          docker buildx build --platform "$PLATFORMS" --push \
+            --build-arg "SMM_CLI_IMAGE=${{ steps.meta.outputs.cli_image }}" \
+            --build-arg "SMM_UI_IMAGE=${{ steps.meta.outputs.ui_image }}" \
+            --build-arg "SMM_FFMPEG_IMAGE=${{ steps.meta.outputs.ffmpeg_image }}" \
+            --build-arg "SMM_YTDLP_IMAGE=${{ steps.meta.outputs.ytdlp_image }}" \
+            --build-arg "SMM_VIDEOCAPTIONER_IMAGE=${{ steps.meta.outputs.videocaptioner_image }}" \
+            -t "lawrenceching/smm:latest" \
+            -t "lawrenceching/smm:${{ steps.meta.outputs.sha }}" \
+            -f apps/docker/Dockerfile .
