@@ -7,52 +7,24 @@ This guide is for **operators and end users**. For Dockerfile internals and mono
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) 20.10 or newer
-- [Docker Buildx](https://docs.docker.com/build/install-buildx/) (included with Docker Desktop)
-- Enough disk space for the image and your media library (the final image is roughly 250 MB before your media volumes)
+- Enough disk space for the image and your media library
 
-SMM listens on **port 30000** inside the container.
+The published image supports **linux/amd64** and **linux/arm64**. SMM listens on **port 30000** inside the container.
 
-## Build the image
-
-The final image (`smm:latest`) is assembled from several intermediate images. Build them **in order** from the repository root.
-
-### Option A — pnpm scripts (recommended)
+## Install the image
 
 ```bash
-git clone https://github.com/lawrenceching/SMM.git
-cd SMM/apps/docker
-
-pnpm run build:cli
-pnpm run build:ui
-pnpm run build:ffmpeg
-pnpm run build:ytdlp
-pnpm run build:videocaptioner
-pnpm run build
+docker pull lawrenceching/smm:latest
 ```
 
-The last step produces `smm:latest`.
-
-If you only changed the UI or CLI, you can rebuild just the affected intermediate image and then run `pnpm run build` again.
-
-### Option B — docker buildx directly
-
-Run these from the **repository root**:
-
-```bash
-docker buildx build --progress=plain -t smm-cli-build:latest        -f apps/docker/cli.Dockerfile .
-docker buildx build --progress=plain -t smm-ui-build:latest         -f apps/docker/ui.Dockerfile .
-docker buildx build --progress=plain -t smm-ffmpeg:latest           -f apps/docker/ffmpeg.Dockerfile .
-docker buildx build --progress=plain -t smm-ytdlp:latest            -f apps/docker/ytdlp.Dockerfile .
-docker buildx build --progress=plain -t smm-videocaptioner:latest     -f apps/docker/videocaptioner.Dockerfile .
-docker buildx build --progress=plain -t smm:latest                  -f apps/docker/Dockerfile .
-```
+To pin a build, use `lawrenceching/smm:<git-sha>` from the GitHub Actions run that published it.
 
 ## Run the container
 
 ### Minimal example
 
 ```bash
-docker run --rm -p 30000:30000 smm:latest
+docker run --rm -p 30000:30000 lawrenceching/smm:latest
 ```
 
 Open `http://localhost:30000/` in your browser.
@@ -74,7 +46,7 @@ docker run -d \
   -v smm-config:/data/config \
   -v smm-app:/data/app \
   -v /path/to/your/media:/media:rw \
-  smm:latest
+  lawrenceching/smm:latest
 ```
 
 Then open:
@@ -92,7 +64,7 @@ Save as `docker-compose.yml` next to your media folder (adjust paths and secrets
 ```yaml
 services:
   smm:
-    image: smm:latest
+    image: lawrenceching/smm:latest
     container_name: smm
     restart: unless-stopped
     ports:
@@ -211,9 +183,9 @@ Third-party tools are installed under `/app/resources/bin/`:
 
 ## Troubleshooting
 
-### `docker build` fails: image not found
+### `docker pull` fails or image not found
 
-Build all intermediate images before the final `Dockerfile`. See [Build the image](#build-the-image).
+Confirm the image name is `lawrenceching/smm:latest` and that your Docker daemon can reach Docker Hub. For local assembly from source, see [Build from source (developers)](#build-from-source-developers).
 
 ### 401 Unauthorized in the browser
 
@@ -245,6 +217,10 @@ Change the host port mapping, e.g. `-p 8080:30000`, and open `http://localhost:8
 | Folder picker | Manual path entry / import by path | Native file dialog |
 
 For day-to-day use after setup, workflow in the web UI is the same as the desktop app: import folders, recognize shows, rename files, download with yt-dlp, and so on.
+
+## Build from source (developers)
+
+Prefer the published image above for production. To assemble locally from this monorepo, see [`apps/docker/README.md`](../apps/docker/README.md).
 
 ## Related documentation
 

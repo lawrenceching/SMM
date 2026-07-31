@@ -14,6 +14,8 @@ SMM Docker 镜像构建 workspace。镜像包含：
 
 ## 构建与运行
 
+**Published image:** [`lawrenceching/smm`](https://hub.docker.com/r/lawrenceching/smm) (`latest` = multi-arch amd64/arm64). Operators should pull from Docker Hub; the scripts below are for local development and CI image assembly.
+
 最终镜像 (`smm:latest`) 由 `apps/docker/Dockerfile` 组装，但**不包含** CLI / UI / bin 的源码构建步骤——这些组件由独立的中间镜像提供。**构建最终镜像前必须先构建所有中间镜像**：
 
 ```bash
