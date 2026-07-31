@@ -1,0 +1,91 @@
+{"timestamp":1785504219300,"stream":"stderr","message":"[e2e-docker-container] tutorials not found at /home/runner/work/SMM/SMM/apps/e2e/test/media/tutorials; Transcribe manual specs will fail"}
+{"timestamp":1785504219300,"stream":"stdout","message":"[e2e-docker-container] media host dir: /tmp/smm"}
+{"timestamp":1785504219300,"stream":"stdout","message":"[e2e-docker-container] compose file: /home/runner/work/SMM/SMM/apps/e2e/docker/docker-compose.yml"}
+{"timestamp":1785504219650,"stream":"stdout","message":"[e2e-docker-container] docker compose -f /home/runner/work/SMM/SMM/apps/e2e/docker/docker-compose.yml -p smm-e2e up --build --abort-on-container-exit --exit-code-from smm"}
+{"timestamp":1785504220001,"stream":"stdout","message":"#1 [internal] load local bake definitions"}
+{"timestamp":1785504220102,"stream":"stdout","message":"#1 reading from stdin 419B done"}
+{"timestamp":1785504220102,"stream":"stdout","message":"#1 DONE 0.0s"}
+{"timestamp":1785504220229,"stream":"stdout","message":""}
+{"timestamp":1785504220229,"stream":"stdout","message":"#2 [internal] load build definition from Dockerfile"}
+{"timestamp":1785504220229,"stream":"stdout","message":"#2 transferring dockerfile: 311B done"}
+{"timestamp":1785504220229,"stream":"stdout","message":"#2 DONE 0.0s"}
+{"timestamp":1785504220229,"stream":"stdout","message":""}
+{"timestamp":1785504220229,"stream":"stdout","message":"#3 [auth] library/node:pull token for registry-1.docker.io"}
+{"timestamp":1785504220380,"stream":"stdout","message":"#3 DONE 0.0s"}
+{"timestamp":1785504220380,"stream":"stdout","message":""}
+{"timestamp":1785504220380,"stream":"stdout","message":"#4 [internal] load metadata for docker.io/library/node:22-bookworm-slim"}
+{"timestamp":1785504220679,"stream":"stdout","message":"#4 DONE 0.6s"}
+{"timestamp":1785504220800,"stream":"stdout","message":""}
+{"timestamp":1785504220800,"stream":"stdout","message":"#5 [internal] load .dockerignore"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#5 transferring context: 2B done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#5 DONE 0.0s"}
+{"timestamp":1785504220800,"stream":"stdout","message":""}
+{"timestamp":1785504220800,"stream":"stdout","message":"#6 [internal] load build context"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#6 transferring context: 524B done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#6 DONE 0.0s"}
+{"timestamp":1785504220800,"stream":"stdout","message":""}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 [1/5] FROM docker.io/library/node:22-bookworm-slim@sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 resolve docker.io/library/node:22-bookworm-slim@sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46 done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 extracting sha256:973430fa345599cc6339b41994b6016b7c640565c4c9fc38cb95b076270c1364 done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:3035b94809cf6c73290971d63b090072be5a42b106d2dde4d72b877e70a60d57 0B / 448B 0.1s"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:f32b81066cde10a75dbac96646099533316d94bac4150c55da1636e1f0ffdc46 5.22kB / 5.22kB done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:0f65470961851f2354dc8e560853e2f428ea928436135fc7e35780ab100c7e00 1.93kB / 1.93kB done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:3e7aa5bf2da224db794761c07ca86f99995816dd00796784e84d98eb2321dff4 6.87kB / 6.87kB done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:973430fa345599cc6339b41994b6016b7c640565c4c9fc38cb95b076270c1364 3.31kB / 3.31kB 0.0s done"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:6819702822a00f39d3fe1d6d8281f437308333869d3d5f03c26136fa8e5decdf 0B / 49.94MB 0.1s"}
+{"timestamp":1785504220800,"stream":"stdout","message":"#7 sha256:4ea6725c9a722857f3c3309961c0905b9166ac86b90c61884007de4ea4ee8286 0B / 1.71MB 0.1s"}
+{"timestamp":1785504220999,"stream":"stdout","message":"#7 sha256:3035b94809cf6c73290971d63b090072be5a42b106d2dde4d72b877e70a60d57 448B / 448B 0.1s done"}
+{"timestamp":1785504220999,"stream":"stdout","message":"#7 sha256:6819702822a00f39d3fe1d6d8281f437308333869d3d5f03c26136fa8e5decdf 49.94MB / 49.94MB 0.3s done"}
+{"timestamp":1785504220999,"stream":"stdout","message":"#7 sha256:4ea6725c9a722857f3c3309961c0905b9166ac86b90c61884007de4ea4ee8286 1.71MB / 1.71MB 0.3s done"}
+{"timestamp":1785504221107,"stream":"stdout","message":"#7 extracting sha256:6819702822a00f39d3fe1d6d8281f437308333869d3d5f03c26136fa8e5decdf 0.1s"}
+{"timestamp":1785504222445,"stream":"stdout","message":"#7 extracting sha256:6819702822a00f39d3fe1d6d8281f437308333869d3d5f03c26136fa8e5decdf 1.3s done"}
+{"timestamp":1785504222445,"stream":"stdout","message":"#7 extracting sha256:4ea6725c9a722857f3c3309961c0905b9166ac86b90c61884007de4ea4ee8286"}
+{"timestamp":1785504222686,"stream":"stdout","message":"#7 extracting sha256:4ea6725c9a722857f3c3309961c0905b9166ac86b90c61884007de4ea4ee8286 0.0s done"}
+{"timestamp":1785504222686,"stream":"stdout","message":"#7 extracting sha256:3035b94809cf6c73290971d63b090072be5a42b106d2dde4d72b877e70a60d57 done"}
+{"timestamp":1785504222686,"stream":"stdout","message":"#7 DONE 1.8s"}
+{"timestamp":1785504222686,"stream":"stdout","message":""}
+{"timestamp":1785504222686,"stream":"stdout","message":"#8 [2/5] WORKDIR /app"}
+{"timestamp":1785504222686,"stream":"stdout","message":"#8 DONE 0.0s"}
+{"timestamp":1785504222686,"stream":"stdout","message":""}
+{"timestamp":1785504222686,"stream":"stdout","message":"#9 [3/5] COPY package.json ./"}
+{"timestamp":1785504222686,"stream":"stdout","message":"#9 DONE 0.0s"}
+{"timestamp":1785504222686,"stream":"stdout","message":""}
+{"timestamp":1785504222686,"stream":"stdout","message":"#10 [4/5] RUN npm install --omit=dev"}
+{"timestamp":1785504223549,"stream":"stdout","message":"#10 1.014 "}
+{"timestamp":1785504223549,"stream":"stdout","message":"#10 1.014 added 9 packages, and audited 10 packages in 815ms"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.015 "}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.015 found 0 vulnerabilities"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.016 npm notice"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.016 npm notice New major version of npm available! 10.9.8 -> 12.0.2"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.016 npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.0.2"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.016 npm notice To update run: npm install -g npm@12.0.2"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 1.016 npm notice"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#10 DONE 1.1s"}
+{"timestamp":1785504223797,"stream":"stdout","message":""}
+{"timestamp":1785504223797,"stream":"stdout","message":"#11 [5/5] COPY server.mjs ./"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#11 DONE 0.0s"}
+{"timestamp":1785504223797,"stream":"stdout","message":""}
+{"timestamp":1785504223797,"stream":"stdout","message":"#12 exporting to image"}
+{"timestamp":1785504223797,"stream":"stdout","message":"#12 exporting layers"}
+{"timestamp":1785504224159,"stream":"stdout","message":"#12 exporting layers 0.5s done"}
+{"timestamp":1785504224188,"stream":"stdout","message":"#12 writing image sha256:aa4e7c7f278f1f2dc33aa64b1edd046bc9f77b50011ca6fbe5588da39cbf0ded done"}
+{"timestamp":1785504224188,"stream":"stdout","message":"#12 naming to docker.io/library/smm-e2e-http-proxy done"}
+{"timestamp":1785504224188,"stream":"stdout","message":"#12 DONE 0.5s"}
+{"timestamp":1785504224188,"stream":"stdout","message":""}
+{"timestamp":1785504224188,"stream":"stdout","message":"#13 resolving provenance for metadata file"}
+{"timestamp":1785504224188,"stream":"stdout","message":"#13 DONE 0.0s"}
+{"timestamp":1785504224188,"stream":"stderr","message":" http-proxy  Built"}
+{"timestamp":1785504224194,"stream":"stderr","message":" Network smm-e2e_e2e  Creating"}
+{"timestamp":1785504224231,"stream":"stderr","message":" Network smm-e2e_e2e  Created"}
+{"timestamp":1785504224231,"stream":"stderr","message":" Container smm-e2e-http-proxy  Creating"}
+{"timestamp":1785504224252,"stream":"stderr","message":" Container smm-e2e-http-proxy  Created"}
+{"timestamp":1785504224253,"stream":"stderr","message":" Container smm  Creating"}
+{"timestamp":1785504224263,"stream":"stderr","message":" Container smm  Created"}
+{"timestamp":1785504224264,"stream":"stdout","message":"Attaching to smm, smm-e2e-http-proxy"}
+{"timestamp":1785504224672,"stream":"stdout","message":"smm-e2e-http-proxy  | [e2e-http-proxy] listening on http://0.0.0.0:8990"}
+{"timestamp":1785504224949,"stream":"stdout","message":"smm                 | {\"level\":30,\"time\":1785504224947,\"msg\":\"staticDir: /app/public\"}"}
+{"timestamp":1785504224963,"stream":"stdout","message":"smm                 | 🌐 i18next is maintained with support from Locize — consider powering your project with managed localization (AI, CDN, integrations): https://locize.com 💙"}
+{"timestamp":1785504290783,"stream":"stderr","message":"Gracefully stopping... (press Ctrl+C again to force)"}
+{"timestamp":1785504290785,"stream":"stderr","message":" Container smm  Stopping"}
+{"timestamp":1785504290993,"stream":"stderr","message":" Container smm  Stopped"}
+{"timestamp":1785504290994,"stream":"stderr","message":" Container smm-e2e-http-proxy  Stopping"}

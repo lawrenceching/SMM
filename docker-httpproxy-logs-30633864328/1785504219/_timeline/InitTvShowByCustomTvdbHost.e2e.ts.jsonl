@@ -1,0 +1,39 @@
+{"timestamp":1785504249061,"stream":"stdout","message":""}
+{"timestamp":1785504249061,"stream":"stdout","message":"> e2e@ wdio:docker /home/runner/work/SMM/SMM/apps/e2e"}
+{"timestamp":1785504249061,"stream":"stdout","message":"> wdio run ./docker/wdio.conf.ts --spec ./common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts"}
+{"timestamp":1785504249061,"stream":"stdout","message":""}
+{"timestamp":1785504250043,"stream":"stdout","message":""}
+{"timestamp":1785504250043,"stream":"stdout","message":"Execution of 1 workers started at 2026-07-31T13:24:10.043Z"}
+{"timestamp":1785504250044,"stream":"stdout","message":""}
+{"timestamp":1785504251672,"stream":"stdout","message":"[0-0] [dotenv@17.3.1] injecting env (0) from ../../.env.local -- tip: 🛡️ auth for agents: https://vestauth.com"}
+{"timestamp":1785504251685,"stream":"stdout","message":"[0-0] [dotenv@17.3.1] injecting env (0) from .env.local -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2"}
+{"timestamp":1785504251690,"stream":"stdout","message":"[0-0] RUNNING in chrome - file:///common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts"}
+{"timestamp":1785504252906,"stream":"stdout","message":"[0-0] [E2E] window size method=setWindowSize target=1920x1080 fitted=1280x1024 fitToScreen=true; getWindowRect=1279x1023; screenAvail=1280x1024 dpr=1; inner=1279x880"}
+{"timestamp":1785504252922,"stream":"stdout","message":"[0-0] hello: uptime=28.2s version=1.4.6"}
+{"timestamp":1785504252926,"stream":"stdout","message":"[0-0] Error in \"Init TV Show via Custom TVDB Host.\"before all\" hook: wrappedHook for \"Scenario: TV show folder initialized via custom TVDB host\"\""}
+{"timestamp":1785504252926,"stream":"stdout","message":"Error: TVDB_API_KEY is not set in the e2e environment (apps/e2e/.env.local)"}
+{"timestamp":1785504252926,"stream":"stdout","message":"    at Context.<anonymous> (/home/runner/work/SMM/SMM/apps/e2e/common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts:51:19)"}
+{"timestamp":1785504252927,"stream":"stdout","message":"[0-0] [NETWORK LOG] saved 0 entries to reports/network-logs/InitTvShowByCustomTvdbHost.e2e.ts-0-0.json"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[0-0] FAILED in chrome - file:///common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts"}
+{"timestamp":1785504253116,"stream":"stdout","message":""}
+{"timestamp":1785504253116,"stream":"stdout","message":" \"spec\" Reporter:"}
+{"timestamp":1785504253116,"stream":"stdout","message":"------------------------------------------------------------------"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] Running: chrome (v146.0.7680.153) on linux"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] Session ID: 5c0b2a01b3e8f4aee4ebbfdacd4b71ac"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0]"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] » common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] Init TV Show via Custom TVDB Host"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0]    ✖ \"before all\" hook for Init TV Show via Custom TVDB Host"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0]"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] 1 failing (74ms)"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0]"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] 1) Init TV Show via Custom TVDB Host \"before all\" hook for Init TV Show via Custom TVDB Host"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] TVDB_API_KEY is not set in the e2e environment (apps/e2e/.env.local)"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0] Error: TVDB_API_KEY is not set in the e2e environment (apps/e2e/.env.local)"}
+{"timestamp":1785504253116,"stream":"stdout","message":"[chrome 146.0.7680.153 linux #0-0]     at Context.<anonymous> (/home/runner/work/SMM/SMM/apps/e2e/common/httpproxy/InitTvShowByCustomTvdbHost.e2e.ts:51:19)"}
+{"timestamp":1785504253116,"stream":"stdout","message":""}
+{"timestamp":1785504253116,"stream":"stdout","message":""}
+{"timestamp":1785504253116,"stream":"stdout","message":"Spec Files:\t 0 passed, 1 failed, 1 total (100% completed) in 00:00:03  "}
+{"timestamp":1785504253116,"stream":"stdout","message":""}
+{"timestamp":1785504253406,"stream":"stdout","message":"HTML Report Generation complete"}
+{"timestamp":1785504253434,"stream":"stdout","message":" ELIFECYCLE  Command failed with exit code 1."}

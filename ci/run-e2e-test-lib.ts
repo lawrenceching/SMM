@@ -326,6 +326,19 @@ export function buildDockerConfig(specs: string[]): CicdConfig {
   if (process.env.E2E_HTTP_PROXY_PROBE_URL?.trim()) {
     env.E2E_HTTP_PROXY_PROBE_URL = process.env.E2E_HTTP_PROXY_PROBE_URL.trim();
   }
+  // Forward API keys into cicd task env (CI secrets / local .env.local).
+  if (process.env.TMDB_API_KEY?.trim()) {
+    env.TMDB_API_KEY = process.env.TMDB_API_KEY.trim();
+  }
+  if (process.env.TVDB_API_KEY?.trim()) {
+    env.TVDB_API_KEY = process.env.TVDB_API_KEY.trim();
+  }
+  if (process.env.TMDB_HOST?.trim()) {
+    env.TMDB_HOST = process.env.TMDB_HOST.trim();
+  }
+  if (process.env.TVDB_HOST?.trim()) {
+    env.TVDB_HOST = process.env.TVDB_HOST.trim();
+  }
   const tmdbHttpProxy = dockerHttpProxyEnvForContainer('TMDB_HTTP_PROXY');
   if (tmdbHttpProxy) {
     env.TMDB_HTTP_PROXY = tmdbHttpProxy;

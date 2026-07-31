@@ -64,6 +64,19 @@ jobs:
     needs: build-image
     runs-on: ubuntu-latest
     timeout-minutes: 90
+    env:
+      SMM_AUTH_TOKEN: ${{ env.SMM_AUTH_TOKEN }}
+      TMDB_HTTP_PROXY: ${{ env.TMDB_HTTP_PROXY }}
+      TVDB_HTTP_PROXY: ${{ env.TVDB_HTTP_PROXY }}
+      E2E_HTTP_PROXY_PROBE_URL: ${{ env.E2E_HTTP_PROXY_PROBE_URL }}
+      E2E_DOCKER_UI_ORIGIN: ${{ env.E2E_DOCKER_UI_ORIGIN }}
+      EXTERNAL_CONFIG_FILE_URL: ${{ env.EXTERNAL_CONFIG_FILE_URL }}
+      # Repository Actions secrets (Settings → Secrets and variables → Actions)
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+      # Optional overrides; omit secrets to use app/test defaults
+      TMDB_HOST: ${{ secrets.TMDB_HOST }}
+      TVDB_HOST: ${{ secrets.TVDB_HOST }}
     strategy:
       fail-fast: false
       matrix:
@@ -138,6 +151,20 @@ jobs:
       - name: Load smm:latest
         run: gunzip -c smm-latest.tar.gz | docker load
 
+      - name: Require API key secrets for suites that need them
+        if: matrix.artifact_prefix == 'docker-httpproxy' || matrix.artifact_prefix == 'docker-media-init'
+        run: |
+          missing=0
+          if [ -z "${TMDB_API_KEY:-}" ]; then
+            echo "::error::Secret TMDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          if [ -z "${TVDB_API_KEY:-}" ]; then
+            echo "::error::Secret TVDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          exit "$missing"
+
       - name: Run Docker E2E
         id: e2e
         run: |
@@ -147,16 +174,6 @@ jobs:
           done
           bun ci/run-e2e-test.ts --platform docker "${args[@]}"
         env:
-          SMM_AUTH_TOKEN: ${{ env.SMM_AUTH_TOKEN }}
-          TMDB_HTTP_PROXY: ${{ env.TMDB_HTTP_PROXY }}
-          TVDB_HTTP_PROXY: ${{ env.TVDB_HTTP_PROXY }}
-          E2E_HTTP_PROXY_PROBE_URL: ${{ env.E2E_HTTP_PROXY_PROBE_URL }}
-          E2E_DOCKER_UI_ORIGIN: ${{ env.E2E_DOCKER_UI_ORIGIN }}
-          EXTERNAL_CONFIG_FILE_URL: ${{ env.EXTERNAL_CONFIG_FILE_URL }}
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-          TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
-          TMDB_HOST: ${{ secrets.TMDB_HOST }}
-          TVDB_HOST: ${{ secrets.TVDB_HOST }}
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
