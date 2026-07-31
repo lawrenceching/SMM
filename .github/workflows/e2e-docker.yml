@@ -1,14 +1,100 @@
 name: E2E Tests for Docker
 
-# Host Runner + Compose (smm + http-proxy). First suite: common/config only.
+# Host Runner + Compose (smm + http-proxy). All common/* except common/manual.
 on:
   workflow_dispatch:
 
+env:
+  SMM_AUTH_TOKEN: ChangeMe123
+  TMDB_HTTP_PROXY: http://http-proxy:8990
+  TVDB_HTTP_PROXY: http://http-proxy:8990
+  E2E_HTTP_PROXY_PROBE_URL: http://127.0.0.1:8990
+  E2E_DOCKER_UI_ORIGIN: http://localhost:30000/
+  # Config server runs on the host; smm container reaches it via host.docker.internal
+  EXTERNAL_CONFIG_FILE_URL: http://host.docker.internal:8000/config.json
+
 jobs:
-  e2e-docker-config:
-    name: Docker E2E (common/config)
+  build-image:
+    name: Build smm:latest (amd64)
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # docker driver shares the host image store so assemble can FROM
+      # locally --load'ed intermediate tags (smm-cli-build, etc.).
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
+      - name: Build intermediate Docker images (amd64)
+        run: |
+          set -euo pipefail
+          PLATFORM=linux/amd64
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
+
+      - name: Assemble smm:latest
+        run: |
+          docker buildx build --load --platform linux/amd64 \
+            -t smm:latest -f apps/docker/Dockerfile .
+
+      - name: Export smm:latest
+        run: docker save smm:latest | gzip > smm-latest.tar.gz
+
+      - name: Upload smm:latest image
+        uses: actions/upload-artifact@v4
+        with:
+          name: smm-latest-amd64
+          path: smm-latest.tar.gz
+          retention-days: 2
+
+  e2e:
+    name: ${{ matrix.name }}
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Docker E2E (config)
+            spec: "./common/config/*.e2e.ts"
+            artifact_prefix: docker-config
+          - name: Docker E2E (httpproxy)
+            spec: "./common/httpproxy/*.e2e.ts"
+            artifact_prefix: docker-httpproxy
+          - name: Docker E2E (mcp)
+            spec: "./common/mcp/*.e2e.ts"
+            artifact_prefix: docker-mcp
+          - name: Docker E2E (media-init)
+            spec: "./common/tv/ImportTvShowLibrary.e2e.ts ./common/tv/Initialize*.e2e.ts ./common/movie/ImportMovieLibrary.e2e.ts ./common/movie/Initialize*.e2e.ts"
+            artifact_prefix: docker-media-init
+          - name: Docker E2E (movie)
+            spec: "./common/movie/SearchMovie.e2e.ts ./common/movie/Movie-RenameVideoFile.e2e.ts"
+            artifact_prefix: docker-movie
+          - name: Docker E2E (music)
+            spec: "./common/music/*.e2e.ts"
+            artifact_prefix: docker-music
+          - name: Docker E2E (other)
+            spec: "./common/other/*.e2e.ts"
+            artifact_prefix: docker-other
+          - name: Docker E2E (tv)
+            spec: "./common/tv/SearchTvShow.e2e.ts ./common/tv/Scrape*.e2e.ts ./common/tv/TVShow-*.e2e.ts ./common/tv/TmdbHostFailover.e2e.ts"
+            artifact_prefix: docker-tv
+          - name: Docker E2E (tvdb)
+            spec: "./common/tvdb/*.e2e.ts"
+            artifact_prefix: docker-tvdb
 
     steps:
       - name: Checkout code
@@ -43,44 +129,34 @@ jobs:
           install-dependencies: true
           install-chromedriver: true
 
-      # docker driver shares the host image store so assemble can FROM
-      # locally --load'ed intermediate tags (smm-cli-build, etc.).
-      # The default docker-container driver cannot see those tags.
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Download smm:latest image
+        uses: actions/download-artifact@v4
         with:
-          driver: docker
+          name: smm-latest-amd64
+          path: .
 
-      - name: Build intermediate Docker images (amd64)
-        run: |
-          set -euo pipefail
-          PLATFORM=linux/amd64
-          docker buildx build --load --platform "$PLATFORM" \
-            -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
-          docker buildx build --load --platform "$PLATFORM" \
-            -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
-          docker buildx build --load --platform "$PLATFORM" \
-            -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
-          docker buildx build --load --platform "$PLATFORM" \
-            -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
-          docker buildx build --load --platform "$PLATFORM" \
-            -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
+      - name: Load smm:latest
+        run: gunzip -c smm-latest.tar.gz | docker load
 
-      - name: Assemble smm:latest
-        run: |
-          docker buildx build --load --platform linux/amd64 \
-            -t smm:latest -f apps/docker/Dockerfile .
-
-      - name: Run Docker E2E (common/config)
+      - name: Run Docker E2E
         id: e2e
         run: |
-          bun ci/run-e2e-test.ts --platform docker --spec "./common/config/*.e2e.ts"
+          args=()
+          for pattern in ${{ matrix.spec }}; do
+            args+=(--spec "$pattern")
+          done
+          bun ci/run-e2e-test.ts --platform docker "${args[@]}"
         env:
-          SMM_AUTH_TOKEN: ChangeMe123
-          TMDB_HTTP_PROXY: http://http-proxy:8990
-          TVDB_HTTP_PROXY: http://http-proxy:8990
-          E2E_HTTP_PROXY_PROBE_URL: http://127.0.0.1:8990
-          E2E_DOCKER_UI_ORIGIN: http://localhost:30000/
+          SMM_AUTH_TOKEN: ${{ env.SMM_AUTH_TOKEN }}
+          TMDB_HTTP_PROXY: ${{ env.TMDB_HTTP_PROXY }}
+          TVDB_HTTP_PROXY: ${{ env.TVDB_HTTP_PROXY }}
+          E2E_HTTP_PROXY_PROBE_URL: ${{ env.E2E_HTTP_PROXY_PROBE_URL }}
+          E2E_DOCKER_UI_ORIGIN: ${{ env.E2E_DOCKER_UI_ORIGIN }}
+          EXTERNAL_CONFIG_FILE_URL: ${{ env.EXTERNAL_CONFIG_FILE_URL }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+          TMDB_HOST: ${{ secrets.TMDB_HOST }}
+          TVDB_HOST: ${{ secrets.TVDB_HOST }}
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
@@ -88,7 +164,7 @@ jobs:
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
         with:
-          name: docker-config-logs-${{ github.run_id }}
+          name: ${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7

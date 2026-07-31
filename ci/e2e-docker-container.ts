@@ -58,16 +58,35 @@ export function buildDockerComposeUpArgs(options: {
   ];
 }
 
+/** Env for compose: media bind path + auth token (+ optional discover URL for container). */
+export function rewriteLoopbackUrlForDockerContainer(raw: string): string {
+  try {
+    const url = new URL(raw);
+    if (url.hostname === '127.0.0.1' || url.hostname === 'localhost') {
+      url.hostname = 'host.docker.internal';
+      return url.toString();
+    }
+  } catch {
+    // Keep the raw value when it is not a valid URL.
+  }
+  return raw;
+}
+
 /** Env for compose: media bind path + auth token. */
 export function buildDockerComposeEnv(options: {
   authToken: string;
   mediaHostDir: string;
 }): NodeJS.ProcessEnv {
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     SMM_AUTH_TOKEN: options.authToken,
     SMM_E2E_MEDIA_HOST_DIR: options.mediaHostDir,
   };
+  const externalConfig = process.env.EXTERNAL_CONFIG_FILE_URL?.trim();
+  if (externalConfig) {
+    env.EXTERNAL_CONFIG_FILE_URL = rewriteLoopbackUrlForDockerContainer(externalConfig);
+  }
+  return env;
 }
 
 /** @deprecated Prefer buildDockerComposeUpArgs — kept for callers that still expect run-shape docs. */

@@ -25,11 +25,16 @@ services:
       - '30000:30000'
       - '30001:30001'
       - '30002:30002'
+    extra_hosts:
+      # Linux CI / Docker Engine: host config server & host-published ports
+      - 'host.docker.internal:host-gateway'
     environment:
       SMM_AUTH_TOKEN: ${SMM_AUTH_TOKEN:-ChangeMe123}
       WEBUI_ADDRESS: '0.0.0.0'
       REVERSE_PROXY_ADDRESS: '0.0.0.0'
       MCP_ADDRESS: '0.0.0.0'
+      # Optional; TmdbHostFailover — host runner serves config, container uses host.docker.internal
+      EXTERNAL_CONFIG_FILE_URL: ${EXTERNAL_CONFIG_FILE_URL:-}
     volumes:
       - ${SMM_E2E_MEDIA_HOST_DIR:-/tmp/smm}:/media
     networks:

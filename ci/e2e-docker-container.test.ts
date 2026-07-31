@@ -50,6 +50,23 @@ describe('e2e-docker-container helpers', () => {
     expect(env.SMM_E2E_MEDIA_HOST_DIR).toBe(media);
   });
 
+  test('buildDockerComposeEnv rewrites EXTERNAL_CONFIG_FILE_URL loopback for container', () => {
+    const prev = process.env.EXTERNAL_CONFIG_FILE_URL;
+    process.env.EXTERNAL_CONFIG_FILE_URL = 'http://localhost:8000/config.json';
+    try {
+      const env = buildDockerComposeEnv({
+        authToken: 'tok',
+        mediaHostDir: path.join(os.tmpdir(), 'smm'),
+      });
+      expect(env.EXTERNAL_CONFIG_FILE_URL).toBe(
+        'http://host.docker.internal:8000/config.json',
+      );
+    } finally {
+      if (prev === undefined) delete process.env.EXTERNAL_CONFIG_FILE_URL;
+      else process.env.EXTERNAL_CONFIG_FILE_URL = prev;
+    }
+  });
+
   test('DOCKER_CONTAINER_NAME remains smm for docker exec helpers', () => {
     expect(DOCKER_CONTAINER_NAME).toBe('smm');
   });
