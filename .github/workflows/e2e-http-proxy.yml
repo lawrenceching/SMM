@@ -56,6 +56,10 @@ jobs:
         id: e2e
         run: pnpm e2e:http-proxy
 
+      - name: Scan e2e logs for secret leaks
+        if: always() && steps.e2e.outcome != 'skipped'
+        run: bun ci/scan_secure_data.ts --dir artifacts/cicd
+
       - name: Upload logs
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4

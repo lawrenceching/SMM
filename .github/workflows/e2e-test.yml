@@ -86,6 +86,10 @@ jobs:
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
+      - name: Scan e2e logs for secret leaks
+        if: always() && steps.e2e.outcome != 'skipped'
+        run: bun ci/scan_secure_data.ts --dir artifacts/cicd
+
       - name: Upload E2E logs and reports
         if: always() && steps.e2e.outcome != 'skipped'
         uses: actions/upload-artifact@v4
