@@ -31,6 +31,9 @@ jobs:
     env:
       PLATFORM: ${{ matrix.platform }}
       ARCH: ${{ matrix.arch }}
+      SMM_AUTH_TOKEN: ChangeMe123
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
 
     steps:
       - name: Checkout code
@@ -57,11 +60,12 @@ jobs:
         run: pnpm e2e:http-proxy
 
       - name: Scan e2e logs for secret leaks
+        id: scan-secure
         if: always() && steps.e2e.outcome != 'skipped'
         run: bun ci/scan_secure_data.ts --dir artifacts/cicd
 
       - name: Upload logs
-        if: always() && steps.e2e.outcome != 'skipped'
+        if: always() && steps.e2e.outcome != 'skipped' && steps.scan-secure.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: http-proxy-${{ matrix.platform }}-${{ matrix.arch }}-logs-${{ github.run_id }}
