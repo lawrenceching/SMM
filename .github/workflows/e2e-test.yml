@@ -1,6 +1,31 @@
 name: E2E Test
 
+# Path filter: keep in sync with build.yml
 on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
   workflow_dispatch:
 
 jobs:
@@ -103,3 +128,18 @@ jobs:
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e-gate:
+    name: host-e2e / gate
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all host E2E jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::e2e matrix: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "All host E2E jobs passed."

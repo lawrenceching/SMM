@@ -1,7 +1,32 @@
 name: E2E Tests for Docker
 
 # Host Runner + Compose (smm + http-proxy). All common/* except common/manual.
+# Path filter: keep in sync with build.yml
 on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
+      - 'pnpm-workspace.yaml'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
   workflow_dispatch:
 
 env:

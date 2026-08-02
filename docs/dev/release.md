@@ -17,7 +17,8 @@
 | **Git tag** | 如 `v1.2.3`，标记发布对应的 commit |
 | **GitHub Release** | 与 tag 关联的发布页，可含 Electron 附件与 Release 说明 |
 | **Docker 镜像 tag** | Hub 上 `lawrenceching/smm:v1.2.3` 与 `lawrenceching/smm:latest` |
-| **e2e-gate** | `E2E Tests for Docker` workflow 末尾的汇总 job；全 matrix 通过才为 success |
+| **e2e-gate** | 各 E2E workflow 末尾汇总 job；全 matrix 通过才为 success（如 `host-e2e / gate`） |
+| **Verify CI gates** | 发版 workflow 第一步：校验该 commit 上 PR/push CI 已全部通过，**不重跑**测试 |
 
 Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布的一方创建 tag 与 Release；后发布的一方检测到 tag 已存在则**跳过建 tag**，只补充产物（安装包或 Docker 镜像 / Release 说明）。
 
@@ -36,22 +37,23 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 - Git tag 建议与 `apps/electron/package.json` 的 `version` 对齐，格式 **`v` + semver**（如 `v1.2.3`）。  
 - Docker Hub 使用相同字符串 tag：`lawrenceching/smm:v1.2.3`（与 Git tag 一致，便于对照）。
 
-### 3. 质量门禁（Docker 发版默认要求）
+### 3. 质量门禁（发版默认要求）
 
-在触发 **Release Docker** 之前，对**同一 commit** 完成：
+对**同一 commit**，以下检查须在 **push/PR 触发的 CI** 中全部通过（发版 workflow 会通过 **Verify CI gates** 校验，默认不重跑）：
 
-| 检查 | Workflow | 说明 |
-|------|----------|------|
-| 单元测试 | `Build UI and CLI`（push/PR）或 Release 内 `unit-tests` | 默认不跳过 |
-| Docker E2E | **E2E Tests for Docker** | 须全 matrix + **e2e-gate** 通过；Release 校验 gate，**不重跑**全量 e2e |
+| 检查项 | Workflow | Job 名称 |
+|--------|----------|----------|
+| 单元测试 | **Build UI and CLI** | `Run Unit Tests` |
+| Lint | **Build UI and CLI** | `Lint UI` |
+| Typecheck | **Build UI and CLI** | `Typecheck` |
+| 构建 UI/CLI | **Build UI and CLI** | `Build UI`、`Build CLI` |
+| Host E2E | **E2E Test** | `host-e2e / gate` |
+| Docker E2E | **E2E Tests for Docker** | `docker-e2e / gate` |
+| HTTP Proxy E2E | **E2E HTTP Proxy** | `http-proxy-e2e / gate` |
 
-操作步骤：
+**PR / push 到 `main` / `develop`**（改动 `apps/**`、`packages/**`、`ci/**` 等路径）会自动触发上述 workflow。
 
-1. Actions → **E2E Tests for Docker** → Run workflow  
-2. 选择发版目标 **branch / commit**  
-3. 等待所有 matrix job 及 **e2e-gate** 均为绿色  
-
-若从未对该 commit 跑过 Docker E2E，**Release Docker** 应失败（无 gate 记录）。
+若某 commit 从未跑过完整 CI（例如仅改了 docs），**Release** 会因缺少 check run 而失败。可对该 commit 手动重跑相关 workflow，或仅在紧急情况下使用 `skip_ci_verification`。
 
 ### 4. Secrets（Actions）
 
@@ -70,7 +72,11 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 flowchart TB
   subgraph prep [发版前]
     A[选定 main 上 commit]
-    B[可选: E2E Tests for Docker 全绿 + e2e-gate]
+    B[PR/push CI 全绿: 单元测试 lint typecheck E2E gates]
+  end
+
+  subgraph verify [发版 workflow]
+    V[Verify CI gates 校验 check runs]
   end
 
   subgraph tag [共用 tag 逻辑 ensure-release-tag]
@@ -85,7 +91,8 @@ flowchart TB
   end
 
   A --> B
-  B --> C
+  B --> V
+  V --> C
   D --> F
   D --> G
   E --> F
@@ -94,9 +101,9 @@ flowchart TB
 
 **推荐顺序（同一版本）：**
 
-1. （可选）合并后跑 **Build UI and CLI** 确认单元测试  
-2. 对目标 commit 跑 **E2E Tests for Docker**，确认 **e2e-gate** 通过  
-3. **Release Electron** 或 **Release Docker** 任选先后；第二个会自动复用已有 tag  
+1. 合并到 `main` 后等待 **Build UI and CLI** 与三套 **E2E** workflow 在 PR/push 上全绿  
+2. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）  
+3. 默认 **Verify CI gates** 通过后才开始构建；第二个产物 workflow 会自动复用已有 tag  
 
 ---
 
@@ -189,9 +196,12 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
 ```text
 1. E2E Tests for Docker（手动，e2e-gate 全绿）
-2. Release Electron  或  Release Docker  （顺序不限）
-3. 另一个 Release workflow               （自动跳过建 tag，只补产物）
+2. Actions → Release（推荐）或分别跑 Release Electron / Release Docker
 ```
+
+**Release** workflow 会**并行**触发 Electron 与 Docker 两个子 workflow，共用同一组输入（`tag_name`、`body` 等）。Electron 侧先创建 tag 时，Docker 侧会在构建完成后检测到 tag 已存在并只追加 Docker 说明。
+
+若只发一种产物，仍可单独运行 **Release Electron** 或 **Release Docker**。
 
 **GitHub Release 页面**应同时包含：
 
@@ -218,14 +228,13 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
 ---
 
-## skip 选项（仅 Release Docker）
+## skip 选项（Release / Release Docker / Release Electron）
 
 | 选项 | 风险 | 何时使用 |
 |------|------|----------|
-| `skip_unit_tests: true` | 未测代码可能进镜像 | 仅重推镜像、commit 未变且已测过 |
-| `skip_e2e_tests: true` | 未跑 Docker E2E 即发布 | 紧急 hotfix；须在 Release 说明中注明 |
+| `skip_ci_verification: true` | 未确认该 commit CI 全绿即发版 | 紧急 hotfix；须在 Release 说明中注明 |
 
-skip 为 true 时，CI summary 应记录该次选择，便于审计。
+skip 为 true 时，CI summary 会记录该次选择，便于审计。
 
 ---
 
@@ -233,16 +242,22 @@ skip 为 true 时，CI summary 应记录该次选择，便于审计。
 
 | Workflow | 用途 | 触发 |
 |----------|------|------|
-| **Release Electron** | 桌面安装包 + Release | 手动 |
-| **Release Docker** | Hub 镜像 + Release 说明 | 手动 |
+| **Release** | 同时发 Electron + Docker（并行） | 手动 |
+| **Release Electron** | 仅桌面安装包 + Release | 手动 |
+| **Release Docker** | 仅 Hub 镜像 + Release 说明 | 手动 |
 | **Build Docker** | 日常/维护：推 `latest` + sha，非 semver 发版 | 手动 |
-| **E2E Tests for Docker** | Docker 回归；发版前跑 gate | 手动 |
-| **Build UI and CLI** | PR/main 单元测试 | push / PR |
+| **Build UI and CLI** | 单元测试、lint、typecheck、构建 | push / PR |
+| **E2E Test** | Host E2E + `host-e2e / gate` | push / PR / 手动 |
+| **E2E Tests for Docker** | Docker E2E + `docker-e2e / gate` | push / PR / 手动 |
+| **E2E HTTP Proxy** | HTTP Proxy 多平台 E2E + gate | push / PR / 手动 |
 
-可复用 workflow（Release / Build Docker 共用）：
+可复用 workflow：
 
 - `_build-docker-push.yml` — multi-arch 构建与 push  
 - `_ensure-release-tag.yml` — 检查 / 创建 tag，输出 `tag_exists`  
+- `_verify-ci-gates.yml` — 发版前校验 commit 上 required check runs  
+
+Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CHECKS`。
 
 ---
 
@@ -250,22 +265,24 @@ skip 为 true 时，CI summary 应记录该次选择，便于审计。
 
 | 能力 | 状态 |
 |------|------|
-| Release Electron（`release.yml`） | 已有；并行多平台构建 + 新建/追加 Release |
+| Release Electron（`release.yml`） | 已有；可单独运行或由 **Release** 调用 |
 | tag 已存在则跳过 | 已有（`_ensure-release-tag.yml`） |
-| Release Docker（`release-docker.yml`） | 已有 |
-| `skip_unit_tests` / `skip_e2e_tests` | 已有（Release Docker） |
-| E2E **e2e-gate** 汇总 job | 已有（`e2e-docker.yml`） |
-| Release 内校验 e2e-gate（不重跑 e2e） | 已有（`ci/verify-docker-e2e-gate.ts`） |
+| Release Docker（`release-docker.yml`） | 已有；可单独运行或由 **Release** 调用 |
+| **Release**（`release-all.yml`） | 已有；并行触发 Electron + Docker |
+| `skip_ci_verification` | 已有（所有 Release workflow） |
+| PR/push 触发单元测试 + lint + typecheck | 已有（`build.yml`） |
+| PR/push 触发 E2E（host / docker / http-proxy） | 已有 |
+| E2E **gate** 汇总 job | 已有（三套 E2E workflow） |
+| 发版前 **Verify CI gates**（不重跑测试） | 已有（`ci/verify-check-runs.ts`） |
 | Reusable build-docker-push / ensure-release-tag | 已有 |
 | Build Docker（multi-arch → Hub） | 已有（调用 `_build-docker-push.yml`） |
-| E2E Tests for Docker | 已有（含 gate） |
 
 ## 故障排查
 
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
 | Docker login `Username and password required` | 未配置 `DOCKERHUB_*` secrets | 仓库 Settings → Secrets |
-| Release Docker：e2e 校验失败 | 该 commit 未跑 E2E 或 gate 未绿 | 对同一 commit 重跑 **E2E Tests for Docker** |
+| Release：Verify CI gates 失败 | 该 commit 缺少或未通过 required checks | 在 PR 上等待 CI 全绿，或手动重跑 E2E workflow |
 | `action-gh-release` tag 已存在 | Electron/Docker 重复创建 tag | ensure-release-tag 会跳过；第二个 workflow 追加产物/说明 |
 | 镜像无 arm64 | Build 未 multi-arch | 使用 **Build Docker** / Release 内 reusable build，勿仅本地 amd64 assemble |
 | E2E 绿但用户反馈 Docker 异常 | E2E 测的是 job 内 amd64 本地镜像，与 Hub multi-arch 构建路径不同 | 见 [docker-install.md](../docker-install.md)；长期可考虑 digest promotion |

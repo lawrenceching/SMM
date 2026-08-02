@@ -25,22 +25,62 @@ on:
         description: 'Release notes (optional)'
         required: false
         type: string
+      skip_ci_verification:
+        description: 'Skip CI gate verification (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+  workflow_call:
+    inputs:
+      tag_name:
+        required: true
+        type: string
+      release_name:
+        required: false
+        type: string
+        default: ''
+      draft:
+        required: false
+        type: boolean
+        default: false
+      prerelease:
+        required: false
+        type: boolean
+        default: false
+      body:
+        required: false
+        type: string
+        default: ''
+      skip_ci_verification:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
 jobs:
+  verify-ci:
+    name: Verify CI gates
+    if: ${{ !inputs.skip_ci_verification }}
+    uses: ./.github/workflows/_verify-ci-gates.yml
+    secrets: inherit
+
   ensure-tag:
     name: Ensure release tag
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/_ensure-release-tag.yml
     with:
-      tag_name: ${{ github.event.inputs.tag_name }}
+      tag_name: ${{ inputs.tag_name }}
       target_sha: ${{ github.sha }}
     permissions:
       contents: write
 
   build-electron-linux-x64:
     name: Build Electron (linux-x64)
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     runs-on: ubuntu-latest
     env:
       PLATFORM: linux
@@ -106,6 +146,8 @@ jobs:
 
   build-electron-linux-arm64:
     name: Build Electron (linux-arm64)
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     timeout-minutes: 60
     runs-on: ubuntu-24.04-arm
     env:
@@ -172,6 +214,8 @@ jobs:
 
   build-electron-windows-x64:
     name: Build Electron (win-x64)
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     runs-on: windows-latest
     env:
       PLATFORM: win
@@ -237,6 +281,8 @@ jobs:
 
   build-electron-windows-arm64:
     name: Build Electron (win-arm64)
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     runs-on: windows-11-arm
     env:
       PLATFORM: win
@@ -302,6 +348,8 @@ jobs:
 
   build-electron-mac-arm64:
     name: Build Electron (mac-arm64)
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     runs-on: macos-14
     env:
       PLATFORM: mac
@@ -388,12 +436,12 @@ jobs:
         if: needs.ensure-tag.outputs.tag_exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag_name }}
+          tag_name: ${{ inputs.tag_name }}
           target_commitish: ${{ github.sha }}
-          name: ${{ (github.event.inputs.release_name != '' && github.event.inputs.release_name) || github.event.inputs.tag_name }}
-          draft: ${{ github.event.inputs.draft == 'true' }}
-          prerelease: ${{ github.event.inputs.prerelease == 'true' }}
-          body: ${{ github.event.inputs.body }}
+          name: ${{ (inputs.release_name != '' && inputs.release_name) || inputs.tag_name }}
+          draft: ${{ inputs.draft }}
+          prerelease: ${{ inputs.prerelease }}
+          body: ${{ inputs.body }}
           files: |
             dist/**/*
         env:
@@ -411,5 +459,5 @@ jobs:
             echo "::error::No Electron artifacts found in dist/"
             exit 1
           fi
-          gh release upload "${{ github.event.inputs.tag_name }}" "${files[@]}" --clobber
-          echo "Uploaded Electron assets to existing Release ${{ github.event.inputs.tag_name }}."
+          gh release upload "${{ inputs.tag_name }}" "${files[@]}" --clobber
+          echo "Uploaded Electron assets to existing Release ${{ inputs.tag_name }}."

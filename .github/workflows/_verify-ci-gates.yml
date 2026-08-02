@@ -1,0 +1,31 @@
+name: Verify CI gates (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: 'Commit SHA to verify (defaults to workflow SHA)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  verify:
+    name: Verify CI gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify required CI checks passed on commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          SHA='${{ inputs.sha != '' && inputs.sha || github.sha }}'
+          bun ci/verify-check-runs.ts --sha "${SHA}" --preset release

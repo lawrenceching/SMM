@@ -1,7 +1,11 @@
 /**
- * Verify that a commit has a successful docker-e2e / gate check run.
+ * Verify GitHub check runs for a commit (used before release).
  *
- * @deprecated Prefer: bun ci/verify-check-runs.ts --preset release
+ * Usage:
+ *   bun ci/verify-check-runs.ts [--sha <commit>] [--preset release]
+ *   bun ci/verify-check-runs.ts [--sha <commit>] --check "Run Unit Tests" --check "Lint UI"
+ *
+ * Environment: GITHUB_TOKEN, GITHUB_REPOSITORY
  */
 import {
   RELEASE_REQUIRED_CHECKS,
@@ -9,14 +13,21 @@ import {
   type CheckRun,
 } from './verify-check-runs-lib';
 
-const GATE_CHECK_NAME = 'docker-e2e / gate';
+type ParsedArgs =
+  | { sha: string | undefined; checks: string[] }
+  | 'usage';
 
 function printUsage(): void {
-  console.error('Usage: bun ci/verify-docker-e2e-gate.ts [--sha <commit-sha>]');
+  console.error(
+    'Usage: bun ci/verify-check-runs.ts [--sha <commit>] [--preset release] [--check <name> ...]',
+  );
 }
 
-function parseArgs(argv: string[]): { sha: string | undefined } | 'usage' {
+function parseArgs(argv: string[]): ParsedArgs {
   let sha: string | undefined;
+  const checks: string[] = [];
+  let presetRelease = false;
+
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === '--sha') {
@@ -25,10 +36,29 @@ function parseArgs(argv: string[]): { sha: string | undefined } | 'usage' {
       sha = next;
       continue;
     }
+    if (a === '--preset') {
+      const next = argv[++i];
+      if (next !== 'release') return 'usage';
+      presetRelease = true;
+      continue;
+    }
+    if (a === '--check') {
+      const next = argv[++i];
+      if (!next) return 'usage';
+      checks.push(next);
+      continue;
+    }
     if (a === '--help' || a === '-h') return 'usage';
     return 'usage';
   }
-  return { sha };
+
+  const resolvedChecks = presetRelease
+    ? [...RELEASE_REQUIRED_CHECKS]
+    : checks;
+
+  if (resolvedChecks.length === 0) return 'usage';
+
+  return { sha, checks: resolvedChecks };
 }
 
 async function fetchAllCheckRuns(
@@ -83,26 +113,29 @@ async function main(): Promise<number> {
     return 2;
   }
 
-  if (!RELEASE_REQUIRED_CHECKS.includes(GATE_CHECK_NAME)) {
-    console.error('Internal error: docker gate name missing from release checks.');
-    return 2;
-  }
-
   const runs = await fetchAllCheckRuns(repo, sha, token);
-  const result = verifyRequiredCheckRuns(runs, sha, [GATE_CHECK_NAME]);
+  const result = verifyRequiredCheckRuns(runs, sha, parsed.checks);
 
   if (result.ok) {
-    console.log(`Found successful "${GATE_CHECK_NAME}" for ${sha}.`);
+    console.log(
+      `All required checks passed for ${sha}: ${parsed.checks.join(', ')}`,
+    );
     return 0;
   }
 
   if (result.missing.length > 0) {
     console.error(
-      `No "${GATE_CHECK_NAME}" check run found for ${sha}. Run "E2E Tests for Docker" on this commit first.`,
+      `Missing successful check runs on ${sha}:\n${result.missing.map((n) => `  - ${n}`).join('\n')}`,
     );
-  } else {
-    console.error(`"${GATE_CHECK_NAME}" exists for ${sha} but did not succeed.`);
   }
+  if (result.failed.length > 0) {
+    console.error(
+      `Checks did not succeed on ${sha}:\n${result.failed.map((n) => `  - ${n}`).join('\n')}`,
+    );
+  }
+  console.error(
+    'Run CI on this commit (push/PR or manual E2E workflows) and wait for all jobs to pass.',
+  );
   return 1;
 }
 

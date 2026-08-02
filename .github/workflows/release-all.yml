@@ -1,0 +1,97 @@
+name: Release
+
+# Orchestrates Electron + Docker release workflows in parallel (same commit / tag).
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Git tag for the release (e.g. v1.2.3)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release title (optional)'
+        required: false
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        default: false
+        type: boolean
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        default: false
+        type: boolean
+      body:
+        description: 'Release notes (optional)'
+        required: false
+        type: string
+      skip_ci_verification:
+        description: 'Skip CI gate verification for both products (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release-electron:
+    name: Release Electron
+    uses: ./.github/workflows/release.yml
+    with:
+      tag_name: ${{ inputs.tag_name }}
+      release_name: ${{ inputs.release_name }}
+      draft: ${{ inputs.draft }}
+      prerelease: ${{ inputs.prerelease }}
+      body: ${{ inputs.body }}
+      skip_ci_verification: ${{ inputs.skip_ci_verification }}
+    secrets: inherit
+
+  release-docker:
+    name: Release Docker
+    uses: ./.github/workflows/release-docker.yml
+    with:
+      tag_name: ${{ inputs.tag_name }}
+      release_name: ${{ inputs.release_name }}
+      draft: ${{ inputs.draft }}
+      prerelease: ${{ inputs.prerelease }}
+      body: ${{ inputs.body }}
+      skip_ci_verification: ${{ inputs.skip_ci_verification }}
+    secrets: inherit
+
+  summary:
+    name: Release summary
+    needs: [release-electron, release-docker]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write workflow summary
+        run: |
+          {
+            echo "## Release ${TAG}"
+            echo ""
+            echo "| Product | Result |"
+            echo "|---------|--------|"
+            echo "| Electron | ${{ needs.release-electron.result }} |"
+            echo "| Docker | ${{ needs.release-docker.result }} |"
+            echo ""
+            echo "**Tag:** \`${TAG}\`"
+            echo "**Commit:** \`${SHA}\`"
+            if [ "${SKIP_CI}" = "true" ]; then
+              echo ""
+              echo "::warning::skip_ci_verification was enabled for this run."
+              echo "- **skip_ci_verification**: enabled"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          TAG: ${{ inputs.tag_name }}
+          SHA: ${{ github.sha }}
+          SKIP_CI: ${{ inputs.skip_ci_verification }}
+
+      - name: Fail if any release job failed
+        if: needs.release-electron.result != 'success' || needs.release-docker.result != 'success'
+        run: |
+          echo "::error::One or more release jobs did not succeed."
+          exit 1

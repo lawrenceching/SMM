@@ -1,35 +1,34 @@
 name: Build UI and CLI
 
+# Path filter: keep in sync with e2e-test.yml, e2e-docker.yml, e2e-http-proxy.yml
 on:
   push:
     branches: [ main, develop ]
     paths:
-      - 'apps/ui/**'
-      - 'apps/cli/**'
-      - 'packages/core/**'
-      - 'packages/utils/**'
-      - 'apps/docker/Dockerfile'
-      - 'apps/docker/*.Dockerfile'
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
       - 'pnpm-workspace.yaml'
-      - 'ci/docker/**'
-      - '.dockerignore'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
-      - 'apps/ui/**'
-      - 'apps/cli/**'
-      - 'packages/core/**'
-      - 'packages/utils/**'
-      - 'apps/docker/Dockerfile'
-      - 'apps/docker/*.Dockerfile'
+      - 'apps/**'
+      - 'packages/**'
+      - 'ci/**'
       - 'pnpm-workspace.yaml'
-      - 'ci/docker/**'
-      - '.dockerignore'
+      - 'pnpm-lock.yaml'
       - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-test.yml'
+      - '.github/workflows/e2e-docker.yml'
+      - '.github/workflows/e2e-http-proxy.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -54,13 +53,9 @@ jobs:
       - name: Run all tests
         run: pnpm -r test
 
-  build-ui:
-    name: Build UI
-    needs: [test]
+  lint-ui:
+    name: Lint UI
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
 
     steps:
       - name: Checkout code
@@ -75,9 +70,46 @@ jobs:
       - name: Lint UI
         run: cd apps/ui && pnpm run lint
 
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  build-ui:
+    name: Build UI
+    needs: [test, lint-ui, typecheck]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Build UI
         run: cd apps/ui && pnpm run build
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -87,16 +119,13 @@ jobs:
 
   build-cli:
     name: Build CLI
-    needs: [test]
+    needs: [test, typecheck]
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: .
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Install pnpm
         uses: pnpm/action-setup@v4
 
@@ -104,13 +133,13 @@ jobs:
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      
+
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Build CLI
         run: cd apps/cli && pnpm run build
-      
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
