@@ -1,5 +1,9 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import {
+  collectSecretsFromEnv,
+  redactSecretsInText,
+} from '../../../ci/scan-secure-data-lib';
 
 export class LineBuffer {
   private buffer = '';
@@ -28,6 +32,7 @@ export type Stream = 'stdout' | 'stderr';
 export class LogStore {
   private writers = new Map<string, fs.WriteStream>();
   private buffers = new Map<string, { stdout: LineBuffer; stderr: LineBuffer }>();
+  private readonly secrets = collectSecretsFromEnv(process.env);
 
   constructor(private baseDir: string) {}
 
@@ -51,7 +56,11 @@ export class LogStore {
   }
 
   private writeEntry(writer: fs.WriteStream, stream: Stream, message: string): void {
-    const entry = { timestamp: Date.now(), stream, message };
+    const entry = {
+      timestamp: Date.now(),
+      stream,
+      message: redactSecretsInText(message, this.secrets),
+    };
     writer.write(JSON.stringify(entry) + '\n');
   }
 

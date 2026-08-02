@@ -16,6 +16,7 @@ import {
     saveNetworkLog,
     setupNetworkLogCapture,
 } from '../test/lib/networkLogCapture'
+import { redactSecretsInText } from '../test/lib/artifactSecretRedact'
 import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
 
 const HTML_REPORT_DIR = './reports/html-reports'
@@ -200,7 +201,7 @@ export const config: WebdriverIO.Config = {
 
             browser.on('log.entryAdded', (logEntry) => {
                 const logType = logEntry.type || 'info'
-                const logText = formatBrowserLogEntry(logEntry as BrowserLogEntry)
+                const logText = redactSecretsInText(formatBrowserLogEntry(logEntry as BrowserLogEntry))
                 const timestamp = new Date().toISOString()
 
                 switch (logType) {
@@ -222,7 +223,7 @@ export const config: WebdriverIO.Config = {
             // NOTE: TypeScript event typings may not include `pageerror` for the current WebDriver BiDi adapter.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(browser as any).on('pageerror', (error: any) => {
-                const errorMessage = error?.message ?? String(error)
+                const errorMessage = redactSecretsInText(error?.message ?? String(error))
                 console.error(`[BROWSER PAGE ERROR] ${errorMessage}`)
             })
         }

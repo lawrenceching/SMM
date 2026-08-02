@@ -5,6 +5,7 @@ import type { HookRecord, TaskRecord } from './types.ts';
 import { DebugLog } from './debug-log.ts';
 import { LogStore } from './log-store.ts';
 import { sliceLogFile } from './slicer.ts';
+import { redactTextFilesInDir } from '../../../ci/scan-secure-data-lib';
 import {
   spawnChild,
   killTreeAndWait,
@@ -550,6 +551,8 @@ export async function runOrchestrator(
     onArtifactsReadyResults.every(
       (r) => r.skipped || (r.exitCode === 0 && !r.timedOut),
     );
+
+  redactTextFilesInDir(outputDir);
 
   if (!config.keepRawTimeline) {
     fs.rmSync(timelineDir, { recursive: true, force: true });

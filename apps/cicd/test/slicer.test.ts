@@ -116,4 +116,20 @@ describe('sliceLogFile', () => {
     expect(result.lineCount).toBe(0);
     expect(result.skippedLines).toBe(0);
   });
+
+  test('redacts secrets from sliced messages', async () => {
+    const prev = process.env.SMM_AUTH_TOKEN;
+    process.env.SMM_AUTH_TOKEN = 'ChangeMe123';
+    try {
+      const source = writeJsonl('source.jsonl', [
+        { ts: 200, msg: 'GET http://localhost/?token=ChangeMe123' },
+      ]);
+      const out = path.join(tmpDir, 'out.log');
+      await sliceLogFile(source, { startMs: 100, endMs: 300 } as TimeRange, out);
+      expect(fs.readFileSync(out, 'utf8')).toBe('GET http://localhost/?token=***\n');
+    } finally {
+      if (prev === undefined) delete process.env.SMM_AUTH_TOKEN;
+      else process.env.SMM_AUTH_TOKEN = prev;
+    }
+  });
 });

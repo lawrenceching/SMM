@@ -109,4 +109,26 @@ describe('LogStore', () => {
     expect(JSON.parse(a.trim()).message).toBe('from-a');
     expect(JSON.parse(b.trim()).message).toBe('from-b');
   });
+
+  test('redacts secure env values from timeline messages', async () => {
+    const prev = process.env.SMM_AUTH_TOKEN;
+    process.env.SMM_AUTH_TOKEN = 'ChangeMe123';
+    try {
+      const store = new LogStore(tmpDir);
+      store.registerSource('test');
+      store.appendChunk(
+        'test',
+        'stdout',
+        Buffer.from('GET http://localhost/?token=ChangeMe123\n'),
+      );
+      await store.close();
+
+      const content = fs.readFileSync(path.join(tmpDir, 'test.jsonl'), 'utf8');
+      expect(content).not.toContain('ChangeMe123');
+      expect(JSON.parse(content.trim()).message).toBe('GET http://localhost/?token=***');
+    } finally {
+      if (prev === undefined) delete process.env.SMM_AUTH_TOKEN;
+      else process.env.SMM_AUTH_TOKEN = prev;
+    }
+  });
 });

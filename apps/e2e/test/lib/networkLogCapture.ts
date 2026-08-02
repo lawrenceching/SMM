@@ -1,5 +1,6 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
+import { redactSecretsInText } from './artifactSecretRedact'
 
 export const NETWORK_LOG_DIR = './reports/network-logs'
 
@@ -106,7 +107,7 @@ function appendNetworkLog(phase: NetworkLogPhase, event: unknown): void {
         event,
     })
 
-    const summary = formatNetworkEventSummary(phase, event)
+    const summary = redactSecretsInText(formatNetworkEventSummary(phase, event))
     const timestamp = new Date().toISOString()
 
     if (phase === 'error') {
@@ -164,7 +165,8 @@ export function saveNetworkLog(): string | undefined {
     fs.mkdirSync(NETWORK_LOG_DIR, { recursive: true })
 
     const outputPath = networkLogOutputPath()
-    fs.writeFileSync(outputPath, JSON.stringify(buildNetworkLogFile(), null, 2), 'utf8')
+    const json = redactSecretsInText(JSON.stringify(buildNetworkLogFile(), null, 2))
+    fs.writeFileSync(outputPath, json, 'utf8')
     console.log(`[NETWORK LOG] saved ${networkLog.length} entries to ${outputPath}`)
 
     return outputPath

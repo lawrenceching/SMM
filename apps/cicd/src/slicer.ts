@@ -1,4 +1,8 @@
 import * as fs from 'node:fs';
+import {
+  collectSecretsFromEnv,
+  redactSecretsInText,
+} from '../../../ci/scan-secure-data-lib';
 
 export interface TimeRange {
   startMs: number;
@@ -22,6 +26,8 @@ export async function sliceLogFile(
   let lineCount = 0;
   let skippedLines = 0;
 
+  const secrets = collectSecretsFromEnv(process.env);
+
   for (const line of lines) {
     if (line.length === 0) continue;
 
@@ -42,7 +48,8 @@ export async function sliceLogFile(
       continue;
     }
 
-    out.push(typeof entry.message === 'string' ? entry.message : '');
+    const rawMessage = typeof entry.message === 'string' ? entry.message : '';
+    out.push(redactSecretsInText(rawMessage, secrets));
     lineCount++;
   }
 

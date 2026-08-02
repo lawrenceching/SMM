@@ -5,9 +5,12 @@ import * as path from 'node:path';
 import {
   collectSecretsFromEnv,
   redactSecret,
+  redactSecretsInText,
+  redactTextFilesInDir,
   scanDirectoryForSecrets,
   MIN_SECRET_LENGTH,
   SECURE_ENV_NAMES,
+  ARTIFACT_SECRET_PLACEHOLDER,
 } from './scan-secure-data-lib';
 
 describe('collectSecretsFromEnv', () => {
@@ -48,6 +51,51 @@ describe('redactSecret', () => {
 
   test('fully masks short values', () => {
     expect(redactSecret('abcd')).toBe('****');
+  });
+});
+
+describe('redactSecretsInText', () => {
+  test('replaces secret substrings with placeholder', () => {
+    const secrets = [{ name: 'SMM_AUTH_TOKEN', value: 'ChangeMe123' }];
+    expect(
+      redactSecretsInText('GET http://localhost:5173/?token=ChangeMe123', secrets),
+    ).toBe(`GET http://localhost:5173/?token=${ARTIFACT_SECRET_PLACEHOLDER}`);
+    expect(
+      redactSecretsInText('Authorization: Bearer ChangeMe123', secrets),
+    ).toBe(`Authorization: Bearer ${ARTIFACT_SECRET_PLACEHOLDER}`);
+  });
+
+  test('redacts URI-encoded secret values', () => {
+    const secrets = [{ name: 'TMDB_API_KEY', value: 'abc+def/ghi' }];
+    expect(
+      redactSecretsInText(`key=${encodeURIComponent('abc+def/ghi')}`, secrets),
+    ).toBe(`key=${ARTIFACT_SECRET_PLACEHOLDER}`);
+  });
+
+  test('returns input unchanged when secrets list is empty', () => {
+    expect(redactSecretsInText('plain', [])).toBe('plain');
+  });
+});
+
+describe('redactTextFilesInDir', () => {
+  let tmpRoot: string;
+
+  beforeEach(() => {
+    tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'redact-files-'));
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpRoot, { recursive: true, force: true });
+  });
+
+  test('rewrites files that contain secrets', () => {
+    const file = path.join(tmpRoot, 'leak.log');
+    fs.writeFileSync(file, 'token=ChangeMe123\n', 'utf8');
+    const count = redactTextFilesInDir(tmpRoot, [
+      { name: 'SMM_AUTH_TOKEN', value: 'ChangeMe123' },
+    ]);
+    expect(count).toBe(1);
+    expect(fs.readFileSync(file, 'utf8')).toBe(`token=${ARTIFACT_SECRET_PLACEHOLDER}\n`);
   });
 });
 

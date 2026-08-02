@@ -15,6 +15,7 @@
  */
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { redactTextFilesInDir } from './scan-secure-data-lib';
 
 const WDIO_REPORT_REL = path.join('apps', 'e2e', 'reports', 'html-reports');
 const NETWORK_LOG_REL = path.join('apps', 'e2e', 'reports', 'network-logs');
@@ -38,6 +39,7 @@ function copyReportDir(sourceRel: string, destSubdir: string, taskName: string, 
   const destDir = path.join(path.resolve(outputDir), taskName, destSubdir);
   fs.mkdirSync(path.dirname(destDir), { recursive: true });
   fs.cpSync(sourceDir, destDir, { recursive: true, force: true });
+  redactTextFilesInDir(destDir);
 
   // log(`copied ${sourceRel} -> ${path.relative(process.cwd(), destDir)}`);
   return true;

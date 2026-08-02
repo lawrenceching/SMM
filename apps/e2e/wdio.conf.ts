@@ -16,6 +16,7 @@ import {
     saveNetworkLog,
     setupNetworkLogCapture,
 } from './test/lib/networkLogCapture';
+import { redactSecretsInText } from './test/lib/artifactSecretRedact';
 import { applyE2eWindowSize } from './test/lib/e2e-window-size';
 
 /** Re-export for older imports; prefer `test/lib/e2e-window-size`. */
@@ -456,7 +457,7 @@ export const config: WebdriverIO.Config = {
             // WebdriverIO v9 需要使用 BiDi 协议的 log.entryAdded 事件
             browser.on('log.entryAdded', (logEntry) => {
                 const logType = logEntry.type || 'info';
-                const logText = formatBrowserLogEntry(logEntry as BrowserLogEntry);
+                const logText = redactSecretsInText(formatBrowserLogEntry(logEntry as BrowserLogEntry));
                 const timestamp = new Date().toISOString();
 
                 switch (logType) {
@@ -478,7 +479,7 @@ export const config: WebdriverIO.Config = {
             // 监听浏览器页面错误
             // NOTE: TypeScript event typings may not include `pageerror` for the current WebDriver BiDi adapter.
             (browser as any).on('pageerror', (error: any) => {
-                const errorMessage = error?.message ?? String(error);
+                const errorMessage = redactSecretsInText(error?.message ?? String(error));
                 console.error(`[BROWSER PAGE ERROR] ${errorMessage}`);
             });
         }
