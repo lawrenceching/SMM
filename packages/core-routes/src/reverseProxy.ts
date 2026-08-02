@@ -3,6 +3,7 @@ import {
   getOutboundProxyMode,
   type OutboundProxyMode,
 } from "./proxiedFetch.ts";
+import type { FetchLike } from "./fetchInput.ts";
 import { describeFetchError } from "./downloadImage.ts";
 
 /**
@@ -106,7 +107,7 @@ export interface ReverseProxyConfig {
    * Custom `fetch` implementation, used for tests. Defaults to the global
    * `fetch` (Node 18+ / Bun).
    */
-  fetchImpl?: typeof fetch;
+  fetchImpl?: FetchLike;
 
   /**
    * Optional factory to create a proxied `fetch` implementation when the
@@ -124,7 +125,7 @@ export interface ReverseProxyConfig {
   createProxiedFetch?: (
     proxyUrl: string,
     logger?: ReverseProxyLogger,
-  ) => typeof fetch | undefined;
+  ) => FetchLike | undefined;
 }
 
 export function buildUpstreamUrl(
@@ -202,7 +203,24 @@ function applyCorsToBody(
   body: ArrayBuffer | string | null,
   init: ResponseInit = {},
 ): Response {
-  const headers = new Headers(init.headers);
+  const headers = new Headers();
+  if (init.headers) {
+    const source = init.headers as
+      | Headers
+      | Record<string, string>
+      | Array<[string, string]>;
+    if (source instanceof Headers) {
+      source.forEach((value, key) => headers.set(key, value));
+    } else if (Array.isArray(source)) {
+      for (const [key, value] of source) {
+        headers.set(key, value);
+      }
+    } else {
+      for (const [key, value] of Object.entries(source)) {
+        headers.set(key, value);
+      }
+    }
+  }
   for (const [key, value] of Object.entries(corsHeaders())) {
     if (!headers.has(key)) {
       headers.set(key, value);

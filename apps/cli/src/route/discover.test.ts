@@ -1,6 +1,16 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import { handleDiscover, fetchDiscoveredMediaDatabases } from './discover';
+import { readJson } from '../test/readJson';
+
+type DiscoverBody = {
+  data: {
+    mediaDatabases: Array<Record<string, unknown>>;
+    reverseProxies: Array<Record<string, unknown>>;
+    latestVersion?: string;
+  };
+  error?: string;
+};
 
 function jsonResponse(body: unknown, status = 200): Promise<Response> {
   return Promise.resolve(
@@ -38,7 +48,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases).toEqual([
       { type: 'tmdb', url: 'https://example.com/api/tmdb', authorizationMethod: 'none' },
       { type: 'tmdb', url: 'https://other.com/api/tmdb', authorizationMethod: 'date-token' },
@@ -64,7 +74,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.reverseProxies).toEqual([
       {
         id: 'gz1',
@@ -80,7 +90,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
@@ -90,7 +100,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
@@ -100,7 +110,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
@@ -117,7 +127,7 @@ describe('handleDiscover', () => {
     );
 
     const res = await app.request('/api/discover');
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
   });
 
@@ -129,8 +139,8 @@ describe('handleDiscover', () => {
     );
 
     const res = await app.request('/api/discover');
-    const body = await res.json();
-    expect(body.data.mediaDatabases[0].authorizationMethod).toBe('none');
+    const body = await readJson<DiscoverBody>(res);
+    expect(body.data.mediaDatabases[0]!.authorizationMethod).toBe('none');
   });
 
   it('skips reverse proxy entries with missing id, url, or unknown type', async () => {
@@ -146,7 +156,7 @@ describe('handleDiscover', () => {
     );
 
     const res = await app.request('/api/discover');
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.reverseProxies).toEqual([]);
   });
 
@@ -159,8 +169,8 @@ describe('handleDiscover', () => {
     );
 
     const res = await app.request('/api/discover');
-    const body = await res.json();
-    expect(body.data.reverseProxies[0].authorizationMethod).toBe('none');
+    const body = await readJson<DiscoverBody>(res);
+    expect(body.data.reverseProxies[0]!.authorizationMethod).toBe('none');
   });
 
   it('treats unknown authorizationMethod as none', async () => {
@@ -171,8 +181,8 @@ describe('handleDiscover', () => {
     );
 
     const res = await app.request('/api/discover');
-    const body = await res.json();
-    expect(body.data.mediaDatabases[0].authorizationMethod).toBe('none');
+    const body = await readJson<DiscoverBody>(res);
+    expect(body.data.mediaDatabases[0]!.authorizationMethod).toBe('none');
   });
 
   it('keeps tmdb-asset and tvdb-asset entries', async () => {
@@ -189,7 +199,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases).toEqual([
       { type: 'tmdb', url: 'https://example.com/api/tmdb', authorizationMethod: 'none' },
       { type: 'tmdb-asset', url: 'https://tmdb-asset.example.com', authorizationMethod: 'none' },
@@ -207,7 +217,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.latestVersion).toBe('1.4.5');
   });
 
@@ -221,7 +231,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.latestVersion).toBeUndefined();
   });
 
@@ -230,7 +240,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.latestVersion).toBeUndefined();
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
   });
@@ -247,7 +257,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
@@ -257,7 +267,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.mediaDatabases.length).toBeGreaterThan(0);
     expect(body.data.reverseProxies).toEqual([]);
   });
@@ -272,7 +282,7 @@ describe('handleDiscover', () => {
 
     const res = await app.request('/api/discover');
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await readJson<DiscoverBody>(res);
     expect(body.data.latestVersion).toBeUndefined();
     expect(body.data.mediaDatabases).toHaveLength(1);
   });
@@ -298,7 +308,7 @@ describe('fetchDiscoveredMediaDatabases', () => {
   it('returns fallback mediaDatabases when fetch rejects via signal abort', async () => {
     // The function has a 10s timeout, so we pass a matching test timeout
     // to make the abort fire before the test itself times out.
-    mockFetch.mockImplementationOnce((_url, init) =>
+    mockFetch.mockImplementationOnce((_url: string | URL | Request, init?: RequestInit) =>
       new Promise((_, reject) => {
         init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
       })

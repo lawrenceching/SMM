@@ -145,7 +145,7 @@ class TVShowPanel {
      * Get the checkbox element for a specific episode row by its ID (e.g., 'S01E02').
      * The checkbox is in the first column of the episode row.
      */
-    async getEpisodeCheckbox(episodeId: string): Promise<WebdriverIO.Element> {
+    async getEpisodeCheckbox(episodeId: string) {
         // Find the table cell containing the episode ID
         const episodeIdCell = await $('td=' + episodeId)
         await episodeIdCell.waitForDisplayed({ timeout: 10000 })
@@ -312,7 +312,7 @@ class TVShowPanel {
         try {
             const input = await this.immersiveInput
             if (await input.isExisting()) {
-                state.title = await input.getValue()
+                state.title = String(await input.getValue())
             }
         } catch {
             state.title = ''
@@ -330,7 +330,7 @@ class TVShowPanel {
 
                     if (cellsCount === 0) continue
 
-                    const firstCellText = await cells[0].getText()
+                    const firstCellText = await cells[0]!.getText()
                     
                     const idMatch = firstCellText.match(/^S(\d+)E(\d+)$/)
                     if (idMatch) {
@@ -347,7 +347,7 @@ class TVShowPanel {
                         let cellIndex = 1
 
                         if (cellsCount > cellIndex) {
-                            const nextCell = await cells[cellIndex].$('input[type="checkbox"]')
+                            const nextCell = await cells[cellIndex]!.$('input[type="checkbox"]')
                             const hasCheckbox = await nextCell.isExisting().catch(() => false)
                             if (hasCheckbox) {
                                 tableRow.checkbox = await nextCell.isSelected()
@@ -356,19 +356,19 @@ class TVShowPanel {
                         }
 
                         if (cellsCount > cellIndex) {
-                            tableRow.videoFile = await cells[cellIndex].getText()
+                            tableRow.videoFile = await cells[cellIndex]!.getText()
                             cellIndex++
                         }
                         if (cellsCount > cellIndex) {
-                            tableRow.thumbnail = await this.checkCellHasValue(cells[cellIndex])
+                            tableRow.thumbnail = await this.checkCellHasValue(cells[cellIndex]!)
                             cellIndex++
                         }
                         if (cellsCount > cellIndex) {
-                            tableRow.subtitle = await this.checkCellHasValue(cells[cellIndex])
+                            tableRow.subtitle = await this.checkCellHasValue(cells[cellIndex]!)
                             cellIndex++
                         }
                         if (cellsCount > cellIndex) {
-                            tableRow.nfo = await this.checkCellHasValue(cells[cellIndex])
+                            tableRow.nfo = await this.checkCellHasValue(cells[cellIndex]!)
                         }
 
                         state.table.push(tableRow)
@@ -446,14 +446,16 @@ class TVShowPanel {
         timeout: number = 30000,
         interval: number = 500
     ): Promise<TvShowPanelState> {
-        return await browser.waitUntil(async () => {
-            const state = await this.getState()
-            return predicate(state)
+        let lastState = await this.getState()
+        await browser.waitUntil(async () => {
+            lastState = await this.getState()
+            return predicate(lastState)
         }, {
             timeout,
             timeoutMsg: `TVShowPanel state did not match predicate after ${timeout}ms`,
             interval
         })
+        return lastState
     }
 
     /**
@@ -491,7 +493,7 @@ class TVShowPanel {
      * Check if a table cell contains a CheckIcon (indicating a file exists)
      * vs a MinusIcon (indicating no file)
      */
-    private async checkCellHasValue(cell: WebdriverIO.Element): Promise<string> {
+    private async checkCellHasValue(cell: ChainablePromiseElement): Promise<string> {
         try {
             const checkIcon = await cell.$('svg.text-emerald-600')
             return await checkIcon.isExisting().catch(() => false) ? 'V' : '-'
@@ -532,10 +534,11 @@ class TVShowPanel {
             if (row.type === 'divider') {
                 lines.push(row.id)
             } else {
-                const parts = [row.id, row.videoFile || '-']
-                parts.push(row.thumbnail)
-                parts.push(row.subtitle)
-                parts.push(row.nfo)
+                const episodeRow = row as TvShowEpisodeTableSimpleRow
+                const parts = [episodeRow.id, episodeRow.videoFile || '-']
+                parts.push(episodeRow.thumbnail)
+                parts.push(episodeRow.subtitle)
+                parts.push(episodeRow.nfo)
                 lines.push(parts.join(' '))
             }
         }

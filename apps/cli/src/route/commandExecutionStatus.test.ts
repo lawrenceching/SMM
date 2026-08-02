@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Hono } from 'hono'
+import { readJson } from '../test/readJson'
 import {
   clearCommandExecutionRegistry,
   markCommandExecutionFinished,
@@ -18,7 +19,7 @@ describe('GET /api/command-execution/:executionId', () => {
     handleCommandExecutionStatus(app)
     const res = await app.request(`/api/command-execution/${EXEC_ID}`)
     expect(res.status).toBe(200)
-    const body = await res.json()
+    const body = await readJson<{ phase: string; found: boolean; outcome?: string }>(res)
     expect(body.phase).toBe('running')
     expect(body.found).toBe(true)
   })
@@ -36,7 +37,7 @@ describe('GET /api/command-execution/:executionId', () => {
     const app = new Hono()
     handleCommandExecutionStatus(app)
     const res = await app.request(`/api/command-execution/${EXEC_ID}`)
-    const body = await res.json()
+    const body = await readJson<{ phase: string; found: boolean; outcome?: string }>(res)
     expect(body.phase).toBe('finished')
     expect(body.outcome).toBe('failure')
   })

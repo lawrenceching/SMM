@@ -161,6 +161,7 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
     let userConfig: UserConfig = {
         applicationLanguage: 'en',
         tmdb: {},
+        tvdb: {},
         folders: [],
         renameRules: [],
         dryRun: false,

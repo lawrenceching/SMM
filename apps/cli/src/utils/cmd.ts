@@ -34,6 +34,8 @@ import {
   resolveSpawnEnvForVideoCaptioner,
   type VideoCaptionerTranscribeResult,
 } from './VideoCaptioner';
+
+export type { VideoCaptionerTranscribeResult } from './VideoCaptioner';
 import { discoverQuickjs } from './QuickJS';
 import {
   createCommandExecutionLogWriter,
@@ -222,9 +224,13 @@ export function parseTestYtDlpUrl(url: string): { extractor: string; statusCode:
     const parts = parsed.pathname.split('/').filter(Boolean);
     if (parts.length !== 3) return null;
     if (parts[1] !== 'http') return null;
-    const statusCode = parseInt(parts[2], 10);
+    const statusCodeRaw = parts[2];
+    if (statusCodeRaw === undefined) return null;
+    const statusCode = parseInt(statusCodeRaw, 10);
     if (isNaN(statusCode) || statusCode < 100 || statusCode > 999) return null;
-    return { extractor: parts[0], statusCode };
+    const extractor = parts[0];
+    if (extractor === undefined) return null;
+    return { extractor, statusCode };
   } catch {
     return null;
   }
@@ -254,8 +260,9 @@ function capitalizeExtractorName(extractor: string): string {
     youtube: 'YouTube',
     niconico: 'Niconico',
   };
-  if (knownNames[extractor.toLowerCase()]) {
-    return knownNames[extractor.toLowerCase()];
+  const known = knownNames[extractor.toLowerCase()];
+  if (known !== undefined) {
+    return known;
   }
   // Default: capitalize first letter
   return extractor.charAt(0).toUpperCase() + extractor.slice(1);

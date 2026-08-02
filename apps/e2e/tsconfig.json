@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext"],
+    "lib": ["ESNext", "DOM"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
@@ -27,7 +27,7 @@
     "noPropertyAccessFromIndexSignature": false,
 
     // Include mocha and node types for test hooks and fs/path/os modules
-    "types": ["mocha", "node"],
+    "types": ["mocha", "node", "bun"],
 
     // Monorepo paths
     "baseUrl": ".",
@@ -37,5 +37,18 @@
       "@smm/test": ["../../packages/test/src/index.ts"],
       "@smm/test/*": ["../../packages/test/*"]
     }
-  }
+  },
+  "include": [
+    "test/**/*.ts",
+    "common/**/*.ts",
+    "scenarios/**/*.ts",
+    "wdio.conf.ts",
+    "wdio.conf.test.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "common/manual",
+    "ohos",
+    "electron"
+  ]
 }

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { Stats } from 'node:fs';
 import { moveFileToTrashOrDelete } from './files';
 
 vi.mock('./os', () => ({
@@ -28,7 +29,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should throw error when file does not exist', async () => {
       const { access, stat } = await import('node:fs/promises');
       vi.mocked(access).mockRejectedValue({ code: 'ENOENT' });
-      vi.mocked(stat).mockResolvedValue({ isFile: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => true } as Stats);
 
       await expect(moveFileToTrashOrDelete('/nonexistent/file.txt'))
         .rejects
@@ -47,7 +48,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should throw error when path is a directory', async () => {
       const { access, stat } = await import('node:fs/promises');
       vi.mocked(access).mockResolvedValue(undefined);
-      vi.mocked(stat).mockResolvedValue({ isFile: () => false, isDirectory: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => false, isDirectory: () => true } as Stats);
 
       await expect(moveFileToTrashOrDelete('/some/directory'))
         .rejects
@@ -64,7 +65,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should permanently delete file on server environment', async () => {
       const { access, stat, unlink } = await import('node:fs/promises');
       vi.mocked(access).mockResolvedValue(undefined);
-      vi.mocked(stat).mockResolvedValue({ isFile: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => true } as Stats);
       vi.mocked(unlink).mockResolvedValue(undefined);
 
       await moveFileToTrashOrDelete('/path/to/file.txt');
@@ -75,7 +76,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should throw error when permanent delete fails with ENOENT', async () => {
       const { access, stat, unlink } = await import('node:fs/promises');
       vi.mocked(access).mockResolvedValue(undefined);
-      vi.mocked(stat).mockResolvedValue({ isFile: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => true } as Stats);
       vi.mocked(unlink).mockRejectedValue({ code: 'ENOENT' });
 
       await expect(moveFileToTrashOrDelete('/path/to/file.txt'))
@@ -86,7 +87,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should throw error when permanent delete fails with permission error', async () => {
       const { access, stat, unlink } = await import('node:fs/promises');
       vi.mocked(access).mockResolvedValue(undefined);
-      vi.mocked(stat).mockResolvedValue({ isFile: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => true } as Stats);
       vi.mocked(unlink).mockRejectedValue({ code: 'EACCES' });
 
       await expect(moveFileToTrashOrDelete('/path/to/file.txt'))
@@ -97,7 +98,7 @@ describe('moveFileToTrashOrDelete', () => {
     it('should throw error when permanent delete fails with EPERM', async () => {
       const { access, stat, unlink } = await import('node:fs/promises');
       vi.mocked(access).mockResolvedValue(undefined);
-      vi.mocked(stat).mockResolvedValue({ isFile: () => true });
+      vi.mocked(stat).mockResolvedValue({ isFile: () => true } as Stats);
       vi.mocked(unlink).mockRejectedValue({ code: 'EPERM' });
 
       await expect(moveFileToTrashOrDelete('/path/to/file.txt'))

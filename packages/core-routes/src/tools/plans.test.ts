@@ -10,6 +10,8 @@ import {
 } from "./plans.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatFs } from "../chatTypes.ts";
+import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { AnyPlan } from "./plans.ts";
 import type {
   RecognizeMediaFilePlan,
   RecognizedFile,
@@ -33,9 +35,9 @@ import type {
  */
 
 function makeInMemoryFs(options: { exists: (p: string) => boolean }): ChatFs & {
-  readonly plans: Map<string, RecognizeMediaFilePlan>;
+  readonly plans: Map<string, AnyPlan>;
 } {
-  const plans = new Map<string, RecognizeMediaFilePlan>();
+  const plans = new Map<string, AnyPlan>();
   const jsonPath = (appDataDir: string, id: string) =>
     join(appDataDir, "plans", `${id}.plan.json`);
   return {
@@ -61,7 +63,7 @@ function makeInMemoryFs(options: { exists: (p: string) => boolean }): ChatFs & {
       if (!match || !match[1]) {
         throw new Error(`Cannot derive plan id from ${filePath}`);
       }
-      plans.set(match[1], value as RecognizeMediaFilePlan);
+      plans.set(match[1], value as AnyPlan);
     },
     async exists(filePath: string): Promise<boolean> {
       return options.exists(filePath);
@@ -226,10 +228,9 @@ describe("plan cancellation (rejected status)", () => {
       "@smm/core/types/ai-tools/planTaskMessages"
     );
     const taskId = await beginRenamePlan(appDataDir, "/media/show", fs);
-    fs.plans.set(taskId, {
-      ...(fs.plans.get(taskId) as unknown as { status: string }),
-      status: "rejected",
-    });
+    const existing = fs.plans.get(taskId) as RenameFilesPlan | undefined;
+    expect(existing).toBeDefined();
+    fs.plans.set(taskId, { ...existing!, status: "rejected" });
 
     await expect(
       appendRenamePlanEntry(
@@ -238,7 +239,14 @@ describe("plan cancellation (rejected status)", () => {
         "/media/show/a.mp4",
         "/media/show/b.mp4",
         fs,
-        {},
+        {
+          validateOperations: async () => ({
+            isValid: true,
+            errors: [],
+            validatedRenames: [],
+          }),
+          getMediaMetadata: async () => null,
+        },
       ),
     ).rejects.toThrow(PLAN_CANCELLED_BY_USER_MESSAGE);
     void readRenamePlan;

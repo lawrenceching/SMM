@@ -37,7 +37,11 @@ async function readFfmpegConfiguredPath(): Promise<string | undefined> {
 async function readFfprobeConfiguredPath(): Promise<string | undefined> {
   return readConfiguredToolPath(async () => {
     const userConfig = await getUserConfig();
-    return userConfig.ffprobeExecutablePath;
+    const ffmpeg = userConfig.ffmpegExecutablePath;
+    if (!ffmpeg) return undefined;
+    return ffmpeg.replace(/ffmpeg(\.exe)?$/i, (_match, ext: string | undefined) =>
+      `ffprobe${ext ?? ""}`,
+    );
   });
 }
 

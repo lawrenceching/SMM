@@ -1,6 +1,13 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 import { handleSpeedtest } from "./speedtest";
+import { readJson } from "../test/readJson";
+
+type SpeedtestErrorBody = { error: string };
+type SpeedtestSuccessBody = {
+  fastestUrl: string;
+  results: Array<{ url: string; timeMs?: number; error?: string }>;
+};
 
 /**
  * Helper to create a Response-like object for mocked fetch.
@@ -36,7 +43,7 @@ describe("handleSpeedtest", () => {
         body: JSON.stringify({}),
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toBe("urls must be an array");
     });
 
@@ -47,7 +54,7 @@ describe("handleSpeedtest", () => {
         body: JSON.stringify({ urls: [] }),
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toBe("urls must be a non-empty array");
     });
 
@@ -58,7 +65,7 @@ describe("handleSpeedtest", () => {
         body: "not-json",
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toBe("Invalid JSON body");
     });
 
@@ -69,7 +76,7 @@ describe("handleSpeedtest", () => {
         body: JSON.stringify({ urls: [123] }),
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toBe("each url must be a string");
     });
 
@@ -80,7 +87,7 @@ describe("handleSpeedtest", () => {
         body: JSON.stringify({ urls: ["https://evil.com/test"] }),
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toContain("evil.com");
     });
 
@@ -91,7 +98,7 @@ describe("handleSpeedtest", () => {
         body: JSON.stringify({ urls: ["not-a-valid-url"] }),
       });
       expect(res.status).toBe(400);
-      const body = await res.json();
+      const body = await readJson<SpeedtestErrorBody>(res);
       expect(body.error).toContain("invalid URL");
     });
 
@@ -153,19 +160,19 @@ describe("handleSpeedtest", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = await readJson<SpeedtestSuccessBody>(res);
       expect(body.fastestUrl).toBe(
         "https://gitcode.com/lawrenceching/simple-media-manager/fast",
       );
       expect(body.results).toHaveLength(2);
-      expect(body.results[0].url).toBe(
+      expect(body.results[0]!.url).toBe(
         "https://github.com/lawrenceching/SMM/wiki/slow",
       );
-      expect(body.results[1].url).toBe(
+      expect(body.results[1]!.url).toBe(
         "https://gitcode.com/lawrenceching/simple-media-manager/fast",
       );
-      expect(typeof body.results[0].timeMs).toBe("number");
-      expect(typeof body.results[1].timeMs).toBe("number");
+      expect(typeof body.results[0]!.timeMs).toBe("number");
+      expect(typeof body.results[1]!.timeMs).toBe("number");
     });
 
     it("handles fetch errors gracefully", async () => {
@@ -183,14 +190,14 @@ describe("handleSpeedtest", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = await readJson<SpeedtestSuccessBody>(res);
       // Both failed, fallback to first URL
       expect(body.fastestUrl).toBe(
         "https://github.com/lawrenceching/SMM/wiki/test",
       );
       expect(body.results).toHaveLength(2);
-      expect(body.results[0].error).toBeDefined();
-      expect(body.results[1].error).toBeDefined();
+      expect(body.results[0]!.error).toBeDefined();
+      expect(body.results[1]!.error).toBeDefined();
     });
 
     it("handles partial failures", async () => {
@@ -216,13 +223,13 @@ describe("handleSpeedtest", () => {
       });
 
       expect(res.status).toBe(200);
-      const body = await res.json();
+      const body = await readJson<SpeedtestSuccessBody>(res);
       // GitCode succeeded, it should be the fastest
       expect(body.fastestUrl).toBe(
         "https://gitcode.com/lawrenceching/simple-media-manager/test2",
       );
-      expect(body.results[0].error).toBeDefined();
-      expect(body.results[1].error).toBeUndefined();
+      expect(body.results[0]!.error).toBeDefined();
+      expect(body.results[1]!.error).toBeUndefined();
     });
   });
 });

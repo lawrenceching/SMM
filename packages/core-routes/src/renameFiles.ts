@@ -8,7 +8,7 @@ import {
   writeMediaMetadataCache,
 } from "./mediaMetadataCache.ts";
 import { executeBatchRenameOperations } from "./renameFileExecution.ts";
-import type { CoreRoutesConfig } from "./types.ts";
+import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import { readUserConfig, resolveAppDataDir } from "./userConfig.ts";
 import { validateRenameOperations } from "./validateRenameOperations.ts";
 
@@ -67,7 +67,7 @@ async function updateMediaMetadataAndBroadcast(
 
 export async function doRenameFiles(
   body: RenameFilesRequestBody,
-  config: CoreRoutesConfig = {},
+  config: CoreRoutesConfig = EMPTY_CORE_ROUTES_CONFIG,
   headerClientId?: string,
 ): Promise<RenameFilesResponseBody> {
   const parsed = requestSchema.safeParse(body);

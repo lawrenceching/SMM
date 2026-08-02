@@ -1,7 +1,6 @@
-import { registerStep } from '../lib/gherkin'
+import { registerStep, requiredStepArg } from '../lib/gherkin'
 import { startConfigServer } from '../lib/configServer'
 
 registerStep('Start config server at "xxx"', async (_ctx, args) => {
-    const [address] = args
-    await startConfigServer(address)
+    await startConfigServer(requiredStepArg(args, 0))
 })

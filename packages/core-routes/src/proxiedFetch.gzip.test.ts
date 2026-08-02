@@ -1,4 +1,6 @@
 import { gzipSync } from "node:zlib";
+import type { IncomingMessage } from "node:http";
+import type { RequestOptions } from "node:https";
 import { describe, expect, it, vi } from "vitest";
 import { nodeHttpMessageToFetchResponse } from "./httpContentEncoding.ts";
 import { createProxiedFetch } from "./proxiedFetch.ts";
@@ -49,7 +51,8 @@ describe("createProxiedFetch Node HTTP(S) agent path", () => {
       const requestSpy = vi
         .spyOn(https.default, "request")
         .mockImplementation((options, callback) => {
-          const opts = options as https.RequestOptions;
+          const opts = options as RequestOptions;
+          const onResponse = callback as ((res: IncomingMessage) => void) | undefined;
           expect(opts).toMatchObject({
             hostname: "api4.thetvdb.com",
             path: "/v4/login",
@@ -73,11 +76,9 @@ describe("createProxiedFetch Node HTTP(S) agent path", () => {
               if (event === "data") handler(gzipBody);
               if (event === "end") handler();
             },
-          };
+          } as IncomingMessage;
           queueMicrotask(() => {
-            if (typeof callback === "function") {
-              (callback as (res: typeof res) => void)(res);
-            }
+            onResponse?.(res);
           });
           return {
             on() {

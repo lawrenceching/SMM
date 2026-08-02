@@ -39,6 +39,15 @@ export function getStepContext(): Record<string, unknown> {
     return currentContext
 }
 
+/** Gherkin capture groups are typed as optional; fail fast when a required arg is missing. */
+export function requiredStepArg(args: string[], index = 0): string {
+    const value = args[index]
+    if (value === undefined) {
+        throw new Error(`Missing Gherkin step argument at index ${index}`)
+    }
+    return value
+}
+
 export function registerStep(pattern: string, fn: StepFn): void {
     mapper.register(pattern, fn)
 }

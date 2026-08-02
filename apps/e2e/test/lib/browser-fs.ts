@@ -547,6 +547,7 @@ export function buildDefaultUserConfig(initConfig?: Partial<UserConfig>): UserCo
     const userConfig: UserConfig = {
         applicationLanguage: 'en',
         tmdb: {},
+        tvdb: {},
         folders: [],
         renameRules: [],
         dryRun: false,

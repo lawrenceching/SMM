@@ -50,7 +50,7 @@ function formatPrefixedLines(kind: 'STDOUT' | 'STDERR' | 'SYSTEM', body: string,
  * segments by grouping consecutive same-tag lines.
  */
 export async function createCommandExecutionLogWriter(
-  executionId = crypto.randomUUID()
+  executionId: string = crypto.randomUUID(),
 ): Promise<CommandExecutionLogWriter> {
   const logRoot = getLogDir();
   const logDir = path.join(logRoot, 'commands', executionId);

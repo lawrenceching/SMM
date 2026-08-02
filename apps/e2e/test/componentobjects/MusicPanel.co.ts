@@ -78,8 +78,9 @@ class MusicPanelComponentObject {
         await browser.waitUntil(
             async () => {
                 const rows = await this.getTableRows()
+                const rowCount = await rows.length
                 let dataRowCount = 0
-                for (let i = 1; i < rows.length; i += 1) {
+                for (let i = 1; i < rowCount; i += 1) {
                     const cells = await rows[i]!.$$('[role="cell"]')
                     if ((await cells.length) > 0) {
                         dataRowCount += 1
@@ -90,10 +91,7 @@ class MusicPanelComponentObject {
             {
                 timeout,
                 interval,
-                timeoutMsg: async () => {
-                    await this.dumpDebugInfo(`waitForDataRows minCount=${minCount}`)
-                    return `[MusicPanel] Expected at least ${minCount} data row(s) after ${timeout}ms`
-                },
+                timeoutMsg: `[MusicPanel] Expected at least ${minCount} data row(s) after ${timeout}ms`,
             },
         )
     }
@@ -108,8 +106,9 @@ class MusicPanelComponentObject {
             roleTableRowTexts.push((await row.getText()).trim())
         }
 
+        const roleTableRowCount = await roleTableRows.length
         let dataRowCount = 0
-        for (let i = 1; i < roleTableRows.length; i += 1) {
+        for (let i = 1; i < roleTableRowCount; i += 1) {
             const cells = await roleTableRows[i]!.$$('[role="cell"]')
             if ((await cells.length) > 0) {
                 dataRowCount += 1
@@ -128,7 +127,7 @@ class MusicPanelComponentObject {
             context: context ?? null,
             selectors: {
                 tbodyTrCount: tbodyRows.length,
-                roleTableRowCount: roleTableRows.length,
+                roleTableRowCount,
                 dataRowCount,
             },
             trackTitlesFromRoleTable: await this.getTrackRowTitles(),
@@ -284,7 +283,9 @@ class MusicPanelComponentObject {
         const rows = await this.getTableRows()
         const titles: string[] = []
 
-        for (let i = 1; i < rows.length; i += 1) {
+        const rowCount = await rows.length
+
+        for (let i = 1; i < rowCount; i += 1) {
             const row = rows[i]!
             const cells = await row.$$('[role="cell"]')
             if ((await cells.length) < 3) {
@@ -314,11 +315,7 @@ class MusicPanelComponentObject {
             {
                 timeout,
                 interval,
-                timeoutMsg: async () => {
-                    const titles = await this.getTrackRowTitles()
-                    const displayed = titles.length > 0 ? titles.join(" | ") : "(no data rows)"
-                    return `[MusicPanel] No row title containing "${keyword}" after ${timeout}ms. Titles: ${displayed}`
-                },
+                timeoutMsg: `[MusicPanel] No row title containing "${keyword}" after ${timeout}ms`,
             },
         )
     }

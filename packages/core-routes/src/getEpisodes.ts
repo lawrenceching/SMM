@@ -12,7 +12,7 @@ import {
   type GetEpisodesToolOutput,
 } from "@smm/core/types/ai-tools/getEpisodes";
 import { readMediaMetadataCache } from "./mediaMetadataCache.ts";
-import type { CoreRoutesConfig } from "./types.ts";
+import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import { isMediaFolderManaged, resolveAppDataDir } from "./userConfig.ts";
 
 const getEpisodesRequestSchema = z.object({
@@ -25,7 +25,7 @@ export type GetEpisodesRequestBody = z.infer<typeof getEpisodesRequestSchema>;
 
 export async function doGetEpisodes(
   body: unknown,
-  config: CoreRoutesConfig = {},
+  config: CoreRoutesConfig = EMPTY_CORE_ROUTES_CONFIG,
 ): Promise<GetEpisodesToolOutput> {
   const parsed = getEpisodesRequestSchema.safeParse(body);
   if (!parsed.success) {

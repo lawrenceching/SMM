@@ -7,7 +7,7 @@ registerStep('"Rename" prompt is open', async (_ctx, _args) => {
     await Prompts.cancelButton.waitForDisplayed({ timeout: 10000 })
 
     await browser.waitUntil(
-        async () => (await TvShowPanelCO.newVideoFilePaths).length === 3,
+        async () => (await TvShowPanelCO.newVideoFilePaths.length) === 3,
         { timeout: 30000, interval: 500, timeoutMsg: 'Expected 3 rename preview paths in episode table' },
     )
 

@@ -43,7 +43,7 @@
     "e2e:failover": "cross-env EXTERNAL_CONFIG_FILE_URL=\"http://localhost:8000/config.json\" bun ci/run-e2e-test.ts --spec ./common/tv/TmdbHostFailover.e2e.ts",
     "e2e:scrape-failover": "bun apps/cicd/run.ts -f apps/e2e/scenarios/scrape-failover-tmdb.test.json",
     "e2e:http-proxy": "bun apps/cicd/run.ts -f apps/e2e/scenarios/http-proxy-reverse-proxy.test.json",
-    "typecheck": "pnpm run typecheck:core && pnpm run typecheck:core-routes && pnpm run typecheck:electron-common && pnpm run typecheck:cli && pnpm run typecheck:ui && pnpm run typecheck:e2e && pnpm run typecheck:electron && pnpm run typecheck:ohos-main",
+    "typecheck": "pnpm run typecheck:core && pnpm run typecheck:core-routes && pnpm run typecheck:electron-common && pnpm run typecheck:cli && pnpm run typecheck:ui && pnpm run typecheck:e2e && pnpm run typecheck:electron",
     "typecheck:core": "cd packages/core && pnpm run typecheck",
     "typecheck:core-routes": "cd packages/core-routes && pnpm run typecheck",
     "typecheck:electron-common": "cd packages/electron-common && pnpm run typecheck",

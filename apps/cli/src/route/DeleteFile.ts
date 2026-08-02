@@ -1,3 +1,4 @@
+import type { CoreRoutesLogger } from "@smm/core-routes";
 import type { Hono } from "hono";
 import {
   doDeleteFile as doDeleteFileCore,
@@ -7,11 +8,11 @@ import {
 import { buildAllowlist } from "@/utils/buildAllowlist";
 import { logger, logHttpReqIn, logHttpRespOut } from "../../lib/logger";
 
-const coreRoutesLogger = {
-  debug: (obj, msg) => logger.debug(obj, msg),
-  info: (obj, msg) => logger.info(obj, msg),
-  warn: (obj, msg) => logger.warn(obj, msg),
-  error: (obj, msg) => logger.error(obj, msg),
+const coreRoutesLogger: CoreRoutesLogger = {
+  debug: (obj: Record<string, unknown>, msg?: string) => logger.debug(obj, msg),
+  info: (obj: Record<string, unknown>, msg?: string) => logger.info(obj, msg),
+  warn: (obj: Record<string, unknown>, msg?: string) => logger.warn(obj, msg),
+  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
 /**

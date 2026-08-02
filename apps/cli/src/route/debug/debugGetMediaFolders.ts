@@ -28,7 +28,7 @@ export async function processGetMediaFolders(
 
     const { clientId = '' } = validationResult.data
     const tool = getMediaFoldersAgentTool(clientId)
-    const result = (await tool.execute({})) as GetMediaFoldersToolOutput
+    const result = (await tool.execute()) as GetMediaFoldersToolOutput
 
     if (result.error) {
       const { error, ...data } = result

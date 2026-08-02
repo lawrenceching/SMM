@@ -14,6 +14,7 @@ import { HttpProxyAgent } from "http-proxy-agent";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { SocksProxyAgent } from "socks-proxy-agent";
 import { nodeHttpMessageToFetchResponse } from "./httpContentEncoding.ts";
+import { toRequest, type FetchInput, type FetchLike } from "./fetchInput.ts";
 
 function isBunRuntime(): boolean {
   return typeof (globalThis as { Bun?: unknown }).Bun !== "undefined";
@@ -70,9 +71,9 @@ function wrapFetchWithLogging(
   inner: (request: Request) => Promise<Response>,
   mode: OutboundProxyMode,
   logger?: ProxiedFetchLogger,
-): typeof fetch {
-  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const request = input instanceof Request ? input : new Request(input, init);
+): FetchLike {
+  return async (input: FetchInput, init?: RequestInit): Promise<Response> => {
+    const request = toRequest(input, init);
     const target = new URL(request.url);
     logger?.debug(
       {
@@ -206,7 +207,7 @@ function socksProxyRequest(request: Request, proxyUrl: string): Promise<Response
 export function createProxiedFetch(
   proxyUrl: string,
   logger?: ProxiedFetchLogger,
-): typeof fetch {
+): FetchLike {
   const proxy = new URL(proxyUrl);
   const isSocks = proxy.protocol === "socks5:" || proxy.protocol === "socks5h:";
 
@@ -266,8 +267,8 @@ export function createProxiedFetch(
     "[ProxiedFetch] using outbound proxy",
   );
 
-  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-    const request = input instanceof Request ? input : new Request(input, init);
+  return async (input: FetchInput, init?: RequestInit): Promise<Response> => {
+    const request = toRequest(input, init);
     const url = new URL(request.url);
     const mode: OutboundProxyMode =
       url.protocol === "https:" ? "node-connect" : "node-forward";

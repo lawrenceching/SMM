@@ -1,5 +1,5 @@
 import { expect } from '@wdio/globals'
-import { registerStep } from '../lib/gherkin'
+import { registerStep, requiredStepArg } from '../lib/gherkin'
 
 async function getEpisodeVideoCellText(episodeId: string): Promise<string> {
     const rowSelector = `//tr[.//td[contains(@class,"font-mono") and normalize-space()="${episodeId}"]]`
@@ -9,14 +9,12 @@ async function getEpisodeVideoCellText(episodeId: string): Promise<string> {
 }
 
 registerStep('episode "xxx" is linked to a video file', async (_ctx, args) => {
-    const [episodeId] = args
-    const videoCellText = await getEpisodeVideoCellText(episodeId)
+    const videoCellText = await getEpisodeVideoCellText(requiredStepArg(args, 0))
     expect(videoCellText).not.toBe('-')
 })
 
 registerStep('episode "xxx" is not linked to a video file', async (_ctx, args) => {
-    const [episodeId] = args
-    const videoCellText = await getEpisodeVideoCellText(episodeId)
+    const videoCellText = await getEpisodeVideoCellText(requiredStepArg(args, 0))
     expect(videoCellText).toBe('-')
 })
 

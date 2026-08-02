@@ -66,7 +66,7 @@ async function clickContextMenuItem(labels: string[]) {
 async function findVisibleButton(
     parent: WebdriverIO.Element | typeof browser,
     labels: string[],
-): Promise<WebdriverIO.Element> {
+): Promise<ChainablePromiseElement> {
     for (const label of labels) {
         const btn = await parent.$(`button=${label}`)
         if (await btn.isDisplayed().catch(() => false)) {

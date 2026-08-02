@@ -53,7 +53,7 @@ describe('AI Assistant - RenameFolder Tool', async () => {
 
     await browser.waitUntil(async () => {
       const value = await MoviePanelCO.input.getValue()
-      return expectedTitles.includes(value)
+      return expectedTitles.includes(String(value))
     }, {
       timeout: 60000,
       timeoutMsg: `Expected movie title to be one of: ${expectedTitles.join(', ')}`,

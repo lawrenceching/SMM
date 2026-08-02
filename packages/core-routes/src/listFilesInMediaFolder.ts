@@ -10,7 +10,7 @@ import {
   type ListFilesInMediaFolderToolOutput,
 } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
 import { doListFiles } from "./listFiles.ts";
-import type { CoreRoutesConfig } from "./types.ts";
+import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import { isMediaFolderManaged } from "./userConfig.ts";
 
 const listFilesInMediaFolderRequestSchema = z.object({
@@ -27,7 +27,7 @@ export type ListFilesInMediaFolderRequestBody = z.infer<
 
 export async function doListFilesInMediaFolder(
   body: unknown,
-  config: CoreRoutesConfig = {},
+  config: CoreRoutesConfig = EMPTY_CORE_ROUTES_CONFIG,
 ): Promise<ListFilesInMediaFolderToolOutput> {
   const parsed = listFilesInMediaFolderRequestSchema.safeParse(body);
   if (!parsed.success) {

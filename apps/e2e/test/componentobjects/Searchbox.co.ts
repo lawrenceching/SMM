@@ -64,7 +64,7 @@ class SearchboxComponentObject {
                 if (!displayed) {
                     return false
                 }
-                const value = await input.getValue().catch(() => '')
+                const value = String(await input.getValue().catch(() => ''))
                 return expectedTitles.includes(value)
             },
             {

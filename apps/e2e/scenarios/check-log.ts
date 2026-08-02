@@ -35,6 +35,7 @@ function countHosts(lines: string[]): HostCount {
     if (!match) continue;
 
     const host = match[1];
+    if (!host) continue;
     byHost[host] = (byHost[host] ?? 0) + 1;
 
     if (host === WRONG_HOST) {

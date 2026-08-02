@@ -108,10 +108,10 @@ export async function startMainHttpServer(): Promise<void> {
   // undici) with the streaming node:http-based implementation. All code
   // paths that call `fetch()` — reverse proxy, AI SDK streamText, etc.
   // — will use this instead.
-  const fetchImpl: typeof fetch = createStreamingNodeHttpFetch
+  const fetchImpl = createStreamingNodeHttpFetch
     ? createStreamingNodeHttpFetch()
-    : (createNodeHttpFetch as typeof fetch)()
-  globalThis.fetch = fetchImpl
+    : createNodeHttpFetch()
+  globalThis.fetch = fetchImpl as typeof fetch
   console.log("[SERVER] globalThis.fetch replaced with streaming node:http fetch")
 
   const {

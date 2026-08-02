@@ -9,7 +9,7 @@ import {
   readMediaMetadataCache,
   writeMediaMetadataCache,
 } from "./mediaMetadataCache.ts";
-import type { CoreRoutesConfig } from "./types.ts";
+import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import {
   isMediaFolderManaged,
   readUserConfig,
@@ -24,7 +24,7 @@ const renameFolderRequestSchema = z.object({
 
 export async function doRenameFolder(
   body: FolderRenameRequestBody,
-  config: CoreRoutesConfig = {},
+  config: CoreRoutesConfig = EMPTY_CORE_ROUTES_CONFIG,
 ): Promise<FolderRenameResponseBody> {
   try {
     const validationResult = renameFolderRequestSchema.safeParse(body);

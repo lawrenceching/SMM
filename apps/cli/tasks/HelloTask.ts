@@ -7,7 +7,8 @@ import { logger } from '../lib/logger';
 
 export function buildHelloOptions(
   reverseProxyUrl: string | null = null,
-): Omit<HelloOptions, "coreRoutesPort"> {
+  coreRoutesPort = parseInt(process.env.CORE_ROUTES_PORT ?? '3001', 10),
+): HelloOptions {
   return {
     version: APP_VERSION,
     userDataDir: getUserDataDir(),
@@ -16,6 +17,7 @@ export function buildHelloOptions(
     tmpDir: getTmpDir(),
     reverseProxyUrl,
     osLocale: detectOsLocale(),
+    coreRoutesPort,
   };
 }
 

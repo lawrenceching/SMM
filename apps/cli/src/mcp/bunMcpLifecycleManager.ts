@@ -25,13 +25,15 @@ function buildMcpUrl(host: string, port: number): string {
 }
 
 function getRunningState(): McpServerState {
-  const bindHost = mcpServer!.hostname;
+  const server = mcpServer!;
+  const bindHost = server.hostname ?? DEFAULT_MCP_HOST;
   const advertisedHost = resolveMcpAdvertisedHost(bindHost);
+  const port = server.port ?? DEFAULT_MCP_PORT;
   return {
     status: "running",
     host: advertisedHost,
-    port: mcpServer!.port,
-    url: buildMcpUrl(advertisedHost, mcpServer!.port),
+    port,
+    url: buildMcpUrl(advertisedHost, port),
   };
 }
 
@@ -57,13 +59,14 @@ const bunMcpLifecycleManager: McpLifecycleManager = {
       port,
       fetch: handler,
     });
-    const advertisedHost = resolveMcpAdvertisedHost(mcpServer.hostname);
+    const advertisedHost = resolveMcpAdvertisedHost(mcpServer.hostname ?? bindHostname);
+    const listeningPort = mcpServer.port ?? port;
     logger.info(
       {
         hostname: bindHostname,
         advertisedHost,
-        port: mcpServer.port,
-        url: buildMcpUrl(advertisedHost, mcpServer.port),
+        port: listeningPort,
+        url: buildMcpUrl(advertisedHost, listeningPort),
       },
       "MCP server started",
     );

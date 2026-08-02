@@ -62,6 +62,9 @@ describe('MCP Other - IsFolderExistTool', () => {
 
   it('IsFolderExistTool should return exists=true for existing folder', async () => {
     const { tmpDir } = await fetchHelloPathsViaBrowser()
+    if (!tmpDir) {
+      throw new Error('hello tmpDir is required for IsFolderExistTool e2e')
+    }
     const inexistentPath = joinPlatformPath(tmpDir, `smm-mcp-inexistent-${Date.now()}`)
     let r = await mcpClient.isFolderExist(ctx.clientCwd, ctx.mcpAddress, { path: inexistentPath })
     expect(r.exists).toBe(false)

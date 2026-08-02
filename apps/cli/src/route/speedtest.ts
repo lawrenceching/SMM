@@ -114,7 +114,7 @@ export function handleSpeedtest(app: Hono) {
     } else {
       // Sort by timeMs ascending, pick the fastest
       successfulResults.sort((a, b) => (a.timeMs ?? Infinity) - (b.timeMs ?? Infinity));
-      fastestUrl = successfulResults[0].url;
+      fastestUrl = successfulResults[0]!.url;
     }
 
     const response: SpeedtestResponse = {

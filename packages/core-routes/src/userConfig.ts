@@ -6,6 +6,11 @@ import type { CoreRoutesConfig } from "./types.ts";
 
 const DEFAULT_USER_CONFIG: UserConfig = {
   folders: [],
+  tmdb: {},
+  tvdb: {},
+  renameRules: [],
+  dryRun: false,
+  selectedRenameRule: "plex",
 };
 
 export function resolveUserDataDir(config: CoreRoutesConfig): string | undefined {

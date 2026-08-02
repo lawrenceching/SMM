@@ -21,6 +21,7 @@ import http from "node:http";
 import https from "node:https";
 import zlib from "node:zlib";
 import { decompressBody } from "./httpContentEncoding.ts";
+import { toRequest, type FetchInput, type FetchLike } from "./fetchInput.ts";
 
 const HOP_BY_HOP_REQUEST_HEADERS: ReadonlySet<string> = new Set([
   "connection",
@@ -218,7 +219,9 @@ function requestViaNodeHttpStreaming(request: Request): Promise<Response> {
         // Pipe through decompressor, then convert to Web stream
         const decompressed = res.pipe(decompressor);
         decompressor.on("error", reject);
-        const webStream = Readable.toWeb(decompressed) as ReadableStream<Uint8Array>;
+        const webStream = Readable.toWeb(
+          decompressed as unknown as Readable,
+        ) as ReadableStream<Uint8Array>;
         resolve(
           createNodeHttpResponse(
             webStream,
@@ -280,11 +283,9 @@ function requestViaNodeHttpStreaming(request: Request): Promise<Response> {
  * {@link ReverseProxyConfig.fetchImpl} or {@link CoreRoutesConfig.fetchImpl}
  * on runtimes without working global `fetch`.
  */
-export function createNodeHttpFetch(): typeof fetch {
-  return (input: RequestInfo | URL, init?: RequestInit) => {
-    const request =
-      input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttp(request);
+export function createNodeHttpFetch(): FetchLike {
+  return (input: FetchInput, init?: RequestInit) => {
+    return requestViaNodeHttp(toRequest(input, init));
   };
 }
 
@@ -303,10 +304,8 @@ export function createNodeHttpFetch(): typeof fetch {
  * replacement** on platforms like OHOS Electron where the built-in
  * `fetch` (undici) is broken because `WebAssembly` is unavailable.
  */
-export function createStreamingNodeHttpFetch(): typeof fetch {
-  return (input: RequestInfo | URL, init?: RequestInit) => {
-    const request =
-      input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttpStreaming(request);
+export function createStreamingNodeHttpFetch(): FetchLike {
+  return (input: FetchInput, init?: RequestInit) => {
+    return requestViaNodeHttpStreaming(toRequest(input, init));
   };
 }

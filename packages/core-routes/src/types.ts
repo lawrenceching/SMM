@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { FetchLike } from "./fetchInput.ts";
 import type { HelloOptions } from "./hello.ts";
 import type { ChatConfig } from "./chatTypes.ts";
 import type { McpLifecycleManager } from "./mcp/lifecycleTypes.ts";
@@ -43,7 +44,7 @@ export interface CoreRoutesConfig {
    * runtimes where global `fetch` is unavailable (OHOS Electron /
    * WebAssembly missing).
    */
-  fetchImpl?: typeof fetch;
+  fetchImpl?: FetchLike;
   /**
    * When set, `POST /api/chat` is mounted onto the core-routes
    * `node:http` server. The host (cli Bun, OHOS Electron Main, etc.)
@@ -73,6 +74,11 @@ export interface CoreRoutesConfig {
    */
   activatePersistedFileAccess?: (paths: string[]) => void | Promise<void>;
 }
+
+/** Default config for optional route-handler parameters in tests and tooling. */
+export const EMPTY_CORE_ROUTES_CONFIG: CoreRoutesConfig = {
+  allowlist: [],
+};
 
 export interface RouteContext {
   config: CoreRoutesConfig;

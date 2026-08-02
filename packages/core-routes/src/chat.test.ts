@@ -3,6 +3,20 @@ import { doChat } from "./chat.ts";
 import type { ChatConfig, ChatRequestBody } from "./chatTypes.ts";
 import type { UserConfig } from "@smm/core/types";
 
+function makeUserConfig(
+  overrides: Partial<UserConfig> = {},
+): UserConfig {
+  return {
+    folders: [],
+    tmdb: {},
+    tvdb: {},
+    renameRules: [],
+    dryRun: false,
+    selectedRenameRule: "plex",
+    ...overrides,
+  };
+}
+
 /**
  * Minimal stub for the `doChat` smoke tests below. We do NOT exercise
  * the real `streamText` path here — the AI SDK + a live model is
@@ -13,13 +27,7 @@ import type { UserConfig } from "@smm/core/types";
  * from `ChatTask.ts`.
  */
 function makeConfig(overrides: Partial<ChatConfig> = {}): ChatConfig {
-  const userConfig: UserConfig = {
-    folders: [],
-    tmdb: {},
-    renameRules: [],
-    dryRun: false,
-    selectedRenameRule: "plex",
-  };
+  const userConfig = makeUserConfig();
   return {
     appDataDir: "/tmp",
     logger: {
@@ -55,22 +63,18 @@ describe("doChat — early-out branches", () => {
 
   it("returns 400 when createAIProvider throws (missing API key / model)", async () => {
     const config = makeConfig({
-      getUserConfig: async () => ({
-        folders: [],
-        tmdb: {},
-        renameRules: [],
-        dryRun: false,
-        selectedRenameRule: "plex",
-        selectedAIProvider: "openai",
-        aiProviders: [
-          {
-            name: "openai",
-            baseURL: "https://example.invalid",
-            apiKey: "",
-            model: "gpt-4o-mini",
-          },
-        ],
-      }),
+      getUserConfig: async () =>
+        makeUserConfig({
+          selectedAIProvider: "openai",
+          aiProviders: [
+            {
+              name: "openai",
+              baseURL: "https://example.invalid",
+              apiKey: "",
+              model: "gpt-4o-mini",
+            },
+          ],
+        }),
       createAIProvider: () => {
         throw new Error("apiKey is required for provider \"openai\"");
       },
@@ -87,22 +91,18 @@ describe("doChat — early-out branches", () => {
 
   it("returns 400 when request body is not valid JSON", async () => {
     const config = makeConfig({
-      getUserConfig: async () => ({
-        folders: [],
-        tmdb: {},
-        renameRules: [],
-        dryRun: false,
-        selectedRenameRule: "plex",
-        selectedAIProvider: "openai",
-        aiProviders: [
-          {
-            name: "openai",
-            baseURL: "https://example.invalid",
-            apiKey: "sk-x",
-            model: "gpt-4o-mini",
-          },
-        ],
-      }),
+      getUserConfig: async () =>
+        makeUserConfig({
+          selectedAIProvider: "openai",
+          aiProviders: [
+            {
+              name: "openai",
+              baseURL: "https://example.invalid",
+              apiKey: "sk-x",
+              model: "gpt-4o-mini",
+            },
+          ],
+        }),
       // Returns a provider stub so the early-out branch falls through
       // to the JSON parse. We do not actually call `streamText` because
       // the JSON parse fails first.

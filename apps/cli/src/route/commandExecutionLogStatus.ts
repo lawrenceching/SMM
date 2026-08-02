@@ -96,7 +96,7 @@ export async function readCommandExecutionStatusFromLog(
     };
   }
 
-  const systemNote = lastSystemNoteFromLog(raw);
+  const systemNote = lastSystemNoteFromLogText(raw);
   const parsed = systemNote ? parseFinishedFromSystemNote(systemNote) : null;
   if (!parsed) {
     return {

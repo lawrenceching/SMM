@@ -1,5 +1,5 @@
 import { Path } from '@smm/core'
-import { registerStep } from '../lib/gherkin'
+import { registerStep, requiredStepArg } from '../lib/gherkin'
 import { importFolderWithMediaMetadata } from '../lib/testbed'
 import {
     createTestFolderViaBrowser,
@@ -17,11 +17,12 @@ const EPISODE_RE = /[Ss](\d+)[Ee](\d+)/
  * (Step name keeps "via menu" for Gherkin compatibility with existing specs.)
  */
 registerStep('TV show folder "xxx" with files "xxx" was imported via menu', async (ctx, args) => {
-    const [folderName, filesCsv] = args
+    const folderName = requiredStepArg(args, 0)
+    const filesCsv = requiredStepArg(args, 1)
     const files = filesCsv.split(',').map((f) => f.trim()).filter(Boolean)
     const base = await resolveSmmTestFolderViaBrowser()
     const folder = {
-        folderName: folderName!,
+        folderName: folderName,
         files,
         type: 'tvshow' as const,
     }
@@ -46,7 +47,7 @@ registerStep('TV show folder "xxx" with files "xxx" was imported via menu', asyn
     })
 
     await page.refresh()
-    const isDisplayed = await Sidebar.waitForFolderName(folderName!, 60000)
+    const isDisplayed = await Sidebar.waitForFolderName(folderName, 60000)
     if (!isDisplayed) {
         throw new Error(`Folder "${folderName}" did not appear in sidebar`)
     }

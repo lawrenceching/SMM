@@ -1,5 +1,6 @@
 import { brotliCompress } from "node:zlib";
 import { promisify } from "node:util";
+import type { IncomingMessage } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import { createNodeHttpFetch } from "./nodeHttpFetch.ts";
 
@@ -37,7 +38,11 @@ describe("createNodeHttpFetch", () => {
             }
           },
         };
-        queueMicrotask(() => callback?.(res as never));
+        queueMicrotask(() => {
+          (callback as ((res: IncomingMessage) => void) | undefined)?.(
+            res as IncomingMessage,
+          );
+        });
         return {
           on() {},
           write() {},
@@ -78,7 +83,11 @@ describe("createNodeHttpFetch", () => {
             }
           },
         };
-        queueMicrotask(() => callback?.(res as never));
+        queueMicrotask(() => {
+          (callback as ((res: IncomingMessage) => void) | undefined)?.(
+            res as IncomingMessage,
+          );
+        });
         return {
           on() {},
           write() {},

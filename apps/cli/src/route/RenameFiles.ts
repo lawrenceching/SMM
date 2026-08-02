@@ -23,7 +23,6 @@ export async function processRenameFiles(
     {
       allowlist,
       appDataDir: getAppDataDir(),
-      hello: { userDataDir: getUserDataDir(), appDataDir: getAppDataDir() },
       logger: coreRoutesLogger,
       broadcast: (message) => broadcast(message),
     },

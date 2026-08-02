@@ -1,8 +1,9 @@
-import { registerStep } from '../lib/gherkin'
+import type { PreferMediaLanguage } from '@smm/core/types'
+import { registerStep, requiredStepArg } from '../lib/gherkin'
 import { updateUserConfig } from '../lib/testbed'
 
 registerStep('prefer media language is "xxx"', async (_ctx, args) => {
-    const [language] = args
+    const language = requiredStepArg(args, 0) as PreferMediaLanguage
     await updateUserConfig((userConfig) => ({
         ...userConfig,
         preferMediaLanguage: language,

@@ -18,6 +18,10 @@ vi.mock("electron", () => ({
   },
 }))
 
+type OhosSystemPreferences = {
+  callArkTSFunction: ReturnType<typeof vi.fn>
+}
+
 describe("registerFileAccessPersistIpcHandlers", () => {
   afterEach(() => {
     vi.clearAllMocks()
@@ -38,6 +42,7 @@ describe("registerFileAccessPersistIpcHandlers", () => {
 
   it("calls ReactivateFolders on openharmony platform", async () => {
     const { systemPreferences } = await import("electron")
+    const ohosPrefs = systemPreferences as unknown as OhosSystemPreferences
     const originalPlatform = process.platform
     Object.defineProperty(process, "platform", { value: "openharmony" })
 
@@ -52,7 +57,7 @@ describe("registerFileAccessPersistIpcHandlers", () => {
     const result = await handler!(null, { paths: ["/storage/Users/currentUser/Download/test"] })
 
     expect(result).toEqual({ ok: true })
-    expect(systemPreferences.callArkTSFunction).toHaveBeenCalledWith(
+    expect(ohosPrefs.callArkTSFunction).toHaveBeenCalledWith(
       "PermissionManagerAdapter.ReactivateFolders",
       "void",
       [["/storage/Users/currentUser/Download/test"]],

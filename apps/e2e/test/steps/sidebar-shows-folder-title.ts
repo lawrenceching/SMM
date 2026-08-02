@@ -1,7 +1,7 @@
-import { registerStep } from '../lib/gherkin'
+import { registerStep, requiredStepArg } from '../lib/gherkin'
 
 registerStep('Sidebar shows folder with title "xxx"', async (ctx, args) => {
-    const [expectedTitle] = args
+    const expectedTitle = requiredStepArg(args, 0)
     const { default: Sidebar } = await import('../componentobjects/Sidebar')
     await Sidebar.waitForFolderTitle(expectedTitle, 60000)
     ctx._folderTitle = expectedTitle

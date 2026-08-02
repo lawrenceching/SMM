@@ -17,7 +17,7 @@ const RENAMED_FILE_NAME = 'S01E01_renamed.mp4'
 const ASSOCIATED_FILES = ['S01E01.srt', 'S01E01.en.srt', 'S01E01.ass'] as const
 const RENAMED_ASSOCIATED_FILES = ['S01E01_renamed.srt', 'S01E01_renamed.en.srt', 'S01E01_renamed.ass'] as const
 
-function waitForFilesInFolder(
+async function waitForFilesInFolder(
     folderPath: string,
     options: {
         mustInclude: string[]
@@ -26,7 +26,7 @@ function waitForFilesInFolder(
     },
 ): Promise<void> {
     const { mustInclude, mustExclude, timeout = 30_000 } = options
-    return browser.waitUntil(
+    await browser.waitUntil(
         async () => {
             const names = await listFileNamesViaBrowser(folderPath)
             return (

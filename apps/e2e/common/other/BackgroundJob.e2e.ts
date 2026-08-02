@@ -61,7 +61,7 @@ describe('Background Job', () => {
 
         const jobId = await browser.execute((jobName: string) => {
             const allElements = document.querySelectorAll('[data-testid]')
-            for (const el of allElements) {
+            for (const el of Array.from(allElements)) {
                 const testId = el.getAttribute('data-testid')
                 if (testId && testId.endsWith('-name') && el.textContent?.trim() === jobName) {
                     return testId.replace('background-job-', '').replace('-name', '')
@@ -101,7 +101,11 @@ describe('Background Job', () => {
         })
 
         const idbJobExists = await browser.executeAsync(
-            (id: string, done: (result: boolean) => void) => {
+            (id: string | null, done: (result?: boolean) => void) => {
+                if (!id) {
+                    done(false)
+                    return
+                }
                 const request = indexedDB.open('DownloadTaskDatabase', 1)
                 request.onsuccess = () => {
                     const db = request.result
@@ -139,7 +143,7 @@ describe('Background Job', () => {
 
         const jobId = await browser.execute((jobName: string) => {
             const allElements = document.querySelectorAll('[data-testid]')
-            for (const el of allElements) {
+            for (const el of Array.from(allElements)) {
                 const testId = el.getAttribute('data-testid')
                 if (testId && testId.endsWith('-name') && el.textContent?.trim() === jobName) {
                     return testId.replace('background-job-', '').replace('-name', '')
@@ -212,7 +216,11 @@ describe('Background Job', () => {
         })
 
         const idbJobExists = await browser.executeAsync(
-            (id: string, done: (result: boolean) => void) => {
+            (id: string | null, done: (result?: boolean) => void) => {
+                if (!id) {
+                    done(false)
+                    return
+                }
                 const request = indexedDB.open('DownloadTaskDatabase', 1)
                 request.onsuccess = () => {
                     const db = request.result

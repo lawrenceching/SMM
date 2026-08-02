@@ -90,7 +90,7 @@ class RenameDialog {
      */
     async getInputValue(): Promise<string> {
         const inputElement = await this.input
-        return await inputElement.getValue()
+        return String(await inputElement.getValue())
     }
 
     /**

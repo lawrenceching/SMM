@@ -113,7 +113,7 @@ describe("POST /api/log — args[] wire format", () => {
       }),
     });
     expect(res.status).toBe(204);
-    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(call[1]).toBe("[frontend] opening folder-123");
   });
 
@@ -136,7 +136,7 @@ describe("POST /api/log — args[] wire format", () => {
       }),
     });
     expect(res.status).toBe(204);
-    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(call[1]).toBe("[frontend] hi undefined null [Circular] [Function: function foo() { return 1; }]");
   });
 
@@ -154,7 +154,7 @@ describe("POST /api/log — args[] wire format", () => {
       }),
     });
     expect(res.status).toBe(204);
-    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    const call = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(call[1]).toBe("[frontend] explicit-message");
   });
 });
@@ -176,7 +176,7 @@ describe("POST /api/log — truncation", () => {
     expect(res.status).toBe(204);
     const calls = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls.length).toBe(1);
-    const ctx = calls[0][0] as { truncated?: boolean };
+    const ctx = calls[0]![0] as { truncated?: boolean };
     expect(ctx.truncated).toBe(true);
   });
 
@@ -300,7 +300,7 @@ describe("POST /api/log — frontend 'log' level", () => {
     });
     expect(res.status).toBe(204);
     expect(frontendLogger.info).toHaveBeenCalledTimes(1);
-    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(args[1]).toBe("[frontend] from console.log");
   });
 
@@ -313,7 +313,7 @@ describe("POST /api/log — frontend 'log' level", () => {
       body: JSON.stringify({ level: "log", message: "[rename] user started rule-based rename" }),
     });
     expect(res.status).toBe(204);
-    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0];
+    const args = (frontendLogger.info as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(args[1]).toBe("[rename] user started rule-based rename");
   });
 });

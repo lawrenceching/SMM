@@ -1,6 +1,6 @@
 import i18next from 'i18next';
 import Backend from 'i18next-fs-backend';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 /**
@@ -16,7 +16,7 @@ import { fileURLToPath } from 'url';
  * @returns Initialized i18next instance
  */
 export async function initI18n() {
-  const __dirname = fileURLToPath(new URL('.', import.meta.url));
+  const __dirname = dirname(fileURLToPath(import.meta.url));
   const localesPath = join(__dirname, '../../public/locales');
 
   await i18next
