@@ -27,3 +27,7 @@ Download latest version from [Release Page](https://github.com/lawrenceching/fan
 
 [GitCode | 反馈问题 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/issues)
 [GitCode | 用户反馈、讨论、社区论坛 | 中国大陆](https://gitcode.com/lawrenceching/simple-media-manager/discussions)
+
+## Development
+
+Maintainers: see [Release process (Electron & Docker)](docs/dev/release.md). End users installing Docker: [docker-install.md](docs/docker-install.md).

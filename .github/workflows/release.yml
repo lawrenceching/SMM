@@ -30,6 +30,15 @@ permissions:
   contents: write
 
 jobs:
+  ensure-tag:
+    name: Ensure release tag
+    uses: ./.github/workflows/_ensure-release-tag.yml
+    with:
+      tag_name: ${{ github.event.inputs.tag_name }}
+      target_sha: ${{ github.sha }}
+    permissions:
+      contents: write
+
   build-electron-linux-x64:
     name: Build Electron (linux-x64)
     runs-on: ubuntu-latest
@@ -359,6 +368,7 @@ jobs:
   release-electron:
     name: Create GitHub Release (Electron installers)
     needs:
+      - ensure-tag
       - build-electron-linux-x64
       - build-electron-linux-arm64
       - build-electron-windows-x64
@@ -374,7 +384,8 @@ jobs:
           merge-multiple: true
           path: dist
 
-      - name: Create GitHub Release and upload assets
+      - name: Create GitHub Release and upload assets (new tag)
+        if: needs.ensure-tag.outputs.tag_exists != 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag_name }}
@@ -387,3 +398,18 @@ jobs:
             dist/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload assets to existing GitHub Release
+        if: needs.ensure-tag.outputs.tag_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=(dist/**/*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No Electron artifacts found in dist/"
+            exit 1
+          fi
+          gh release upload "${{ github.event.inputs.tag_name }}" "${files[@]}" --clobber
+          echo "Uploaded Electron assets to existing Release ${{ github.event.inputs.tag_name }}."

@@ -1,0 +1,200 @@
+name: Release Docker
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Git tag for the release (e.g. v1.2.3)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release title (optional)'
+        required: false
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        default: false
+        type: boolean
+      prerelease:
+        description: 'Mark as prerelease'
+        required: false
+        default: false
+        type: boolean
+      body:
+        description: 'Release notes (optional)'
+        required: false
+        type: string
+      skip_unit_tests:
+        description: 'Skip unit tests (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+      skip_e2e_tests:
+        description: 'Skip docker e2e-gate verification (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  unit-tests:
+    name: Run unit tests
+    if: ${{ !inputs.skip_unit_tests }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run all tests
+        run: pnpm -r test
+
+  verify-docker-e2e:
+    name: Verify docker e2e-gate
+    if: ${{ !inputs.skip_e2e_tests }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify e2e-gate on this commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: bun ci/verify-docker-e2e-gate.ts --sha "${{ github.sha }}"
+
+  build-push:
+    name: Build and push Docker image
+    needs: [unit-tests, verify-docker-e2e]
+    if: |
+      always() &&
+      (needs.unit-tests.result == 'success' || needs.unit-tests.result == 'skipped') &&
+      (needs.verify-docker-e2e.result == 'success' || needs.verify-docker-e2e.result == 'skipped')
+    uses: ./.github/workflows/_build-docker-push.yml
+    with:
+      semver_tag: ${{ inputs.tag_name }}
+    secrets: inherit
+
+  ensure-tag:
+    name: Ensure release tag
+    needs: build-push
+    uses: ./.github/workflows/_ensure-release-tag.yml
+    with:
+      tag_name: ${{ inputs.tag_name }}
+      target_sha: ${{ github.sha }}
+    permissions:
+      contents: write
+
+  release-github:
+    name: Create or update GitHub Release (Docker)
+    needs: [build-push, ensure-tag]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag_name }}
+          SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
+          TAG_EXISTS: ${{ needs.ensure-tag.outputs.tag_exists }}
+          USER_BODY: ${{ inputs.body }}
+          RELEASE_TITLE: ${{ (inputs.release_name != '' && inputs.release_name) || inputs.tag_name }}
+          IS_DRAFT: ${{ inputs.draft }}
+          IS_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+
+          DOCKER_SECTION="$(printf '%s\n' \
+            '## Docker' \
+            '' \
+            '```bash' \
+            "docker pull lawrenceching/smm:${TAG}" \
+            '```' \
+            '' \
+            "Multi-arch (\`linux/amd64\`, \`linux/arm64\`). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md).")"
+
+          write_notes() {
+            printf '%s' "$1" > /tmp/release-notes.md
+          }
+
+          if [ "${TAG_EXISTS}" = "true" ]; then
+            EXISTING="$(gh release view "${TAG}" --repo "${REPO}" --json body -q .body || true)"
+            if printf '%s' "${EXISTING}" | grep -q '## Docker'; then
+              echo "Docker section already present in Release ${TAG}."
+            else
+              if [ -n "${EXISTING}" ]; then
+                NOTES="$(printf '%s\n\n%s' "${EXISTING}" "${DOCKER_SECTION}")"
+              else
+                NOTES="${DOCKER_SECTION}"
+              fi
+              write_notes "${NOTES}"
+              gh release edit "${TAG}" --repo "${REPO}" --notes-file /tmp/release-notes.md
+              echo "Appended Docker section to existing Release ${TAG}."
+            fi
+          else
+            if [ -n "${USER_BODY}" ]; then
+              NOTES="$(printf '%s\n\n%s' "${USER_BODY}" "${DOCKER_SECTION}")"
+            else
+              NOTES="${DOCKER_SECTION}"
+            fi
+            write_notes "${NOTES}"
+            args=(
+              gh release create "${TAG}"
+              --repo "${REPO}"
+              --target "${SHA}"
+              --title "${RELEASE_TITLE}"
+              --notes-file /tmp/release-notes.md
+            )
+            if [ "${IS_DRAFT}" = "true" ]; then
+              args+=(--draft)
+            fi
+            if [ "${IS_PRERELEASE}" = "true" ]; then
+              args+=(--prerelease)
+            fi
+            "${args[@]}"
+            echo "Created GitHub Release ${TAG} with Docker notes."
+          fi
+
+  audit-skips:
+    name: Audit skip options
+    needs: [unit-tests, verify-docker-e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record skip options in summary
+        run: |
+          {
+            echo "## Release Docker skip audit"
+            if [ "${{ inputs.skip_unit_tests }}" = "true" ]; then
+              echo "::warning::skip_unit_tests was enabled for this run."
+              echo "- **skip_unit_tests**: enabled"
+            else
+              echo "- **skip_unit_tests**: disabled"
+            fi
+            if [ "${{ inputs.skip_e2e_tests }}" = "true" ]; then
+              echo "::warning::skip_e2e_tests was enabled for this run."
+              echo "- **skip_e2e_tests**: enabled"
+            else
+              echo "- **skip_e2e_tests**: disabled"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

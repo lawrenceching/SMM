@@ -185,3 +185,22 @@ jobs:
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7
+
+  e2e-gate:
+    name: docker-e2e / gate
+    needs: [build-image, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all Docker E2E jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.build-image.result }}" != "success" ]; then
+            echo "::error::build-image: ${{ needs.build-image.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::e2e matrix: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "All Docker E2E jobs passed."

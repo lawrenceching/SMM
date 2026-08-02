@@ -143,6 +143,10 @@ pnpm typecheck        # 运行所有类型检查
 pnpm ci               # 构建 + 测试 + 类型检查
 ```
 
+## 发版
+
+维护者发布 **Electron 桌面版** 与 **Docker 镜像** 的流程见 [docs/dev/release.md](./docs/dev/release.md)（共用 Git tag、单 GitHub Release 多产物、Docker 发版前 E2E gate 校验）。
+
 ## 开发原则
 
 ### UI 乐观更新策略
