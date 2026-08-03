@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
+import { Path } from "@core/path"
 import { useTranslation } from "@/lib/i18n"
 import { join, relative } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
@@ -89,6 +90,7 @@ export function useRenameVideoFileFlow(
                 { from: row.videoFile, to: newAbsolutePath },
                 ...assocRenames,
               ],
+              mediaFolder: Path.posix(mediaFolderPath),
             })
             await onAfterRename?.()
             await fetchMediaMetadata({ path: mediaFolderPath })

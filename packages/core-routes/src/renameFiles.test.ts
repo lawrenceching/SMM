@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -7,6 +7,10 @@ import type { MediaMetadata } from "@smm/core/types";
 import { metadataCacheFilePath } from "./mediaMetadataCache.ts";
 import { doRenameFiles } from "./renameFiles.ts";
 import type { CoreRoutesConfig } from "./types.ts";
+
+function toAllowlistPrefix(platformPath: string): string {
+  return platformPath.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+}
 
 describe("doRenameFiles", () => {
   let root: string;
@@ -20,7 +24,6 @@ describe("doRenameFiles", () => {
     await mkdir(mediaDir, { recursive: true });
 
     const fromFile = join(mediaDir, "ep1.mkv");
-    const toFile = join(mediaDir, "S01E01.mkv");
     await writeFile(fromFile, "video");
 
     const metadata: MediaMetadata = {
@@ -49,7 +52,7 @@ describe("doRenameFiles", () => {
     );
 
     config = {
-      allowlist: [root.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1")],
+      allowlist: [toAllowlistPrefix(root)],
       appDataDir: root,
       hello: { userDataDir: root, appDataDir: root } as CoreRoutesConfig["hello"],
       broadcast,
@@ -108,6 +111,130 @@ describe("doRenameFiles", () => {
 
     expect(result.error).toContain("already exists");
   });
+
+  it("rejects when mediaFolder is omitted and strict defaults to true", async () => {
+    const fromFile = join(mediaDir, "strict-default.mkv");
+    const toFile = join(mediaDir, "strict-default-renamed.mkv");
+    await writeFile(fromFile, "video");
+
+    const result = await doRenameFiles(
+      {
+        files: [{ from: fromFile, to: toFile }],
+      },
+      config,
+    );
+
+    expect(result.error).toContain("mediaFolder is required when strict is true");
+  });
+
+  it("rejects when mediaFolder is omitted and strict is true", async () => {
+    const fromFile = join(mediaDir, "strict-true.mkv");
+    const toFile = join(mediaDir, "strict-true-renamed.mkv");
+    await writeFile(fromFile, "video");
+
+    const result = await doRenameFiles(
+      {
+        files: [{ from: fromFile, to: toFile }],
+        strict: true,
+      },
+      config,
+    );
+
+    expect(result.error).toContain("mediaFolder is required when strict is true");
+  });
+
+  it("resolves mediaFolder from smm.json when strict is false", async () => {
+    const fromFile = join(mediaDir, "strict-false.mkv");
+    const toFile = join(mediaDir, "strict-false-renamed.mkv");
+    await writeFile(fromFile, "video");
+
+    const result = await doRenameFiles(
+      {
+        files: [{ from: fromFile, to: toFile }],
+        strict: false,
+      },
+      config,
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.data?.succeeded).toEqual([Path.posix(fromFile)]);
+  });
+
+  it("rejects paths outside the allowlist", async () => {
+    const outsideRoot = await mkdtemp(join(tmpdir(), "smm-rename-outside-"));
+    try {
+      const fromFile = join(outsideRoot, "out.mkv");
+      const toFile = join(outsideRoot, "out-renamed.mkv");
+      await writeFile(fromFile, "video");
+
+      const result = await doRenameFiles(
+        {
+          files: [{ from: fromFile, to: toFile }],
+          mediaFolder: Path.posix(outsideRoot),
+        },
+        config,
+      );
+
+      expect(result.error).toContain("is not in the allowlist");
+    } finally {
+      await rm(outsideRoot, { recursive: true, force: true });
+    }
+  });
+});
+
+describe("doRenameFiles Linux-like userDataDir vs appDataDir", () => {
+  it("reads smm.json from hello.userDataDir when appDataDir differs (strict: false)", async () => {
+    const root = await mkdtemp(join(tmpdir(), "smm-rename-split-"));
+    const userDataDir = join(root, "config", "smm");
+    const appDataDir = join(root, "share", "smm");
+    const mediaDir = join(root, "media", "show");
+    const fromFile = join(mediaDir, "S01E01.mp4");
+    const toFile = join(mediaDir, "S01E01_renamed.mp4");
+
+    await mkdir(userDataDir, { recursive: true });
+    await mkdir(join(appDataDir, "metadata"), { recursive: true });
+    await mkdir(mediaDir, { recursive: true });
+    await writeFile(fromFile, "video");
+    await writeFile(
+      join(userDataDir, "smm.json"),
+      JSON.stringify({ folders: [mediaDir] }),
+      "utf-8",
+    );
+
+    const allowlist = [toAllowlistPrefix(root)];
+
+    // Bug reproduction: only appDataDir → cannot find folders in smm.json
+    const brokenConfig: CoreRoutesConfig = {
+      allowlist,
+      appDataDir,
+    };
+    const broken = await doRenameFiles(
+      {
+        files: [{ from: fromFile, to: toFile }],
+        strict: false,
+      },
+      brokenConfig,
+    );
+    expect(broken.error).toContain("Media folder not found");
+
+    // Fix: hello.userDataDir points at the config that holds folders
+    const fixedConfig: CoreRoutesConfig = {
+      allowlist,
+      appDataDir,
+      hello: { userDataDir, appDataDir } as CoreRoutesConfig["hello"],
+    };
+    const fixed = await doRenameFiles(
+      {
+        files: [{ from: fromFile, to: toFile }],
+        strict: false,
+      },
+      fixedConfig,
+    );
+    expect(fixed.error).toBeUndefined();
+    expect(fixed.data?.succeeded).toEqual([Path.posix(fromFile)]);
+
+    await rm(root, { recursive: true, force: true });
+  });
 });
 
 describe("handleRenameFilesPost route", () => {
@@ -140,7 +267,7 @@ describe("handleRenameFilesPost route", () => {
     expect(body).toContain("Not found");
   });
 
-  it("returns 200 instead of 404 for a valid request body", async () => {
+  it("returns 200 with mediaFolder required error when body omits mediaFolder", async () => {
     const { handleCoreRoutesRequest } = await import("./register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
     const { Socket } = await import("node:net");
@@ -170,6 +297,6 @@ describe("handleRenameFilesPost route", () => {
 
     const parsed = JSON.parse(body) as { error?: string };
     expect(statusCode).toBe(200);
-    expect(parsed.error).toBeTruthy();
+    expect(parsed.error).toContain("mediaFolder is required when strict is true");
   });
 });

@@ -1,29 +1,26 @@
-import { doRenameFiles as doRenameFilesCore } from "@smm/core-routes";
+import { doRenameFiles as doRenameFilesCore, type CoreRoutesLogger } from "@smm/core-routes";
 import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types";
 import type { Hono } from "hono";
 import { logger } from "../../lib/logger";
-import { buildAllowlist } from "@/utils/buildAllowlist";
-import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import { broadcast } from "../utils/socketIO";
+import { buildCoreRoutesConfig } from "./coreRoutesConfig";
 
-const coreRoutesLogger = {
-  debug: (obj: Record<string, unknown>, msg?: string) => logger.debug(obj, msg),
-  info: (obj: Record<string, unknown>, msg?: string) => logger.info(obj, msg),
-  warn: (obj: Record<string, unknown>, msg?: string) => logger.warn(obj, msg),
-  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
+const coreRoutesLogger: CoreRoutesLogger = {
+  debug: (obj, msg) => logger.debug(obj, msg),
+  info: (obj, msg) => logger.info(obj, msg),
+  warn: (obj, msg) => logger.warn(obj, msg),
+  error: (obj, msg) => logger.error(obj, msg),
 };
 
 export async function processRenameFiles(
   body: RenameFilesRequestBody,
   clientId?: string,
 ): Promise<RenameFilesResponseBody> {
-  const allowlist = await buildAllowlist();
+  const config = await buildCoreRoutesConfig(coreRoutesLogger);
   return doRenameFilesCore(
     body,
     {
-      allowlist,
-      appDataDir: getAppDataDir(),
-      logger: coreRoutesLogger,
+      ...config,
       broadcast: (message) => broadcast(message),
     },
     clientId,

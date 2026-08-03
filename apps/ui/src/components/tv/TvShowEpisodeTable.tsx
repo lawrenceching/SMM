@@ -902,6 +902,7 @@ export function TvShowEpisodeTable({
                                 { from: row.videoFile, to: newAbsolutePath },
                                 ...assocRenames,
                               ],
+                              mediaFolder: Path.posix(selectedMediaMetadata.mediaFolderPath),
                             })
                             fetchMediaMetadata({ path: selectedMediaMetadata.mediaFolderPath })
                             toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))

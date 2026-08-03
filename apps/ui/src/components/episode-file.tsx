@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
+import { Path } from "@core/path"
 import { relative, join, basename, dirname, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"
@@ -221,6 +222,7 @@ export function EpisodeFile({
                                                 { from: file.path, to: newAbsolutePath },
                                                 ...assocRenames,
                                             ],
+                                            mediaFolder: Path.posix(selectedMediaMetadata.mediaFolderPath),
                                         })
 
                                         // Refresh media metadata to reflect the rename

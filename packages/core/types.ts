@@ -1061,8 +1061,14 @@ export interface RenameFilesRequestBody {
    */
   traceId?: string;
   /**
-   * Optional media folder path in POSIX format. When provided, the backend will
-   * automatically update media metadata and broadcast the change after renaming.
+   * When true (default), mediaFolder is required.
+   * When false, mediaFolder may be omitted and resolved from smm.json folders.
+   */
+  strict?: boolean;
+  /**
+   * Media folder path in POSIX format. Required when strict is true (default).
+   * When provided, the backend will automatically update media metadata and
+   * broadcast the change after renaming.
    */
   mediaFolder?: string;
   /**

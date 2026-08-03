@@ -3,6 +3,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { generateNewFileName } from "@/lib/renameRules"
+import { Path } from "@core/path"
 import { join, extname } from "@/lib/path"
 import { useLatest } from "react-use"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -304,7 +305,10 @@ function MoviePanel() {
     setIsRenaming(true)
 
     try {
-      await renameFiles({ files: filesToRename })
+      await renameFiles({
+        files: filesToRename,
+        mediaFolder: Path.posix(mediaMetadata.mediaFolderPath),
+      })
       await refreshMediaMetadata(mediaMetadata.mediaFolderPath)
       toast.success(t('movie.renameSuccess', { ns: 'components', count: filesToRename.length }))
     } catch (error) {

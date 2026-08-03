@@ -3,6 +3,7 @@ import { getMediaFolder } from "@smm/core/getMediaFolder";
 import { updateMediaMetadataAfterRename } from "@smm/core/mediaMetadata";
 import { Path } from "@smm/core/path";
 import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/core/types";
+import { validatePathIsInAllowlist } from "./allowlist.ts";
 import {
   readMediaMetadataCache,
   writeMediaMetadataCache,
@@ -22,6 +23,7 @@ const requestSchema = z.object({
     )
     .min(1, "At least one file rename is required"),
   traceId: z.string().optional(),
+  strict: z.boolean().optional(),
   mediaFolder: z.string().optional(),
   clientId: z.string().optional(),
 });
@@ -65,6 +67,19 @@ async function updateMediaMetadataAndBroadcast(
   });
 }
 
+function findAllowlistViolation(
+  paths: string[],
+  allowlist: string[],
+): string | undefined {
+  for (const path of paths) {
+    const posixPath = Path.posix(path);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      return path;
+    }
+  }
+  return undefined;
+}
+
 export async function doRenameFiles(
   body: RenameFilesRequestBody,
   config: CoreRoutesConfig = EMPTY_CORE_ROUTES_CONFIG,
@@ -76,9 +91,20 @@ export async function doRenameFiles(
     return { error: `Validation Failed: ${msg}` };
   }
 
-  const { files, traceId, mediaFolder: mediaFolderFromBody, clientId: clientIdFromBody } = parsed.data;
+  const {
+    files,
+    traceId,
+    strict: strictFromBody,
+    mediaFolder: mediaFolderFromBody,
+    clientId: clientIdFromBody,
+  } = parsed.data;
+  const strict = strictFromBody ?? true;
   const effectiveClientId = headerClientId ?? clientIdFromBody;
   const logCtx = traceId ? { traceId } : {};
+
+  if (strict && !mediaFolderFromBody) {
+    return { error: "Validation Failed: mediaFolder is required when strict is true" };
+  }
 
   const userConfig = await readUserConfig(config);
   const mediaFolderPath =
@@ -89,6 +115,16 @@ export async function doRenameFiles(
   }
 
   const mediaFolderInPosix = Path.posix(mediaFolderPath);
+
+  const pathsToCheck = [
+    mediaFolderPath,
+    ...files.flatMap((f) => [f.from, f.to]),
+  ];
+  const violatedPath = findAllowlistViolation(pathsToCheck, config.allowlist);
+  if (violatedPath !== undefined) {
+    return { error: `Path "${violatedPath}" is not in the allowlist` };
+  }
+
   const validationResult = await validateRenameOperations(files, mediaFolderInPosix);
 
   if (!validationResult.isValid) {
