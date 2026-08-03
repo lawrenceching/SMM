@@ -1,5 +1,7 @@
-# Lightweight HTTP forward proxy for Docker e2e (Compose service http-proxy).
-FROM node:22-bookworm-slim
+# Optional image build for the Compose http-proxy service.
+# Default docker-compose.yml uses oven/bun:1.3 + a bind mount instead, so
+# developers are not blocked when Docker Hub is unreachable.
+FROM node:22-alpine
 
 WORKDIR /app
 

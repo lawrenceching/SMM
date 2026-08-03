@@ -39,6 +39,29 @@ export function syncTutorialFixturesToMediaHostDir(mediaHostDir: string): void {
   console.log(`[e2e-docker-container] synced tutorials -> ${dest}`);
 }
 
+const HTTP_PROXY_DIR = path.join(REPO_ROOT, 'apps/e2e/docker/http-proxy');
+
+/** Ensure Compose http-proxy bind-mount has node_modules (host install; no image build). */
+export function ensureHttpProxyDependencies(): void {
+  const nodeModules = path.join(HTTP_PROXY_DIR, 'node_modules');
+  const marker = path.join(nodeModules, 'proxy-chain');
+  if (fs.existsSync(marker)) {
+    return;
+  }
+  console.log('[e2e-docker-container] installing http-proxy dependencies…');
+  const result = spawnSync('npm', ['install', '--omit=dev'], {
+    cwd: HTTP_PROXY_DIR,
+    stdio: 'inherit',
+    shell: true,
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `[e2e-docker-container] npm install failed in ${HTTP_PROXY_DIR} (exit ${result.status ?? 'null'})`,
+    );
+  }
+}
+
 /** Args for `docker compose … up` (no detached mode — foreground for cicd). */
 export function buildDockerComposeUpArgs(options: {
   authToken: string;
@@ -51,7 +74,10 @@ export function buildDockerComposeUpArgs(options: {
     '-p',
     DOCKER_COMPOSE_PROJECT,
     'up',
-    '--build',
+    // No --build: http-proxy uses oven/bun + bind mount; smm uses prebuilt smm:latest.
+    // `missing` pulls oven/bun only when absent (CI); skips pull when cached (offline/local).
+    '--pull',
+    'missing',
     '--abort-on-container-exit',
     '--exit-code-from',
     'smm',
@@ -165,6 +191,7 @@ async function main(): Promise<void> {
 
   console.log(`[e2e-docker-container] media host dir: ${mediaHostDir}`);
   console.log(`[e2e-docker-container] compose file: ${DOCKER_COMPOSE_FILE}`);
+  ensureHttpProxyDependencies();
   registerProcessExitCleanup();
   await stopDockerE2eContainer();
 
