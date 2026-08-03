@@ -1,2 +1,0 @@
-{"timestamp":1785504219293,"stream":"stdout","message":"[wait-for-docker-e2e-ready] waiting for http://localhost:30000/api/hello"}
-{"timestamp":1785504225325,"stream":"stdout","message":"[wait-for-docker-e2e-ready] ready"}
