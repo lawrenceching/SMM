@@ -31,6 +31,7 @@ describe("downloadImageWithFailover", () => {
     expect(downloadImageApi).toHaveBeenCalledWith(
       "https://image.tmdb.org/t/p/original/a.jpg",
       "/media/poster.jpg",
+      undefined,
     )
   })
 
@@ -59,6 +60,7 @@ describe("downloadImageWithFailover", () => {
       2,
       "https://tmdb-mirror.example/t/p/original/a.jpg",
       "/media/poster.jpg",
+      undefined,
     )
   })
 
@@ -106,6 +108,7 @@ describe("downloadImageWithFailover", () => {
     expect(downloadImageApi).toHaveBeenCalledWith(
       "https://image.tmdb.org/t/p/original/a.jpg",
       "/media/poster.jpg",
+      undefined,
     )
   })
 
@@ -129,5 +132,40 @@ describe("downloadImageWithFailover", () => {
 
     expect(result.error).toBe("HTTP error! status: 500")
     expect(downloadImageApi).toHaveBeenCalledTimes(2)
+  })
+
+  it("passes httpProxy to downloadImageApi for every candidate", async () => {
+    const downloadImageApi = vi
+      .fn<(url: string, path: string, httpProxy?: string) => Promise<DownloadImageResponseBody>>()
+      .mockResolvedValueOnce({
+        data: { url: "a", path: "/p" },
+        error: "HTTP error! status: 503",
+      })
+      .mockResolvedValue({ data: { url: "b", path: "/p" } })
+
+    const { downloadImageWithFailover } = await import("./downloadImageWithFailover")
+    const result = await downloadImageWithFailover(
+      "https://image.tmdb.org/t/p/original/a.jpg",
+      "/media/poster.jpg",
+      {
+        fetchDiscoverConfig: async () => config,
+        downloadImageApi,
+        httpProxy: "http://proxy:8080",
+      },
+    )
+
+    expect(result.error).toBeUndefined()
+    expect(downloadImageApi).toHaveBeenNthCalledWith(
+      1,
+      "https://image.tmdb.org/t/p/original/a.jpg",
+      "/media/poster.jpg",
+      "http://proxy:8080",
+    )
+    expect(downloadImageApi).toHaveBeenNthCalledWith(
+      2,
+      "https://tmdb-mirror.example/t/p/original/a.jpg",
+      "/media/poster.jpg",
+      "http://proxy:8080",
+    )
   })
 })

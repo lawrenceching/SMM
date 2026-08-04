@@ -8,7 +8,8 @@ const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxi
 
 export interface DownloadImageWithFailoverDeps {
   fetchDiscoverConfig?: () => Promise<DiscoverConfig>
-  downloadImageApi?: (url: string, pathInPosix: string) => Promise<DownloadImageResponseBody>
+  downloadImageApi?: (url: string, pathInPosix: string, httpProxy?: string) => Promise<DownloadImageResponseBody>
+  httpProxy?: string
 }
 
 export async function downloadImageWithFailover(
@@ -18,13 +19,14 @@ export async function downloadImageWithFailover(
 ): Promise<DownloadImageResponseBody> {
   const fetchConfig = deps.fetchDiscoverConfig ?? fetchDiscoverConfig
   const download = deps.downloadImageApi ?? defaultDownloadImageApi
+  const { httpProxy } = deps
 
   const config = await fetchConfig().catch(() => EMPTY_DISCOVER_CONFIG)
   const candidates = buildAssetUrlCandidates(url, config)
 
   let last: DownloadImageResponseBody | undefined
   for (const candidate of candidates) {
-    const response = await download(candidate, pathInPosix)
+    const response = await download(candidate, pathInPosix, httpProxy)
     last = response
     if (!response.error) return response
     if (isError(response.error, ExistedFileError)) return response
