@@ -10,6 +10,8 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
+> **Status:** 进行中 — Task 1 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传，2026-08-04）。Task 2-7 待实现。
+
 ---
 
 ## File Structure
@@ -44,7 +46,7 @@
 - Modify: `apps/ui/src/api/downloadImage.ts`
 - Test: `apps/ui/src/api/downloadImage.test.ts`（新增）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `apps/ui/src/api/downloadImage.test.ts`：
 
@@ -89,12 +91,12 @@ describe("downloadImageApi", () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/ui && pnpm vitest run src/api/downloadImage.test.ts`
 Expected: FAIL — `body.httpProxy` 为 `undefined` / `not.toHaveProperty` 通过但第一个用例断言失败（当前函数不接受第三个参数）。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 修改 `packages/core/types.ts`，`DownloadImageRequestBody`：
 
@@ -138,12 +140,12 @@ export async function downloadImageApi(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/api/downloadImage.test.ts`
 Expected: PASS（2 个用例）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add packages/core/types.ts apps/ui/src/api/downloadImage.ts apps/ui/src/api/downloadImage.test.ts
