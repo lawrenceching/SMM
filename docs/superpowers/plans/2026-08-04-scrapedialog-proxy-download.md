@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1-4 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 5-7 待实现。
+> **Status:** 进行中 — Task 1-5 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 6-7 待实现。
 
 ---
 
@@ -566,7 +566,7 @@ git commit -m "feat(scrape): route poster/fanart downloads through configured pr
 - Modify: `apps/ui/src/hooks/useScrapeThumbnailMutation.ts`
 - Test: `apps/ui/src/hooks/useScrapeThumbnailMutation.test.tsx`（新增）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `apps/ui/src/hooks/useScrapeThumbnailMutation.test.tsx`：
 
@@ -641,12 +641,12 @@ describe("useScrapeThumbnailMutation", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapeThumbnailMutation.test.tsx`
 Expected: FAIL — 断言收到 `httpProxy: undefined`（当前 mutateAsync 调用不含 `httpProxy` 字段，且变量类型无该字段）。
 
-- [ ] **Step 3: 修改 `useDownloadThumbnailFromTMDB.ts`**
+- [x] **Step 3: 修改 `useDownloadThumbnailFromTMDB.ts`**
 
 `DownloadThumbnailFromTMDBVariables` 增加字段：
 
@@ -671,7 +671,7 @@ mutationFn 解构与下载调用：
         await downloadImageWithFailover(stillPath.stillPath, stillFilePath, { httpProxy })
 ```
 
-- [ ] **Step 4: 修改 `useDownloadThumbnailFromTVDB.ts`**
+- [x] **Step 4: 修改 `useDownloadThumbnailFromTVDB.ts`**
 
 同样修改 `DownloadThumbnailFromTVDBVariables`（加 `httpProxy?: string`）、mutationFn 解构，以及：
 
@@ -679,7 +679,7 @@ mutationFn 解构与下载调用：
         await downloadImageWithFailover(stillPath.stillPath, stillFilePath, { httpProxy })
 ```
 
-- [ ] **Step 5: 修改 `useScrapeThumbnailMutation.ts`**
+- [x] **Step 5: 修改 `useScrapeThumbnailMutation.ts`**
 
 在顶部 import 增加：
 
@@ -712,12 +712,12 @@ import { resolveScrapeHttpProxy } from "@/lib/mediaDatabaseAccess"
 
 （movie 分支仍是 TODO 桩，不改动。）
 
-- [ ] **Step 6: 运行缩略图测试确认通过**
+- [x] **Step 6: 运行缩略图测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapeThumbnailMutation.test.tsx`
 Expected: PASS（2 个用例）
 
-- [ ] **Step 6a: 增加 poster/fanart mutation 的 wiring 测试（关闭核心验收路径）**
+- [x] **Step 6a: 增加 poster/fanart mutation 的 wiring 测试（关闭核心验收路径）**
 
 Task 4 的 poster/fanart mutation 接入未直接测试（现有测试只测 `resolvePosterUrl`/`resolveFanartUrl` 纯函数）。在 `apps/ui/src/hooks/useScrapePosterMutation.test.ts` 追加以下内容（顶部 import 区增加 `renderHook`、`QueryClient`/`QueryClientProvider`、`React`、`defaultUserConfig`、`UserConfig`，并同时 import `useScrapePosterMutation`）：
 
@@ -791,7 +791,7 @@ describe("useScrapePosterMutation wiring", () => {
 Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapePosterMutation.test.ts src/hooks/useScrapeFanartMutation.test.ts src/hooks/useScrapeThumbnailMutation.test.tsx`
 Expected: PASS（poster/fanart 各新增 1 个 wiring 用例 + thumbnail 2 个用例）
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```bash
 git add apps/ui/src/hooks/useDownloadThumbnailFromTMDB.ts apps/ui/src/hooks/useDownloadThumbnailFromTVDB.ts apps/ui/src/hooks/useScrapeThumbnailMutation.ts apps/ui/src/hooks/useScrapeThumbnailMutation.test.tsx apps/ui/src/hooks/useScrapePosterMutation.test.ts apps/ui/src/hooks/useScrapeFanartMutation.test.ts
