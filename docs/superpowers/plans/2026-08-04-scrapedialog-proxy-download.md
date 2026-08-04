@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1-2 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 3-7 待实现。
+> **Status:** 进行中 — Task 1-3 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 4-7 待实现。
 
 ---
 
@@ -266,7 +266,7 @@ git commit -m "feat(downloadImageWithFailover): pass httpProxy through to downlo
 - Modify: `apps/ui/src/lib/mediaDatabaseAccess.ts`
 - Test: `apps/ui/src/lib/mediaDatabaseAccess.test.ts`（新增）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `apps/ui/src/lib/mediaDatabaseAccess.test.ts`：
 
@@ -333,12 +333,12 @@ describe("resolveScrapeHttpProxy", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/ui && pnpm vitest run src/lib/mediaDatabaseAccess.test.ts`
 Expected: FAIL — `resolveMediaDatabaseHttpProxy` / `resolveScrapeHttpProxy` 未定义。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 在 `apps/ui/src/lib/mediaDatabaseAccess.ts` 顶部增加 import：
 
@@ -384,12 +384,12 @@ export function resolveScrapeHttpProxy(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/lib/mediaDatabaseAccess.test.ts`
 Expected: PASS（8 个用例）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add apps/ui/src/lib/mediaDatabaseAccess.ts apps/ui/src/lib/mediaDatabaseAccess.test.ts
