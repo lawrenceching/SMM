@@ -158,7 +158,7 @@ describe("useScrapeFanartMutation wiring", () => {
     const [md, url, path, uc] = mockDownloadScrapeImage.mock.calls[0] as [MediaMetadata, string, string, UserConfig]
     expect(md).toBe(fanartMovie)
     expect(url).toBe("https://image.tmdb.org/t/p/original/fanart.jpg")
-    expect(typeof path).toBe("string")
+    expect(path).toBe("/media/Fight Club/fanart.jpg")
     expect(uc).toBe(useConfigValue)
   })
 })

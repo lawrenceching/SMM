@@ -137,7 +137,7 @@ describe("useScrapePosterMutation wiring", () => {
     const [md, url, path, uc] = mockDownloadScrapeImage.mock.calls[0] as [MediaMetadata, string, string, UserConfig]
     expect(md).toBe(posterMovie)
     expect(url).toBe("https://image.tmdb.org/t/p/original/poster.jpg")
-    expect(typeof path).toBe("string")
+    expect(path).toBe("/media/Fight Club/poster.jpg")
     expect(uc).toBe(useConfigValue)
   })
 })

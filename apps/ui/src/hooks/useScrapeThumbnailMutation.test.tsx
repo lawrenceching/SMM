@@ -65,4 +65,24 @@ describe("useScrapeThumbnailMutation", () => {
       httpProxy: undefined,
     })
   })
+
+  it("passes the resolved proxy to the TVDB thumbnail downloader", async () => {
+    useConfigValue = {
+      ...defaultUserConfig,
+      tvdb: { host: "https://api4.thetvdb.com", apiKey: "", httpProxy: "http://proxy:9090" },
+    }
+    const tvdbMetadata: MediaMetadata = {
+      type: "tvshow-folder",
+      mediaFolderPath: "/media/TV",
+      tvShow: { id: "321", database: "TVDB", name: "TV", seasons: [] },
+      mediaFiles: [{ absolutePath: "/media/TV/s01e01.mkv", seasonNumber: 1, episodeNumber: 1 }],
+    } as MediaMetadata
+    const { result } = renderHook(() => useScrapeThumbnailMutation(), { wrapper: createWrapper() })
+    await result.current.mutateAsync({ mediaMetadata: tvdbMetadata })
+    expect(mockTvdbMutateAsync).toHaveBeenCalledWith({
+      seriesId: 321,
+      mediaFiles: tvdbMetadata.mediaFiles,
+      httpProxy: "http://proxy:9090",
+    })
+  })
 })

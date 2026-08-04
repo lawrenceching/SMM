@@ -31,6 +31,7 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
           return
         }
 
+        // Proxy resolved here: the TMDB/TVDB variant hooks only receive { seriesId, mediaFiles } and no userConfig.
         if (tvShow.database === "TMDB") {
           const tvShowId = parseInt(tvShow.id, 10)
           await downloadThumbnailFromTMDBMutation.mutateAsync({
