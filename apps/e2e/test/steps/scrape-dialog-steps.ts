@@ -103,6 +103,21 @@ Completed`)
     })
 })
 
+registerStep('scrape dialog shows all TV show tasks failed', async () => {
+    await browser.waitUntil(async () => {
+        const ids = ['poster', 'fanart', 'thumbnails', 'nfo']
+        const results = await Promise.all(ids.map(async (id) => {
+            const el = $(`[data-testid="scrape-dialog-task-status-${id}"]`)
+            return (await el.getAttribute('data-status')) === 'failed'
+        }))
+        return results.every(Boolean)
+    }, {
+        timeout: 60 * 1000,
+        interval: 1000,
+        timeoutMsg: 'ScrapeDialog tasks did not all fail',
+    })
+})
+
 registerStep('scrape dialog shows movie tasks completed', async () => {
     await browser.waitUntil(async () => {
         const text = await ScrapeDialogCO.table.getText()
