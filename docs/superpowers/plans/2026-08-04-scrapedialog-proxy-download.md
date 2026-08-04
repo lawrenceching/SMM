@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1-6 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 7 待实现。
+> **Status:** 已完成 — Task 1-7 全部实现并通过验证（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 1-7 全部完成。
 
 ---
 
@@ -945,7 +945,7 @@ git commit -m "feat(cli): download images through configured proxy via /api/down
 
 **Files:** 无（验证）
 
-- [ ] **Step 1: 类型检查**
+- [x] **Step 1: 类型检查**
 
 Run: `cd apps/ui && pnpm typecheck`
 Expected: 通过，无类型错误。
@@ -956,7 +956,7 @@ Expected: 通过，无类型错误。
 Run: `cd packages/core && pnpm typecheck`
 Expected: 通过，无类型错误。
 
-- [ ] **Step 2: 运行受影响包的完整测试**
+- [x] **Step 2: 运行受影响包的完整测试**
 
 Run: `cd packages/core && pnpm test`
 Expected: 全部 PASS（类型改动不影响现有 core 测试）。
@@ -967,7 +967,7 @@ Expected: 全部 PASS（含新增/扩展的 `downloadImage`、`downloadImageWith
 Run: `cd apps/cli && pnpm test`
 Expected: 全部 PASS（含新增的 `DownloadImageAsFile` 测试）。
 
-- [ ] **Step 3: 提交收尾（如有未提交的修正）**
+- [x] **Step 3: 提交收尾（如有未提交的修正）**
 
 ```bash
 git add -A
