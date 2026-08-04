@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1-3 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 4-7 待实现。
+> **Status:** 进行中 — Task 1-4 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 5-7 待实现。
 
 ---
 
@@ -406,7 +406,7 @@ git commit -m "feat(mediaDatabaseAccess): add http proxy resolvers for scrape do
 - Modify: `apps/ui/src/hooks/useScrapePosterMutation.ts`
 - Modify: `apps/ui/src/hooks/useScrapeFanartMutation.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `apps/ui/src/lib/downloadScrapeImage.test.ts`：
 
@@ -463,12 +463,12 @@ describe("downloadScrapeImage", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/ui && pnpm vitest run src/lib/downloadScrapeImage.test.ts`
 Expected: FAIL — 模块不存在（import error）。
 
-- [ ] **Step 3: 实现 `downloadScrapeImage`**
+- [x] **Step 3: 实现 `downloadScrapeImage`**
 
 创建 `apps/ui/src/lib/downloadScrapeImage.ts`：
 
@@ -501,12 +501,12 @@ export async function downloadScrapeImage(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/lib/downloadScrapeImage.test.ts`
 Expected: PASS（3 个用例）
 
-- [ ] **Step 5: 接入 `useScrapePosterMutation`**
+- [x] **Step 5: 接入 `useScrapePosterMutation`**
 
 修改 `apps/ui/src/hooks/useScrapePosterMutation.ts`：
 
@@ -540,16 +540,16 @@ import { downloadScrapeImage } from "@/lib/downloadScrapeImage"
       await downloadScrapeImage(mediaMetadata, posterUrl, posterPath, userConfig)
 ```
 
-- [ ] **Step 6: 接入 `useScrapeFanartMutation`**
+- [x] **Step 6: 接入 `useScrapeFanartMutation`**
 
 对 `apps/ui/src/hooks/useScrapeFanartMutation.ts` 做完全相同的三处修改（import、`useConfig()`、下载段替换为 `await downloadScrapeImage(mediaMetadata, fanartUrl, fanartPath, userConfig)`）。
 
-- [ ] **Step 7: 运行测试确认通过**
+- [x] **Step 7: 运行测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapePosterMutation.test.ts src/hooks/useScrapeFanartMutation.test.ts src/lib/downloadScrapeImage.test.ts`
 Expected: PASS — 这两个 mutation 测试只测 `resolvePosterUrl`/`resolveFanartUrl` 纯函数，不受 hook 改动影响。
 
-- [ ] **Step 8: 提交**
+- [x] **Step 8: 提交**
 
 ```bash
 git add apps/ui/src/lib/downloadScrapeImage.ts apps/ui/src/lib/downloadScrapeImage.test.ts apps/ui/src/hooks/useScrapePosterMutation.ts apps/ui/src/hooks/useScrapeFanartMutation.ts
@@ -712,15 +712,89 @@ import { resolveScrapeHttpProxy } from "@/lib/mediaDatabaseAccess"
 
 （movie 分支仍是 TODO 桩，不改动。）
 
-- [ ] **Step 6: 运行测试确认通过**
+- [ ] **Step 6: 运行缩略图测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapeThumbnailMutation.test.tsx`
 Expected: PASS（2 个用例）
 
+- [ ] **Step 6a: 增加 poster/fanart mutation 的 wiring 测试（关闭核心验收路径）**
+
+Task 4 的 poster/fanart mutation 接入未直接测试（现有测试只测 `resolvePosterUrl`/`resolveFanartUrl` 纯函数）。在 `apps/ui/src/hooks/useScrapePosterMutation.test.ts` 追加以下内容（顶部 import 区增加 `renderHook`、`QueryClient`/`QueryClientProvider`、`React`、`defaultUserConfig`、`UserConfig`，并同时 import `useScrapePosterMutation`）：
+
+```tsx
+const mockDownloadScrapeImage = vi.fn().mockResolvedValue(undefined)
+vi.mock("@/lib/downloadScrapeImage", () => ({
+  downloadScrapeImage: (...args: unknown[]) => mockDownloadScrapeImage(...args),
+}))
+
+vi.mock("@/lib/utils", async (importOriginal) => ({
+  ...(await importOriginal()),
+  checkFileExists: vi.fn().mockResolvedValue(false),
+}))
+
+let useConfigValue: UserConfig = defaultUserConfig
+vi.mock("./userConfig", () => ({
+  useConfig: () => ({ appConfig: {}, userConfig: useConfigValue }),
+}))
+
+vi.mock("@/hooks/useTmdbQueries", () => ({
+  useTmdbQueries: () => ({
+    getTvShowById: vi.fn(),
+    getMovieById: vi.fn().mockResolvedValue({ poster_path: "/poster.jpg" }),
+  }),
+}))
+
+vi.mock("@/hooks/useTvdbQueries", () => ({
+  useTvdbQueries: () => ({
+    getSeriesExtended: vi.fn(),
+    getMovieExtended: vi.fn(),
+  }),
+}))
+
+function createWrapper() {
+  const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children)
+}
+
+const posterMovie: MediaMetadata = {
+  type: "movie-folder",
+  mediaFolderPath: "/media/Fight Club",
+  movie: { id: "550", database: "TMDB", name: "Fight Club" },
+} as MediaMetadata
+
+describe("useScrapePosterMutation wiring", () => {
+  beforeEach(() => {
+    mockDownloadScrapeImage.mockClear()
+    useConfigValue = {
+      ...defaultUserConfig,
+      tmdb: { host: "https://api.themoviedb.org", apiKey: "", httpProxy: "http://proxy:8080" },
+    }
+  })
+
+  it("passes the configured userConfig through to downloadScrapeImage", async () => {
+    const { result } = renderHook(() => useScrapePosterMutation(), { wrapper: createWrapper() })
+    await result.current.mutateAsync({ mediaMetadata: posterMovie, language: "en-US" })
+
+    expect(mockDownloadScrapeImage).toHaveBeenCalledTimes(1)
+    const [md, url, path, uc] = mockDownloadScrapeImage.mock.calls[0] as [MediaMetadata, string, string, UserConfig]
+    expect(md).toBe(posterMovie)
+    expect(url).toBe("https://image.tmdb.org/t/p/original/poster.jpg")
+    expect(typeof path).toBe("string")
+    expect(uc).toBe(useConfigValue)
+  })
+})
+```
+
+在 `apps/ui/src/hooks/useScrapeFanartMutation.test.ts` 做同构追加：`getMovieById` mock 改为 `mockResolvedValue({ backdrop_path: "/fanart.jpg" })`，断言 url 为 `https://image.tmdb.org/t/p/original/fanart.jpg`。
+
+Run: `cd apps/ui && pnpm vitest run src/hooks/useScrapePosterMutation.test.ts src/hooks/useScrapeFanartMutation.test.ts src/hooks/useScrapeThumbnailMutation.test.tsx`
+Expected: PASS（poster/fanart 各新增 1 个 wiring 用例 + thumbnail 2 个用例）
+
 - [ ] **Step 7: 提交**
 
 ```bash
-git add apps/ui/src/hooks/useDownloadThumbnailFromTMDB.ts apps/ui/src/hooks/useDownloadThumbnailFromTVDB.ts apps/ui/src/hooks/useScrapeThumbnailMutation.ts apps/ui/src/hooks/useScrapeThumbnailMutation.test.tsx
+git add apps/ui/src/hooks/useDownloadThumbnailFromTMDB.ts apps/ui/src/hooks/useDownloadThumbnailFromTVDB.ts apps/ui/src/hooks/useScrapeThumbnailMutation.ts apps/ui/src/hooks/useScrapeThumbnailMutation.test.tsx apps/ui/src/hooks/useScrapePosterMutation.test.ts apps/ui/src/hooks/useScrapeFanartMutation.test.ts
 git commit -m "feat(scrape): route episode thumbnails through configured proxy"
 ```
 
