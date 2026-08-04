@@ -1,7 +1,15 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, expect, it, vi } from "vitest"
-import type { MediaMetadata } from "@core/types"
-import { resolveFanartUrl, type ScrapeFanartMutationVariables } from "./useScrapeFanartMutation"
+import { describe, expect, it, vi, beforeEach } from "vitest"
+import { renderHook } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import React from "react"
+import type { MediaMetadata, UserConfig } from "@core/types"
+import { defaultUserConfig } from "@/api/readUserConfig"
+import {
+  resolveFanartUrl,
+  useScrapeFanartMutation,
+  type ScrapeFanartMutationVariables,
+} from "./useScrapeFanartMutation"
 
 function buildVariables(mediaMetadata: Partial<MediaMetadata>): ScrapeFanartMutationVariables {
   return {
@@ -88,6 +96,70 @@ describe("resolveFanartUrl", () => {
       ]),
     } as any)
     expect(result).toBe("https://tvdb/movie-background.jpg")
+  })
+})
+
+const mockDownloadScrapeImage = vi.fn().mockResolvedValue(undefined)
+vi.mock("@/lib/downloadScrapeImage", () => ({
+  downloadScrapeImage: (...args: unknown[]) => mockDownloadScrapeImage(...args),
+}))
+
+vi.mock("@/lib/utils", async (importOriginal) => ({
+  ...(await importOriginal()),
+  checkFileExists: vi.fn().mockResolvedValue(false),
+}))
+
+let useConfigValue: UserConfig = defaultUserConfig
+vi.mock("./userConfig", () => ({
+  useConfig: () => ({ appConfig: {}, userConfig: useConfigValue }),
+}))
+
+vi.mock("@/hooks/useTmdbQueries", () => ({
+  useTmdbQueries: () => ({
+    getTvShowById: vi.fn(),
+    getMovieById: vi.fn().mockResolvedValue({ backdrop_path: "/fanart.jpg" }),
+  }),
+}))
+
+vi.mock("@/hooks/useTvdbQueries", () => ({
+  useTvdbQueries: () => ({
+    getSeriesExtended: vi.fn(),
+    getMovieExtended: vi.fn(),
+    getArtworkTypes: vi.fn(),
+  }),
+}))
+
+function createWrapper() {
+  const qc = new QueryClient({ defaultOptions: { mutations: { retry: false } } })
+  return ({ children }: { children: React.ReactNode }) =>
+    React.createElement(QueryClientProvider, { client: qc }, children)
+}
+
+const fanartMovie: MediaMetadata = {
+  type: "movie-folder",
+  mediaFolderPath: "/media/Fight Club",
+  movie: { id: "550", database: "TMDB", name: "Fight Club" },
+} as MediaMetadata
+
+describe("useScrapeFanartMutation wiring", () => {
+  beforeEach(() => {
+    mockDownloadScrapeImage.mockClear()
+    useConfigValue = {
+      ...defaultUserConfig,
+      tmdb: { host: "https://api.themoviedb.org", apiKey: "", httpProxy: "http://proxy:8080" },
+    }
+  })
+
+  it("passes the configured userConfig through to downloadScrapeImage", async () => {
+    const { result } = renderHook(() => useScrapeFanartMutation(), { wrapper: createWrapper() })
+    await result.current.mutateAsync({ mediaMetadata: fanartMovie, language: "en-US" })
+
+    expect(mockDownloadScrapeImage).toHaveBeenCalledTimes(1)
+    const [md, url, path, uc] = mockDownloadScrapeImage.mock.calls[0] as [MediaMetadata, string, string, UserConfig]
+    expect(md).toBe(fanartMovie)
+    expect(url).toBe("https://image.tmdb.org/t/p/original/fanart.jpg")
+    expect(typeof path).toBe("string")
+    expect(uc).toBe(useConfigValue)
   })
 })
 

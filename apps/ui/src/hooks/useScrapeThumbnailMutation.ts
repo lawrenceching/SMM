@@ -2,6 +2,7 @@ import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
 import { getMovieById } from "@/api/tmdb"
 import { getTVDBv4Client, SMM_TVDB_DEFAULT_UPSTREAM } from "@/lib/TvdbUtils"
+import { resolveScrapeHttpProxy } from "@/lib/mediaDatabaseAccess"
 import { useDownloadThumbnailFromTMDB } from "./useDownloadThumbnailFromTMDB"
 import { useDownloadThumbnailFromTVDB } from "./useDownloadThumbnailFromTVDB"
 import { useConfig } from "./userConfig"
@@ -35,6 +36,7 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
           await downloadThumbnailFromTMDBMutation.mutateAsync({
             seriesId: tvShowId,
             mediaFiles: mediaMetadata.mediaFiles ?? [],
+            httpProxy: resolveScrapeHttpProxy(mediaMetadata, userConfig),
           })
           return
         }
@@ -43,6 +45,7 @@ export function useScrapeThumbnailMutation<TContext = unknown>(
           await downloadThumbnailFromTVDBMutation.mutateAsync({
             seriesId: tvShowId,
             mediaFiles: mediaMetadata.mediaFiles ?? [],
+            httpProxy: resolveScrapeHttpProxy(mediaMetadata, userConfig),
           })
           return
         }

@@ -8,6 +8,7 @@ import type { MediaFileMetadata } from "@core/types"
 export interface DownloadThumbnailFromTMDBVariables {
   seriesId: number
   mediaFiles: MediaFileMetadata[]
+  httpProxy?: string
 }
 
 export interface EpisodeStillPath {
@@ -57,7 +58,7 @@ export function useDownloadThumbnailFromTMDB<TContext = unknown>(
   return useMutation({
     ...options,
     mutationFn: async (variables: DownloadThumbnailFromTMDBVariables) => {
-      const { seriesId, mediaFiles } = variables
+      const { seriesId, mediaFiles, httpProxy } = variables
       const stillPaths = await getEpisodeStillPathsFromTMDB(seriesId)
 
       for (const mediaFile of mediaFiles) {
@@ -68,7 +69,7 @@ export function useDownloadThumbnailFromTMDB<TContext = unknown>(
           continue
         }
         const stillFilePath = newFilePathWithExt(mediaFile.absolutePath, extname(stillPath.stillPath))
-        await downloadImageWithFailover(stillPath.stillPath, stillFilePath)
+        await downloadImageWithFailover(stillPath.stillPath, stillFilePath, { httpProxy })
       }
     },
   })

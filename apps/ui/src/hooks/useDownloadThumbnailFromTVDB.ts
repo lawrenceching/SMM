@@ -10,6 +10,7 @@ const debug = Debug('useDownloadThumbnailFromTVDB')
 export interface DownloadThumbnailFromTVDBVariables {
   seriesId: number
   mediaFiles: MediaFileMetadata[]
+  httpProxy?: string
 }
 
 export interface EpisodeStillPath {
@@ -29,7 +30,7 @@ export function useDownloadThumbnailFromTVDB<TContext = unknown>(
   return useMutation({
     ...options,
     mutationFn: async (variables: DownloadThumbnailFromTVDBVariables) => {
-      const { seriesId, mediaFiles } = variables
+      const { seriesId, mediaFiles, httpProxy } = variables
 
       const artworkTypes = await getArtworkTypes()
       if (artworkTypes === undefined) {
@@ -71,7 +72,7 @@ export function useDownloadThumbnailFromTVDB<TContext = unknown>(
         }
         const stillFilePath = newFilePathWithExt(mediaFile.absolutePath, extname(stillPath.stillPath))
         debug(`started to download thumbnail for S${mediaFile.seasonNumber?.toString().padStart(2, '0')}E${mediaFile.episodeNumber?.toString().padStart(2, '0')}: ${stillPath.stillPath}`)
-        await downloadImageWithFailover(stillPath.stillPath, stillFilePath)
+        await downloadImageWithFailover(stillPath.stillPath, stillFilePath, { httpProxy })
         debug(`downloaded thumbnail for S${mediaFile.seasonNumber?.toString().padStart(2, '0')}E${mediaFile.episodeNumber?.toString().padStart(2, '0')}: ${stillFilePath}`)
       }
     },
