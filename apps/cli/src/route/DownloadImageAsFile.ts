@@ -49,7 +49,7 @@ export async function processDownloadImageAsFile(
 export function handleDownloadImageAsFileRequest(app: Hono) {
   app.post("/api/downloadImage", async (c) => {
     const body = (await c.req.json()) as DownloadImageRequestBody;
-    console.log(`[DownloadImageAsFile] Downloading image from ${body.url} to ${body.path}`);
+    logger.info({ url: body.url, path: body.path }, "Downloading image from url to path");
     try {
       const result = await processDownloadImageAsFile(body);
       return c.json(result, 200);

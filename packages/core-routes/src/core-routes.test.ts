@@ -4,6 +4,7 @@ import path from "node:path";
 import { Buffer } from "node:buffer";
 import { describe, expect, it, vi } from "vitest";
 import { validatePathIsInAllowlist } from "../src/allowlist.ts";
+import type { CoreRoutesConfig } from "../src/types.ts";
 
 describe("validatePathIsInAllowlist", () => {
   it("returns true when path is under an allowlist entry", () => {
@@ -804,6 +805,7 @@ describe("POST /api/downloadImage", () => {
   async function requestDownloadImage(
     rawBody: string | undefined,
     allowlist: string[],
+    config: Partial<CoreRoutesConfig> = {},
   ): Promise<{ status: number; body: Record<string, unknown> }> {
     const { handleCoreRoutesRequest } = await import("../src/register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
@@ -832,7 +834,7 @@ describe("POST /api/downloadImage", () => {
       return res;
     }) as typeof res.end;
 
-    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+    await handleCoreRoutesRequest(req, res, { allowlist, ...config }, 3001);
 
     socket.destroy();
     return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
@@ -944,6 +946,33 @@ describe("POST /api/downloadImage", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+
+  it("logs only url and path, never httpProxy or rawBody", async () => {
+    const logger = {
+      debug: vi.fn(),
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+    };
+    const { status, body } = await requestDownloadImage(
+      JSON.stringify({
+        url: "https://image.tmdb.org/x.jpg",
+        path: "/media/poster.jpg",
+        httpProxy: "http://user:pass@proxy:8080",
+      }),
+      ["/allowed-only"],
+      { logger },
+    );
+    expect(status).toBe(200);
+    expect(body.error).toContain("not in the allowlist");
+    expect(logger.info).toHaveBeenCalledTimes(1);
+    const infoCall = logger.info.mock.calls[0] as [
+      { url?: string; path?: string; httpProxy?: string; rawBody?: unknown },
+    ];
+    expect(Object.keys(infoCall[0]).sort()).toEqual(["path", "url"]);
+    expect(infoCall[0].httpProxy).toBeUndefined();
+    expect(infoCall[0].rawBody).toBeUndefined();
   });
 });
 

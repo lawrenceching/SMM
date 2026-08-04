@@ -28,13 +28,13 @@ describe("processDownloadImageAsFile", () => {
     const result = await processDownloadImageAsFile({
       url: "https://image.tmdb.org/t/p/original/x.jpg",
       path: "/media/poster.jpg",
-      httpProxy: "http://proxy:8080",
+      httpProxy: "  http://proxy:8080  ",
     })
 
     expect(mockCreateProxiedFetch).toHaveBeenCalledTimes(1)
     expect(mockCreateProxiedFetch).toHaveBeenCalledWith("http://proxy:8080", expect.any(Object))
     expect(mockDoDownloadImageAsFile).toHaveBeenCalledWith(
-      expect.objectContaining({ httpProxy: "http://proxy:8080" }),
+      expect.objectContaining({ httpProxy: "  http://proxy:8080  " }),
       expect.objectContaining({ fetchImpl: proxiedFetch }),
     )
     expect(result).toEqual({ data: { url: "u", path: "p" } })
