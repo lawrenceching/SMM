@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传，2026-08-04）。Task 2-7 待实现。
+> **Status:** 进行中 — Task 1-2 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 3-7 待实现。
 
 ---
 
@@ -160,7 +160,7 @@ git commit -m "feat(downloadImage): accept optional httpProxy in request body"
 - Modify: `apps/ui/src/api/downloadImageWithFailover.ts`
 - Test: `apps/ui/src/api/downloadImageWithFailover.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `apps/ui/src/api/downloadImageWithFailover.test.ts` 末尾（`describe` 块内）追加：
 
@@ -201,12 +201,12 @@ git commit -m "feat(downloadImage): accept optional httpProxy in request body"
   })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/ui && pnpm vitest run src/api/downloadImageWithFailover.test.ts`
 Expected: FAIL — 新增用例断言第三个参数为 `undefined`。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 修改 `apps/ui/src/api/downloadImageWithFailover.ts`：
 
@@ -246,12 +246,12 @@ export async function downloadImageWithFailover(
 }
 ```
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `cd apps/ui && pnpm vitest run src/api/downloadImageWithFailover.test.ts`
 Expected: PASS（全部用例，含新增）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add apps/ui/src/api/downloadImageWithFailover.ts apps/ui/src/api/downloadImageWithFailover.test.ts
