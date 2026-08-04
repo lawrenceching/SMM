@@ -159,6 +159,7 @@ describe("useRenameVideoFileFlow", () => {
         { from: "/media/show/S01E01.mkv", to: "/media/show/S01E02.mkv" },
         { from: "/media/show/S01E01.srt", to: "/media/show/S01E02.srt" },
       ],
+      mediaFolder: "/media/show",
     })
     expect(onAfterRename).toHaveBeenCalledTimes(1)
     expect(fetchMediaMetadata).toHaveBeenCalledWith({ path: mediaFolderPath })
