@@ -152,3 +152,9 @@ sequenceDiagram
 - 季海报下载（`lib/utils.ts`）走代理。
 - `@smm/core-routes` 的 `doDownloadImageAsFile` / `doDownloadImage` 改动。
 - 修改 `DownloadImageRequestBody` 之外的类型或路由语义。
+
+## 6. OHOS 打包产物说明
+
+Task 6 为安全修复把共享 node handler（`packages/core-routes/src/routes/downloadImageAsFileRoute.ts`）的 `POST /api/downloadImage` 日志从记录完整 `rawBody` 改为只记录 `{ url, path }`（`httpProxy` 可能含 `user:pass@` 凭据）。
+
+已检入的鸿蒙打包产物 `apps/ohos/web_engine/src/main/resources/resfile/resources/app/core-routes.js` 仍含旧版 `{ rawBody }` 日志。**需在鸿蒙发版/构建时用鸿蒙构建工具链重新生成该 bundle**（`pnpm --filter @smm/core-routes build:ohos`）以同步此安全修复。本地直接重新生成会产生约 7.2 万行的工具链版本差异（非本功能改动），故本次不并入。当前鸿蒙 UI 尚未发送 `httpProxy` 字段，该问题为潜在风险而非活跃泄漏。
