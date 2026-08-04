@@ -89,7 +89,9 @@ export function resolveScrapeHttpProxy(
   const database =
     mediaMetadata.type === "tvshow-folder"
       ? mediaMetadata.tvShow?.database
-      : mediaMetadata.movie?.database
+      : mediaMetadata.type === "movie-folder"
+        ? mediaMetadata.movie?.database
+        : undefined
   if (!database) return undefined
   return resolveMediaDatabaseHttpProxy(database, userConfig)
 }

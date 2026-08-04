@@ -52,6 +52,18 @@ describe("resolveScrapeHttpProxy", () => {
     expect(resolveScrapeHttpProxy(md, uc)).toBe("http://proxy:9090")
   })
 
+  it("resolves the proxy from the movie database", () => {
+    const uc = buildUserConfig({ tmdb: { host: "https://api.themoviedb.org", httpProxy: "http://proxy:8080" } })
+    const md = { type: "movie-folder", movie: { id: "1", database: "TMDB", name: "M" } } as MediaMetadata
+    expect(resolveScrapeHttpProxy(md, uc)).toBe("http://proxy:8080")
+  })
+
+  it("returns undefined for music folders", () => {
+    const uc = buildUserConfig({ tmdb: { host: "https://api.themoviedb.org", httpProxy: "http://proxy:8080" } })
+    const md = { type: "music-folder" } as MediaMetadata
+    expect(resolveScrapeHttpProxy(md, uc)).toBeUndefined()
+  })
+
   it("returns undefined when the database is missing", () => {
     const uc = buildUserConfig({ tmdb: { host: "https://api.themoviedb.org", httpProxy: "http://proxy:8080" } })
     const md = { type: "movie-folder", movie: { id: "1", name: "M" } } as MediaMetadata
