@@ -2,7 +2,10 @@ import type {
   DownloadImageRequestBody,
   DownloadImageResponseBody,
 } from "@core/types";
-import { doDownloadImageAsFile as doDownloadImageAsFileCore } from "@smm/core-routes";
+import {
+  createProxiedFetch,
+  doDownloadImageAsFile as doDownloadImageAsFileCore,
+} from "@smm/core-routes";
 import type { Hono } from "hono";
 import { buildAllowlist } from "@/utils/buildAllowlist";
 import { logger } from "../../lib/logger";
@@ -32,7 +35,15 @@ export async function processDownloadImageAsFile(
   body: DownloadImageRequestBody,
 ): Promise<DownloadImageResponseBody> {
   const allowlist = await buildAllowlist();
-  return doDownloadImageAsFileCore(body, { allowlist, logger: coreRoutesLogger });
+  const httpProxy = body.httpProxy?.trim();
+  const fetchImpl = httpProxy
+    ? createProxiedFetch(httpProxy, coreRoutesLogger)
+    : undefined;
+  return doDownloadImageAsFileCore(body, {
+    allowlist,
+    logger: coreRoutesLogger,
+    fetchImpl,
+  });
 }
 
 export function handleDownloadImageAsFileRequest(app: Hono) {

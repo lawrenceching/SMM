@@ -28,8 +28,9 @@ export async function handleDownloadImageAsFilePost(
 
   try {
     const rawBody = (await readJsonBody(req)) as DownloadImageRequestBody;
+    const { url, path } = rawBody;
     ctx.config.logger?.info(
-      { rawBody },
+      { url, path },
       "[DownloadImageAsFile] POST /api/downloadImage",
     );
     const result = await doDownloadImageAsFile(rawBody, ctx.config);
