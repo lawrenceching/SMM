@@ -10,7 +10,7 @@
 
 **设计文档:** `docs/superpowers/specs/2026-08-04-scrapedialog-proxy-download-design.md`（已提交，作为 golden source）。
 
-> **Status:** 进行中 — Task 1-5 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 6-7 待实现。
+> **Status:** 进行中 — Task 1-6 已完成（`DownloadImageRequestBody.httpProxy` + `downloadImageApi` 透传 + `downloadImageWithFailover` 透传，2026-08-04/08-05）。Task 7 待实现。
 
 ---
 
@@ -806,7 +806,7 @@ git commit -m "feat(scrape): route episode thumbnails through configured proxy"
 - Modify: `apps/cli/src/route/DownloadImageAsFile.ts`
 - Test: `apps/cli/src/route/DownloadImageAsFile.test.ts`（新增）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 创建 `apps/cli/src/route/DownloadImageAsFile.test.ts`：
 
@@ -877,12 +877,12 @@ describe("processDownloadImageAsFile", () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `cd apps/cli && pnpm vitest run src/route/DownloadImageAsFile.test.ts`
 Expected: FAIL — 当前实现不创建 proxied fetch。
 
-- [ ] **Step 3: 实现**
+- [x] **Step 3: 实现**
 
 修改 `apps/cli/src/route/DownloadImageAsFile.ts`：
 
@@ -912,7 +912,7 @@ export async function processDownloadImageAsFile(
 
 （`createProxiedFetch` 内部用 `formatProxyHostForLog` 脱敏日志，不记录原始 proxy。）
 
-- [ ] **Step 3a: 修复 shared node handler 的 rawBody 日志（安全）**
+- [x] **Step 3a: 修复 shared node handler 的 rawBody 日志（安全）**
 
 `@smm/core-routes` 的 node http 路由 `packages/core-routes/src/routes/downloadImageAsFileRoute.ts` 在 `[DownloadImageAsFile] POST /api/downloadImage` 日志中记录了完整 `rawBody`（Task 5 之后 `httpProxy` 会出现在 body 里，可能含 `user:pass@` 凭据）。改为只记录 `{ url, path }`：
 
@@ -927,12 +927,12 @@ export async function processDownloadImageAsFile(
 
 `packages/core-routes/src/core-routes.test.ts` 的 `POST /api/downloadImage` 用例不断言日志内容，无需改动；若运行中发现 logger 断言失败则同步更新。把 `packages/core-routes/src/routes/downloadImageAsFileRoute.ts` 加入本任务的提交。
 
-- [ ] **Step 4: 运行测试确认通过**
+- [x] **Step 4: 运行测试确认通过**
 
 Run: `cd apps/cli && pnpm vitest run src/route/DownloadImageAsFile.test.ts`
 Expected: PASS（3 个用例）
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```bash
 git add apps/cli/src/route/DownloadImageAsFile.ts apps/cli/src/route/DownloadImageAsFile.test.ts packages/core-routes/src/routes/downloadImageAsFileRoute.ts
