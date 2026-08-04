@@ -931,6 +931,11 @@ export interface DownloadImageRequestBody {
    * The absolute path in platform format
    */
   path: string
+  /**
+   * Optional outbound HTTP proxy (e.g. http://127.0.0.1:8081). Set by the UI
+   * only for user-configured custom TMDB/TVDB hosts.
+   */
+  httpProxy?: string
 }
 
 export interface DownloadImageResponseBody {

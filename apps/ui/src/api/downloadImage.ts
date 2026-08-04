@@ -2,10 +2,11 @@ import { Path } from "@core/path";
 import type { DownloadImageRequestBody, DownloadImageResponseBody } from "@core/types";
 import { apiFetch } from '@/lib/apiFetch';
 
-export async function downloadImageApi(url: string, pathInPosix: string): Promise<DownloadImageResponseBody> {
+export async function downloadImageApi(url: string, pathInPosix: string, httpProxy?: string): Promise<DownloadImageResponseBody> {
   const req: DownloadImageRequestBody = {
     url: url,
     path: Path.toPlatformPath(pathInPosix),
+    ...(httpProxy?.trim() ? { httpProxy: httpProxy.trim() } : {}),
   }
   const resp = await apiFetch('/api/downloadImage', {
     method: 'POST',
