@@ -102,4 +102,33 @@ describe("UIScrapeDialog", () => {
     fireEvent.click(screen.getByTestId("scrape-dialog-start"))
     expect(onStart).toHaveBeenCalledTimes(1)
   })
+
+  it("exposes data-status on each task status cell", () => {
+    const tasks: ScrapeTaskView[] = [
+      { id: "poster", status: "failed", failedReason: "scrape.errors.tmdbUnavailable" },
+      { id: "fanart", status: "pending" },
+      { id: "thumbnails", status: "running" },
+      { id: "nfo", status: "completed" },
+    ]
+
+    render(
+      <UIScrapeDialog
+        isOpen
+        onClose={onClose}
+        tasks={tasks}
+        isRunning={false}
+        allTasksDone={false}
+        showButtons
+        cancelDisabled={false}
+        canDismissIncidentally={false}
+        onCancel={onCancel}
+        onStart={onStart}
+      />,
+    )
+
+    expect(screen.getByTestId("scrape-dialog-task-status-poster").getAttribute("data-status")).toBe("failed")
+    expect(screen.getByTestId("scrape-dialog-task-status-fanart").getAttribute("data-status")).toBe("pending")
+    expect(screen.getByTestId("scrape-dialog-task-status-thumbnails").getAttribute("data-status")).toBe("running")
+    expect(screen.getByTestId("scrape-dialog-task-status-nfo").getAttribute("data-status")).toBe("completed")
+  })
 })

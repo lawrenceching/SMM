@@ -54,6 +54,7 @@ function ScrapeTaskRow({ task }: { task: ScrapeTaskView }) {
         <div
           className="flex items-center gap-2"
           data-testid={`scrape-dialog-task-status-${task.id}`}
+          data-status={task.status}
         >
           {icon}
           <span
