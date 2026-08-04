@@ -1,10 +1,11 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
-import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { join } from "@/lib/path"
 import { checkFileExists } from "@/lib/utils"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
+import { useConfig } from "./userConfig"
+import { downloadScrapeImage } from "@/lib/downloadScrapeImage"
 import type { MediaMetadata, TmdbMovieDetails, TmdbSeriesDetails } from "@core/types"
 import type { TVDBv4Artwork, TVDBv4MovieBaseRecord, TVDBv4SeriesExtendedResponse } from "@smm/tvdb4/types"
 
@@ -100,6 +101,7 @@ export function useScrapePosterMutation<TContext = unknown>(
 ) {
   const { getTvShowById, getMovieById } = useTmdbQueries()
   const { getSeriesExtended, getMovieExtended } = useTvdbQueries()
+  const { userConfig } = useConfig()
 
   return useMutation({
     ...options,
@@ -119,10 +121,7 @@ export function useScrapePosterMutation<TContext = unknown>(
       const exists = await checkFileExists(posterPath)
       if (exists) return
 
-      const response = await downloadImageWithFailover(posterUrl, posterPath)
-      if (response.error) {
-        throw new Error(response.error)
-      }
+      await downloadScrapeImage(mediaMetadata, posterUrl, posterPath, userConfig)
     },
   })
 }

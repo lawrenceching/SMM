@@ -1,10 +1,11 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
-import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { join } from "@/lib/path"
 import { checkFileExists } from "@/lib/utils"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
+import { useConfig } from "./userConfig"
+import { downloadScrapeImage } from "@/lib/downloadScrapeImage"
 import type { MediaMetadata, TmdbMovieDetails, TmdbSeriesDetails } from "@core/types"
 import type {
   TVDBv4Artwork,
@@ -125,6 +126,7 @@ export function useScrapeFanartMutation<TContext = unknown>(
 ) {
   const { getTvShowById, getMovieById } = useTmdbQueries()
   const { getSeriesExtended, getMovieExtended, getArtworkTypes } = useTvdbQueries()
+  const { userConfig } = useConfig()
 
   return useMutation({
     ...options,
@@ -145,10 +147,7 @@ export function useScrapeFanartMutation<TContext = unknown>(
       const exists = await checkFileExists(fanartPath)
       if (exists) return
 
-      const response = await downloadImageWithFailover(fanartUrl, fanartPath)
-      if (response.error) {
-        throw new Error(response.error)
-      }
+      await downloadScrapeImage(mediaMetadata, fanartUrl, fanartPath, userConfig)
     },
   })
 }
