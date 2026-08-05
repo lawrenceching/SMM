@@ -32,7 +32,7 @@ Rule: **`@supports` only after a green run on that platform.** Verified specs be
 | --- | ---: | --- |
 | config | 6 | ✓ all `local, Electron, HarmonyOS, Docker` |
 | movie | 5 | ✓ all `local, Electron, HarmonyOS, Docker` |
-| httpproxy | 6 | ✓ all `local, Electron, HarmonyOS, Docker` (2 new scrape specs: L/E verified 2026-08-05; D→CI, O pending device)
+| httpproxy | 6 | ✓ all `local, Electron, HarmonyOS, Docker` (2 new scrape specs: L/E/D verified 2026-08-05, D via CI; O pending device)
 | tv | 15 | ✓ all `local, Electron, HarmonyOS, Docker` |
 | other | 4 | ✓ App/BackgroundJob full; RenameFolder/Subtitle `Docker` + `@unsupported HarmonyOS` |
 | mcp | 14 | ✓ all `local, Electron, Docker` + `@unsupported HarmonyOS` |
@@ -53,7 +53,7 @@ Rule: **`@supports` only after a green run on that platform.** Verified specs be
 | Transcribe / MusicPanel-Transcribe | pending | `@supports local, Electron` · `@unsupported HarmonyOS, Docker` (refactor done; add Docker to `@supports` after green run) |
 | AppWarningBanner | — | `@supports local, Electron` · `@unsupported HarmonyOS, Docker` (skip Windows) |
 
-All **53 non-manual** specs have correct `@supports` including Docker. No verified non-manual spec is missing Docker in `@supports`. The 2 new httpproxy scrape specs carry `@supports local, Electron, HarmonyOS, Docker`; their Docker/OHOS columns are pending (Docker via CI, HarmonyOS needs a device) until a green run there.
+All **53 non-manual** specs have correct `@supports` including Docker. No verified non-manual spec is missing Docker in `@supports`. The 2 new httpproxy scrape specs carry `@supports local, Electron, HarmonyOS, Docker`; their Docker column is green via CI (2026-08-05), HarmonyOS column pending until a green run on a device.
 
 ---
 
@@ -63,7 +63,7 @@ All **53 non-manual** specs have correct `@supports` including Docker. No verifi
 | --- | ---: | --- | --- | --- | --- |
 | config | 6 | 6/6 | 6/6 | 6/6 | 6/6 |
 | movie | 5 | 5/5 | 5/5 | 5/5 | 5/5 |
-| httpproxy | 6 | 6/6 | 6/6 | 4/4 | 4/4 |
+| httpproxy | 6 | 6/6 | 6/6 | 4/4 | 6/6 |
 | tv | 15† | 14/14 + Failover | 14/14 + Failover‡ | 14/14 + Failover | 15/15 |
 | other | 4 | 4/4 | 4/4 | 2/4 (+2 skip) | 4/4 |
 | mcp | 14 | 14/14 | 14/14 | — | 14/14 |
@@ -118,10 +118,10 @@ Columns: **L** local · **E** electron · **O** ohos · **D** docker
 | InitTvShowByCustomTvdbHost | ✓ | ✓ | ✓ | ✓ |
 | InitTvShowByTmdbBehindHttpProxy | ✓ | ✓ | ✓ | ✓ |
 | InitTvShowByTvdbBehindHttpProxy | ✓ | ✓ | ✓ | ✓ |
-| ScrapeTvShowByTmdbBehindHttpProxy | ✓ | ✓ | pending | pending¶ |
-| ScrapeTvShowByTvdbBehindHttpProxy | ✓ | ✓ | pending | pending¶ |
+| ScrapeTvShowByTmdbBehindHttpProxy | ✓ | ✓ | pending | ✓ |
+| ScrapeTvShowByTvdbBehindHttpProxy | ✓ | ✓ | pending | ✓ |
 
-¶ Docker + HarmonyOS verification deferred: Docker runs via CI (this machine's Docker env cannot reach TMDB); HarmonyOS needs a separate test device environment.
+¶ Docker verified green via CI on 2026-08-05 (log `docker-httpproxy-logs-30959857820`; Phase A dead-proxy 502s + Phase B downloadImage 200s). HarmonyOS needs a separate test device environment.
 
 ### tv (15) — `@supports local, Electron, HarmonyOS, Docker`
 
