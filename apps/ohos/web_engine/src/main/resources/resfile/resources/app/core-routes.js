@@ -31443,6 +31443,11 @@ var exports_src = {};
 __export(exports_src, {
   validateUpstreamBaseURL: () => validateUpstreamBaseURL,
   validatePathIsInAllowlist: () => validatePathIsInAllowlist,
+  resolveWebUiBindAddress: () => resolveWebUiBindAddress,
+  resolveReverseProxyBindAddress: () => resolveReverseProxyBindAddress,
+  resolveReverseProxyAdvertisedHost: () => resolveReverseProxyAdvertisedHost,
+  resolveMcpBindAddress: () => resolveMcpBindAddress,
+  resolveMcpAdvertisedHost: () => resolveMcpAdvertisedHost,
   resolveFolderExistence: () => resolveFolderExistence,
   rejectUnauthorized: () => rejectUnauthorized,
   registerCoreRoutes: () => registerCoreRoutes,
@@ -31619,11 +31624,39 @@ function isRequestAuthorized(authorizationHeader, auth) {
 function validatePathIsInAllowlist(filePath, allowlist) {
   return allowlist.some((allowlistItem) => filePath.startsWith(allowlistItem));
 }
+// src/bindAddresses.ts
+var DEFAULT_BIND_ADDRESS = "127.0.0.1";
+function resolveWebUiBindAddress() {
+  const fromEnv = process.env.WEBUI_ADDRESS?.trim();
+  return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+function resolveReverseProxyBindAddress() {
+  const fromEnv = process.env.REVERSE_PROXY_ADDRESS?.trim();
+  return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+function resolveMcpBindAddress(fallback) {
+  const fromEnv = process.env.MCP_ADDRESS?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  const fb = fallback?.trim();
+  return fb || DEFAULT_BIND_ADDRESS;
+}
+function resolveMcpAdvertisedHost(bindAddress) {
+  return resolveReverseProxyAdvertisedHost(bindAddress);
+}
+function resolveReverseProxyAdvertisedHost(bindAddress) {
+  if (bindAddress === "0.0.0.0" || bindAddress === "::") {
+    return DEFAULT_BIND_ADDRESS;
+  }
+  return bindAddress;
+}
 // src/hello.ts
 function doHello(options) {
   return {
     uptime: process.uptime(),
-    ...options
+    ...options,
+    platform: options.platform ?? process.platform
   };
 }
 // ../../node_modules/.pnpm/@ai-sdk+provider@3.0.8/node_modules/@ai-sdk/provider/dist/index.mjs
@@ -59742,6 +59775,7 @@ function split(path) {
 }
 
 class Path {
+  static serverPlatform = null;
   root;
   sub;
   unc;
@@ -59857,7 +59891,19 @@ class Path {
   static backslash(posixPath) {
     return posixPath.replace(POSIX_PATH_SEPARATOR, WIN_PATH_SEPARATOR);
   }
+  static setServerPlatform(platform) {
+    Path.serverPlatform = platform;
+  }
+  static resetServerPlatformForTests() {
+    Path.serverPlatform = null;
+  }
+  static getServerPlatform() {
+    return Path.serverPlatform;
+  }
   static isWindows() {
+    if (Path.serverPlatform !== null) {
+      return Path.serverPlatform === "win32";
+    }
     const proc = typeof globalThis !== "undefined" ? globalThis.process : undefined;
     if (proc?.platform) {
       return proc.platform === "win32";
@@ -59867,10 +59913,6 @@ class Path {
       const electron = win.electron;
       if (electron?.process?.platform) {
         return electron.process.platform === "win32";
-      }
-      const nav = win.navigator;
-      if (nav?.userAgent) {
-        return /Win/i.test(nav.userAgent);
       }
     }
     return false;
@@ -60266,11 +60308,21 @@ function buildGetEpisodesResponse(metadata) {
   };
 }
 
+// src/types.ts
+var EMPTY_CORE_ROUTES_CONFIG = {
+  allowlist: []
+};
+
 // src/userConfig.ts
 var import_promises5 = require("node:fs/promises");
 var import_node_path2 = __toESM(require("node:path"));
 var DEFAULT_USER_CONFIG = {
-  folders: []
+  folders: [],
+  tmdb: {},
+  tvdb: {},
+  renameRules: [],
+  dryRun: false,
+  selectedRenameRule: "plex"
 };
 function resolveUserDataDir(config2) {
   return config2.hello?.userDataDir ?? config2.appDataDir;
@@ -60314,7 +60366,7 @@ async function writeUserConfigToDisk(config2, userConfig) {
 var getEpisodesRequestSchema = exports_external2.object({
   mediaFolderPath: exports_external2.string().min(1, "The absolute path of the media folder is required")
 });
-async function doGetEpisodes(body, config2 = {}) {
+async function doGetEpisodes(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   const parsed = getEpisodesRequestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
@@ -60945,7 +60997,7 @@ var renameFolderRequestSchema = exports_external2.object({
   from: exports_external2.string().min(1, "Source folder path is required, in POSIX format"),
   to: exports_external2.string().min(1, "Destination folder path is required, in POSIX format")
 });
-async function doRenameFolder(body, config2 = {}) {
+async function doRenameFolder(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   try {
     const validationResult = renameFolderRequestSchema.safeParse(body);
     if (!validationResult.success) {
@@ -63866,6 +63918,15 @@ async function nodeHttpMessageToFetchResponse(res, wireBody) {
   });
 }
 
+// src/fetchInput.ts
+function toRequest(input, init) {
+  if (input instanceof Request) {
+    return init !== undefined ? new Request(input, init) : input;
+  }
+  const url2 = typeof input === "string" ? input : input.href;
+  return new Request(url2, init);
+}
+
 // src/proxiedFetch.ts
 function isBunRuntime() {
   return typeof globalThis.Bun !== "undefined";
@@ -63898,7 +63959,7 @@ function getOutboundProxyMode(proxyUrl, targetUrl) {
 }
 function wrapFetchWithLogging(inner, mode, logger) {
   return async (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
+    const request = toRequest(input, init);
     const target = new URL(request.url);
     logger?.debug({
       proxyMode: mode,
@@ -64014,7 +64075,7 @@ function createProxiedFetch(proxyUrl, logger) {
     httpProxyHost: formatProxyHostForLog(proxyUrl)
   }, "[ProxiedFetch] using outbound proxy");
   return async (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
+    const request = toRequest(input, init);
     const url2 = new URL(request.url);
     const mode = url2.protocol === "https:" ? "node-connect" : "node-forward";
     logger?.debug({
@@ -64246,7 +64307,21 @@ function corsHeaders() {
   };
 }
 function applyCorsToBody(body, init = {}) {
-  const headers = new Headers(init.headers);
+  const headers = new Headers;
+  if (init.headers) {
+    const source = init.headers;
+    if (source instanceof Headers) {
+      source.forEach((value, key) => headers.set(key, value));
+    } else if (Array.isArray(source)) {
+      for (const [key, value] of source) {
+        headers.set(key, value);
+      }
+    } else {
+      for (const [key, value] of Object.entries(source)) {
+        headers.set(key, value);
+      }
+    }
+  }
   for (const [key, value] of Object.entries(corsHeaders())) {
     if (!headers.has(key)) {
       headers.set(key, value);
@@ -64612,11 +64687,11 @@ function tryListen(port, hostname3 = "127.0.0.1") {
 async function findAvailableReverseProxyPort(reservedPorts = new Set, portRange = {
   start: PORT_RANGE_START,
   end: PORT_RANGE_END
-}) {
+}, bindAddress = resolveReverseProxyBindAddress()) {
   for (let port = portRange.start;port <= portRange.end; port++) {
     if (reservedPorts.has(port))
       continue;
-    if (await tryListen(port))
+    if (await tryListen(port, bindAddress))
       return port;
   }
   throw new Error(`Could not find an available port in range ${portRange.start}-${portRange.end}`);
@@ -64630,12 +64705,14 @@ function createReverseProxyManager(config2 = {}) {
       config2.logger?.warn({}, "[Reverse Proxy] already running");
       return;
     }
+    const bindAddress = config2.bindAddress ?? resolveReverseProxyBindAddress();
+    const advertisedHost = resolveReverseProxyAdvertisedHost(bindAddress);
     let port;
     try {
       if (typeof config2.port === "number") {
         port = config2.port;
       } else {
-        port = await findAvailableReverseProxyPort(config2.reservedPorts, config2.portRange);
+        port = await findAvailableReverseProxyPort(config2.reservedPorts, config2.portRange, bindAddress);
       }
     } catch (error48) {
       config2.logger?.error({ err: error48 }, "[Reverse Proxy] failed to find available port");
@@ -64654,11 +64731,11 @@ function createReverseProxyManager(config2 = {}) {
       };
       const onError = (err) => reject(err);
       newServer.once("listening", onListening);
-      newServer.listen(port, "127.0.0.1");
+      newServer.listen(port, bindAddress);
     });
     server = newServer;
-    currentUrl = `http://127.0.0.1:${port}`;
-    config2.logger?.info({ url: currentUrl }, "[Reverse Proxy] started");
+    currentUrl = `http://${advertisedHost}:${port}`;
+    config2.logger?.info({ url: currentUrl, bindAddress }, "[Reverse Proxy] started");
   }
   async function stop() {
     if (!server)
@@ -64868,14 +64945,12 @@ function requestViaNodeHttpStreaming(request) {
 }
 function createNodeHttpFetch() {
   return (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttp(request);
+    return requestViaNodeHttp(toRequest(input, init));
   };
 }
 function createStreamingNodeHttpFetch() {
   return (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttpStreaming(request);
+    return requestViaNodeHttpStreaming(toRequest(input, init));
   };
 }
 // src/writeFile.ts
@@ -65249,7 +65324,7 @@ var listFilesInMediaFolderRequestSchema = exports_external2.object({
   recursively: exports_external2.boolean().optional(),
   videoFileOnly: exports_external2.boolean().optional()
 });
-async function doListFilesInMediaFolder(body, config2 = {}) {
+async function doListFilesInMediaFolder(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   const parsed = listFilesInMediaFolderRequestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
@@ -65450,6 +65525,7 @@ var requestSchema = exports_external2.object({
     to: exports_external2.string().min(1, "The target file path, absolute path in platform-specific format")
   })).min(1, "At least one file rename is required"),
   traceId: exports_external2.string().optional(),
+  strict: exports_external2.boolean().optional(),
   mediaFolder: exports_external2.string().optional(),
   clientId: exports_external2.string().optional()
 });
@@ -65479,21 +65555,48 @@ async function updateMediaMetadataAndBroadcast(mediaFolder, renameMappings, conf
     }
   });
 }
-async function doRenameFiles(body, config2 = {}, headerClientId) {
+function findAllowlistViolation(paths, allowlist) {
+  for (const path11 of paths) {
+    const posixPath = Path.posix(path11);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      return path11;
+    }
+  }
+  return;
+}
+async function doRenameFiles(body, config2 = EMPTY_CORE_ROUTES_CONFIG, headerClientId) {
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
     return { error: `Validation Failed: ${msg}` };
   }
-  const { files, traceId, mediaFolder: mediaFolderFromBody, clientId: clientIdFromBody } = parsed.data;
+  const {
+    files,
+    traceId,
+    strict: strictFromBody,
+    mediaFolder: mediaFolderFromBody,
+    clientId: clientIdFromBody
+  } = parsed.data;
+  const strict = strictFromBody ?? true;
   const effectiveClientId = headerClientId ?? clientIdFromBody;
   const logCtx = traceId ? { traceId } : {};
+  if (strict && !mediaFolderFromBody) {
+    return { error: "Validation Failed: mediaFolder is required when strict is true" };
+  }
   const userConfig = await readUserConfig(config2);
   const mediaFolderPath = mediaFolderFromBody ?? getMediaFolder(files[0].from, userConfig.folders ?? []);
   if (mediaFolderPath === null) {
     return { error: `Media folder not found for ${files[0].from}` };
   }
   const mediaFolderInPosix = Path.posix(mediaFolderPath);
+  const pathsToCheck = [
+    mediaFolderPath,
+    ...files.flatMap((f) => [f.from, f.to])
+  ];
+  const violatedPath = findAllowlistViolation(pathsToCheck, config2.allowlist);
+  if (violatedPath !== undefined) {
+    return { error: `Path "${violatedPath}" is not in the allowlist` };
+  }
   const validationResult = await validateRenameOperations2(files, mediaFolderInPosix);
   if (!validationResult.isValid) {
     return { error: validationResult.errors.join(", ") };
@@ -66519,8 +66622,14 @@ async function handleDownloadImageAsFilePost(req, res, ctx) {
   }
   try {
     const rawBody = await readJsonBody(req);
-    ctx.config.logger?.info({ rawBody }, "[DownloadImageAsFile] POST /api/downloadImage");
-    const result = await doDownloadImageAsFile(rawBody, ctx.config);
+    const { url: url2, path: path13, httpProxy } = rawBody;
+    ctx.config.logger?.info({ url: url2, path: path13 }, "[DownloadImageAsFile] POST /api/downloadImage");
+    const trimmedProxy = httpProxy?.trim();
+    const fetchImpl = trimmedProxy ? createProxiedFetch(trimmedProxy, ctx.config.logger) : ctx.config.fetchImpl;
+    const result = await doDownloadImageAsFile(rawBody, {
+      ...ctx.config,
+      fetchImpl
+    });
     sendJson(res, 200, result);
     return true;
   } catch (error48) {
