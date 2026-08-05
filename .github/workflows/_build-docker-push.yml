@@ -20,7 +20,7 @@ permissions:
 
 jobs:
   build-and-push:
-    name: Build and push lawrenceching/smm (multi-arch)
+    name: Build Docker image (multi-arch)
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
