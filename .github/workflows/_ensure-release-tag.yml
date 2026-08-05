@@ -47,7 +47,28 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          gh tag create "${{ inputs.tag_name }}" "${{ inputs.target_sha }}" \
-            --repo "${{ github.repository }}" \
-            -m "Release ${{ inputs.tag_name }}" \
-            --push
+          TAG='${{ inputs.tag_name }}'
+          SHA='${{ inputs.target_sha }}'
+          REPO='${{ github.repository }}'
+          # gh has no `tag` subcommand; create the tag via the Git Data API.
+          # A sibling release workflow may create the tag between the check
+          # step and here (Release runs Electron + Docker sub-workflows in parallel).
+          if gh api "repos/${REPO}/git/ref/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} was created concurrently; nothing to do."
+            exit 0
+          fi
+          # 1) Create an annotated tag object pointing at the commit.
+          TAG_OBJ_SHA=$(gh api --method POST "repos/${REPO}/git/tags" \
+            -f tag="${TAG}" \
+            -f message="Release ${TAG}" \
+            -f object="${SHA}" \
+            -f type=commit \
+            --jq '.sha')
+          # 2) Create the ref that names the tag. It may already exist if a
+          #    sibling workflow created it concurrently (409); then verify it.
+          if ! gh api --method POST "repos/${REPO}/git/refs" \
+            -f ref="refs/tags/${TAG}" \
+            -f sha="${TAG_OBJ_SHA}" >/dev/null 2>&1; then
+            gh api "repos/${REPO}/git/ref/tags/${TAG}" >/dev/null
+          fi
+          echo "Annotated tag ${TAG} now exists at ${SHA}."

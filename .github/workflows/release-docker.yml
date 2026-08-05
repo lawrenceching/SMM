@@ -30,6 +30,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_final_publish:
+        description: 'Orchestration only: build without publishing GitHub Release / final image (set true by Release)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       tag_name:
@@ -55,6 +60,10 @@ on:
         required: false
         type: boolean
         default: false
+      skip_final_publish:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -67,18 +76,10 @@ jobs:
     uses: ./.github/workflows/_verify-ci-gates.yml
     secrets: inherit
 
-  build-push:
-    name: Build and push Docker image
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
-    uses: ./.github/workflows/_build-docker-push.yml
-    with:
-      semver_tag: ${{ inputs.tag_name }}
-    secrets: inherit
-
   ensure-tag:
     name: Ensure release tag
-    needs: build-push
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/_ensure-release-tag.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -86,8 +87,19 @@ jobs:
     permissions:
       contents: write
 
+  build-push:
+    name: Build and push Docker image
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
+    uses: ./.github/workflows/_build-docker-push.yml
+    with:
+      semver_tag: ${{ inputs.tag_name }}
+      push_release_image: ${{ !inputs.skip_final_publish }}
+    secrets: inherit
+
   release-github:
     name: Create or update GitHub Release (Docker)
+    if: ${{ !inputs.skip_final_publish }}
     needs: [build-push, ensure-tag]
     runs-on: ubuntu-latest
     steps:

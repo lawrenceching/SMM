@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ''
+      push_release_image:
+        description: 'Push the final lawrenceching/smm release image (false when an orchestrator publishes)'
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -77,6 +82,7 @@ jobs:
             -f apps/docker/videocaptioner.Dockerfile .
 
       - name: Assemble and push lawrenceching/smm
+        if: inputs.push_release_image
         env:
           PLATFORMS: linux/amd64,linux/arm64
           SEMVER_TAG: ${{ inputs.semver_tag }}

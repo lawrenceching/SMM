@@ -1,6 +1,8 @@
 name: Release
 
 # Orchestrates Electron + Docker release workflows in parallel (same commit / tag).
+# Both sub-workflows run build-only; a single publish job pushes the Docker image
+# and publishes the GitHub Release only after every build has succeeded.
 on:
   workflow_dispatch:
     inputs:
@@ -47,6 +49,7 @@ jobs:
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
       skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_final_publish: true
     secrets: inherit
 
   release-docker:
@@ -59,11 +62,138 @@ jobs:
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
       skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_final_publish: true
     secrets: inherit
+
+  publish:
+    name: Publish release
+    needs: [release-electron, release-docker]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Download Electron artifacts (all platforms)
+        uses: actions/download-artifact@v4
+        with:
+          pattern: smm-v*
+          merge-multiple: true
+          path: dist
+
+      - name: Set image coordinates
+        id: meta
+        run: |
+          set -euo pipefail
+          OWNER_LC="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          SHA='${{ github.sha }}'
+          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "cli_image=ghcr.io/${OWNER_LC}/smm-cli-build:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ui_image=ghcr.io/${OWNER_LC}/smm-ui-build:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ffmpeg_image=ghcr.io/${OWNER_LC}/smm-ffmpeg:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "ytdlp_image=ghcr.io/${OWNER_LC}/smm-ytdlp:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "videocaptioner_image=ghcr.io/${OWNER_LC}/smm-videocaptioner:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Assemble and push lawrenceching/smm
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+          SEMVER_TAG: ${{ inputs.tag_name }}
+        run: |
+          set -euo pipefail
+          tags=(
+            -t "lawrenceching/smm:latest"
+            -t "lawrenceching/smm:${{ steps.meta.outputs.sha }}"
+          )
+          if [ -n "${SEMVER_TAG}" ]; then
+            tags+=( -t "lawrenceching/smm:${SEMVER_TAG}" )
+          fi
+          docker buildx build --platform "$PLATFORMS" --push \
+            --build-arg "SMM_CLI_IMAGE=${{ steps.meta.outputs.cli_image }}" \
+            --build-arg "SMM_UI_IMAGE=${{ steps.meta.outputs.ui_image }}" \
+            --build-arg "SMM_FFMPEG_IMAGE=${{ steps.meta.outputs.ffmpeg_image }}" \
+            --build-arg "SMM_YTDLP_IMAGE=${{ steps.meta.outputs.ytdlp_image }}" \
+            --build-arg "SMM_VIDEOCAPTIONER_IMAGE=${{ steps.meta.outputs.videocaptioner_image }}" \
+            "${tags[@]}" \
+            -f apps/docker/Dockerfile .
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag_name }}
+          REPO: ${{ github.repository }}
+          USER_BODY: ${{ inputs.body }}
+          RELEASE_TITLE: ${{ (inputs.release_name != '' && inputs.release_name) || inputs.tag_name }}
+          IS_DRAFT: ${{ inputs.draft }}
+          IS_PRERELEASE: ${{ inputs.prerelease }}
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          files=(dist/**/*)
+
+          DOCKER_SECTION="$(printf '%s\n' \
+            '## Docker' \
+            '' \
+            '```bash' \
+            "docker pull lawrenceching/smm:${TAG}" \
+            '```' \
+            '' \
+            "Multi-arch (\`linux/amd64\`, \`linux/arm64\`). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md).")"
+
+          write_notes() { printf '%s' "$1" > /tmp/release-notes.md; }
+
+          if gh release view "${TAG}" --repo "${REPO}" --json body -q .body >/tmp/existing.md 2>/dev/null; then
+            EXISTING="$(cat /tmp/existing.md)"
+            if printf '%s' "${EXISTING}" | grep -q '## Docker'; then
+              NOTES="${EXISTING}"
+            else
+              NOTES="$(printf '%s\n\n%s' "${EXISTING}" "${DOCKER_SECTION}")"
+            fi
+            write_notes "${NOTES}"
+            gh release edit "${TAG}" --repo "${REPO}" --notes-file /tmp/release-notes.md
+            if [ ${#files[@]} -gt 0 ]; then
+              gh release upload "${TAG}" --repo "${REPO}" "${files[@]}" --clobber
+            fi
+            echo "Updated existing Release ${TAG} with Docker section + Electron assets."
+          else
+            NOTES="$(if [ -n "${USER_BODY}" ]; then printf '%s\n\n%s' "${USER_BODY}" "${DOCKER_SECTION}"; else printf '%s' "${DOCKER_SECTION}"; fi)"
+            write_notes "${NOTES}"
+            args=(
+              gh release create "${TAG}"
+              --repo "${REPO}"
+              --title "${RELEASE_TITLE}"
+              --notes-file /tmp/release-notes.md
+            )
+            if [ ${#files[@]} -gt 0 ]; then
+              args+=( "${files[@]}" )
+            fi
+            if [ "${IS_DRAFT}" = "true" ]; then args+=(--draft); fi
+            if [ "${IS_PRERELEASE}" = "true" ]; then args+=(--prerelease); fi
+            "${args[@]}"
+            echo "Created GitHub Release ${TAG} with Electron assets + Docker notes."
+          fi
 
   summary:
     name: Release summary
-    needs: [release-electron, release-docker]
+    needs: [release-electron, release-docker, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -76,6 +206,7 @@ jobs:
             echo "|---------|--------|"
             echo "| Electron | ${{ needs.release-electron.result }} |"
             echo "| Docker | ${{ needs.release-docker.result }} |"
+            echo "| Publish | ${{ needs.publish.result }} |"
             echo ""
             echo "**Tag:** \`${TAG}\`"
             echo "**Commit:** \`${SHA}\`"
@@ -91,7 +222,7 @@ jobs:
           SKIP_CI: ${{ inputs.skip_ci_verification }}
 
       - name: Fail if any release job failed
-        if: needs.release-electron.result != 'success' || needs.release-docker.result != 'success'
+        if: needs.release-electron.result != 'success' || needs.release-docker.result != 'success' || needs.publish.result != 'success'
         run: |
           echo "::error::One or more release jobs did not succeed."
           exit 1

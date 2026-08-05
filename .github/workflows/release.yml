@@ -30,6 +30,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_final_publish:
+        description: 'Orchestration only: build without publishing the GitHub Release (set true by Release)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       tag_name:
@@ -52,6 +57,10 @@ on:
         type: string
         default: ''
       skip_ci_verification:
+        required: false
+        type: boolean
+        default: false
+      skip_final_publish:
         required: false
         type: boolean
         default: false
@@ -79,8 +88,8 @@ jobs:
 
   build-electron-linux-x64:
     name: Build Electron (linux-x64)
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: ubuntu-latest
     env:
       PLATFORM: linux
@@ -146,8 +155,8 @@ jobs:
 
   build-electron-linux-arm64:
     name: Build Electron (linux-arm64)
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     timeout-minutes: 60
     runs-on: ubuntu-24.04-arm
     env:
@@ -214,8 +223,8 @@ jobs:
 
   build-electron-windows-x64:
     name: Build Electron (win-x64)
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: windows-latest
     env:
       PLATFORM: win
@@ -281,8 +290,8 @@ jobs:
 
   build-electron-windows-arm64:
     name: Build Electron (win-arm64)
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: windows-11-arm
     env:
       PLATFORM: win
@@ -348,8 +357,8 @@ jobs:
 
   build-electron-mac-arm64:
     name: Build Electron (mac-arm64)
-    needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
+    needs: [verify-ci, ensure-tag]
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: macos-14
     env:
       PLATFORM: mac
@@ -415,6 +424,7 @@ jobs:
 
   release-electron:
     name: Create GitHub Release (Electron installers)
+    if: ${{ !inputs.skip_final_publish }}
     needs:
       - ensure-tag
       - build-electron-linux-x64

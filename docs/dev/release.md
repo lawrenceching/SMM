@@ -75,35 +75,28 @@ flowchart TB
     B[PR/push CI 全绿: 单元测试 lint typecheck E2E gates]
   end
 
-  subgraph verify [发版 workflow]
+  subgraph release [Release workflow]
     V[Verify CI gates 校验 check runs]
-  end
-
-  subgraph tag [共用 tag 逻辑 ensure-release-tag]
-    C{Git tag vX.Y.Z 已存在?}
-    C -->|否| D[创建 tag + GitHub Release 草稿/正式]
-    C -->|是| E[跳过建 tag]
-  end
-
-  subgraph products [产物 顺序任意]
-    F[Release Electron → 上传安装包]
-    G[Release Docker → 推 Hub 镜像 + 更新 Release 说明]
+    C[ensure-release-tag: tag 不存在则创建 防竞态]
+    F[Release Electron 5× 平台构建 + 上传安装包]
+    G[Release Docker 构建 + 推中间镜像]
+    P[publish 所有构建成功后才推 lawrenceching/smm + 发布/更新 Release 页]
   end
 
   A --> B
   B --> V
   V --> C
-  D --> F
-  D --> G
-  E --> F
-  E --> G
+  C --> F
+  C --> G
+  F --> P
+  G --> P
 ```
 
 **推荐顺序（同一版本）：**
 
 1. 合并到 `main` 后等待 **Build UI and CLI** 与三套 **E2E** workflow 在 PR/push 上全绿  
 2. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）  
-3. 默认 **Verify CI gates** 通过后才开始构建；第二个产物 workflow 会自动复用已有 tag  
+3. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 
 ---
 
@@ -131,10 +124,11 @@ flowchart TB
 
 ### CI 行为（目标）
 
-1. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64  
-2. **ensure-release-tag**：若 `tag_name` 不存在 → 创建 tag；已存在 → 跳过  
-3. 若 tag **新建**：`action-gh-release` 创建 Release 并上传各平台安装包  
-4. 若 tag **已存在**：跳过建 tag，向**已有 Release** 上传/更新 Electron 资产（不覆盖 Docker 相关说明）
+1. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
+2. **ensure-release-tag**：若 `tag_name` 不存在 → 创建 tag；已存在 → 跳过（并发防竞态）
+3. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64（构建依赖前置检查通过）
+4. 若 tag **新建**：`action-gh-release` 创建 Release 并上传各平台安装包  
+5. 若 tag **已存在**：跳过建 tag，向**已有 Release** 上传/更新 Electron 资产（不覆盖 Docker 相关说明）
 
 ### 发版后验证
 
@@ -167,15 +161,16 @@ flowchart TB
 
 ### CI 行为（目标）
 
-1. **unit-tests**（除非 `skip_unit_tests`）  
-2. **verify-docker-e2e**（除非 `skip_e2e_tests`）：检查该 commit 是否存在成功的 **e2e-gate**，不重跑 E2E  
-3. **build-push-docker**（reusable **build-docker-push**）：multi-arch 构建，推送  
-   - `lawrenceching/smm:latest`  
-   - `lawrenceching/smm:<git-sha>`  
-   - `lawrenceching/smm:<tag_name>`（如 `v1.2.3`）  
-4. **ensure-release-tag** + **release-github**  
-   - tag 不存在：创建 Release，`body` 含 Docker 拉取说明  
-   - tag 已存在（例如 Electron 先发布）：跳过建 tag，**追加/更新** Release 说明中的 Docker 段  
+1. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
+2. **ensure-release-tag**：tag 不存在 → 创建；已存在 → 跳过（并发创建已做防竞态处理）
+3. **build-push-docker**（reusable **build-docker-push**）：multi-arch 构建，推送
+   - `lawrenceching/smm:latest`
+   - `lawrenceching/smm:<git-sha>`
+   - `lawrenceching/smm:<tag_name>`（如 `v1.2.3`）
+   - 通过 **Release** 编排（build-only）时：本 workflow 只推中间镜像，最终镜像由 orchestrator 的 `publish` 统一推送
+4. **release-github**
+   - 单独运行：tag 不存在 → 创建 Release，`body` 含 Docker 拉取说明；tag 已存在 → 追加/更新 Docker 段
+   - 通过 **Release** 编排时：本 job 跳过，统一由 orchestrator 的 `publish` 发布
 
 ### 发版后验证
 
@@ -199,9 +194,12 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 2. Actions → Release（推荐）或分别跑 Release Electron / Release Docker
 ```
 
-**Release** workflow 会**并行**触发 Electron 与 Docker 两个子 workflow，共用同一组输入（`tag_name`、`body` 等）。Electron 侧先创建 tag 时，Docker 侧会在构建完成后检测到 tag 已存在并只追加 Docker 说明。
+**Release** workflow 会**并行**触发 Electron 与 Docker 两个子 workflow，共用同一组输入（`tag_name`、`body` 等）。两个子 workflow 都以 **build-only** 方式运行（`skip_final_publish=true`）：Electron 侧构建 5 个平台安装包并上传产物，Docker 侧构建并推送中间镜像（不推送最终 `lawrenceching/smm`）。待**所有构建都成功**后，由 orchestrator 的 `publish` job 统一推送 `lawrenceching/smm`（`latest` / `<sha>` / `<tag>`）并创建/更新 GitHub Release 页面（安装包 + Docker 说明）。
 
-若只发一种产物，仍可单独运行 **Release Electron** 或 **Release Docker**。
+- 任一子 workflow 的前置检查（`verify-ci` / `ensure-tag`）或构建失败 → 对应构建跳过，`publish` 不运行，整个 Release 快速失败。
+- Git tag 由两个子 workflow 的 `ensure-tag` 并发创建，已做防竞态处理。
+
+若只发一种产物，仍可单独运行 **Release Electron** 或 **Release Docker**（单产品发布，前置检查通过后才构建并发布）。
 
 **GitHub Release 页面**应同时包含：
 
