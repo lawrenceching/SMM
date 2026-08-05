@@ -31,6 +31,7 @@ export async function startCoreRoutesServer(
   const handler = createCoreRoutesRequestHandler(
     {
       allowlist,
+      resolveAllowlist: buildAllowlist,
       logger: createCoreRoutesLogger(),
       hello: helloOptions,
       appDataDir,

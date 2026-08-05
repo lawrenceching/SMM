@@ -66626,8 +66626,18 @@ async function handleDownloadImageAsFilePost(req, res, ctx) {
     ctx.config.logger?.info({ url: url2, path: path13 }, "[DownloadImageAsFile] POST /api/downloadImage");
     const trimmedProxy = httpProxy?.trim();
     const fetchImpl = trimmedProxy ? createProxiedFetch(trimmedProxy, ctx.config.logger) : ctx.config.fetchImpl;
+    let allowlist = ctx.config.allowlist;
+    if (ctx.config.resolveAllowlist) {
+      try {
+        allowlist = await ctx.config.resolveAllowlist();
+      } catch (error48) {
+        ctx.config.logger?.warn({ error: error48 }, "[DownloadImageAsFile] failed to resolve allowlist, falling back to static");
+        allowlist = ctx.config.allowlist;
+      }
+    }
     const result = await doDownloadImageAsFile(rawBody, {
       ...ctx.config,
+      allowlist,
       fetchImpl
     });
     sendJson(res, 200, result);

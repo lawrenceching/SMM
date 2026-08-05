@@ -1026,6 +1026,73 @@ describe("POST /api/downloadImage", () => {
       await rm(dir, { recursive: true, force: true });
     }
   });
+
+  it("uses resolveAllowlist when the destination is in the resolved list but not the static allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-resolve-"));
+    try {
+      const other = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-static-"));
+      const dest = path.join(dir, "new.jpg");
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(makeFetchResponse({ body: Buffer.from("x") }));
+      vi.stubGlobal("fetch", fetchSpy);
+      try {
+        const { status, body } = await requestDownloadImage(
+          JSON.stringify({ url: "https://example.com/x.jpg", path: dest }),
+          [toPosix(other)],
+          { resolveAllowlist: async () => [toPosix(dir)] },
+        );
+        expect(status).toBe(200);
+        expect(body.error).toBeUndefined();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the static allowlist when resolveAllowlist throws", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-resolve-throw-"));
+    try {
+      const dest = path.join(dir, "new.jpg");
+      const fetchSpy = vi
+        .fn()
+        .mockResolvedValue(makeFetchResponse({ body: Buffer.from("x") }));
+      vi.stubGlobal("fetch", fetchSpy);
+      try {
+        const { status, body } = await requestDownloadImage(
+          JSON.stringify({ url: "https://example.com/x.jpg", path: dest }),
+          [toPosix(dir)],
+          { resolveAllowlist: async () => { throw new Error("boom"); } },
+        );
+        expect(status).toBe(200);
+        expect(body.error).toBeUndefined();
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses the static allowlist after a resolveAllowlist throw (out-of-list destination fails)", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-resolve-fallback-"));
+    try {
+      const { status, body } = await requestDownloadImage(
+        JSON.stringify({
+          url: "https://example.com/x.jpg",
+          path: path.join(dir, "nope.jpg"),
+        }),
+        [],
+        { resolveAllowlist: async () => { throw new Error("boom"); } },
+      );
+      expect(status).toBe(200);
+      expect(body.error).toContain("not in the allowlist");
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("POST /api/readImage", () => {

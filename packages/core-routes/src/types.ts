@@ -21,6 +21,13 @@ import type { WebSocketMessage } from "./socketIO/types.ts";
 export interface CoreRoutesConfig {
   /** POSIX-format paths allowed for writeFile operations */
   allowlist: string[];
+  /**
+   * Optional callback to dynamically resolve the allowlist per request.
+   * Called on every request so runtime config changes (e.g. newly
+   * imported folders) take effect without a restart. Takes precedence
+   * over the static `allowlist` field when both are provided.
+   */
+  resolveAllowlist?: () => Promise<string[]> | string[];
   logger?: CoreRoutesLogger;
   /** When set, POST /api/hello returns bootstrap handshake data via doHello. */
   hello?: HelloOptions;

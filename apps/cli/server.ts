@@ -25,7 +25,7 @@ import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
 import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
-import { handleDownloadImageAsFileRequest } from './src/route/DownloadImageAsFile';
+import { handleDownloadImageAsFileRequest } from './src/route/downloadImageAsFileBridge';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
 import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';

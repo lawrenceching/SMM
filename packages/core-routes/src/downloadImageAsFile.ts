@@ -43,10 +43,9 @@ function normalizeUrl(url: string): string {
 }
 
 /**
- * Pure function backing `POST /api/downloadImage`.
- *
- * Mirrors the original `apps/cli/src/route/DownloadImageAsFile.ts`
- * + `apps/cli/src/utils/downloadImage.ts` behavior:
+ * Pure function backing `POST /api/downloadImage` (used by the
+ * shared route in `downloadImageAsFileRoute.ts` on every runtime,
+ * including the desktop CLI bridge):
  *   - zod-validates the body (`url` + `path` non-empty).
  *   - If the destination file already exists, returns
  *     `{ data: { url, path }, error: existedFileError(path) }`

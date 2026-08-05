@@ -38,8 +38,21 @@ export async function handleDownloadImageAsFilePost(
     const fetchImpl = trimmedProxy
       ? createProxiedFetch(trimmedProxy, ctx.config.logger)
       : ctx.config.fetchImpl;
+    let allowlist = ctx.config.allowlist;
+    if (ctx.config.resolveAllowlist) {
+      try {
+        allowlist = await ctx.config.resolveAllowlist();
+      } catch (error) {
+        ctx.config.logger?.warn(
+          { error },
+          "[DownloadImageAsFile] failed to resolve allowlist, falling back to static",
+        );
+        allowlist = ctx.config.allowlist;
+      }
+    }
     const result = await doDownloadImageAsFile(rawBody, {
       ...ctx.config,
+      allowlist,
       fetchImpl,
     });
     sendJson(res, 200, result);

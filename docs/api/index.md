@@ -103,7 +103,7 @@ Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Nod
 Source Code: packages/core-routes/src/downloadImageAsFile.ts
 HTTP: `POST /api/downloadImage` — downloads an image to a managed file path. Request body: `{ url: string, path: string }` (path in platform-specific format). If the destination file already exists, the response `error` is set to `existedFileError(path)` and the file is left untouched. The path must be inside the server-side allowlist (built by `apps/cli/src/utils/buildAllowlist.ts`). Used by the UI to save poster / fanart / still images scraped from TMDB and TVDB (`useDownloadThumbnailFromTMDB`, `useDownloadThumbnailFromTVDB`, `useScrapePosterMutation`, `useScrapeFanartMutation`, `lib/utils.ts`).
 
-Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/cli/src/route/DownloadImageAsFile.ts` delegates to `doDownloadImageAsFile` from `@smm/core-routes`.
+Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). Both entry points use the shared `handleDownloadImageAsFilePost` from `@smm/core-routes`; on the desktop CLI the Hono route is an in-process bridge to that handler. The allowlist is re-resolved on every request via `resolveAllowlist`, so folders imported after server startup are honored without a restart.
 
 ## ReadImage
 Source Code: packages/core-routes/src/readImage.ts
