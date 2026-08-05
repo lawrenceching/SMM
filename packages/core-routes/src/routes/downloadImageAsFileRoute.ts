@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DownloadImageRequestBody } from "@smm/core/types";
 import { doDownloadImageAsFile } from "../downloadImageAsFile.ts";
+import { createProxiedFetch } from "../proxiedFetch.ts";
 import { readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";
 
@@ -28,12 +29,19 @@ export async function handleDownloadImageAsFilePost(
 
   try {
     const rawBody = (await readJsonBody(req)) as DownloadImageRequestBody;
-    const { url, path } = rawBody;
+    const { url, path, httpProxy } = rawBody;
     ctx.config.logger?.info(
       { url, path },
       "[DownloadImageAsFile] POST /api/downloadImage",
     );
-    const result = await doDownloadImageAsFile(rawBody, ctx.config);
+    const trimmedProxy = httpProxy?.trim();
+    const fetchImpl = trimmedProxy
+      ? createProxiedFetch(trimmedProxy, ctx.config.logger)
+      : ctx.config.fetchImpl;
+    const result = await doDownloadImageAsFile(rawBody, {
+      ...ctx.config,
+      fetchImpl,
+    });
     sendJson(res, 200, result);
     return true;
   } catch (error) {

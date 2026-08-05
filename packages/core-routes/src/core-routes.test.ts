@@ -974,6 +974,58 @@ describe("POST /api/downloadImage", () => {
     expect(infoCall[0].httpProxy).toBeUndefined();
     expect(infoCall[0].rawBody).toBeUndefined();
   });
+
+  it("uses config.fetchImpl when the body has no httpProxy", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-no-proxy-"));
+    try {
+      const dest = path.join(dir, "direct.jpg");
+      const configFetchSpy = vi
+        .fn()
+        .mockResolvedValue(makeFetchResponse({ body: Buffer.from("direct") }));
+      const { status, body } = await requestDownloadImage(
+        JSON.stringify({
+          url: "https://example.com/x.jpg",
+          path: dest,
+        }),
+        [toPosix(dir)],
+        { fetchImpl: configFetchSpy },
+      );
+      expect(status).toBe(200);
+      expect(body.error).toBeUndefined();
+      expect(configFetchSpy).toHaveBeenCalledTimes(1);
+      const written = await readFile(dest);
+      expect(Array.from(written)).toEqual(Array.from(Buffer.from("direct")));
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses a proxied fetch (not config.fetchImpl) when the body carries httpProxy", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-dl-proxy-"));
+    try {
+      const dest = path.join(dir, "proxied.jpg");
+      const configFetchSpy = vi
+        .fn()
+        .mockResolvedValue(makeFetchResponse({ body: Buffer.from("direct") }));
+      const { status, body } = await requestDownloadImage(
+        JSON.stringify({
+          url: "https://example.com/x.jpg",
+          path: dest,
+          httpProxy: "http://127.0.0.1:1",
+        }),
+        [toPosix(dir)],
+        { fetchImpl: configFetchSpy },
+      );
+      expect(status).toBe(200);
+      // config.fetchImpl must be bypassed in favor of the proxied fetch.
+      expect(configFetchSpy).not.toHaveBeenCalled();
+      // The proxied fetch targets a dead proxy, so the download fails fast.
+      expect(body.error).toBeDefined();
+      expect(await stat(dest).catch(() => null)).toBeNull();
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe("POST /api/readImage", () => {
