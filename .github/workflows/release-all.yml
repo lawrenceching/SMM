@@ -39,8 +39,16 @@ permissions:
   packages: write
 
 jobs:
+  verify-ci:
+    name: Verify CI gates
+    if: ${{ !inputs.skip_ci_verification }}
+    uses: ./.github/workflows/_verify-ci-gates.yml
+    secrets: inherit
+
   release-electron:
     name: Release Electron
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/release.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -49,11 +57,14 @@ jobs:
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
       skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_verify_ci: true
       skip_final_publish: true
     secrets: inherit
 
   release-docker:
     name: Release Docker
+    needs: verify-ci
+    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/release-docker.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -62,6 +73,7 @@ jobs:
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
       skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_verify_ci: true
       skip_final_publish: true
     secrets: inherit
 
@@ -197,7 +209,6 @@ jobs:
   summary:
     name: Release summary
     needs: [release-electron, release-docker, publish]
-    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Write workflow summary
@@ -223,9 +234,3 @@ jobs:
           TAG: ${{ inputs.tag_name }}
           SHA: ${{ github.sha }}
           SKIP_CI: ${{ inputs.skip_ci_verification }}
-
-      - name: Fail if any release job failed
-        if: needs.release-electron.result != 'success' || needs.release-docker.result != 'success' || needs.publish.result != 'success'
-        run: |
-          echo "::error::One or more release jobs did not succeed."
-          exit 1

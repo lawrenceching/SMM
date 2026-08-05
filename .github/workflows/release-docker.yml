@@ -35,6 +35,11 @@ on:
         required: false
         default: false
         type: boolean
+      skip_verify_ci:
+        description: 'Orchestration only: skip the in-workflow CI gate check (set true by Release after top-level verify)'
+        required: false
+        default: false
+        type: boolean
   workflow_call:
     inputs:
       tag_name:
@@ -64,6 +69,10 @@ on:
         required: false
         type: boolean
         default: false
+      skip_verify_ci:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -72,7 +81,7 @@ permissions:
 jobs:
   verify-ci:
     name: Verify CI gates
-    if: ${{ !inputs.skip_ci_verification }}
+    if: ${{ !inputs.skip_verify_ci && !inputs.skip_ci_verification }}
     uses: ./.github/workflows/_verify-ci-gates.yml
     secrets: inherit
 
