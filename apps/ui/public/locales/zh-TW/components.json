@@ -21,7 +21,17 @@
     "mediaFolders": "媒體資料夾",
     "addFolder": "新增資料夾",
     "searchPlaceholder": "搜尋媒體資料夾...",
-    "emptyState": "沒有找到媒體資料夾"
+    "emptyState": "沒有找到媒體資料夾",
+    "toolbar": {
+      "sort": "排序",
+      "filter": "篩選",
+      "sortAlphabetical": "按字母順序",
+      "sortReverseAlphabetical": "按字母倒序",
+      "filterAll": "全部類型",
+      "filterTvShow": "電視劇",
+      "filterMovie": "電影",
+      "filterMusic": "音樂"
+    }
   },
   "folderNotAvailablePanel": {
     "title": "資料夾無法使用",

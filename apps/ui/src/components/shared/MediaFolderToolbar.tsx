@@ -3,6 +3,7 @@ import { FilterButton } from "./FilterButton";
 import { SortingButton } from "./SortingButton";
 import type { FilterOption, SortingOption } from "./FilterButton";
 import type { SortOrder, FilterType } from "@/stores/sidebarStore";
+import { useTranslation } from "@/lib/i18n";
 
 export type { SortOrder, FilterType }
 
@@ -15,18 +16,6 @@ export interface MediaFolderToolbarProps {
   style?: React.CSSProperties
 }
 
-const sortOptions: SortingOption[] = [
-  { value: "alphabetical", label: "按字母顺序" },
-  { value: "reverse-alphabetical", label: "按字母倒序" },
-];
-
-const filterOptions: FilterOption[] = [
-  { value: "all", label: "全部类型" },
-  { value: "tvshow", label: "电视剧" },
-  { value: "movie", label: "电影" },
-  { value: "music", label: "音乐" },
-];
-
 export function MediaFolderToolbar({
   sortOrder,
   onSortOrderChange,
@@ -35,6 +24,20 @@ export function MediaFolderToolbar({
   className,
   style,
 }: MediaFolderToolbarProps) {
+  const { t } = useTranslation(["components"])
+
+  const sortOptions: SortingOption[] = [
+    { value: "alphabetical", label: t("sidebar.toolbar.sortAlphabetical") },
+    { value: "reverse-alphabetical", label: t("sidebar.toolbar.sortReverseAlphabetical") },
+  ];
+
+  const filterOptions: FilterOption[] = [
+    { value: "all", label: t("sidebar.toolbar.filterAll") },
+    { value: "tvshow", label: t("sidebar.toolbar.filterTvShow") },
+    { value: "movie", label: t("sidebar.toolbar.filterMovie") },
+    { value: "music", label: t("sidebar.toolbar.filterMusic") },
+  ];
+
   return (
     <div
       className={cn("flex items-center gap-2", className)}
@@ -44,16 +47,14 @@ export function MediaFolderToolbar({
         value={sortOrder}
         options={sortOptions}
         onValueChange={onSortOrderChange}
-        placeholder="排序"
-        tooltipLabel="按字母顺序"
+        placeholder={t("sidebar.toolbar.sort")}
       />
 
       <FilterButton
         value={filterType}
         options={filterOptions}
         onValueChange={onFilterTypeChange}
-        placeholder="筛选"
-        tooltipLabel="全部类型"
+        placeholder={t("sidebar.toolbar.filter")}
       />
     </div>
   )

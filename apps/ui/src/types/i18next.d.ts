@@ -67,6 +67,16 @@ interface ComponentsResources {
     addFolder: string
     searchPlaceholder: string
     emptyState: string
+    toolbar: {
+      sort: string
+      filter: string
+      sortAlphabetical: string
+      sortReverseAlphabetical: string
+      filterAll: string
+      filterTvShow: string
+      filterMovie: string
+      filterMusic: string
+    }
   }
   folderNotAvailablePanel: {
     title: string

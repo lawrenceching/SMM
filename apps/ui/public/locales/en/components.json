@@ -23,7 +23,17 @@
     "mediaFolders": "Media Folders",
     "addFolder": "Add Folder",
     "searchPlaceholder": "Search media folders...",
-    "emptyState": "No media folders found"
+    "emptyState": "No media folders found",
+    "toolbar": {
+      "sort": "Sort",
+      "filter": "Filter",
+      "sortAlphabetical": "Alphabetical",
+      "sortReverseAlphabetical": "Reverse alphabetical",
+      "filterAll": "All types",
+      "filterTvShow": "TV shows",
+      "filterMovie": "Movies",
+      "filterMusic": "Music"
+    }
   },
   "folderNotAvailablePanel": {
     "title": "Folder unavailable",

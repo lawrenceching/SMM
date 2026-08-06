@@ -23,7 +23,17 @@
     "mediaFolders": "媒体文件夹",
     "addFolder": "添加文件夹",
     "searchPlaceholder": "搜索媒体文件夹...",
-    "emptyState": "没有找到媒体文件夹"
+    "emptyState": "没有找到媒体文件夹",
+    "toolbar": {
+      "sort": "排序",
+      "filter": "筛选",
+      "sortAlphabetical": "按字母顺序",
+      "sortReverseAlphabetical": "按字母倒序",
+      "filterAll": "全部类型",
+      "filterTvShow": "电视剧",
+      "filterMovie": "电影",
+      "filterMusic": "音乐"
+    }
   },
   "folderNotAvailablePanel": {
     "title": "文件夹不可用",
