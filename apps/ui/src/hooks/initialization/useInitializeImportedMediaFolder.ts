@@ -31,7 +31,7 @@ import { videoFileExtensions } from "@core/utils";
 import type { MediaFileMetadata, MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
 import { withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import type { FolderType } from "@core/types";
 import { useInitializeMediaMetadataMutation, useUpdateMediaMetadataMutation } from "../mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
@@ -48,7 +48,9 @@ export function useInitializeImportedMediaFolder() {
     const latestUserConfig = useLatest(userConfig);
     const helloQuery = useHelloQuery();
     const latestOsLocale = useLatest(helloQuery.data?.osLocale);
-    const { t } = useTranslation(["errors"])
+    const { t } = useTranslation("components")
+    const tRef = useRef(t)
+    useEffect(() => { tRef.current = t }, [t])
 
     const { saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const { mutateAsync: initializeMediaMetadata } = useInitializeMediaMetadataMutation()
@@ -78,7 +80,7 @@ export function useInitializeImportedMediaFolder() {
 
     const onStart = useCallback((folder: string, folderType: FolderType) => {
         console.log(`[DIAG] useInitializeImportedMediaFolder.onStart: folder=${folder} type=${folderType}`)
-        const _jobId = addJob(`初始化 ${new Path(folder).name()}`);
+        const _jobId = addJob(tRef.current("statusBar.backgroundJobs.jobNames.initializeMediaFolder", { name: new Path(folder).name() }));
         updateJob(_jobId, { status: "running", progress: 50 });
         jobId.current = _jobId;
         const mediaType: MediaMetadata["type"] =

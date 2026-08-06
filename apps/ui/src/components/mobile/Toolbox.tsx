@@ -1,5 +1,6 @@
 import { SearchForm } from "@/components/search-form"
 import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
+import { useTranslation } from "@/lib/i18n"
 
 export interface ToolboxProps {
   sortOrder: SortOrder
@@ -18,6 +19,7 @@ export function Toolbox({
   searchQuery,
   onSearchQueryChange,
 }: ToolboxProps) {
+  const { t } = useTranslation(["components"])
   return (
     <div className="flex flex-col border-b border-border bg-background">
       <div className="border-b border-border px-3 py-2">
@@ -33,7 +35,7 @@ export function Toolbox({
         <SearchForm
           value={searchQuery}
           onValueChange={onSearchQueryChange}
-          placeholder="搜索媒体文件夹..."
+          placeholder={t("sidebar.searchPlaceholder")}
         />
       </div>
     </div>

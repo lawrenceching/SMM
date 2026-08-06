@@ -19,7 +19,9 @@
   },
   "sidebar": {
     "mediaFolders": "媒體資料夾",
-    "addFolder": "新增資料夾"
+    "addFolder": "新增資料夾",
+    "searchPlaceholder": "搜尋媒體資料夾...",
+    "emptyState": "沒有找到媒體資料夾"
   },
   "folderNotAvailablePanel": {
     "title": "資料夾無法使用",
@@ -270,6 +272,7 @@
         "ffmpeg-convert": "格式轉換",
         "ffmpeg-write-tags": "寫入標籤",
         "importMediaLibrary": "匯入媒體庫",
+        "initializeMediaFolder": "初始化 {{name}}",
         "typedJob": "{{type}}：{{detail}}"
       },
       "logDialog": {

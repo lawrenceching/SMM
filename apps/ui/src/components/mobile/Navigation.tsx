@@ -1,4 +1,5 @@
 import { MediaFolderListItemV2, type MediaFolderListItemV2Props } from "@/components/sidebar/MediaFolderListItemV2"
+import { useTranslation } from "@/lib/i18n"
 
 export interface NavigationProps {
   filteredAndSortedFolders: MediaFolderListItemV2Props[]
@@ -9,6 +10,7 @@ export function Navigation({
   filteredAndSortedFolders,
   handleMediaFolderListItemClick,
 }: NavigationProps) {
+  const { t } = useTranslation(["components"])
   return (
     <>
       <style>{`
@@ -36,7 +38,7 @@ export function Navigation({
       >
         {filteredAndSortedFolders.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
-            没有找到媒体文件夹
+            {t("sidebar.emptyState")}
           </div>
         ) : (
           filteredAndSortedFolders.map((folder) => (

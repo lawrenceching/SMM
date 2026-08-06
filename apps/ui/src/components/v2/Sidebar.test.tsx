@@ -9,7 +9,9 @@ vi.mock("@tanstack/react-query", () => ({
 }))
 
 vi.mock("@/components/search-form", () => ({
-  SearchForm: () => <div data-testid="search-form" />,
+  SearchForm: ({ placeholder }: { placeholder?: string }) => (
+    <div data-testid="search-form">{placeholder}</div>
+  ),
 }))
 
 vi.mock("@/components/shared/MediaFolderToolbar", () => ({
@@ -163,6 +165,35 @@ describe("Sidebar delete behavior", () => {
 
     expect(onDeleteSelected).toHaveBeenCalledTimes(1)
     expect(onDeleteSelected).toHaveBeenCalledWith([pathB])
+  })
+})
+
+describe("Sidebar i18n", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [],
+      selectedFolder: null,
+      selectedFolders: [],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: null,
+      selectedFolders: [],
+      selectedFolderPathsSet: new Set(),
+    })
+    mockUseMediaMetadataQuery.mockReturnValue({ data: undefined })
+    mockUseQueries.mockReturnValue([])
+  })
+
+  it("passes the translated placeholder to the search form", () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId("search-form")).toHaveTextContent("sidebar.searchPlaceholder")
+  })
+
+  it("renders the translated empty state when no folders match", () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId("sidebar-empty-state")).toHaveTextContent("sidebar.emptyState")
   })
 })
 

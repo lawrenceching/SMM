@@ -65,6 +65,8 @@ interface ComponentsResources {
   sidebar: {
     mediaFolders: string
     addFolder: string
+    searchPlaceholder: string
+    emptyState: string
   }
   folderNotAvailablePanel: {
     title: string
@@ -312,6 +314,7 @@ interface ComponentsResources {
         'ffmpeg-convert': string
         'ffmpeg-write-tags': string
         importMediaLibrary: string
+        initializeMediaFolder: string
         typedJob: string
       }
       toasts: {

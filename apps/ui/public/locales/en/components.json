@@ -21,7 +21,9 @@
   },
   "sidebar": {
     "mediaFolders": "Media Folders",
-    "addFolder": "Add Folder"
+    "addFolder": "Add Folder",
+    "searchPlaceholder": "Search media folders...",
+    "emptyState": "No media folders found"
   },
   "folderNotAvailablePanel": {
     "title": "Folder unavailable",
@@ -275,6 +277,7 @@
         "ffmpeg-convert": "Format conversion",
         "ffmpeg-write-tags": "Write tags",
         "importMediaLibrary": "Import Media Library",
+        "initializeMediaFolder": "Initializing {{name}}",
         "typedJob": "{{type}}: {{detail}}"
       },
       "logDialog": {

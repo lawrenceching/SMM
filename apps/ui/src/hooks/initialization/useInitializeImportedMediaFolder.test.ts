@@ -263,6 +263,25 @@ describe("useInitializeImportedMediaFolder", () => {
         expect(h.updateJob).toHaveBeenCalledWith("job-1", { status: "succeeded" });
     }
 
+    it("adds a translated background job name when starting initialization", async () => {
+        const { result } = renderHook(() => useInitializeImportedMediaFolder());
+
+        const detail: OnMediaFolderImportedEventData = {
+            type: "tvshow",
+            folderPathInPlatformFormat: folderPath,
+            traceId: "evt-trace",
+        };
+        const event = new CustomEvent("ui.mediaFolderImported", { detail }) as Event;
+
+        await act(async () => {
+            await result.current.initializeImportedMediaFolder(event);
+        });
+
+        expect(h.addJob).toHaveBeenCalledWith(
+            expect.stringContaining("statusBar.backgroundJobs.jobNames.initializeMediaFolder")
+        );
+    });
+
     it("initialize TV show folder", async () => {
         const { result } = renderHook(() => useInitializeImportedMediaFolder());
 

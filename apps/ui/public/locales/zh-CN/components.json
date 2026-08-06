@@ -21,7 +21,9 @@
   },
   "sidebar": {
     "mediaFolders": "媒体文件夹",
-    "addFolder": "添加文件夹"
+    "addFolder": "添加文件夹",
+    "searchPlaceholder": "搜索媒体文件夹...",
+    "emptyState": "没有找到媒体文件夹"
   },
   "folderNotAvailablePanel": {
     "title": "文件夹不可用",
@@ -273,6 +275,7 @@
         "ffmpeg-convert": "格式转换",
         "ffmpeg-write-tags": "写入标签",
         "importMediaLibrary": "导入媒体库",
+        "initializeMediaFolder": "初始化 {{name}}",
         "typedJob": "{{type}}：{{detail}}"
       },
       "logDialog": {

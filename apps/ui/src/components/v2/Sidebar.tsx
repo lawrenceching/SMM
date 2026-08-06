@@ -160,7 +160,7 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
         <SearchForm
           value={searchQuery}
           onValueChange={setSearchQuery}
-          placeholder="搜索媒体文件夹..."
+          placeholder={t("sidebar.searchPlaceholder")}
         />
       </div>
 
@@ -172,7 +172,7 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
       >
         {filteredAndSortedFolders.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground text-sm" data-testid="sidebar-empty-state">
-            没有找到媒体文件夹
+            {t("sidebar.emptyState")}
           </div>
         ) : (
           <div className="flex flex-col outline-none" data-testid="sidebar-folder-items">
