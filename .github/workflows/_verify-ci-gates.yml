@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ''
+      skip:
+        description: 'Skip verification and report success (used when a caller already verified, or emergency skip)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   verify:
@@ -15,14 +20,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
+        if: ${{ !inputs.skip }}
         uses: actions/checkout@v4
 
       - name: Setup Bun
+        if: ${{ !inputs.skip }}
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Verify required CI checks passed on commit
+        if: ${{ !inputs.skip }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}

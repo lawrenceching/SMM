@@ -41,14 +41,14 @@ permissions:
 jobs:
   verify-ci:
     name: Verify CI gates
-    if: ${{ !inputs.skip_ci_verification }}
     uses: ./.github/workflows/_verify-ci-gates.yml
+    with:
+      skip: ${{ inputs.skip_ci_verification }}
     secrets: inherit
 
   release-electron:
     name: Release Electron
     needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/release.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -64,7 +64,6 @@ jobs:
   release-docker:
     name: Release Docker
     needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/release-docker.yml
     with:
       tag_name: ${{ inputs.tag_name }}

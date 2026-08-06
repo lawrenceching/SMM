@@ -281,6 +281,7 @@ Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CH
 |------|----------|------|
 | Docker login `Username and password required` | 未配置 `DOCKERHUB_*` secrets | 仓库 Settings → Secrets |
 | Release：Verify CI gates 失败 | 该 commit 缺少或未通过 required checks | 在 PR 上等待 CI 全绿，或手动重跑 E2E workflow |
+| CI 全绿但 GitHub Release 页未创建 | 子 workflow 的 job 用了 **job 级** `if:` 被 skip，导致 reusable workflow 调用方 job 结论为 `skipped`，`publish`（无 `if: always()`）随之被 skip | 改为 **step 级** `if:` 门控（如 `_verify-ci-gates.yml` 的 `skip` 输入、发布 job 的步骤门控），保证 job 本身始终运行并结论为 `success` |
 | `action-gh-release` tag 已存在 | Electron/Docker 重复创建 tag | ensure-release-tag 会跳过；第二个 workflow 追加产物/说明 |
 | 镜像无 arm64 | Build 未 multi-arch | 使用 **Build Docker** / Release 内 reusable build，勿仅本地 amd64 assemble |
 | E2E 绿但用户反馈 Docker 异常 | E2E 测的是 job 内 amd64 本地镜像，与 Hub multi-arch 构建路径不同 | 见 [docker-install.md](../docker-install.md)；长期可考虑 digest promotion |

@@ -81,14 +81,14 @@ permissions:
 jobs:
   verify-ci:
     name: Verify CI gates
-    if: ${{ !inputs.skip_verify_ci && !inputs.skip_ci_verification }}
     uses: ./.github/workflows/_verify-ci-gates.yml
+    with:
+      skip: ${{ inputs.skip_verify_ci || inputs.skip_ci_verification }}
     secrets: inherit
 
   ensure-tag:
     name: Ensure release tag
     needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/_ensure-release-tag.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -99,7 +99,6 @@ jobs:
   build-push:
     name: Build and push Docker image
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     uses: ./.github/workflows/_build-docker-push.yml
     with:
       semver_tag: ${{ inputs.tag_name }}
@@ -108,11 +107,11 @@ jobs:
 
   release-github:
     name: Create or update GitHub Release (Docker)
-    if: ${{ !inputs.skip_final_publish }}
     needs: [build-push, ensure-tag]
     runs-on: ubuntu-latest
     steps:
       - name: Publish GitHub Release
+        if: ${{ !inputs.skip_final_publish }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag_name }}

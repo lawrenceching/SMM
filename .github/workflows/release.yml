@@ -80,14 +80,14 @@ permissions:
 jobs:
   verify-ci:
     name: Verify CI gates
-    if: ${{ !inputs.skip_verify_ci && !inputs.skip_ci_verification }}
     uses: ./.github/workflows/_verify-ci-gates.yml
+    with:
+      skip: ${{ inputs.skip_verify_ci || inputs.skip_ci_verification }}
     secrets: inherit
 
   ensure-tag:
     name: Ensure release tag
     needs: verify-ci
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped')
     uses: ./.github/workflows/_ensure-release-tag.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -98,7 +98,6 @@ jobs:
   build-electron-linux-x64:
     name: Build Electron (linux-x64)
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: ubuntu-latest
     env:
       PLATFORM: linux
@@ -165,7 +164,6 @@ jobs:
   build-electron-linux-arm64:
     name: Build Electron (linux-arm64)
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     timeout-minutes: 60
     runs-on: ubuntu-24.04-arm
     env:
@@ -233,7 +231,6 @@ jobs:
   build-electron-windows-x64:
     name: Build Electron (win-x64)
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: windows-latest
     env:
       PLATFORM: win
@@ -300,7 +297,6 @@ jobs:
   build-electron-windows-arm64:
     name: Build Electron (win-arm64)
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: windows-11-arm
     env:
       PLATFORM: win
@@ -367,7 +363,6 @@ jobs:
   build-electron-mac-arm64:
     name: Build Electron (mac-arm64)
     needs: [verify-ci, ensure-tag]
-    if: always() && (needs.verify-ci.result == 'success' || needs.verify-ci.result == 'skipped') && needs.ensure-tag.result == 'success'
     runs-on: macos-14
     env:
       PLATFORM: mac
@@ -433,7 +428,6 @@ jobs:
 
   release-electron:
     name: Create GitHub Release (Electron installers)
-    if: ${{ !inputs.skip_final_publish }}
     needs:
       - ensure-tag
       - build-electron-linux-x64
@@ -445,6 +439,7 @@ jobs:
 
     steps:
       - name: Download Electron artifacts (all platforms)
+        if: ${{ !inputs.skip_final_publish }}
         uses: actions/download-artifact@v4
         with:
           pattern: smm-v*
@@ -452,7 +447,7 @@ jobs:
           path: dist
 
       - name: Create GitHub Release and upload assets (new tag)
-        if: needs.ensure-tag.outputs.tag_exists != 'true'
+        if: ${{ !inputs.skip_final_publish && needs.ensure-tag.outputs.tag_exists != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag_name }}
@@ -467,7 +462,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload assets to existing GitHub Release
-        if: needs.ensure-tag.outputs.tag_exists == 'true'
+        if: ${{ !inputs.skip_final_publish && needs.ensure-tag.outputs.tag_exists == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
