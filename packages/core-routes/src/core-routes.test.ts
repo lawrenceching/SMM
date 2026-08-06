@@ -108,10 +108,12 @@ describe("handleCoreRoutesRequest", () => {
     }
 
     let status = 0;
+    let headers: Record<string, string> = {};
     let body = "";
     const res = new ServerResponse(req);
-    res.writeHead = ((code: number) => {
+    res.writeHead = ((code: number, hdrs?: Record<string, string>) => {
       status = code;
+      headers = hdrs ?? {};
       return res;
     }) as typeof res.writeHead;
     res.end = ((chunk?: unknown) => {
@@ -122,7 +124,11 @@ describe("handleCoreRoutesRequest", () => {
     await handleCoreRoutesRequest(req, res, config, 3001);
 
     socket.destroy();
-    return { status, body: body ? (JSON.parse(body) as Record<string, unknown>) : {} };
+    return {
+      status,
+      headers,
+      body: body ? (JSON.parse(body) as Record<string, unknown>) : {},
+    };
   }
 
   it("returns 404 for unknown routes", async () => {
@@ -151,6 +157,25 @@ describe("handleCoreRoutesRequest", () => {
     expect(body.userDataDir).toBe("/tmp/userData");
     expect(typeof body.uptime).toBe("number");
     expect(body.platform).toBe(process.platform);
+  });
+
+  it("sets Cache-Control: no-store on JSON responses so the browser never caches them", async () => {
+    const { status, headers } = await requestCoreRoute("POST", "/api/hello", {
+      allowlist: [],
+      hello: {
+        version: "1.3.8",
+        userDataDir: "/tmp/userData",
+        appDataDir: "/tmp/appData",
+        logDir: "/tmp/logs",
+        tmpDir: "/tmp",
+        reverseProxyUrl: null,
+        osLocale: "en-US",
+        coreRoutesPort: 3001,
+      },
+    });
+
+    expect(status).toBe(200);
+    expect(headers["Cache-Control"]).toBe("no-store");
   });
 
   it('returns { error: "hello not configured" } when config.hello is undefined', async () => {

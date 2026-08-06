@@ -196,6 +196,20 @@ export class Server {
       }),
     );
 
+    // Enforce no browser caching on all API responses, except handlers
+    // that explicitly opt into caching (e.g. /api/image poster proxy).
+    this.app.use('/api/*', async (c, next) => {
+      await next();
+      // Leave CORS preflight responses untouched so browsers can still cache them.
+      if (c.req.method === 'OPTIONS') return;
+      const cacheControl = c.res.headers.get('Cache-Control');
+      const allowsCaching =
+        cacheControl && /\b(public|private|max-age|s-maxage|immutable)\b/.test(cacheControl);
+      if (!allowsCaching) {
+        c.res.headers.set('Cache-Control', 'no-store');
+      }
+    });
+
     this.app.use('/api/*', async (c, next) => {
       if (c.req.method === 'OPTIONS') {
         return next();

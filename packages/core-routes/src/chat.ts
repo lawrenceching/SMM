@@ -359,6 +359,9 @@ async function forwardWebResponseToNode(
     // we always set headers before the first write.
     res.setHeader(key, value);
   });
+  // The AI SDK stream sets `cache-control: no-cache`; strengthen to
+  // no-store so the chat response is never retained by the browser.
+  res.setHeader("Cache-Control", "no-store");
 
   if (response.body) {
     const reader = response.body.getReader();
