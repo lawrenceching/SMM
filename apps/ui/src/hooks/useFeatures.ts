@@ -347,6 +347,11 @@ export interface UseFeaturesResult {
    *   rebuilding for HarmonyOS.
    *
    * Persisted under `features.isUIAiChatTransportEnabled`.
+   *
+   * @deprecated The renderer-side `ReverseProxyChatTransport` is
+   *   unstable in field testing. Prefer the CLI-based Hono
+   *   `AssistantChatTransport`. This flag remains only for testing the
+   *   deprecated transport on desktop.
    */
   isUIAiChatTransportEnabled: boolean
   setIsUIAiChatTransportEnabled: (enabled: boolean) => void

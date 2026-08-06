@@ -31,6 +31,12 @@ import { logger } from '../logger'
  * configured. The unconfigured case is reported to the user as a normal
  * chat response (not an exception), so the AI Assistant modal always
  * works.
+ *
+ * @deprecated The browser / renderer-side transport is unstable in
+ *   field testing. Prefer the CLI-based Hono `AssistantChatTransport`
+ *   (runs `streamText` server-side via `POST /api/chat`). This transport
+ *   is kept only for HarmonyOS (where the Hono transport has no handler)
+ *   and the `features.isUIAiChatTransportEnabled` opt-in flag.
  */
 export interface ReverseProxyChatTransportConfig {
   /** Model identifier (e.g. "deepseek-chat", "gpt-4o-mini"). */
@@ -98,6 +104,13 @@ export interface ReverseProxyChatTransportConfig {
  * })
  * const runtime = useChatRuntime({ transport })
  * ```
+ *
+ * @deprecated Unstable in field testing — running the AI SDK `streamText`
+ *   call in the renderer and routing it through the reverse proxy has
+ *   proven unreliable. Prefer the CLI-based Hono `AssistantChatTransport`
+ *   (which runs `streamText` server-side via `POST /api/chat`). This
+ *   transport is kept only for HarmonyOS, where the Hono transport has no
+ *   handler, and for the `features.isUIAiChatTransportEnabled` opt-in flag.
  */
 export class ReverseProxyChatTransport implements ChatTransport<UIMessage> {
   private readonly config: ReverseProxyChatTransportConfig

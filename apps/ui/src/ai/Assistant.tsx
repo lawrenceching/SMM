@@ -197,6 +197,11 @@ function AssistantImpl() {
         //      `features.isUIAiChatTransportEnabled` via localStorage
         //      (useful for testing the in-process transport on
         //      desktop without rebuilding for HarmonyOS).
+        // NOTE: `ReverseProxyChatTransport` is DEPRECATED — the browser /
+        // renderer-side transport proved unstable in field testing.
+        // Prefer the Hono `AssistantChatTransport` everywhere it has a
+        // handler; this branch remains only for HarmonyOS and the
+        // opt-in feature flag.
         // Otherwise (desktop / Electron default), keep using the Hono
         // `AssistantChatTransport` and let the CLI's server-side
         // `agentTools.getApplicationContext(clientId)` handle tool
