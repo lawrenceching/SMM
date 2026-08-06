@@ -43,6 +43,9 @@ nsis:
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
   installerIcon: build/icon.ico
+  # Assisted installer lets users pick the installation directory
+  oneClick: false
+  allowToChangeInstallationDirectory: true
 mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
