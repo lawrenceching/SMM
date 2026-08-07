@@ -30,7 +30,7 @@
  */
 
 import { create } from "zustand"
-import type { LanguageCode  } from "@core/types"
+import type { LanguageCode } from "@core/types"
 
 export interface AiContextSnapshot {
   /**
