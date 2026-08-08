@@ -1,0 +1,26 @@
+name: Build 3pp Docker Images
+
+# Manual publish of the third-party binary images only (ffmpeg / yt-dlp /
+# videocaptioner). Does not build cli/ui or assemble smm. Useful after bumping
+# a version in package.json "3pp" — images whose version tag already exists in
+# GHCR are reused instead of rebuilt.
+on:
+  workflow_dispatch:
+    inputs:
+      force_rebuild_3pp:
+        description: 'Rebuild ffmpeg/ytdlp/videocaptioner images even if their version tag already exists'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-3pp:
+    name: Build 3pp Docker Images
+    uses: ./.github/workflows/_build-3pp-push.yml
+    with:
+      force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
+    secrets: inherit
