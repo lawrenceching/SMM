@@ -1,5 +1,11 @@
 # @smm/electron-common
 
+## 1.3.18
+
+### Patch Changes
+
+- v1.4.10
+
 ## 1.3.17
 
 ### Patch Changes
