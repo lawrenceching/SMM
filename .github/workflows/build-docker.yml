@@ -3,6 +3,12 @@ name: Build Docker
 on:
   # Multi-arch publish is slow; run only via Actions → Run workflow.
   workflow_dispatch:
+    inputs:
+      force_rebuild_3pp:
+        description: 'Rebuild ffmpeg/ytdlp/videocaptioner images even if their version tag already exists'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -11,4 +17,6 @@ permissions:
 jobs:
   build-and-push:
     uses: ./.github/workflows/_build-docker-push.yml
+    with:
+      force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
     secrets: inherit

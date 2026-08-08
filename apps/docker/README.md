@@ -50,6 +50,22 @@ docker run --rm -p 30000:30000 \
 
 认证默认开启（镜像内 `SMM_AUTH_ENABLED=true`，CLI 在检测到 Docker 环境时也会默认启用）。如需关闭：`-e SMM_AUTH_ENABLED=false`。
 
+### CI 中的 3pp 版本管理
+
+CI（`_build-docker-push.yml`）为三个 3pp 中间镜像各建一个独立 job，镜像标签与软件自身版本一致，版本号来自根目录 `package.json` 的 `3pp` 字段：
+
+| 镜像 | 标签 | 版本来源 |
+|---|---|---|
+| `smm-ffmpeg` | `<ffmpeg_version>` | `3pp.ffmpeg_version` |
+| `smm-ytdlp` | `<ytdlp_version>` | `3pp.ytdlp_version` |
+| `smm-videocaptioner` | `<videocaptioner_version>` | `3pp.videocaptioner_version` |
+
+- 对应标签的镜像已存在于 GHCR 时，CI 直接复用，**不会重新下载**外部二进制。
+- 升级某个 3pp：修改 `package.json` 中对应版本号 → 标签变化 → CI 重新构建该镜像。
+- 强制重建（如同版本号下重新上传了 release 资源）：在 `build-docker.yml` / `release-all.yml` 手动运行时勾选 `force_rebuild_3pp`。
+
+`cli` / `ui` 是应用代码，仍按 commit SHA 打标签，每次提交重建。
+
 ### 认证环境变量
 
 | 变量 | 说明 |

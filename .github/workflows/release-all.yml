@@ -33,6 +33,11 @@ on:
         required: false
         default: false
         type: boolean
+      force_rebuild_3pp:
+        description: 'Rebuild ffmpeg/ytdlp/videocaptioner images even if their version tag already exists'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -74,6 +79,7 @@ jobs:
       skip_ci_verification: ${{ inputs.skip_ci_verification }}
       skip_verify_ci: true
       skip_final_publish: true
+      force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
     secrets: inherit
 
   publish:
@@ -89,17 +95,10 @@ jobs:
 
       - name: Set image coordinates
         id: meta
-        run: |
-          set -euo pipefail
-          OWNER_LC="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
-          SHA='${{ github.sha }}'
-          echo "owner_lc=${OWNER_LC}" >> "$GITHUB_OUTPUT"
-          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
-          echo "cli_image=ghcr.io/${OWNER_LC}/smm-cli-build:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "ui_image=ghcr.io/${OWNER_LC}/smm-ui-build:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "ffmpeg_image=ghcr.io/${OWNER_LC}/smm-ffmpeg:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "ytdlp_image=ghcr.io/${OWNER_LC}/smm-ytdlp:${SHA}" >> "$GITHUB_OUTPUT"
-          echo "videocaptioner_image=ghcr.io/${OWNER_LC}/smm-videocaptioner:${SHA}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

@@ -5,6 +5,11 @@
     "packages/*",
     "apps/*"
   ],
+  "3pp": {
+    "ffmpeg_version": "1.0.0",
+    "ytdlp_version": "1.0.0",
+    "videocaptioner_version": "1.0.0"
+  },
   "scripts": {
     "dev": "npm-run-all2 --parallel dev:ui dev:cli",
     "dev:ui": "pnpm --filter ui dev",
