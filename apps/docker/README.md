@@ -62,8 +62,8 @@ CI（`_build-docker-push.yml`）为三个 3pp 中间镜像各建一个独立 job
 
 - 对应标签的镜像已存在于 GHCR 时，CI 直接复用，**不会重新下载**外部二进制。
 - 升级某个 3pp：修改 `package.json` 中对应版本号 → 标签变化 → CI 重新构建该镜像。
-- 强制重建（如同版本号下重新上传了 release 资源）：在 `build-docker.yml` / `release-all.yml` / `build-3pp.yml` 手动运行时勾选 `force_rebuild_3pp`。
-- 只发布 3pp 镜像（不动 cli/ui，也不组装 `smm:latest`）：手动运行 **Build 3pp Docker Images** workflow（Actions → Build 3pp Docker Images → Run workflow）。
+- 单独构建某个 3pp 镜像（3pp 软件发布新版本号时，只构建该软件的镜像，不动 cli/ui、不组装 `smm:latest`）：手动运行对应的 **Build ffmpeg Docker Image** / **Build ytdlp Docker Image** / **Build videocaptioner Docker Image** workflow（Actions 中可各自独立触发）。
+- 强制重建（覆盖已有版本标签）：在上述三个 workflow 手动运行时勾选 **Force Build**（`force_build`），或在 `build-docker.yml` / `release-all.yml` 勾选 `force_rebuild_3pp`。
 
 `cli` / `ui` 是应用代码，仍按 commit SHA 打标签，每次提交重建。
 

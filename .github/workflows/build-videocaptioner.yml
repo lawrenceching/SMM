@@ -1,0 +1,64 @@
+name: Build videocaptioner Docker Image
+
+# Manual build/publish of the videocaptioner Docker image. Bump
+# 3pp.videocaptioner_version in the root package.json and push, then run this
+# workflow. The image is tagged by that version; if the tag already exists in
+# GHCR it is reused. Check "Force Build" to rebuild and overwrite it.
+on:
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: 'Force Build: rebuild and overwrite the existing version-tagged image'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-videocaptioner:
+    name: Build videocaptioner Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build or reuse smm-videocaptioner image
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+          IMAGE: ${{ steps.meta.outputs.videocaptioner_image }}
+          VC_VERSION: ${{ steps.meta.outputs.videocaptioner_version }}
+          FORCE_REBUILD: ${{ inputs.force_build }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+            echo "Building ${IMAGE}"
+            docker buildx build --platform "$PLATFORMS" --push \
+              --build-arg "VIDEOCAPTIONER_VERSION=${VC_VERSION}" \
+              -t "${IMAGE}" -f apps/docker/videocaptioner.Dockerfile .
+          else
+            echo "Image ${IMAGE} already exists; skipping build."
+          fi
