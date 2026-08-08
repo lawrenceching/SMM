@@ -63,7 +63,8 @@ yarn-error.log*
 Thumbs.db
 .DS_Store
 
-# Platform / desktop apps (not in Docker image; stubs in ci/docker/pnpm-stubs)
+# Platform / desktop apps (excluded to keep the build context small; not needed
+# for --frozen-lockfile, which tolerates missing workspace members)
 apps/ohos/
 apps/electron/
 apps/e2e/
