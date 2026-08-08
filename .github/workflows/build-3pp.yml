@@ -1,14 +1,14 @@
 name: Build 3pp Docker Images
 
 # Manual publish of the third-party binary images only (ffmpeg / yt-dlp /
-# videocaptioner). Does not build cli/ui or assemble smm. Useful after bumping
-# a version in package.json "3pp" — images whose version tag already exists in
-# GHCR are reused instead of rebuilt.
+# videocaptioner). Does not build cli/ui or assemble smm. Images whose version
+# tag already exists in GHCR are reused instead of rebuilt; check "Force Build"
+# to rebuild and overwrite them.
 on:
   workflow_dispatch:
     inputs:
       force_rebuild_3pp:
-        description: 'Rebuild ffmpeg/ytdlp/videocaptioner images even if their version tag already exists'
+        description: 'Force Build: rebuild ffmpeg/ytdlp/videocaptioner images and overwrite the existing version tags'
         required: false
         default: false
         type: boolean
@@ -18,9 +18,133 @@ permissions:
   packages: write
 
 jobs:
-  build-3pp:
-    name: Build 3pp Docker Images
-    uses: ./.github/workflows/_build-3pp-push.yml
-    with:
-      force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
-    secrets: inherit
+  build-ffmpeg:
+    name: Build ffmpeg Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build or reuse smm-ffmpeg image
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+          IMAGE: ${{ steps.meta.outputs.ffmpeg_image }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild_3pp }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+            echo "Building ${IMAGE}"
+            docker buildx build --platform "$PLATFORMS" --push \
+              -t "${IMAGE}" -f apps/docker/ffmpeg.Dockerfile .
+          else
+            echo "Image ${IMAGE} already exists; skipping build."
+          fi
+
+  build-ytdlp:
+    name: Build ytdlp Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build or reuse smm-ytdlp image
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+          IMAGE: ${{ steps.meta.outputs.ytdlp_image }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild_3pp }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+            echo "Building ${IMAGE}"
+            docker buildx build --platform "$PLATFORMS" --push \
+              -t "${IMAGE}" -f apps/docker/ytdlp.Dockerfile .
+          else
+            echo "Image ${IMAGE} already exists; skipping build."
+          fi
+
+  build-videocaptioner:
+    name: Build videocaptioner Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build or reuse smm-videocaptioner image
+        env:
+          PLATFORMS: linux/amd64,linux/arm64
+          IMAGE: ${{ steps.meta.outputs.videocaptioner_image }}
+          VC_VERSION: ${{ steps.meta.outputs.videocaptioner_version }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild_3pp }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+            echo "Building ${IMAGE}"
+            docker buildx build --platform "$PLATFORMS" --push \
+              --build-arg "VIDEOCAPTIONER_VERSION=${VC_VERSION}" \
+              -t "${IMAGE}" -f apps/docker/videocaptioner.Dockerfile .
+          else
+            echo "Image ${IMAGE} already exists; skipping build."
+          fi
