@@ -12,7 +12,9 @@
 
 `apps/docker/` 已完成 CLI / UI 中间镜像拆分（`cli.Dockerfile` / `ui.Dockerfile`），但 3pp 二进制被推迟。原 `ci/download-3pp-binary.sh` 脚本在一个 RUN 层中下载全部 3pp 并安装到 `bin/` 目录。
 
-4 个 3pp 组件中，ffmpeg 和 yt-dlp 出自同一份 `plugins.tar.gz`，videocaptioner 和 quickjs 各自独立下载。升级任何一个组件时，不需要重新下载/构建其他组件——这是拆分为独立镜像的核心原因。
+4 个 3pp 组件中，ffmpeg 出自 `ffmpeg-static` npm 包，yt-dlp 出自 `plugins.tar.gz`，videocaptioner 和 quickjs 各自独立下载。升级任何一个组件时，不需要重新下载/构建其他组件——这是拆分为独立镜像的核心原因。
+
+> **Status（2026-08-09）**：`smm-ffmpeg` 的 ffmpeg/ffprobe 来源已从 `plugins.tar.gz` 改为 `ffmpeg-static` + `@derhuerst/ffprobe-static` npm 包（FFmpeg 6.1.1，桌面版同样切换）。`plugins.tar.gz` 现仅承载 yt-dlp。
 
 详见 [context.md](./context.md)。
 
@@ -22,12 +24,12 @@
 
 | Dockerfile | 中间镜像标签 | 内容 | 来源 |
 |---|---|---|---|
-| `ffmpeg.Dockerfile` | `smm-ffmpeg:latest` | `/bin/ffmpeg/{ffmpeg,ffprobe}` + `/bin/quickjs/{qjs,…}` | `plugins.tar.gz` + bellard.org |
+| `ffmpeg.Dockerfile` | `smm-ffmpeg:<ffmpeg_version>` | `/bin/ffmpeg/{ffmpeg,ffprobe}` + `/bin/quickjs/{qjs,…}` | `ffmpeg-static` npm + bellard.org |
 | `ytdlp.Dockerfile` | `smm-ytdlp:latest` | `/bin/yt-dlp/yt-dlp` | `plugins.tar.gz` |
 | `videocaptioner.Dockerfile` | `smm-videocaptioner:latest` | `/bin/videocaptioner/{videocaptioner,…}` | GitHub releases |
 
 每个 Dockerfile 使用两阶段构建：
-- **builder**（`alpine:3.20`）：安装 `curl tar unzip`，下载并提取对应组件
+- **builder**：`ffmpeg.Dockerfile` 为 `node:22-bookworm-slim`（跑 npm 安装 ffmpeg-static），`ytdlp.Dockerfile` / `videocaptioner.Dockerfile` 为 `alpine:3.20`（`curl tar`/`unzip` 下载提取）
 - **output**（`scratch`）：仅保留提取出的二进制文件
 
 ### 2.2 最终镜像装配
@@ -55,10 +57,10 @@ ENV SMM_RESOURCES_PATH=/app/resources
 
 每个 Dockerfile 接受 Docker 内置的 `ARG TARGETARCH`（`amd64` / `arm64`），在 builder 阶段选择对应架构的二进制：
 
-| 架构 | ffmpeg dir | yt-dlp file | VC suffix | QJS zip |
+| 架构 | ffmpeg arch (npm) | yt-dlp file | VC suffix | QJS zip |
 |---|---|---|---|---|
-| `amd64` | `ffmpeg-linux64` | `yt-dlp_linux` | `linux-x64` | `quickjs-linux-x86_64-{ver}.zip` |
-| `arm64` | `ffmpeg-linuxarm64` | `yt-dlp_linux_aarch64` | `linux-arm64` | `quickjs-cosmo-{ver}.zip` |
+| `amd64` | `x64` | `yt-dlp_linux` | `linux-x64` | `quickjs-linux-x86_64-{ver}.zip` |
+| `arm64` | `arm64` | `yt-dlp_linux_aarch64` | `linux-arm64` | `quickjs-cosmo-{ver}.zip` |
 
 ### 2.4 版本可覆写
 
@@ -86,9 +88,9 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 
 ### 4.1 `apps/docker/ffmpeg.Dockerfile`
 
-- Builder: `FROM alpine:3.20`
-- 安装 `curl tar unzip`
-- 下载 `plugins.tar.gz`，提取 `plugins/ffmpeg-linux{64,arm64}/{ffmpeg,ffprobe}`
+- Builder: `FROM node:22-bookworm-slim`
+- 安装 `curl unzip`
+- `npm install ffmpeg-static@<ver> @derhuerst/ffprobe-static@<ver>`（`npm_config_arch` 强制按 TARGETARCH 下载），复制 `{ffmpeg,ffprobe}` 到 `/output/bin/ffmpeg/`
 - 下载 QuickJS zip，提取 `qjs` 及附属文件
 - 输出阶段: `FROM scratch; COPY --from=builder /output /`
 - 产物在 builder 中位于 `/output/bin/ffmpeg/` 和 `/output/bin/quickjs/`
@@ -132,10 +134,18 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 ### 7.1 创建 ffmpeg.Dockerfile
 
 [x] 创建 `apps/docker/ffmpeg.Dockerfile`
-  - builder: `alpine:3.20`, 安装 `curl tar unzip`
-  - 下载 `plugins.tar.gz`，按 `TARGETARCH` 提取 `ffmpeg-linux{64,arm64}/{ffmpeg,ffprobe}`
+  - builder: `node:22-bookworm-slim`, 安装 `curl unzip`
+  - `npm install ffmpeg-static/@derhuerst/ffprobe-static`（`npm_config_arch` 按 TARGETARCH 下载 `x64`/`arm64`）
   - 下载 QuickJS，按 `TARGETARCH` 提取对应 release
   - output: `FROM scratch`
+
+### 7.8 ffmpeg 来源切换到 npm 包（2026-08-09）
+
+[x] `ci/download-3pp-binary.sh`：ffmpeg/ffprobe 改为从 `node_modules/ffmpeg-static` 与 `@derhuerst/ffprobe-static` 复制（win-arm64 例外，直接下载 BtbN winarm64 构建）
+[x] `apps/docker/ffmpeg.Dockerfile`：builder 切 `node:22-bookworm-slim`，npm 安装两包后复制二进制；不再下载 `plugins.tar.gz`
+[x] 根 `package.json`：devDependencies 加 `ffmpeg-static` / `@derhuerst/ffprobe-static`@5.3.0，`3pp.ffmpeg_version` 改为 `5.3.0`
+[x] `pnpm-workspace.yaml`：`onlyBuiltDependencies` 加入两包（否则 pnpm 10 不跑 install 脚本）
+[ ] 验证最终镜像与 CI 构建
 
 ### 7.2 创建 ytdlp.Dockerfile
 

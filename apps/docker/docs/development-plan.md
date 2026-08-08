@@ -40,8 +40,8 @@
 ### 2.3 bin 目录下的第三方可执行文件（Linux 版）
 
 - **ffmpeg / ffprobe**  
-  - 来源：Debian 系可用 `apt-get install -y ffmpeg`，会同时提供 `ffmpeg` 与 `ffprobe`。  
-  - 建议：在最终阶段安装，并将可执行文件复制到 `/app/resources/bin/ffmpeg/`（或创建符号链接），以保持与 CLI 发现逻辑一致（见下）。
+  - 来源（2026-08-09 起）：`ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包（FFmpeg 6.1.1，linux 走 johnvansickle glibc 静态构建），在 `ffmpeg.Dockerfile` 的 builder 阶段 `npm install` 后复制到 `/output/bin/ffmpeg/`。  
+  - 建议：与 CLI 发现逻辑保持一致（见下）。
 - **yt-dlp**  
   - 来源：可从 GitHub releases 下载 Linux 二进制，或使用 pip 安装。  
   - 建议：在 Dockerfile 中下载官方 Linux 单文件到 `/app/resources/bin/yt-dlp/yt-dlp`，并 `chmod +x`。

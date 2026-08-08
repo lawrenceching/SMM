@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "3pp": {
-    "ffmpeg_version": "1.0.0",
+    "ffmpeg_version": "5.3.0",
     "ytdlp_version": "1.0.0",
     "videocaptioner_version": "1.0.0"
   },
@@ -67,8 +67,10 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "@derhuerst/ffprobe-static": "5.3.0",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
+    "ffmpeg-static": "5.3.0",
     "npm-run-all2": "^8.0.4"
   }
 }

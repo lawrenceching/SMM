@@ -1,39 +1,40 @@
 # SMM ffmpeg / quickjs binary image
 # Build context: repository root (e.g. docker build -f apps/docker/ffmpeg.Dockerfile .)
 #
-# Downloads ffmpeg/ffprobe from plugins.tar.gz and quickjs from bellard.org.
+# ffmpeg/ffprobe come from the ffmpeg-static npm packages (FFmpeg 6.1.1, per-TARGETARCH);
+# quickjs is downloaded from bellard.org.
 # Output layout (scratch root → /app/resources/ via COPY --from in final image):
 #   /bin/ffmpeg/{ffmpeg,ffprobe,...}
 #   /bin/quickjs/{qjs,...}
 #
-# Tag this image: smm-ffmpeg:latest
+# Tag this image: smm-ffmpeg:<version>  (version = 3pp.ffmpeg_version in root package.json)
+#
+# FFMPEG_STATIC_VERSION must stay in sync with 3pp.ffmpeg_version in root package.json.
 
-ARG PLUGINS_VERSION=v1.0.0
-ARG PLUGINS_REPO=lawrenceching/SMM
+ARG FFMPEG_STATIC_VERSION=5.3.0
 
-FROM alpine:3.20 AS builder
+FROM node:22-bookworm-slim AS builder
 
-RUN apk add --no-cache curl tar unzip
+RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && rm -rf /var/lib/apt/lists/*
 
-ARG PLUGINS_VERSION
-ARG PLUGINS_REPO
+ARG FFMPEG_STATIC_VERSION
 ARG TARGETARCH
 
-# --- ffmpeg / ffprobe from plugins.tar.gz ---
+# --- ffmpeg / ffprobe from ffmpeg-static npm packages ---
+# npm_config_arch forces the download to match TARGETARCH even when the builder
+# stage runs on the build platform (no QEMU). ffmpeg-static supports linux x64/arm64.
 RUN set -eux; \
     case "${TARGETARCH}" in \
-      amd64) FFMPEG_DIR=ffmpeg-linux64 ;; \
-      arm64) FFMPEG_DIR=ffmpeg-linuxarm64 ;; \
+      amd64) FFMPEG_ARCH=x64 ;; \
+      arm64) FFMPEG_ARCH=arm64 ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    url="https://github.com/${PLUGINS_REPO}/releases/download/${PLUGINS_VERSION}/plugins.tar.gz"; \
-    curl -sSLf -o /tmp/plugins.tar.gz "$url"; \
-    tar -xf /tmp/plugins.tar.gz -C /tmp; \
+    npm_config_arch="${FFMPEG_ARCH}" npm install --no-save \
+      "ffmpeg-static@${FFMPEG_STATIC_VERSION}" \
+      "@derhuerst/ffprobe-static@${FFMPEG_STATIC_VERSION}"; \
     mkdir -p /output/bin/ffmpeg; \
-    for name in ffmpeg ffprobe; do \
-      src="/tmp/plugins/${FFMPEG_DIR}/${name}"; \
-      if [ -f "$src" ]; then cp "$src" "/output/bin/ffmpeg/${name}"; fi; \
-    done; \
+    cp node_modules/ffmpeg-static/ffmpeg /output/bin/ffmpeg/ffmpeg; \
+    cp node_modules/@derhuerst/ffprobe-static/ffprobe /output/bin/ffmpeg/ffprobe; \
     chmod +x /output/bin/ffmpeg/ffmpeg /output/bin/ffmpeg/ffprobe
 
 # --- QuickJS from bellard.org ---

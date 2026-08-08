@@ -60,6 +60,8 @@ CI（`_build-docker-push.yml`）为三个 3pp 中间镜像各建一个独立 job
 | `smm-ytdlp` | `<ytdlp_version>` | `3pp.ytdlp_version` |
 | `smm-videocaptioner` | `<videocaptioner_version>` | `3pp.videocaptioner_version` |
 
+> **ffmpeg 来源（2026-08-09 起）**：`3pp.ffmpeg_version` 现为 `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包版本（5.3.0，bundle FFmpeg 6.1.1，linux 走 johnvansickle glibc 静态构建）。ffmpeg/ffprobe 由这两个包在 `pnpm install` / Docker 构建时按平台下载，不再依赖 `plugins.tar.gz`；`plugins.tar.gz` 现仅承载 yt-dlp。桌面版 `ci/download-3pp-binary.sh` 同样从这两个包复制（win-arm64 例外，直接下载 BtbN winarm64 构建）。
+
 - 对应标签的镜像已存在于 GHCR 时，CI 直接复用，**不会重新下载**外部二进制。
 - 升级某个 3pp：修改 `package.json` 中对应版本号 → 标签变化 → CI 重新构建该镜像。
 - 单独构建某个 3pp 镜像（3pp 软件发布新版本号时，只构建该软件的镜像，不动 cli/ui、不组装 `smm:latest`）：手动运行对应的 **Build ffmpeg Docker Image** / **Build ytdlp Docker Image** / **Build videocaptioner Docker Image** workflow（Actions 中可各自独立触发）。

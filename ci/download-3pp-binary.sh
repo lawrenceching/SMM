@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Download plugins.tar.gz (ffmpeg, yt-dlp) and VideoCaptioner release archives;
-# install into bin/ffmpeg, bin/yt-dlp, and bin/videocaptioner for Electron/Docker packaging.
+# ffmpeg/ffprobe come from the ffmpeg-static npm packages (installed at pnpm install time);
+# yt-dlp and VideoCaptioner come from release archives.
+# Install into bin/ffmpeg, bin/yt-dlp, and bin/videocaptioner for Electron/Docker packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64).
 # Optional: PLUGINS_VERSION, PLUGINS_REPO, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_REPO.
 
@@ -19,31 +20,28 @@ VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_REPO}/releases/download/${VIDEO
 
 case "${PLATFORM}-${ARCH}" in
   linux-x64)
-    FFMPEG_DIR="ffmpeg-linux64"
     YTDLP_SRC="yt-dlp_linux"
     EXE_SUFFIX=""
     VC_SUFFIX="linux-x64"
     ;;
   linux-arm64)
-    FFMPEG_DIR="ffmpeg-linuxarm64"
     YTDLP_SRC="yt-dlp_linux_aarch64"
     EXE_SUFFIX=""
     VC_SUFFIX="linux-arm64"
     ;;
   win-x64)
-    FFMPEG_DIR="ffmpeg-win64"
     YTDLP_SRC="yt-dlp_x86.exe"
     EXE_SUFFIX=".exe"
     VC_SUFFIX="win-x64"
     ;;
   win-arm64)
-    FFMPEG_DIR="ffmpeg-winarm64"
+    # ffmpeg-static has no win-arm64 binary; use BtbN winarm64 builds instead
+    BtBN_FFMPEG_ZIP="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-winarm64-gpl-8.1.zip"
     YTDLP_SRC="yt-dlp_arm64.exe"
     EXE_SUFFIX=".exe"
     VC_SUFFIX="win-arm64"
     ;;
   mac-arm64)
-    FFMPEG_DIR="ffmpeg-macos"
     YTDLP_SRC="yt-dlp_macos"
     EXE_SUFFIX=""
     VC_SUFFIX="mac-arm64"
@@ -80,13 +78,8 @@ if [ ! -d "${PLUGINS}" ]; then
   exit 1
 fi
 
-FFMPEG_SRC="${PLUGINS}/${FFMPEG_DIR}"
 YTDLP_SRC_PATH="${PLUGINS}/${YTDLP_SRC}"
 
-if [ ! -d "${FFMPEG_SRC}" ]; then
-  echo "Expected ffmpeg dir not found: ${FFMPEG_SRC}" >&2
-  exit 1
-fi
 if [ ! -f "${YTDLP_SRC_PATH}" ]; then
   echo "Expected yt-dlp file not found: ${YTDLP_SRC_PATH}" >&2
   exit 1
@@ -94,19 +87,33 @@ fi
 
 mkdir -p bin/ffmpeg bin/yt-dlp
 
-# Copy ffmpeg and ffprobe (skip ffplay)
-for name in ffmpeg ffprobe; do
-  src="${FFMPEG_SRC}/${name}${EXE_SUFFIX}"
-  if [ -f "${src}" ]; then
-    cp "${src}" "bin/ffmpeg/${name}${EXE_SUFFIX}"
+# ffmpeg/ffprobe: ffmpeg-static npm packages, except win-arm64 which uses BtbN builds
+if [ -n "${BtBN_FFMPEG_ZIP}" ]; then
+  echo "Downloading ${BtBN_FFMPEG_ZIP} ..."
+  curl -sSLf -o "${TMPDIR}/btbn-ffmpeg.zip" "${BtBN_FFMPEG_ZIP}"
+  mkdir -p "${TMPDIR}/btbn-ffmpeg"
+  unzip -qo "${TMPDIR}/btbn-ffmpeg.zip" -d "${TMPDIR}/btbn-ffmpeg"
+  FFMPEG_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffmpeg${EXE_SUFFIX}" | head -n1)"
+  FFPROBE_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffprobe${EXE_SUFFIX}" | head -n1)"
+else
+  FFMPEG_SRC="node_modules/ffmpeg-static/ffmpeg${EXE_SUFFIX}"
+  FFPROBE_SRC="node_modules/@derhuerst/ffprobe-static/ffprobe${EXE_SUFFIX}"
+  if [ ! -f "${FFMPEG_SRC}" ]; then
+    echo "ffmpeg binary not found: ${FFMPEG_SRC}. Run pnpm install first." >&2
+    exit 1
   fi
-done
+fi
 
-FFMPEG_BIN="bin/ffmpeg/ffmpeg${EXE_SUFFIX}"
-if [ ! -f "${FFMPEG_BIN}" ]; then
-  echo "ffmpeg binary not found after copy: ${FFMPEG_BIN}" >&2
+if [ ! -f "${FFMPEG_SRC}" ]; then
+  echo "ffmpeg binary not found after download: ${FFMPEG_SRC}" >&2
   exit 1
 fi
+if [ ! -f "${FFPROBE_SRC}" ]; then
+  echo "ffprobe binary not found: ${FFPROBE_SRC}" >&2
+  exit 1
+fi
+cp "${FFMPEG_SRC}" "bin/ffmpeg/ffmpeg${EXE_SUFFIX}"
+cp "${FFPROBE_SRC}" "bin/ffmpeg/ffprobe${EXE_SUFFIX}"
 
 # Copy yt-dlp to bin/yt-dlp/yt-dlp or bin/yt-dlp/yt-dlp.exe
 if [ -n "${EXE_SUFFIX}" ]; then

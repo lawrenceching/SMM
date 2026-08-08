@@ -18,21 +18,13 @@
 
 `ci/download-3pp-binary.sh` 是 3pp 下载的唯一来源。每个 Dockerfile 仅复制该脚本中对应组件的下载/提取逻辑。
 
-### plugins.tar.gz 内部布局
-
-```
-plugins/
-├── ffmpeg-linux64/{ffmpeg,ffprobe,ffplay,…}    # amd64
-├── ffmpeg-linuxarm64/{ffmpeg,ffprobe,ffplay,…} # arm64
-├── yt-dlp_linux                                  # amd64
-└── yt-dlp_linux_aarch64                          # arm64
-```
-
 ### 组件依赖关系
+
+> **Status（2026-08-09）**：ffmpeg/ffprobe 来源已从 `plugins.tar.gz` 改为 `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包（linux x64/arm64，johnvansickle glibc 静态构建）。`plugins.tar.gz` 现仅承载 yt-dlp。
 
 | 组件 | 来源 | 架构映射 | 输出路径 |
 |---|---|---|---|
-| ffmpeg + ffprobe | `plugins.tar.gz::ffmpeg-linux{64,arm64}/` | `amd64`→`ffmpeg-linux64`, `arm64`→`ffmpeg-linuxarm64` | `/app/resources/bin/ffmpeg/` |
+| ffmpeg + ffprobe | `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包 | `amd64`→`x64`, `arm64`→`arm64`（`npm_config_arch`） | `/app/resources/bin/ffmpeg/` |
 | yt-dlp | `plugins.tar.gz::yt-dlp_linux{,_aarch64}` | `amd64`→`yt-dlp_linux`, `arm64`→`yt-dlp_linux_aarch64` | `/app/resources/bin/yt-dlp/` |
 | VideoCaptioner | `releases/videocaptioner-{version}-linux-{x64,arm64}.tar.gz` | `amd64`→`linux-x64`, `arm64`→`linux-arm64` | `/app/resources/bin/videocaptioner/` |
 | QuickJS | `bellard.org/quickjs/binary_releases/quickjs-*.zip` | `amd64`→`linux-x86_64`, `arm64`→`cosmo` | `/app/resources/bin/quickjs/` |

@@ -28,7 +28,8 @@
 
 - **打包**：用 electron-builder 的 `extraResources` 把 `bin/ffmpeg/`、`bin/yt-dlp/`、`bin/videocaptioner/` 放入应用 `resources`（例如 `resources/bin/ffmpeg/`、`resources/bin/yt-dlp/`、`resources/bin/videocaptioner/`）。
 - **CI 下载**（[`ci/download-3pp-binary.sh`](../../../ci/download-3pp-binary.sh)）：
-  - **ffmpeg / yt-dlp**：从 SMM release 的 `plugins.tar.gz` 按 `PLATFORM`/`ARCH` 解压。
+  - **ffmpeg / ffprobe**：从 `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包复制（`pnpm install` 时按平台下载，FFmpeg 6.1.1）；win-arm64 例外，直接下载 BtbN winarm64 构建。
+  - **yt-dlp**：从 SMM release 的 `plugins.tar.gz` 按 `PLATFORM`/`ARCH` 解压。
   - **videocaptioner**：从 [VideoCaptioner release](https://github.com/lawrenceching/VideoCaptioner/releases) 下载 `videocaptioner-<version>-<platform>-<arch>.tar.gz`（含 PyInstaller 的 `_internal/`、`resource/`），解压到 `bin/videocaptioner/`。
 - **发现**：CLI 在“用户配置”之后、“项目根 / 安装数据目录”之前，若存在环境变量 `SMM_RESOURCES_PATH`，则先在该路径下的 `bin/ffmpeg/`、`bin/yt-dlp/`、`bin/videocaptioner/` 中查找可执行文件（`VideoCaptioner.ts` 使用 `toolExecutableDiscovery`）。
 - **Electron**：在启动 CLI 时设置 `SMM_RESOURCES_PATH = process.resourcesPath`，使 CLI 使用随包安装的 bin。
