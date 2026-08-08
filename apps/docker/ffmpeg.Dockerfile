@@ -15,6 +15,8 @@ ARG FFMPEG_STATIC_VERSION=5.3.0
 
 FROM node:22-bookworm-slim AS builder
 
+WORKDIR /opt/ffmpeg-static
+
 RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && rm -rf /var/lib/apt/lists/*
 
 ARG FFMPEG_STATIC_VERSION
