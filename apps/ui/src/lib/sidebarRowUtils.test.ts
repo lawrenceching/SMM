@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "./sidebarRowUtils"
 
 describe("buildMediaFolderListItemPropsFromFolderAndMetadata", () => {
-  it("does not show loading status for pending_for_initialization", () => {
+  it("passes through pending_for_initialization status", () => {
     const row = buildMediaFolderListItemPropsFromFolderAndMetadata(
       {
         path: "/media/Test",
@@ -11,7 +11,7 @@ describe("buildMediaFolderListItemPropsFromFolderAndMetadata", () => {
       undefined,
     )
 
-    expect(row.status).toBe("idle")
+    expect(row.status).toBe("pending_for_initialization")
   })
 
   it("keeps loading status for updating", () => {

@@ -21,11 +21,11 @@ function mediaTypeFromMetadata(metadata: MediaMetadata | undefined): MediaFolder
 function mapFolderStatusToItemStatus(
   status: UIMediaFolderStatus,
 ): NonNullable<MediaFolderListItemV2Props["status"]> {
-  if (status === "pending_for_initialization") return "idle"
   if (status === "updating") return "loading"
   if (status === "error_loading_metadata") return "folder_not_found"
   if (
     status === "idle" ||
+    status === "pending_for_initialization" ||
     status === "initializing" ||
     status === "ok" ||
     status === "folder_not_found" ||

@@ -135,3 +135,34 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 })
+
+describe("MediaFolderListItemV2 pending_for_initialization status", () => {
+  const path = "/media/tvshows/Pending Show"
+  const mediaName = "Pending Show"
+
+  it("renders a pending-initialization badge", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "pending_for_initialization",
+      }),
+    )
+
+    expect(screen.getByTestId("sidebar-folder-pending-initialization")).toBeInTheDocument()
+  })
+
+  it("does not show loading spinner for pending_for_initialization", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "pending_for_initialization",
+      }),
+    )
+
+    expect(document.querySelector(".animate-spin")).toBeNull()
+  })
+})
