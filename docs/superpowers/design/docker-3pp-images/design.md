@@ -146,7 +146,7 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 [x] `apps/docker/ytdlp.Dockerfile`：改为从 yt-dlp 官方 GitHub release 直接下载
 [x] 根 `package.json`：devDependencies 移除 `ffmpeg-static` / `@derhuerst/ffprobe-static`，`3pp.ffmpeg_version` 改为 `8.1`、`3pp.ytdlp_version` 改为 `2026.07.04`
 [x] `pnpm-workspace.yaml`：`onlyBuiltDependencies` 移除两包
-[ ] 验证最终镜像与 CI 构建
+[x] 验证最终镜像与 CI 构建（2026-08-09：`smm-ffmpeg:8.1` 与 `smm-ytdlp:2026.07.04` 均已在 GHCR 双架构构建并推送）
 
 ### 7.2 创建 ytdlp.Dockerfile
 
