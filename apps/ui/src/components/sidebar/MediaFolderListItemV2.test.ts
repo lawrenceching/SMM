@@ -153,6 +153,34 @@ describe("MediaFolderListItemV2 pending_for_initialization status", () => {
     expect(screen.getByTestId("sidebar-folder-pending-initialization")).toBeInTheDocument()
   })
 
+  it("renders a clock icon for the pending state", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "pending_for_initialization",
+      }),
+    )
+
+    const trigger = screen.getByTestId("sidebar-folder-pending-initialization")
+    expect(trigger.querySelector(".lucide-clock")).toBeTruthy()
+  })
+
+  it("shows the pending-initialization label only as sr-only text", () => {
+    render(
+      React.createElement(MediaFolderListItemV2, {
+        path,
+        mediaName,
+        mediaType: "tvshow",
+        status: "pending_for_initialization",
+      }),
+    )
+
+    const label = screen.getByText("mediaFolder.pendingForInitialization")
+    expect(label.className).toContain("sr-only")
+  })
+
   it("does not show loading spinner for pending_for_initialization", () => {
     render(
       React.createElement(MediaFolderListItemV2, {

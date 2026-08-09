@@ -7,7 +7,8 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu"
-import { Loader2, TriangleAlert } from "lucide-react"
+import { Clock, Loader2, TriangleAlert } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useTranslation } from "@/lib/i18n"
 
 export interface MediaFolderListItemV2Props {
@@ -108,12 +109,18 @@ export function MediaFolderListItemV2({
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
           )}
           {status === 'pending_for_initialization' && (
-            <span
-              className="inline-flex shrink-0 items-center rounded-sm bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
-              data-testid="sidebar-folder-pending-initialization"
-            >
-              {t('mediaFolder.pendingForInitialization')}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="inline-flex shrink-0 items-center"
+                  data-testid="sidebar-folder-pending-initialization"
+                >
+                  <Clock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <span className="sr-only">{t('mediaFolder.pendingForInitialization')}</span>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{t('mediaFolder.pendingForInitialization')}</TooltipContent>
+            </Tooltip>
           )}
           {isFolderUnavailable && (
             <span
