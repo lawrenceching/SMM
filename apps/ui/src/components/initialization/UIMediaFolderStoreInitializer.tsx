@@ -1,5 +1,6 @@
 import { isFolderAvailable } from "@/api/isFolderAvailable"
 import { useRecheckSelectedFolderAvailability } from "@/hooks/initialization/useRecheckSelectedFolderAvailability"
+import { useSyncWatchedFolder } from "@/hooks/initialization/useSyncWatchedFolder"
 import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { reactivateHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
@@ -13,6 +14,7 @@ interface UIMediaFolderStoreInitializerProps {
 
 export function UIMediaFolderStoreInitializer({ onReady }: UIMediaFolderStoreInitializerProps) {
   useRecheckSelectedFolderAvailability()
+  useSyncWatchedFolder()
 
   const { userConfig, isLoading, isUserConfigLoaded } = useConfig()
   const setFolders = useUIMediaFolderStore((s) => s.setFolders)

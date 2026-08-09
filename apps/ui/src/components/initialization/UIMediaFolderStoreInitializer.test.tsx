@@ -21,6 +21,10 @@ vi.mock("@/hooks/initialization/useRecheckSelectedFolderAvailability", () => ({
  useRecheckSelectedFolderAvailability: vi.fn(),
 }))
 
+vi.mock("@/hooks/initialization/useSyncWatchedFolder", () => ({
+ useSyncWatchedFolder: vi.fn(),
+}))
+
 const { mockSetFolders, mockSetSelectedFolder, mockUpdateFolderStatus } = vi.hoisted(() => ({
  mockSetFolders: vi.fn(),
  mockSetSelectedFolder: vi.fn(),
