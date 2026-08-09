@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-> **Status:** Implemented (2026-08-10, commits `48a6ad83`..`4b575563`). The plan was executed via subagent-driven development and committed incrementally; task checkboxes were not individually flipped. Do not re-run.
+> **Status:** Implemented (2026-08-10, commits `48a6ad83`..`f5872859`). The plan was executed via subagent-driven development and committed incrementally; task checkboxes were not individually flipped. Do not re-run.
 
 **Goal:** Surface the pending/initializing state during "Import Media Library" across the StatusBar, the Sidebar folder list, and the content area.
 
@@ -47,10 +47,10 @@ Create `apps/ui/src/components/PendingInitializationPanel.locale.test.ts`:
 
 ```ts
 import { describe, it, expect } from "vitest"
-import en from "../../../public/locales/en/components.json"
-import zhCN from "../../../public/locales/zh-CN/components.json"
-import zhHK from "../../../public/locales/zh-HK/components.json"
-import zhTW from "../../../public/locales/zh-TW/components.json"
+import en from "../../public/locales/en/components.json"
+import zhCN from "../../public/locales/zh-CN/components.json"
+import zhHK from "../../public/locales/zh-HK/components.json"
+import zhTW from "../../public/locales/zh-TW/components.json"
 
 interface PendingInitializationPanel {
   title: string
