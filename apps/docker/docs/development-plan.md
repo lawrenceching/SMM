@@ -40,7 +40,7 @@
 ### 2.3 bin 目录下的第三方可执行文件（Linux 版）
 
 - **ffmpeg / ffprobe**  
-  - 来源（2026-08-09 起）：`ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包（FFmpeg 6.1.1，linux 走 johnvansickle glibc 静态构建），在 `ffmpeg.Dockerfile` 的 builder 阶段 `npm install` 后复制到 `/output/bin/ffmpeg/`。  
+  - 来源（2026-08-09 起）：按平台从官方渠道直接下载——linux→johnvansickle.com glibc 静态构建（`FFMPEG_VERSION` 7.0.2），win→BtbN FFmpeg-Builds（8.1），mac-arm64→osxexperts.net，在 `ffmpeg.Dockerfile` 的 builder 阶段下载并复制到 `/output/bin/ffmpeg/`。  
   - 建议：与 CLI 发现逻辑保持一致（见下）。
 - **yt-dlp**  
   - 来源：可从 GitHub releases 下载 Linux 二进制，或使用 pip 安装。  

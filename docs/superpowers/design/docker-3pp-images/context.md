@@ -20,12 +20,12 @@
 
 ### 组件依赖关系
 
-> **Status（2026-08-09）**：ffmpeg/ffprobe 来源已从 `plugins.tar.gz` 改为 `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包（linux x64/arm64，johnvansickle glibc 静态构建）。`plugins.tar.gz` 现仅承载 yt-dlp。
+> **Status（2026-08-09）**：所有 3pp 二进制均从官方渠道直接下载（无 npm 包、无自建归档）。ffmpeg/ffprobe：linux→johnvansickle.com glibc 静态构建，win→BtbN FFmpeg-Builds，mac-arm64→osxexperts.net。yt-dlp 从官方 GitHub release 下载。`plugins.tar.gz` 已废弃。
 
 | 组件 | 来源 | 架构映射 | 输出路径 |
 |---|---|---|---|
-| ffmpeg + ffprobe | `ffmpeg-static` / `@derhuerst/ffprobe-static` npm 包 | `amd64`→`x64`, `arm64`→`arm64`（`npm_config_arch`） | `/app/resources/bin/ffmpeg/` |
-| yt-dlp | `plugins.tar.gz::yt-dlp_linux{,_aarch64}` | `amd64`→`yt-dlp_linux`, `arm64`→`yt-dlp_linux_aarch64` | `/app/resources/bin/yt-dlp/` |
+| ffmpeg + ffprobe | linux→johnvansickle.com，win→BtbN，mac-arm64→osxexperts.net | `amd64`→`amd64`/`win64`, `arm64`→`arm64`/`winarm64` | `/app/resources/bin/ffmpeg/` |
+| yt-dlp | `github.com/yt-dlp/yt-dlp/releases` | `amd64`→`yt-dlp_linux`, `arm64`→`yt-dlp_linux_aarch64` | `/app/resources/bin/yt-dlp/` |
 | VideoCaptioner | `releases/videocaptioner-{version}-linux-{x64,arm64}.tar.gz` | `amd64`→`linux-x64`, `arm64`→`linux-arm64` | `/app/resources/bin/videocaptioner/` |
 | QuickJS | `bellard.org/quickjs/binary_releases/quickjs-*.zip` | `amd64`→`linux-x86_64`, `arm64`→`cosmo` | `/app/resources/bin/quickjs/` |
 

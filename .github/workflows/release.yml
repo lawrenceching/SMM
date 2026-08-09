@@ -126,7 +126,6 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          PLUGINS_VERSION: v1.0.0
           VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli
@@ -193,7 +192,6 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          PLUGINS_VERSION: v1.0.0
           VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli
@@ -259,7 +257,6 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          PLUGINS_VERSION: v1.0.0
           VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli
@@ -325,7 +322,6 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          PLUGINS_VERSION: v1.0.0
           VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli
@@ -391,7 +387,6 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          PLUGINS_VERSION: v1.0.0
           VIDEOCAPTIONER_VERSION: 1.0.0
 
       - name: Build cli

@@ -3,8 +3,6 @@ packages:
   - 'apps/*'
 
 onlyBuiltDependencies:
-  - '@derhuerst/ffprobe-static'
   - electron
   - esbuild
-  - ffmpeg-static
   - node-pty

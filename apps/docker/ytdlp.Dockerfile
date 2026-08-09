@@ -1,21 +1,21 @@
 # SMM yt-dlp binary image
 # Build context: repository root (e.g. docker build -f apps/docker/ytdlp.Dockerfile .)
 #
-# Downloads yt-dlp from plugins.tar.gz.
+# Downloads yt-dlp from its official GitHub releases.
 # Output layout (scratch root → /app/resources/ via COPY --from in final image):
 #   /bin/yt-dlp/yt-dlp
 #
-# Tag this image: smm-ytdlp:latest
+# Tag this image: smm-ytdlp:<version>  (version = 3pp.ytdlp_version in root package.json)
+#
+# YTDLP_VERSION must stay in sync with 3pp.ytdlp_version in root package.json.
 
-ARG PLUGINS_VERSION=v1.0.0
-ARG PLUGINS_REPO=lawrenceching/SMM
+ARG YTDLP_VERSION=2026.07.04
 
 FROM alpine:3.20 AS builder
 
-RUN apk add --no-cache curl tar
+RUN apk add --no-cache curl
 
-ARG PLUGINS_VERSION
-ARG PLUGINS_REPO
+ARG YTDLP_VERSION
 ARG TARGETARCH
 
 RUN set -eux; \
@@ -24,11 +24,9 @@ RUN set -eux; \
       arm64) YTDLP_SRC=yt-dlp_linux_aarch64 ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    url="https://github.com/${PLUGINS_REPO}/releases/download/${PLUGINS_VERSION}/plugins.tar.gz"; \
-    curl -sSLf -o /tmp/plugins.tar.gz "$url"; \
-    tar -xf /tmp/plugins.tar.gz -C /tmp; \
+    url="https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${YTDLP_SRC}"; \
     mkdir -p /output/bin/yt-dlp; \
-    cp "/tmp/plugins/${YTDLP_SRC}" /output/bin/yt-dlp/yt-dlp; \
+    curl -sSLf -o /output/bin/yt-dlp/yt-dlp "$url"; \
     chmod +x /output/bin/yt-dlp/yt-dlp
 
 FROM scratch

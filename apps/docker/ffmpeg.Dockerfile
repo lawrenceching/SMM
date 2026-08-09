@@ -1,42 +1,40 @@
 # SMM ffmpeg / quickjs binary image
 # Build context: repository root (e.g. docker build -f apps/docker/ffmpeg.Dockerfile .)
 #
-# ffmpeg/ffprobe come from the ffmpeg-static npm packages (FFmpeg 6.1.1, per-TARGETARCH);
-# quickjs is downloaded from bellard.org.
+# ffmpeg/ffprobe come directly from johnvansickle.com static builds (glibc, per-TARGETARCH);
+# quickjs is downloaded from bellard.org. No npm packages are involved.
 # Output layout (scratch root → /app/resources/ via COPY --from in final image):
-#   /bin/ffmpeg/{ffmpeg,ffprobe,...}
+#   /bin/ffmpeg/{ffmpeg,ffprobe}
 #   /bin/quickjs/{qjs,...}
 #
 # Tag this image: smm-ffmpeg:<version>  (version = 3pp.ffmpeg_version in root package.json)
 #
-# FFMPEG_STATIC_VERSION must stay in sync with 3pp.ffmpeg_version in root package.json.
+# FFMPEG_VERSION must stay in sync with 3pp.ffmpeg_version in root package.json.
 
-ARG FFMPEG_STATIC_VERSION=5.3.0
+ARG FFMPEG_VERSION=7.0.2
 
-FROM node:22-bookworm-slim AS builder
+FROM alpine:3.20 AS builder
 
-WORKDIR /opt/ffmpeg-static
+RUN apk add --no-cache curl tar xz unzip
 
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip && rm -rf /var/lib/apt/lists/*
-
-ARG FFMPEG_STATIC_VERSION
+ARG FFMPEG_VERSION
 ARG TARGETARCH
 
-# --- ffmpeg / ffprobe from ffmpeg-static npm packages ---
-# npm_config_arch forces the download to match TARGETARCH even when the builder
-# stage runs on the build platform (no QEMU). ffmpeg-static supports linux x64/arm64.
+# --- ffmpeg / ffprobe from johnvansickle.com static builds ---
+# johnvansickle release archives contain ffmpeg + ffprobe in a
+# ffmpeg-<version>-<arch>-static/ top-level directory.
 RUN set -eux; \
     case "${TARGETARCH}" in \
-      amd64) FFMPEG_ARCH=x64 ;; \
+      amd64) FFMPEG_ARCH=amd64 ;; \
       arm64) FFMPEG_ARCH=arm64 ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    npm_config_arch="${FFMPEG_ARCH}" npm install --no-save \
-      "ffmpeg-static@${FFMPEG_STATIC_VERSION}" \
-      "@derhuerst/ffprobe-static@${FFMPEG_STATIC_VERSION}"; \
+    url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static.tar.xz"; \
+    curl -sSLf -o /tmp/ffmpeg.tar.xz "$url"; \
+    tar -xJf /tmp/ffmpeg.tar.xz -C /tmp; \
     mkdir -p /output/bin/ffmpeg; \
-    cp node_modules/ffmpeg-static/ffmpeg /output/bin/ffmpeg/ffmpeg; \
-    cp node_modules/@derhuerst/ffprobe-static/ffprobe /output/bin/ffmpeg/ffprobe; \
+    cp "/tmp/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffmpeg" /output/bin/ffmpeg/ffmpeg; \
+    cp "/tmp/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffprobe" /output/bin/ffmpeg/ffprobe; \
     chmod +x /output/bin/ffmpeg/ffmpeg /output/bin/ffmpeg/ffprobe
 
 # --- QuickJS from bellard.org ---

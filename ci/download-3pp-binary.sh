@@ -1,21 +1,23 @@
 #!/usr/bin/env bash
-# ffmpeg/ffprobe come from the ffmpeg-static npm packages (installed at pnpm install time);
-# yt-dlp and VideoCaptioner come from release archives.
-# Install into bin/ffmpeg, bin/yt-dlp, and bin/videocaptioner for Electron/Docker packaging.
+# ffmpeg/ffprobe, yt-dlp, VideoCaptioner, and QuickJS are downloaded directly from
+# their official release sources — no npm packages, no self-hosted archive.
+# Install into bin/ffmpeg, bin/yt-dlp, bin/videocaptioner, and bin/quickjs for Electron packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64).
-# Optional: PLUGINS_VERSION, PLUGINS_REPO, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_REPO.
+# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_REPO
+# (ffmpeg/yt-dlp versions default to the `3pp` section of the root package.json).
 
 set -e
 
 PLATFORM="${PLATFORM:?PLATFORM is required (linux|win|mac)}"
 ARCH="${ARCH:?ARCH is required (x64|arm64)}"
-PLUGINS_VERSION="${PLUGINS_VERSION:-v1.0.0}"
-PLUGINS_REPO="${PLUGINS_REPO:-lawrenceching/SMM}"
 VIDEOCAPTIONER_VERSION="${VIDEOCAPTIONER_VERSION:-1.0.0}"
 VIDEOCAPTIONER_REPO="${VIDEOCAPTIONER_REPO:-lawrenceching/VideoCaptioner}"
 
-BASE_URL="https://github.com/${PLUGINS_REPO}/releases/download/${PLUGINS_VERSION}"
-PLUGINS_TAR_URL="${BASE_URL}/plugins.tar.gz"
+FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 7.0.2)}"
+YTDLP_VERSION="${YTDLP_VERSION:-$(node -p "require('./package.json')['3pp'].ytdlp_version" 2>/dev/null || echo 2026.07.04)}"
+# osxexperts names its mac arm64 builds ffmpeg<VER>arm.zip (e.g. 81 = FFmpeg 8.1).
+FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-81}"
+
 VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_REPO}/releases/download/${VIDEOCAPTIONER_VERSION}"
 
 case "${PLATFORM}-${ARCH}" in
@@ -35,8 +37,6 @@ case "${PLATFORM}-${ARCH}" in
     VC_SUFFIX="win-x64"
     ;;
   win-arm64)
-    # ffmpeg-static has no win-arm64 binary; use BtbN winarm64 builds instead
-    BtBN_FFMPEG_ZIP="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-winarm64-gpl-8.1.zip"
     YTDLP_SRC="yt-dlp_arm64.exe"
     EXE_SUFFIX=".exe"
     VC_SUFFIX="win-arm64"
@@ -63,63 +63,66 @@ cd "${REPO_ROOT}"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "${TMPDIR}"' EXIT
 
-echo "Downloading ${PLUGINS_TAR_URL} ..."
-if ! curl -sSLf -o "${TMPDIR}/plugins.tar.gz" "${PLUGINS_TAR_URL}"; then
-  echo "Download failed." >&2
-  exit 1
-fi
-
-echo "Extracting plugins.tar.gz ..."
-tar -xf "${TMPDIR}/plugins.tar.gz" -C "${TMPDIR}"
-
-PLUGINS="${TMPDIR}/plugins"
-if [ ! -d "${PLUGINS}" ]; then
-  echo "Expected plugins/ directory not found in archive." >&2
-  exit 1
-fi
-
-YTDLP_SRC_PATH="${PLUGINS}/${YTDLP_SRC}"
-
-if [ ! -f "${YTDLP_SRC_PATH}" ]; then
-  echo "Expected yt-dlp file not found: ${YTDLP_SRC_PATH}" >&2
-  exit 1
-fi
-
 mkdir -p bin/ffmpeg bin/yt-dlp
 
-# ffmpeg/ffprobe: ffmpeg-static npm packages, except win-arm64 which uses BtbN builds
-if [ -n "${BtBN_FFMPEG_ZIP}" ]; then
-  echo "Downloading ${BtBN_FFMPEG_ZIP} ..."
-  curl -sSLf -o "${TMPDIR}/btbn-ffmpeg.zip" "${BtBN_FFMPEG_ZIP}"
-  mkdir -p "${TMPDIR}/btbn-ffmpeg"
-  unzip -qo "${TMPDIR}/btbn-ffmpeg.zip" -d "${TMPDIR}/btbn-ffmpeg"
-  FFMPEG_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffmpeg${EXE_SUFFIX}" | head -n1)"
-  FFPROBE_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffprobe${EXE_SUFFIX}" | head -n1)"
-else
-  FFMPEG_SRC="node_modules/ffmpeg-static/ffmpeg${EXE_SUFFIX}"
-  FFPROBE_SRC="node_modules/@derhuerst/ffprobe-static/ffprobe${EXE_SUFFIX}"
-  if [ ! -f "${FFMPEG_SRC}" ]; then
-    echo "ffmpeg binary not found: ${FFMPEG_SRC}. Run pnpm install first." >&2
+# --- ffmpeg / ffprobe: direct download per platform ---
+case "${PLATFORM}-${ARCH}" in
+  linux-x64|linux-arm64)
+    # johnvansickle.com static glibc builds; the tar contains ffmpeg + ffprobe
+    if [ "${ARCH}" = "x64" ]; then FFMPEG_ARCH="amd64"; else FFMPEG_ARCH="arm64"; fi
+    FFMPEG_TAR="ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static.tar.xz"
+    echo "Downloading ${FFMPEG_TAR} ..."
+    curl -sSLf -o "${TMPDIR}/${FFMPEG_TAR}" "https://johnvansickle.com/ffmpeg/releases/${FFMPEG_TAR}"
+    tar -xJf "${TMPDIR}/${FFMPEG_TAR}" -C "${TMPDIR}"
+    FFMPEG_SRC="${TMPDIR}/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffmpeg${EXE_SUFFIX}"
+    FFPROBE_SRC="${TMPDIR}/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffprobe${EXE_SUFFIX}"
+    ;;
+  win-x64|win-arm64)
+    # BtbN FFmpeg-Builds (win64 / winarm64)
+    if [ "${ARCH}" = "x64" ]; then BTBN_ARCH="win64"; else BTBN_ARCH="winarm64"; fi
+    BTBN_ZIP="ffmpeg-n8.1-latest-${BTBN_ARCH}-gpl-8.1.zip"
+    echo "Downloading ${BTBN_ZIP} ..."
+    curl -sSLf -o "${TMPDIR}/btbn-ffmpeg.zip" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${BTBN_ZIP}"
+    mkdir -p "${TMPDIR}/btbn-ffmpeg"
+    unzip -qo "${TMPDIR}/btbn-ffmpeg.zip" -d "${TMPDIR}/btbn-ffmpeg"
+    FFMPEG_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffmpeg${EXE_SUFFIX}" | head -n1)"
+    FFPROBE_SRC="$(find "${TMPDIR}/btbn-ffmpeg" -type f -name "ffprobe${EXE_SUFFIX}" | head -n1)"
+    ;;
+  mac-arm64)
+    # osxexperts.net static builds (darwin arm64)
+    echo "Downloading osxexperts ffmpeg/ffprobe (${FFMPEG_MAC_VER}arm) ..."
+    curl -sSLf -o "${TMPDIR}/ffmpeg-mac.zip" "https://www.osxexperts.net/ffmpeg${FFMPEG_MAC_VER}arm.zip"
+    curl -sSLf -o "${TMPDIR}/ffprobe-mac.zip" "https://www.osxexperts.net/ffprobe${FFMPEG_MAC_VER}arm.zip"
+    mkdir -p "${TMPDIR}/ffmpeg-mac"
+    unzip -qo "${TMPDIR}/ffmpeg-mac.zip" -d "${TMPDIR}/ffmpeg-mac"
+    unzip -qo "${TMPDIR}/ffprobe-mac.zip" -d "${TMPDIR}/ffmpeg-mac"
+    FFMPEG_SRC="${TMPDIR}/ffmpeg-mac/ffmpeg${EXE_SUFFIX}"
+    FFPROBE_SRC="${TMPDIR}/ffmpeg-mac/ffprobe${EXE_SUFFIX}"
+    ;;
+  *)
+    echo "ffmpeg: unsupported PLATFORM/ARCH: ${PLATFORM}-${ARCH}" >&2
     exit 1
-  fi
-fi
+    ;;
+esac
 
 if [ ! -f "${FFMPEG_SRC}" ]; then
   echo "ffmpeg binary not found after download: ${FFMPEG_SRC}" >&2
   exit 1
 fi
 if [ ! -f "${FFPROBE_SRC}" ]; then
-  echo "ffprobe binary not found: ${FFPROBE_SRC}" >&2
+  echo "ffprobe binary not found after download: ${FFPROBE_SRC}" >&2
   exit 1
 fi
 cp "${FFMPEG_SRC}" "bin/ffmpeg/ffmpeg${EXE_SUFFIX}"
 cp "${FFPROBE_SRC}" "bin/ffmpeg/ffprobe${EXE_SUFFIX}"
 
-# Copy yt-dlp to bin/yt-dlp/yt-dlp or bin/yt-dlp/yt-dlp.exe
+# --- yt-dlp: direct from official yt-dlp releases ---
+echo "Downloading yt-dlp ${YTDLP_VERSION} (${YTDLP_SRC}) ..."
+curl -sSLf -o "${TMPDIR}/${YTDLP_SRC}" "https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/${YTDLP_SRC}"
 if [ -n "${EXE_SUFFIX}" ]; then
-  cp "${YTDLP_SRC_PATH}" "bin/yt-dlp/yt-dlp.exe"
+  cp "${TMPDIR}/${YTDLP_SRC}" "bin/yt-dlp/yt-dlp.exe"
 else
-  cp "${YTDLP_SRC_PATH}" "bin/yt-dlp/yt-dlp"
+  cp "${TMPDIR}/${YTDLP_SRC}" "bin/yt-dlp/yt-dlp"
 fi
 
 if [ "${PLATFORM}" != "win" ]; then
