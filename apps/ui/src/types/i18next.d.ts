@@ -82,6 +82,10 @@ interface ComponentsResources {
     title: string
     description: string
   }
+  pendingInitializationPanel: {
+    title: string
+    description: string
+  }
   toolbar: {
     refresh: string
     settings: string
@@ -114,6 +118,7 @@ interface ComponentsResources {
     initializing: string
     folderNotFound: string
     errorLoadingMetadata: string
+    pendingForInitialization: string
   }
   assistant: {
     open: string
@@ -262,6 +267,7 @@ interface ComponentsResources {
       learnMore: string
       initializing: string
       initializationError: string
+      initializingFolder: string
     }
     versionUpdate: {
       title: string
