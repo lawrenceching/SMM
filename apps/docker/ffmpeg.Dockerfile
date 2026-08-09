@@ -17,7 +17,7 @@ FROM node:22-bookworm-slim AS builder
 
 WORKDIR /opt/ffmpeg-static
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl unzip && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl unzip && rm -rf /var/lib/apt/lists/*
 
 ARG FFMPEG_STATIC_VERSION
 ARG TARGETARCH
