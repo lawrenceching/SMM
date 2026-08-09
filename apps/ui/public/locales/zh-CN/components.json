@@ -39,6 +39,10 @@
     "title": "文件夹不可用",
     "description": "无法访问此媒体文件夹。该路径可能已被移动、重命名或删除，也可能所在的磁盘未连接。"
   },
+  "pendingInitializationPanel": {
+    "title": "等待初始化",
+    "description": "此媒体文件夹正在等待初始化。初始化完成后将自动显示内容。"
+  },
   "mediaFolder": {
     "rename": "重命名",
     "openInExplorer": "在资源管理器中打开",
@@ -49,7 +53,8 @@
     "renameError": "无法重命名文件夹：{{error}}",
     "initializing": "正在初始化媒体目录...",
     "folderNotFound": "文件夹未找到",
-    "errorLoadingMetadata": "加载元数据时出错"
+    "errorLoadingMetadata": "加载元数据时出错",
+    "pendingForInitialization": "等待初始化"
   },
   "toolbar": {
     "refresh": "刷新",
@@ -242,7 +247,8 @@
       "transcribeUnavailableOnOs": "生成字幕功能在当前操作系统上不可用",
       "learnMore": "了解更多",
       "initializing": "正在初始化...",
-      "initializationError": "初始化错误：{{message}}"
+      "initializationError": "初始化错误：{{message}}",
+      "initializingFolder": "初始化 {{path}}"
     },
     "backgroundJobs": {
       "title": "后台任务",

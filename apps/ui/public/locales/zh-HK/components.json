@@ -37,6 +37,10 @@
     "title": "資料夾無法使用",
     "description": "無法連線到此媒體資料夾。路徑可能已被移動、重新命名或刪除，亦可能磁碟機尚未連線。"
   },
+  "pendingInitializationPanel": {
+    "title": "等待初始化",
+    "description": "此媒體資料夾正在等待初始化。初始化完成後將自動顯示內容。"
+  },
   "mediaFolder": {
     "rename": "重新命名",
     "openInExplorer": "在檔案總管中開啟",
@@ -47,7 +51,8 @@
     "renameError": "無法重新命名資料夾：{{error}}",
     "initializing": "正在初始化媒體目錄...",
     "folderNotFound": "資料夾未找到",
-    "errorLoadingMetadata": "載入元資料時出錯"
+    "errorLoadingMetadata": "載入元資料時出錯",
+    "pendingForInitialization": "等待初始化"
   },
   "toolbar": {
     "refresh": "重新整理",
@@ -239,7 +244,8 @@
       "transcribeUnavailableOnOs": "生成字幕功能在目前作業系統上不可用",
       "learnMore": "了解更多",
       "initializing": "正在初始化...",
-      "initializationError": "初始化錯誤：{{message}}"
+      "initializationError": "初始化錯誤：{{message}}",
+      "initializingFolder": "初始化 {{path}}"
     },
     "backgroundJobs": {
       "title": "背景工作",

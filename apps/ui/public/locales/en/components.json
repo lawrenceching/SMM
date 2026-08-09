@@ -39,6 +39,10 @@
     "title": "Folder unavailable",
     "description": "This media folder cannot be reached. It may have been moved, renamed, or deleted, or the drive may be disconnected."
   },
+  "pendingInitializationPanel": {
+    "title": "Pending initialization",
+    "description": "This media folder is waiting to be initialized. Content will appear automatically once initialization completes."
+  },
   "mediaFolder": {
     "rename": "Rename",
     "openInExplorer": "Open in Explorer",
@@ -49,7 +53,8 @@
     "renameError": "Could not rename folder: {{error}}",
     "initializing": "Initializing media folder...",
     "folderNotFound": "Folder not found",
-    "errorLoadingMetadata": "Error loading metadata"
+    "errorLoadingMetadata": "Error loading metadata",
+    "pendingForInitialization": "Pending initialization"
   },
   "toolbar": {
     "refresh": "Refresh",
@@ -243,7 +248,8 @@
       "transcribeUnavailableOnOs": "Subtitle generation is not available on this operating system.",
       "learnMore": "Learn more",
       "initializing": "Initializing...",
-      "initializationError": "Initialization Error: {{message}}"
+      "initializationError": "Initialization Error: {{message}}",
+      "initializingFolder": "Initializing {{path}}"
     },
     "backgroundJobs": {
       "title": "Background Jobs",
