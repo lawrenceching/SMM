@@ -70,10 +70,11 @@ import { useDiscoverConfig } from "@/hooks/useDiscoverConfig"
 
 vi.mock("@/lib/i18n", () => ({
     useTranslation: () => ({
-        t: (key: string, opts?: { message?: string }) => {
+        t: (key: string, opts?: { message?: string; path?: string }) => {
             const messages: Record<string, string> = {
                 "statusBar.messages.initializing": "Initializing...",
                 "statusBar.messages.initializationError": `Initialization Error: ${opts?.message ?? ""}`,
+                "statusBar.messages.initializingFolder": `Initializing ${opts?.path ?? ""}`,
                 "statusBar.messages.tmdbUnavailable": "TMDB is unavailable",
                 "statusBar.messages.tmdbAvailable": "TMDB is available",
                 "statusBar.messages.tmdbCheckFailed": "TMDB check failed",
@@ -403,6 +404,39 @@ describe("StatusBar", () => {
 
         expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
             "Initialization Error: disk full",
+        )
+    })
+
+    it("shows currently-initializing folder when a folder is initializing", () => {
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [
+                { path: "/media/library/Show A", status: "initializing" },
+                { path: "/media/library/Show B", status: "pending_for_initialization" },
+            ],
+            selectedFolder: "/media/library/Show B",
+            selectedFolders: [],
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
+            `Initializing ${Path.toPlatformPath("/media/library/Show A")}`,
+        )
+    })
+
+    it("falls back to selected folder when no folder is initializing", () => {
+        mockUseUIMediaFolderStoreState.mockReturnValue({
+            folders: [
+                { path: "/media/library/Show B", status: "pending_for_initialization" },
+            ],
+            selectedFolder: "/media/library/Show B",
+            selectedFolders: [],
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("status-bar-message")).toHaveTextContent(
+            Path.toPlatformPath("/media/library/Show B"),
         )
     })
 })

@@ -47,7 +47,7 @@ export function StatusBar({
     version: versionOverride,
 }: StatusBarProps) {
     const { t } = useTranslation("components")
-    const { selectedFolder } = useUIMediaFolderStoreState()
+    const { folders, selectedFolder } = useUIMediaFolderStoreState()
     const bootstrap = useStatusbarStore((s) => s.bootstrap)
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
     const { isTranscribeEnabled } = useFeatures()
@@ -58,7 +58,11 @@ export function StatusBar({
         () => (selectedFolder ? Path.toPlatformPath(selectedFolder) : ""),
         [selectedFolder],
     )
-    // Priority: prop message > bootstrap phase label > folder path.
+    const initializingFolder = useMemo(
+        () => folders.find((f) => f.status === "initializing"),
+        [folders],
+    )
+    // Priority: prop message > bootstrap phase label > currently-initializing folder > folder path.
     // Translate at render time so i18n `t` changes never rewrite store state.
     const displayMessage = useMemo(() => {
         if (message !== undefined) return message
@@ -70,8 +74,13 @@ export function StatusBar({
                 message: bootstrap.message,
             })
         }
+        if (initializingFolder) {
+            return t("statusBar.messages.initializingFolder", {
+                path: Path.toPlatformPath(initializingFolder.path),
+            })
+        }
         return folderPathMessage
-    }, [message, bootstrap, folderPathMessage, t])
+    }, [message, bootstrap, initializingFolder, folderPathMessage, t])
 
     const { version } = useStatusBar({ versionOverride })
     const latestVersion = discoverConfig?.latestVersion
