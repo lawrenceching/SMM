@@ -92,6 +92,10 @@ vi.mock("./components/LocalFilePanel", () => ({
   ),
 }))
 
+vi.mock("./components/PendingInitializationPanel", () => ({
+  PendingInitializationPanel: () => <div data-testid="pending-initialization-panel" />,
+}))
+
 vi.mock("./components/ui/sonner", () => ({
   Toaster: () => <div data-testid="toaster" />,
 }))
@@ -127,7 +131,12 @@ describe("AppV2", () => {
   function arrange({
     folderStatus,
   }: {
-    folderStatus: "ok" | "error_loading_metadata" | "loading"
+    folderStatus:
+      | "ok"
+      | "error_loading_metadata"
+      | "loading"
+      | "pending_for_initialization"
+      | "initializing"
   }) {
     const selectedFolder = "/media/local-folder"
     const folders = [{ path: selectedFolder, status: folderStatus }]
@@ -145,10 +154,13 @@ describe("AppV2", () => {
       applyFolderClick: vi.fn(),
     })
     mockUseMediaMetadataQuery.mockReturnValue({
-      data: {
-        mediaFolderPath: selectedFolder,
-        type: "local-folder",
-      },
+      data:
+        folderStatus === "pending_for_initialization"
+          ? undefined
+          : {
+              mediaFolderPath: selectedFolder,
+              type: "local-folder",
+            },
     })
   }
 
@@ -180,5 +192,12 @@ describe("AppV2", () => {
 
     expect(mockLocalStorages.sidebarSelectedFolder).toBe("/media/local-folder")
     expect(mockSetAndSaveUserConfig).not.toHaveBeenCalled()
+  })
+
+  it("renders PendingInitializationPanel when folder status is pending_for_initialization", () => {
+    arrange({ folderStatus: "pending_for_initialization" })
+    renderApp()
+
+    expect(screen.getByTestId("pending-initialization-panel")).toBeInTheDocument()
   })
 })

@@ -15,6 +15,7 @@ import { AppWarningBanner } from "./components/AppWarningBanner"
 import { Path } from "@core/path"
 import Welcome from "./components/welcome"
 import { FolderNotAvailablePanel } from "./components/FolderNotAvailablePanel"
+import { PendingInitializationPanel } from "./components/PendingInitializationPanel"
 import { ErrorLoadingPanel } from "./components/ErrorLoadingPanel"
 import TvShowPanel from "./components/tv/TvShowPanel"
 import MoviePanel from "./components/movie/MoviePanel"
@@ -340,7 +341,13 @@ function AppV2Content() {
                       {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (
                         <FolderNotAvailablePanel />
                       )}
-                      {uiFolders.length > 0 && folderStatus !== "folder_not_found" && selectedMediaMetadata && (
+                      {uiFolders.length > 0 && selectedFolder && folderStatus === "pending_for_initialization" && (
+                        <PendingInitializationPanel />
+                      )}
+                      {uiFolders.length > 0 &&
+                        folderStatus !== "folder_not_found" &&
+                        folderStatus !== "pending_for_initialization" &&
+                        selectedMediaMetadata && (
                         <>
                           {viewMode === "metadata" && (
                             <>
