@@ -130,6 +130,7 @@ describe("AppV2", () => {
 
   function arrange({
     folderStatus,
+    withMetadata = false,
   }: {
     folderStatus:
       | "ok"
@@ -137,6 +138,7 @@ describe("AppV2", () => {
       | "loading"
       | "pending_for_initialization"
       | "initializing"
+    withMetadata?: boolean
   }) {
     const selectedFolder = "/media/local-folder"
     const folders = [{ path: selectedFolder, status: folderStatus }]
@@ -155,11 +157,14 @@ describe("AppV2", () => {
     })
     mockUseMediaMetadataQuery.mockReturnValue({
       data:
-        folderStatus === "pending_for_initialization"
+        folderStatus === "pending_for_initialization" && !withMetadata
           ? undefined
           : {
               mediaFolderPath: selectedFolder,
-              type: "local-folder",
+              // withMetadata is used by the guard test for a pending folder; use a
+              // type that renders a panel purely on type (no folderStatus gate) so
+              // the metadata-guard removal is observable.
+              type: withMetadata ? "tvshow-folder" : "local-folder",
             },
     })
   }
@@ -199,5 +204,13 @@ describe("AppV2", () => {
     renderApp()
 
     expect(screen.getByTestId("pending-initialization-panel")).toBeInTheDocument()
+  })
+
+  it("renders PendingInitializationPanel instead of metadata panel when pending folder has cached metadata", () => {
+    arrange({ folderStatus: "pending_for_initialization", withMetadata: true })
+    renderApp()
+
+    expect(screen.getByTestId("pending-initialization-panel")).toBeInTheDocument()
+    expect(screen.queryByTestId("tvshow-panel")).not.toBeInTheDocument()
   })
 })
