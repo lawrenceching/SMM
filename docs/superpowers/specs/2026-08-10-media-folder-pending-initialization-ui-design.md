@@ -3,6 +3,8 @@
 This design document describe the high level design of a feature.
 The design document is golden source and reference by one or more features.
 
+> **Status:** Implemented (2026-08-10, commits `48a6ad83`..`4b575563`)
+
 ## 1. Background
 
 During **Import Media Library**, `MediaLibraryImportedEventHandler` lists the subfolders of the chosen library and adds each new folder to `UIMediaFolderStore` with `status: "pending_for_initialization"`, then sequentially initializes each one (transitioning `initializing` → `ok` via `useInitializeImportedMediaFolder`).

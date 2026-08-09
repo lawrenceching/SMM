@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status:** Implemented (2026-08-10, commits `48a6ad83`..`4b575563`). The plan was executed via subagent-driven development and committed incrementally; task checkboxes were not individually flipped. Do not re-run.
+
 **Goal:** Surface the pending/initializing state during "Import Media Library" across the StatusBar, the Sidebar folder list, and the content area.
 
 **Architecture:** Reuse the existing `pending_for_initialization` and `initializing` statuses from `UIMediaFolderStore`. StatusBar shows "初始化 <folder path>" for the currently-initializing folder (selection-independent). Sidebar's `MediaFolderListItemV2` shows a "等待初始化" badge for `pending_for_initialization` folders (pass-through in `mapFolderStatusToItemStatus`; `initializing` keeps its spinner). The content area renders a new `PendingInitializationPanel` when a selected folder is `pending_for_initialization`. All text via i18n keys added to the 4 locale files.
