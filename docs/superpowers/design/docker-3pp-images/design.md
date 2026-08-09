@@ -12,7 +12,7 @@
 
 `apps/docker/` 已完成 CLI / UI 中间镜像拆分（`cli.Dockerfile` / `ui.Dockerfile`），但 3pp 二进制被推迟。原 `ci/download-3pp-binary.sh` 脚本在一个 RUN 层中下载全部 3pp 并安装到 `bin/` 目录。
 
-4 个 3pp 组件各自独立地从官方渠道直接下载：ffmpeg/ffprobe（linux→johnvansickle、win→BtbN、mac-arm64→osxexperts）、yt-dlp（官方 GitHub release）、videocaptioner（GitHub release）、quickjs（bellard.org）。升级任何一个组件时，不需要重新下载/构建其他组件——这是拆分为独立镜像的核心原因。
+4 个 3pp 组件各自独立地从官方渠道直接下载：ffmpeg/ffprobe（linux/win→BtbN FFmpeg-Builds、mac-arm64→osxexperts）、yt-dlp（官方 GitHub release）、videocaptioner（GitHub release）、quickjs（bellard.org）。升级任何一个组件时，不需要重新下载/构建其他组件——这是拆分为独立镜像的核心原因。
 
 > **Status（2026-08-09）**：所有 3pp 二进制均改为从官方渠道直接下载，`plugins.tar.gz` 与 npm 包（`ffmpeg-static` / `@derhuerst/ffprobe-static`）全部弃用。Docker 与桌面版 `ci/download-3pp-binary.sh` 使用相同来源。
 
@@ -24,7 +24,7 @@
 
 | Dockerfile | 中间镜像标签 | 内容 | 来源 |
 |---|---|---|---|
-| `ffmpeg.Dockerfile` | `smm-ffmpeg:<ffmpeg_version>` | `/bin/ffmpeg/{ffmpeg,ffprobe}` + `/bin/quickjs/{qjs,…}` | johnvansickle/BtbN + bellard.org |
+| `ffmpeg.Dockerfile` | `smm-ffmpeg:<ffmpeg_version>` | `/bin/ffmpeg/{ffmpeg,ffprobe}` + `/bin/quickjs/{qjs,…}` | BtbN FFmpeg-Builds + bellard.org |
 | `ytdlp.Dockerfile` | `smm-ytdlp:latest` | `/bin/yt-dlp/yt-dlp` | yt-dlp 官方 GitHub release |
 | `videocaptioner.Dockerfile` | `smm-videocaptioner:latest` | `/bin/videocaptioner/{videocaptioner,…}` | GitHub releases |
 
@@ -59,15 +59,15 @@ ENV SMM_RESOURCES_PATH=/app/resources
 
 | 架构 | ffmpeg 源 | yt-dlp file | VC suffix | QJS zip |
 |---|---|---|---|---|
-| `amd64` | johnvansickle `amd64` | `yt-dlp_linux` | `linux-x64` | `quickjs-linux-x86_64-{ver}.zip` |
-| `arm64` | johnvansickle `arm64` | `yt-dlp_linux_aarch64` | `linux-arm64` | `quickjs-cosmo-{ver}.zip` |
+| `amd64` | BtbN `linux64` | `yt-dlp_linux` | `linux-x64` | `quickjs-linux-x86_64-{ver}.zip` |
+| `arm64` | BtbN `linuxarm64` | `yt-dlp_linux_aarch64` | `linux-arm64` | `quickjs-cosmo-{ver}.zip` |
 
 ### 2.4 版本可覆写
 
 每个 Dockerfile 声明 `ARG` 使下游构建可覆盖版本或仓库：
 
 ```dockerfile
-ARG FFMPEG_VERSION=7.0.2
+ARG FFMPEG_VERSION=8.1
 ARG YTDLP_VERSION=2026.07.04
 # ...
 ARG VIDEOCAPTIONER_VERSION=1.0.0
@@ -90,7 +90,7 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 
 - Builder: `FROM alpine:3.20`
 - 安装 `curl tar xz unzip`
-- 按 TARGETARCH 直接下载 ffmpeg/ffprobe（linux→johnvansickle.com glibc 静态构建），复制到 `/output/bin/ffmpeg/`
+- 按 TARGETARCH 直接下载 ffmpeg/ffprobe（linux→BtbN FFmpeg-Builds），复制到 `/output/bin/ffmpeg/`
 - 下载 QuickJS zip（bellard.org），提取 `qjs` 及附属文件
 - 输出阶段: `FROM scratch; COPY --from=builder /output /`
 - 产物在 builder 中位于 `/output/bin/ffmpeg/` 和 `/output/bin/quickjs/`
@@ -135,16 +135,16 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 
 [x] 创建 `apps/docker/ffmpeg.Dockerfile`
   - builder: `alpine:3.20`, 安装 `curl tar xz unzip`
-  - 按 TARGETARCH 直接下载 johnvansickle ffmpeg/ffprobe
+  - 按 TARGETARCH 直接下载 BtbN ffmpeg/ffprobe
   - 下载 QuickJS（bellard.org），按 `TARGETARCH` 提取对应 release
   - output: `FROM scratch`
 
 ### 7.8 3pp 全部改为官方直接下载（2026-08-09）
 
-[x] `ci/download-3pp-binary.sh`：ffmpeg/ffprobe 改为按平台直接下载（linux→johnvansickle、win→BtbN、mac-arm64→osxexperts.net）；yt-dlp 改从官方 GitHub release 下载；删除 `plugins.tar.gz`
+[x] `ci/download-3pp-binary.sh`：ffmpeg/ffprobe 改为按平台直接下载（linux/win→BtbN、mac-arm64→osxexperts.net）；yt-dlp 改从官方 GitHub release 下载；删除 `plugins.tar.gz`
 [x] `apps/docker/ffmpeg.Dockerfile`：builder 切 `alpine:3.20`，直接 curl 下载 ffmpeg/ffprobe + quickjs，完全摒弃 npm
 [x] `apps/docker/ytdlp.Dockerfile`：改为从 yt-dlp 官方 GitHub release 直接下载
-[x] 根 `package.json`：devDependencies 移除 `ffmpeg-static` / `@derhuerst/ffprobe-static`，`3pp.ffmpeg_version` 改为 `7.0.2`、`3pp.ytdlp_version` 改为 `2026.07.04`
+[x] 根 `package.json`：devDependencies 移除 `ffmpeg-static` / `@derhuerst/ffprobe-static`，`3pp.ffmpeg_version` 改为 `8.1`、`3pp.ytdlp_version` 改为 `2026.07.04`
 [x] `pnpm-workspace.yaml`：`onlyBuiltDependencies` 移除两包
 [ ] 验证最终镜像与 CI 构建
 

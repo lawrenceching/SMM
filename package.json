@@ -6,7 +6,7 @@
     "apps/*"
   ],
   "3pp": {
-    "ffmpeg_version": "7.0.2",
+    "ffmpeg_version": "8.1",
     "ytdlp_version": "2026.07.04",
     "videocaptioner_version": "1.0.0"
   },

@@ -13,10 +13,10 @@ ARCH="${ARCH:?ARCH is required (x64|arm64)}"
 VIDEOCAPTIONER_VERSION="${VIDEOCAPTIONER_VERSION:-1.0.0}"
 VIDEOCAPTIONER_REPO="${VIDEOCAPTIONER_REPO:-lawrenceching/VideoCaptioner}"
 
-FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 7.0.2)}"
+FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 8.1)}"
 YTDLP_VERSION="${YTDLP_VERSION:-$(node -p "require('./package.json')['3pp'].ytdlp_version" 2>/dev/null || echo 2026.07.04)}"
 # osxexperts names its mac arm64 builds ffmpeg<VER>arm.zip (e.g. 81 = FFmpeg 8.1).
-FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-81}"
+FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-${FFMPEG_VERSION//./}}"
 
 VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_REPO}/releases/download/${VIDEOCAPTIONER_VERSION}"
 
@@ -68,19 +68,20 @@ mkdir -p bin/ffmpeg bin/yt-dlp
 # --- ffmpeg / ffprobe: direct download per platform ---
 case "${PLATFORM}-${ARCH}" in
   linux-x64|linux-arm64)
-    # johnvansickle.com static glibc builds; the tar contains ffmpeg + ffprobe
-    if [ "${ARCH}" = "x64" ]; then FFMPEG_ARCH="amd64"; else FFMPEG_ARCH="arm64"; fi
-    FFMPEG_TAR="ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static.tar.xz"
+    # BtbN FFmpeg-Builds (static codec, dynamic glibc); the tar holds bin/{ffmpeg,ffprobe}
+    if [ "${ARCH}" = "x64" ]; then BTBN_ARCH="linux64"; else BTBN_ARCH="linuxarm64"; fi
+    FFMPEG_TAR="ffmpeg-n${FFMPEG_VERSION}-latest-${BTBN_ARCH}-gpl-${FFMPEG_VERSION}.tar.xz"
     echo "Downloading ${FFMPEG_TAR} ..."
-    curl -sSLf -o "${TMPDIR}/${FFMPEG_TAR}" "https://johnvansickle.com/ffmpeg/releases/${FFMPEG_TAR}"
+    curl -sSLf -o "${TMPDIR}/${FFMPEG_TAR}" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FFMPEG_TAR}"
     tar -xJf "${TMPDIR}/${FFMPEG_TAR}" -C "${TMPDIR}"
-    FFMPEG_SRC="${TMPDIR}/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffmpeg${EXE_SUFFIX}"
-    FFPROBE_SRC="${TMPDIR}/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffprobe${EXE_SUFFIX}"
+    FFMPEG_DIR="${TMPDIR}/ffmpeg-n${FFMPEG_VERSION}-latest-${BTBN_ARCH}-gpl-${FFMPEG_VERSION}"
+    FFMPEG_SRC="${FFMPEG_DIR}/bin/ffmpeg${EXE_SUFFIX}"
+    FFPROBE_SRC="${FFMPEG_DIR}/bin/ffprobe${EXE_SUFFIX}"
     ;;
   win-x64|win-arm64)
     # BtbN FFmpeg-Builds (win64 / winarm64)
     if [ "${ARCH}" = "x64" ]; then BTBN_ARCH="win64"; else BTBN_ARCH="winarm64"; fi
-    BTBN_ZIP="ffmpeg-n8.1-latest-${BTBN_ARCH}-gpl-8.1.zip"
+    BTBN_ZIP="ffmpeg-n${FFMPEG_VERSION}-latest-${BTBN_ARCH}-gpl-${FFMPEG_VERSION}.zip"
     echo "Downloading ${BTBN_ZIP} ..."
     curl -sSLf -o "${TMPDIR}/btbn-ffmpeg.zip" "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${BTBN_ZIP}"
     mkdir -p "${TMPDIR}/btbn-ffmpeg"

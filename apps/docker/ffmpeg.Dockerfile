@@ -1,7 +1,8 @@
 # SMM ffmpeg / quickjs binary image
 # Build context: repository root (e.g. docker build -f apps/docker/ffmpeg.Dockerfile .)
 #
-# ffmpeg/ffprobe come directly from johnvansickle.com static builds (glibc, per-TARGETARCH);
+# ffmpeg/ffprobe come directly from BtbN FFmpeg-Builds GitHub releases (static codec
+# builds, dynamic glibc — compatible with the debian:bookworm-slim final image);
 # quickjs is downloaded from bellard.org. No npm packages are involved.
 # Output layout (scratch root → /app/resources/ via COPY --from in final image):
 #   /bin/ffmpeg/{ffmpeg,ffprobe}
@@ -11,7 +12,7 @@
 #
 # FFMPEG_VERSION must stay in sync with 3pp.ffmpeg_version in root package.json.
 
-ARG FFMPEG_VERSION=7.0.2
+ARG FFMPEG_VERSION=8.1
 
 FROM alpine:3.20 AS builder
 
@@ -20,21 +21,23 @@ RUN apk add --no-cache curl tar xz unzip
 ARG FFMPEG_VERSION
 ARG TARGETARCH
 
-# --- ffmpeg / ffprobe from johnvansickle.com static builds ---
-# johnvansickle release archives contain ffmpeg + ffprobe in a
-# ffmpeg-<version>-<arch>-static/ top-level directory.
+# --- ffmpeg / ffprobe from BtbN FFmpeg-Builds ---
+# BtbN release archives contain bin/{ffmpeg,ffprobe} in a
+# ffmpeg-n<version>-latest-<arch>-gpl-<version>/ top-level directory.
 RUN set -eux; \
     case "${TARGETARCH}" in \
-      amd64) FFMPEG_ARCH=amd64 ;; \
-      arm64) FFMPEG_ARCH=arm64 ;; \
+      amd64) BTBN_ARCH=linux64 ;; \
+      arm64) BTBN_ARCH=linuxarm64 ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    url="https://johnvansickle.com/ffmpeg/releases/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static.tar.xz"; \
+    FFMPEG_TAR="ffmpeg-n${FFMPEG_VERSION}-latest-${BTBN_ARCH}-gpl-${FFMPEG_VERSION}.tar.xz"; \
+    url="https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/${FFMPEG_TAR}"; \
     curl -sSLf -o /tmp/ffmpeg.tar.xz "$url"; \
     tar -xJf /tmp/ffmpeg.tar.xz -C /tmp; \
+    FFMPEG_DIR="/tmp/ffmpeg-n${FFMPEG_VERSION}-latest-${BTBN_ARCH}-gpl-${FFMPEG_VERSION}"; \
     mkdir -p /output/bin/ffmpeg; \
-    cp "/tmp/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffmpeg" /output/bin/ffmpeg/ffmpeg; \
-    cp "/tmp/ffmpeg-${FFMPEG_VERSION}-${FFMPEG_ARCH}-static/ffprobe" /output/bin/ffmpeg/ffprobe; \
+    cp "${FFMPEG_DIR}/bin/ffmpeg" /output/bin/ffmpeg/ffmpeg; \
+    cp "${FFMPEG_DIR}/bin/ffprobe" /output/bin/ffmpeg/ffprobe; \
     chmod +x /output/bin/ffmpeg/ffmpeg /output/bin/ffmpeg/ffprobe
 
 # --- QuickJS from bellard.org ---
