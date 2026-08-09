@@ -46,6 +46,10 @@ HTTP: `POST /api/shutdown` — localhost-only graceful shutdown used by the Elec
 
 CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback when the prior run was hard-killed).
 
+## SetWatchedFolder
+Source Code: apps/cli/src/route/SetWatchedFolder.ts
+HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.
+
 ## isFolderAvailable
 Source Code: packages/core-routes/src/isFolderAvailable.ts
 Document: docs/api/IsFolderAvailableAPI.md

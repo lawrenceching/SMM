@@ -1190,4 +1190,17 @@ export interface DeleteFolderResponseBody {
   error?: string
 }
 
+export interface SetWatchedFolderRequestBody {
+  /** Platform absolute path, or null/empty to stop watching. */
+  folderPath: string | null
+}
+
+export interface SetWatchedFolderResponseBody {
+  data?: {
+    /** Requested watch target (null when cleared). Not a guarantee fs.watch is active. */
+    watchedFolder: string | null
+  }
+  error?: string
+}
+
 export type FolderType = "tvshow" | "movie" | "music"

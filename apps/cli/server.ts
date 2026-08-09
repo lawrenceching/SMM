@@ -71,7 +71,8 @@ import {
 } from '@smm/core-routes';
 import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
-import { initializeFolderWatcher, getFolderWatcher } from './src/services/folderWatcher';
+import { getFolderWatcher } from './src/services/folderWatcher';
+import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
 
 export interface ServerConfig {
   port?: number;
@@ -242,6 +243,7 @@ export class Server {
     });
     handleReadFile(this.app);
     handleIsFolderAvailable(this.app);
+    handleSetWatchedFolder(this.app);
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);
@@ -381,27 +383,6 @@ export class Server {
     );
 
     applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
-
-    // Initialize folder watcher for all existing media folders
-    this.initializeFolderWatcherAsync();
-  }
-
-  private async initializeFolderWatcherAsync(): Promise<void> {
-    try {
-      const userConfig = await getUserConfig();
-      const folders = userConfig.folders || [];
-      if (folders.length > 0) {
-        initializeFolderWatcher(folders);
-        logger.info({ folderCount: folders.length }, 'Folder watcher initialized for all media folders');
-      } else {
-        logger.info('No media folders to watch');
-      }
-    } catch (error) {
-      logger.error(
-        { error: error instanceof Error ? error.message : String(error) },
-        'Failed to initialize folder watcher',
-      );
-    }
   }
 
   async stop(): Promise<void> {
