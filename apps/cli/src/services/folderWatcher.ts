@@ -172,6 +172,30 @@ export class FolderWatcher {
   }
 
   /**
+   * Replace the watched set with at most one folder (UI selectedFolder).
+   * Pass null or empty string to stop watching.
+   */
+  setWatchedFolder(folderPath: string | null): void {
+    const target =
+      folderPath === null || folderPath.trim() === ''
+        ? null
+        : folderPath;
+
+    if (target === null) {
+      this.stopAllWatching();
+      return;
+    }
+
+    const targetPosix = Path.posix(target);
+    for (const watched of this.getWatchedFolders()) {
+      if (watched !== targetPosix) {
+        this.stopWatching(watched);
+      }
+    }
+    this.startWatching(target);
+  }
+
+  /**
    * Flush the pending change for a folder and broadcast it.
    */
   private flushChange(posixPath: string): void {
@@ -226,6 +250,14 @@ export function getFolderWatcher(debounceMs?: number): FolderWatcher {
     instance = new FolderWatcher(debounceMs);
   }
   return instance;
+}
+
+/** Test-only: stop watches and drop the singleton. */
+export function resetFolderWatcherForTests(): void {
+  if (instance) {
+    instance.stopAllWatching();
+    instance = null;
+  }
 }
 
 /**
