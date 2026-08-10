@@ -18,7 +18,7 @@ Specs carry `@supports …` after green on that platform; `@unsupported HarmonyO
 | **Manual local + Electron** | 9/10 (`AppWarningBanner` skipped on Windows) |
 | **Transcribe Docker refactor** | Code ready (`e2e-tutorial-fixtures.ts`, `/media/tutorials` sync); **not verified** — needs `apps/e2e/test/media/tutorials/{p1,p2}.mp4` on host |
 | **Docker image** | Offline CLI refresh into `smm:latest` when Docker Hub blocked; interim Dockerfiles removed |
-| **Docker Compose CI** | Host Runner + Compose (`smm` + `http-proxy`); workflow **E2E Tests for Docker** (`workflow_dispatch`) runs all `common/*` except `common/manual` |
+| **Docker Compose CI** | Host Runner + Compose (`smm` + `http-proxy`); **CI** workflow's Docker matrix (`workflow_dispatch`) runs all `common/*` except `common/manual` |
 
 **Next:** MediaFileProperties (host ffmpeg); MusicPanel-Download partial (YouTube/collection flake); expand Docker CI `common/manual` when tutorial fixtures are available in CI.
 
@@ -352,7 +352,7 @@ bun ci/run-e2e-test.ts --platform docker --spec "./common/tv/*.e2e.ts"
 EXTERNAL_CONFIG_FILE_URL="http://localhost:8000/config.json" \
   bun ci/run-e2e-test.ts --platform docker --spec "./common/tv/TmdbHostFailover.e2e.ts"
 
-# GitHub Actions (manual): workflow "E2E Tests for Docker" runs all common/*
+# GitHub Actions (manual): CI workflow's Docker matrix runs all common/*
 # except common/manual (matrix: config, httpproxy, mcp, media-init, movie, music,
 # other, tv, tvdb). Compose proxy env + EXTERNAL_CONFIG_FILE_URL for failover.
 ```

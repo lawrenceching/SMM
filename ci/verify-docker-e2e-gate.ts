@@ -98,7 +98,7 @@ async function main(): Promise<number> {
 
   if (result.missing.length > 0) {
     console.error(
-      `No "${GATE_CHECK_NAME}" check run found for ${sha}. Run "E2E Tests for Docker" on this commit first.`,
+      `No "${GATE_CHECK_NAME}" check run found for ${sha}. Run the CI workflow on this commit first.`,
     );
   } else {
     console.error(`"${GATE_CHECK_NAME}" exists for ${sha} but did not succeed.`);

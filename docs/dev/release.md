@@ -43,17 +43,17 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 
 | 检查项 | Workflow | Job 名称 |
 |--------|----------|----------|
-| 单元测试 | **Build UI and CLI** | `Run Unit Tests` |
-| Lint | **Build UI and CLI** | `Lint UI` |
-| Typecheck | **Build UI and CLI** | `Typecheck` |
-| 构建 UI/CLI | **Build UI and CLI** | `Build UI`、`Build CLI` |
-| Host E2E | **E2E Test** | `host-e2e / gate` |
-| Docker E2E | **E2E Tests for Docker** | `docker-e2e / gate` |
-| HTTP Proxy E2E | **E2E HTTP Proxy** | `http-proxy-e2e / gate` |
+| 单元测试 | **CI** | `Run Unit Tests` |
+| Lint | **CI** | `Lint UI` |
+| Typecheck | **CI** | `Typecheck` |
+| 构建 UI/CLI | **CI** | `Build UI`、`Build CLI` |
+| Host E2E | **CI** | `host-e2e / gate` |
+| Docker E2E | **CI** | `docker-e2e / gate` |
+| HTTP Proxy E2E | **CI** | `http-proxy-e2e / gate` |
 
 **PR / push 到 `main` / `develop`**（改动 `apps/**`、`packages/**`、`ci/**` 等路径）会自动触发上述 workflow。
 
-若某 commit 从未跑过完整 CI（例如仅改了 docs），**Release** 会因缺少 check run 而失败。可对该 commit 手动重跑相关 workflow，或仅在紧急情况下使用 `skip_ci_verification`。
+若某 commit 从未跑过完整 CI（例如仅改了 docs），**Release** 会因缺少 check run 而失败。可对该 commit 手动重跑 **CI** workflow，或仅在紧急情况下使用 `skip_ci_verification`。
 
 ### 4. Secrets（Actions）
 
@@ -94,7 +94,7 @@ flowchart TB
 
 **推荐顺序（同一版本）：**
 
-1. 合并到 `main` 后等待 **Build UI and CLI** 与三套 **E2E** workflow 在 PR/push 上全绿  
+1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含三套 E2E gate）  
 2. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）  
 3. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 
@@ -145,7 +145,7 @@ flowchart TB
 
 ### 操作
 
-1. 确认目标 commit 上 **E2E Tests for Docker** 的 **e2e-gate** 已通过（见上文）  
+1. 确认目标 commit 上 **CI** 的 **docker-e2e / gate** 已通过（见上文）  
 2. Actions → **Release Docker**（`.github/workflows/release-docker.yml`）  
 3. 填写输入：
 
@@ -190,7 +190,7 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 对**同一 commit**、**同一 `tag_name`**：
 
 ```text
-1. E2E Tests for Docker（手动，e2e-gate 全绿）
+1. CI workflow 手动重跑（docker-e2e gate 全绿）
 2. Actions → Release（推荐）或分别跑 Release Electron / Release Docker
 ```
 
@@ -244,10 +244,7 @@ skip 为 true 时，CI summary 会记录该次选择，便于审计。
 | **Release Electron** | 仅桌面安装包 + Release | 手动 |
 | **Release Docker** | 仅 Hub 镜像 + Release 说明 | 手动 |
 | **Build Docker** | 日常/维护：推 `latest` + sha，非 semver 发版 | 手动 |
-| **Build UI and CLI** | 单元测试、lint、typecheck、构建 | push / PR |
-| **E2E Test** | Host E2E + `host-e2e / gate` | push / PR / 手动 |
-| **E2E Tests for Docker** | Docker E2E + `docker-e2e / gate` | push / PR / 手动 |
-| **E2E HTTP Proxy** | HTTP Proxy 多平台 E2E + gate | push / PR / 手动 |
+| **CI** | 单元测试、lint、typecheck、构建 + Host / Docker / HTTP-Proxy E2E（build 全绿后才触发） | push / PR / 手动 |
 
 可复用 workflow：
 
@@ -268,9 +265,9 @@ Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CH
 | Release Docker（`release-docker.yml`） | 已有；可单独运行或由 **Release** 调用 |
 | **Release**（`release-all.yml`） | 已有；并行触发 Electron + Docker |
 | `skip_ci_verification` | 已有（所有 Release workflow） |
-| PR/push 触发单元测试 + lint + typecheck | 已有（`build.yml`） |
-| PR/push 触发 E2E（host / docker / http-proxy） | 已有 |
-| E2E **gate** 汇总 job | 已有（三套 E2E workflow） |
+| PR/push 触发单元测试 + lint + typecheck + 构建 | 已有（`ci.yml`） |
+| PR/push 触发 E2E（host / docker / http-proxy），且仅在 build 全绿后 | 已有（`ci.yml`，`needs` 门禁） |
+| E2E **gate** 汇总 job | 已有（三套 E2E gate job） |
 | 发版前 **Verify CI gates**（不重跑测试） | 已有（`ci/verify-check-runs.ts`） |
 | Reusable build-docker-push / ensure-release-tag | 已有 |
 | Build Docker（multi-arch → Hub） | 已有（调用 `_build-docker-push.yml`） |
@@ -280,7 +277,7 @@ Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CH
 | 现象 | 可能原因 | 处理 |
 |------|----------|------|
 | Docker login `Username and password required` | 未配置 `DOCKERHUB_*` secrets | 仓库 Settings → Secrets |
-| Release：Verify CI gates 失败 | 该 commit 缺少或未通过 required checks | 在 PR 上等待 CI 全绿，或手动重跑 E2E workflow |
+| Release：Verify CI gates 失败 | 该 commit 缺少或未通过 required checks | 在 PR 上等待 CI 全绿，或手动重跑 **CI** workflow |
 | CI 全绿但 GitHub Release 页未创建 | 子 workflow 的 job 用了 **job 级** `if:` 被 skip，导致 reusable workflow 调用方 job 结论为 `skipped`，`publish`（无 `if: always()`）随之被 skip | 改为 **step 级** `if:` 门控（如 `_verify-ci-gates.yml` 的 `skip` 输入、发布 job 的步骤门控），保证 job 本身始终运行并结论为 `success` |
 | `action-gh-release` tag 已存在 | Electron/Docker 重复创建 tag | ensure-release-tag 会跳过；第二个 workflow 追加产物/说明 |
 | 镜像无 arm64 | Build 未 multi-arch | 使用 **Build Docker** / Release 内 reusable build，勿仅本地 amd64 assemble |
