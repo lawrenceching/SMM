@@ -1,5 +1,11 @@
 # @smm/e2e-test-base-image
 
+## 1.2.19
+
+### Patch Changes
+
+- v1.4.11
+
 ## 1.2.18
 
 ### Patch Changes
