@@ -33,9 +33,7 @@ describe('POST /api/setWatchedFolder', () => {
       body: JSON.stringify({ folderPath: dirA }),
     });
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.error).toBeUndefined();
-    expect(body.data.watchedFolder).toBe(dirA);
+    await expect(res.json()).resolves.toEqual({ data: { watchedFolder: dirA } });
     expect(getFolderWatcher().isWatching(dirA)).toBe(true);
   });
 
@@ -50,8 +48,7 @@ describe('POST /api/setWatchedFolder', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folderPath: dirB }),
     });
-    const body = await res.json();
-    expect(body.data.watchedFolder).toBe(dirB);
+    await expect(res.json()).resolves.toEqual({ data: { watchedFolder: dirB } });
     expect(getFolderWatcher().isWatching(dirA)).toBe(false);
     expect(getFolderWatcher().isWatching(dirB)).toBe(true);
   });
@@ -67,8 +64,7 @@ describe('POST /api/setWatchedFolder', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ folderPath: null }),
     });
-    const body = await res.json();
-    expect(body.data.watchedFolder).toBeNull();
+    await expect(res.json()).resolves.toEqual({ data: { watchedFolder: null } });
     expect(getFolderWatcher().getWatchedFolders()).toEqual([]);
   });
 });
