@@ -3,7 +3,7 @@
 This design document describe the high level design of a feature.
 The design document is golden source and reference by one or more features.
 
-> **Status:** Draft (2026-08-15)
+> **Status:** Implemented (2026-08-15). Commit range: `36447c9f`..`92e26899`.
 
 ## 1. Background
 
