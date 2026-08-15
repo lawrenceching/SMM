@@ -77,4 +77,33 @@ describe("GeneralSettings", () => {
       "general.applicationLanguageUnset",
     );
   });
+
+  it("renders anonymous telemetry consent checkbox", () => {
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).toBeInTheDocument();
+  });
+
+  it("checkbox is unchecked when consent is undefined", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: undefined },
+      setAndSaveUserConfig: vi.fn(),
+    });
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).not.toBeChecked();
+  });
+
+  it("checkbox is checked when consent is true", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: true },
+      setAndSaveUserConfig: vi.fn(),
+    });
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).toBeChecked();
+  });
 });
