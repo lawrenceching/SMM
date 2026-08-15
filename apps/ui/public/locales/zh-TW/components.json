@@ -584,5 +584,11 @@
     "recognizeFailed": "辨識失敗，請重試。",
     "renameFailed": "重新命名失敗，請重試。",
     "noRenameFiles": "無法產生重新命名計畫，請確認集數已關聯影片檔案。"
+  },
+  "anonymousTelemetryConsent": {
+    "title": "協助改進 SMM",
+    "description": "我們希望收集匿名使用資訊，例如應用程式版本、作業系統，以及當機與使用統計。不會包含個人身分資訊，也不會包含您的媒體檔案內容。",
+    "agree": "同意",
+    "disagree": "不同意"
   }
 }
