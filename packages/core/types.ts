@@ -116,6 +116,16 @@ export interface UserConfig {
   mcpPort?: number
 
   /**
+   * Whether the user consented to anonymous telemetry / usage information.
+   * - `undefined`: never asked — UI should show the consent dialog once
+   * - `true`: agreed
+   * - `false`: declined (including dismiss)
+   *
+   * Must remain unset in default configs so first launch and upgrades prompt.
+   */
+  anonymousTelemetryConsent?: boolean
+
+  /**
    * Path to the yt-dlp executable file.
    */
   ytdlpExecutablePath?: string
