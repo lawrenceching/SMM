@@ -66,6 +66,9 @@ importers:
       ai:
         specifier: ^6.0.36
         version: 6.0.98(zod@4.3.6)
+      core-app:
+        specifier: workspace:*
+        version: link:../core
       dotenv:
         specifier: ^17.2.3
         version: 17.3.1

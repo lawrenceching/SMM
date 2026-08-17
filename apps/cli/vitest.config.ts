@@ -12,6 +12,7 @@ export default defineConfig({
       '@core': resolve(__dirname, '../../packages/core'),
       '@smm/core': resolve(__dirname, '../../packages/core/types.ts'),
       '@smm/test': resolve(__dirname, '../../packages/test/src/index.ts'),
+      'core-app': resolve(__dirname, '../core/src/index.ts'),
     },
   },
 })
