@@ -13,22 +13,28 @@ function jsonResponse(body: unknown): HttpResponse {
   };
 }
 
-function networkMock(routes: Record<string, unknown>): { network: NetworkPort; urls: string[] } {
+function networkMock(routes: Record<string, unknown>): {
+  network: NetworkPort;
+  urls: string[];
+  headers: Record<string, string | undefined>[];
+} {
   const urls: string[] = [];
+  const headers: Record<string, string | undefined>[] = [];
   const network: NetworkPort = {
     fetch: async (url, init) => {
       urls.push(url);
+      headers.push(init?.headers ?? {});
       const found = Object.entries(routes).find(([pattern]) => url.includes(pattern));
       if (found === undefined) throw new Error("unexpected url: " + url);
       return jsonResponse(found[1]);
     },
   };
-  return { network, urls };
+  return { network, urls, headers };
 }
 
 describe("TmdbClient", () => {
   it("search sends query/language and Authorization header", async () => {
-    const { network, urls } = networkMock({ "/search/tv" : { results: [{ id: 1, name: "S" }], page: 1, total_pages: 1, total_results: 1 } });
+    const { network, urls, headers } = networkMock({ "/search/tv" : { results: [{ id: 1, name: "S" }], page: 1, total_pages: 1, total_results: 1 } });
     const client = new TmdbClient(network, { host: "https://tmdb.example", apiKey: "abc" });
 
     const body = await client.search("My Show", "tv", "en-US");
@@ -38,7 +44,7 @@ describe("TmdbClient", () => {
     expect(url).toContain("https://tmdb.example/search/tv");
     expect(url).toContain("query=My%20Show");
     expect(url).toContain("language=en-US");
-    // auth header verified below via a route capture
+    expect(headers[0]?.Authorization).toBe("Bearer abc");
   });
 
   it("getTvShowMediaMetadata fetches series + each season and builds TvShowMediaMetadata", async () => {

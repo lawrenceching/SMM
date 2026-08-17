@@ -73,7 +73,7 @@ export class TmdbClient {
   async getTvShowMediaMetadata(id: number, language: string): Promise<TvShowMediaMetadata> {
     const series = await this.getTvShowById(id, language);
     const seasonDetails: TmdbSeasonDetails[] = [];
-    for (const season of series.seasons) {
+    for (const season of series.seasons ?? []) {
       seasonDetails.push(await this.getTvSeasonById(id, season.season_number, language));
     }
     return buildTvShowMediaMetadata(series, seasonDetails);
