@@ -8,12 +8,15 @@ vi.mock("@tanstack/react-query", () => ({
   useQueries: vi.fn(),
 }))
 
+vi.mock("@/hooks/folders", () => ({
+  useFoldersQuery: vi.fn(() => ({ data: undefined, isFetching: false })),
+}))
+
 vi.mock("@/components/search-form", () => ({
   SearchForm: ({ placeholder }: { placeholder?: string }) => (
     <div data-testid="search-form">{placeholder}</div>
   ),
 }))
-
 vi.mock("@/components/shared/MediaFolderToolbar", () => ({
   MediaFolderToolbar: () => <div data-testid="media-folder-toolbar" />,
 }))

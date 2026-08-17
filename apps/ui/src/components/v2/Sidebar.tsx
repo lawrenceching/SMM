@@ -20,6 +20,9 @@ import { openInFileManagerApi } from "@/api/openInFileManager"
 import { nextTraceId } from "@/lib/utils"
 import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
 import { useTranslation } from "@/lib/i18n"
+import { isSmmV3Enabled } from "@/lib/localStorages"
+import { useFoldersQuery } from "@/hooks/folders"
+import { mergeFolderPathsWithUiStatus } from "@/lib/mergeFolderPathsWithUiStatus"
 
 export type { SortOrder, FilterType }
 
@@ -40,7 +43,13 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
   const primarySelectedPath = selectedMediaMetadata?.mediaFolderPath ?? selectedFolder
 
-  const folderPaths = useMemo(() => folders.map((f) => f.path), [folders])
+  const foldersQuery = useFoldersQuery()
+  const v3 = isSmmV3Enabled()
+  const listFolders = v3
+    ? mergeFolderPathsWithUiStatus(foldersQuery.data ?? [], folders)
+    : folders
+
+  const folderPaths = useMemo(() => listFolders.map((f) => f.path), [listFolders])
 
   const metadataQueries = useQueries({
     queries: folderPaths.map((path) => ({
@@ -50,10 +59,10 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
   })
 
   const rowsWithMeta = useMemo(() => {
-    return folders.map((folder, i) =>
+    return listFolders.map((folder, i) =>
       buildMediaFolderListItemPropsFromFolderAndMetadata(folder, metadataQueries[i]?.data),
     )
-  }, [folders, metadataQueries])
+  }, [listFolders, metadataQueries])
 
   const filteredAndSortedFolders = useMemo(() => {
     let result = [...rowsWithMeta]
