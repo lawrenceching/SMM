@@ -1,5 +1,7 @@
 # apps/core 只读查询与移除目录 API 设计
 
+> **Status:** Implemented (2026-08-17). Design approved by user, then implemented directly on request (no separate plan). Commits: `146c088b` (FsPort.deleteFile + adapters), `13cf7c56` (Core read/query/unimport methods). Tests: 77 passing in apps/core, repo typecheck clean. Do not re-run.
+
 本设计文档描述 `apps/core`（Layer 2 Core）新增的 5 个接口：
 
 `getFolders()`、`unimportFolder(path)`、`getUserConfig()`、`getAppConfig()`、`getMediaMetadata(folder)`。
