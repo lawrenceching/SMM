@@ -1,5 +1,7 @@
 # Display Folders V3（get-folders + useFoldersQuery）
 
+> **Status:** Implemented (2026-08-17). Tasks 1–6 completed on branch `core-layer`. Commits: `0ea4f5e1` (Core singleton) through `6d28212b` (folders query invalidation). Verification: GetFolders.test.ts (2), useFoldersQuery.test.ts (2), mergeFolderPathsWithUiStatus.test.ts (3). Do not re-run.
+
 本设计描述「显示媒体文件夹列表」从 UI 直接读 `UserConfig` / Zustand，迁移到 **UI → Internal HTTP → Core** 的第一刀，并由 `localStorage["smm.v3.enabled"]` 控制新旧路径。
 
 > 配套已实现：`Core.getFolders()`（见 [2026-08-17-core-read-apis-design.md](./2026-08-17-core-read-apis-design.md)）。

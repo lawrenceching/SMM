@@ -1,5 +1,7 @@
 # Display Folders V3 Implementation Plan
 
+> **Status:** Implemented (2026-08-17). All 6 tasks completed via subagent-driven-development on branch `core-layer`. Commits: `0ea4f5e1` (Task 1) through `6d28212b` (Task 5). Verification: focused tests all PASS. Do not re-run.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Wire `POST /api/get-folders` → `Core.getFolders()` and switch Sidebar path list to `useFoldersQuery` when `localStorage["smm.v3.enabled"] === "true"`, keeping status/selection in Zustand and metadata queries unchanged.
@@ -695,7 +697,7 @@ EOF
 - Modify: `docs/superpowers/specs/2026-08-17-display-folders-v3-design.md` (status line at top)
 - Modify: `docs/superpowers/plans/2026-08-17-display-folders-v3.md` (this file — mark Implemented when done)
 
-- [ ] **Step 1: Run focused verification**
+- [x] **Step 1: Run focused verification**
 
 ```bash
 pnpm --filter cli test -- src/route/GetFolders.test.ts
@@ -704,7 +706,7 @@ pnpm --filter ui test -- src/hooks/folders src/lib/mergeFolderPathsWithUiStatus.
 
 Expected: all PASS.
 
-- [ ] **Step 2: Mark design implemented**
+- [x] **Step 2: Mark design implemented**
 
 At top of the design spec, add:
 
@@ -712,7 +714,7 @@ At top of the design spec, add:
 > **Status:** Implemented (YYYY-MM-DD). ...
 ```
 
-- [ ] **Step 3: Final commit**
+- [x] **Step 3: Final commit**
 
 ```bash
 git add docs/superpowers/specs/2026-08-17-display-folders-v3-design.md docs/superpowers/plans/2026-08-17-display-folders-v3.md
