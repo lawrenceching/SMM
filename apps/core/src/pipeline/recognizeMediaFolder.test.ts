@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MediaMetadata, TvShowMediaMetadata } from "@smm/core";
 import type { FsPort } from "../ports/FsPort";
-import type { TvdbClient } from "../clients/TvdbClient";
-import type { TmdbClient } from "../clients/TmdbClient";
 import {
   getTmdbIdFromFolderName,
   getTvdbIdFromFolderName,
   recognizeMediaFolder,
   type RecognitionDeps,
+  type TmdbRecognitionClient,
+  type TvdbRecognitionClient,
 } from "./recognizeMediaFolder";
 
 const tvShow: TvShowMediaMetadata = {
@@ -37,13 +37,13 @@ function deps(overrides: Partial<RecognitionDeps> = {}): RecognitionDeps {
       search: vi.fn(),
       getTvShowMediaMetadata: vi.fn(),
       getMovieMediaMetadata: vi.fn(),
-    } as unknown as TmdbClient,
+    } as unknown as TmdbRecognitionClient,
     tvdb: {
       searchSeries: vi.fn(),
       searchMovie: vi.fn(),
       getTvShowMediaMetadata: vi.fn(),
       getMovieMediaMetadata: vi.fn(),
-    } as unknown as TvdbClient,
+    } as unknown as TvdbRecognitionClient,
     language: "en-US",
     primaryDatabase: "TMDB",
     ...overrides,
@@ -119,6 +119,24 @@ describe("recognizeMediaFolder", () => {
     const result = await recognizeMediaFolder(mm, d);
 
     expect(result.movie).toEqual({ id: "2", name: "My Film", database: "TMDB" });
+  });
+
+  it("continues the TVDB search loop when one result's metadata throws", async () => {
+    const d = deps({ primaryDatabase: "TVDB" });
+    (d.tvdb.searchSeries as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { objectID: "series-1", name: "My Show", tvdb_id: "1" },
+      { objectID: "series-2", name: "My Show", tvdb_id: "2" },
+    ]);
+    (d.tvdb.getTvShowMediaMetadata as ReturnType<typeof vi.fn>).mockImplementation(async (id: number) => {
+      if (id === 1) throw new Error("no translation in preferred language");
+      return tvShow;
+    });
+
+    const mm: MediaMetadata = { mediaFolderPath: "/m/My Show", type: "tvshow-folder", files: [] };
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.tvShow?.id).toBe("1");
+    expect(d.tvdb.getTvShowMediaMetadata).toHaveBeenCalledTimes(2);
   });
 
   it("returns an empty result when nothing matches", async () => {

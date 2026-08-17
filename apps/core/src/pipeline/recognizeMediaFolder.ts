@@ -4,20 +4,34 @@ import type {
   PrimaryDatabase,
   TMDBMovie,
   TMDBTVShow,
+  TmdbSearchResponseBody,
   TvShowMediaMetadata,
 } from "@smm/core";
 import type { TVDBv4SearchResult } from "@smm/tvdb4";
-import type { TmdbClient } from "../clients/TmdbClient";
 import { movieMediaMetadataFromTmdbSearch } from "../clients/TmdbClient";
-import type { TvdbClient } from "../clients/TvdbClient";
 import type { FsPort } from "../ports/FsPort";
 import { parseNfo } from "./nfo";
 import { basename } from "./paths";
 
+/** Structural subset of TmdbClient used by recognition, so consumers can supply their own. */
+export interface TmdbRecognitionClient {
+  search(keyword: string, type: "movie" | "tv", language: string): Promise<TmdbSearchResponseBody>;
+  getTvShowMediaMetadata(id: number, language: string): Promise<TvShowMediaMetadata | undefined>;
+  getMovieMediaMetadata(id: number, language: string): Promise<MovieMediaMetadata | undefined>;
+}
+
+/** Structural subset of TvdbClient used by recognition. */
+export interface TvdbRecognitionClient {
+  searchSeries(query: string, language: string): Promise<TVDBv4SearchResult[] | undefined>;
+  searchMovie(query: string, language: string): Promise<TVDBv4SearchResult[] | undefined>;
+  getTvShowMediaMetadata(id: number, language: string): Promise<TvShowMediaMetadata | undefined>;
+  getMovieMediaMetadata(id: number, language: string): Promise<MovieMediaMetadata | undefined>;
+}
+
 export interface RecognitionDeps {
   fs: FsPort;
-  tmdb: TmdbClient;
-  tvdb: TvdbClient;
+  tmdb: TmdbRecognitionClient;
+  tvdb: TvdbRecognitionClient;
   language: string;
   primaryDatabase?: PrimaryDatabase;
 }
@@ -165,30 +179,38 @@ async function searchInTvdb(
     if (isTvShow) {
       const items = await deps.tvdb.searchSeries(folderName, deps.language);
       for (const item of items ?? []) {
-        const id = resolveTvdbSeriesId(item);
-        if (id === undefined) continue;
-        const tvShow = await deps.tvdb.getTvShowMediaMetadata(id, deps.language);
-        if (tvShow !== undefined) {
-          result.tvShow = tvShow;
-          return;
+        try {
+          const id = resolveTvdbSeriesId(item);
+          if (id === undefined) continue;
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(id, deps.language);
+          if (tvShow !== undefined) {
+            result.tvShow = tvShow;
+            return;
+          }
+        } catch {
+          // best-effort per search result
         }
       }
     } else {
       const items = await deps.tvdb.searchMovie(folderName, deps.language);
       for (const item of items ?? []) {
-        if (item.name === folderName) {
-          const id = resolveTvdbMovieId(item);
-          if (id === undefined) continue;
-          const movie = await deps.tvdb.getMovieMediaMetadata(id, deps.language);
-          if (movie !== undefined) {
-            result.movie = movie;
-            return;
+        try {
+          if (item.name === folderName) {
+            const id = resolveTvdbMovieId(item);
+            if (id === undefined) continue;
+            const movie = await deps.tvdb.getMovieMediaMetadata(id, deps.language);
+            if (movie !== undefined) {
+              result.movie = movie;
+              return;
+            }
           }
+        } catch {
+          // best-effort per search result
         }
       }
     }
   } catch {
-    // best-effort
+    // recognition is best-effort
   }
 }
 

@@ -103,6 +103,15 @@ describe("Core", () => {
     expect(job?.error).toContain("boom");
   });
 
+  it("invalid path produces a failed job, not a synchronous throw", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    const { id } = core.importFolder("relative/path", "music");
+    expect(id).toBeDefined();
+    await waitForStatus(core, id, "failed");
+    const job = core.getJob(id);
+    expect(job?.status).toBe("failed");
+  });
+
   it("getJob returns undefined for unknown id", () => {
     const core = new Core({
       fs: inMemoryFs(),

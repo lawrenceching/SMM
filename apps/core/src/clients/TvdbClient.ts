@@ -42,12 +42,20 @@ export class TvdbClient {
   }
 
   async searchSeries(query: string, language: string): Promise<TVDBv4SearchResult[] | undefined> {
-    const resp = await this.client.search({ query, type: "series", language });
+    const resp = await this.client.search({
+      query,
+      type: "series",
+      language: mapToTvdbLangCode(language as PreferMediaLanguage),
+    });
     return resp.status === "success" ? resp.data : undefined;
   }
 
   async searchMovie(query: string, language: string): Promise<TVDBv4SearchResult[] | undefined> {
-    const resp = await this.client.search({ query, type: "movie", language });
+    const resp = await this.client.search({
+      query,
+      type: "movie",
+      language: mapToTvdbLangCode(language as PreferMediaLanguage),
+    });
     return resp.status === "success" ? resp.data : undefined;
   }
 

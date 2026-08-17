@@ -17,10 +17,11 @@ function envelope(data: unknown) {
   return { status: "success", data };
 }
 
-function tvdbNetwork(): NetworkPort {
+function tvdbNetwork(searchUrls: string[] = []): NetworkPort {
   return {
     fetch: async (url) => {
       if (url.includes("/search")) {
+        searchUrls.push(url);
         const type = url.includes("type=series") ? "series" : "movie";
         return jsonResponse(
           envelope(
@@ -73,6 +74,17 @@ describe("TvdbClient", () => {
     const client = new TvdbClient(tvdbNetwork(), {});
     const items = await client.searchMovie("My Film", "en-US");
     expect(items?.[0]?.tvdb_id).toBe("2");
+  });
+
+  it("maps the preferred language to TVDB ISO 639-3 in search", async () => {
+    const searchUrls: string[] = [];
+    const client = new TvdbClient(tvdbNetwork(searchUrls), {});
+    await client.searchSeries("My Show", "en-US");
+    await client.searchMovie("My Film", "ja-JP");
+    await client.searchSeries("My Show", "zh-CN");
+    expect(searchUrls[0]).toContain("language=eng");
+    expect(searchUrls[1]).toContain("language=jpn");
+    expect(searchUrls[2]).toContain("language=zho");
   });
 
   it("getTvShowMediaMetadata builds seasons + episodes", async () => {

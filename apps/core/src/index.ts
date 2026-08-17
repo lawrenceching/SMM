@@ -6,7 +6,7 @@ export { NodejsFsAdapter } from "./adapters/node/NodejsFsAdapter";
 export { NetworkFsAdapter, type NetworkFsAdapterOptions } from "./adapters/network/NetworkFsAdapter";
 export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";
 export { ConsoleLoggerAdapter, NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
-export { ImportFolderPipeline, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
+export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";

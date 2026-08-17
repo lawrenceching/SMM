@@ -36,8 +36,14 @@ export class Core {
 
   /** Starts the import pipeline in the background; returns a job handle immediately. */
   importFolder(path: string, type: FolderType): ImportFolderHandle {
+    let folderPath: string;
+    try {
+      folderPath = Path.posix(path);
+    } catch {
+      folderPath = path;
+    }
     const job = this.jobs.create({
-      folderPath: Path.posix(path),
+      folderPath,
       type,
       status: "running",
       stage: "config",
