@@ -6,6 +6,7 @@ import { defaultUserConfig } from "@/api/readUserConfig"
 import { join } from "@/lib/path"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
+import { invalidateFoldersQueryIfV3 } from "@/hooks/folders"
 
 export function useAddMediaFolderMutation() {
   const queryClient = useQueryClient()
@@ -25,7 +26,7 @@ export function useAddMediaFolderMutation() {
       const prev =
         queryClient.getQueryData<UserConfig>(userConfigQueryKey(dir)) ?? defaultUserConfig
       if (prev.folders.includes(folder)) {
-        return prev
+        return { config: prev, foldersChanged: false }
       }
       const updatedConfig: UserConfig = {
         ...prev,
@@ -33,12 +34,15 @@ export function useAddMediaFolderMutation() {
       }
       const filePath = join(dir, "smm.json")
       await writeFile(filePath, JSON.stringify(updatedConfig), 'overwrite', traceId)
-      return updatedConfig
+      return { config: updatedConfig, foldersChanged: true }
     },
-    onSuccess: (config) => {
+    onSuccess: ({ config, foldersChanged }) => {
       const dir = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.userDataDir
       if (dir) {
         queryClient.setQueryData(userConfigQueryKey(dir), config)
+      }
+      if (foldersChanged) {
+        invalidateFoldersQueryIfV3(queryClient)
       }
     },
   })
