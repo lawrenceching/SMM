@@ -106,7 +106,7 @@ async unimportFolder(path: string): Promise<void> {
 }
 ```
 
-- **匹配按 POSIX 规范化比较**：`importFolder` 存进 `folders` 的是调用方传入的原始路径（平台格式或 POSIX 格式），故对存储项与被删路径两侧都做 `Path.posix` 规范化再比较，两种输入都能命中。
+- **匹配按 POSIX 规范化比较**：`importFolder` 存进 `folders` 的是调用方传入的原始路径（平台格式或 POSIX 格式），故对存储项与被删路径两侧都做 `Path.posix` 规范化再比较。注意 `Path.posix` 不统一盘符路径的反斜杠/斜杠写法（`C:\A` 与 `C:/A` 归一后不同），因此以「import 时所用格式」作为 unimport 的入参格式即可命中；缓存删除路径同样取自该格式的 `Path.posix`，与 import 写入位置一致。
 - **幂等**：文件夹不在配置中时直接返回，不写配置、不删缓存（对齐核心层的防御式风格）。
 - 只有确认文件夹在配置中才会删除缓存文件，避免误删孤儿文件。
 
@@ -185,7 +185,7 @@ async deleteFile(path: string): Promise<void> {
 - `getUserConfig`：无文件返回默认配置；有文件返回合并后的配置。
 - `getFolders`：返回配置中的 folders 列表。
 - `getMediaMetadata`：返回缓存元数据；无缓存返回 `null`；缓存 JSON 损坏返回 `null`。
-- `unimportFolder`：从配置移除该路径并删除缓存文件；路径不在配置中时 no-op 且不删缓存；平台格式与 POSIX 格式输入都能命中。
+- `unimportFolder`：从配置移除该路径并删除缓存文件；路径不在配置中时 no-op 且不删缓存；同一格式（POSIX 或 Windows 反斜杠）的平台路径往返都能命中。
 - `importFolder` 的防御式路径规范化仍通过既有测试（重构 `normalizePosix` 后行为不变）。
 
 适配器测试：
