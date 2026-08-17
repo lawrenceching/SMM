@@ -131,4 +131,19 @@ describe("recognizeMediaFolder", () => {
 
     expect(result).toEqual({});
   });
+
+  it("falls through to the search phases when the tmdbid fetch throws", async () => {
+    const d = deps();
+    (d.tmdb.getTvShowMediaMetadata as ReturnType<typeof vi.fn>).mockImplementation(async (id: number) => {
+      if (id === 1) throw new Error("network down");
+      return tvShow;
+    });
+    (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({ results: [{ id: 9, name: "My Show" }] });
+
+    const mm: MediaMetadata = { mediaFolderPath: "/m/My.Show (tmdbid=1)", type: "tvshow-folder", files: [] };
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.tvShow?.id).toBe("1");
+    expect(d.tmdb.search).toHaveBeenCalled();
+  });
 });

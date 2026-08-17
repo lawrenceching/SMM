@@ -93,12 +93,16 @@ async function recognizeByNfo(
   if (nfo.tmdbid !== undefined) {
     const n = parseInt(nfo.tmdbid, 10);
     if (n > 0) {
-      if (isTvShow) {
-        const tvShow = await deps.tmdb.getTvShowMediaMetadata(n, deps.language);
-        if (tvShow !== undefined) result.tvShow = tvShow;
-      } else {
-        const movie = await deps.tmdb.getMovieMediaMetadata(n, deps.language);
-        if (movie !== undefined) result.movie = movie;
+      try {
+        if (isTvShow) {
+          const tvShow = await deps.tmdb.getTvShowMediaMetadata(n, deps.language);
+          if (tvShow !== undefined) result.tvShow = tvShow;
+        } else {
+          const movie = await deps.tmdb.getMovieMediaMetadata(n, deps.language);
+          if (movie !== undefined) result.movie = movie;
+        }
+      } catch {
+        // best-effort; fall through to later phases
       }
     }
     return;
@@ -107,12 +111,16 @@ async function recognizeByNfo(
   if (nfo.tvdbid !== undefined) {
     const n = parseInt(nfo.tvdbid, 10);
     if (n > 0) {
-      if (isTvShow) {
-        const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
-        if (tvShow !== undefined) result.tvShow = tvShow;
-      } else {
-        const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
-        if (movie !== undefined) result.movie = movie;
+      try {
+        if (isTvShow) {
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
+          if (tvShow !== undefined) result.tvShow = tvShow;
+        } else {
+          const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
+          if (movie !== undefined) result.movie = movie;
+        }
+      } catch {
+        // best-effort; fall through to later phases
       }
     }
   }
@@ -200,12 +208,16 @@ export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionD
   if (tmdbId !== null && result.tvShow === undefined && result.movie === undefined) {
     const n = parseInt(tmdbId, 10);
     if (n > 0) {
-      if (isTvShow) {
-        const tvShow = await deps.tmdb.getTvShowMediaMetadata(n, deps.language);
-        if (tvShow !== undefined) result.tvShow = tvShow;
-      } else {
-        const movie = await deps.tmdb.getMovieMediaMetadata(n, deps.language);
-        if (movie !== undefined) result.movie = movie;
+      try {
+        if (isTvShow) {
+          const tvShow = await deps.tmdb.getTvShowMediaMetadata(n, deps.language);
+          if (tvShow !== undefined) result.tvShow = tvShow;
+        } else {
+          const movie = await deps.tmdb.getMovieMediaMetadata(n, deps.language);
+          if (movie !== undefined) result.movie = movie;
+        }
+      } catch {
+        // best-effort; fall through to the tvdbid phase
       }
     }
   }
@@ -214,12 +226,16 @@ export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionD
   if (tvdbId !== null && result.tvShow === undefined && result.movie === undefined) {
     const n = parseInt(tvdbId, 10);
     if (n > 0) {
-      if (isTvShow) {
-        const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
-        if (tvShow !== undefined) result.tvShow = tvShow;
-      } else {
-        const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
-        if (movie !== undefined) result.movie = movie;
+      try {
+        if (isTvShow) {
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
+          if (tvShow !== undefined) result.tvShow = tvShow;
+        } else {
+          const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
+          if (movie !== undefined) result.movie = movie;
+        }
+      } catch {
+        // best-effort; fall through to the search phases
       }
     }
   }
