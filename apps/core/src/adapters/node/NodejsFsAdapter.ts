@@ -44,4 +44,12 @@ export class NodejsFsAdapter implements FsPort {
     await walk(root);
     return out;
   }
+
+  async deleteFile(path: string): Promise<void> {
+    try {
+      await fsp.unlink(Path.toPlatformPath(path));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
 }

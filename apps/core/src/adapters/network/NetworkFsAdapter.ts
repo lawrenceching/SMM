@@ -56,4 +56,9 @@ export class NetworkFsAdapter implements FsPort {
     if (json.error !== undefined) throw new Error(json.error);
     return (json.data?.items ?? []).map((i) => i.path);
   }
+
+  async deleteFile(path: string): Promise<void> {
+    const json = await this.post<{ error?: string }>("/api/deleteFile", { path });
+    if (json.error !== undefined) throw new Error(json.error);
+  }
 }

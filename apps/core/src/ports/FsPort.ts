@@ -5,4 +5,6 @@ export interface FsPort {
   exists(path: string): Promise<boolean>;
   /** Recursively list all files under `dir` (not directories). */
   listFiles(dir: string): Promise<string[]>;
+  /** Delete a file; missing files count as success (idempotent). */
+  deleteFile(path: string): Promise<void>;
 }

@@ -27,6 +27,7 @@ function fsPort(files: Record<string, string>): FsPort {
     writeTextFile: vi.fn(async () => {}),
     exists: vi.fn(async () => true),
     listFiles: vi.fn(async () => []),
+    deleteFile: vi.fn(async () => {}),
   };
 }
 

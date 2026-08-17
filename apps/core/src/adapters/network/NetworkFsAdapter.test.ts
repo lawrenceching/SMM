@@ -33,6 +33,12 @@ function mockNetwork(): { network: NetworkPort; calls: Array<{ url: string; body
           data: { path: body.path, items: [{ path: "/m/a.mkv" }, { path: "/m/b.srt" }], size: 0 },
         });
       }
+      if (url.endsWith("/api/deleteFile")) {
+        if (String(body.path).includes("denied")) {
+          return jsonResponse({ error: "Permission denied: Cannot delete file" });
+        }
+        return jsonResponse({ data: { path: body.path } });
+      }
       throw new Error("unexpected url: " + url);
     },
   };
@@ -81,5 +87,24 @@ describe("NetworkFsAdapter", () => {
 
     expect(await adapter.exists("/m/file.txt")).toBe(true);
     expect(await adapter.exists("/m/missing.txt")).toBe(false);
+  });
+
+  it("deletes a file via POST /api/deleteFile", async () => {
+    const { network, calls } = mockNetwork();
+    const adapter = new NetworkFsAdapter({ network, baseUrl: "http://127.0.0.1:30000" });
+
+    await adapter.deleteFile("/m/file.txt");
+
+    expect(calls[0]).toEqual({
+      url: "http://127.0.0.1:30000/api/deleteFile",
+      body: { path: "/m/file.txt" },
+    });
+  });
+
+  it("throws when deleteFile returns an error", async () => {
+    const { network } = mockNetwork();
+    const adapter = new NetworkFsAdapter({ network, baseUrl: "http://127.0.0.1:30000" });
+
+    await expect(adapter.deleteFile("/m/denied.txt")).rejects.toThrow("Permission denied");
   });
 });

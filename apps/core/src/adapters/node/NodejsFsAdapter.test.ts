@@ -46,4 +46,20 @@ describe("NodejsFsAdapter", () => {
     const adapter = new NodejsFsAdapter();
     expect(await adapter.exists(joinPosix(tmpPosix, "nope.txt"))).toBe(false);
   });
+
+  it("deletes a file", async () => {
+    const adapter = new NodejsFsAdapter();
+    const file = joinPosix(tmpPosix, "del.txt");
+    await adapter.writeTextFile(file, "hi");
+    expect(await adapter.exists(file)).toBe(true);
+
+    await adapter.deleteFile(file);
+
+    expect(await adapter.exists(file)).toBe(false);
+  });
+
+  it("deleteFile is idempotent for a missing file", async () => {
+    const adapter = new NodejsFsAdapter();
+    await expect(adapter.deleteFile(joinPosix(tmpPosix, "nope.txt"))).resolves.toBeUndefined();
+  });
 });
