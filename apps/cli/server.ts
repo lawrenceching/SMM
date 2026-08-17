@@ -42,6 +42,7 @@ import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMedia
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handlePlans } from './src/route/Plans';
+import { handleGetFolders } from './src/route/GetFolders';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -275,6 +276,7 @@ export class Server {
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
     handlePlans(this.app);
+    handleGetFolders(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
