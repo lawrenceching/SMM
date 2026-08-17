@@ -7,6 +7,7 @@ import {
   pattern2,
   pattern3,
   pattern4,
+  preciselyRecognizeEpisodes,
   recognizeEpisodes,
 } from "./recognizeEpisodes";
 
@@ -95,5 +96,18 @@ describe("recognizeEpisodes", () => {
   it("returns [] when there is no tvShow", () => {
     const mm: MediaMetadata = { mediaFolderPath: "/m", files: ["/m/S01E01.mkv"] };
     expect(recognizeEpisodes(mm)).toEqual([]);
+  });
+});
+
+describe("preciselyRecognizeEpisodes", () => {
+  it("falls through to pattern2 when pattern1 misses", () => {
+    const target = "/m/第1季第5集.mkv";
+    expect(preciselyRecognizeEpisodes(episodes, [target])).toEqual([
+      { season: 1, episode: 5, file: target },
+    ]);
+  });
+
+  it("returns [] when every pattern misses", () => {
+    expect(preciselyRecognizeEpisodes(episodes, ["/m/unrelated.mkv"])).toEqual([]);
   });
 });
