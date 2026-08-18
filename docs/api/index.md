@@ -50,6 +50,10 @@ CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback wh
 Source Code: apps/cli/src/route/GetFolders.ts
 HTTP: `POST /api/get-folders` — returns imported media folder paths via Layer 2 `Core.getFolders()` (reads `userDataDir/smm.json`). Request body: `{}` (optional). Response: `{ data: { folders: string[] } }` or `{ error }`. Used by UI `useFoldersQuery` when `localStorage["smm.v3.enabled"] === "true"`.
 
+## UnimportFolder
+Source Code: apps/cli/src/route/UnimportFolder.ts
+HTTP: `POST /api/unimport-folder` — removes an imported media folder from `userDataDir/smm.json` and deletes its metadata cache via Layer 2 `Core.unimportFolder(path)`. Request body: `{ path: string }`. Response: `{ data: { path } }` or `{ error }`. Idempotent when the path is not in the config. Used by UI delete (context menu, Delete key, multi-select) when `localStorage["smm.v3.enabled"] === "true"`.
+
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts
 HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.

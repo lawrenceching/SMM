@@ -38,7 +38,8 @@ import {
   type OnMediaLibraryImportedEventData,
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/music/MusicPanel"
-import localStorages from "@/lib/localStorages"
+import localStorages, { isSmmV3Enabled } from "@/lib/localStorages"
+import { useUnimportFolderMutation } from "@/hooks/folders"
 import { isElectron } from "@/lib/isElectron"
 import { openNativeFolderDialog } from "@/lib/nativeFolderDialog"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -50,6 +51,7 @@ function AppV2Content() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
+  const unimportFolderMutation = useUnimportFolderMutation()
 
   const { folders: uiFolders, selectedFolder } = useUIMediaFolderStoreState()
   const { isAiAreaEnabled, isAiFeatureEnabled } = useFeatures()
@@ -216,6 +218,11 @@ function AppV2Content() {
     async (paths: string[]) => {
       if (paths.length === 0) return
 
+      if (isSmmV3Enabled()) {
+        await unimportFolderMutation.mutateAsync(paths)
+        return
+      }
+
       const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
       const deletedPosix = new Set(paths.map((p) => Path.posix(p)))
       const deletedNative = new Set(paths)
@@ -293,6 +300,7 @@ function AppV2Content() {
       userConfig,
       setAndSaveUserConfig,
       queryClient,
+      unimportFolderMutation,
     ]
   )
 

@@ -43,6 +43,7 @@ import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpiso
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handlePlans } from './src/route/Plans';
 import { handleGetFolders } from './src/route/GetFolders';
+import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -277,6 +278,7 @@ export class Server {
     handleDebugIsFolderExistToolRoute(this.app);
     handlePlans(this.app);
     handleGetFolders(this.app);
+    handleUnimportFolder(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);

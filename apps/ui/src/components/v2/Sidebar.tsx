@@ -21,7 +21,7 @@ import { nextTraceId } from "@/lib/utils"
 import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
 import { useTranslation } from "@/lib/i18n"
 import { isSmmV3Enabled } from "@/lib/localStorages"
-import { useFoldersQuery } from "@/hooks/folders"
+import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
 import { mergeFolderPathsWithUiStatus } from "@/lib/mergeFolderPathsWithUiStatus"
 
 export type { SortOrder, FilterType }
@@ -38,6 +38,7 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
   const { applyFolderClick, selectAllFolderPaths, removeFolder } = useUIMediaFolderStoreActions()
   const { selectedFolder, selectedFolderPathsSet } = useUIMediaFolderSelection()
   const { userConfig, setAndSaveUserConfig } = useConfig()
+  const unimportFolderMutation = useUnimportFolderMutation()
   const { renameFolderDialog } = useDialogs()
   const [openRenameForMediaFolder] = renameFolderDialog
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
@@ -87,20 +88,6 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
     return result
   }, [rowsWithMeta, sortOrder, filterType, searchQuery])
 
-  const handleListKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
-        e.preventDefault()
-        selectAllFolderPaths(filteredAndSortedFolders.map((f) => f.path))
-      }
-      if (e.key === "Delete" && selectedFolderPathsSet.size > 0 && onDeleteSelected) {
-        e.preventDefault()
-        onDeleteSelected(Array.from(selectedFolderPathsSet))
-      }
-    },
-    [onDeleteSelected, selectAllFolderPaths, filteredAndSortedFolders, selectedFolderPathsSet],
-  )
-
   const handleOpenInExplorer = useCallback(async (path: string) => {
     try {
       const result = await openInFileManagerApi(path)
@@ -125,6 +112,10 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
   const handleDeletePaths = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return
+      if (isSmmV3Enabled()) {
+        await unimportFolderMutation.mutateAsync(paths)
+        return
+      }
       if (onDeleteSelected) {
         await onDeleteSelected(paths)
         return
@@ -141,14 +132,30 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
       })
       paths.forEach((path) => removeFolder(path))
     },
-    [onDeleteSelected, setAndSaveUserConfig, userConfig, removeFolder],
+    [onDeleteSelected, setAndSaveUserConfig, userConfig, removeFolder, unimportFolderMutation],
+  )
+
+  const handleListKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault()
+        selectAllFolderPaths(filteredAndSortedFolders.map((f) => f.path))
+      }
+      if (e.key === "Delete" && selectedFolderPathsSet.size > 0) {
+        e.preventDefault()
+        void handleDeletePaths(Array.from(selectedFolderPathsSet))
+      }
+    },
+    [handleDeletePaths, selectAllFolderPaths, filteredAndSortedFolders, selectedFolderPathsSet],
   )
 
   const handleDeleteItem = useCallback(
     (path: string) => {
+      const posix = Path.posix(path)
+      const selectedPaths = Array.from(selectedFolderPathsSet)
       const shouldDeleteSelection =
-        selectedFolderPathsSet.size > 0 && selectedFolderPathsSet.has(path)
-      const paths = shouldDeleteSelection ? Array.from(selectedFolderPathsSet) : [path]
+        selectedPaths.length > 0 && selectedPaths.some((p) => Path.posix(p) === posix)
+      const paths = shouldDeleteSelection ? selectedPaths : [path]
       void handleDeletePaths(paths)
     },
     [handleDeletePaths, selectedFolderPathsSet],
