@@ -48,11 +48,27 @@ CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback wh
 
 ## GetFolders
 Source Code: apps/cli/src/route/GetFolders.ts
-HTTP: `POST /api/get-folders` — returns imported media folder paths via Layer 2 `Core.getFolders()` (reads `userDataDir/smm.json`). Request body: `{}` (optional). Response: `{ data: { folders: string[] } }` or `{ error }`. Used by UI `useFoldersQuery` when `localStorage["smm.v3.enabled"] === "true"`.
+HTTP: `POST /api/get-folders` — returns imported media folder paths via Layer 2 `Core.getFolders()` (reads `userDataDir/smm.json`). Request body: `{}` (optional). Response: `{ data: { folders: string[] } }` or `{ error }`. Used by UI `useFoldersQuery` when `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm list`.
+
+## ImportFolder
+Source Code: apps/cli/src/route/ImportFolder.ts
+HTTP: `POST /api/import-folder` — starts Layer 2 `Core.importFolder(path, type, { skipInit? })`. Request body: `{ path: string, type: "tvshow" | "movie" | "music" | "anime", skipInit?: boolean }` (`anime` aliases `tvshow`). Response: `{ data: { id } }` (job id) or `{ error }`. Does not wait for the pipeline; poll `POST /api/get-job`. CLI equivalent: `smm add`.
+
+## GetJob
+Source Code: apps/cli/src/route/GetJob.ts
+HTTP: `POST /api/get-job` — returns an in-memory import job from `Core.getJob(id)`. Request body: `{ id: string }`. Response: `{ data: ImportJob }` or `{ error }` (`Job not found`). CLI `smm add` polls this internally until the job settles.
+
+## ShowFolder
+Source Code: apps/cli/src/route/ShowFolder.ts
+HTTP: `POST /api/show-folder` — UI-aligned folder snapshot via the same helper as `smm show`. Request body: `{ path: string }`. Response: `{ data: { path, status, type?, title? } }` (`status`: `ok` | `folder_not_found` | `error_loading_metadata`) or `{ error }` (not imported / path missing).
+
+## FolderMetadata
+Source Code: apps/cli/src/route/FolderMetadata.ts
+HTTP: `POST /api/folder-metadata` — MediaMetadata for an imported folder via `Core.getMediaMetadata`, with `files` omitted (same fields as `smm metadata`). Request body: `{ path: string }`. Response: `{ data: MediaMetadata }` or `{ error }` (not imported / no cache).
 
 ## UnimportFolder
 Source Code: apps/cli/src/route/UnimportFolder.ts
-HTTP: `POST /api/unimport-folder` — removes an imported media folder from `userDataDir/smm.json` and deletes its metadata cache via Layer 2 `Core.unimportFolder(path)`. Request body: `{ path: string }`. Response: `{ data: { path } }` or `{ error }`. Idempotent when the path is not in the config. Used by UI delete (context menu, Delete key, multi-select) when `localStorage["smm.v3.enabled"] === "true"`.
+HTTP: `POST /api/unimport-folder` — removes an imported media folder from `userDataDir/smm.json` and deletes its metadata cache via Layer 2 `Core.unimportFolder(path)`. Request body: `{ path: string }`. Response: `{ data: { path } }` or `{ error }`. Idempotent when the path is not in the config. Used by UI delete (context menu, Delete key, multi-select) when `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm rm`.
 
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts

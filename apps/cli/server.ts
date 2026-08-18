@@ -44,6 +44,10 @@ import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFold
 import { handlePlans } from './src/route/Plans';
 import { handleGetFolders } from './src/route/GetFolders';
 import { handleUnimportFolder } from './src/route/UnimportFolder';
+import { handleImportFolder } from './src/route/ImportFolder';
+import { handleGetJob } from './src/route/GetJob';
+import { handleShowFolder } from './src/route/ShowFolder';
+import { handleFolderMetadata } from './src/route/FolderMetadata';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -279,6 +283,10 @@ export class Server {
     handlePlans(this.app);
     handleGetFolders(this.app);
     handleUnimportFolder(this.app);
+    handleImportFolder(this.app);
+    handleGetJob(this.app);
+    handleShowFolder(this.app);
+    handleFolderMetadata(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
