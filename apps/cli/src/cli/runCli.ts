@@ -40,7 +40,7 @@ async function waitUntilImportSettled(
 }
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -139,6 +139,26 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         for (const line of formatMediaMetadata(folder, mm)) {
           console.log(line)
         }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('rm')
+    .description('Unimport a media folder (remove from config and delete metadata cache)')
+    .argument('<folder>', 'Folder path to unimport')
+    .action(async (folder: string) => {
+      try {
+        if (!(await isFolderImported(folder))) {
+          console.error(`Folder is not imported: ${folder}`)
+          exitCode = 1
+          return
+        }
+        await getCore().unimportFolder(folder)
+        console.log(`Removed ${folder}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)
