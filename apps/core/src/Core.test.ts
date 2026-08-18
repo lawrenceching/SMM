@@ -269,4 +269,34 @@ describe("unimportFolder", () => {
     expect(JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string).folders).toEqual([]);
     expect(await fs.exists(cache)).toBe(false);
   });
+
+  it("removes every folder when unimportFolder runs concurrently", async () => {
+    const appDataDir = "/data/smm-concurrent-unimport";
+    const folders = ["/m/A", "/m/B", "/m/C", "/m/D", "/m/E"];
+    const pause = () => new Promise((r) => setTimeout(r, 15));
+    const files = new Map<string, string>([[userConfigPath(appDataDir), configWith(folders)]]);
+    const fs: FsPort = {
+      readTextFile: async (path: string) => {
+        await pause();
+        const v = files.get(path);
+        if (v === undefined) throw new Error("ENOENT: " + path);
+        return v;
+      },
+      writeTextFile: async (path: string, content: string) => {
+        await pause();
+        files.set(path, content);
+      },
+      exists: async (path: string) => files.has(path),
+      listFiles: async () => [],
+      deleteFile: async (path: string) => {
+        files.delete(path);
+      },
+    };
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+
+    await Promise.all(folders.map((path) => core.unimportFolder(path)));
+
+    const saved = JSON.parse(await fs.readTextFile(userConfigPath(appDataDir))) as { folders: string[] };
+    expect(saved.folders).toEqual([]);
+  });
 });

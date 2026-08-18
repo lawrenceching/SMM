@@ -12,7 +12,8 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@smm/tvdb4": "workspace:*"
+    "@smm/tvdb4": "workspace:*",
+    "es-toolkit": "^1.42.0"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

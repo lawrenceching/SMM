@@ -7,6 +7,7 @@ export { NetworkFsAdapter, type NetworkFsAdapterOptions } from "./adapters/netwo
 export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";
 export { ConsoleLoggerAdapter, NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
+export { UserConfig, DEFAULT_USER_CONFIG } from "./pipeline/userConfig";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";

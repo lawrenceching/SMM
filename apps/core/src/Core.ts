@@ -1,12 +1,12 @@
 import { Path } from "@core/path";
-import type { AppConfig, FolderType, MediaMetadata, UserConfig } from "@smm/core";
+import type { AppConfig, FolderType, MediaMetadata, UserConfig as UserConfigData } from "@smm/core";
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
-import { readUserConfig, writeUserConfig } from "./pipeline/userConfig";
+import { UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import type { ImportJob } from "./jobs/types";
 
@@ -37,6 +37,7 @@ export class Core {
   private readonly version: string;
   private readonly reverseProxyUrl: string | null;
   private readonly userDataDir: string;
+  private readonly userConfig: UserConfig;
 
   constructor(options: CoreOptions) {
     this.fs = options.fs;
@@ -46,6 +47,7 @@ export class Core {
     this.version = options.version ?? "";
     this.reverseProxyUrl = options.reverseProxyUrl ?? null;
     this.userDataDir = options.userDataDir ?? options.appDataDir;
+    this.userConfig = new UserConfig(this.fs, this.appDataDir);
   }
 
   /** Starts the import pipeline in the background; returns a job handle immediately. */
@@ -75,12 +77,12 @@ export class Core {
     };
   }
 
-  getUserConfig(): Promise<UserConfig> {
-    return readUserConfig(this.fs, this.appDataDir);
+  getUserConfig(): Promise<UserConfigData> {
+    return this.userConfig.read();
   }
 
   async getFolders(): Promise<string[]> {
-    return (await readUserConfig(this.fs, this.appDataDir)).folders;
+    return (await this.userConfig.read()).folders;
   }
 
   /** Reads the persisted metadata cache for a folder; null when absent or corrupt. */
@@ -99,11 +101,16 @@ export class Core {
   /** Removes a folder from the user config and deletes its metadata cache. Idempotent. */
   async unimportFolder(path: string): Promise<void> {
     const posixPath = this.normalizePosix(path);
-    const config = await readUserConfig(this.fs, this.appDataDir);
-    const folders = config.folders.filter((f) => this.normalizePosix(f) !== posixPath);
-    if (folders.length === config.folders.length) return;
-    await writeUserConfig(this.fs, this.appDataDir, { ...config, folders });
-    await this.fs.deleteFile(metadataCachePath(this.appDataDir, posixPath));
+    let removed = false;
+    await this.userConfig.update((config) => {
+      const folders = config.folders.filter((f) => this.normalizePosix(f) !== posixPath);
+      if (folders.length === config.folders.length) return config;
+      removed = true;
+      return { ...config, folders };
+    });
+    if (removed) {
+      await this.fs.deleteFile(metadataCachePath(this.appDataDir, posixPath));
+    }
   }
 
   private normalizePosix(path: string): string {

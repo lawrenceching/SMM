@@ -9,7 +9,7 @@ import { TvdbClient } from "../clients/TvdbClient";
 import { isVideoFile, recognizeEpisodes } from "./recognizeEpisodes";
 import { recognizeMediaFolder } from "./recognizeMediaFolder";
 import { metadataCachePath } from "./paths";
-import { readUserConfig, writeUserConfig } from "./userConfig";
+import { UserConfig } from "./userConfig";
 
 export interface ImportFolderPipelineOptions {
   fs: FsPort;
@@ -35,9 +35,11 @@ export class ImportFolderPipeline {
     const stages: JobStage[] = [];
 
     logger.info({ folderPath: posixPath, type }, "importFolder: stage=config");
-    const userConfig = await readUserConfig(fs, appDataDir);
-    const folders = [...new Set([...userConfig.folders, folderPath])];
-    await writeUserConfig(fs, appDataDir, { ...userConfig, folders });
+    const userConfigStore = new UserConfig(fs, appDataDir);
+    const userConfig = await userConfigStore.update((config) => ({
+      ...config,
+      folders: [...new Set([...config.folders, folderPath])],
+    }));
     stages.push("config");
     cb.onStage?.("config", 10);
 
