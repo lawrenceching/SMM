@@ -400,4 +400,43 @@ describe("renameFolder", () => {
     expect(fs.rename).toHaveBeenCalledWith(from, to);
     expect(await fs.exists(`${to}/S01E01.mkv`)).toBe(true);
   });
+
+  it("rejects when the folder is not managed", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: ["/m/Other"],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.renameFolder({ from: "/m/Show", to: "/m/X" })).rejects.toThrow(
+      "/m/Show is not managed by SMM",
+    );
+    expect(fs.rename).not.toHaveBeenCalled();
+  });
+
+  it("rejects when media metadata cache is missing", async () => {
+    const from = "/m/Show";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: [from],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.renameFolder({ from, to: "/m/X" })).rejects.toThrow(
+      `Media metadata not found: ${from}`,
+    );
+    expect(fs.rename).not.toHaveBeenCalled();
+  });
 });
