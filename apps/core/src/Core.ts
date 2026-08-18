@@ -31,6 +31,11 @@ export interface ImportFolderHandle {
   id: string;
 }
 
+export interface ImportFolderOptions {
+  /** When true, only register the path in UserConfig.folders; skip recognition and metadata. */
+  skipInit?: boolean;
+}
+
 export class Core {
   private readonly jobs = new JobStore();
   private readonly fs: FsPort;
@@ -56,7 +61,7 @@ export class Core {
   }
 
   /** Starts the import pipeline in the background; returns a job handle immediately. */
-  importFolder(path: string, type: FolderType): ImportFolderHandle {
+  importFolder(path: string, type: FolderType, options?: ImportFolderOptions): ImportFolderHandle {
     const folderPath = this.normalizePosix(path);
     const job = this.jobs.create({
       folderPath,
@@ -65,7 +70,11 @@ export class Core {
       stage: "config",
       progress: 0,
     });
-    void this.runImport(job, path, type);
+    if (options?.skipInit === true) {
+      void this.runImportSkipInit(job, path);
+    } else {
+      void this.runImport(job, path, type);
+    }
     return { id: job.id };
   }
 
@@ -123,6 +132,21 @@ export class Core {
       return Path.posix(path);
     } catch {
       return path;
+    }
+  }
+
+  private async runImportSkipInit(job: ImportJob, folderPath: string): Promise<void> {
+    try {
+      await this.userConfig.update((config) => ({
+        ...config,
+        folders: [...new Set([...config.folders, folderPath])],
+      }));
+      this.jobs.update(job.id, { status: "succeeded", stage: "config", progress: 100 });
+    } catch (error) {
+      this.jobs.update(job.id, {
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

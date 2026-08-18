@@ -4,7 +4,8 @@ import { resolve } from 'path'
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
+    exclude: ['test/test-mcp.test.ts'],
   },
   resolve: {
     alias: {

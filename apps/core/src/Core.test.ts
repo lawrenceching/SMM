@@ -116,6 +116,25 @@ describe("Core", () => {
     expect(job?.status).toBe("failed");
   });
 
+  it("skipInit writes the folder to UserConfig and does not persist metadata", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+
+    expect(core.getJob(id)?.status).toBe("succeeded");
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toContain("/m/Deferred");
+    expect(fs.listFiles).not.toHaveBeenCalled();
+    expect(await fs.exists(metadataCachePath("/data/smm", Path.posix("/m/Deferred")))).toBe(false);
+  });
+
   it("getJob returns undefined for unknown id", () => {
     const core = new Core({
       fs: inMemoryFs(),

@@ -110,4 +110,19 @@ describe('smm add', () => {
     expect(lines.some((l) => l.includes('folderPath'))).toBe(true)
     expect(lines.some((l) => l === 'succeeded')).toBe(true)
   })
+
+  it('with --skip-init only registers the folder and prints imported folder', async () => {
+    const { runCli } = await import('./runCli')
+    const code = await runCli(['node', 'smm', 'add', mediaFolder, '--type', 'tvshow', '--skip-init'])
+
+    expect(code).toBe(0)
+    const config = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as {
+      folders: string[]
+    }
+    expect(config.folders).toContain(mediaFolder)
+    const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
+    expect(lines).toEqual([`imported folder ${mediaFolder}`])
+    expect(lines.some((l) => l === 'succeeded')).toBe(false)
+    expect(lines.some((l) => l.includes('recognizing'))).toBe(false)
+  })
 })

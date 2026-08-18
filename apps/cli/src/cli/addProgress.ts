@@ -134,16 +134,21 @@ export async function waitUntilImportSettled(
     type: FolderType
     timeoutMs: number
     log?: (line: string) => void
+    /** When false, do not print progress lines (used with --skip-init). Default true. */
+    progress?: boolean
   },
 ): Promise<ImportJob> {
   const log = options.log ?? console.log
+  const emitProgress = options.progress !== false
   let progress = createAddProgressState()
   const deadline = Date.now() + options.timeoutMs
 
   for (;;) {
     const job = core.getJob(id)
     if (job) {
-      progress = emitAddProgress(progress, job, options.folder, options.type, log)
+      if (emitProgress) {
+        progress = emitAddProgress(progress, job, options.folder, options.type, log)
+      }
       if (job.status !== 'pending' && job.status !== 'running') {
         return job
       }
