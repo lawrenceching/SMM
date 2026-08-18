@@ -3,19 +3,24 @@ import {
   FetchNetworkAdapter,
   NodejsFsAdapter,
   NoopLoggerAdapter,
+  type LoggerPort,
 } from 'core-app'
 import { getUserDataDir } from '@/utils/config'
 
 let instance: Core | undefined
 
+export interface GetCoreOptions {
+  logger?: LoggerPort
+}
+
 /** Lazy singleton. appDataDir = userDataDir so getFolders reads production smm.json. */
-export function getCore(): Core {
+export function getCore(options?: GetCoreOptions): Core {
   if (!instance) {
     const userDataDir = getUserDataDir()
     instance = new Core({
       fs: new NodejsFsAdapter(),
       network: new FetchNetworkAdapter(),
-      logger: new NoopLoggerAdapter(),
+      logger: options?.logger ?? new NoopLoggerAdapter(),
       appDataDir: userDataDir,
       userDataDir,
     })

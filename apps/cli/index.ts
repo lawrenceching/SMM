@@ -17,10 +17,10 @@ import { logger } from './lib/logger';
 
 applyTmdbTlsDevBypassToProcessIfEnabled();
 
-// `smm list` — list imported folders via Core; do not start the HTTP server.
-if (process.argv[2] === 'list') {
-  const { runListCli } = await import('./src/cli/list');
-  const code = await runListCli(process.argv);
+// CLI subcommands (`list`, `add`) talk to Core in-process; do not start the HTTP server.
+if (process.argv[2] === 'list' || process.argv[2] === 'add') {
+  const { runCli } = await import('./src/cli/runCli');
+  const code = await runCli(process.argv);
   process.exit(code);
 }
 
