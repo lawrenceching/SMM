@@ -107,4 +107,11 @@ describe("NetworkFsAdapter", () => {
 
     await expect(adapter.deleteFile("/m/denied.txt")).rejects.toThrow("Permission denied");
   });
+
+  it("rename throws Not Implemented", async () => {
+    const { network } = mockNetwork();
+    const adapter = new NetworkFsAdapter({ network, baseUrl: "http://127.0.0.1:30000" });
+
+    await expect(adapter.rename("/m/a", "/m/b")).rejects.toThrow(/Not Implemented/i);
+  });
 });
