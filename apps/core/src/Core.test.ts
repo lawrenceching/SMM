@@ -28,6 +28,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     deleteFile: vi.fn(async (path: string) => {
       files.delete(path);
     }),
+    rename: vi.fn(async () => {}),
   };
 }
 
@@ -334,6 +335,7 @@ describe("unimportFolder", () => {
       deleteFile: async (path: string) => {
         files.delete(path);
       },
+      rename: async () => {},
     };
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
 

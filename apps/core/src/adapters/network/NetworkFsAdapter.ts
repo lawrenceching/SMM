@@ -61,4 +61,8 @@ export class NetworkFsAdapter implements FsPort {
     const json = await this.post<{ error?: string }>("/api/deleteFile", { path });
     if (json.error !== undefined) throw new Error(json.error);
   }
+
+  async rename(_from: string, _to: string): Promise<void> {
+    throw new Error("Not Implemented");
+  }
 }

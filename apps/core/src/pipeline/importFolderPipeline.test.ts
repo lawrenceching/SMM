@@ -33,6 +33,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
       return out;
     }),
     deleteFile: vi.fn(async () => {}),
+    rename: vi.fn(async () => {}),
   };
 }
 

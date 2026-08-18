@@ -25,6 +25,7 @@ function delayedFs(seed: Record<string, string>, delayMs = 15): FsPort {
     deleteFile: async (path: string) => {
       files.delete(path);
     },
+    rename: async () => {},
   };
 }
 

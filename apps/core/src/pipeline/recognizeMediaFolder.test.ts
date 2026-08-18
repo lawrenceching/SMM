@@ -28,6 +28,7 @@ function fsPort(files: Record<string, string>): FsPort {
     exists: vi.fn(async () => true),
     listFiles: vi.fn(async () => []),
     deleteFile: vi.fn(async () => {}),
+    rename: vi.fn(async () => {}),
   };
 }
 

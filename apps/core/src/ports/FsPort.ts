@@ -7,4 +7,6 @@ export interface FsPort {
   listFiles(dir: string): Promise<string[]>;
   /** Delete a file; missing files count as success (idempotent). */
   deleteFile(path: string): Promise<void>;
+  /** Rename/move a file or directory. Paths are POSIX. Missing source should reject. */
+  rename(from: string, to: string): Promise<void>;
 }

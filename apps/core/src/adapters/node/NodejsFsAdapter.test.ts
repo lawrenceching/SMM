@@ -62,4 +62,18 @@ describe("NodejsFsAdapter", () => {
     const adapter = new NodejsFsAdapter();
     await expect(adapter.deleteFile(joinPosix(tmpPosix, "nope.txt"))).resolves.toBeUndefined();
   });
+
+  it("renames a directory on disk", async () => {
+    const adapter = new NodejsFsAdapter();
+    const from = joinPosix(tmpPosix, "old-dir");
+    const to = joinPosix(tmpPosix, "new-dir");
+    await fsp.mkdir(Path.toPlatformPath(from));
+    await fsp.writeFile(join(Path.toPlatformPath(from), "a.txt"), "x");
+
+    await adapter.rename(from, to);
+
+    expect(await adapter.exists(from)).toBe(false);
+    expect(await adapter.exists(joinPosix(to, "a.txt"))).toBe(true);
+    expect(await adapter.readTextFile(joinPosix(to, "a.txt"))).toBe("x");
+  });
 });

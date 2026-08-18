@@ -52,4 +52,8 @@ export class NodejsFsAdapter implements FsPort {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
   }
+
+  async rename(from: string, to: string): Promise<void> {
+    await fsp.rename(Path.toPlatformPath(from), Path.toPlatformPath(to));
+  }
 }
