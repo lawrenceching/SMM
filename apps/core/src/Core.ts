@@ -7,7 +7,7 @@ import type { DiscoverPort } from "./ports/DiscoverPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
-import { UserConfig } from "./pipeline/userConfig";
+import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import type { ImportJob } from "./jobs/types";
 
@@ -93,6 +93,14 @@ export class Core {
 
   getUserConfig(): Promise<UserConfigData> {
     return this.userConfig.read();
+  }
+
+  /** Updates one known UserConfig key. Rejects unknown keys without writing. */
+  async setUserConfigKey(key: string, value: unknown): Promise<UserConfigData> {
+    if (!isUserConfigKey(key)) {
+      throw new Error(`Unknown config key: ${key}`);
+    }
+    return this.userConfig.update((config) => ({ ...config, [key]: value }));
   }
 
   async getFolders(): Promise<string[]> {

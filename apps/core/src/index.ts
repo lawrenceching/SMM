@@ -14,7 +14,7 @@ export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";
 export { ConsoleLoggerAdapter, NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 export { StaticDiscoverAdapter, STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
-export { UserConfig, DEFAULT_USER_CONFIG } from "./pipeline/userConfig";
+export { UserConfig, DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } from "./pipeline/userConfig";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";

@@ -197,6 +197,30 @@ describe("getUserConfig", () => {
   });
 });
 
+describe("setUserConfigKey", () => {
+  it("persists a known key and returns the updated config", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    const updated = await core.setUserConfigKey("dryRun", true);
+
+    expect(updated.dryRun).toBe(true);
+    expect((await core.getUserConfig()).dryRun).toBe(true);
+    const written = JSON.parse(await fs.readTextFile(userConfigPath("/data/smm"))) as {
+      dryRun: boolean;
+    };
+    expect(written.dryRun).toBe(true);
+  });
+
+  it("rejects an unknown key without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.setUserConfigKey("notAKey", 1)).rejects.toThrow("Unknown config key: notAKey");
+    expect(await fs.exists(userConfigPath("/data/smm"))).toBe(false);
+  });
+});
+
 describe("getFolders", () => {
   it("returns the folders from the user config", async () => {
     const fs = inMemoryFs({

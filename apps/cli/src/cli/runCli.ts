@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
 import type { FolderType } from 'core-app'
-import { NoopLoggerAdapter } from 'core-app'
+import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
 import { waitUntilImportSettled } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
@@ -22,10 +22,23 @@ function resolveFolderType(value: string): FolderType {
   throw new Error(`Invalid folder type: ${value}`)
 }
 
+/** Parse CLI value as JSON when possible; otherwise keep the raw string. */
+function parseConfigValue(raw: string): unknown {
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return raw
+  }
+}
+
+function printJson(value: unknown): void {
+  console.log(JSON.stringify(value, null, 2))
+}
+
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -156,6 +169,62 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         }
         await getCore().unimportFolder(folder)
         console.log(`Removed ${folder}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  const configCmd = program.command('config').description('Read or write user config (smm.json)')
+
+  configCmd
+    .command('list')
+    .description('Print the full user config as JSON')
+    .action(async () => {
+      try {
+        printJson(await getCore().getUserConfig())
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  configCmd
+    .command('get')
+    .description('Print one config value as JSON')
+    .argument('<key>', 'Config key')
+    .action(async (key: string) => {
+      try {
+        if (!isUserConfigKey(key)) {
+          console.error(`Unknown config key: ${key}`)
+          exitCode = 1
+          return
+        }
+        const config = await getCore().getUserConfig()
+        printJson(config[key] ?? null)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  configCmd
+    .command('set')
+    .description('Set one config key (value is JSON when parseable, otherwise a string)')
+    .argument('<key>', 'Config key')
+    .argument('<value>', 'Config value')
+    .action(async (key: string, value: string) => {
+      try {
+        if (!isUserConfigKey(key)) {
+          console.error(`Unknown config key: ${key}`)
+          exitCode = 1
+          return
+        }
+        const updated = await getCore().setUserConfigKey(key, parseConfigValue(value))
+        printJson(updated[key] ?? null)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)
