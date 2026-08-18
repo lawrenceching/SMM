@@ -2,6 +2,12 @@ import { Command, Option } from 'commander'
 import type { FolderType, ImportJob } from 'core-app'
 import { getCore } from '../core/getCore'
 import { CliLoggerAdapter } from './cliLogger'
+import {
+  formatMediaMetadata,
+  formatShowFolder,
+  isFolderImported,
+  resolveShowFolder,
+} from './folderDisplay'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -34,7 +40,7 @@ async function waitUntilImportSettled(
 }
 
 /**
- * Run the `smm` Commander program (`list`, `add`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -84,6 +90,55 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           return
         }
         console.log(`Imported ${folder}`)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('show')
+    .description('Show imported folder status (UI-aligned)')
+    .argument('<folder>', 'Folder path')
+    .action(async (folder: string) => {
+      try {
+        const resolved = await resolveShowFolder(folder)
+        if (!resolved.ok) {
+          console.error(resolved.error)
+          exitCode = 1
+          return
+        }
+        for (const line of formatShowFolder(resolved.result)) {
+          console.log(line)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('metadata')
+    .description('Show human-readable media metadata for an imported folder')
+    .argument('<folder>', 'Folder path')
+    .action(async (folder: string) => {
+      try {
+        if (!(await isFolderImported(folder))) {
+          console.error(`Folder is not imported: ${folder}`)
+          exitCode = 1
+          return
+        }
+        const mm = await getCore().getMediaMetadata(folder)
+        if (mm === null) {
+          console.error(`No metadata cache for folder: ${folder}`)
+          exitCode = 1
+          return
+        }
+        for (const line of formatMediaMetadata(folder, mm)) {
+          console.log(line)
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)
