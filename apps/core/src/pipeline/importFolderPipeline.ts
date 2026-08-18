@@ -6,6 +6,7 @@ import type { LoggerPort } from "../ports/LoggerPort";
 import type { JobStage } from "../jobs/types";
 import { TmdbClient } from "../clients/TmdbClient";
 import { TvdbClient } from "../clients/TvdbClient";
+import type { DiscoverPort } from "../ports/DiscoverPort";
 import { isVideoFile, recognizeEpisodes } from "./recognizeEpisodes";
 import { recognizeMediaFolder } from "./recognizeMediaFolder";
 import { metadataCachePath } from "./paths";
@@ -16,10 +17,14 @@ export interface ImportFolderPipelineOptions {
   network: NetworkPort;
   logger: LoggerPort;
   appDataDir: string;
+  /** Discover config for TMDB/TVDB host failover (UI-aligned). */
+  discover?: DiscoverPort;
+  /** Local SMM reverse proxy URL for custom media-database hosts. */
+  reverseProxyUrl?: string | null;
 }
 
 export interface ImportFolderPipelineCallbacks {
-  onStage?: (stage: JobStage, progress: number) => void;
+  onStage?: (stage: JobStage, progress: number, detail?: { title?: string }) => void;
 }
 
 function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
@@ -30,7 +35,7 @@ export class ImportFolderPipeline {
   constructor(private readonly options: ImportFolderPipelineOptions) {}
 
   async run(folderPath: string, type: FolderType, cb: ImportFolderPipelineCallbacks = {}): Promise<MediaMetadata> {
-    const { fs, logger, appDataDir, network } = this.options;
+    const { fs, logger, appDataDir, network, discover, reverseProxyUrl } = this.options;
     const posixPath = Path.posix(folderPath);
     const stages: JobStage[] = [];
 
@@ -61,8 +66,16 @@ export class ImportFolderPipeline {
 
     if (type === "tvshow" || type === "movie") {
       const language = userConfig.preferMediaLanguage ?? "en-US";
-      const tmdb = new TmdbClient(network, userConfig.tmdb);
-      const tvdb = new TvdbClient(network, userConfig.tvdb);
+      const tmdb = new TmdbClient(network, {
+        ...userConfig.tmdb,
+        discover,
+        reverseProxyUrl,
+      });
+      const tvdb = new TvdbClient(network, {
+        ...userConfig.tvdb,
+        discover,
+        reverseProxyUrl,
+      });
 
       logger.info({ folderPath: posixPath, language }, "importFolder: stage=recognize");
       const result = await recognizeMediaFolder(mm, {
@@ -75,7 +88,12 @@ export class ImportFolderPipeline {
       if (result.tvShow !== undefined) mm.tvShow = result.tvShow;
       if (result.movie !== undefined) mm.movie = result.movie;
       stages.push("recognize");
-      cb.onStage?.("recognize", 60);
+      const title = result.tvShow?.name ?? result.movie?.name;
+      cb.onStage?.(
+        "recognize",
+        60,
+        title !== undefined ? { title } : undefined,
+      );
 
       logger.info({ folderPath: posixPath }, "importFolder: stage=episodes");
       if (type === "tvshow" && mm.tvShow !== undefined) {

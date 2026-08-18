@@ -10,6 +10,8 @@ export interface ImportJob {
   status: JobStatus;
   stage: JobStage;
   progress: number;
+  /** Set after the recognize stage when a TV show or movie title is known. */
+  recognizedTitle?: string;
   error?: string;
   createdAt: number;
   updatedAt: number;

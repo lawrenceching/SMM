@@ -104,4 +104,31 @@ describe("TmdbClient", () => {
     );
     expect(result.seasons).toEqual([{ season: 1, name: "S1", episodes: [{ season: 1, episode: 1, name: "E1" }] }]);
   });
+
+  it("failovers across discover TMDB hosts when the first is unreachable", async () => {
+    const urls: string[] = [];
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        urls.push(url);
+        if (url.includes("dead.example")) throw new Error("down");
+        return jsonResponse({ results: [{ id: 9, name: "X" }], page: 1, total_pages: 1, total_results: 1 });
+      },
+    };
+    const client = new TmdbClient(network, {
+      discover: {
+        getDiscoverConfig: async () => ({
+          mediaDatabases: [
+            { type: "tmdb", url: "https://dead.example/api/tmdb", authorizationMethod: "none" },
+            { type: "tmdb", url: "https://live.example/api/tmdb", authorizationMethod: "none" },
+          ],
+          reverseProxies: [],
+        }),
+      },
+    });
+
+    const body = await client.search("X", "tv", "en-US");
+    expect(body.results[0]?.id).toBe(9);
+    expect(urls[0]).toContain("dead.example");
+    expect(urls[1]).toContain("live.example");
+  });
 });

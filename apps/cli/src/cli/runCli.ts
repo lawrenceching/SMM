@@ -1,6 +1,8 @@
 import { Command, Option } from 'commander'
-import type { FolderType, ImportJob } from 'core-app'
+import type { FolderType } from 'core-app'
+import { NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
+import { waitUntilImportSettled } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import {
   formatMediaMetadata,
@@ -21,23 +23,6 @@ function resolveFolderType(value: string): FolderType {
 }
 
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
-
-async function waitUntilImportSettled(
-  core: ReturnType<typeof getCore>,
-  id: string,
-): Promise<ImportJob> {
-  const deadline = Date.now() + IMPORT_WAIT_TIMEOUT_MS
-  for (;;) {
-    const job = core.getJob(id)
-    if (job && job.status !== 'pending' && job.status !== 'running') {
-      return job
-    }
-    if (Date.now() > deadline) {
-      throw new Error(`Timed out waiting for import job ${id}`)
-    }
-    await new Promise((resolve) => setTimeout(resolve, 20))
-  }
-}
 
 /**
  * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`).
@@ -80,16 +65,19 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       try {
         const type = resolveFolderType(opts.type)
         const verbose = Boolean(opts.verbose)
-        const core = getCore({ logger: new CliLoggerAdapter(verbose) })
-        console.log(`Adding ${folder}`)
+        const core = getCore({
+          logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
+        })
         const { id } = core.importFolder(folder, type)
-        const job = await waitUntilImportSettled(core, id)
+        const job = await waitUntilImportSettled(core, id, {
+          folder,
+          type,
+          timeoutMs: IMPORT_WAIT_TIMEOUT_MS,
+        })
         if (job.status !== 'succeeded') {
           console.error(job.error ?? `Import failed with status ${job.status}`)
           exitCode = 1
-          return
         }
-        console.log(`Imported ${folder}`)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)

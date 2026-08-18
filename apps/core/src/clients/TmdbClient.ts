@@ -10,31 +10,51 @@ import type {
   TvShowMediaMetadata,
   TvShowSeasonMetadata,
 } from "@smm/core";
+import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
+import {
+  fetchMediaDatabase,
+  SMM_TMDB_DEFAULT_UPSTREAM,
+} from "./mediaDatabaseTransport";
 
-export const SMM_TMDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tmdb";
+export { SMM_TMDB_DEFAULT_UPSTREAM };
 
 export interface TmdbClientOptions {
   host?: string;
   apiKey?: string;
+  httpProxy?: string;
+  reverseProxyUrl?: string | null;
+  discover?: DiscoverPort;
 }
 
 export class TmdbClient {
-  private readonly host: string;
+  private readonly host?: string;
   private readonly apiKey?: string;
+  private readonly httpProxy?: string;
+  private readonly reverseProxyUrl?: string | null;
+  private readonly discover?: DiscoverPort;
 
   constructor(
     private readonly network: NetworkPort,
     options: TmdbClientOptions = {},
   ) {
-    this.host = (options.host?.trim() || SMM_TMDB_DEFAULT_UPSTREAM).replace(/\/+$/, "");
+    this.host = options.host?.trim() || undefined;
     this.apiKey = options.apiKey?.trim() || undefined;
+    this.httpProxy = options.httpProxy?.trim() || undefined;
+    this.reverseProxyUrl = options.reverseProxyUrl;
+    this.discover = options.discover;
   }
 
   private async request<T>(urlPath: string): Promise<T> {
-    const headers: Record<string, string> = {};
-    if (this.apiKey !== undefined) headers.Authorization = `Bearer ${this.apiKey}`;
-    const resp = await this.network.fetch(`${this.host}${urlPath}`, { method: "GET", headers });
+    const resp = await fetchMediaDatabase(this.network, {
+      kind: "tmdb",
+      path: urlPath,
+      configuredHost: this.host,
+      apiKey: this.apiKey,
+      httpProxy: this.httpProxy,
+      reverseProxyUrl: this.reverseProxyUrl,
+      discover: this.discover,
+    });
     if (!resp.ok) {
       throw new Error(`TMDB request failed: ${resp.status} ${resp.statusText}`);
     }

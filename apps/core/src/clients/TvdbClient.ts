@@ -5,9 +5,14 @@ import type {
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types";
 import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@smm/core";
+import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
+import {
+  fetchMediaDatabase,
+  SMM_TVDB_DEFAULT_UPSTREAM,
+} from "./mediaDatabaseTransport";
 
-export const SMM_TVDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tvdb";
+export { SMM_TVDB_DEFAULT_UPSTREAM };
 
 /** IETF BCP 47 media language → TVDB ISO 639-3 code. */
 export function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
@@ -26,18 +31,42 @@ export function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
 export interface TvdbClientOptions {
   host?: string;
   apiKey?: string;
+  httpProxy?: string;
+  reverseProxyUrl?: string | null;
+  discover?: DiscoverPort;
 }
+
+/** Sentinel base URL; real routing goes through {@link fetchMediaDatabase}. */
+const TVDB_TRANSPORT_BASE = "https://smm-tvdb-transport.local";
 
 export class TvdbClient {
   private readonly client: TVDBv4;
 
   constructor(network: NetworkPort, options: TvdbClientOptions = {}) {
-    const host = (options.host?.trim() || SMM_TVDB_DEFAULT_UPSTREAM).replace(/\/+$/, "");
+    const configuredHost = options.host?.trim() || undefined;
+    const apiKey = options.apiKey?.trim() || undefined;
+    const httpProxy = options.httpProxy?.trim() || undefined;
+    const reverseProxyUrl = options.reverseProxyUrl;
+    const discover = options.discover;
+
     this.client = new TVDBv4({
-      baseUrl: host,
-      apiKey: options.apiKey ?? "",
+      baseUrl: TVDB_TRANSPORT_BASE,
+      apiKey: apiKey ?? "",
       disableAuth: true,
-      fetchImpl: (input, init) => network.fetch(input, init),
+      fetchImpl: async (input) => {
+        const full = typeof input === "string" ? input : String(input);
+        const parsed = new URL(full);
+        const path = `${parsed.pathname}${parsed.search}`;
+        return fetchMediaDatabase(network, {
+          kind: "tvdb",
+          path,
+          configuredHost,
+          apiKey,
+          httpProxy,
+          reverseProxyUrl,
+          discover,
+        });
+      },
     });
   }
 

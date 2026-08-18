@@ -92,9 +92,9 @@ describe('smm add', () => {
 
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines.some((l) => l.includes(`Adding ${mediaFolder}`))).toBe(true)
-    expect(lines.some((l) => l.includes('importFolder: stage=config'))).toBe(true)
-    expect(lines.some((l) => l.includes(`Imported ${mediaFolder}`))).toBe(true)
+    expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(true)
+    expect(lines.some((l) => l === 'succeeded')).toBe(true)
+    expect(lines.some((l) => l.includes('importFolder: stage='))).toBe(false)
     expect(lines.some((l) => l.includes('"folderPath"'))).toBe(false)
   })
 
@@ -108,5 +108,6 @@ describe('smm add', () => {
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
     expect(lines.some((l) => l.includes('importFolder: stage=config'))).toBe(true)
     expect(lines.some((l) => l.includes('folderPath'))).toBe(true)
+    expect(lines.some((l) => l === 'succeeded')).toBe(true)
   })
 })

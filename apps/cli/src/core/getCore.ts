@@ -3,6 +3,7 @@ import {
   FetchNetworkAdapter,
   NodejsFsAdapter,
   NoopLoggerAdapter,
+  StaticDiscoverAdapter,
   type LoggerPort,
 } from 'core-app'
 import { getUserDataDir } from '@/utils/config'
@@ -23,6 +24,7 @@ export function getCore(options?: GetCoreOptions): Core {
       logger: options?.logger ?? new NoopLoggerAdapter(),
       appDataDir: userDataDir,
       userDataDir,
+      discover: new StaticDiscoverAdapter(),
     })
   }
   return instance

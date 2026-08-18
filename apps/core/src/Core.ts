@@ -3,6 +3,7 @@ import type { AppConfig, FolderType, MediaMetadata, UserConfig as UserConfigData
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
+import type { DiscoverPort } from "./ports/DiscoverPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
@@ -22,6 +23,8 @@ export interface CoreOptions {
   reverseProxyUrl?: string | null;
   /** userDataDir reported by getAppConfig(); falls back to appDataDir. */
   userDataDir?: string;
+  /** Discover hosts for TMDB/TVDB failover. */
+  discover?: DiscoverPort;
 }
 
 export interface ImportFolderHandle {
@@ -38,6 +41,7 @@ export class Core {
   private readonly reverseProxyUrl: string | null;
   private readonly userDataDir: string;
   private readonly userConfig: UserConfig;
+  private readonly discover?: DiscoverPort;
 
   constructor(options: CoreOptions) {
     this.fs = options.fs;
@@ -48,6 +52,7 @@ export class Core {
     this.reverseProxyUrl = options.reverseProxyUrl ?? null;
     this.userDataDir = options.userDataDir ?? options.appDataDir;
     this.userConfig = new UserConfig(this.fs, this.appDataDir);
+    this.discover = options.discover;
   }
 
   /** Starts the import pipeline in the background; returns a job handle immediately. */
@@ -128,10 +133,16 @@ export class Core {
         network: this.network,
         logger: this.logger,
         appDataDir: this.appDataDir,
+        discover: this.discover,
+        reverseProxyUrl: this.reverseProxyUrl,
       });
       await pipeline.run(folderPath, type, {
-        onStage: (stage, progress) => {
-          this.jobs.update(job.id, { stage, progress });
+        onStage: (stage, progress, detail) => {
+          this.jobs.update(job.id, {
+            stage,
+            progress,
+            ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
+          });
         },
       });
       this.jobs.update(job.id, { status: "succeeded", stage: null, progress: 100 });
