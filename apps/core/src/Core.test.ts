@@ -28,7 +28,19 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     deleteFile: vi.fn(async (path: string) => {
       files.delete(path);
     }),
-    rename: vi.fn(async () => {}),
+    rename: vi.fn(async (from: string, to: string) => {
+      if (!files.has(from) && ![...files.keys()].some((k) => k === from || k.startsWith(from + "/"))) {
+        throw new Error("ENOENT: " + from);
+      }
+      const entries = [...files.entries()];
+      for (const [key, value] of entries) {
+        if (key === from || key.startsWith(from + "/")) {
+          files.delete(key);
+          files.set(to + key.slice(from.length), value);
+        }
+      }
+      // Ensure destination directory marker if only empty dirs matter — file keys alone are enough for these tests.
+    }),
   };
 }
 
@@ -343,5 +355,49 @@ describe("unimportFolder", () => {
 
     const saved = JSON.parse(await fs.readTextFile(userConfigPath(appDataDir))) as { folders: string[] };
     expect(saved.folders).toEqual([]);
+  });
+});
+
+describe("renameFolder", () => {
+  it("updates metadata cache, user config, and renames on disk", async () => {
+    const from = "/m/Show";
+    const to = "/m/Show Renamed";
+    const oldCache = metadataCachePath("/data/smm", from);
+    const newCache = metadataCachePath("/data/smm", to);
+    const mm = {
+      mediaFolderPath: from,
+      type: "tvshow-folder" as const,
+      files: [`${from}/S01E01.mkv`],
+      mediaFiles: [{ absolutePath: `${from}/S01E01.mkv` }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: [from],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+      [oldCache]: JSON.stringify(mm),
+      [`${from}/S01E01.mkv`]: "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.renameFolder({ from, to });
+
+    expect(await fs.exists(oldCache)).toBe(false);
+    expect(await fs.exists(newCache)).toBe(true);
+    const written = JSON.parse(await fs.readTextFile(newCache)) as typeof mm;
+    expect(written.mediaFolderPath).toBe(to);
+    expect(written.files).toEqual([`${to}/S01E01.mkv`]);
+    expect(written.mediaFiles?.[0]?.absolutePath).toBe(`${to}/S01E01.mkv`);
+
+    const folders = await core.getFolders();
+    // renameFolderInUserConfig stores Path.toPlatformPath(to)
+    expect(folders.map((f) => Path.posix(f))).toEqual([Path.posix(to)]);
+
+    expect(fs.rename).toHaveBeenCalledWith(from, to);
+    expect(await fs.exists(`${to}/S01E01.mkv`)).toBe(true);
   });
 });
