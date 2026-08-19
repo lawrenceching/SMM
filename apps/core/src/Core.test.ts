@@ -4,7 +4,7 @@ import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { Core } from "./Core";
-import { metadataCachePath, userConfigPath } from "./pipeline/paths";
+import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
 
 function inMemoryFs(seed: Record<string, string> = {}): FsPort {
   const files = new Map(Object.entries(seed));
@@ -516,5 +516,67 @@ describe("renameFolder", () => {
       `Media metadata not found: ${from}`,
     );
     expect(fs.rename).not.toHaveBeenCalled();
+  });
+});
+
+describe("tryToRecognizeFolder", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [
+            { season: 1, episode: 1 },
+            { season: 1, episode: 2 },
+          ],
+        },
+      ],
+    },
+    mediaFiles: [],
+  };
+
+  function seed(disk: Record<string, string> = {}) {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  it("creates a pending plan with matched files", async () => {
+    const fs = seed({
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E02.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeFolder("/m/Show");
+    expect(plan.task).toBe("recognize-media-file");
+    expect(plan.status).toBe("pending");
+    expect(plan.creator).toBe("app");
+    expect(plan.files).toEqual([
+      { season: 1, episode: 1, path: "/m/Show/S01E01.mkv" },
+      { season: 1, episode: 2, path: "/m/Show/S01E02.mkv" },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(true);
+  });
+
+  it("returns pending plan with empty files when nothing matches", async () => {
+    const fs = seed({ "/m/Show/random.mkv": "" });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    expect(plan.status).toBe("pending");
+  });
+
+  it("rejects unmanaged folders", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    await expect(core.tryToRecognizeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
   });
 });

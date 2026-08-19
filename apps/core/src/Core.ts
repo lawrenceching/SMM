@@ -1,5 +1,6 @@
 import { Path } from "@core/path";
 import type { AppConfig, FolderType, MediaMetadata, UserConfig as UserConfigData } from "@smm/core";
+import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
@@ -8,6 +9,7 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
+import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import type { ImportJob } from "./jobs/types";
@@ -157,6 +159,15 @@ export class Core {
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (path) => this.normalizePosix(path),
+    });
+  }
+
+  async tryToRecognizeFolder(path: string): Promise<RecognizeMediaFilePlan> {
+    return tryToRecognizeFolderPipeline(path, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p) => this.normalizePosix(p),
     });
   }
 

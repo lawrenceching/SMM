@@ -17,6 +17,7 @@ export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFo
 export { UserConfig, DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } from "./pipeline/userConfig";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
+export { tryToRecognizeFolderPipeline, type TryToRecognizeFolderDeps } from "./pipeline/tryToRecognizeFolder";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type { ImportJob, JobStatus, JobStage } from "./jobs/types";
 export type { FolderType } from "@smm/core";
