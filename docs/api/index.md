@@ -80,6 +80,10 @@ Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.tryToRecognizeFolder / 
 `smm try-to-rename <folder> [--rule plex|emby]` — build a pending rename-files plan (default rule: plex).
 `smm apply <plan-id>` — apply a pending recognize-media-file or rename-files plan (updates metadata cache, deletes plan file).
 
+## CLI: scrape
+Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.scrapeFolder
+`smm scrape <folder> [--language <code>]` — scrape TMDB TV poster, fanart, episode thumbnails, and NFO files for a managed TV show folder. Prints each task as `poster|fanart|thumbnails|nfo: completed|skipped|failed`. Requires TMDB metadata and linked episodes (for thumbnails / episode NFO).
+
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts
 HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.

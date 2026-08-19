@@ -49,7 +49,7 @@ function printJson(value: unknown): void {
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -261,6 +261,27 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
             ? plan.files.length
             : 0
         console.log(`applied ${plan.id} (${count} file(s))`)
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  const SCRAPE_TASKS = ['poster', 'fanart', 'thumbnails', 'nfo'] as const
+
+  program
+    .command('scrape')
+    .description('Scrape TMDB poster, fanart, thumbnails, and NFO for a TV show folder')
+    .argument('<folder>', 'Imported media folder path')
+    .option('--language <language>', 'TMDB language code (defaults to user config preferMediaLanguage)')
+    .action(async (folder: string, opts: { language?: string }) => {
+      try {
+        const result = await getCore().scrapeFolder(folder, {
+          language: opts.language,
+        })
+        for (const taskId of SCRAPE_TASKS) {
+          console.log(`${taskId}: ${result.tasks[taskId].status}`)
+        }
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error))
         exitCode = 1
