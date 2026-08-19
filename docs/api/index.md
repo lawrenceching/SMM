@@ -74,6 +74,11 @@ HTTP: `POST /api/unimport-folder` — removes an imported media folder from `use
 Source Code: apps/cli/src/route/RenameFolderV3.ts
 HTTP: `POST /api/rename-folder` — renames a managed media folder via Layer 2 `Core.renameFolder({ from, to })` (metadata cache + `UserConfig.folders` + on-disk rename). Request body: `{ from: string, to: string }`. Response: `{ data: { from, to } }` or `{ error }`. Broadcasts the same folder-renamed / userConfigUpdated socket events as legacy `POST /api/renameFolder`. Used by UI Sidebar rename when `localStorage["smm.v3.enabled"] === "true"`.
 
+## CLI: try-to-recognize / apply
+Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.tryToRecognizeFolder / applyPlan
+`smm try-to-recognize <folder>` — rule-based episode recognition → pending plan under `{userDataDir}/plans/`.
+`smm apply <plan-id>` — apply recognize-media-file plan (updates metadata cache, deletes plan file).
+
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts
 HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.

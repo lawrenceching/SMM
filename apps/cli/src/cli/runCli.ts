@@ -40,7 +40,7 @@ function printJson(value: unknown): void {
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `apply`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -182,6 +182,48 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('try-to-recognize')
+    .description('Build a pending recognize-media-file plan for a TV show folder')
+    .argument('<folder>', 'Imported media folder path')
+    .action(async (folder: string) => {
+      try {
+        const plan = await getCore().tryToRecognizeFolder(folder)
+        console.log(`plan: ${plan.id}`)
+        console.log(`task: ${plan.task}`)
+        console.log(`status: ${plan.status}`)
+        console.log(`folder: ${plan.mediaFolderPath}`)
+        console.log('files:')
+        if (plan.files.length === 0) {
+          console.log('  (none)')
+        } else {
+          for (const f of plan.files) {
+            const ep = `S${String(f.season).padStart(2, '0')}E${String(f.episode).padStart(2, '0')}`
+            console.log(`  ${ep}  ${f.path}`)
+          }
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('apply')
+    .description('Apply a pending plan by id (recognize-media-file)')
+    .argument('<planId>', 'Plan id from try-to-recognize')
+    .action(async (planId: string) => {
+      try {
+        const plan = await getCore().getPlan(planId)
+        await getCore().applyPlan(plan)
+        const count = plan.task === 'recognize-media-file' ? plan.files.length : 0
+        console.log(`applied ${plan.id} (${count} file(s))`)
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
         exitCode = 1
       }
     })
