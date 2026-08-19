@@ -1,6 +1,7 @@
 import { Path } from "@core/path";
 import type { AppConfig, FolderType, MediaMetadata, UserConfig as UserConfigData } from "@smm/core";
 import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
@@ -12,6 +13,8 @@ import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFo
 import { applyRecognizeMediaFilePlanPipeline } from "./pipeline/applyPlan";
 import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
+import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
+import type { RenameRuleName } from "./pipeline/renameRules";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import type { ImportJob } from "./jobs/types";
@@ -166,6 +169,15 @@ export class Core {
 
   async tryToRecognizeFolder(path: string): Promise<RecognizeMediaFilePlan> {
     return tryToRecognizeFolderPipeline(path, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p) => this.normalizePosix(p),
+    });
+  }
+
+  async tryToRenameFolder(path: string, rule?: RenameRuleName): Promise<RenameFilesPlan> {
+    return tryToRenameFolderPipeline(path, rule, {
       fs: this.fs,
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,

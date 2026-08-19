@@ -583,6 +583,71 @@ describe("tryToRecognizeFolder", () => {
   });
 });
 
+describe("tryToRenameFolder", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+        },
+      ],
+    },
+    mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 }],
+  };
+
+  function seed() {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+    });
+  }
+
+  it("creates a pending rename-files plan with plex targets", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.task).toBe("rename-files");
+    expect(plan.status).toBe("pending");
+    expect(plan.creator).toBe("app");
+    expect(plan.mediaFolderPath).toBe("/m/Show");
+    expect(plan.files).toEqual([
+      {
+        from: "/m/Show/S01E01.mkv",
+        to: "/m/Show/Season 01/Show - S01E01 - Ep1.mkv",
+      },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(true);
+  });
+
+  it("returns pending plan with empty files when paths already match", async () => {
+    const matching = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        ...tvMetadata,
+        mediaFiles: [{ absolutePath: matching, seasonNumber: 1, episodeNumber: 1 }],
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    expect(plan.status).toBe("pending");
+  });
+
+  it("rejects unmanaged folders", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    await expect(core.tryToRenameFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+});
+
 describe("applyPlan", () => {
   const appDataDir = "/data";
   const folder = "/m/Show";
