@@ -10,7 +10,7 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
-import { applyRecognizeMediaFilePlanPipeline } from "./pipeline/applyPlan";
+import { applyPlanPipeline } from "./pipeline/applyPlan";
 import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
@@ -192,7 +192,7 @@ export class Core {
   }
 
   async applyPlan(plan: Plan): Promise<void> {
-    await applyRecognizeMediaFilePlanPipeline(plan, {
+    await applyPlanPipeline(plan, {
       fs: this.fs,
       appDataDir: this.appDataDir,
       normalizePosix: (p) => this.normalizePosix(p),

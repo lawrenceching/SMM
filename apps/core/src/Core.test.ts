@@ -711,12 +711,82 @@ describe("applyPlan", () => {
     await expect(core.getPlan("nope")).rejects.toThrow("Plan not found: nope");
   });
 
+  it("renames video and subtitle and updates mediaFiles", async () => {
+    const renameMetadata = {
+      ...tvMetadata,
+      tvShow: {
+        id: "1",
+        name: "Show",
+        seasons: [
+          {
+            season: 1,
+            episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+          },
+        ],
+      },
+      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(renameMetadata),
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E01.ass": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    await core.applyPlan(plan);
+
+    const targetVideo = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const targetSubtitle = "/m/Show/Season 01/Show - S01E01 - Ep1.ass";
+    expect(await fs.exists(targetVideo)).toBe(true);
+    expect(await fs.exists(targetSubtitle)).toBe(true);
+    expect(await fs.exists("/m/Show/S01E01.mkv")).toBe(false);
+    expect(await fs.exists("/m/Show/S01E01.ass")).toBe(false);
+
+    const mm = await core.getMediaMetadata("/m/Show");
+    expect(mm?.mediaFiles).toEqual([
+      { absolutePath: targetVideo, seasonNumber: 1, episodeNumber: 1 },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("applies empty rename-files plan as delete only", async () => {
+    const matching = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const renameMetadata = {
+      ...tvMetadata,
+      tvShow: {
+        id: "1",
+        name: "Show",
+        seasons: [
+          {
+            season: 1,
+            episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+          },
+        ],
+      },
+      mediaFiles: [{ absolutePath: matching, seasonNumber: 1, episodeNumber: 1 }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(renameMetadata),
+      [matching]: "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const before = await core.getMediaMetadata("/m/Show");
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    await core.applyPlan(plan);
+    const after = await core.getMediaMetadata("/m/Show");
+    expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
   it("rejects unsupported tasks", async () => {
     const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir });
     await expect(
       core.applyPlan({
-        id: "r1",
-        task: "rename-files",
+        id: "x1",
+        task: "unknown-task" as "recognize-media-file",
         status: "pending",
         creator: "app",
         mediaFolderPath: "/m/Show",

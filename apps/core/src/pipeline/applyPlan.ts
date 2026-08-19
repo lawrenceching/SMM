@@ -1,5 +1,6 @@
 import type { MediaMetadata } from "@smm/core";
 import type { FsPort } from "../ports/FsPort";
+import { applyRenameFilesPlanPipeline } from "./applyRenameFilesPlan";
 import { deletePlan, type Plan } from "./plans";
 import { updateMediaFileMetadatas } from "./updateMediaFileMetadatas";
 
@@ -9,6 +10,17 @@ export interface ApplyPlanDeps {
   normalizePosix: (path: string) => string;
   getMediaMetadata: (folder: string) => Promise<MediaMetadata | null>;
   setMetadata: (mm: MediaMetadata) => Promise<void>;
+}
+
+/** Dispatches apply by plan task (recognize-media-file or rename-files). */
+export async function applyPlanPipeline(plan: Plan, deps: ApplyPlanDeps): Promise<void> {
+  if (plan.task === "recognize-media-file") {
+    return applyRecognizeMediaFilePlanPipeline(plan, deps);
+  }
+  if (plan.task === "rename-files") {
+    return applyRenameFilesPlanPipeline(plan, deps);
+  }
+  throw new Error(`Unsupported plan task: ${plan.task}`);
 }
 
 /** Applies a pending recognize-media-file plan: merge mediaFiles, persist, delete plan. */
