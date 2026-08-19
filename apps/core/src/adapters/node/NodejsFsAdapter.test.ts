@@ -29,6 +29,19 @@ describe("NodejsFsAdapter", () => {
     expect(await adapter.exists(file)).toBe(true);
   });
 
+  it("writes binary data to disk", async () => {
+    const adapter = new NodejsFsAdapter();
+    const file = joinPosix(tmpPosix, "image.bin");
+    const data = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+
+    await adapter.writeBinaryFile(file, data);
+
+    expect(await adapter.exists(file)).toBe(true);
+    const onDisk = await fsp.readFile(Path.toPlatformPath(file));
+    expect(onDisk).toEqual(Buffer.from(data));
+    expect(onDisk.length).toBe(data.length);
+  });
+
   it("recursively lists files, not directories", async () => {
     const adapter = new NodejsFsAdapter();
     await adapter.writeTextFile(joinPosix(tmpPosix, "a.mkv"), "");

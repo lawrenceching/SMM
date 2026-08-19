@@ -17,6 +17,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     writeTextFile: vi.fn(async (path: string, content: string) => {
       files.set(path, content);
     }),
+    writeBinaryFile: vi.fn(async () => {}),
     exists: vi.fn(async (path: string) => files.has(path)),
     listFiles: vi.fn(async (dir: string) => {
       const out: string[] = [];
@@ -421,6 +422,7 @@ describe("unimportFolder", () => {
         await pause();
         files.set(path, content);
       },
+      writeBinaryFile: async () => {},
       exists: async (path: string) => files.has(path),
       listFiles: async () => [],
       deleteFile: async (path: string) => {

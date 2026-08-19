@@ -16,6 +16,7 @@ function inMemoryFs(): FsPort & { raw: Map<string, string> } {
     writeTextFile: vi.fn(async (path: string, content: string) => {
       files.set(path, content);
     }),
+    writeBinaryFile: vi.fn(async () => {}),
     exists: vi.fn(async (path: string) => files.has(path)),
     listFiles: vi.fn(async () => []),
     deleteFile: vi.fn(async (path: string) => {

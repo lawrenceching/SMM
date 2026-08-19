@@ -43,6 +43,10 @@ export class NetworkFsAdapter implements FsPort {
     if (json.error !== undefined) throw new Error(json.error);
   }
 
+  async writeBinaryFile(_path: string, _data: Uint8Array): Promise<void> {
+    throw new Error("Not Implemented: NetworkFsAdapter.writeBinaryFile");
+  }
+
   async exists(path: string): Promise<boolean> {
     const json = await this.post<{ error?: string }>("/api/readFile", { path });
     return !(json.error !== undefined && json.error.startsWith("File Not Found"));

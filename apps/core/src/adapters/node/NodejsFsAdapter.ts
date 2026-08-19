@@ -18,6 +18,12 @@ export class NodejsFsAdapter implements FsPort {
     await fsp.writeFile(platform, content, "utf-8");
   }
 
+  async writeBinaryFile(path: string, data: Uint8Array): Promise<void> {
+    const platform = Path.toPlatformPath(path);
+    await fsp.mkdir(dirname(platform), { recursive: true });
+    await fsp.writeFile(platform, data);
+  }
+
   async exists(path: string): Promise<boolean> {
     try {
       await fsp.access(Path.toPlatformPath(path));

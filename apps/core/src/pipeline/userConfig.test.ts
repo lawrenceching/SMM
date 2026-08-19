@@ -17,6 +17,7 @@ function delayedFs(seed: Record<string, string>, delayMs = 15): FsPort {
       await pause();
       files.set(path, content);
     },
+    writeBinaryFile: async () => {},
     exists: async (path: string) => {
       await pause();
       return files.has(path);

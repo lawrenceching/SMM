@@ -114,4 +114,13 @@ describe("NetworkFsAdapter", () => {
 
     await expect(adapter.rename("/m/a", "/m/b")).rejects.toThrow(/Not Implemented/i);
   });
+
+  it("writeBinaryFile throws Not Implemented", async () => {
+    const { network } = mockNetwork();
+    const adapter = new NetworkFsAdapter({ network, baseUrl: "http://127.0.0.1:30000" });
+
+    await expect(adapter.writeBinaryFile("/m/image.jpg", new Uint8Array([1, 2, 3]))).rejects.toThrow(
+      /Not Implemented/i,
+    );
+  });
 });

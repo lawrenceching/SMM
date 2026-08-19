@@ -2,6 +2,8 @@
 export interface FsPort {
   readTextFile(path: string): Promise<string>;
   writeTextFile(path: string, content: string): Promise<void>;
+  /** Write raw bytes; parent directories are created if needed. Paths are POSIX. */
+  writeBinaryFile(path: string, data: Uint8Array): Promise<void>;
   exists(path: string): Promise<boolean>;
   /** Recursively list all files under `dir` (not directories). */
   listFiles(dir: string): Promise<string[]>;
