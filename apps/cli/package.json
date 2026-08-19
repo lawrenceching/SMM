@@ -51,6 +51,6 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "test:mcp": "bun test ./test/test-mcp.test.ts"
+    "test:mcp": "bun test ./test/test-mcp.e2e.ts"
   }
 }
