@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
 import { readFile } from 'node:fs/promises'
-import type { FolderType } from 'core-app'
+import type { FolderType, RenameRuleName } from 'core-app'
 import type { MediaMetadata } from '@smm/core'
 import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
@@ -24,6 +24,15 @@ function resolveFolderType(value: string): FolderType {
   throw new Error(`Invalid folder type: ${value}`)
 }
 
+const RENAME_RULES: readonly RenameRuleName[] = ['plex', 'emby']
+
+function resolveRenameRule(value: string): RenameRuleName {
+  if ((RENAME_RULES as readonly string[]).includes(value)) {
+    return value as RenameRuleName
+  }
+  throw new Error(`Unsupported rename rule: ${value}`)
+}
+
 /** Parse CLI value as JSON when possible; otherwise keep the raw string. */
 function parseConfigValue(raw: string): unknown {
   try {
@@ -40,7 +49,7 @@ function printJson(value: unknown): void {
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `apply`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -213,14 +222,44 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     })
 
   program
+    .command('try-to-rename')
+    .description('Build a pending rename-files plan (plex/emby)')
+    .argument('<folder>', 'Imported media folder path')
+    .option('--rule <rule>', 'Naming rule: plex | emby', 'plex')
+    .action(async (folder: string, opts: { rule: string }) => {
+      try {
+        const rule = resolveRenameRule(opts.rule)
+        const plan = await getCore().tryToRenameFolder(folder, rule)
+        console.log(`plan: ${plan.id}`)
+        console.log(`task: ${plan.task}`)
+        console.log(`status: ${plan.status}`)
+        console.log(`folder: ${plan.mediaFolderPath}`)
+        console.log('files:')
+        if (plan.files.length === 0) {
+          console.log('  (none)')
+        } else {
+          for (const f of plan.files) {
+            console.log(`  ${f.from} → ${f.to}`)
+          }
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  program
     .command('apply')
-    .description('Apply a pending plan by id (recognize-media-file)')
-    .argument('<planId>', 'Plan id from try-to-recognize')
+    .description('Apply a pending plan by id (recognize-media-file or rename-files)')
+    .argument('<planId>', 'Plan id from try-to-recognize or try-to-rename')
     .action(async (planId: string) => {
       try {
         const plan = await getCore().getPlan(planId)
         await getCore().applyPlan(plan)
-        const count = plan.task === 'recognize-media-file' ? plan.files.length : 0
+        const count =
+          plan.task === 'recognize-media-file' || plan.task === 'rename-files'
+            ? plan.files.length
+            : 0
         console.log(`applied ${plan.id} (${count} file(s))`)
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error))
