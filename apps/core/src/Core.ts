@@ -14,12 +14,17 @@ import { applyPlanPipeline } from "./pipeline/applyPlan";
 import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
+import {
+  scrapeFolderPipeline,
+  type ScrapeFolderOptions,
+} from "./pipeline/scrape/scrapeFolder";
+import type { ScrapeFolderResult } from "./pipeline/scrape/types";
 import type { RenameRuleName } from "./pipeline/renameRules";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import type { ImportJob } from "./jobs/types";
 
-export type { RenameFolderArgs };
+export type { RenameFolderArgs, ScrapeFolderOptions, ScrapeFolderResult };
 
 export interface CoreOptions {
   fs: FsPort;
@@ -198,6 +203,18 @@ export class Core {
       normalizePosix: (p) => this.normalizePosix(p),
       setMetadata: (mm) => this.setMetadata(mm),
       getMediaMetadata: (folder) => this.getMediaMetadata(folder),
+    });
+  }
+
+  async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderResult> {
+    return scrapeFolderPipeline(path, options, {
+      fs: this.fs,
+      network: this.network,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p) => this.normalizePosix(p),
+      discover: this.discover,
+      reverseProxyUrl: this.reverseProxyUrl,
     });
   }
 

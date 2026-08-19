@@ -1,4 +1,12 @@
-export { Core, type CoreOptions, type ImportFolderHandle, type ImportFolderOptions, type RenameFolderArgs } from "./Core";
+export {
+  Core,
+  type CoreOptions,
+  type ImportFolderHandle,
+  type ImportFolderOptions,
+  type RenameFolderArgs,
+  type ScrapeFolderOptions,
+  type ScrapeFolderResult,
+} from "./Core";
 export type { FsPort } from "./ports/FsPort";
 export type { NetworkPort, FetchInit, HttpResponse } from "./ports/NetworkPort";
 export type { LoggerPort } from "./ports/LoggerPort";
@@ -21,6 +29,15 @@ export { tryToRecognizeFolderPipeline, type TryToRecognizeFolderDeps } from "./p
 export { tryToRenameFolderPipeline, type TryToRenameFolderDeps } from "./pipeline/tryToRenameFolder";
 export type { RenameRuleName } from "./pipeline/renameRules";
 export type { Plan } from "./pipeline/plans";
+export {
+  scrapeFolderPipeline,
+  type ScrapeFolderDeps,
+} from "./pipeline/scrape/scrapeFolder";
+export type {
+  ScrapeTaskId,
+  ScrapeTaskStatus,
+  ScrapeTaskResult,
+} from "./pipeline/scrape/types";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type { ImportJob, JobStatus, JobStage } from "./jobs/types";
 export type { FolderType } from "@smm/core";

@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { Path } from "@core/path";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
 import type { FsPort } from "./ports/FsPort";
-import type { NetworkPort } from "./ports/NetworkPort";
+import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { Core } from "./Core";
 import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
@@ -795,5 +796,218 @@ describe("applyPlan", () => {
         files: [],
       }),
     ).rejects.toThrow(/Unsupported plan task/);
+  });
+});
+
+describe("scrapeFolder", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+
+  const seriesDetails: TmdbSeriesDetails = {
+    id: 123876,
+    name: "Show",
+    original_name: "Show",
+    overview: "Overview",
+    poster_path: "/poster.jpg",
+    backdrop_path: "/fanart.jpg",
+    first_air_date: "2021-01-15",
+    vote_average: 8,
+    vote_count: 100,
+    popularity: 50,
+    genre_ids: [16],
+    origin_country: ["US"],
+    number_of_seasons: 1,
+    number_of_episodes: 1,
+    seasons: [{ id: 1, name: "Season 1", season_number: 1, episode_count: 1, poster_path: null }],
+    status: "Ended",
+    type: "Scripted",
+    in_production: false,
+    last_air_date: "2021-03-26",
+    networks: [],
+    production_companies: [],
+  } as TmdbSeriesDetails;
+
+  const seasonDetails: TmdbSeasonDetails = {
+    id: 1,
+    name: "Season 1",
+    overview: "Season overview",
+    poster_path: null,
+    season_number: 1,
+    air_date: "2021-01-15",
+    episode_count: 1,
+    episodes: [
+      {
+        id: 1,
+        name: "Ep1",
+        overview: "Episode overview",
+        still_path: "/still.jpg",
+        air_date: "2021-01-15",
+        episode_number: 1,
+        season_number: 1,
+        runtime: 24,
+        vote_average: 7,
+        vote_count: 10,
+        crew: [],
+        guest_stars: [],
+      },
+    ],
+  };
+
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: { id: "123876", database: "TMDB" as const, name: "Show", seasons: [] },
+    mediaFiles: [] as { absolutePath: string; seasonNumber?: number; episodeNumber?: number }[],
+  };
+
+  function configWith(folders: string[]): string {
+    return JSON.stringify({ folders, tmdb: {}, tvdb: {}, renameRules: [], dryRun: false, selectedRenameRule: "plex" });
+  }
+
+  function scrapeInMemoryFs(seed: Record<string, string | Uint8Array> = {}): FsPort & {
+    binaryFiles: Map<string, Uint8Array>;
+    textFiles: Map<string, string>;
+  } {
+    const binaryFiles = new Map<string, Uint8Array>();
+    const textFiles = new Map<string, string>();
+    for (const [path, content] of Object.entries(seed)) {
+      if (typeof content === "string") textFiles.set(path, content);
+      else binaryFiles.set(path, content);
+    }
+    return {
+      binaryFiles,
+      textFiles,
+      readTextFile: vi.fn(async (path: string) => {
+        const v = textFiles.get(path);
+        if (v === undefined) throw new Error("ENOENT: " + path);
+        return v;
+      }),
+      writeTextFile: vi.fn(async (path: string, content: string) => {
+        textFiles.set(path, content);
+      }),
+      writeBinaryFile: vi.fn(async (path: string, data: Uint8Array) => {
+        binaryFiles.set(path, data);
+      }),
+      exists: vi.fn(async (path: string) => binaryFiles.has(path) || textFiles.has(path)),
+      listFiles: vi.fn(async (dir: string) => {
+        const out: string[] = [];
+        for (const key of [...binaryFiles.keys(), ...textFiles.keys()]) {
+          if (key.startsWith(dir + "/") && !key.endsWith("/")) out.push(key);
+        }
+        return out;
+      }),
+      deleteFile: vi.fn(async (path: string) => {
+        binaryFiles.delete(path);
+        textFiles.delete(path);
+      }),
+      rename: vi.fn(async () => {}),
+      mkdir: vi.fn(async () => {}),
+    };
+  }
+
+  function fakeImageResponse(bytes: Uint8Array): HttpResponse {
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: { "content-type": "image/jpeg" },
+      text: () => Promise.resolve(""),
+      json: <T>() => Promise.resolve({} as T),
+      arrayBuffer: () => Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)),
+    };
+  }
+
+  function scrapeNetwork(fakeBytes: Uint8Array): NetworkPort {
+    return {
+      fetch: vi.fn(async (url: string) => {
+        if (url.includes("image.tmdb.org")) {
+          return fakeImageResponse(fakeBytes);
+        }
+        if (url.includes("/tv/123876/season/1")) {
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            text: () => Promise.resolve(JSON.stringify(seasonDetails)),
+            json: <T>() => Promise.resolve(seasonDetails as T),
+          };
+        }
+        if (url.includes("/tv/123876")) {
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            text: () => Promise.resolve(JSON.stringify(seriesDetails)),
+            json: <T>() => Promise.resolve(seriesDetails as T),
+          };
+        }
+        return {
+          ok: false,
+          status: 404,
+          statusText: "Not Found",
+          headers: {},
+          text: () => Promise.resolve(""),
+          json: <T>() => Promise.resolve({} as T),
+        };
+      }) as never,
+    };
+  }
+
+  function seed(disk: Record<string, string | Uint8Array> = {}) {
+    return scrapeInMemoryFs({
+      [userConfigPath(appDataDir)]: configWith([folder]),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  it("downloads poster when artifacts are missing", async () => {
+    const fakeBytes = new Uint8Array([0xff, 0xd8, 0xff]);
+    const fs = seed();
+    const network = scrapeNetwork(fakeBytes);
+    const core = new Core({ fs, network, appDataDir });
+
+    const result = await core.scrapeFolder("/m/Show");
+
+    expect(result.mediaFolderPath).toBe("/m/Show");
+    expect(result.tasks.poster).toEqual({ status: "completed" });
+    expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(fakeBytes);
+    expect(network.fetch).toHaveBeenCalled();
+  });
+
+  it("skips poster when completion is already true", async () => {
+    const existingPoster = new Uint8Array([1, 2, 3]);
+    const fs = seed({ "/m/Show/poster.jpg": existingPoster });
+    const network = scrapeNetwork(new Uint8Array([0xff]));
+    const core = new Core({ fs, network, appDataDir });
+
+    const result = await core.scrapeFolder("/m/Show");
+
+    expect(result.tasks.poster).toEqual({ status: "skipped" });
+    expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(existingPoster);
+    const imageFetches = vi.mocked(network.fetch).mock.calls.filter(([url]) =>
+      String(url).includes("poster.jpg"),
+    );
+    expect(imageFetches).toHaveLength(0);
+  });
+
+  it("rejects unmanaged folders", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
+    await expect(core.scrapeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+
+  it("rejects non-TMDB metadata", async () => {
+    const fs = scrapeInMemoryFs({
+      [userConfigPath(appDataDir)]: configWith([folder]),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        ...tvMetadata,
+        tvShow: { id: "1", database: "TVDB", name: "Show", seasons: [] },
+      }),
+    });
+    const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
+    await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/must use TMDB database/);
   });
 });
