@@ -9,6 +9,11 @@ export function basename(path: string): string {
   return parts[parts.length - 1] ?? "";
 }
 
+export function dirname(path: string): string {
+  const idx = path.lastIndexOf("/");
+  return idx <= 0 ? "/" : path.slice(0, idx);
+}
+
 export function extname(path: string): string {
   const base = basename(path);
   const idx = base.lastIndexOf(".");

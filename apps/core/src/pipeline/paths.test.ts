@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { basename, extname, joinPosix, metadataCachePath, userConfigPath } from "./paths";
+import { basename, dirname, extname, joinPosix, metadataCachePath, userConfigPath } from "./paths";
 
 describe("paths", () => {
   it("basename returns the last path segment", () => {
     expect(basename("/C:/media/My.Show/S01E01.mkv")).toBe("S01E01.mkv");
     expect(basename("no-separator")).toBe("no-separator");
+  });
+
+  it("dirname returns the parent path segment", () => {
+    expect(dirname("/media/My.Show/S01E01.mkv")).toBe("/media/My.Show");
+    expect(dirname("/media/My.Show")).toBe("/media");
+    expect(dirname("/foo")).toBe("/");
   });
 
   it("extname returns the extension with leading dot", () => {
