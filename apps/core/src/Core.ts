@@ -9,6 +9,8 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
+import { applyRecognizeMediaFilePlanPipeline } from "./pipeline/applyPlan";
+import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
@@ -168,6 +170,22 @@ export class Core {
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (p) => this.normalizePosix(p),
+    });
+  }
+
+  async getPlan(id: string): Promise<Plan> {
+    const plan = await readPlan(this.fs, this.appDataDir, id);
+    if (!plan) throw new Error(`Plan not found: ${id}`);
+    return plan;
+  }
+
+  async applyPlan(plan: Plan): Promise<void> {
+    await applyRecognizeMediaFilePlanPipeline(plan, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      normalizePosix: (p) => this.normalizePosix(p),
+      setMetadata: (mm) => this.setMetadata(mm),
+      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
     });
   }
 

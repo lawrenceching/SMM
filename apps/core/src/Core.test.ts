@@ -580,3 +580,81 @@ describe("tryToRecognizeFolder", () => {
     await expect(core.tryToRecognizeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
   });
 });
+
+describe("applyPlan", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [
+            { season: 1, episode: 1 },
+            { season: 1, episode: 2 },
+          ],
+        },
+      ],
+    },
+    mediaFiles: [] as { absolutePath: string; seasonNumber?: number; episodeNumber?: number }[],
+  };
+
+  function seed(disk: Record<string, string> = {}) {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  it("merges mediaFiles and deletes the plan file", async () => {
+    const fs = seed({
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E02.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeFolder("/m/Show");
+    await core.applyPlan(plan);
+    const mm = await core.getMediaMetadata("/m/Show");
+    expect(mm?.mediaFiles).toEqual([
+      { absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
+      { absolutePath: "/m/Show/S01E02.mkv", seasonNumber: 1, episodeNumber: 2 },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("applies empty files plan as no-op on mediaFiles but deletes plan", async () => {
+    const fs = seed({ "/m/Show/random.mkv": "" });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const before = await core.getMediaMetadata("/m/Show");
+    const plan = await core.tryToRecognizeFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    await core.applyPlan(plan);
+    const after = await core.getMediaMetadata("/m/Show");
+    expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("getPlan throws when missing", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir });
+    await expect(core.getPlan("nope")).rejects.toThrow("Plan not found: nope");
+  });
+
+  it("rejects unsupported tasks", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir });
+    await expect(
+      core.applyPlan({
+        id: "r1",
+        task: "rename-files",
+        status: "pending",
+        creator: "app",
+        mediaFolderPath: "/m/Show",
+        files: [],
+      }),
+    ).rejects.toThrow(/Unsupported plan task/);
+  });
+});

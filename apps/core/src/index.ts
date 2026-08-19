@@ -18,6 +18,7 @@ export { UserConfig, DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } fr
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { tryToRecognizeFolderPipeline, type TryToRecognizeFolderDeps } from "./pipeline/tryToRecognizeFolder";
+export type { Plan } from "./pipeline/plans";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type { ImportJob, JobStatus, JobStage } from "./jobs/types";
 export type { FolderType } from "@smm/core";
