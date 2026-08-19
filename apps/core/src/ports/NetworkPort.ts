@@ -13,6 +13,7 @@ export interface HttpResponse {
   headers: Record<string, string>;
   text(): Promise<string>;
   json<T = unknown>(): Promise<T>;
+  arrayBuffer(): Promise<ArrayBuffer>;
 }
 
 /** Thin HTTP capability only. No business parsing here. */

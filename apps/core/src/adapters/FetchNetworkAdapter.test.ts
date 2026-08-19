@@ -10,6 +10,7 @@ function fakeResponse(overrides: Partial<HttpResponse> = {}): HttpResponse {
     headers: {},
     text: () => Promise.resolve("body-text"),
     json: <T>() => Promise.resolve({} as T),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
     ...overrides,
   };
 }

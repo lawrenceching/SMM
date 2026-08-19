@@ -10,6 +10,7 @@ function jsonResponse(body: unknown): HttpResponse {
     headers: {},
     text: () => Promise.resolve(JSON.stringify(body)),
     json: <T>() => Promise.resolve(body as T),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
   };
 }
 
