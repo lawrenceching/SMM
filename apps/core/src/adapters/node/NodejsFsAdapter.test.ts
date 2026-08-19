@@ -63,6 +63,13 @@ describe("NodejsFsAdapter", () => {
     await expect(adapter.deleteFile(joinPosix(tmpPosix, "nope.txt"))).resolves.toBeUndefined();
   });
 
+  it("creates nested directories", async () => {
+    const adapter = new NodejsFsAdapter();
+    const dir = joinPosix(tmpPosix, "Season 01");
+    await adapter.mkdir(dir);
+    expect(await adapter.exists(dir)).toBe(true);
+  });
+
   it("renames a directory on disk", async () => {
     const adapter = new NodejsFsAdapter();
     const from = joinPosix(tmpPosix, "old-dir");

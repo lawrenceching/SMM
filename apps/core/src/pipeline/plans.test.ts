@@ -22,6 +22,7 @@ function inMemoryFs(): FsPort & { raw: Map<string, string> } {
       files.delete(path);
     }),
     rename: vi.fn(async () => {}),
+    mkdir: vi.fn(async () => {}),
   };
 }
 

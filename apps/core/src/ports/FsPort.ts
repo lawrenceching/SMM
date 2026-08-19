@@ -9,4 +9,6 @@ export interface FsPort {
   deleteFile(path: string): Promise<void>;
   /** Rename/move a file or directory. Paths are POSIX. Missing source should reject. */
   rename(from: string, to: string): Promise<void>;
+  /** Create a directory (and parents). Idempotent if it already exists. Paths are POSIX. */
+  mkdir(path: string): Promise<void>;
 }

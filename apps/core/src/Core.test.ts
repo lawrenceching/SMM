@@ -41,6 +41,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
       }
       // Ensure destination directory marker if only empty dirs matter — file keys alone are enough for these tests.
     }),
+    mkdir: vi.fn(async () => {}),
   };
 }
 
@@ -426,6 +427,7 @@ describe("unimportFolder", () => {
         files.delete(path);
       },
       rename: async () => {},
+      mkdir: async () => {},
     };
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
 

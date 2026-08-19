@@ -65,4 +65,8 @@ export class NetworkFsAdapter implements FsPort {
   async rename(_from: string, _to: string): Promise<void> {
     throw new Error("Not Implemented: NetworkFsAdapter.rename");
   }
+
+  async mkdir(_path: string): Promise<void> {
+    throw new Error("Not Implemented: NetworkFsAdapter.mkdir");
+  }
 }

@@ -56,4 +56,8 @@ export class NodejsFsAdapter implements FsPort {
   async rename(from: string, to: string): Promise<void> {
     await fsp.rename(Path.toPlatformPath(from), Path.toPlatformPath(to));
   }
+
+  async mkdir(path: string): Promise<void> {
+    await fsp.mkdir(Path.toPlatformPath(path), { recursive: true });
+  }
 }
