@@ -1,5 +1,7 @@
 import { Command, Option } from 'commander'
+import { readFile } from 'node:fs/promises'
 import type { FolderType } from 'core-app'
+import type { MediaMetadata } from '@smm/core'
 import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
 import { waitUntilImportSettled } from './addProgress'
@@ -131,13 +133,21 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
 
   program
     .command('metadata')
-    .description('Show human-readable media metadata for an imported folder')
+    .description('Show or write media metadata for an imported folder')
     .argument('<folder>', 'Folder path')
-    .action(async (folder: string) => {
+    .option('--set <file>', 'Write media metadata from a JSON file')
+    .action(async (folder: string, opts: { set?: string }) => {
       try {
         if (!(await isFolderImported(folder))) {
           console.error(`Folder is not imported: ${folder}`)
           exitCode = 1
+          return
+        }
+        if (opts.set !== undefined) {
+          const raw = await readFile(opts.set, 'utf-8')
+          const mm = JSON.parse(raw) as MediaMetadata
+          await getCore().setMetadata({ ...mm, mediaFolderPath: folder })
+          console.log(`updated metadata for ${folder}`)
           return
         }
         const mm = await getCore().getMediaMetadata(folder)

@@ -1,0 +1,1 @@
+This folder holds e2e test for apps/cli.

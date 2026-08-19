@@ -256,6 +256,84 @@ describe("getFolders", () => {
   });
 });
 
+describe("setMetadata", () => {
+  const cache = metadataCachePath("/data/smm", "/m/Show");
+
+  it("persists metadata and strips files so getMediaMetadata round-trips without files", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    const mm = {
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder" as const,
+      files: ["/m/Show/S01E01.mkv"],
+      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
+    };
+
+    await core.setMetadata(mm);
+
+    const written = JSON.parse(await fs.readTextFile(cache)) as Record<string, unknown>;
+    expect(written).toEqual({
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder",
+      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
+    });
+    expect(written).not.toHaveProperty("files");
+    expect(await core.getMediaMetadata("/m/Show")).toEqual(written);
+  });
+
+  it("fully replaces an existing cache file", async () => {
+    const fs = inMemoryFs({
+      [cache]: JSON.stringify({ mediaFolderPath: "/m/Show", type: "tvshow-folder", tvShow: { name: "Old" } }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.setMetadata({
+      mediaFolderPath: "/m/Show",
+      type: "movie-folder",
+      movie: { id: "1", name: "New", database: "TMDB" },
+    });
+
+    expect(await core.getMediaMetadata("/m/Show")).toEqual({
+      mediaFolderPath: "/m/Show",
+      type: "movie-folder",
+      movie: { id: "1", name: "New", database: "TMDB" },
+    });
+  });
+
+  it("rejects missing mediaFolderPath without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.setMetadata({ type: "tvshow-folder" })).rejects.toThrow("Media folder path is required");
+    expect(fs.writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty mediaFolderPath without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.setMetadata({ mediaFolderPath: "", type: "tvshow-folder" })).rejects.toThrow(
+      "Media folder path is required",
+    );
+    expect(fs.writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it("uses the same cache key as getMediaMetadata for a Windows path", async () => {
+    const stored = "C:\\Movies\\Show";
+    const winCache = metadataCachePath("/data/smm", Path.posix(stored));
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.setMetadata({ mediaFolderPath: stored, type: "tvshow-folder" });
+
+    expect(await fs.exists(winCache)).toBe(true);
+    expect(await core.getMediaMetadata(stored)).toEqual({
+      mediaFolderPath: stored,
+      type: "tvshow-folder",
+    });
+  });
+});
+
 describe("getMediaMetadata", () => {
   const cache = metadataCachePath("/data/smm", "/m/Show");
 

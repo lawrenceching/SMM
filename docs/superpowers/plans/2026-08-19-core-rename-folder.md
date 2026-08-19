@@ -349,13 +349,7 @@ import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFo
 
 Export `RenameFolderArgs` from `apps/core/src/index.ts` alongside `Core`.
 
-Check `@smm/core/mediaMetadata` and `@smm/core/userConfig` resolve in `apps/core` the same way other packages do (if import path fails, use the package’s existing alias pattern from `apps/core` tsconfig / vitest — e.g. relative into `packages/core` only if already done elsewhere; prefer the same import style as `Path` from `@core/path`).
-
-If `@smm/core/mediaMetadata` is not wired for core-app, either:
-- add vitest/tsconfig alias matching monorepo convention, **or**
-- import from a path that already works in this package.
-
-Verify with a quick look at how `packages/core-routes` imports them and how `apps/core` currently imports `@smm/core` types.
+Use `@core/mediaMetadata` and `@core/userConfig` (same `@core/*` → `packages/core/*` alias as `Path`). Do **not** use `@smm/core/mediaMetadata` in apps/core — tsconfig maps `@smm/core` only to `types.ts`.
 
 - [ ] **Step 5: Run happy-path test**
 

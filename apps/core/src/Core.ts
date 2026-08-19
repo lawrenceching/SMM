@@ -123,6 +123,19 @@ export class Core {
     }
   }
 
+  /** Writes the metadata cache for `mm.mediaFolderPath`. Strips `files`. Full replace. */
+  async setMetadata(mm: MediaMetadata): Promise<void> {
+    if (!mm.mediaFolderPath) {
+      throw new Error("Media folder path is required");
+    }
+    const posixPath = this.normalizePosix(mm.mediaFolderPath);
+    const { files: _files, ...toPersist } = mm;
+    await this.fs.writeTextFile(
+      metadataCachePath(this.appDataDir, posixPath),
+      JSON.stringify(toPersist, null, 2),
+    );
+  }
+
   /** Removes a folder from the user config and deletes its metadata cache. Idempotent. */
   async unimportFolder(path: string): Promise<void> {
     const posixPath = this.normalizePosix(path);

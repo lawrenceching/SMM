@@ -14,6 +14,7 @@ import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
+import { handleRenameFolderV3 } from './src/route/RenameFolderV3';
 import { handleGetEpisodesRoute } from './src/route/getEpisodes';
 import { handleListFilesInMediaFolderRoute } from './src/route/listFilesInMediaFolder';
 import { handleValidateRenameOperationsRoute } from './src/route/validateRenameOperations';
@@ -253,6 +254,7 @@ export class Server {
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);
+    handleRenameFolderV3(this.app);
     handleGetEpisodesRoute(this.app);
     handleListFilesInMediaFolderRoute(this.app);
     handleValidateRenameOperationsRoute(this.app);

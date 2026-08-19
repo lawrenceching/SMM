@@ -3,6 +3,21 @@
  *
  * This package provides shared testing utilities for SMM tests.
  */
+export {
+  type LangCode,
+  type TestFolder,
+  folder1,
+  folder2,
+  folder3,
+  folder4,
+  folder5,
+  folder6,
+  musicFolder,
+  tvShowFolder,
+  movieFolder,
+  createFolderInTestFolder,
+} from './testFolders'
+
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'

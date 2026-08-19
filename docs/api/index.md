@@ -70,6 +70,10 @@ HTTP: `POST /api/folder-metadata` — MediaMetadata for an imported folder via `
 Source Code: apps/cli/src/route/UnimportFolder.ts
 HTTP: `POST /api/unimport-folder` — removes an imported media folder from `userDataDir/smm.json` and deletes its metadata cache via Layer 2 `Core.unimportFolder(path)`. Request body: `{ path: string }`. Response: `{ data: { path } }` or `{ error }`. Idempotent when the path is not in the config. Used by UI delete (context menu, Delete key, multi-select) when `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm rm`.
 
+## RenameFolder (v3)
+Source Code: apps/cli/src/route/RenameFolderV3.ts
+HTTP: `POST /api/rename-folder` — renames a managed media folder via Layer 2 `Core.renameFolder({ from, to })` (metadata cache + `UserConfig.folders` + on-disk rename). Request body: `{ from: string, to: string }`. Response: `{ data: { from, to } }` or `{ error }`. Broadcasts the same folder-renamed / userConfigUpdated socket events as legacy `POST /api/renameFolder`. Used by UI Sidebar rename when `localStorage["smm.v3.enabled"] === "true"`.
+
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts
 HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.

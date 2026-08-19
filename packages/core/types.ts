@@ -595,6 +595,10 @@ export interface MediaMetadata {
   mediaFolderPath?: string,
 
   /**
+   * @deprecated
+   * 
+   * DO NOT USE this field anymore, it will be removed in the future.
+   * 
    * The absolute paths of files (all files, media files, subtitle files, poster files, etc.) in media folder
    * The path is in POSIX format
    * string[] - the files in the folder, empyt array means there is no files in the folder.

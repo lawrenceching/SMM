@@ -61,6 +61,33 @@ describe('smm metadata', () => {
     )
   })
 
+  it('writes metadata from --set JSON after skip-init add', async () => {
+    writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
+    const { runCli } = await import('./runCli')
+    expect(await runCli(['node', 'smm', 'add', mediaFolder, '--type', 'music', '--skip-init'])).toBe(0)
+    logSpy.mockClear()
+    errorSpy.mockClear()
+
+    const jsonFile = join(userDataDir, 'mm.json')
+    writeFileSync(
+      jsonFile,
+      JSON.stringify({
+        type: 'music-folder',
+        mediaFiles: [{ absolutePath: join(mediaFolder, 'track.mp3') }],
+      }),
+      'utf-8',
+    )
+
+    expect(await runCli(['node', 'smm', 'metadata', mediaFolder, '--set', jsonFile])).toBe(0)
+    logSpy.mockClear()
+
+    expect(await runCli(['node', 'smm', 'metadata', mediaFolder])).toBe(0)
+    const text = output()
+    expect(text).toContain('type: music-folder')
+    expect(text).toContain('mediaFiles:')
+    expect(text).not.toContain('(empty)')
+  })
+
   it('prints human-readable metadata after a successful music import', async () => {
     writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
     const { runCli } = await import('./runCli')

@@ -57,6 +57,9 @@ importers:
       '@smm/core-routes':
         specifier: workspace:*
         version: link:../../packages/core-routes
+      '@smm/test':
+        specifier: workspace:*
+        version: link:../../packages/test
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
@@ -724,6 +727,9 @@ importers:
 
   packages/test:
     dependencies:
+      '@smm/core':
+        specifier: workspace:*
+        version: link:../core
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1

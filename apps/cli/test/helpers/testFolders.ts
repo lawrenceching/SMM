@@ -1,63 +1,105 @@
-import * as fs from 'node:fs'
-import * as path from 'node:path'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { expect } from 'vitest'
+import { Path } from '@core/path'
+import type { MediaMetadata } from '@smm/core'
+import { getCore } from '../../src/core/getCore'
+import { smm } from './smm'
+
+export {
+  type LangCode,
+  type TestFolder,
+  folder1,
+  folder2,
+  folder3,
+  folder4,
+  folder5,
+  folder6,
+  musicFolder,
+  tvShowFolder,
+  movieFolder,
+  createFolderInTestFolder,
+} from '@smm/test'
+
+import { createFolderInTestFolder, type TestFolder } from '@smm/test'
+
+const helpersDir = dirname(fileURLToPath(import.meta.url))
+const repoRoot = join(helpersDir, '../../../..')
+const MEDIA_METADATA_TEMPLATES_DIR = join(repoRoot, 'test', 'templates', 'mediaMetadatas')
+
+/** Same sanitization as Core `metadataCachePath` / core-routes cache. */
+export function metadataCachePath(userDataDir: string, folderPathInPosix: string): string {
+  const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
+  return join(userDataDir, 'metadata', `${filename}.json`)
+}
+
+/** Sibling path with " - Renamed" suffix (same naming as e2e RenameFolder). */
+export function renamedFolderPath(folderPath: string, folderName: string): string {
+  return join(dirname(folderPath), `${folderName} - Renamed`)
+}
+
+function loadTemplate(templateFileName: string): MediaMetadata {
+  const templatePath = join(MEDIA_METADATA_TEMPLATES_DIR, templateFileName)
+  return JSON.parse(readFileSync(templatePath, 'utf-8')) as MediaMetadata
+}
+
+function rewritePathsForFolder(mediaMetadata: MediaMetadata, folderPath: string): MediaMetadata {
+  const folderPosix = Path.posix(folderPath)
+  return {
+    ...mediaMetadata,
+    mediaFolderPath: folderPosix,
+    mediaFiles: mediaMetadata.mediaFiles?.map((file) => ({
+      ...file,
+      absolutePath: Path.posix(join(folderPath, file.absolutePath)),
+    })),
+  }
+}
+
+export type CreateAndImportInitializedFolderOptions = {
+  /** Explicit metadata. When omitted, loads `templateFileName` (or default TV template). */
+  mediaMetadata?: MediaMetadata
+  templateFileName?: string
+  updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata
+}
 
 /**
- * Mirrors `apps/e2e/test/actions/import-folders.ts` TestFolder fixtures
- * so CLI e2e uses the same folder names, files, and media ids.
+ * Create on-disk files from a TestFolder fixture, `smm add --skip-init`,
+ * then seed metadata via `Core.setMetadata` (no recognition / TMDB).
  */
-export interface TestFolder {
-  folderName: string
-  mediaName?: string
-  files: string[]
-  type: 'tvshow' | 'movie' | 'music'
-  path?: string
-}
-
-/** Same as e2e `folder1` — TMDB id in the folder name. */
-export const tvShowFolder: TestFolder = {
-  folderName: '天使降临到我身边！ (2019) {tmdbid=84666}',
-  mediaName: '天使降临到我身边！',
-  files: [
-    'S01E01.mkv',
-    'S01E01.jpg',
-    'S01E01.sc.ass',
-    'S01E01.tc.ass',
-    'S01E01.nfo',
-    'S01E02.mkv',
-    'S01E02.jpg',
-    'S01E02.sc.ass',
-    'S01E02.tc.ass',
-    'S01E02.nfo',
-    'S01E03.mkv',
-    'S01E03.jpg',
-    'S01E03.sc.ass',
-    'S01E03.tc.ass',
-    'S01E03.nfo',
-  ],
-  type: 'tvshow',
-}
-
-/** Same as e2e `folder5` — TVDB id in the folder name. */
-export const movieFolder: TestFolder = {
-  folderName: 'The Dark Knight {tvdbid=116}',
-  mediaName: '蝙蝠侠：黑暗骑士',
-  files: ['The Dark Knight [1080P].mkv'],
-  type: 'movie',
-}
-
-/** Music fixture (same idea as MusicPanel template `BilibiliMusic`). */
-export const musicFolder: TestFolder = {
-  folderName: 'BilibiliMusic',
-  files: ['01.mp3'],
-  type: 'music',
-}
-
-/** Create empty placeholder files under `mediaDir/<folderName>`. */
-export function createFolderInTestFolder(mediaDir: string, folder: TestFolder): TestFolder {
-  const testMediaFolder = path.join(mediaDir, folder.folderName)
-  fs.mkdirSync(testMediaFolder, { recursive: true })
-  for (const file of folder.files) {
-    fs.writeFileSync(path.join(testMediaFolder, file), '')
+export async function createAndImportInitializedFolder(
+  mediaDir: string,
+  folder: TestFolder,
+  options: CreateAndImportInitializedFolderOptions = {},
+): Promise<TestFolder> {
+  if (!process.env.USER_DATA_DIR) {
+    throw new Error('createAndImportInitializedFolder: USER_DATA_DIR must be set')
   }
-  return { ...folder, path: testMediaFolder }
+
+  const created = createFolderInTestFolder(mediaDir, folder)
+  const folderPath = created.path!
+
+  const added = await smm(['add', folderPath, '--type', created.type, '--skip-init'])
+  expect(added.code, added.stderr || added.stdout).toBe(0)
+
+  let mediaMetadata: MediaMetadata
+  if (options.mediaMetadata) {
+    mediaMetadata = {
+      ...options.mediaMetadata,
+      mediaFolderPath: Path.posix(folderPath),
+    }
+  } else {
+    const templateFileName = options.templateFileName ?? '天使降临到我身边.metadata.json'
+    mediaMetadata = rewritePathsForFolder(loadTemplate(templateFileName), folderPath)
+    mediaMetadata.files = created.files.map((file) => Path.posix(join(folderPath, file)))
+  }
+
+  if (options.updateMediaMetadata) {
+    mediaMetadata = options.updateMediaMetadata(mediaMetadata)
+  }
+  mediaMetadata.mediaFolderPath = Path.posix(folderPath)
+
+  await getCore().setMetadata(mediaMetadata)
+
+  return created
 }

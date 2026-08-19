@@ -19,6 +19,7 @@
     "@hono/node-server": "^1.19.0",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@smm/core-routes": "workspace:*",
+    "@smm/test": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "@types/shelljs": "^0.10.0",
     "ai": "^6.0.36",
