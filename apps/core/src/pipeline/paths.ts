@@ -20,6 +20,11 @@ export function userConfigPath(appDataDir: string): string {
   return joinPosix(Path.posix(appDataDir), "smm.json");
 }
 
+/** `<appDataDir>/plans/{id}.plan.json`, POSIX form (same layout as core-routes). */
+export function planFilePath(appDataDir: string, planId: string): string {
+  return joinPosix(Path.posix(appDataDir), "plans", `${planId}.plan.json`);
+}
+
 /**
  * Metadata cache file for a media folder, mirroring `metadataCacheFilePath`
  * in `apps/ui/src/api/readMediaMetadataV2.ts`. POSIX form.
