@@ -33,6 +33,15 @@ export class NodejsFsAdapter implements FsPort {
     }
   }
 
+  async isFile(path: string): Promise<boolean> {
+    try {
+      const stats = await fsp.stat(Path.toPlatformPath(path));
+      return stats.isFile();
+    } catch {
+      return false;
+    }
+  }
+
   async listFiles(dir: string): Promise<string[]> {
     const root = Path.toPlatformPath(dir);
     const out: string[] = [];

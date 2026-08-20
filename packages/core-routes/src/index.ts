@@ -13,6 +13,7 @@ export {
   rejectUnauthorized,
 } from "./auth.ts";
 export { validatePathIsInAllowlist } from "./allowlist.ts";
+export { createNodeRenameFileExistenceProbe } from "./nodeRenameFileExistenceProbe.ts";
 export {
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,

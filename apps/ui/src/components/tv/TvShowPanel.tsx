@@ -93,6 +93,7 @@ function TvShowPanel() {
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
     files: mediaMetadata?.files ?? [],
+    mode: "episode",
   })
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([])

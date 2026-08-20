@@ -10,6 +10,11 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
+import {
+  renameEpisodeFilePipeline,
+  type RenameEpisodeFileInput,
+  type RenameEpisodeFileResult,
+} from "./pipeline/renameEpisodeFile";
 import { applyPlanPipeline } from "./pipeline/applyPlan";
 import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
@@ -27,7 +32,13 @@ import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import { initialScrapeTasks, type ImportJob, type Job } from "./jobs/types";
 
-export type { RenameFolderArgs, ScrapeFolderOptions, ScrapeFolderResult };
+export type {
+  RenameFolderArgs,
+  RenameEpisodeFileInput,
+  RenameEpisodeFileResult,
+  ScrapeFolderOptions,
+  ScrapeFolderResult,
+};
 
 export interface CoreOptions {
   fs: FsPort;
@@ -177,6 +188,18 @@ export class Core {
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (path) => this.normalizePosix(path),
+    });
+  }
+
+  /** Rename a linked TV episode file and same-stem associates; updates metadata. */
+  async renameEpisodeFile(input: RenameEpisodeFileInput): Promise<RenameEpisodeFileResult> {
+    return renameEpisodeFilePipeline(input, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (path) => this.normalizePosix(path),
+      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
+      setMetadata: (mm) => this.setMetadata(mm),
     });
   }
 

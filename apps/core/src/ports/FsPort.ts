@@ -5,6 +5,11 @@ export interface FsPort {
   /** Write raw bytes; parent directories are created if needed. Paths are POSIX. */
   writeBinaryFile(path: string, data: Uint8Array): Promise<void>;
   exists(path: string): Promise<boolean>;
+  /**
+   * True iff the path exists and is a regular file (not a directory).
+   * Optional for transitional mocks; prefer implementing for rename preflight.
+   */
+  isFile?(path: string): Promise<boolean>;
   /** Recursively list all files under `dir` (not directories). */
   listFiles(dir: string): Promise<string[]>;
   /** Delete a file; missing files count as success (idempotent). */

@@ -52,6 +52,11 @@ export class NetworkFsAdapter implements FsPort {
     return !(json.error !== undefined && json.error.startsWith("File Not Found"));
   }
 
+  /** Best-effort: readFile success implies a readable file (not a directory listing). */
+  async isFile(path: string): Promise<boolean> {
+    return this.exists(path);
+  }
+
   async listFiles(dir: string): Promise<string[]> {
     const json = await this.post<{
       error?: string;
