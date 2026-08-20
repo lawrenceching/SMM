@@ -67,7 +67,7 @@ Problem: associate discovery and orchestration live in **Layer 1**. Electron / O
 1. **Core** — `Core.renameEpisodeFile` with episode check + associate expansion + disk + metadata + shared rename preflight  
 2. **HTTP** — `POST /api/rename-episode-file` → Core; Socket/metadata broadcast parity with today’s `/api/renameFiles`  
 3. **UI v3 (TV only)** — episode context-menu confirm calls the new API; no client-side `computeAssociatedFileRenames` when v3 is on  
-4. **CLI** — `smm rename-episode-file` → `Core.renameEpisodeFile` (operators / scripting / debugging)  
+4. **CLI** — `smm rename <from> <to>` auto-dispatches `renameFolder` vs `renameEpisodeFile` (alias: `rename-episode-file`)  
 5. **MCP + AI tool** — shared `rename-episode-file` tool schemas; MCP handler + in-app assistant tool; **user confirmation** before disk write (mirror `rename-folder`)  
 6. **Cleanup** — optional: dual paths for TV; keep generic `/api/renameFiles` for movie / plan apply until those migrate  
 
@@ -107,7 +107,7 @@ Per [refactoring.md](../../refactoring.md): UI only collects intent (dialog rela
 | `POST /api/rename-episode-file` | Body → Core → `{ data }` / `{ error }`, HTTP 200 |
 | Broadcast | After success: `mediaMetadataUpdated` for the folder (parity with `/api/renameFiles`) |
 | UI TV context menu | v3 ON → new API with `{ mediaFolder, from, to }` only; v3 OFF → legacy client expand + `/api/renameFiles` |
-| CLI | `smm rename-episode-file <folder> --from … --to …` → Core (no Socket confirmation) |
+| CLI | `smm rename <from> <to>` auto-dispatches folder vs episode; alias `rename-episode-file` |
 | MCP tool `rename-episode-file` | Same args as HTTP; **confirm** then Core (or HTTP); omit on hosts that cannot rename files |
 | In-app AI tool `rename-episode-file` | Same schemas as MCP; UI confirmation bridge then `POST /api/rename-episode-file` |
 
@@ -198,32 +198,48 @@ Note: Core already has `findAssociatedFiles` for **rule-based** apply (extension
 
 #### CLI
 
+Unified command (preferred):
+
+```
+smm rename <from> <to>
+```
+
+| Arg | Meaning |
+|-----|---------|
+| `<from>` | Absolute path of a **managed media folder**, or of a **linked episode file** under one |
+| `<to>` | Absolute target path |
+
+**Auto-dispatch** (no `--folder` / `--episode` required for the happy paths):
+
+1. Load managed folders via `Core.getFolders()`.  
+2. If `<from>` **exactly matches** a managed media folder → `Core.renameFolder({ from, to })`.  
+3. Else find the managed folder that **contains** `<from>` (longest POSIX prefix wins if folders nest).  
+4. If none → error: not under a managed media folder.  
+5. If `<from>` is a **directory** but not a media-folder root (e.g. `…/Show/Season 01`) → error: only media-folder roots or linked episode files.  
+6. Otherwise treat as episode file → `Core.renameEpisodeFile({ mediaFolderPath, from, to })` (Core expands associates + preflight).
+
+Examples:
+
+```bash
+# Episode file (+ associates)
+smm rename "/media/TV/Show/Season 01/ep1.mkv" "/media/TV/Show/Season 01/S01E01.mkv"
+
+# Media folder
+smm rename "/media/TV/Show" "/media/TV/Show2"
+```
+
+Output:
+
+- Folder rename: one line `from → to`, exit `0` / `1`.  
+- Episode rename: one line per `succeeded` pair; `FAILED path: error` for failures; exit `1` if Core throws or any pair failed.
+
+**Compatibility alias** (still supported):
+
 ```
 smm rename-episode-file <folder> --from <path> --to <path>
 ```
 
-| Arg / option | Meaning |
-|--------------|---------|
-| `<folder>` | Absolute media folder path (managed TV show folder) |
-| `--from` | Current episode file path (absolute, or relative to `<folder>`) |
-| `--to` | Target episode file path (absolute, or relative to `<folder>`) |
-
-Behavior:
-
-1. Resolve relative `--from` / `--to` against `<folder>` to absolute paths; normalize via the same helpers Core uses.  
-2. Call `Core.renameEpisodeFile({ mediaFolderPath, from, to })` directly (no HTTP, no confirmation prompt — operator owns the shell).  
-3. On success: print one line per `succeeded` pair (`from → to`), then any `failed` lines (`FAILED path: error`).  
-4. Exit `0` if Core returns and `failed.length === 0`; exit `1` if Core throws or any pair failed.  
-5. Do **not** invent associate paths in the CLI — Core expands them.
-
-Example (happy path, one associate):
-
-```
-/m/Show/S01E01.mp4 → /m/Show/S01E01_renamed.mp4
-/m/Show/S01E01.srt → /m/Show/S01E01_renamed.srt
-```
-
-Errors (unmanaged / not TV / not linked episode / preflight): print the Core error message to stderr and exit `1`.
+Resolves relative `--from` / `--to` against `<folder>`, then calls the same episode path as `smm rename` (does not auto-dispatch to folder rename).
 
 #### MCP tool
 
@@ -379,13 +395,16 @@ sequenceDiagram
 * **Then** response is `{ error: "Error Reason: …" }`  
 * **And** no files are renamed  
 
-### 4.6 CLI rename episode file
+### 4.6 CLI rename (unified)
 
 * **Given** a managed TV folder with a linked episode file  
-* **When** the operator runs `smm rename-episode-file <folder> --from … --to …`  
+* **When** the operator runs `smm rename <episode-from> <episode-to>`  
 * **Then** Core renames the episode (+ associates)  
 * **And** stdout lists each succeeded pair  
-* **And** exit code is `0` on full success  
+
+* **Given** a managed media folder  
+* **When** the operator runs `smm rename <folder-from> <folder-to>`  
+* **Then** Core renames the folder and rewrites metadata / user config  
 
 ### 4.7 MCP / AI tool with confirmation
 
@@ -418,7 +437,7 @@ sequenceDiagram
 - **Core unit:** episode assert accepts linked `mediaFiles` entry and rejects unlinked paths / movie folders; stem associate expansion matches `computeAssociatedFileRenames` fixtures (`S01E01.en.srt` → new stem); rejects unmanaged / escape paths; preflight refuses dest-exists / missing source before any rename; metadata updated via `updateMediaMetadataAfterRename`; partial failure still writes metadata for succeeded pairs.  
 - **HTTP route tests:** success returns `data.succeeded`; validation / not-episode / not-TV errors.  
 - **UI unit:** TV context-menu flow with v3 on posts `{ mediaFolder, from, to }` to `/api/rename-episode-file` only; v3 off keeps legacy; movie panel unchanged.  
-- **CLI e2e / unit:** resolve relative `--from`/`--to`; success prints pairs and exit 0; reject unmanaged / not-linked episode with exit 1.  
+- **CLI e2e / unit:** `smm rename` dispatches folder vs episode; reject subdirectory / unmanaged; episode success prints pairs; folder success updates `list` + metadata cache.  
 - **MCP / AI tool unit:** shared schema; cancel confirmation → no Core call; confirm → Core/HTTP invoked with primary paths only (no client-side associate list).  
 - **E2E:** `TVShow-RenameEpisodeFile.e2e.ts` must pass with v3 on against Core path (Web / Electron / OHOS / Docker as already tagged).  
 

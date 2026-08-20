@@ -18,8 +18,10 @@ import { logger } from './lib/logger';
 applyTmdbTlsDevBypassToProcessIfEnabled();
 
 // CLI subcommands talk to Core in-process; do not start the HTTP server.
-const cliCommands = new Set(['list', 'add', 'show', 'metadata', 'rm', 'config', 'try-to-recognize', 'try-to-rename', 'apply', 'scrape', 'job'])
-if (process.argv[2] !== undefined && cliCommands.has(process.argv[2])) {
+const cliCommands = new Set(['list', 'add', 'show', 'metadata', 'rm', 'config', 'try-to-recognize', 'try-to-rename', 'apply', 'scrape', 'job', 'rename', 'rename-episode-file'])
+const firstArg = process.argv[2]
+const isCliHelp = firstArg === '--help' || firstArg === '-h'
+if (firstArg !== undefined && (cliCommands.has(firstArg) || isCliHelp)) {
   const { runCli } = await import('./src/cli/runCli');
   const code = await runCli(process.argv);
   process.exit(code);

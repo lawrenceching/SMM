@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Path } from '@core/path'
@@ -13,7 +13,7 @@ import {
   tvShowFolder,
 } from './helpers/testFolders'
 
-describe('smm renameFolder CLI e2e (pre-initialized import)', () => {
+describe('smm rename CLI e2e (pre-initialized import)', () => {
   let userDataDir: string
   let mediaDir: string
   let prevUserDataDir: string | undefined
@@ -34,12 +34,14 @@ describe('smm renameFolder CLI e2e (pre-initialized import)', () => {
     rmSync(mediaDir, { recursive: true, force: true })
   })
 
-  it('renames a pre-initialized tvshow folder and rewrites metadata paths', async () => {
+  it('renames a pre-initialized tvshow folder via smm rename', async () => {
     const folder = await createAndImportInitializedFolder(mediaDir, { ...tvShowFolder })
     const from = folder.path!
     const to = renamedFolderPath(from, folder.folderName)
 
-    await getCore().renameFolder({ from, to })
+    const renamed = await smm(['rename', from, to])
+    expect(renamed.code, renamed.stderr || renamed.stdout).toBe(0)
+    expect(renamed.stdout).toContain(`${Path.posix(from)} → ${Path.posix(to)}`)
 
     expect(existsSync(from)).toBe(false)
     expect(existsSync(to)).toBe(true)
@@ -78,7 +80,7 @@ describe('smm renameFolder CLI e2e (pre-initialized import)', () => {
     ])
   })
 
-  it('renames a pre-initialized movie folder and rewrites metadata paths', async () => {
+  it('renames a pre-initialized movie folder via smm rename', async () => {
     const folder = await createAndImportInitializedFolder(mediaDir, { ...movieFolder }, {
       updateMediaMetadata: (mediaMetadata) => {
         const folderPath = Path.toPlatformPath(mediaMetadata.mediaFolderPath!)
@@ -107,7 +109,9 @@ describe('smm renameFolder CLI e2e (pre-initialized import)', () => {
       Path.posix(join(from, 'The Dark Knight [1080P].mkv')),
     )
 
-    await getCore().renameFolder({ from, to })
+    const renamed = await smm(['rename', from, to])
+    expect(renamed.code, renamed.stderr || renamed.stdout).toBe(0)
+    expect(renamed.stdout).toContain(`${Path.posix(from)} → ${Path.posix(to)}`)
 
     expect(existsSync(from)).toBe(false)
     expect(existsSync(to)).toBe(true)
@@ -130,5 +134,59 @@ describe('smm renameFolder CLI e2e (pre-initialized import)', () => {
         absolutePath: Path.posix(join(to, 'The Dark Knight [1080P].mkv')),
       },
     ])
+  })
+
+  it('renames a linked episode file (+ associates) via smm rename', async () => {
+    const folder = await createAndImportInitializedFolder(mediaDir, { ...tvShowFolder })
+    const media = folder.path!
+    const from = join(media, 'S01E01.mkv')
+    const to = join(media, 'S01E01_renamed.mkv')
+
+    const renamed = await smm(['rename', from, to])
+    expect(renamed.code, renamed.stderr || renamed.stdout).toBe(0)
+    expect(renamed.stdout).toContain(
+      `${Path.posix(from)} → ${Path.posix(to)}`,
+    )
+    expect(renamed.stdout).toContain(
+      `${Path.posix(join(media, 'S01E01.jpg'))} → ${Path.posix(join(media, 'S01E01_renamed.jpg'))}`,
+    )
+    expect(renamed.stdout).toContain(
+      `${Path.posix(join(media, 'S01E01.sc.ass'))} → ${Path.posix(join(media, 'S01E01_renamed.sc.ass'))}`,
+    )
+
+    expect(existsSync(from)).toBe(false)
+    expect(existsSync(to)).toBe(true)
+    expect(existsSync(join(media, 'S01E01_renamed.jpg'))).toBe(true)
+    expect(existsSync(join(media, 'S01E01.jpg'))).toBe(false)
+
+    const mm = await getCore().getMediaMetadata(media)
+    expect(mm).not.toBeNull()
+    expect(mm!.mediaFiles).toEqual(
+      expect.arrayContaining([
+        {
+          absolutePath: Path.posix(to),
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ]),
+    )
+  })
+
+  it('rejects renaming a subdirectory that is not a managed media folder', async () => {
+    const folder = await createAndImportInitializedFolder(mediaDir, { ...tvShowFolder })
+    const media = folder.path!
+    const season = join(media, 'Season 01')
+    mkdirSync(season)
+
+    const result = await smm(['rename', season, join(media, 'Season 01 - Renamed')])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/directory but not a managed media folder/)
+  })
+
+  it('rejects unmanaged paths', async () => {
+    const orphan = join(mediaDir, 'orphan.mkv')
+    const result = await smm(['rename', orphan, join(mediaDir, 'orphan2.mkv')])
+    expect(result.code).toBe(1)
+    expect(result.stderr).toMatch(/not under a managed media folder/)
   })
 })

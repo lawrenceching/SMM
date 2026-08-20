@@ -1,4 +1,4 @@
-import { Command, Option } from 'commander'
+import { Command, CommanderError, Option } from 'commander'
 import { readFile } from 'node:fs/promises'
 import type { FolderType, RenameRuleName } from 'core-app'
 import type { MediaMetadata } from '@smm/core'
@@ -15,6 +15,11 @@ import {
   resolveShowFolder,
 } from './folderDisplay'
 import { resolvePathUnderMediaFolder } from './resolvePathUnderMediaFolder'
+import {
+  classifyRenameTarget,
+  printEpisodeRenameResult,
+} from './renameDispatch'
+import { Path } from '@core/path'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -302,9 +307,40 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     })
 
   program
+    .command('rename')
+    .description(
+      'Rename a managed media folder, or a linked TV episode file (+ associates)',
+    )
+    .argument('<from>', 'Absolute path of media folder or episode file')
+    .argument('<to>', 'Absolute target path')
+    .action(async (from: string, to: string) => {
+      try {
+        const core = getCore()
+        const folders = await core.getFolders()
+        const classified = await classifyRenameTarget(from, folders)
+        if (classified.kind === 'folder') {
+          await core.renameFolder({ from, to })
+          console.log(`${Path.posix(from)} → ${Path.posix(to)}`)
+          return
+        }
+        const result = await core.renameEpisodeFile({
+          mediaFolderPath: classified.mediaFolderPath,
+          from,
+          to,
+        })
+        if (printEpisodeRenameResult(result)) {
+          exitCode = 1
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  program
     .command('rename-episode-file')
     .description(
-      'Rename a linked TV episode file (+ same-stem associates) via Core',
+      'Alias: rename a linked TV episode file (+ associates) under a media folder',
     )
     .argument('<folder>', 'Imported TV show media folder path')
     .requiredOption('--from <path>', 'Current episode file path (absolute or relative to folder)')
@@ -318,13 +354,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           from,
           to,
         })
-        for (const pair of result.succeeded) {
-          console.log(`${pair.from} → ${pair.to}`)
-        }
-        for (const fail of result.failed) {
-          console.error(`FAILED ${fail.path}: ${fail.error}`)
-        }
-        if (result.failed.length > 0) {
+        if (printEpisodeRenameResult(result)) {
           exitCode = 1
         }
       } catch (error) {
@@ -417,6 +447,13 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
   try {
     await program.parseAsync(argv, { from: 'node' })
   } catch (error) {
+    // exitOverride(): help/version throw after writing to stdout with exitCode 0.
+    if (error instanceof CommanderError) {
+      if (error.exitCode !== 0) {
+        console.error(error.message)
+      }
+      return error.exitCode
+    }
     const message = error instanceof Error ? error.message : String(error)
     console.error(message)
     exitCode = 1
