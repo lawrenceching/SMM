@@ -1,6 +1,7 @@
-import type { Hono } from 'hono';
-import { doChat, type ChatConfig } from '@smm/core-routes';
-import { logger } from '../../lib/logger';
+import type { Hono } from 'hono'
+import { doChat, type ChatConfig } from '@smm/core-routes'
+import { getCore } from '../core/getCore'
+import { logger } from '../../lib/logger'
 
 /**
  * Register a Hono shell for `POST /api/chat` that delegates to
@@ -14,8 +15,10 @@ import { logger } from '../../lib/logger';
 export function handleChatRequest(app: Hono, chatConfig: ChatConfig) {
   app.post('/api/chat', async (c) => {
     try {
-      const response = await doChat(chatConfig, c.req.raw);
-      return response;
+      const response = await doChat(chatConfig, c.req.raw, {
+        renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
+      })
+      return response
     } catch (error) {
       logger.error(
         { error: error instanceof Error ? {
@@ -24,14 +27,14 @@ export function handleChatRequest(app: Hono, chatConfig: ChatConfig) {
           name: error.name,
         } : error },
         'Chat route error:',
-      );
+      )
       return c.json(
         {
           error: 'Failed to process chat request',
           details: error instanceof Error ? error.message : 'Unknown error',
         },
         500,
-      );
+      )
     }
-  });
+  })
 }

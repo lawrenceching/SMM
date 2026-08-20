@@ -57,6 +57,7 @@ const CONSTANT_NAME_TO_TOOL_NAME: Record<string, string> = {
   GET_MEDIA_FOLDERS: 'get-media-folders',
   LIST_FILES_IN_MEDIA_FOLDER: 'list-files-in-media-folder',
   RENAME_FOLDER: 'rename-folder',
+  RENAME_EPISODE_FILE: 'rename-episode-file',
   BEGIN_RENAME_FILES_TASK: 'begin-rename-files-task',
   ADD_RENAME_FILE_TO_TASK: 'add-rename-file-to-task',
   END_RENAME_FILES_TASK: 'end-rename-files-task',

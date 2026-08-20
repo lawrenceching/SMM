@@ -5,6 +5,7 @@ export { GetApplicationContextTool, type ApplicationContextData } from './GetApp
 export { IsFolderExistTool } from './IsFolderExist';
 export { GetEpisodesTool } from './GetEpisodes';
 export { RenameFolderTool } from './RenameFolder';
+export { RenameEpisodeFileTool } from './RenameEpisodeFile';
 export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
 export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
 export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';

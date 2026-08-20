@@ -8,6 +8,7 @@ import { IS_FOLDER_EXIST } from "@smm/core/types/ai-tools/isFolderExist";
 import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { GET_MEDIA_METADATA } from "@smm/core/types/ai-tools/getMediaMetadata";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -44,6 +45,7 @@ const TOOL_NAME_KEYS = [
   GET_MEDIA_METADATA,
   LIST_FILES_KEY,
   RENAME_FOLDER,
+  RENAME_EPISODE_FILE,
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
   END_RENAME_FILES_TASK,
@@ -123,6 +125,7 @@ async function loadLocalizedToolDescriptions(): Promise<Record<string, string>> 
  */
 async function buildMcpConfig(): Promise<McpConfig> {
   const { getUserConfig } = await import("@/utils/config");
+  const { getCore } = await import("@/core/getCore");
   return {
     getUserConfig,
     appDataDir: getAppDataDir(),
@@ -132,6 +135,7 @@ async function buildMcpConfig(): Promise<McpConfig> {
     broadcast: (message) =>
       broadcast(message as Parameters<typeof broadcast>[0]),
     toolDescriptions: await loadLocalizedToolDescriptions(),
+    renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
     logger: {
       debug: (obj, msg) => logger.debug(obj, msg),
       info: (obj, msg) => logger.info(obj, msg),

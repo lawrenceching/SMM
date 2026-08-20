@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { defaultChatFs } from "../chatFs.ts";
 import { defaultRenameFilesTaskDeps } from "../tools/renameFilesTaskDefaults.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
 import { registerAddRenameFileTool } from "./toolHandlers/addRenameFile.ts";
 import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
@@ -17,6 +18,7 @@ import { registerGetMediaMetadataTool } from "./toolHandlers/getMediaMetadata.ts
 import { registerIsFolderExistTool } from "./toolHandlers/isFolderExist.ts";
 import { registerListFilesTool } from "./toolHandlers/listFiles.ts";
 import { registerRenameFolderTool } from "./toolHandlers/renameFolder.ts";
+import { registerRenameEpisodeFileTool } from "./toolHandlers/renameEpisodeFile.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
 
@@ -95,6 +97,10 @@ export async function createMcpStreamableHttpHandler(
   // due to sandbox permissions — see `apps/ohos/src/http/mcp.ts`).
   if (!config.disabledTools?.includes(RENAME_FOLDER)) {
     registerRenameFolderTool(server, config);
+  }
+
+  if (!config.disabledTools?.includes(RENAME_EPISODE_FILE)) {
+    registerRenameEpisodeFileTool(server, config);
   }
 
   // Episode-level rename task (begin / add / end).

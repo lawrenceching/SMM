@@ -69,6 +69,7 @@ export interface CoreRoutesModule {
    */
   MCP_TOOL_NAMES: {
     readonly RENAME_FOLDER: "rename-folder"
+    readonly RENAME_EPISODE_FILE: "rename-episode-file"
   }
 }
 

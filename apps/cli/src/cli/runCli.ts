@@ -14,6 +14,7 @@ import {
   isFolderImported,
   resolveShowFolder,
 } from './folderDisplay'
+import { resolvePathUnderMediaFolder } from './resolvePathUnderMediaFolder'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -52,7 +53,7 @@ const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 const SCRAPE_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `job`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `rename-episode-file`, `job`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -292,6 +293,38 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           console.log(line)
         }
         if (job.status !== 'succeeded') {
+          exitCode = 1
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('rename-episode-file')
+    .description(
+      'Rename a linked TV episode file (+ same-stem associates) via Core',
+    )
+    .argument('<folder>', 'Imported TV show media folder path')
+    .requiredOption('--from <path>', 'Current episode file path (absolute or relative to folder)')
+    .requiredOption('--to <path>', 'Target episode file path (absolute or relative to folder)')
+    .action(async (folder: string, opts: { from: string; to: string }) => {
+      try {
+        const from = resolvePathUnderMediaFolder(folder, opts.from)
+        const to = resolvePathUnderMediaFolder(folder, opts.to)
+        const result = await getCore().renameEpisodeFile({
+          mediaFolderPath: folder,
+          from,
+          to,
+        })
+        for (const pair of result.succeeded) {
+          console.log(`${pair.from} → ${pair.to}`)
+        }
+        for (const fail of result.failed) {
+          console.error(`FAILED ${fail.path}: ${fail.error}`)
+        }
+        if (result.failed.length > 0) {
           exitCode = 1
         }
       } catch (error) {

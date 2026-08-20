@@ -19,6 +19,7 @@ import {
     GetEpisodesTool,
     GetMediaMetadataTool,
     RenameFolderTool,
+    RenameEpisodeFileTool,
     BeginRecognizeTaskTool,
     AddRecognizedMediaFileTool,
     EndRecognizeTaskTool,
@@ -314,6 +315,7 @@ function AssistantImpl() {
         <IsFolderExistTool />
         <GetEpisodesTool />
         <RenameFolderTool />
+        <RenameEpisodeFileTool />
         {/* Rename/recognize task tools run HTTP plan APIs in the renderer.
             On desktop `AssistantChatTransport`, the same tools are executed
             server-side in `doChat` — mounting them here would duplicate

@@ -81,6 +81,20 @@ export interface McpConfig {
   disabledTools?: readonly string[];
 
   /**
+   * Optional runner for `rename-episode-file`. Hosts that expose Core
+   * (e.g. Bun cli) inject `Core.renameEpisodeFile`. When omitted, the
+   * tool reports that it is unavailable on this host.
+   */
+  renameEpisodeFile?: (input: {
+    mediaFolderPath: string;
+    from: string;
+    to: string;
+  }) => Promise<{
+    succeeded: Array<{ from: string; to: string }>;
+    failed: Array<{ path: string; error: string }>;
+  }>;
+
+  /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
    * omitted, English defaults from `@smm/core/types/ai-tools/*`

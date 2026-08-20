@@ -17,6 +17,9 @@
   "rename-folder": {
     "description": "Rename a media folder. This is a destructive operation - the folder will be renamed on disk and metadata cache will be updated."
   },
+  "rename-episode-file": {
+    "description": "Rename a linked TV episode video file and same-stem associates (e.g. subtitles). TV episode files only — not folders, movies, or bulk rename plans."
+  },
   "begin-rename-task": {
     "description": "Begin a rename files task for a media folder. Call this first, then addRenameFileToTask for each file, then endRenameFilesTask. The user will be asked to confirm before files are renamed. Returns a task ID to use with addRenameFileToTask and endRenameFilesTask."
   },

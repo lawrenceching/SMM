@@ -3,6 +3,7 @@ export {
   type McpRequestHandler,
 } from "./createServer.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 export {
   createErrorResponse,
   createSuccessResponse,
@@ -29,6 +30,7 @@ export {
  * without resolving `@smm/core` directly.
  */
 export { RENAME_FOLDER };
+export { RENAME_EPISODE_FILE };
 
 /**
  * Constants exposed to hosts that load `core-routes.js` as a
@@ -36,4 +38,7 @@ export { RENAME_FOLDER };
  * `@smm/core` directly at build time. Keep in sync with the
  * tool-name constants under `@smm/core/types/ai-tools/*`.
  */
-export const MCP_TOOL_NAMES = { RENAME_FOLDER } as const;
+export const MCP_TOOL_NAMES = {
+  RENAME_FOLDER,
+  RENAME_EPISODE_FILE,
+} as const;

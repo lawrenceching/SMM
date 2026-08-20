@@ -7,6 +7,7 @@ import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
 import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -30,6 +31,10 @@ import { buildGetMediaFoldersTool } from "./getMediaFolders.ts";
 import { buildListFilesInMediaFolderTool } from "./listFilesInMediaFolder.ts";
 import { buildRenameFolderTool } from "./renameFolder.ts";
 import {
+  buildRenameEpisodeFileTool,
+  type RenameEpisodeFileRunner,
+} from "./renameEpisodeFile.ts";
+import {
   buildAddRenameFileToTaskTool,
   buildBeginRenameFilesTaskTool,
   buildEndRenameFilesTaskTool,
@@ -43,7 +48,7 @@ import {
 } from "./recognizeMediaFilesTask.ts";
 
 /**
- * The 13 chat tools registered in `streamText({ tools })`, keyed by
+ * The 14 chat tools registered in `streamText({ tools })`, keyed by
  * their AI tool name constant. The object is constructed per-request
  * so each chat call gets tools bound to its own `clientId`,
  * `abortSignal`, and `UserConfig` snapshot.
@@ -56,6 +61,7 @@ export interface ChatTools {
   [GET_MEDIA_FOLDERS]: ReturnType<typeof buildGetMediaFoldersTool>;
   [LIST_FILES_IN_MEDIA_FOLDER]: ReturnType<typeof buildListFilesInMediaFolderTool>;
   [RENAME_FOLDER]: ReturnType<typeof buildRenameFolderTool>;
+  [RENAME_EPISODE_FILE]: ReturnType<typeof buildRenameEpisodeFileTool>;
   [BEGIN_RENAME_FILES_TASK]: ReturnType<typeof buildBeginRenameFilesTaskTool>;
   [ADD_RENAME_FILE_TO_TASK]: ReturnType<typeof buildAddRenameFileToTaskTool>;
   [END_RENAME_FILES_TASK]: ReturnType<typeof buildEndRenameFilesTaskTool>;
@@ -72,6 +78,8 @@ export interface ChatTools {
  */
 export interface ChatToolsExtraDeps {
   renameFilesTask?: RenameFilesTaskDeps;
+  /** Host Core runner for single-episode rename (Bun cli / Electron). */
+  renameEpisodeFile?: RenameEpisodeFileRunner;
 }
 
 export interface CreateChatToolsArgs {
@@ -147,6 +155,12 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     [RENAME_FOLDER]: buildRenameFolderTool(
       clientId,
       syntheticConfig,
+      abortSignal,
+      acknowledge,
+    ),
+    [RENAME_EPISODE_FILE]: buildRenameEpisodeFileTool(
+      clientId,
+      extra?.renameEpisodeFile,
       abortSignal,
       acknowledge,
     ),

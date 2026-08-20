@@ -17,6 +17,9 @@
   "rename-folder": {
     "description": "重命名媒体文件夹。这是一个破坏性操作 - 文件夹将在磁盘上重命名，元数据缓存将被更新。"
   },
+  "rename-episode-file": {
+    "description": "重命名已关联的电视剧集视频文件及其同名关联文件（如字幕）。仅用于剧集文件，不可用于文件夹、电影或批量重命名计划。"
+  },
   "begin-rename-task": {
     "description": "为媒体文件夹开始重命名文件任务。首先调用此工具，然后为每个文件调用 addRenameFileToTask，最后调用 endRenameFilesTask。用户将被要求确认后才会重命名文件。返回一个任务 ID，用于 addRenameFileToTask 和 endRenameFilesTask。"
   },
