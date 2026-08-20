@@ -61,6 +61,7 @@ export function emitAddProgress(
   type: FolderType,
   log: (line: string) => void = console.log,
 ): AddProgressState {
+  if (job.kind !== "import") return state
   const next = { ...state }
   const kind = mediaKind(type)
   const stage = job.stage
@@ -145,7 +146,7 @@ export async function waitUntilImportSettled(
 
   for (;;) {
     const job = core.getJob(id)
-    if (job) {
+    if (job?.kind === 'import') {
       if (emitProgress) {
         progress = emitAddProgress(progress, job, options.folder, options.type, log)
       }

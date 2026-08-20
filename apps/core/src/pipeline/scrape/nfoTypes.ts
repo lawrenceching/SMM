@@ -102,3 +102,39 @@ export interface EpisodeNfo {
   userNote?: string;
   episodeGroups?: Array<{ id?: string; name?: string; season?: number; episode?: number }>;
 }
+
+export interface MovieNFOSet {
+  name?: string;
+  overview?: string;
+}
+
+export interface MovieNFO {
+  title?: string;
+  originalTitle?: string;
+  sortTitle?: string;
+  year?: number;
+  ratings?: TvShowNFORating[];
+  userRating?: number;
+  top250?: number;
+  set?: MovieNFOSet;
+  plot?: string;
+  outline?: string;
+  tagline?: string;
+  runtime?: number;
+  thumbs?: NfoThumb[];
+  fanartThumbs?: string[];
+  id?: string;
+  imdbid?: string;
+  tmdbid?: string;
+  tvdbid?: string;
+  uniqueIds?: TvShowNFOUniqueId[];
+  countries?: string[];
+  status?: string;
+  premiered?: string;
+  watched?: boolean;
+  playcount?: number;
+  genres?: string[];
+  studios?: string[];
+  languages?: string;
+  dateadded?: string;
+}

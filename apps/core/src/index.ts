@@ -4,6 +4,7 @@ export {
   type ImportFolderHandle,
   type ImportFolderOptions,
   type RenameFolderArgs,
+  type ScrapeFolderHandle,
   type ScrapeFolderOptions,
   type ScrapeFolderResult,
 } from "./Core";
@@ -39,5 +40,13 @@ export type {
   ScrapeTaskResult,
 } from "./pipeline/scrape/types";
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
-export type { ImportJob, JobStatus, JobStage } from "./jobs/types";
+export type {
+  ImportJob,
+  ScrapeJob,
+  Job,
+  JobStatus,
+  JobStage,
+  ScrapeJobTask,
+  ScrapeTaskRuntimeStatus,
+} from "./jobs/types";
 export type { FolderType } from "@smm/core";

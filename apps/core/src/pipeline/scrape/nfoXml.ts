@@ -1,4 +1,4 @@
-import type { EpisodeNfo, TvShowNFO } from "./nfoTypes";
+import type { EpisodeNfo, MovieNFO, TvShowNFO } from "./nfoTypes";
 
 interface XmlNode {
   tag: string;
@@ -352,4 +352,87 @@ export function convertTvShowEpisodeNfoToXml(nfo: EpisodeNfo): string {
   return toXmlDocument("episodedetails", buildEpisodeChildren(nfo));
 }
 
-export type { EpisodeNfo, TvShowNFO } from "./nfoTypes";
+function buildMovieChildren(nfo: MovieNFO): XmlNode[] {
+  const children: XmlNode[] = [];
+  for (const node of [
+    textElement("title", nfo.title),
+    textElement("originaltitle", nfo.originalTitle),
+    textElement("sorttitle", nfo.sortTitle),
+    textElement("year", nfo.year !== undefined ? String(nfo.year) : undefined),
+    textElement("plot", nfo.plot),
+    textElement("outline", nfo.outline),
+    textElement("tagline", nfo.tagline),
+    textElement("runtime", nfo.runtime !== undefined ? String(nfo.runtime) : undefined),
+    textElement("id", nfo.id),
+    textElement("imdbid", nfo.imdbid),
+    textElement("tmdbid", nfo.tmdbid),
+    textElement("tvdbid", nfo.tvdbid),
+    textElement("premiered", nfo.premiered),
+    textElement("status", nfo.status),
+    textElement("languages", nfo.languages),
+    textElement("dateadded", nfo.dateadded),
+  ]) {
+    if (node) children.push(node);
+  }
+
+  if (nfo.ratings?.length) {
+    children.push({
+      tag: "ratings",
+      children: nfo.ratings.map((r) => ({
+        tag: "rating",
+        attrs: {
+          default: r.default !== undefined ? String(r.default) : undefined,
+          max: r.max !== undefined ? String(r.max) : undefined,
+          name: r.name,
+        },
+        children: [
+          ...(r.value !== undefined ? [{ tag: "value", text: String(r.value) }] : []),
+          ...(r.votes !== undefined ? [{ tag: "votes", text: String(r.votes) }] : []),
+        ],
+      })),
+    });
+  }
+
+  nfo.thumbs?.forEach((thumb) => {
+    if (!thumb.url) return;
+    children.push({
+      tag: "thumb",
+      text: thumb.url,
+      attrs: {
+        aspect: thumb.aspect ?? undefined,
+        season: thumb.season !== undefined ? String(thumb.season) : undefined,
+        type: thumb.type,
+      },
+    });
+  });
+
+  if (nfo.fanartThumbs?.length) {
+    children.push({
+      tag: "fanart",
+      children: nfo.fanartThumbs.map((url) => ({ tag: "thumb", text: url })),
+    });
+  }
+
+  nfo.uniqueIds?.forEach((uid) => {
+    children.push({
+      tag: "uniqueid",
+      text: uid.value,
+      attrs: {
+        type: uid.type,
+        default: uid.default !== undefined ? String(uid.default) : undefined,
+      },
+    });
+  });
+
+  nfo.genres?.forEach((genre) => children.push({ tag: "genre", text: genre }));
+  nfo.studios?.forEach((studio) => children.push({ tag: "studio", text: studio }));
+  nfo.countries?.forEach((country) => children.push({ tag: "country", text: country }));
+
+  return children;
+}
+
+export function convertMovieNfoToXml(nfo: MovieNFO): string {
+  return toXmlDocument("movie", buildMovieChildren(nfo));
+}
+
+export type { EpisodeNfo, MovieNFO, TvShowNFO } from "./nfoTypes";

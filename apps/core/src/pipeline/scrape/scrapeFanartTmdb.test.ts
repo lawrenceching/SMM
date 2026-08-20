@@ -6,6 +6,7 @@ import type { NetworkPort } from "../../ports/NetworkPort";
 import { DEFAULT_USER_CONFIG } from "../userConfig";
 import { scrapeFanartTmdb } from "./scrapeFanartTmdb";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";
+import type { TvdbClient } from "../../clients/TvdbClient";
 
 const seriesDetails: TmdbSeriesDetails = {
   id: 123876,
@@ -47,6 +48,7 @@ function createDeps(
     fs,
     network,
     tmdb: tmdb as TmdbClient,
+    tvdb: {} as TvdbClient,
     mediaMetadata: tvShowMetadata,
     language: "en-US",
     userConfig: DEFAULT_USER_CONFIG,

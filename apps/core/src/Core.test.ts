@@ -94,7 +94,7 @@ describe("Core", () => {
 
     const job = core.getJob(id);
     expect(job?.status).toBe("succeeded");
-    expect(job?.progress).toBe(100);
+    expect(job?.kind === "import" && job.progress).toBe(100);
 
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toContain("/m/My.Music");
@@ -963,16 +963,32 @@ describe("scrapeFolder", () => {
     });
   }
 
-  it("downloads poster when artifacts are missing", async () => {
+  async function waitForScrapeJob(core: Core, id: string, timeoutMs = 5_000) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const job = core.getJob(id);
+      if (job && job.kind === "scrape" && job.status !== "pending" && job.status !== "running") {
+        return job;
+      }
+      if (Date.now() > deadline) throw new Error(`Timed out waiting for scrape job ${id}`);
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  }
+
+  it("returns a scrape job id and completes poster when artifacts are missing", async () => {
     const fakeBytes = new Uint8Array([0xff, 0xd8, 0xff]);
     const fs = seed();
     const network = scrapeNetwork(fakeBytes);
     const core = new Core({ fs, network, appDataDir });
 
-    const result = await core.scrapeFolder("/m/Show");
+    const { id } = await core.scrapeFolder("/m/Show");
+    expect(id).toBeTruthy();
 
-    expect(result.mediaFolderPath).toBe("/m/Show");
-    expect(result.tasks.poster).toEqual({ status: "completed" });
+    const job = await waitForScrapeJob(core, id);
+    expect(job.kind).toBe("scrape");
+    expect(job.folderPath).toBe("/m/Show");
+    expect(job.status).toBe("succeeded");
+    expect(job.tasks.poster).toEqual({ status: "completed" });
     expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(fakeBytes);
     expect(network.fetch).toHaveBeenCalled();
   });
@@ -983,9 +999,10 @@ describe("scrapeFolder", () => {
     const network = scrapeNetwork(new Uint8Array([0xff]));
     const core = new Core({ fs, network, appDataDir });
 
-    const result = await core.scrapeFolder("/m/Show");
+    const { id } = await core.scrapeFolder("/m/Show");
+    const job = await waitForScrapeJob(core, id);
 
-    expect(result.tasks.poster).toEqual({ status: "skipped" });
+    expect(job.tasks.poster).toEqual({ status: "skipped" });
     expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(existingPoster);
     const imageFetches = vi.mocked(network.fetch).mock.calls.filter(([url]) =>
       String(url).includes("poster.jpg"),
@@ -993,21 +1010,21 @@ describe("scrapeFolder", () => {
     expect(imageFetches).toHaveLength(0);
   });
 
-  it("rejects unmanaged folders", async () => {
+  it("rejects unmanaged folders before creating a job", async () => {
     const fs = seed();
     const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
     await expect(core.scrapeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
   });
 
-  it("rejects non-TMDB metadata", async () => {
+  it("rejects non-TMDB/TVDB metadata before creating a job", async () => {
     const fs = scrapeInMemoryFs({
       [userConfigPath(appDataDir)]: configWith([folder]),
       [metadataCachePath(appDataDir, folder)]: JSON.stringify({
         ...tvMetadata,
-        tvShow: { id: "1", database: "TVDB", name: "Show", seasons: [] },
+        tvShow: { id: "1", database: "OTHER", name: "Show", seasons: [] },
       }),
     });
     const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
-    await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/must use TMDB database/);
+    await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/Unsupported media database/);
   });
 });

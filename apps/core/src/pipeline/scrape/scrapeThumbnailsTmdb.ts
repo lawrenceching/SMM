@@ -4,6 +4,7 @@ import { extname } from "../paths";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";
 import {
   newFilePathWithExt,
+  parseNumericMediaId,
   parseTmdbSeriesId,
   scrapeErrorMessage,
 } from "./scrapeTaskDeps";
@@ -46,13 +47,82 @@ export async function getEpisodeStillPathsFromTmdb(
   return stillPaths;
 }
 
-/** Download TMDB episode stills beside each linked video file. */
-export async function scrapeThumbnailsTmdb(deps: ScrapeTaskDeps): Promise<ScrapeTaskResult> {
-  const { fs, network, tmdb, mediaMetadata, language, userConfig } = deps;
-  const seriesId = parseTmdbSeriesId(mediaMetadata);
+async function getEpisodeStillPathsFromTvdb(
+  seriesId: number,
+  tvdb: ScrapeTaskDeps["tvdb"],
+): Promise<EpisodeStillPath[]> {
+  const artworkTypes = await tvdb.getArtworkTypes();
+  const screencapTypeId = artworkTypes?.find((type) => type.name === "16:9 Screencap")?.id ?? 11;
+  const series = await tvdb.getSeriesExtended(seriesId);
+  const stillPaths: EpisodeStillPath[] = [];
 
-  if (seriesId === undefined) {
-    return { status: "failed", error: "TV show TMDB metadata is required" };
+  for (const season of series?.seasons ?? []) {
+    const tvdbSeason = await tvdb.getSeasonExtended(season.id);
+    for (const episode of tvdbSeason?.episodes ?? []) {
+      if (episode.image === undefined) continue;
+      if (episode.imageType !== screencapTypeId) continue;
+      stillPaths.push({
+        season: season.number,
+        episode: episode.number,
+        stillUrl: episode.image,
+      });
+    }
+  }
+
+  return stillPaths;
+}
+
+async function downloadStills(
+  deps: ScrapeTaskDeps,
+  stillPaths: EpisodeStillPath[],
+): Promise<ScrapeTaskResult> {
+  const { fs, network, mediaMetadata, userConfig } = deps;
+  const mediaFiles = (mediaMetadata.mediaFiles ?? []).filter(
+    (file) => file.seasonNumber !== undefined && file.episodeNumber !== undefined,
+  );
+
+  let downloaded = 0;
+  let skipped = 0;
+
+  for (const mediaFile of mediaFiles) {
+    const still = stillPaths.find(
+      (path) =>
+        path.season === mediaFile.seasonNumber && path.episode === mediaFile.episodeNumber,
+    );
+    if (!still) continue;
+
+    const thumbPath = newFilePathWithExt(mediaFile.absolutePath, extname(still.stillUrl));
+    if (await fs.exists(thumbPath)) {
+      skipped += 1;
+      continue;
+    }
+
+    await downloadScrapeImage(
+      mediaMetadata,
+      still.stillUrl,
+      thumbPath,
+      userConfig,
+      fs,
+      network,
+    );
+    downloaded += 1;
+  }
+
+  if (downloaded > 0) return { status: "completed" };
+  if (skipped > 0) return { status: "skipped" };
+  return { status: "failed", error: "No episode stills available for linked files" };
+}
+
+/** Download episode stills (TV) or skip (movie — legacy UI TODO). */
+export async function scrapeThumbnailsTmdb(deps: ScrapeTaskDeps): Promise<ScrapeTaskResult> {
+  const { tmdb, tvdb, mediaMetadata, language } = deps;
+
+  if (mediaMetadata.type === "movie-folder") {
+    return { status: "skipped" };
+  }
+
+  if (mediaMetadata.type !== "tvshow-folder") {
+    return { status: "failed", error: "Unsupported folder type for thumbnails" };
   }
 
   const mediaFiles = (mediaMetadata.mediaFiles ?? []).filter(
@@ -63,52 +133,30 @@ export async function scrapeThumbnailsTmdb(deps: ScrapeTaskDeps): Promise<Scrape
   }
 
   try {
-    const stillPaths = await getEpisodeStillPathsFromTmdb(
-      seriesId,
-      language,
-      (id, lang) => tmdb.getTvShowById(id, lang),
-      (id, season, lang) => tmdb.getTvSeasonById(id, season, lang),
-    );
-
-    let downloaded = 0;
-    let skipped = 0;
-
-    for (const mediaFile of mediaFiles) {
-      const still = stillPaths.find(
-        (path) =>
-          path.season === mediaFile.seasonNumber &&
-          path.episode === mediaFile.episodeNumber,
-      );
-      if (!still) continue;
-
-      const thumbPath = newFilePathWithExt(
-        mediaFile.absolutePath,
-        extname(still.stillUrl),
-      );
-
-      if (await fs.exists(thumbPath)) {
-        skipped += 1;
-        continue;
+    if (mediaMetadata.tvShow?.database === "TMDB") {
+      const seriesId = parseTmdbSeriesId(mediaMetadata);
+      if (seriesId === undefined) {
+        return { status: "failed", error: "TV show TMDB metadata is required" };
       }
-
-      await downloadScrapeImage(
-        mediaMetadata,
-        still.stillUrl,
-        thumbPath,
-        userConfig,
-        fs,
-        network,
+      const stillPaths = await getEpisodeStillPathsFromTmdb(
+        seriesId,
+        language,
+        (id, lang) => tmdb.getTvShowById(id, lang),
+        (id, season, lang) => tmdb.getTvSeasonById(id, season, lang),
       );
-      downloaded += 1;
+      return downloadStills(deps, stillPaths);
     }
 
-    if (downloaded > 0) {
-      return { status: "completed" };
+    if (mediaMetadata.tvShow?.database === "TVDB") {
+      const seriesId = parseNumericMediaId(mediaMetadata.tvShow.id);
+      if (seriesId === undefined) {
+        return { status: "failed", error: "TV show TVDB metadata is required" };
+      }
+      const stillPaths = await getEpisodeStillPathsFromTvdb(seriesId, tvdb);
+      return downloadStills(deps, stillPaths);
     }
-    if (skipped > 0) {
-      return { status: "skipped" };
-    }
-    return { status: "failed", error: "No TMDB episode stills available for linked files" };
+
+    return { status: "failed", error: "Unsupported TV database for thumbnails" };
   } catch (error) {
     return { status: "failed", error: scrapeErrorMessage(error) };
   }

@@ -47,6 +47,7 @@ import { handleGetFolders } from './src/route/GetFolders';
 import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleImportFolder } from './src/route/ImportFolder';
 import { handleGetJob } from './src/route/GetJob';
+import { handleScrape } from './src/route/Scrape';
 import { handleShowFolder } from './src/route/ShowFolder';
 import { handleFolderMetadata } from './src/route/FolderMetadata';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
@@ -287,6 +288,7 @@ export class Server {
     handleUnimportFolder(this.app);
     handleImportFolder(this.app);
     handleGetJob(this.app);
+    handleScrape(this.app);
     handleShowFolder(this.app);
     handleFolderMetadata(this.app);
     handleTencentAsrTranscribe(this.app);

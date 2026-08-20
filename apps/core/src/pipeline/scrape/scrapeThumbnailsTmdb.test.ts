@@ -73,6 +73,7 @@ function createDeps(
     fs,
     network,
     tmdb: tmdb as TmdbClient,
+    tvdb: {} as import("../../clients/TvdbClient").TvdbClient,
     mediaMetadata: tvShowMetadata,
     language: "en-US",
     userConfig: DEFAULT_USER_CONFIG,

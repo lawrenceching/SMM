@@ -15,14 +15,17 @@ import { readPlan, type Plan } from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
-  scrapeFolderPipeline,
+  prepareScrapeFolder,
+  runPreparedScrape,
+  type PreparedScrape,
+  type ScrapeFolderDeps,
   type ScrapeFolderOptions,
 } from "./pipeline/scrape/scrapeFolder";
 import type { ScrapeFolderResult } from "./pipeline/scrape/types";
 import type { RenameRuleName } from "./pipeline/renameRules";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
-import type { ImportJob } from "./jobs/types";
+import { initialScrapeTasks, type ImportJob, type Job } from "./jobs/types";
 
 export type { RenameFolderArgs, ScrapeFolderOptions, ScrapeFolderResult };
 
@@ -43,6 +46,10 @@ export interface CoreOptions {
 }
 
 export interface ImportFolderHandle {
+  id: string;
+}
+
+export interface ScrapeFolderHandle {
   id: string;
 }
 
@@ -79,6 +86,7 @@ export class Core {
   importFolder(path: string, type: FolderType, options?: ImportFolderOptions): ImportFolderHandle {
     const folderPath = this.normalizePosix(path);
     const job = this.jobs.create({
+      kind: "import",
       folderPath,
       type,
       status: "running",
@@ -93,7 +101,7 @@ export class Core {
     return { id: job.id };
   }
 
-  getJob(id: string): ImportJob | undefined {
+  getJob(id: string): Job | undefined {
     return this.jobs.get(id);
   }
 
@@ -206,16 +214,17 @@ export class Core {
     });
   }
 
-  async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderResult> {
-    return scrapeFolderPipeline(path, options, {
-      fs: this.fs,
-      network: this.network,
-      appDataDir: this.appDataDir,
-      userConfig: this.userConfig,
-      normalizePosix: (p) => this.normalizePosix(p),
-      discover: this.discover,
-      reverseProxyUrl: this.reverseProxyUrl,
+  async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {
+    const scrapeDeps = this.createScrapeDeps();
+    const prepared = await prepareScrapeFolder(path, options, scrapeDeps);
+    const job = this.jobs.create({
+      kind: "scrape",
+      folderPath: prepared.posixPath,
+      status: "running",
+      tasks: initialScrapeTasks(),
     });
+    void this.runScrape(job.id, prepared, scrapeDeps);
+    return { id: job.id };
   }
 
   private normalizePosix(path: string): string {
@@ -223,6 +232,58 @@ export class Core {
       return Path.posix(path);
     } catch {
       return path;
+    }
+  }
+
+  private createScrapeDeps(): ScrapeFolderDeps {
+    return {
+      fs: this.fs,
+      network: this.network,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p: string) => this.normalizePosix(p),
+      discover: this.discover,
+      reverseProxyUrl: this.reverseProxyUrl,
+    };
+  }
+
+  private async runScrape(
+    jobId: string,
+    prepared: PreparedScrape,
+    deps: ScrapeFolderDeps,
+  ): Promise<void> {
+    try {
+      await runPreparedScrape(prepared, deps, {
+        onTaskStart: (taskId) => {
+          const current = this.jobs.get(jobId);
+          if (current?.kind !== "scrape") return;
+          this.jobs.update(jobId, {
+            tasks: { ...current.tasks, [taskId]: { status: "running" } },
+          });
+        },
+        onTaskDone: (taskId, result) => {
+          const current = this.jobs.get(jobId);
+          if (current?.kind !== "scrape") return;
+          this.jobs.update(jobId, {
+            tasks: {
+              ...current.tasks,
+              [taskId]: {
+                status: result.status,
+                ...(result.error !== undefined ? { error: result.error } : {}),
+              },
+            },
+          });
+        },
+      });
+      const finalJob = this.jobs.get(jobId);
+      if (finalJob?.kind !== "scrape") return;
+      const anyFailed = Object.values(finalJob.tasks).some((t) => t.status === "failed");
+      this.jobs.update(jobId, { status: anyFailed ? "failed" : "succeeded" });
+    } catch (error) {
+      this.jobs.update(jobId, {
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   }
 

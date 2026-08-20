@@ -1,5 +1,6 @@
 import { TVDBv4, type TVDBv4SearchResult } from "@smm/tvdb4";
 import type {
+  TVDBv4ArtworkTypeRecord,
   TVDBv4Season,
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
@@ -132,6 +133,50 @@ export class TvdbClient {
       m.airDate = firstRelease.first;
     }
     return m;
+  }
+
+  async getSeriesExtended(seriesId: number): Promise<TVDBv4SeriesExtendedResponse | undefined> {
+    const resp = await this.client.seriesExtendedById(seriesId);
+    return resp.status === "success" ? (resp.data as TVDBv4SeriesExtendedResponse) : undefined;
+  }
+
+  async getSeasonExtended(seasonId: number): Promise<TVDBv4SeriesSeasonsExtendedResponse | undefined> {
+    const resp = await this.client.seasonExtendedById(seasonId);
+    return resp.status === "success" ? (resp.data as TVDBv4SeriesSeasonsExtendedResponse) : undefined;
+  }
+
+  async getMovieExtended(movieId: number): Promise<Record<string, unknown> | undefined> {
+    const resp = await this.client.movieExtendedById(movieId);
+    return resp.status === "success" ? (resp.data as Record<string, unknown>) : undefined;
+  }
+
+  async getArtworkTypes(): Promise<TVDBv4ArtworkTypeRecord[] | undefined> {
+    const resp = await this.client.getArtworkTypes();
+    return resp.status === "success" ? resp.data : undefined;
+  }
+
+  async getSeriesTranslation(
+    seriesId: number,
+    langCode: string,
+  ): Promise<Record<string, string> | undefined> {
+    const resp = await this.client.seriesTranslationByLangCode(seriesId, langCode);
+    return resp.status === "success" ? resp.data : undefined;
+  }
+
+  async getEpisodeTranslation(
+    episodeId: number,
+    langCode: string,
+  ): Promise<Record<string, string> | undefined> {
+    const resp = await this.client.episodeTranslationByLangCode(episodeId, langCode);
+    return resp.status === "success" ? resp.data : undefined;
+  }
+
+  async getMovieTranslation(
+    movieId: number,
+    langCode: string,
+  ): Promise<Record<string, string> | undefined> {
+    const resp = await this.client.movieTranslationByLangCode(movieId, langCode);
+    return resp.status === "success" ? resp.data : undefined;
   }
 }
 

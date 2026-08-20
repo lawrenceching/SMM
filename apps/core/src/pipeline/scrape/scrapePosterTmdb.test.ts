@@ -6,6 +6,11 @@ import type { FsPort } from "../../ports/FsPort";
 import { DEFAULT_USER_CONFIG } from "../userConfig";
 import { resolvePosterUrl, scrapePosterTmdb } from "./scrapePosterTmdb";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";
+import type { TvdbClient } from "../../clients/TvdbClient";
+
+function emptyTvdb(): TvdbClient {
+  return {} as TvdbClient;
+}
 
 const seriesDetails: TmdbSeriesDetails = {
   id: 123876,
@@ -93,6 +98,7 @@ function createDeps(
     fs,
     network,
     tmdb: tmdb as TmdbClient,
+    tvdb: emptyTvdb(),
     mediaMetadata,
     language: "en-US",
     userConfig: DEFAULT_USER_CONFIG,
@@ -101,7 +107,10 @@ function createDeps(
 
 describe("resolvePosterUrl", () => {
   it("resolves TMDB poster_path to an original-size CDN URL", async () => {
-    const result = await resolvePosterUrl(123876, "en-US", vi.fn().mockResolvedValue(seriesDetails));
+    const result = await resolvePosterUrl(tvShowMetadata, "en-US", {
+      tmdb: { getTvShowById: vi.fn().mockResolvedValue(seriesDetails) } as unknown as TmdbClient,
+      tvdb: emptyTvdb(),
+    });
     expect(result).toBe("https://image.tmdb.org/t/p/original/poster.jpg");
   });
 });
@@ -148,6 +157,6 @@ describe("scrapePosterTmdb", () => {
     const result = await scrapePosterTmdb(createDeps(fs, network, tmdb));
 
     expect(result.status).toBe("failed");
-    expect(result.error).toContain("No TMDB poster");
+    expect(result.error).toContain("No poster available");
   });
 });

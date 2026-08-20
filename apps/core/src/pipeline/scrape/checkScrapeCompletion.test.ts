@@ -51,20 +51,37 @@ describe("checkScrapeCompletion", () => {
     });
   });
 
-  it("returns all false for non-TV metadata", async () => {
+  it("checks movie poster/fanart/movie.nfo and forces thumbnails complete", async () => {
+    const fs = createFs([
+      "/media/movie/poster.jpg",
+      "/media/movie/fanart.jpg",
+      "/media/movie/movie.nfo",
+    ]);
+    const result = await checkScrapeCompletion(
+      { mediaFolderPath: "/media/movie", type: "movie-folder", mediaFiles: [] },
+      fs,
+    );
+
+    expect(result).toEqual({
+      poster: true,
+      fanart: true,
+      thumbnails: true,
+      nfo: true,
+    });
+    expect(fs.listFiles).toHaveBeenCalled();
+  });
+
+  it("movie without movie.nfo leaves nfo incomplete but thumbnails still complete", async () => {
     const fs = createFs(["/media/movie/poster.jpg"]);
     const result = await checkScrapeCompletion(
       { mediaFolderPath: "/media/movie", type: "movie-folder" },
       fs,
     );
 
-    expect(result).toEqual({
-      poster: false,
-      fanart: false,
-      thumbnails: false,
-      nfo: false,
-    });
-    expect(fs.listFiles).not.toHaveBeenCalled();
+    expect(result.poster).toBe(true);
+    expect(result.fanart).toBe(false);
+    expect(result.nfo).toBe(false);
+    expect(result.thumbnails).toBe(true);
   });
 
   it("returns all false when listFiles throws", async () => {

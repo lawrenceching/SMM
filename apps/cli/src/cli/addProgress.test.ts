@@ -4,11 +4,12 @@ import { createAddProgressState, emitAddProgress } from './addProgress'
 
 function job(partial: Partial<ImportJob>): ImportJob {
   return {
-    id: 'j1',
-    folderPath: '/m/Show',
-    type: 'tvshow',
-    status: 'running',
-    stage: 'config',
+    kind: "import",
+    id: "j1",
+    folderPath: "/m/Show",
+    type: "tvshow",
+    status: "running",
+    stage: "config",
     progress: 0,
     createdAt: 0,
     updatedAt: 0,

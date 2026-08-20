@@ -1,4 +1,4 @@
-import type { ImportJob } from "./types";
+import type { ImportJob, Job, ScrapeJob } from "./types";
 
 let seq = 0;
 
@@ -7,24 +7,29 @@ export function nextJobId(): string {
   return `${Date.now().toString(36)}-${(seq++).toString(36)}`;
 }
 
-export class JobStore {
-  private readonly jobs = new Map<string, ImportJob>();
+type ImportJobInit = Omit<ImportJob, "id" | "createdAt" | "updatedAt">;
+type ScrapeJobInit = Omit<ScrapeJob, "id" | "createdAt" | "updatedAt">;
 
-  create(init: Omit<ImportJob, "id" | "createdAt" | "updatedAt">): ImportJob {
+export class JobStore {
+  private readonly jobs = new Map<string, Job>();
+
+  create(init: ImportJobInit): ImportJob;
+  create(init: ScrapeJobInit): ScrapeJob;
+  create(init: ImportJobInit | ScrapeJobInit): Job {
     const now = Date.now();
-    const job: ImportJob = { id: nextJobId(), createdAt: now, updatedAt: now, ...init };
+    const job = { id: nextJobId(), createdAt: now, updatedAt: now, ...init } as Job;
     this.jobs.set(job.id, job);
     return job;
   }
 
-  update(id: string, patch: Partial<ImportJob>): void {
+  update(id: string, patch: Partial<ImportJob> | Partial<ScrapeJob>): void {
     const job = this.jobs.get(id);
     if (job === undefined) return;
     Object.assign(job, patch, { updatedAt: Date.now() });
   }
 
-  get(id: string): ImportJob | undefined {
+  get(id: string): Job | undefined {
     const job = this.jobs.get(id);
-    return job === undefined ? undefined : { ...job };
+    return job === undefined ? undefined : structuredClone(job);
   }
 }

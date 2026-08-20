@@ -1,10 +1,10 @@
 import type { Hono } from 'hono'
-import type { ImportJob } from 'core-app'
+import type { Job } from 'core-app'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
 export interface GetJobResponseBody {
-  data?: ImportJob
+  data?: Job
   error?: string
 }
 

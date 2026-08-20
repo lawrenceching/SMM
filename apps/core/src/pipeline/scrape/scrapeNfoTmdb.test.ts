@@ -99,6 +99,7 @@ function createDeps(
     fs,
     network: { fetch: vi.fn() },
     tmdb: tmdb as TmdbClient,
+    tvdb: {} as import("../../clients/TvdbClient").TvdbClient,
     mediaMetadata,
     language: "en-US",
     userConfig: DEFAULT_USER_CONFIG,

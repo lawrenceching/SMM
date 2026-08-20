@@ -5,6 +5,7 @@ describe("JobStore", () => {
   it("creates a job with id and timestamps", () => {
     const store = new JobStore();
     const job = store.create({
+      kind: "import",
       folderPath: "/m/My.Show",
       type: "tvshow",
       status: "running",
@@ -13,6 +14,7 @@ describe("JobStore", () => {
     });
 
     expect(job.id).toBeTruthy();
+    expect(job.kind).toBe("import");
     expect(job.createdAt).toBeGreaterThan(0);
     expect(job.updatedAt).toBeGreaterThanOrEqual(job.createdAt);
     expect(store.get(job.id)?.folderPath).toBe("/m/My.Show");
@@ -20,7 +22,14 @@ describe("JobStore", () => {
 
   it("update patches fields and bumps updatedAt", async () => {
     const store = new JobStore();
-    const job = store.create({ folderPath: "/m", type: "movie", status: "running", stage: null, progress: 0 });
+    const job = store.create({
+      kind: "import",
+      folderPath: "/m",
+      type: "movie",
+      status: "running",
+      stage: null,
+      progress: 0,
+    });
     const firstUpdatedAt = job.updatedAt;
 
     await new Promise((r) => setTimeout(r, 5));
@@ -28,7 +37,7 @@ describe("JobStore", () => {
 
     const updated = store.get(job.id);
     expect(updated?.status).toBe("succeeded");
-    expect(updated?.progress).toBe(100);
+    expect(updated?.kind === "import" && updated.progress).toBe(100);
     expect(updated?.updatedAt).toBeGreaterThan(firstUpdatedAt);
   });
 
@@ -39,7 +48,14 @@ describe("JobStore", () => {
 
   it("get returns a snapshot (mutating it does not affect the store)", () => {
     const store = new JobStore();
-    const job = store.create({ folderPath: "/m", type: "music", status: "running", stage: null, progress: 0 });
+    const job = store.create({
+      kind: "import",
+      folderPath: "/m",
+      type: "music",
+      status: "running",
+      stage: null,
+      progress: 0,
+    });
     const snapshot = store.get(job.id);
     snapshot!.status = "failed";
     expect(store.get(job.id)?.status).toBe("running");

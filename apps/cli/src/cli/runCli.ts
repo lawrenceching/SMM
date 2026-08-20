@@ -6,6 +6,8 @@ import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
 import { waitUntilImportSettled } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
+import { formatScrapeJobTaskLines } from './scrapeJobFormat'
+import { waitUntilScrapeSettled } from './waitScrapeJob'
 import {
   formatMediaMetadata,
   formatShowFolder,
@@ -47,9 +49,10 @@ function printJson(value: unknown): void {
 }
 
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
+const SCRAPE_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `job`, `config`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -267,21 +270,55 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       }
     })
 
-  const SCRAPE_TASKS = ['poster', 'fanart', 'thumbnails', 'nfo'] as const
-
   program
     .command('scrape')
-    .description('Scrape TMDB poster, fanart, thumbnails, and NFO for a TV show folder')
+    .description('Start TMDB scrape (poster, fanart, thumbnails, NFO) for a TV show folder')
     .argument('<folder>', 'Imported media folder path')
     .option('--language <language>', 'TMDB language code (defaults to user config preferMediaLanguage)')
-    .action(async (folder: string, opts: { language?: string }) => {
+    .option('--wait', 'Wait until scrape finishes and print per-task status icons')
+    .action(async (folder: string, opts: { language?: string; wait?: boolean }) => {
       try {
-        const result = await getCore().scrapeFolder(folder, {
+        const core = getCore()
+        const { id } = await core.scrapeFolder(folder, {
           language: opts.language,
         })
-        for (const taskId of SCRAPE_TASKS) {
-          console.log(`${taskId}: ${result.tasks[taskId].status}`)
+        console.log(id)
+        if (!opts.wait) return
+
+        const job = await waitUntilScrapeSettled(core, id, {
+          timeoutMs: SCRAPE_WAIT_TIMEOUT_MS,
+        })
+        for (const line of formatScrapeJobTaskLines(job)) {
+          console.log(line)
         }
+        if (job.status !== 'succeeded') {
+          exitCode = 1
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('job')
+    .description('Show job status by id (scrape: four task icon lines; import: JSON)')
+    .argument('<jobId>', 'Job id from scrape or add')
+    .action(async (jobId: string) => {
+      try {
+        const job = getCore().getJob(jobId)
+        if (job === undefined) {
+          console.error(`Job not found: ${jobId}`)
+          exitCode = 1
+          return
+        }
+        if (job.kind === 'scrape') {
+          for (const line of formatScrapeJobTaskLines(job)) {
+            console.log(line)
+          }
+          return
+        }
+        printJson(job)
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error))
         exitCode = 1

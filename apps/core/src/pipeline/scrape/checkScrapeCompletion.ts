@@ -77,12 +77,35 @@ function checkTvShowThumbnailsCompletion(files: string[], mediaMetadata: MediaMe
   return recognizedEpisodeCount > 0;
 }
 
-/** Returns whether each scrape artifact already exists on disk (TV show folders only). */
+function checkMovieNfoCompletion(files: string[]): boolean {
+  return files.some((file) => basename(file) === "movie.nfo");
+}
+
+/** Returns whether each scrape artifact already exists on disk. */
 export async function checkScrapeCompletion(
   mediaMetadata: MediaMetadata,
   fs: FsPort,
 ): Promise<Record<ScrapeTaskId, boolean>> {
-  if (!mediaMetadata.mediaFolderPath || mediaMetadata.type !== "tvshow-folder") {
+  if (!mediaMetadata.mediaFolderPath) {
+    return { ...DEFAULT_COMPLETION };
+  }
+
+  if (mediaMetadata.type === "movie-folder") {
+    try {
+      const files = (await fs.listFiles(mediaMetadata.mediaFolderPath)).map((p) => Path.posix(p));
+      return {
+        poster: hasImageNamed(files, "poster"),
+        fanart: hasImageNamed(files, "fanart"),
+        nfo: checkMovieNfoCompletion(files),
+        // Movies have no thumbnail scrape (legacy UI TODO) — mark complete so orchestrator skips.
+        thumbnails: true,
+      };
+    } catch {
+      return { ...DEFAULT_COMPLETION, thumbnails: true };
+    }
+  }
+
+  if (mediaMetadata.type !== "tvshow-folder") {
     return { ...DEFAULT_COMPLETION };
   }
 
