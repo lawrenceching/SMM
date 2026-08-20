@@ -78,6 +78,8 @@ describe('smm CLI e2e', () => {
       expect(tvShow.stdout).toContain('Type:    tvshow-folder')
       expect(tvShow.stdout).toMatch(/Title:\s+.+/)
       expect(tvShow.stdout).toMatch(/天使降临到我身边|WATATEN|Angel Flew Down/i)
+      expect(tvShow.stdout).toMatch(/Season \d+:/)
+      expect(tvShow.stdout).toMatch(/S\d{2}E\d{2}/)
 
       const tvMeta = await smm(['metadata', tv.path!])
       expect(tvMeta.code).toBe(0)
@@ -93,6 +95,7 @@ describe('smm CLI e2e', () => {
       expect(movieShow.stdout).toContain('Type:    movie-folder')
       expect(movieShow.stdout).toMatch(/Title:\s+.+/)
       expect(movieShow.stdout).toMatch(/Dark Knight|黑暗骑士/i)
+      expect(movieShow.stdout).toMatch(/\n {4}\S+/)
 
       const movieMeta = await smm(['metadata', movie.path!])
       expect(movieMeta.code).toBe(0)

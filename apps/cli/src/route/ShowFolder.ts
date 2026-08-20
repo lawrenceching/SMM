@@ -1,7 +1,10 @@
 import type { Hono } from 'hono'
-import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
-import { resolveShowFolder, type ShowFolderResult } from '../cli/folderDisplay'
+import {
+  resolveShowFolder,
+  toShowFolderApiResult,
+  type ShowFolderResult,
+} from '../cli/folderDisplay'
 
 export interface ShowFolderResponseBody {
   data?: ShowFolderResult
@@ -30,7 +33,7 @@ export function handleShowFolder(app: Hono): void {
         const err: ShowFolderResponseBody = { error: `Error Reason: ${resolved.error}` }
         return c.json(err, 200)
       }
-      const ok: ShowFolderResponseBody = { data: resolved.result }
+      const ok: ShowFolderResponseBody = { data: toShowFolderApiResult(resolved.result) }
       return c.json(ok, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/show-folder] route error')
