@@ -12,6 +12,8 @@ import { GET_APPLICATION_CONTEXT } from '../types/ai-tools/getApplicationContext
 import { GET_MEDIA_METADATA } from '../types/ai-tools/getMediaMetadata'
 import { GET_EPISODES } from '../types/ai-tools/getEpisodes'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
+import { SCRAPE } from '../types/ai-tools/scrape'
+import { GET_JOB } from '../types/ai-tools/getJob'
 
 /**
  * The system prompt for the AI Assistant, shared between the
@@ -67,6 +69,16 @@ Steps
 [ ] Call "${BEGIN_RENAME_FILES_TASK}" to notify AI Agent to start a rename files task
 [ ] Call "${ADD_RENAME_FILE_TO_TASK}" to add a file to rename task, call multiple times to add multiple files
 [ ] Call "${END_RENAME_FILES_TASK}" to notify AI Agent to end the rename files task
+
+### Scrape Media Artwork and NFO
+
+When user asks to scrape, download poster/fanart/thumbnails, or write NFO files for a media folder,
+use the scrape job tools:
+
+1. Resolve which media folder (ask user or call "${GET_APPLICATION_CONTEXT}").
+2. Call "${SCRAPE}" with the folder path (optional language). It returns a job id immediately.
+3. Call "${GET_JOB}" with that id to check progress. Poll until status is succeeded, failed, or aborted.
+4. Report per-task results (poster, fanart, thumbnails, nfo) from the scrape job.
 
 ## User Preferences
 

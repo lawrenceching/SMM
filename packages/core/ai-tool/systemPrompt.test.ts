@@ -14,6 +14,8 @@ import {
   ADD_RECOGNIZED_MEDIA_FILE,
   END_RECOGNIZE_TASK,
 } from '../types/ai-tools/recognizeMediaFileTask'
+import { SCRAPE } from '../types/ai-tools/scrape'
+import { GET_JOB } from '../types/ai-tools/getJob'
 
 /**
  * The system prompt is interpolated with kebab-case tool name
@@ -40,6 +42,8 @@ describe('systemPrompt', () => {
       BEGIN_RECOGNIZE_TASK,
       ADD_RECOGNIZED_MEDIA_FILE,
       END_RECOGNIZE_TASK,
+      SCRAPE,
+      GET_JOB,
     ]
     for (const name of required) {
       expect(

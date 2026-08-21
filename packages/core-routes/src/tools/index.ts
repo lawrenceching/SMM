@@ -8,6 +8,8 @@ import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -35,6 +37,14 @@ import {
   type RenameEpisodeFileRunner,
 } from "./renameEpisodeFile.ts";
 import {
+  buildScrapeTool,
+  type ScrapeFolderRunner,
+} from "./scrape.ts";
+import {
+  buildGetJobTool,
+  type GetJobRunner,
+} from "./getJob.ts";
+import {
   buildAddRenameFileToTaskTool,
   buildBeginRenameFilesTaskTool,
   buildEndRenameFilesTaskTool,
@@ -48,7 +58,7 @@ import {
 } from "./recognizeMediaFilesTask.ts";
 
 /**
- * The 14 chat tools registered in `streamText({ tools })`, keyed by
+ * The chat tools registered in `streamText({ tools })`, keyed by
  * their AI tool name constant. The object is constructed per-request
  * so each chat call gets tools bound to its own `clientId`,
  * `abortSignal`, and `UserConfig` snapshot.
@@ -62,6 +72,8 @@ export interface ChatTools {
   [LIST_FILES_IN_MEDIA_FOLDER]: ReturnType<typeof buildListFilesInMediaFolderTool>;
   [RENAME_FOLDER]: ReturnType<typeof buildRenameFolderTool>;
   [RENAME_EPISODE_FILE]: ReturnType<typeof buildRenameEpisodeFileTool>;
+  [SCRAPE]: ReturnType<typeof buildScrapeTool>;
+  [GET_JOB]: ReturnType<typeof buildGetJobTool>;
   [BEGIN_RENAME_FILES_TASK]: ReturnType<typeof buildBeginRenameFilesTaskTool>;
   [ADD_RENAME_FILE_TO_TASK]: ReturnType<typeof buildAddRenameFileToTaskTool>;
   [END_RENAME_FILES_TASK]: ReturnType<typeof buildEndRenameFilesTaskTool>;
@@ -80,6 +92,10 @@ export interface ChatToolsExtraDeps {
   renameFilesTask?: RenameFilesTaskDeps;
   /** Host Core runner for single-episode rename (Bun cli / Electron). */
   renameEpisodeFile?: RenameEpisodeFileRunner;
+  /** Host Core runner for scrape job start. */
+  scrapeFolder?: ScrapeFolderRunner;
+  /** Host Core runner for job status lookup. */
+  getJob?: GetJobRunner;
 }
 
 export interface CreateChatToolsArgs {
@@ -164,6 +180,8 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       abortSignal,
       acknowledge,
     ),
+    [SCRAPE]: buildScrapeTool(extra?.scrapeFolder, abortSignal),
+    [GET_JOB]: buildGetJobTool(extra?.getJob, abortSignal),
     [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(
       clientId,
       config.appDataDir,

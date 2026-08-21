@@ -36,6 +36,13 @@ export const USAGE =
 
 const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker']);
 
+/** Opt-in UI v3 for e2e (`localStorage smm.v3.enabled`). Production default stays off. */
+function assignE2eSmmV3Env(env: Record<string, string>): void {
+  if (process.env.E2E_SMM_V3 === 'true') {
+    env.E2E_SMM_V3 = 'true';
+  }
+}
+
 function parsePlatform(value: string): Platform {
   if (!PLATFORMS.has(value as Platform)) {
     throw new Error(
@@ -186,6 +193,7 @@ export function buildDesktopConfig(specs: string[]): CicdConfig {
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e',
@@ -233,6 +241,7 @@ export function buildOhosConfig(specs: string[]): CicdConfig {
   if (process.env.HDC_PORT_FORWARD_ENABLED) {
     env.HDC_PORT_FORWARD_ENABLED = process.env.HDC_PORT_FORWARD_ENABLED;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-ohos',
@@ -272,6 +281,7 @@ export function buildElectronConfig(specs: string[]): CicdConfig {
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-electron',
@@ -347,6 +357,7 @@ export function buildDockerConfig(specs: string[]): CicdConfig {
   if (tvdbHttpProxy) {
     env.TVDB_HTTP_PROXY = tvdbHttpProxy;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-docker',

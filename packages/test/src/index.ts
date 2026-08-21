@@ -195,6 +195,8 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
         enableMcpServer: false,
         mcpHost: '127.0.0.1',
         mcpPort: 30001,
+        // Avoid first-run AnonymousTelemetryConsentDialog blocking StatusBar clicks in e2e.
+        anonymousTelemetryConsent: false,
     }
 
     if(initConfig) {

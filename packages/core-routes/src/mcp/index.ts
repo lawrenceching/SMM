@@ -4,6 +4,8 @@ export {
 } from "./createServer.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 export {
   createErrorResponse,
   createSuccessResponse,
@@ -31,6 +33,8 @@ export {
  */
 export { RENAME_FOLDER };
 export { RENAME_EPISODE_FILE };
+export { SCRAPE };
+export { GET_JOB };
 
 /**
  * Constants exposed to hosts that load `core-routes.js` as a
@@ -41,4 +45,6 @@ export { RENAME_EPISODE_FILE };
 export const MCP_TOOL_NAMES = {
   RENAME_FOLDER,
   RENAME_EPISODE_FILE,
+  SCRAPE,
+  GET_JOB,
 } as const;

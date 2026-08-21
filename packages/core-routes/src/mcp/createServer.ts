@@ -19,8 +19,12 @@ import { registerIsFolderExistTool } from "./toolHandlers/isFolderExist.ts";
 import { registerListFilesTool } from "./toolHandlers/listFiles.ts";
 import { registerRenameFolderTool } from "./toolHandlers/renameFolder.ts";
 import { registerRenameEpisodeFileTool } from "./toolHandlers/renameEpisodeFile.ts";
+import { registerScrapeTool } from "./toolHandlers/scrape.ts";
+import { registerGetJobTool } from "./toolHandlers/getJob.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 
 /**
  * HTTP request handler for the MCP server. Created by
@@ -101,6 +105,14 @@ export async function createMcpStreamableHttpHandler(
 
   if (!config.disabledTools?.includes(RENAME_EPISODE_FILE)) {
     registerRenameEpisodeFileTool(server, config);
+  }
+
+  if (!config.disabledTools?.includes(SCRAPE)) {
+    registerScrapeTool(server, config);
+  }
+
+  if (!config.disabledTools?.includes(GET_JOB)) {
+    registerGetJobTool(server, config);
   }
 
   // Episode-level rename task (begin / add / end).

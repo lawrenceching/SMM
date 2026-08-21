@@ -29,6 +29,17 @@ export type { AIProviderFactory, ChatConfig, ChatFs, ChatRequestBody } from "./c
 export { defaultChatFs } from "./chatFs.ts";
 export { createChatTools, type ChatTools, type ChatToolsExtraDeps } from "./tools/index.ts";
 export {
+  executeScrape,
+  buildScrapeTool,
+  type ScrapeFolderRunner,
+  type ScrapeParams,
+} from "./tools/scrape.ts";
+export {
+  executeGetJob,
+  buildGetJobTool,
+  type GetJobRunner,
+} from "./tools/getJob.ts";
+export {
   buildUpstreamUrl,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
   filterRequestHeaders,

@@ -31,6 +31,10 @@ import {
   type MarkdownTextResponse,
   type RenameFolderRequest,
   type RenameFolderResponse,
+  type ScrapeRequest,
+  type ScrapeResponse,
+  type GetJobRequest,
+  type GetJobResponse,
   type TmdbGetMovieRequest,
   type TmdbGetTvShowRequest,
   type TmdbMovieDetailsResponse,
@@ -209,6 +213,22 @@ class McpClient {
     req: RenameFolderRequest,
   ): Promise<RenameFolderResponse> {
     return this.execTyped(clientCwd, mcpAddress, McpToolName.renameFolder, toolArgs(req))
+  }
+
+  async scrape(
+    clientCwd: string,
+    mcpAddress: string,
+    req: ScrapeRequest,
+  ): Promise<ScrapeResponse> {
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.scrape, toolArgs(req))
+  }
+
+  async getJob(
+    clientCwd: string,
+    mcpAddress: string,
+    req: GetJobRequest,
+  ): Promise<GetJobResponse> {
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.getJob, toolArgs(req))
   }
 
   async beginRenameFilesTask(

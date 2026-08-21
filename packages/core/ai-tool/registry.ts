@@ -46,6 +46,8 @@ import { GET_MEDIA_FOLDERS } from '../types/ai-tools/getMediaFolders'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
 import { RENAME_FOLDER } from '../types/ai-tools/renameFolder'
 import { RENAME_EPISODE_FILE } from '../types/ai-tools/renameEpisodeFile'
+import { SCRAPE } from '../types/ai-tools/scrape'
+import { GET_JOB } from '../types/ai-tools/getJob'
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -98,6 +100,10 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   // Mutating tools (require user confirmation via Socket.IO / bridge)
   { name: RENAME_FOLDER, backend: true, frontend: true },
   { name: RENAME_EPISODE_FILE, backend: true, frontend: true },
+
+  // Scrape job (no confirmation; poll with get-job)
+  { name: SCRAPE, backend: true, frontend: true },
+  { name: GET_JOB, backend: true, frontend: true },
 
   // Rename files task
   { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },

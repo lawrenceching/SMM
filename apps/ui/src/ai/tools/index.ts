@@ -6,6 +6,8 @@ export { IsFolderExistTool } from './IsFolderExist';
 export { GetEpisodesTool } from './GetEpisodes';
 export { RenameFolderTool } from './RenameFolder';
 export { RenameEpisodeFileTool } from './RenameEpisodeFile';
+export { ScrapeTool } from './Scrape';
+export { GetJobTool } from './GetJob';
 export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
 export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
 export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';

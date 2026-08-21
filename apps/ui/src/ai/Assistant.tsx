@@ -20,6 +20,8 @@ import {
     GetMediaMetadataTool,
     RenameFolderTool,
     RenameEpisodeFileTool,
+    ScrapeTool,
+    GetJobTool,
     BeginRecognizeTaskTool,
     AddRecognizedMediaFileTool,
     EndRecognizeTaskTool,
@@ -316,6 +318,8 @@ function AssistantImpl() {
         <GetEpisodesTool />
         <RenameFolderTool />
         <RenameEpisodeFileTool />
+        <ScrapeTool />
+        <GetJobTool />
         {/* Rename/recognize task tools run HTTP plan APIs in the renderer.
             On desktop `AssistantChatTransport`, the same tools are executed
             server-side in `doChat` — mounting them here would duplicate

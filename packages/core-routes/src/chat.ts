@@ -10,6 +10,8 @@ import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -135,6 +137,8 @@ export async function doChat(
       [LIST_FILES_IN_MEDIA_FOLDER]: tools[LIST_FILES_IN_MEDIA_FOLDER],
       [RENAME_FOLDER]: tools[RENAME_FOLDER],
       [RENAME_EPISODE_FILE]: tools[RENAME_EPISODE_FILE],
+      [SCRAPE]: tools[SCRAPE],
+      [GET_JOB]: tools[GET_JOB],
       [BEGIN_RENAME_FILES_TASK]: tools[BEGIN_RENAME_FILES_TASK],
       [ADD_RENAME_FILE_TO_TASK]: tools[ADD_RENAME_FILE_TO_TASK],
       [END_RENAME_FILES_TASK]: tools[END_RENAME_FILES_TASK],

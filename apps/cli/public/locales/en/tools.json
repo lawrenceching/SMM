@@ -20,6 +20,12 @@
   "rename-episode-file": {
     "description": "Rename a linked TV episode video file and same-stem associates (e.g. subtitles). TV episode files only — not folders, movies, or bulk rename plans."
   },
+  "scrape": {
+    "description": "Start a scrape job for a managed TV show or movie folder (poster, fanart, thumbnails, nfo). Returns a job id immediately; use get-job to check status."
+  },
+  "get-job": {
+    "description": "Get the status of a background job by id (scrape or import). Poll until status is succeeded, failed, or aborted."
+  },
   "begin-rename-task": {
     "description": "Begin a rename files task for a media folder. Call this first, then addRenameFileToTask for each file, then endRenameFilesTask. The user will be asked to confirm before files are renamed. Returns a task ID to use with addRenameFileToTask and endRenameFilesTask."
   },

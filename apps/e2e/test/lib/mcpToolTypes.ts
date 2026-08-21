@@ -16,6 +16,8 @@ export const McpToolName = {
   howToRenameEpisodeVideoFiles: 'how-to-rename-episode-video-files',
   howToRecognizeEpisodeVideoFiles: 'how-to-recognize-episode-video-files',
   renameFolder: 'rename-folder',
+  scrape: 'scrape',
+  getJob: 'get-job',
   beginRenameFilesTask: 'begin-rename-files-task',
   addRenameFileToTask: 'add-rename-file-to-task',
   endRenameFilesTask: 'end-rename-files-task',
@@ -133,6 +135,63 @@ export interface RenameFolderResponse {
   renamed: boolean
   from: string
   to: string
+  error?: string
+}
+
+// --- scrape ---
+export interface ScrapeRequest {
+  path: string
+  language?: string
+}
+
+export interface ScrapeResponse {
+  id: string
+  message: string
+  error?: string
+}
+
+// --- get-job ---
+export interface GetJobRequest {
+  id: string
+}
+
+export interface GetJobScrapeTask {
+  status: string
+  error?: string
+}
+
+export interface GetJobScrapeJob {
+  kind: 'scrape'
+  id: string
+  folderPath: string
+  status: string
+  tasks: {
+    poster: GetJobScrapeTask
+    fanart: GetJobScrapeTask
+    thumbnails: GetJobScrapeTask
+    nfo: GetJobScrapeTask
+  }
+  error?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface GetJobImportJob {
+  kind: 'import'
+  id: string
+  folderPath: string
+  type: string
+  status: string
+  stage: string | null
+  progress: number
+  recognizedTitle?: string
+  error?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface GetJobResponse {
+  job?: GetJobScrapeJob | GetJobImportJob
   error?: string
 }
 

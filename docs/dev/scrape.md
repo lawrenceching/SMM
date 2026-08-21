@@ -37,6 +37,7 @@ Source of truth for resolvers/builders (port into Core, do not call UI):
 1. **Core parity** — done (TV + movie × TMDB + TVDB; movie skips `thumbnails`)
 2. **HTTP** — done (`POST /api/scrape` + scrape shape on `POST /api/get-job`)
 3. **UI v3** — done (`isSmmV3Enabled()` → job start + poll; legacy mutations when v3 off)
+4. **AI + MCP** — done (`scrape` + `get-job` tools; no confirmation; fire-and-forget scrape)
 
 ## 2. Architecture
 
@@ -74,6 +75,8 @@ Per [refactoring.md](../../refactoring.md): HTTP is the Internal API channel int
 | `POST /api/scrape` | Validate body → Core → `{ data: { id } }` or `{ error }` |
 | `POST /api/get-job` | Existing route; `data` is discriminated job union |
 | UI `useScrapeDialog` | v3 ON → job poll path; v3 OFF → existing four mutations |
+| MCP / AI `scrape` | Start job via Core (MCP) or `POST /api/scrape` (in-app AI); returns `{ id, message }`; **no confirmation** |
+| MCP / AI `get-job` | Poll any job (`scrape` \| `import`) via Core / `POST /api/get-job` |
 
 ### 2.3 Key Design
 
@@ -379,6 +382,15 @@ sequenceDiagram
 * **And** dialog task rows mirror job `tasks`  
 * **And** when v3 is false, the legacy four mutations run unchanged  
 
+### 4.6 AI / MCP scrape + get-job
+
+* **Given** a managed TV or movie folder  
+* **When** the assistant or MCP client calls `scrape` with `{ path }`  
+* **Then** the tool returns `{ id, message: "scrape job created, use get-job tool to check job status by id." }` without waiting  
+* **And** no user confirmation dialog is shown  
+* **When** the client calls `get-job` with that `id`  
+* **Then** the tool returns the job payload (`kind: "scrape"` or `"import"`) or an error if not found  
+
 ## 5. Out of scope
 
 - Movie thumbnail scraping (legacy UI also TODO)  
@@ -388,13 +400,15 @@ sequenceDiagram
 - New REST path `/api/job/{id}`  
 - Removing legacy UI mutations while v3 is off  
 
-## 6. Testing strategy
+## 6. Testing
 
-- **Core unit:** prepare accepts TV/movie × TMDB/TVDB; rejects music / unknown DB; movie marks thumbnails skipped; poster/fanart/nfo dispatch smoke with mocks.  
-- **Core integration:** existing TV+TMDB e2e remains; add/adapt cases for TV+TVDB and movie when fixtures exist.  
-- **HTTP route tests:** scrape success returns id; start errors; get-job scrape shape.  
-- **CLI e2e:** `--wait` icon lines; reject unmanaged; update “not a TV show” / TVDB reject tests once Core accepts those folders.  
-- **UI (phase 3):** ScrapeDialog v3 branch polls job; v3 off keeps mutations.  
+| Layer | Scenario | Test file |
+|-------|----------|-----------|
+| Web e2e | ScrapeDialog: TMDB/TVDB × TV show / movie; failover; HTTP proxy | `apps/e2e/common/tv/Scrape.e2e.ts`, `ScrapeFailover.e2e.ts`, `apps/e2e/common/httpproxy/ScrapeTvShowByTmdbBehindHttpProxy.e2e.ts`, `ScrapeTvShowByTvdbBehindHttpProxy.e2e.ts` |
+| CLI e2e | `smm scrape --wait` creates poster / fanart / thumbnail / nfo | `apps/cli/test/scrape.e2e.ts` |
+| HTTP | `POST /api/scrape` + `POST /api/get-job` | `apps/cli/src/route/Scrape.test.ts`, `GetJob.test.ts` |
+| MCP tool | MCP `scrape` + `get-job`; movie fixture; thumbnails skipped | `apps/e2e/common/mcp/McpOther-ScrapeTool.e2e.ts` |
+| AI tool | Debug `scrape` + `get-job`; movie fixture; thumbnails skipped | `apps/e2e/test/specs/ai/AiTool-ScrapeTool.e2e.ts` |
 
 ## 7. Compatibility notes
 

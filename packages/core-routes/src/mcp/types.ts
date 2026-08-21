@@ -95,6 +95,21 @@ export interface McpConfig {
   }>;
 
   /**
+   * Optional runner for `scrape`. Hosts that expose Core inject
+   * `Core.scrapeFolder`. When omitted, the tool reports unavailable.
+   */
+  scrapeFolder?: (
+    path: string,
+    options?: { language?: string },
+  ) => Promise<{ id: string }>;
+
+  /**
+   * Optional runner for `get-job`. Hosts that expose Core inject
+   * `Core.getJob`. When omitted, the tool reports unavailable.
+   */
+  getJob?: (id: string) => unknown;
+
+  /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
    * omitted, English defaults from `@smm/core/types/ai-tools/*`

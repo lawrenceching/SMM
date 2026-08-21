@@ -39,6 +39,8 @@ import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameF
 import { handleDebugGetApplicationContextRoute } from './src/route/debug/debugGetApplicationContext';
 import { handleDebugGetMediaMetadataRoute } from './src/route/debug/debugGetMediaMetadata';
 import { handleDebugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
+import { handleDebugScrapeToolRoute } from './src/route/debug/debugScrapeTool';
+import { handleDebugGetJobToolRoute } from './src/route/debug/debugGetJobTool';
 import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesTool';
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
@@ -281,6 +283,8 @@ export class Server {
     handleDebugGetApplicationContextRoute(this.app);
     handleDebugGetMediaMetadataRoute(this.app);
     handleDebugRenameFolderToolRoute(this.app);
+    handleDebugScrapeToolRoute(this.app);
+    handleDebugGetJobToolRoute(this.app);
     handleDebugListFilesToolRoute(this.app);
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);

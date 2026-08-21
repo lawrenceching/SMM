@@ -20,6 +20,12 @@
   "rename-episode-file": {
     "description": "重命名已关联的电视剧集视频文件及其同名关联文件（如字幕）。仅用于剧集文件，不可用于文件夹、电影或批量重命名计划。"
   },
+  "scrape": {
+    "description": "为已管理的电视剧或电影文件夹启动刮削任务（海报、背景、缩略图、NFO）。立即返回任务 id；请用 get-job 查询状态。"
+  },
+  "get-job": {
+    "description": "按 id 查询后台任务状态（刮削或导入）。轮询直到 status 为 succeeded、failed 或 aborted。"
+  },
   "begin-rename-task": {
     "description": "为媒体文件夹开始重命名文件任务。首先调用此工具，然后为每个文件调用 addRenameFileToTask，最后调用 endRenameFilesTask。用户将被要求确认后才会重命名文件。返回一个任务 ID，用于 addRenameFileToTask 和 endRenameFilesTask。"
   },

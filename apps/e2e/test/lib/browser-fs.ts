@@ -566,6 +566,8 @@ export function buildDefaultUserConfig(initConfig?: Partial<UserConfig>): UserCo
         enableMcpServer: false,
         mcpHost: '127.0.0.1',
         mcpPort: 30001,
+        // Avoid first-run AnonymousTelemetryConsentDialog blocking StatusBar clicks in e2e.
+        anonymousTelemetryConsent: false,
     }
 
     return initConfig ? { ...userConfig, ...initConfig } : userConfig

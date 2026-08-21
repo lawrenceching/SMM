@@ -9,6 +9,8 @@ import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { GET_MEDIA_METADATA } from "@smm/core/types/ai-tools/getMediaMetadata";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -46,6 +48,8 @@ const TOOL_NAME_KEYS = [
   LIST_FILES_KEY,
   RENAME_FOLDER,
   RENAME_EPISODE_FILE,
+  SCRAPE,
+  GET_JOB,
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
   END_RENAME_FILES_TASK,
@@ -136,6 +140,8 @@ async function buildMcpConfig(): Promise<McpConfig> {
       broadcast(message as Parameters<typeof broadcast>[0]),
     toolDescriptions: await loadLocalizedToolDescriptions(),
     renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
+    scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
+    getJob: (id) => getCore().getJob(id),
     logger: {
       debug: (obj, msg) => logger.debug(obj, msg),
       info: (obj, msg) => logger.info(obj, msg),

@@ -111,4 +111,29 @@ describe('run-e2e-test docker platform', () => {
       else process.env.TMDB_HTTP_PROXY = prevProxy;
     }
   });
+
+  test('buildConfig forwards E2E_SMM_V3=true into cicd env', () => {
+    const prev = process.env.E2E_SMM_V3;
+    process.env.E2E_SMM_V3 = 'true';
+    try {
+      expect(buildConfig('desktop', ['common/tv/Scrape.e2e.ts']).env.E2E_SMM_V3).toBe('true');
+      expect(buildConfig('docker', ['common/tv/Scrape.e2e.ts']).env.E2E_SMM_V3).toBe('true');
+      expect(buildConfig('electron', ['common/tv/Scrape.e2e.ts']).env.E2E_SMM_V3).toBe('true');
+      expect(buildConfig('ohos', ['common/tv/Scrape.e2e.ts']).env.E2E_SMM_V3).toBe('true');
+    } finally {
+      if (prev === undefined) delete process.env.E2E_SMM_V3;
+      else process.env.E2E_SMM_V3 = prev;
+    }
+  });
+
+  test('buildConfig omits E2E_SMM_V3 when unset', () => {
+    const prev = process.env.E2E_SMM_V3;
+    delete process.env.E2E_SMM_V3;
+    try {
+      expect(buildConfig('desktop', ['common/tv/Scrape.e2e.ts']).env.E2E_SMM_V3).toBeUndefined();
+    } finally {
+      if (prev === undefined) delete process.env.E2E_SMM_V3;
+      else process.env.E2E_SMM_V3 = prev;
+    }
+  });
 });
