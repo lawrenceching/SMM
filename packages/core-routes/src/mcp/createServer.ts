@@ -21,6 +21,7 @@ import { registerRenameFolderTool } from "./toolHandlers/renameFolder.ts";
 import { registerRenameEpisodeFileTool } from "./toolHandlers/renameEpisodeFile.ts";
 import { registerScrapeTool } from "./toolHandlers/scrape.ts";
 import { registerGetJobTool } from "./toolHandlers/getJob.ts";
+import { registerTmdbTools } from "./toolHandlers/tmdbTools.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
@@ -92,6 +93,7 @@ export async function createMcpStreamableHttpHandler(
   registerIsFolderExistTool(server, config);
   registerListFilesTool(server, config);
   registerGetMediaMetadataTool(server, config);
+  registerTmdbTools(server, config);
 
   // Read-only documentation tools.
   registerStaticTextTools(server, config);

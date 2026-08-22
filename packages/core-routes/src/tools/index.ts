@@ -10,6 +10,15 @@ import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
+import {
+  buildTmdbGetMovieTool,
+  buildTmdbGetTvShowTool,
+  buildTmdbSearchTool,
+  type TmdbToolRunners,
+} from "./tmdb.ts";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -74,6 +83,9 @@ export interface ChatTools {
   [RENAME_EPISODE_FILE]: ReturnType<typeof buildRenameEpisodeFileTool>;
   [SCRAPE]: ReturnType<typeof buildScrapeTool>;
   [GET_JOB]: ReturnType<typeof buildGetJobTool>;
+  [TMDB_SEARCH]: ReturnType<typeof buildTmdbSearchTool>;
+  [TMDB_GET_MOVIE]: ReturnType<typeof buildTmdbGetMovieTool>;
+  [TMDB_GET_TV_SHOW]: ReturnType<typeof buildTmdbGetTvShowTool>;
   [BEGIN_RENAME_FILES_TASK]: ReturnType<typeof buildBeginRenameFilesTaskTool>;
   [ADD_RENAME_FILE_TO_TASK]: ReturnType<typeof buildAddRenameFileToTaskTool>;
   [END_RENAME_FILES_TASK]: ReturnType<typeof buildEndRenameFilesTaskTool>;
@@ -96,6 +108,8 @@ export interface ChatToolsExtraDeps {
   scrapeFolder?: ScrapeFolderRunner;
   /** Host Core runner for job status lookup. */
   getJob?: GetJobRunner;
+  /** Host Core runners for TMDB query tools. */
+  tmdb?: TmdbToolRunners;
 }
 
 export interface CreateChatToolsArgs {
@@ -145,6 +159,8 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
   const renameFilesTaskDeps =
     extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config.appDataDir);
 
+  const tmdbRunners: TmdbToolRunners | undefined = extra?.tmdb;
+
   return {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(
       clientId,
@@ -182,6 +198,9 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     ),
     [SCRAPE]: buildScrapeTool(extra?.scrapeFolder, abortSignal),
     [GET_JOB]: buildGetJobTool(extra?.getJob, abortSignal),
+    [TMDB_SEARCH]: buildTmdbSearchTool(tmdbRunners, abortSignal),
+    [TMDB_GET_MOVIE]: buildTmdbGetMovieTool(tmdbRunners, abortSignal),
+    [TMDB_GET_TV_SHOW]: buildTmdbGetTvShowTool(tmdbRunners, abortSignal),
     [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(
       clientId,
       config.appDataDir,

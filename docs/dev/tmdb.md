@@ -1,146 +1,207 @@
-# TMDB via SMM cli
+# TMDB 集成（v3）
 
+SMM 通过 `apps/core` 统一访问 TMDB：**全部出站流量**经 `Core` + `NetworkPort`，不直连上游（浏览器侧见 [network-core.md](./network-core.md)）。
 
-**输出格式**
-```bash
-$ smm tmdb search "keyword"
-#{index} {tmdbid} {title} ({release data})
-{description}
-#{index2} {tmdbid2} {title2} ({release data 2})
-{description2}
-```
-
-**使用场景**
-```
-# Search through SMM-provided TMDB host
-smm tmdb search "keyword" --type tv
-
-# Search with explicit language
-smm tmdb search "keyword" --type tv --lang zh-CN
-
-# Search through SMM-provided TMDB host and HTTP proxy
-smm tmdb search "keyword" --type tv --proxy "socks5://proxy.example.com:7079"
-
-# Search through custom TMDB host
-smm tmdb search "keyword" --type tv --host "https://tmdb.example.com/v3"
-
-# Search through custom TMDB host and password
-smm tmdb search "keyword" --type tv --host "https://tmdb.example.com/v3" --password "password-here"
-
-# Search through custom TMDB host, password and HTTP proxy
-smm tmdb search "keyword" --type tv --host "https://tmdb.example.com/v3" --password "password-here" --proxy "socks5://proxy.example.com:7079"
-```
-
-**Arguments**
-```
---type [tv|movie]
---lang <language>   # TMDB primary translation IETF tag (static snapshot of /3/configuration/primary_translations); omit → userConfig then OS; invalid values error offline
-```
-
-## Web UI Implementation
-
-Web UI 的 TMDB 搜索入口是 `MediaDatabaseSearchbox`（电视剧 / 电影面板标题栏）。组件同时支持 TMDB 与 TVDB；本节只描述 **TMDB** 路径。
-
-### 入口与触发
-
-| 位置 | `mediaType` | 选中结果后续 |
-|------|-------------|--------------|
-| `TvShowPanelHeader` | `tv` | `useSelectTvShowForFolderMutation` → 按 id 拉详情并写 metadata |
-| `MovieHeaderV2` | `movie` | 对应 movie 选择 mutation（同样再拉详情） |
-
-用户在 `ImmersiveSearchbox` 输入关键词后按 Enter / 点搜索按钮 → `handleSearch`。
-
-搜索语言优先级：`localStorage.lastSelectedTmdbLanguage` → `userConfig.preferMediaLanguage` → 默认。默认数据库来自 `userConfig.primaryDatabase`（可在搜索框内切换）。
-
-### 流程图（TMDB 搜索）
+| 入口 | 状态 | 说明 |
+|------|------|------|
+| CLI | ✅ | `smm tmdb search` → 进程内 `Core` |
+| AI Tool | ✅ | Chat 工具 → `core-routes` → `Core` |
+| MCP Tool | ✅ | MCP 工具 → `core-routes` → `Core` |
+| Web UI | ⏳ | 目标：`BrowserNetworkPort` → `POST /api/core/fetch` → `Core`（迁移中） |
 
 ```mermaid
-flowchart TD
-  A[用户在 MediaDatabaseSearchbox 输入关键词并搜索] --> B{searchDatabase?}
-  B -->|TVDB| Z[TVDB 客户端路径 略]
-  B -->|TMDB| C[拼 query + language<br/>GET /search/tv 或 /search/movie]
-  C --> D[fetchTmdbOrUndefined]
-  D --> E[fetchTmdb]
+flowchart TB
+  CLI["apps/cli"]
+  WEB["apps/ui ⏳"]
+  AI["AI Tool ✅"]
+  MCP["MCP Tool ✅"]
 
-  E --> F{userConfig.tmdb.host<br/>非空且可解析?}
-  F -->|是 自定义上游| G[fetchByInternalReverseProxy]
-  G --> G1[hello 拿到 CLI reverseProxyUrl]
-  G1 --> G2[浏览器 GET reverseProxyUrl + /search/...]
-  G2 --> G3[Header:<br/>X-SMM-Proxy-Upstream-BaseURL = host<br/>可选 Authorization Bearer apiKey<br/>可选 X-Http-Proxy]
-  G3 --> G4[CLI reverseProxy<br/>packages/core-routes]
-  G4 --> G5[转发到自定义 TMDB host<br/>必要时经用户 SOCKS/HTTP 代理]
-  G5 --> H
+  CR["packages/core-routes<br/>/api/core/fetch · chat · MCP"]
+  CORE["apps/core<br/>searchInTmdb · getMovieInTmdb · getTvShowInTmdb"]
+  NET["NetworkPort<br/>NodejsNetworkPort / BrowserNetworkPort"]
+  TMDB["TMDB 上游"]
 
-  F -->|否 默认 / Discover| I[fetchDiscoverConfig]
-  I --> J[mediaDatabases 中 type=tmdb 的 URL 列表<br/>若空则用 SMM 默认<br/>mediadb.vercel.app/api/tmdb]
-  J --> K[fetchWithFailover]
-  K --> K1[先: Discover reverseProxies × upstream 成对尝试]
-  K1 --> K2[再: 直连各 TMDB host + /search/...]
-  K2 --> K3{全部失败?}
-  K3 -->|是| L[HttpFailoverExhaustedError<br/>→ fetchTmdbOrUndefined 返回 undefined]
-  K3 -->|否| H
-
-  H{Response ok?}
-  L --> M[buildTmdbErrorFromResponse<br/>classifyTmdbError → 展示错误]
-  H -->|否| M
-  H -->|是| N[解析 TmdbSearchResponseBody]
-  N --> O{response.error?}
-  O -->|是| P[searchFailed]
-  O -->|否| Q[按 mediaType 过滤 results<br/>tv: name / movie: title]
-  Q --> R{results 为空?}
-  R -->|是| S[searchNoResults]
-  R -->|否| T[映射为 ImmersiveSearchResultItem<br/>海报 getTMDBImageUrl w200]
-  T --> U[用户点击某条结果]
-  U --> V[onSearchResultSelected<br/>database=TMDB + result + searchLanguage]
-  V --> W[useSelect*ForFolderMutation<br/>再 fetchTmdb 拉 /tv/:id 或 /movie/:id<br/>写入 MediaMetadata]
+  CLI -->|进程内| CORE
+  WEB --> CR
+  AI --> CR
+  MCP --> CR
+  CR --> CORE
+  CORE --> NET --> TMDB
 ```
 
-### 关键代码
+**配置**：host / apiKey / httpProxy 来自 `userConfig.tmdb`；各入口可临时覆盖（CLI flags、工具参数 `baseURL` 等）。
 
-| 层 | 文件 | 职责 |
-|----|------|------|
-| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` | 搜索状态、语言、调 `fetchTmdbOrUndefined`、结果映射 |
-| UI | `apps/ui/src/components/ImmersiveSearchbox.tsx` | 输入框 / 结果列表 / 库与语言切换 |
-| API | `apps/ui/src/api/tmdb.ts` | `fetchTmdb` / `fetchTmdbOrUndefined`；自定义 host vs Discover 分流 |
-| API | `apps/ui/src/api/fetchByInternalReverseProxy.ts` | 经本地 CLI reverse proxy 访问自定义上游 |
-| HTTP | `apps/ui/src/lib/http.ts` | `fetchWithFailover`：代理对 + 直连链，失败域名写入 `disabledDomains` |
-| CLI | `packages/core-routes` reverse proxy | 读 `X-SMM-Proxy-Upstream-BaseURL` / `X-Http-Proxy` 转发上游 |
-| 选中后 | `apps/ui/src/hooks/useSelectTvShowForFolderMutation.ts` 等 | 用搜索结果 id 再拉详情并更新文件夹 metadata |
+---
 
-### 两条出站路径对照
+## apps/core API
 
-1. **自定义 TMDB host**（设置里配置了 `userConfig.tmdb.host`）  
-   浏览器 → CLI 内置 reverse proxy →（可选用户 `httpProxy`）→ 自定义 host。  
-   API key 以 `Authorization: Bearer` 经代理头传到上游。与 CLI `smm tmdb search --host … --password … --proxy …` 语义对齐。
+三个公开方法，共用 `createTmdbClient` 与 `NetworkPort` 出站。
 
-2. **未配置 host（默认）**  
-   浏览器 → Discover 下发的 TMDB 镜像 / 默认 `https://mediadb.vercel.app/api/tmdb`（可先经 Discover reverse proxy，再直连）。  
-   搜索失败时 `fetchTmdbOrUndefined` 把 failover 耗尽转成 `undefined`，再走 `classifyTmdbError` 做用户可读错误；scrape / 拉详情等路径仍用 `fetchTmdb`，让 `HttpFailoverExhaustedError` 直接抛出。
-
-### 与 CLI 的关系
-
-- Web 搜索**不**调用 `smm tmdb search` 子命令。  
-- 自定义 host 时共用同一套 CLI reverse proxy 转发能力。  
-- 默认路径走浏览器侧 Discover + failover，与 CLI 直连 host/proxy 参数是平行实现。
-
-
-## apps/core design
-
-Core exposes TMDB search for CLI (and other in-process callers):
-
-### `searchInTmdb(keyword, options)`
+| 方法 | 用途 |
+|------|------|
+| `searchInTmdb(keyword, options)` | 按关键词搜索 TV / movie |
+| `getMovieInTmdb(id, options)` | 按 TMDB id 拉电影详情 |
+| `getTvShowInTmdb(id, options)` | 按 TMDB id 拉剧集详情 |
 
 ```ts
 core.searchInTmdb(keyword, {
   type: "tv" | "movie",
-  language?: string,   // CLI `--lang`; offline check vs packages/core/tmdbPrimaryTranslations.ts; default: preferMediaLanguage → OS → en-US
-  host?: string,       // default: userConfig.tmdb.host
-  password?: string,   // default: userConfig.tmdb.apiKey (CLI `--password`)
-  proxy?: string,      // default: userConfig.tmdb.httpProxy (CLI `--proxy`)
+  language?: string,   // 离线校验 packages/core/tmdbPrimaryTranslations.ts
+  host?: string,       // 默认 userConfig.tmdb.host
+  password?: string,   // 默认 userConfig.tmdb.apiKey
+  proxy?: string,      // 默认 userConfig.tmdb.httpProxy
 })
+
+core.getMovieInTmdb(id, { language?, host?, password?, proxy? })
+core.getTvShowInTmdb(id, { language?, host?, password?, proxy? })
 ```
 
-- Builds `TmdbClient` with Core’s `NetworkPort` (CLI: `NodejsNetworkPort`).
-- When `--lang` / `language` is set, validates offline against `TMDB_PRIMARY_TRANSLATIONS` (static snapshot of TMDB primary translations).
-- Sets `reverseProxyUrl: null` so requests go **direct** through NetworkPort; `proxy` is passed as `FetchInit.proxy` (not `X-Http-Proxy` / reverse proxy).
-- Returns `TmdbSearchResponseBody`.
+- `TmdbClient` 经 `NetworkPort` 发请求；`reverseProxyUrl: null`，`proxy` 作为 `FetchInit.proxy`（非浏览器 reverse proxy）。
+- 显式 `language` 须在静态 primary translations 列表中；省略时按 `preferMediaLanguage` → OS → `en-US`。
+
+实现：`apps/core/src/Core.ts`。
+
+---
+
+## CLI
+
+### 命令
+
+目前仅暴露搜索子命令：
+
+```bash
+smm tmdb search "<keyword>" --type tv|movie [options]
+```
+
+### 输出格式
+
+```bash
+$ smm tmdb search "keyword" --type tv
+#1 {tmdbid} {title} ({release date})
+{overview}
+#2 {tmdbid2} {title2} ({release date})
+{overview}
+```
+
+### 常用场景
+
+```bash
+# 默认 host（userConfig / 内置）
+smm tmdb search "keyword" --type tv
+
+# 指定语言
+smm tmdb search "keyword" --type tv --lang zh-CN
+
+# 经 HTTP/SOCKS 代理
+smm tmdb search "keyword" --type tv --proxy "socks5://proxy.example.com:7079"
+
+# 自定义 host + API key
+smm tmdb search "keyword" --type tv \
+  --host "https://api.themoviedb.org/3" \
+  --password "your-api-key" \
+  --proxy "socks5://proxy.example.com:7079"
+```
+
+### 参数
+
+| 参数 | 说明 |
+|------|------|
+| `--type` | `tv` \| `movie`（必填） |
+| `--lang` | TMDB primary translation（如 `zh-CN`）；无效值离线报错 |
+| `--host` | 覆盖 `userConfig.tmdb.host` |
+| `--password` | 覆盖 `userConfig.tmdb.apiKey` |
+| `--proxy` | 覆盖 `userConfig.tmdb.httpProxy` |
+
+实现：`apps/cli/src/cli/runCli.ts`（格式化：`tmdbSearchFormat.ts`）。
+
+---
+
+## AI Tool
+
+Chat 后端工具，**仅服务端**（`packages/core/ai-tool/registry.ts` 中 `frontend: false`）。
+
+| 工具名 | Core 方法 | 说明 |
+|--------|-----------|------|
+| `tmdb-search` | `searchInTmdb` | 关键词搜索 |
+| `tmdb-get-movie` | `getMovieInTmdb` | 电影详情 |
+| `tmdb-get-tv-show` | `getTvShowInTmdb` | 剧集详情 |
+
+### 参数（与 CLI 对照）
+
+| 工具字段 | 对应 Core |
+|----------|-----------|
+| `keyword`, `type` | `searchInTmdb` |
+| `id` | `getMovieInTmdb` / `getTvShowInTmdb` |
+| `language` | `language`（同 CLI `--lang`） |
+| `baseURL` | `host`（同 CLI `--host`） |
+
+host / apiKey / proxy 未在工具参数中指定时，仍走 `userConfig.tmdb`。
+
+类型定义：`packages/core/types/ai-tools/tmdb*.ts`  
+执行与构建：`packages/core-routes/src/tools/tmdb.ts`  
+注册：`packages/core-routes/src/tools/index.ts`、`chat.ts`；CLI 注入 runner：`apps/cli/src/route/chatRoute.ts`。
+
+System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tmdb-search`，再按 id 拉详情）。
+
+---
+
+## MCP Tool
+
+与 AI Tool **同名、同 schema、同 Core 路径**，经 MCP HTTP 暴露。
+
+| MCP 工具名 | Core 方法 |
+|------------|-----------|
+| `tmdb-search` | `searchInTmdb` |
+| `tmdb-get-movie` | `getMovieInTmdb` |
+| `tmdb-get-tv-show` | `getTvShowInTmdb` |
+
+注册：`packages/core-routes/src/mcp/toolHandlers/tmdbTools.ts`  
+CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `getTvShowInTmdb`）。
+
+本地调试 MCP 客户端：`test/mcp-test-client/index.ts`（`SMM_MCP_URL` + `--tool tmdb-search`）。
+
+---
+
+## Web UI（⏳ v3 迁移）
+
+搜索入口：`MediaDatabaseSearchbox`（`TvShowPanelHeader` / `MovieHeaderV2`）。
+
+**目标路径**（与 Core v3 一致）：
+
+```mermaid
+flowchart LR
+  A[MediaDatabaseSearchbox] --> B[Core.searchInTmdb]
+  B --> C[BrowserNetworkPort]
+  C --> D[POST /api/core/fetch]
+  D --> E[NodejsNetworkPort]
+  E --> F[TMDB]
+```
+
+| 层 | 文件 |
+|----|------|
+| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` |
+| 浏览器 Port | `apps/ui/src/core/BrowserNetworkPort.ts` |
+| RPC | `apps/cli/src/route/CoreFetch.ts` |
+| 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |
+
+Web 不调用 `smm tmdb search`，但与 CLI 共用 `Core` 与 `userConfig.tmdb` 语义。
+
+---
+
+## 测试
+
+| 范围 | 文件 |
+|------|------|
+| CLI e2e | `apps/cli/test/tmdb.e2e.ts` — 文档「常用场景」四类搜索 |
+| core-routes 单测 | `packages/core-routes/src/tools/tmdb.test.ts` |
+| MCP e2e | `apps/e2e/common/mcp/McpOther-TmdbTools.e2e.ts` — 三工具 +  live TMDB |
+| MCP 客户端 | `apps/e2e/test/lib/McpClient.ts` |
+
+MCP / 需直连 TMDB 的 e2e 在 `apps/e2e/.env.local` 配置 `TMDB_HOST`、`TMDB_API_KEY`、`TMDB_HTTP_PROXY`（网络受限环境）。
+
+运行 MCP spec：
+
+```bash
+cd apps/e2e
+pnpm run wdio --spec ./common/mcp/McpOther-TmdbTools.e2e.ts
+```

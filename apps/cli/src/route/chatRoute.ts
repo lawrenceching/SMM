@@ -19,6 +19,11 @@ export function handleChatRequest(app: Hono, chatConfig: ChatConfig) {
         renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
         scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
         getJob: (id) => getCore().getJob(id),
+        tmdb: {
+          searchInTmdb: (keyword, options) => getCore().searchInTmdb(keyword, options),
+          getMovieInTmdb: (id, options) => getCore().getMovieInTmdb(id, options),
+          getTvShowInTmdb: (id, options) => getCore().getTvShowInTmdb(id, options),
+        },
       })
       return response
     } catch (error) {

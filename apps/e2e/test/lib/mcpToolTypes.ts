@@ -1,9 +1,9 @@
 /**
  * MCP tool request/response shapes for e2e `McpClient`.
- * Keep in sync with apps/cli/src/tools and apps/cli/src/mcp/tools (see mcp.ts registrations).
+ * Keep in sync with packages/core-routes MCP handlers and apps/cli/src/mcp/mcp.ts registrations.
  */
 
-import type { TmdbMovieDetails, TmdbTvShowResponseBody } from '@smm/core/types'
+import type { TmdbMovieDetails, TmdbSeriesDetails } from '@smm/core/types'
 
 /** Kebab-case names passed to `mcp-test-client --tool`. */
 export const McpToolName = {
@@ -299,8 +299,13 @@ export interface TmdbSearchRequest {
   baseURL?: string
 }
 
+export interface TmdbSearchTvResult {
+  id: number
+  name?: string
+}
+
 export interface TmdbSearchResponse {
-  results: unknown[]
+  results: TmdbSearchTvResult[]
   page: number
   total_pages: number
   total_results: number
@@ -325,6 +330,6 @@ export interface TmdbGetTvShowRequest {
 export type TmdbMovieDetailsResponse = TmdbMovieDetails
 
 /**
- * Same for `tmdb-get-tv-show` and {@link TmdbTvShowResponseBody}.
+ * MCP `tmdb-get-tv-show` returns {@link TmdbSeriesDetails} from Core (flat TMDB TV details).
  */
-export type TmdbTvShowDetailsResponse = TmdbTvShowResponseBody
+export type TmdbTvShowDetailsResponse = TmdbSeriesDetails

@@ -48,6 +48,9 @@ import { RENAME_FOLDER } from '../types/ai-tools/renameFolder'
 import { RENAME_EPISODE_FILE } from '../types/ai-tools/renameEpisodeFile'
 import { SCRAPE } from '../types/ai-tools/scrape'
 import { GET_JOB } from '../types/ai-tools/getJob'
+import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
+import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
+import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -104,6 +107,11 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   // Scrape job (no confirmation; poll with get-job)
   { name: SCRAPE, backend: true, frontend: true },
   { name: GET_JOB, backend: true, frontend: true },
+
+  // TMDB query (Core-backed; backend chat / MCP on hosts with Core)
+  { name: TMDB_SEARCH, backend: true, frontend: false },
+  { name: TMDB_GET_MOVIE, backend: true, frontend: false },
+  { name: TMDB_GET_TV_SHOW, backend: true, frontend: false },
 
   // Rename files task
   { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },

@@ -16,6 +16,9 @@ import {
 } from '../types/ai-tools/recognizeMediaFileTask'
 import { SCRAPE } from '../types/ai-tools/scrape'
 import { GET_JOB } from '../types/ai-tools/getJob'
+import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
+import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
+import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
 
 /**
  * The system prompt is interpolated with kebab-case tool name
@@ -44,6 +47,9 @@ describe('systemPrompt', () => {
       END_RECOGNIZE_TASK,
       SCRAPE,
       GET_JOB,
+      TMDB_SEARCH,
+      TMDB_GET_MOVIE,
+      TMDB_GET_TV_SHOW,
     ]
     for (const name of required) {
       expect(

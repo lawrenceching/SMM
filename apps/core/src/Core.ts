@@ -3,7 +3,9 @@ import type {
   AppConfig,
   FolderType,
   MediaMetadata,
+  TmdbMovieDetails,
   TmdbSearchResponseBody,
+  TmdbSeriesDetails,
   UserConfig as UserConfigData,
 } from "@smm/core";
 import { detectOsLocale, parseTmdbSearchLanguage, resolveMediaLanguage } from "@core/locale";
@@ -40,8 +42,7 @@ import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import { initialScrapeTasks, type ImportJob, type Job } from "./jobs/types";
 
-export interface SearchInTmdbOptions {
-  type: "tv" | "movie";
+export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
   language?: string;
   /** Override userConfig.tmdb.host */
@@ -50,6 +51,10 @@ export interface SearchInTmdbOptions {
   password?: string;
   /** Override userConfig.tmdb.httpProxy (CLI `--proxy`) */
   proxy?: string;
+}
+
+export interface SearchInTmdbOptions extends TmdbRequestOptions {
+  type: "tv" | "movie";
 }
 
 export type {
@@ -281,6 +286,31 @@ export class Core {
       throw new Error("keyword is required");
     }
 
+    const { client, language } = await this.createTmdbClient(options);
+    return client.search(trimmed, options.type, language);
+  }
+
+  /** Fetch TMDB movie details by id via {@link NetworkPort}. */
+  async getMovieInTmdb(id: number, options: TmdbRequestOptions = {}): Promise<TmdbMovieDetails> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTmdbClient(options);
+    return client.getMovieById(id, language);
+  }
+
+  /** Fetch TMDB TV series details by id via {@link NetworkPort}. */
+  async getTvShowInTmdb(id: number, options: TmdbRequestOptions = {}): Promise<TmdbSeriesDetails> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTmdbClient(options);
+    return client.getTvShowById(id, language);
+  }
+
+  private async createTmdbClient(
+    options: TmdbRequestOptions,
+  ): Promise<{ client: TmdbClient; language: string }> {
     const config = await this.userConfig.read();
     const language = options.language?.trim()
       ? parseTmdbSearchLanguage(options.language)
@@ -301,7 +331,7 @@ export class Core {
       discover: this.discover,
     });
 
-    return client.search(trimmed, options.type, language);
+    return { client, language };
   }
 
   private normalizePosix(path: string): string {

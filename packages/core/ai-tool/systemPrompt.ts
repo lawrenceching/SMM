@@ -14,6 +14,9 @@ import { GET_EPISODES } from '../types/ai-tools/getEpisodes'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
 import { SCRAPE } from '../types/ai-tools/scrape'
 import { GET_JOB } from '../types/ai-tools/getJob'
+import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
+import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
+import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
 
 /**
  * The system prompt for the AI Assistant, shared between the
@@ -79,6 +82,13 @@ use the scrape job tools:
 2. Call "${SCRAPE}" with the folder path (optional language). It returns a job id immediately.
 3. Call "${GET_JOB}" with that id to check progress. Poll until status is succeeded, failed, or aborted.
 4. Report per-task results (poster, fanart, thumbnails, nfo) from the scrape job.
+
+### TMDB Search and Details
+
+When user asks to search TMDB, find a TV show or movie on TMDB, or look up TMDB metadata by id:
+
+1. Call "${TMDB_SEARCH}" with keyword and type (\`tv\` or \`movie\`) to find candidates.
+2. Call "${TMDB_GET_TV_SHOW}" or "${TMDB_GET_MOVIE}" with the chosen TMDB id for full details (seasons/episodes for TV).
 
 ## User Preferences
 

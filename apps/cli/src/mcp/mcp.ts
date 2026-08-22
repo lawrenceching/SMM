@@ -11,6 +11,9 @@ import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -61,6 +64,9 @@ const TOOL_NAME_KEYS = [
   HOW_TO_RENAME_KEY,
   HOW_TO_RECOGNIZE_KEY,
   README_KEY,
+  TMDB_SEARCH,
+  TMDB_GET_MOVIE,
+  TMDB_GET_TV_SHOW,
 ] as const;
 
 let handlerPromise: Promise<McpRequestHandler> | null = null;
@@ -142,6 +148,9 @@ async function buildMcpConfig(): Promise<McpConfig> {
     renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
     scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
     getJob: (id) => getCore().getJob(id),
+    searchInTmdb: (keyword, options) => getCore().searchInTmdb(keyword, options),
+    getMovieInTmdb: (id, options) => getCore().getMovieInTmdb(id, options),
+    getTvShowInTmdb: (id, options) => getCore().getTvShowInTmdb(id, options),
     logger: {
       debug: (obj, msg) => logger.debug(obj, msg),
       info: (obj, msg) => logger.info(obj, msg),

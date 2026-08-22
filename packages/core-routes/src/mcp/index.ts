@@ -6,6 +6,9 @@ import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
 export {
   createErrorResponse,
   createSuccessResponse,
@@ -35,6 +38,7 @@ export { RENAME_FOLDER };
 export { RENAME_EPISODE_FILE };
 export { SCRAPE };
 export { GET_JOB };
+export { TMDB_SEARCH, TMDB_GET_MOVIE, TMDB_GET_TV_SHOW };
 
 /**
  * Constants exposed to hosts that load `core-routes.js` as a
@@ -47,4 +51,7 @@ export const MCP_TOOL_NAMES = {
   RENAME_EPISODE_FILE,
   SCRAPE,
   GET_JOB,
+  TMDB_SEARCH,
+  TMDB_GET_MOVIE,
+  TMDB_GET_TV_SHOW,
 } as const;
