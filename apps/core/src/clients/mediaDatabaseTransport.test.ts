@@ -137,4 +137,24 @@ describe("fetchMediaDatabase", () => {
     expect(resp.ok).toBe(true);
     expect(urls).toHaveLength(2);
   });
+
+  it("passes httpProxy to NetworkPort on direct custom-host fetch", async () => {
+    const proxies: Array<string | undefined> = [];
+    const network: NetworkPort = {
+      fetch: async (_url, init) => {
+        proxies.push(init?.proxy);
+        return jsonOk({ results: [] });
+      },
+    };
+
+    await fetchMediaDatabase(network, {
+      kind: "tmdb",
+      path: "/search/tv?query=x",
+      configuredHost: "https://tmdb.example.com/v3",
+      apiKey: "key",
+      httpProxy: "socks5://127.0.0.1:1080",
+    });
+
+    expect(proxies[0]).toBe("socks5://127.0.0.1:1080");
+  });
 });

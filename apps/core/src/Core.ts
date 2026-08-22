@@ -1,5 +1,12 @@
 import { Path } from "@core/path";
-import type { AppConfig, FolderType, MediaMetadata, UserConfig as UserConfigData } from "@smm/core";
+import type {
+  AppConfig,
+  FolderType,
+  MediaMetadata,
+  TmdbSearchResponseBody,
+  UserConfig as UserConfigData,
+} from "@smm/core";
+import { detectOsLocale, parseTmdbSearchLanguage, resolveMediaLanguage } from "@core/locale";
 import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { FsPort } from "./ports/FsPort";
@@ -7,6 +14,7 @@ import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
 import type { DiscoverPort } from "./ports/DiscoverPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
+import { TmdbClient } from "./clients/TmdbClient";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
@@ -31,6 +39,18 @@ import type { RenameRuleName } from "./pipeline/renameRules";
 import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
 import { JobStore } from "./jobs/jobStore";
 import { initialScrapeTasks, type ImportJob, type Job } from "./jobs/types";
+
+export interface SearchInTmdbOptions {
+  type: "tv" | "movie";
+  /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
+  language?: string;
+  /** Override userConfig.tmdb.host */
+  host?: string;
+  /** Override userConfig.tmdb.apiKey (CLI `--password`) */
+  password?: string;
+  /** Override userConfig.tmdb.httpProxy (CLI `--proxy`) */
+  proxy?: string;
+}
 
 export type {
   RenameFolderArgs,
@@ -248,6 +268,40 @@ export class Core {
     });
     void this.runScrape(job.id, prepared, scrapeDeps);
     return { id: job.id };
+  }
+
+  /**
+   * Search TMDB via {@link NetworkPort} (CLI uses NodejsNetworkPort).
+   * Uses direct host+proxy (no reverse proxy) so outbound `proxy` applies on NetworkPort.
+   * Explicit `language` is validated offline against the static TMDB primary_translations snapshot.
+   */
+  async searchInTmdb(keyword: string, options: SearchInTmdbOptions): Promise<TmdbSearchResponseBody> {
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      throw new Error("keyword is required");
+    }
+
+    const config = await this.userConfig.read();
+    const language = options.language?.trim()
+      ? parseTmdbSearchLanguage(options.language)
+      : resolveMediaLanguage({
+          preferMediaLanguage: config.preferMediaLanguage,
+          configured: config.applicationLanguage,
+          osLocale: detectOsLocale(),
+        });
+    const host = options.host?.trim() || config.tmdb?.host;
+    const apiKey = options.password?.trim() || config.tmdb?.apiKey;
+    const httpProxy = options.proxy?.trim() || config.tmdb?.httpProxy;
+
+    const client = new TmdbClient(this.network, {
+      host,
+      apiKey,
+      httpProxy,
+      reverseProxyUrl: null,
+      discover: this.discover,
+    });
+
+    return client.search(trimmed, options.type, language);
   }
 
   private normalizePosix(path: string): string {

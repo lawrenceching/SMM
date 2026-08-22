@@ -19,6 +19,7 @@ import {
   classifyRenameTarget,
   printEpisodeRenameResult,
 } from './renameDispatch'
+import { formatTmdbSearchResults } from './tmdbSearchFormat'
 import { Path } from '@core/path'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
@@ -58,7 +59,7 @@ const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 const SCRAPE_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `rename-episode-file`, `job`, `config`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -387,6 +388,57 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         exitCode = 1
       }
     })
+
+  const tmdbCmd = program.command('tmdb').description('TMDB helpers')
+
+  tmdbCmd
+    .command('search')
+    .description('Search TMDB for TV shows or movies')
+    .argument('<keyword>', 'Search keyword')
+    .addOption(
+      new Option('--type <type>', 'Media type')
+        .choices(['tv', 'movie'])
+        .makeOptionMandatory(),
+    )
+    .option('--host <url>', 'TMDB API base URL (overrides userConfig.tmdb.host)')
+    .option('--password <key>', 'TMDB API key (overrides userConfig.tmdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tmdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
+    )
+    .action(
+      async (
+        keyword: string,
+        opts: {
+          type: 'tv' | 'movie'
+          host?: string
+          password?: string
+          proxy?: string
+          lang?: string
+        },
+      ) => {
+        try {
+          const body = await getCore().searchInTmdb(keyword, {
+            type: opts.type,
+            host: opts.host,
+            password: opts.password,
+            proxy: opts.proxy,
+            language: opts.lang,
+          })
+          if (body.error) {
+            console.error(body.error)
+            exitCode = 1
+            return
+          }
+          const text = formatTmdbSearchResults(body, opts.type)
+          if (text) console.log(text)
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : String(error))
+          exitCode = 1
+        }
+      },
+    )
 
   const configCmd = program.command('config').description('Read or write user config (smm.json)')
 

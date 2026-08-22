@@ -1028,3 +1028,133 @@ describe("scrapeFolder", () => {
     await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/Unsupported media database/);
   });
 });
+
+describe("Core.searchInTmdb", () => {
+  it("searches via NetworkPort with host, password and proxy", async () => {
+    const calls: Array<{ url: string; proxy?: string; auth?: string }> = [];
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        calls.push({
+          url,
+          proxy: init?.proxy,
+          auth: init?.headers?.Authorization,
+        });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          text: async () =>
+            JSON.stringify({
+              results: [{ id: 42, name: "My Show", first_air_date: "2020-01-01", overview: "A show" }],
+              page: 1,
+              total_pages: 1,
+              total_results: 1,
+            }),
+          json: async <T>() =>
+            ({
+              results: [{ id: 42, name: "My Show", first_air_date: "2020-01-01", overview: "A show" }],
+              page: 1,
+              total_pages: 1,
+              total_results: 1,
+            }) as T,
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({
+          folders: [],
+          preferMediaLanguage: "zh-CN",
+          tmdb: {},
+          tvdb: {},
+        }),
+      }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    const body = await core.searchInTmdb("keyword", {
+      type: "tv",
+      host: "https://tmdb.example.com/v3",
+      password: "secret",
+      proxy: "socks5://127.0.0.1:1080",
+    });
+
+    expect(body.results[0]?.id).toBe(42);
+    expect(calls[0]?.url).toContain("https://tmdb.example.com/v3/search/tv");
+    expect(calls[0]?.url).toContain("query=keyword");
+    expect(calls[0]?.url).toContain("language=zh-CN");
+    expect(calls[0]?.proxy).toBe("socks5://127.0.0.1:1080");
+    expect(calls[0]?.auth).toBe("Bearer secret");
+  });
+
+  it("validates options.language offline against static primary_translations", async () => {
+    const calls: string[] = [];
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        calls.push(url);
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          text: async () => JSON.stringify({ results: [], page: 1, total_pages: 0, total_results: 0 }),
+          json: async <T>() =>
+            ({ results: [], page: 1, total_pages: 0, total_results: 0 }) as T,
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({
+          folders: [],
+          preferMediaLanguage: "zh-CN",
+          tmdb: {},
+          tvdb: {},
+        }),
+      }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    await core.searchInTmdb("keyword", {
+      type: "movie",
+      language: "ja-JP",
+      host: "https://tmdb.example.com/v3",
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("language=ja-JP");
+    expect(calls[0]).not.toContain("primary_translations");
+  });
+
+  it('rejects language not in static TMDB primary_translations such as "cn"', async () => {
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }),
+      }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTmdb("keyword", { type: "tv", language: "cn" })).rejects.toThrow(
+      /Unsupported language "cn"/,
+    );
+    await expect(core.searchInTmdb("keyword", { type: "tv", language: "cn" })).rejects.toThrow(
+      /--lang zh-CN/,
+    );
+  });
+
+  it("rejects empty keyword", async () => {
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }),
+      }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTmdb("  ", { type: "movie" })).rejects.toThrow(/keyword/i);
+  });
+});

@@ -99,9 +99,12 @@ async function tryFetch(
   network: NetworkPort,
   url: string,
   headers: Record<string, string>,
+  proxy?: string,
 ): Promise<HttpResponse | undefined> {
   try {
     const init: FetchInit = { method: "GET", headers };
+    const trimmedProxy = proxy?.trim();
+    if (trimmedProxy) init.proxy = trimmedProxy;
     const resp = await network.fetch(url, init);
     if (resp.ok) return resp;
     return undefined;
@@ -138,13 +141,19 @@ export async function fetchMediaDatabase(
       if (resp !== undefined) return resp;
       throw new MediaDatabaseFailoverExhaustedError(attempted);
     }
-    // Unit-test / no-proxy fallback: hit custom host directly
+    // Unit-test / CLI / no-proxy fallback: hit custom host directly via NetworkPort
+    // (httpProxy is passed as NetworkPort `proxy`, not X-Http-Proxy).
     const url = joinUrl(upstream, path);
     attempted.push(url);
-    const resp = await tryFetch(network, url, {
-      Accept: "application/json",
-      ...authHeaders(options.apiKey),
-    });
+    const resp = await tryFetch(
+      network,
+      url,
+      {
+        Accept: "application/json",
+        ...authHeaders(options.apiKey),
+      },
+      options.httpProxy,
+    );
     if (resp !== undefined) return resp;
     throw new MediaDatabaseFailoverExhaustedError(attempted);
   }
@@ -175,10 +184,15 @@ export async function fetchMediaDatabase(
   for (const host of hosts) {
     const directUrl = joinUrl(host, path);
     attempted.push(directUrl);
-    const direct = await tryFetch(network, directUrl, {
-      Accept: "application/json",
-      ...authHeaders(options.apiKey),
-    });
+    const direct = await tryFetch(
+      network,
+      directUrl,
+      {
+        Accept: "application/json",
+        ...authHeaders(options.apiKey),
+      },
+      options.httpProxy,
+    );
     if (direct !== undefined) return direct;
 
     for (const proxy of proxies) {

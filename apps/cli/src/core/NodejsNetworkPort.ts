@@ -174,7 +174,11 @@ function agentForProxy(proxyUrl: string, targetUrl: string): Agent {
 
   // Cast: agent packages type `http` vs `node:http` Agent incompatibly under strict TS.
   if (proxy.protocol === 'socks5:' || proxy.protocol === 'socks5h:') {
-    return new SocksProxyAgent(proxyUrl) as unknown as Agent
+    // Clash/V2Ray and similar SOCKS ports reset TLS when Node resolves DNS locally
+    // (`socks5://`). `socks5h://` lets the proxy resolve the hostname (same as curl --socks5-hostname).
+    const socks = new URL(proxyUrl)
+    if (socks.protocol === 'socks5:') socks.protocol = 'socks5h:'
+    return new SocksProxyAgent(socks) as unknown as Agent
   }
 
   // https:// target → CONNECT tunnel; http:// target → absolute-URL forward.
