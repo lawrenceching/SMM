@@ -1,5 +1,5 @@
 import { Command, CommanderError, Option } from 'commander'
-import { readFile } from 'node:fs/promises'
+import { mkdir, readFile } from 'node:fs/promises'
 import type { FolderType, RenameRuleName } from 'core-app'
 import type { MediaMetadata } from '@smm/core'
 import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
@@ -494,6 +494,46 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         console.error(message)
         exitCode = 1
       }
+    })
+
+  const mcpCmd = program.command('mcp').description('MCP server management')
+
+  mcpCmd
+    .command('start')
+    .description('Start the MCP server and keep running until interrupted')
+    .option('--host <host>', 'MCP server bind host (default: user config mcpHost or 127.0.0.1)')
+    .option('--port <port>', 'MCP server port (default: user config mcpPort or 30001)')
+    .action(async (opts: { host?: string; port?: string }) => {
+      // Lazy imports: pulling in the MCP lifecycle manager (and thus
+      // `@smm/core-routes`) at module load breaks vitest's CLI unit tests
+      // which don't alias `@smm/core/path`.
+      const { getAppDataDir, getLogDir, getUserDataDir } = await import('@/utils/config')
+      const { getBunMcpLifecycleManager } = await import('@/mcp/mcpServerManager')
+
+      await mkdir(getUserDataDir(), { recursive: true })
+      await mkdir(getAppDataDir(), { recursive: true })
+      await mkdir(getLogDir(), { recursive: true })
+
+      const manager = getBunMcpLifecycleManager()
+      await manager.start({
+        hostname: opts.host,
+        port: opts.port ? Number(opts.port) : undefined,
+      })
+      const state = manager.getState()
+      if (state.status !== 'running' || !state.url) {
+        throw new Error(state.error ?? 'MCP server failed to start')
+      }
+      console.log(`MCP server running at ${state.url}`)
+
+      // Keep the process alive until interrupted, then stop the server gracefully.
+      await new Promise<void>((resolve) => {
+        const stop = async () => {
+          await manager.stop()
+          resolve()
+        }
+        process.once('SIGINT', stop)
+        process.once('SIGTERM', stop)
+      })
     })
 
   try {
