@@ -8,6 +8,7 @@
     "@ai-sdk/mcp": "latest",
     "@types/bun": "latest",
     "@vitest/coverage-v8": "^4.0.18",
+    "proxy-chain": "^3.0.0",
     "socket.io-client": "^4.8.3",
     "typescript": "^5",
     "vitest": "^4.0.18"
@@ -28,6 +29,8 @@
     "dotenv": "^17.2.3",
     "es-toolkit": "^1.43.0",
     "hono": "^4.10.8",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6",
     "i18next": "^25.8.4",
     "i18next-fs-backend": "^2.6.1",
     "node-pty": "^1.1.0",
@@ -37,6 +40,7 @@
     "sanitize-filename": "^1.6.3",
     "shelljs": "^0.10.0",
     "socket.io": "^4.8.3",
+    "socks-proxy-agent": "^8.0.5",
     "strip-ansi": "^7.2.0",
     "xmlbuilder2": "^4.0.3",
     "zod": "^4.1.8"

@@ -36,7 +36,14 @@ export interface CoreRoutesModule {
   createReverseProxyRequestHandler: (
     config: ReverseProxyConfig,
   ) => (req: IncomingMessage, res: ServerResponse) => void
-  createProxiedFetch?: unknown
+  /**
+   * Outbound proxied fetch factory (HTTP(S) + SOCKS5). Present in
+   * core-routes bundles that include proxiedFetch.
+   */
+  createProxiedFetch?: (
+    proxyUrl: string,
+    logger?: CoreRoutesLogger,
+  ) => ((input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) | undefined
   createSocketIOManager: (
     httpServer: HttpServer,
     config?: SocketIOConfig,

@@ -3,6 +3,8 @@ export interface FetchInit {
   headers?: Record<string, string>;
   body?: string;
   signal?: AbortSignal;
+  /** Outbound proxy URL: `http://`, `https://`, or `socks5://`. */
+  proxy?: string;
 }
 
 /** Minimal HTTP response shape; runtime-agnostic (Node/browser). */

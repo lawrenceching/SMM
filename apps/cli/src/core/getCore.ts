@@ -1,12 +1,12 @@
 import {
   Core,
-  FetchNetworkAdapter,
   NodejsFsAdapter,
   NoopLoggerAdapter,
   StaticDiscoverAdapter,
   type LoggerPort,
 } from 'core-app'
 import { getUserDataDir } from '@/utils/config'
+import { NodejsNetworkPort } from './NodejsNetworkPort'
 
 let instance: Core | undefined
 
@@ -20,7 +20,7 @@ export function getCore(options?: GetCoreOptions): Core {
     const userDataDir = getUserDataDir()
     instance = new Core({
       fs: new NodejsFsAdapter(),
-      network: new FetchNetworkAdapter(),
+      network: new NodejsNetworkPort(),
       logger: options?.logger ?? new NoopLoggerAdapter(),
       appDataDir: userDataDir,
       userDataDir,

@@ -84,6 +84,12 @@ importers:
       hono:
         specifier: ^4.10.8
         version: 4.12.2
+      http-proxy-agent:
+        specifier: ^7.0.2
+        version: 7.0.2
+      https-proxy-agent:
+        specifier: ^7.0.6
+        version: 7.0.6
       i18next:
         specifier: ^25.8.4
         version: 25.8.13(typescript@5.9.3)
@@ -111,6 +117,9 @@ importers:
       socket.io:
         specifier: ^4.8.3
         version: 4.8.3
+      socks-proxy-agent:
+        specifier: ^8.0.5
+        version: 8.0.5
       strip-ansi:
         specifier: ^7.2.0
         version: 7.2.0
@@ -130,6 +139,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18)
+      proxy-chain:
+        specifier: ^3.0.0
+        version: 3.0.0
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
