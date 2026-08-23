@@ -34,7 +34,7 @@
     "test:e2e": "cd apps/e2e && pnpm run test",
     "e2e:ai": "bun ci/run-e2e-test.ts --spec \"./test/specs/ai/*.e2e.ts\"",
     "e2e:config": "bun ci/run-e2e-test.ts --spec \"./common/config/*.e2e.ts\" --spec \"./common/httpproxy/*.e2e.ts\"",
-    "e2e:mcp": "bun ci/run-e2e-test.ts --spec \"./common/mcp/*.e2e.ts\"",
+    "e2e:mcp": "bun test test/mcp/",
     "e2e:media-folder-initialization": "bun ci/run-e2e-test.ts --spec \"./common/tv/ImportTvShowLibrary.e2e.ts\" --spec \"./common/tv/Initialize*.e2e.ts\" --spec \"./common/movie/ImportMovieLibrary.e2e.ts\" --spec \"./common/movie/Initialize*.e2e.ts\"",
     "e2e:movie": "bun ci/run-e2e-test.ts --spec \"./common/movie/SearchMovie.e2e.ts\" --spec \"./common/movie/Movie-RenameVideoFile.e2e.ts\"",
     "e2e:music": "bun ci/run-e2e-test.ts --spec \"./common/music/*.e2e.ts\"",
