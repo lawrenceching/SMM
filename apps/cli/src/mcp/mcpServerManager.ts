@@ -1,13 +1,6 @@
-import { applyMcpLifecycleFromConfig } from "@smm/core-routes";
-import { getUserConfig } from "@/utils/config";
+import { getCore } from "@/core/getCore";
 import { logger } from "../../lib/logger";
-import {
-  getBunMcpLifecycleManager,
-  setBunMcpServerError,
-  getMcpServerState,
-  startMcpServer,
-  stopMcpServer,
-} from "./bunMcpLifecycleManager";
+import { setBunMcpServerError } from "./BunMcpServerPort";
 
 export type { McpServerState, McpServerStatus } from "./bunMcpLifecycleManager";
 export {
@@ -15,28 +8,32 @@ export {
   startMcpServer,
   stopMcpServer,
   getBunMcpLifecycleManager,
-};
+  getBunMcpServerPort,
+  setBunMcpServerError,
+} from "./bunMcpLifecycleManager";
 
 /**
  * Reads user config and starts or stops the MCP server accordingly.
- * Used at CLI startup to honour the persisted enableMcpServer setting.
+ * Used at CLI HTTP server startup to honour the persisted enableMcpServer setting.
+ * Does not rewrite smm.json on boot (config already reflects user intent).
  */
 export async function applyMcpConfig(): Promise<void> {
+  const core = getCore();
   try {
-    await applyMcpLifecycleFromConfig(
-      getBunMcpLifecycleManager(),
-      getUserConfig,
-      {
-        debug: (obj, msg) => logger.debug(obj, msg),
-        info: (obj, msg) => logger.info(obj, msg),
-        warn: (obj, msg) => logger.warn(obj, msg),
-        error: (obj, msg) => logger.error(obj, msg),
-      },
+    const userConfig = await core.getUserConfig();
+    if (!userConfig.enableMcpServer) {
+      await core.stopMcpServer({ persistUserConfig: false });
+      return;
+    }
+
+    await core.startMcpServer(
+      { hostname: userConfig.mcpHost, port: userConfig.mcpPort },
+      { persistUserConfig: false },
     );
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     setBunMcpServerError(message);
-    const userConfig = await getUserConfig().catch(() => null);
+    const userConfig = await core.getUserConfig().catch(() => null);
     logger.error(
       {
         err,

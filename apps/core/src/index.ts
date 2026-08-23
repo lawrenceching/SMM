@@ -19,6 +19,22 @@ export type {
   MediaDatabaseEntry,
   ReverseProxyEntry,
 } from "./ports/DiscoverPort";
+export type {
+  McpServerPort,
+  McpServerState,
+  McpServerStartOptions,
+  McpServerStatus,
+} from "./ports/McpServerPort";
+export {
+  DEFAULT_MCP_HOST,
+  DEFAULT_MCP_PORT,
+  getMcpServerStatusWithConfig,
+  resolveMcpStartOptions,
+  startMcpServerWithConfig,
+  stopMcpServerWithConfig,
+  type McpServerOperationOptions,
+  type StartMcpServerOptions,
+} from "./pipeline/mcpServer";
 export { NodejsFsAdapter } from "./adapters/node/NodejsFsAdapter";
 export { NetworkFsAdapter, type NetworkFsAdapterOptions } from "./adapters/network/NetworkFsAdapter";
 export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";

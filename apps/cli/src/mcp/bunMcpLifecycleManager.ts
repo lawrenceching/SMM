@@ -1,124 +1,50 @@
-import { getUserConfig } from "@/utils/config";
-import {
-  getMcpStreamableHttpHandler,
-  resetMcpStreamableHttpHandler,
-} from "./mcp";
-import { logger } from "../../lib/logger";
-import type {
-  McpLifecycleManager,
-  McpServerState,
-  StartMcpOptions,
-} from "@smm/core-routes";
-import {
-  resolveMcpAdvertisedHost,
-  resolveMcpBindAddress,
-} from "@smm/core-routes";
+import type { McpLifecycleManager } from "@smm/core-routes";
+import { getBunMcpServerPort, setBunMcpServerError } from "./BunMcpServerPort";
 
-const DEFAULT_MCP_HOST = "127.0.0.1";
-const DEFAULT_MCP_PORT = 30001;
+export type { McpServerState } from "core-app";
+export type McpServerStatus = "running" | "stopped" | "error";
 
-let mcpServer: ReturnType<typeof Bun.serve> | null = null;
-let mcpServerError: string | null = null;
+export { getBunMcpServerPort, setBunMcpServerError };
 
-function buildMcpUrl(host: string, port: number): string {
-  return `http://${host}:${port}/mcp`;
-}
-
-function getRunningState(): McpServerState {
-  const server = mcpServer!;
-  const bindHost = server.hostname ?? DEFAULT_MCP_HOST;
-  const advertisedHost = resolveMcpAdvertisedHost(bindHost);
-  const port = server.port ?? DEFAULT_MCP_PORT;
+/**
+ * MCP lifecycle manager for core-routes HTTP handlers and legacy callers.
+ * Delegates runtime + UserConfig persistence to Core.
+ */
+export function getBunMcpLifecycleManager(): McpLifecycleManager {
   return {
-    status: "running",
-    host: advertisedHost,
-    port,
-    url: buildMcpUrl(advertisedHost, port),
+    async start(options) {
+      const { getCore } = await import("@/core/getCore");
+      await getCore().startMcpServer(
+        { hostname: options?.hostname, port: options?.port },
+        { persistUserConfig: true },
+      );
+    },
+    async stop() {
+      const { getCore } = await import("@/core/getCore");
+      await getCore().stopMcpServer({ persistUserConfig: true });
+    },
+    getState() {
+      return getBunMcpServerPort().getState();
+    },
   };
 }
 
-const bunMcpLifecycleManager: McpLifecycleManager = {
-  async start(options?: StartMcpOptions): Promise<void> {
-    const userConfig = await getUserConfig();
-
-    if (mcpServer) {
-      mcpServer.stop();
-      mcpServer = null;
-    }
-    mcpServerError = null;
-    resetMcpStreamableHttpHandler();
-
-    const requestedHostname =
-      options?.hostname ?? userConfig.mcpHost ?? DEFAULT_MCP_HOST;
-    const bindHostname = resolveMcpBindAddress(requestedHostname);
-    const port = options?.port ?? userConfig.mcpPort ?? DEFAULT_MCP_PORT;
-
-    const handler = await getMcpStreamableHttpHandler();
-    mcpServer = Bun.serve({
-      hostname: bindHostname,
-      port,
-      fetch: handler,
-    });
-    const advertisedHost = resolveMcpAdvertisedHost(mcpServer.hostname ?? bindHostname);
-    const listeningPort = mcpServer.port ?? port;
-    logger.info(
-      {
-        hostname: bindHostname,
-        advertisedHost,
-        port: listeningPort,
-        url: buildMcpUrl(advertisedHost, listeningPort),
-      },
-      "MCP server started",
-    );
-  },
-
-  async stop(): Promise<void> {
-    if (mcpServer) {
-      mcpServer.stop();
-      mcpServer = null;
-    }
-    mcpServerError = null;
-    resetMcpStreamableHttpHandler();
-    logger.info("MCP server stopped");
-  },
-
-  getState(): McpServerState {
-    if (mcpServer) {
-      return getRunningState();
-    }
-    if (mcpServerError) {
-      return { status: "error", error: mcpServerError };
-    }
-    return { status: "stopped" };
-  },
-};
-
-/** Record a boot-time start failure for {@link getState}. */
-export function setBunMcpServerError(message: string | null): void {
-  mcpServerError = message;
+/** @deprecated Use {@link getBunMcpLifecycleManager}.getState() via Core */
+export function getMcpServerState() {
+  return getBunMcpServerPort().getState();
 }
 
-export function getBunMcpLifecycleManager(): McpLifecycleManager {
-  return bunMcpLifecycleManager;
-}
-
-/** @deprecated Use {@link getBunMcpLifecycleManager}.getState() */
-export function getMcpServerState(): McpServerState {
-  return bunMcpLifecycleManager.getState();
-}
-
-/** @deprecated Use {@link getBunMcpLifecycleManager}.start() */
+/** @deprecated Use Core.startMcpServer */
 export async function startMcpServer(options?: {
   hostname?: string;
   port?: number;
 }): Promise<void> {
-  await bunMcpLifecycleManager.start(options);
+  const { getCore } = await import("@/core/getCore");
+  await getCore().startMcpServer(options, { persistUserConfig: true });
 }
 
-/** @deprecated Use {@link getBunMcpLifecycleManager}.stop() */
+/** @deprecated Use Core.stopMcpServer */
 export async function stopMcpServer(): Promise<void> {
-  await bunMcpLifecycleManager.stop();
+  const { getCore } = await import("@/core/getCore");
+  await getCore().stopMcpServer({ persistUserConfig: true });
 }
-
-export type { McpServerState };
-export type McpServerStatus = McpServerState["status"];

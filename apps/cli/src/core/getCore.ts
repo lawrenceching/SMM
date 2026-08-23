@@ -6,6 +6,7 @@ import {
   type LoggerPort,
 } from 'core-app'
 import { getUserDataDir } from '@/utils/config'
+import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
 
 let instance: Core | undefined
@@ -25,6 +26,7 @@ export function getCore(options?: GetCoreOptions): Core {
       appDataDir: userDataDir,
       userDataDir,
       discover: new StaticDiscoverAdapter(),
+      mcpServer: getBunMcpServerPort(),
     })
   }
   return instance

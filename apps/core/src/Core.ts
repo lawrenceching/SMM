@@ -15,6 +15,14 @@ import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
 import type { DiscoverPort } from "./ports/DiscoverPort";
+import type { McpServerPort, McpServerState } from "./ports/McpServerPort";
+import {
+  getMcpServerStatusWithConfig,
+  startMcpServerWithConfig,
+  stopMcpServerWithConfig,
+  type McpServerOperationOptions,
+  type StartMcpServerOptions,
+} from "./pipeline/mcpServer";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
@@ -79,6 +87,8 @@ export interface CoreOptions {
   userDataDir?: string;
   /** Discover hosts for TMDB/TVDB failover. */
   discover?: DiscoverPort;
+  /** MCP HTTP runtime (injected by CLI / OHOS host). */
+  mcpServer?: McpServerPort;
 }
 
 export interface ImportFolderHandle {
@@ -105,6 +115,7 @@ export class Core {
   private readonly userDataDir: string;
   private readonly userConfig: UserConfig;
   private readonly discover?: DiscoverPort;
+  private readonly mcpServer?: McpServerPort;
 
   constructor(options: CoreOptions) {
     this.fs = options.fs;
@@ -116,6 +127,48 @@ export class Core {
     this.userDataDir = options.userDataDir ?? options.appDataDir;
     this.userConfig = new UserConfig(this.fs, this.appDataDir);
     this.discover = options.discover;
+    this.mcpServer = options.mcpServer;
+  }
+
+  private requireMcpServer(): McpServerPort {
+    if (!this.mcpServer) {
+      throw new Error("MCP server port is not configured");
+    }
+    return this.mcpServer;
+  }
+
+  /** Starts the MCP HTTP server and, by default, persists MCP fields in smm.json. */
+  async startMcpServer(
+    options?: StartMcpServerOptions,
+    operation?: McpServerOperationOptions,
+  ): Promise<McpServerState> {
+    return startMcpServerWithConfig(
+      this.requireMcpServer(),
+      this.userConfig,
+      options,
+      operation,
+    );
+  }
+
+  /** Stops the MCP HTTP server and, by default, sets enableMcpServer to false. */
+  async stopMcpServer(operation?: McpServerOperationOptions): Promise<McpServerState> {
+    return stopMcpServerWithConfig(this.requireMcpServer(), this.userConfig, operation);
+  }
+
+  /** Returns runtime MCP state without reconciling smm.json. */
+  getMcpServerState(): McpServerState {
+    return this.mcpServer?.getState() ?? { status: "stopped" };
+  }
+
+  /**
+   * Returns runtime MCP state. When the server is not running but
+   * enableMcpServer is true, Core corrects smm.json to false.
+   */
+  async getMcpServerStatus(): Promise<McpServerState> {
+    if (!this.mcpServer) {
+      return { status: "stopped" };
+    }
+    return getMcpServerStatusWithConfig(this.mcpServer, this.userConfig);
   }
 
   /** Starts the import pipeline in the background; returns a job handle immediately. */

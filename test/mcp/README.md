@@ -52,6 +52,7 @@ bun test test/mcp/readme.test.ts
 | `rename-folder.test.ts` | `rename-folder` |
 | `scrape.test.ts` | `scrape`, `get-job` |
 | `tmdb-tools.test.ts` | `tmdb-search`, `tmdb-get-movie`, `tmdb-get-tv-show` |
+| `start-stop-mcp-server-in-cli.test.ts` | `smm mcp start` / stop (SIGINT on Unix) |
 
 ## 架构
 

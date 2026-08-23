@@ -502,37 +502,54 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .command('start')
     .description('Start the MCP server and keep running until interrupted')
     .option('--host <host>', 'MCP server bind host (default: user config mcpHost or 127.0.0.1)')
-    .option('--port <port>', 'MCP server port (default: user config mcpPort or 30001)')
+    .option('-p, --port <port>', 'MCP server port (default: user config mcpPort or 30001)')
     .action(async (opts: { host?: string; port?: string }) => {
       // Lazy imports: pulling in the MCP lifecycle manager (and thus
       // `@smm/core-routes`) at module load breaks vitest's CLI unit tests
       // which don't alias `@smm/core/path`.
       const { getAppDataDir, getLogDir, getUserDataDir } = await import('@/utils/config')
-      const { getBunMcpLifecycleManager } = await import('@/mcp/mcpServerManager')
 
       await mkdir(getUserDataDir(), { recursive: true })
       await mkdir(getAppDataDir(), { recursive: true })
       await mkdir(getLogDir(), { recursive: true })
 
-      const manager = getBunMcpLifecycleManager()
-      await manager.start({
-        hostname: opts.host,
-        port: opts.port ? Number(opts.port) : undefined,
-      })
-      const state = manager.getState()
+      const core = getCore()
+      const state = await core.startMcpServer(
+        {
+          hostname: opts.host,
+          port: opts.port ? Number(opts.port) : undefined,
+        },
+        { persistUserConfig: true },
+      )
       if (state.status !== 'running' || !state.url) {
         throw new Error(state.error ?? 'MCP server failed to start')
       }
-      console.log(`MCP server running at ${state.url}`)
+      console.log(
+        `MCP server started at ${state.url} using protocol is Streamable HTTP`,
+      )
 
       // Keep the process alive until interrupted, then stop the server gracefully.
       await new Promise<void>((resolve) => {
-        const stop = async () => {
-          await manager.stop()
-          resolve()
+        let stopping = false
+        const shutdown = async () => {
+          if (stopping) {
+            return
+          }
+          stopping = true
+          try {
+            await core.stopMcpServer({ persistUserConfig: true })
+          } finally {
+            resolve()
+          }
         }
-        process.once('SIGINT', stop)
-        process.once('SIGTERM', stop)
+        const onSignal = () => {
+          void shutdown()
+        }
+        process.once('SIGINT', onSignal)
+        process.once('SIGTERM', onSignal)
+        if (process.platform === 'win32') {
+          process.once('SIGBREAK', onSignal)
+        }
       })
     })
 
