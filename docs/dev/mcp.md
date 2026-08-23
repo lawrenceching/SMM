@@ -1,7 +1,7 @@
 # MCP Server
 
 **Supported Platform**  MCP tools, Web UI, ohos
-**Status** draft
+**Status** done
 
 This document describes the **future architecture** for turning the MCP server on and off (not the current implementation).
 
