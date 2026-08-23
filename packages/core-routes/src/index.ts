@@ -194,11 +194,26 @@ export {
   doMcpGetStatus,
   doMcpStart,
   doMcpStop,
+  parseStartOptionsFromBody,
   type McpLifecycleResult,
   type McpStartRequestBody,
 } from "./mcp/index.ts";
+export {
+  getMcpServerStatusWithUserConfig,
+  startMcpServerWithUserConfig,
+  stopMcpServerWithUserConfig,
+  type McpServerStateResponse,
+  type McpServerOperationOptions,
+  DEFAULT_MCP_HOST,
+  DEFAULT_MCP_PORT,
+} from "./mcp/mcpServerConfig.ts";
 export {
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,
 } from "./routes/mcpLifecycleRoute.ts";
+export {
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
+} from "./routes/mcpServerRpcRoute.ts";

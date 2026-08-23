@@ -25,9 +25,19 @@ export {
   doMcpGetStatus,
   doMcpStart,
   doMcpStop,
+  parseStartOptionsFromBody,
   type McpLifecycleResult,
   type McpStartRequestBody,
 } from "./lifecycle.ts";
+export {
+  getMcpServerStatusWithUserConfig,
+  startMcpServerWithUserConfig,
+  stopMcpServerWithUserConfig,
+  type McpServerStateResponse,
+  type McpServerOperationOptions,
+  DEFAULT_MCP_HOST,
+  DEFAULT_MCP_PORT,
+} from "./mcpServerConfig.ts";
 
 /**
  * Re-exported tool-name constants so consumers that already depend

@@ -23,6 +23,11 @@ import {
   handleMcpStopPut,
 } from "./routes/mcpLifecycleRoute.ts";
 import {
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
+} from "./routes/mcpServerRpcRoute.ts";
+import {
   handleCreatePlanPost,
   handleGetPlanByIdPost,
   handleGetPlansPost,
@@ -49,6 +54,9 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleReadImagePost,
   handleDiscoverGet,
   handleChatPost,
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,

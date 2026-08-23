@@ -17,6 +17,11 @@ export interface McpLifecycleResult {
 }
 
 function parseStartOptions(body: unknown): StartMcpOptions | undefined {
+  return parseStartOptionsFromBody(body);
+}
+
+/** Exported for MCP RPC config persistence. */
+export function parseStartOptionsFromBody(body: unknown): StartMcpOptions | undefined {
   if (!body || typeof body !== "object") {
     return undefined;
   }
