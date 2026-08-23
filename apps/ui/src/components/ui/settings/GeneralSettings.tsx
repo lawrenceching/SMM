@@ -11,7 +11,10 @@ import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage } from "@core/types"
 import { resolveAppLanguage } from "@core/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
-import { startMcpServer, stopMcpServer } from "@/api/mcp"
+import {
+  useStartMcpServerMutation,
+  useStopMcpServerMutation,
+} from "@/hooks/useMcpServerStatus"
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const THEME_OPTIONS = ["light", "dark", "system"] as const
@@ -49,6 +52,8 @@ export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const helloQuery = useHelloQuery()
+  const startMcpServerMutation = useStartMcpServerMutation()
+  const stopMcpServerMutation = useStopMcpServerMutation()
   const { t } = useTranslation(['settings', 'common'])
 
   // Track initial values
@@ -124,18 +129,18 @@ export function GeneralSettings() {
     }
 
     const parsedMcpPort = Number(mcpPort)
-    const updatedConfig = {
+    const resolvedMcpPort =
+      Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort
+
+    const nonMcpConfig = {
       ...userConfig,
       applicationLanguage: savedApplicationLanguage,
       preferMediaLanguage: preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
       anonymousTelemetryConsent,
-      enableMcpServer,
-      mcpHost: mcpHost || undefined,
-      mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
     }
-    await setAndSaveUserConfig(traceId, updatedConfig)
+    await setAndSaveUserConfig(traceId, nonMcpConfig)
 
-    // ── Sync MCP server after config save ──────────────────
+    // MCP changes go through Core APIs; Core persists MCP fields in smm.json.
     const mcpToggledOn = enableMcpServer && !initialValues.enableMcpServer
     const mcpToggledOff = !enableMcpServer && initialValues.enableMcpServer
     const mcpHostOrPortChanged =
@@ -144,18 +149,16 @@ export function GeneralSettings() {
 
     try {
       if (mcpToggledOff) {
-        await stopMcpServer()
+        await stopMcpServerMutation.mutateAsync()
       } else if (mcpToggledOn) {
-        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+        await startMcpServerMutation.mutateAsync({ host: mcpHost, port: resolvedMcpPort })
       } else if (enableMcpServer && mcpHostOrPortChanged) {
-        // Restart with new host/port
-        await stopMcpServer()
-        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+        await stopMcpServerMutation.mutateAsync()
+        await startMcpServerMutation.mutateAsync({ host: mcpHost, port: resolvedMcpPort })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[${traceId}] MCP server sync failed:`, msg)
-      // Toggle stays ON per design — user can view error in McpIndicator popover
     }
   }
 

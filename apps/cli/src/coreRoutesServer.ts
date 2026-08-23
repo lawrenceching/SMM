@@ -9,8 +9,7 @@ import { getAppDataDir } from "@/utils/config";
 import { buildHelloOptions } from "../tasks/HelloTask";
 import { logger } from "../lib/logger";
 import { broadcast } from "@/utils/socketIO";
-
-const DEFAULT_PORT = 3001;
+import { resolveCoreRoutesPort } from "@/coreRoutesPort";
 
 function createCoreRoutesLogger(): CoreRoutesLogger {
   return {
@@ -24,7 +23,7 @@ function createCoreRoutesLogger(): CoreRoutesLogger {
 export async function startCoreRoutesServer(
   auth?: CoreRoutesAuthConfig,
 ): Promise<http.Server> {
-  const port = parseInt(process.env.CORE_ROUTES_PORT ?? String(DEFAULT_PORT), 10);
+  const port = resolveCoreRoutesPort();
   const allowlist = await buildAllowlist();
   const appDataDir = getAppDataDir();
   const helloOptions = { ...buildHelloOptions(null), coreRoutesPort: port };

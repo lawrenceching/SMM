@@ -36,6 +36,24 @@ export const USAGE =
 
 const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker']);
 
+/** Port env keys from repo `.env.local` (see `# --- Ports ---` section). */
+export const E2E_PORT_ENV_KEYS = ['UI_PORT', 'CLI_PORT', 'PORT'] as const;
+
+export type E2ePortEnvKey = (typeof E2E_PORT_ENV_KEYS)[number];
+
+/**
+ * Forward dev-server port overrides into cicd task/background env.
+ * Values come from `loadEnvLocal()` in run-e2e-test.ts (or the caller's shell).
+ */
+export function assignE2eLocalPortEnv(env: Record<string, string>): void {
+  for (const key of E2E_PORT_ENV_KEYS) {
+    const value = process.env[key]?.trim();
+    if (value) {
+      env[key] = value;
+    }
+  }
+}
+
 /** Opt-in UI v3 for e2e (`localStorage smm.v3.enabled`). Production default stays off. */
 function assignE2eSmmV3Env(env: Record<string, string>): void {
   if (process.env.E2E_SMM_V3 === 'true') {
@@ -194,6 +212,7 @@ export function buildDesktopConfig(specs: string[]): CicdConfig {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
   assignE2eSmmV3Env(env);
+  assignE2eLocalPortEnv(env);
 
   return {
     name: 'smm-e2e',

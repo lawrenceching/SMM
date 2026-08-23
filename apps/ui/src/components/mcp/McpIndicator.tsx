@@ -1,11 +1,14 @@
 import { Plug, Globe, FileText, ExternalLink } from "lucide-react"
 import { useEffect, useRef } from "react"
-import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import { useConfig } from "@/hooks/userConfig"
-import { useMcpServerStatus, doStartMcpServer, doStopMcpServer } from "@/hooks/useMcpServerStatus"
+import {
+    useMcpServerStatusQuery,
+    useStartMcpServerMutation,
+    useStopMcpServerMutation,
+} from "@/hooks/useMcpServerStatus"
+import { useRefreshUserConfig } from "@/hooks/userConfig/useRefreshUserConfig"
 import { useTranslation } from "@/lib/i18n"
-import { nextTraceId } from "@/lib/utils"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
@@ -17,9 +20,11 @@ interface McpIndicatorProps {
 }
 
 export function McpIndicator({ className }: McpIndicatorProps) {
-    const { userConfig, setAndSaveUserConfig } = useConfig()
-    const { data: serverState } = useMcpServerStatus()
-    const queryClient = useQueryClient()
+    const { userConfig } = useConfig()
+    const { data: serverState } = useMcpServerStatusQuery()
+    const startMcpServerMutation = useStartMcpServerMutation()
+    const stopMcpServerMutation = useStopMcpServerMutation()
+    const refreshUserConfig = useRefreshUserConfig()
     const { t } = useTranslation('components')
 
     const mcpEnabled = userConfig.enableMcpServer === true
@@ -28,29 +33,20 @@ export function McpIndicator({ className }: McpIndicatorProps) {
     const mcpAddress =
         serverState?.url ?? `http://${mcpHost}:${mcpPort}/mcp`
     const isRunning = serverState?.status === "running"
+    const isToggling = startMcpServerMutation.isPending || stopMcpServerMutation.isPending
 
-    // On initial mount only: if config says enabled but server is not running,
-    // revert the config so the toggle reflects reality and notify the user.
-    //
-    // We depend on `userConfig` (not just `serverState`) because the closure
-    // captures `mcpEnabled` / `userConfig`. If `serverState` resolves before
-    // `userConfig` finishes loading, the captured `mcpEnabled` is `false` and
-    // we'd bail out with `initialCheckDone.current` already set — silently
-    // skipping the reconciliation. Waiting for both queries ensures we
-    // evaluate with consistent state.
+    // On initial load: Core reconciles smm.json via getMcpServerStatus.
+    // UI only refreshes cached config and shows a toast — never writes MCP fields.
     const initialCheckDone = useRef(false)
     useEffect(() => {
         if (!serverState || !userConfig || initialCheckDone.current) return
         initialCheckDone.current = true
 
-        console.log(`[McpIndicator-init] mcpEnabled=${mcpEnabled} isRunning=${isRunning} serverState.status=${serverState.status} initialCheckDone=${initialCheckDone.current}`)
-
         if (!mcpEnabled || isRunning) {
-            console.log(`[McpIndicator-init] bailed out: mcpEnabled=${mcpEnabled} isRunning=${isRunning} serverState.status=${serverState.status}`)
             return
         }
 
-        const traceId = `McpIndicator-init-${nextTraceId()}`
+        void refreshUserConfig()
 
         if (serverState.status === "error") {
             toast.error(t('statusBar.mcp.serverError'), {
@@ -61,47 +57,31 @@ export function McpIndicator({ className }: McpIndicatorProps) {
                 description: t('statusBar.mcp.startFailedOnLoad'),
             })
         }
-
-        console.log(`[McpIndicator-init] reverting enableMcpServer to false because serverState.status=${serverState.status}`)
-        setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: false })
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [serverState, userConfig])
+    }, [serverState, userConfig, mcpEnabled, isRunning, refreshUserConfig, t])
 
     const handleMcpToggle = async () => {
-        const traceId = `McpIndicator-MCP-toggle-${nextTraceId()}`
-        console.log(`[McpIndicator] handleMcpToggle called: mcpEnabled=${mcpEnabled} host=${mcpHost} port=${mcpPort}`)
+        if (isToggling) return
 
         if (mcpEnabled) {
-            // ── Turn OFF ────────────────────────────────────────
             try {
-                await doStopMcpServer(queryClient)
-            } catch (e) {
-                console.error(`[${traceId}] MCP stop failed`, e)
-            }
-            await setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: false })
-        } else {
-            // ── Turn ON ─────────────────────────────────────────
-            // 1. Write config (optimistic — UI immediately shows ON)
-            await setAndSaveUserConfig(traceId, { ...userConfig, enableMcpServer: true })
-            // 2. Start server — may fail
-            try {
-                console.log(`[${traceId}] Calling doStartMcpServer host=${mcpHost} port=${mcpPort}`)
-                await doStartMcpServer(queryClient, { host: mcpHost, port: mcpPort })
-                console.log(`[${traceId}] doStartMcpServer succeeded`)
+                await stopMcpServerMutation.mutateAsync()
             } catch (e) {
                 const msg = e instanceof Error ? e.message : String(e)
-                console.error(`[${traceId}] MCP start failed:`, msg)
-                // Revert config so the toggle goes back to OFF
-                await setAndSaveUserConfig(`${traceId}-revert`, { ...userConfig, enableMcpServer: false })
-                // Notify the user
-                toast.error(t('statusBar.mcp.serverError'), {
-                    description: msg,
-                })
+                console.error("[McpIndicator] MCP stop failed", msg)
+                toast.error(t('statusBar.mcp.serverError'), { description: msg })
             }
+            return
+        }
+
+        try {
+            await startMcpServerMutation.mutateAsync({ host: mcpHost, port: mcpPort })
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e)
+            console.error("[McpIndicator] MCP start failed:", msg)
+            toast.error(t('statusBar.mcp.serverError'), { description: msg })
         }
     }
 
-    // Plug icon colour
     const iconClass = cn(
         "flex items-center justify-center rounded p-0.5 transition-colors hover:bg-muted",
         mcpEnabled ? "text-primary" : "text-muted-foreground/50",
@@ -138,10 +118,12 @@ export function McpIndicator({ className }: McpIndicatorProps) {
                             role="switch"
                             data-testid="mcp-switch"
                             aria-checked={mcpEnabled}
+                            aria-disabled={isToggling}
                             aria-label={mcpEnabled ? t('statusBar.mcp.turnOff') : t('statusBar.mcp.turnOn')}
                             onClick={handleMcpToggle}
+                            disabled={isToggling}
                             className={cn(
-                                "relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                "relative shrink-0 inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50",
                                 mcpEnabled ? "bg-primary" : "bg-muted",
                             )}
                         >

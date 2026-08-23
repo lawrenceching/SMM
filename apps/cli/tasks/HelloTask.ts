@@ -4,10 +4,11 @@ import { detectOsLocale } from '@core/locale';
 import { doHello, type HelloOptions } from '@smm/core-routes';
 import { getLogDir, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
 import { logger } from '../lib/logger';
+import { resolveCoreRoutesPort } from '@/coreRoutesPort';
 
 export function buildHelloOptions(
   reverseProxyUrl: string | null = null,
-  coreRoutesPort = parseInt(process.env.CORE_ROUTES_PORT ?? '3001', 10),
+  coreRoutesPort = resolveCoreRoutesPort(),
 ): HelloOptions {
   return {
     version: APP_VERSION,

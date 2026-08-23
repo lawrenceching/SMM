@@ -43,16 +43,37 @@ function parseViteDevServerPort(source: string): number {
   const serverBlock = source.match(/server\s*:\s*\{([\s\S]*?)\}(?:\s*,|\s*\n)/)
   const block = serverBlock?.[1] ?? source
   const portMatch = block.match(/\bport\s*:\s*(\d+)\b/)
-  if (!portMatch) {
+  const defaultMatch = source.match(/\bDEFAULT_UI_DEV_PORT\s*=\s*(\d+)\b/)
+  const raw = portMatch?.[1] ?? defaultMatch?.[1]
+  if (!raw) {
     return VITE_DEFAULT_DEV_PORT
   }
-  const port = Number(portMatch[1])
+  const port = Number(raw)
   return Number.isFinite(port) && port > 0 ? port : VITE_DEFAULT_DEV_PORT
+}
+
+function parseEnvPort(raw: string | undefined): number | undefined {
+  if (raw === undefined) {
+    return undefined
+  }
+  const trimmed = raw.trim()
+  if (trimmed === '') {
+    return undefined
+  }
+  const port = Number.parseInt(trimmed, 10)
+  if (!Number.isFinite(port) || port <= 0) {
+    return undefined
+  }
+  return port
 }
 
 export function readUiDevServerPort(
   viteConfigPath: string = UI_VITE_CONFIG,
 ): number {
+  const fromEnv = parseEnvPort(process.env.UI_PORT)
+  if (fromEnv !== undefined) {
+    return fromEnv
+  }
   const source = fs.readFileSync(path.resolve(viteConfigPath), 'utf8')
   return parseViteDevServerPort(source)
 }

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   assertSpecsMatchPlatform,
+  assignE2eLocalPortEnv,
   buildConfig,
   dockerHttpProxyEnvForContainer,
   parseArgv,
@@ -134,6 +135,41 @@ describe('run-e2e-test docker platform', () => {
     } finally {
       if (prev === undefined) delete process.env.E2E_SMM_V3;
       else process.env.E2E_SMM_V3 = prev;
+    }
+  });
+
+  test('buildConfig desktop forwards UI_PORT and CLI_PORT from process.env', () => {
+    const prevUi = process.env.UI_PORT;
+    const prevCli = process.env.CLI_PORT;
+    const prevPort = process.env.PORT;
+    process.env.UI_PORT = '8081';
+    process.env.CLI_PORT = '8082';
+    process.env.PORT = '30000';
+    try {
+      const config = buildConfig('desktop', ['common/mcp/McpOther-RenameTaskFlow.e2e.ts']);
+      expect(config.env.UI_PORT).toBe('8081');
+      expect(config.env.CLI_PORT).toBe('8082');
+      expect(config.env.PORT).toBe('30000');
+    } finally {
+      if (prevUi === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prevUi;
+      if (prevCli === undefined) delete process.env.CLI_PORT;
+      else process.env.CLI_PORT = prevCli;
+      if (prevPort === undefined) delete process.env.PORT;
+      else process.env.PORT = prevPort;
+    }
+  });
+
+  test('assignE2eLocalPortEnv skips empty values', () => {
+    const prevUi = process.env.UI_PORT;
+    process.env.UI_PORT = '   ';
+    try {
+      const env: Record<string, string> = {};
+      assignE2eLocalPortEnv(env);
+      expect(env.UI_PORT).toBeUndefined();
+    } finally {
+      if (prevUi === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prevUi;
     }
   });
 });

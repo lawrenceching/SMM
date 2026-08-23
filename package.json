@@ -11,7 +11,7 @@
     "videocaptioner_version": "1.0.0"
   },
   "scripts": {
-    "dev": "npm-run-all2 --parallel dev:ui dev:cli",
+    "dev": "cross-env UI_PORT=8081 CLI_PORT=8082 npm-run-all2 --parallel dev:ui dev:cli",
     "dev:ui": "pnpm --filter ui dev",
     "dev:cli": "cross-env SMM_AUTH_ENABLED=true SMM_AUTH_TOKEN=ChangeMe123 pnpm --filter cli dev",
     "e2e:cli": "cross-env SMM_AUTH_ENABLED=true SMM_AUTH_TOKEN=ChangeMe123 pnpm --filter cli start",
@@ -35,6 +35,7 @@
     "e2e:ai": "bun ci/run-e2e-test.ts --spec \"./test/specs/ai/*.e2e.ts\"",
     "e2e:config": "bun ci/run-e2e-test.ts --spec \"./common/config/*.e2e.ts\" --spec \"./common/httpproxy/*.e2e.ts\"",
     "e2e:mcp": "bun test test/mcp/",
+    "e2e:mcp:ui": "bun ci/run-e2e-test.ts --spec \"./common/mcp/*.e2e.ts\"",
     "e2e:media-folder-initialization": "bun ci/run-e2e-test.ts --spec \"./common/tv/ImportTvShowLibrary.e2e.ts\" --spec \"./common/tv/Initialize*.e2e.ts\" --spec \"./common/movie/ImportMovieLibrary.e2e.ts\" --spec \"./common/movie/Initialize*.e2e.ts\"",
     "e2e:movie": "bun ci/run-e2e-test.ts --spec \"./common/movie/SearchMovie.e2e.ts\" --spec \"./common/movie/Movie-RenameVideoFile.e2e.ts\"",
     "e2e:music": "bun ci/run-e2e-test.ts --spec \"./common/music/*.e2e.ts\"",
