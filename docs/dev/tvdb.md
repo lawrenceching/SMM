@@ -4,9 +4,9 @@ SMM 通过 `apps/core` 统一访问 TVDB：**全部出站流量**经 `Core` + `N
 
 | 入口 | 状态 | 说明 |
 |------|------|------|
-| CLI | ⏳ | `smm tvdb search` → 进程内 `Core.searchInTvdb` |
-| AI Tool | ⏳ | 应用内 Chat → 对应 HTTP API → Core；服务端 Chat 进程内注入 Core |
-| MCP Tool | ⏳ | MCP 工具进程内调用 Core 同名方法（与 HTTP 路由同一 Core） |
+| CLI | ✅ | `smm tvdb search` → 进程内 `Core.searchInTvdb` |
+| AI Tool | ✅ | 应用内 Chat → 对应 HTTP API → Core；服务端 Chat 进程内注入 Core |
+| MCP Tool | ✅ | MCP 工具进程内调用 Core 同名方法（与 HTTP 路由同一 Core） |
 | Web UI | ⏳ | `smm.v3.enabled`：对应 HTTP API → Core 同名方法 |
 
 Core 方法与 Internal HTTP **一对一**暴露。Web UI（v3）与应用内 AI 走这些 API 再进入 Core；MCP / 服务端 Chat 在进程内调用同一套 Core 方法。均不走 `POST /api/core/fetch`（那是 `BrowserNetworkPort` 的通用出站中继，见 [network-core.md](./network-core.md)）。
@@ -215,7 +215,7 @@ Web 不调用 `smm tvdb search`，但与 CLI 共用 Core 方法与 `userConfig.t
 
 MCP / 需直连 TVDB 的 e2e 在 `apps/e2e/.env.local` 配置 `TVDB_HOST`、`TVDB_API_KEY`、`TVDB_HTTP_PROXY`（网络受限环境）。
 
-运行 MCP spec：
+运行 MCP spec（⏳ 待 spec 添加后可用）：
 
 ```bash
 cd apps/e2e
