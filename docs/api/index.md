@@ -67,6 +67,16 @@ Source Code: apps/cli/src/route/Tmdb.ts
 - `POST /api/get-movie-in-tmdb` → `Core.getMovieInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
 - `POST /api/get-tvshow-in-tmdb` → `Core.getTvShowInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
 
+## SearchInTvdb / GetMovieInTvdb / GetTvShowInTvdb / GetTvdbLanguages
+Source Code: apps/cli/src/route/Tvdb.ts
+
+1:1 Internal HTTP for Core TVDB methods. Response `{ data }` or `{ error }` (HTTP 200). Optional `language` (ISO 639-3) / `host` / `password` / `proxy` override `userConfig.tvdb`. TVDB custom hosts authenticate via an in-process JWT login exchange (`POST /login`). Used by Web UI when `localStorage["smm.v3.enabled"] === "true"` and by in-app AI tools. MCP / server-side chat inject the same Core methods in-process.
+
+- `POST /api/search-in-tvdb` → `Core.searchInTvdb`. Body: `{ keyword: string, type: "series" | "movie", language?, host?, password?, proxy? }`.
+- `POST /api/get-movie-in-tvdb` → `Core.getMovieInTvdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvshow-in-tvdb` → `Core.getTvShowInTvdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvdb-languages` → `Core.getTvdbLanguages`. Body: `{}`.
+
 ## ShowFolder
 Source Code: apps/cli/src/route/ShowFolder.ts
 HTTP: `POST /api/show-folder` — UI-aligned folder snapshot via the same helper as `smm show`. Request body: `{ path: string }`. Response: `{ data: { path, status, type?, title? } }` (`status`: `ok` | `folder_not_found` | `error_loading_metadata`) or `{ error }` (not imported / path missing).
