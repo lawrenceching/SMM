@@ -434,7 +434,7 @@ export class Core {
 
   /** Fetch the TVDB supported language list via {@link NetworkPort}. */
   async getTvdbLanguages(options: TvdbRequestOptions = {}): Promise<TVDBv4LanguageRecord[]> {
-    const { client } = await this.createTvdbClient(options);
+    const { client } = await this.createTvdbClient(options, false);
     const languages = await client.getLanguages();
     if (!languages) {
       throw new Error("Failed to get TVDB languages");
@@ -470,15 +470,18 @@ export class Core {
 
   private async createTvdbClient(
     options: TvdbRequestOptions,
+    resolveLanguage = true,
   ): Promise<{ client: TvdbClient; language: string }> {
     const config = await this.userConfig.read();
-    const language = options.language?.trim()
-      ? parseTvdbSearchLanguage(options.language)
-      : resolveTvdbSearchLanguage({
-          preferMediaLanguage: config.preferMediaLanguage,
-          configured: config.applicationLanguage,
-          osLocale: detectOsLocale(),
-        });
+    const language = resolveLanguage
+      ? (options.language?.trim()
+          ? parseTvdbSearchLanguage(options.language)
+          : resolveTvdbSearchLanguage({
+              preferMediaLanguage: config.preferMediaLanguage,
+              configured: config.applicationLanguage,
+              osLocale: detectOsLocale(),
+            }))
+      : "";
     const host = options.host?.trim() || config.tvdb?.host;
     const apiKey = options.password?.trim() || config.tvdb?.apiKey;
     const httpProxy = options.proxy?.trim() || config.tvdb?.httpProxy;

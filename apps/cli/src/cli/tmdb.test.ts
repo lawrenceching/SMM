@@ -63,7 +63,7 @@ describe('smm tmdb search', () => {
     const code = await runCli(['node', 'smm', 'tmdb', 'search', 'keyword', '--type', 'tv'])
 
     expect(code).toBe(0)
-    expect(logSpy.mock.calls.map((c) => c[0])).toEqual(['#1 42 My Show (2020-01-01)\nA show'])
+    expect(logSpy.mock.calls.map((c: unknown[]) => c[0])).toEqual(['#1 42 My Show (2020-01-01)\nA show'])
   })
 
   it('passes host, password, proxy and lang to Core.searchInTmdb', async () => {

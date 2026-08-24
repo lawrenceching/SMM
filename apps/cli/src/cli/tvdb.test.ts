@@ -45,7 +45,7 @@ describe('smm tvdb search', () => {
     const code = await runCli(['node', 'smm', 'tvdb', 'search', 'keyword', '--type', 'series'])
 
     expect(code).toBe(0)
-    expect(logSpy.mock.calls.map((c) => c[0])).toEqual(['#1 42 My Show (2020-01-01)\nA show'])
+    expect(logSpy.mock.calls.map((c: unknown[]) => c[0])).toEqual(['#1 42 My Show (2020-01-01)\nA show'])
   })
 
   it('passes host, password, proxy and lang to Core.searchInTvdb', async () => {

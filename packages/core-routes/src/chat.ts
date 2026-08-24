@@ -15,6 +15,10 @@ import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
 import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
 import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
+import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
+import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
+import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
+import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -145,6 +149,10 @@ export async function doChat(
       [TMDB_SEARCH]: tools[TMDB_SEARCH],
       [TMDB_GET_MOVIE]: tools[TMDB_GET_MOVIE],
       [TMDB_GET_TV_SHOW]: tools[TMDB_GET_TV_SHOW],
+      [TVDB_SEARCH]: tools[TVDB_SEARCH],
+      [TVDB_GET_MOVIE]: tools[TVDB_GET_MOVIE],
+      [TVDB_GET_TV_SHOW]: tools[TVDB_GET_TV_SHOW],
+      [TVDB_GET_LANGUAGES]: tools[TVDB_GET_LANGUAGES],
       [BEGIN_RENAME_FILES_TASK]: tools[BEGIN_RENAME_FILES_TASK],
       [ADD_RENAME_FILE_TO_TASK]: tools[ADD_RENAME_FILE_TO_TASK],
       [END_RENAME_FILES_TASK]: tools[END_RENAME_FILES_TASK],

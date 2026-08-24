@@ -17,6 +17,10 @@ import { GET_JOB } from '../types/ai-tools/getJob'
 import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
 import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
 import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
+import { TVDB_SEARCH } from '../types/ai-tools/tvdbSearch'
+import { TVDB_GET_MOVIE } from '../types/ai-tools/tvdbGetMovie'
+import { TVDB_GET_TV_SHOW } from '../types/ai-tools/tvdbGetTvShow'
+import { TVDB_GET_LANGUAGES } from '../types/ai-tools/tvdbGetLanguages'
 
 /**
  * The system prompt for the AI Assistant, shared between the
@@ -89,6 +93,14 @@ When user asks to search TMDB, find a TV show or movie on TMDB, or look up TMDB 
 
 1. Call "${TMDB_SEARCH}" with keyword and type (\`tv\` or \`movie\`) to find candidates.
 2. Call "${TMDB_GET_TV_SHOW}" or "${TMDB_GET_MOVIE}" with the chosen TMDB id for full details (seasons/episodes for TV).
+
+### TVDB Search and Details
+
+When user asks to search TVDB, find a TV show or movie on TVDB, or look up TVDB metadata by id:
+
+1. Call "${TVDB_SEARCH}" with keyword and type (\`series\` or \`movie\`) to find candidates.
+2. Call "${TVDB_GET_TV_SHOW}" or "${TVDB_GET_MOVIE}" with the chosen TVDB id for full metadata (seasons/episodes for TV).
+3. Use "${TVDB_GET_LANGUAGES}" to discover supported ISO 639-3 language codes when needed.
 
 ## User Preferences
 
