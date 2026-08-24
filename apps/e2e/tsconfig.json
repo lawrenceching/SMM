@@ -41,6 +41,7 @@
   "include": [
     "test/**/*.ts",
     "common/**/*.ts",
+    "cli/**/*.ts",
     "scenarios/**/*.ts",
     "wdio.conf.ts",
     "wdio.conf.test.ts"
