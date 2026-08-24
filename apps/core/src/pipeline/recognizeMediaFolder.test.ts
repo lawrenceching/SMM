@@ -109,7 +109,7 @@ describe("recognizeMediaFolder", () => {
     const result = await recognizeMediaFolder(mm, d);
 
     expect(result.tvShow?.id).toBe("1");
-    expect(d.tvdb.getTvShowMediaMetadata).toHaveBeenCalledWith(5, "en-US");
+    expect(d.tvdb.getTvShowMediaMetadata).toHaveBeenCalledWith(5, "eng");
     expect(d.tmdb.search).not.toHaveBeenCalled();
   });
 

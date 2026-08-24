@@ -67,22 +67,22 @@ function tvdbNetwork(searchUrls: string[] = []): NetworkPort {
 describe("TvdbClient", () => {
   it("searches series", async () => {
     const client = new TvdbClient(tvdbNetwork(), {});
-    const items = await client.searchSeries("My Show", "en-US");
+    const items = await client.searchSeries("My Show", "eng");
     expect(items?.[0]?.tvdb_id).toBe("1");
   });
 
   it("searches movies", async () => {
     const client = new TvdbClient(tvdbNetwork(), {});
-    const items = await client.searchMovie("My Film", "en-US");
+    const items = await client.searchMovie("My Film", "eng");
     expect(items?.[0]?.tvdb_id).toBe("2");
   });
 
-  it("maps the preferred language to TVDB ISO 639-3 in search", async () => {
+  it("passes ISO 639-3 language straight through to search", async () => {
     const searchUrls: string[] = [];
     const client = new TvdbClient(tvdbNetwork(searchUrls), {});
-    await client.searchSeries("My Show", "en-US");
-    await client.searchMovie("My Film", "ja-JP");
-    await client.searchSeries("My Show", "zh-CN");
+    await client.searchSeries("My Show", "eng");
+    await client.searchMovie("My Film", "jpn");
+    await client.searchSeries("My Show", "zho");
     expect(searchUrls[0]).toContain("language=eng");
     expect(searchUrls[1]).toContain("language=jpn");
     expect(searchUrls[2]).toContain("language=zho");
@@ -90,7 +90,7 @@ describe("TvdbClient", () => {
 
   it("getTvShowMediaMetadata builds seasons + episodes", async () => {
     const client = new TvdbClient(tvdbNetwork(), {});
-    const tvShow = await client.getTvShowMediaMetadata(1, "en-US");
+    const tvShow = await client.getTvShowMediaMetadata(1, "eng");
     expect(tvShow).toEqual({
       id: "1",
       name: "My Show",
@@ -104,11 +104,23 @@ describe("TvdbClient", () => {
 
   it("getMovieMediaMetadata maps a movie", async () => {
     const client = new TvdbClient(tvdbNetwork(), {});
-    const movie = await client.getMovieMediaMetadata(2, "en-US");
+    const movie = await client.getMovieMediaMetadata(2, "eng");
     expect(movie).toEqual({ id: "2", name: "My Film", airDate: "2019-05-01", database: "TVDB" });
   });
 
-  it("maps IETF media language to TVDB ISO 639-3", () => {
+  it("getLanguages returns language records", async () => {
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        expect(url).toContain("/languages");
+        return jsonResponse(envelope([{ id: "zho", name: "Chinese" }]));
+      },
+    };
+    const client = new TvdbClient(network, {});
+    const langs = await client.getLanguages();
+    expect(langs?.[0]?.id).toBe("zho");
+  });
+
+  it("keeps mapToTvdbLangCode helper", () => {
     expect(mapToTvdbLangCode("zh-CN")).toBe("zho");
     expect(mapToTvdbLangCode("en-US")).toBe("eng");
     expect(mapToTvdbLangCode("ja-JP")).toBe("jpn");

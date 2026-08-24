@@ -1,11 +1,12 @@
 import { TVDBv4, type TVDBv4SearchResult } from "@smm/tvdb4";
 import type {
   TVDBv4ArtworkTypeRecord,
+  TVDBv4LanguageRecord,
   TVDBv4Season,
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types";
-import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@smm/core";
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/core";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
 import {
@@ -75,7 +76,7 @@ export class TvdbClient {
     const resp = await this.client.search({
       query,
       type: "series",
-      language: mapToTvdbLangCode(language as PreferMediaLanguage),
+      language,
     });
     return resp.status === "success" ? resp.data : undefined;
   }
@@ -84,16 +85,15 @@ export class TvdbClient {
     const resp = await this.client.search({
       query,
       type: "movie",
-      language: mapToTvdbLangCode(language as PreferMediaLanguage),
+      language,
     });
     return resp.status === "success" ? resp.data : undefined;
   }
 
   async getTvShowMediaMetadata(seriesId: number, language: string): Promise<TvShowMediaMetadata | undefined> {
-    const langCode = mapToTvdbLangCode(language as PreferMediaLanguage);
     const m: TvShowMediaMetadata = { id: seriesId.toString(), name: "", database: "TVDB", seasons: [] };
 
-    const translation = await this.client.seriesTranslationByLangCode(seriesId, langCode);
+    const translation = await this.client.seriesTranslationByLangCode(seriesId, language);
     if (translation.status === "success") m.name = translation.data?.name ?? "";
 
     const seriesResp = await this.client.seriesExtendedById(seriesId);
@@ -118,10 +118,9 @@ export class TvdbClient {
   }
 
   async getMovieMediaMetadata(movieId: number, language: string): Promise<MovieMediaMetadata | undefined> {
-    const langCode = mapToTvdbLangCode(language as PreferMediaLanguage);
     const m: MovieMediaMetadata = { id: movieId.toString(), name: "", database: "TVDB" };
 
-    const translation = await this.client.movieTranslationByLangCode(movieId, langCode);
+    const translation = await this.client.movieTranslationByLangCode(movieId, language);
     if (translation.status === "success") m.name = translation.data?.name ?? "";
 
     const movieResp = await this.client.movieExtendedById(movieId);
@@ -133,6 +132,11 @@ export class TvdbClient {
       m.airDate = firstRelease.first;
     }
     return m;
+  }
+
+  async getLanguages(): Promise<TVDBv4LanguageRecord[] | undefined> {
+    const resp = await this.client.languages();
+    return resp.status === "success" ? resp.data : undefined;
   }
 
   async getSeriesExtended(seriesId: number): Promise<TVDBv4SeriesExtendedResponse | undefined> {

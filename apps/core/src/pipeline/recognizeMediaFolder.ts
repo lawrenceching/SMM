@@ -1,6 +1,7 @@
 import type {
   MediaMetadata,
   MovieMediaMetadata,
+  PreferMediaLanguage,
   PrimaryDatabase,
   TMDBMovie,
   TMDBTVShow,
@@ -9,6 +10,7 @@ import type {
 } from "@smm/core";
 import type { TVDBv4SearchResult } from "@smm/tvdb4";
 import { movieMediaMetadataFromTmdbSearch } from "../clients/TmdbClient";
+import { mapToTvdbLangCode } from "../clients/TvdbClient";
 import type { FsPort } from "../ports/FsPort";
 import { parseNfo } from "./nfo";
 import { basename } from "./paths";
@@ -91,6 +93,7 @@ async function recognizeByNfo(
   deps: RecognitionDeps,
   result: RecognitionResult,
   isTvShow: boolean,
+  tvdbLang: string,
 ): Promise<void> {
   const nfoName = isTvShow ? "tvshow.nfo" : "movie.nfo";
   const nfoPath = (mm.files ?? []).find((f) => f.endsWith(`/${nfoName}`));
@@ -127,10 +130,10 @@ async function recognizeByNfo(
     if (n > 0) {
       try {
         if (isTvShow) {
-          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, tvdbLang);
           if (tvShow !== undefined) result.tvShow = tvShow;
         } else {
-          const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
+          const movie = await deps.tvdb.getMovieMediaMetadata(n, tvdbLang);
           if (movie !== undefined) result.movie = movie;
         }
       } catch {
@@ -174,15 +177,16 @@ async function searchInTvdb(
   isTvShow: boolean,
   deps: RecognitionDeps,
   result: RecognitionResult,
+  tvdbLang: string,
 ): Promise<void> {
   try {
     if (isTvShow) {
-      const items = await deps.tvdb.searchSeries(folderName, deps.language);
+      const items = await deps.tvdb.searchSeries(folderName, tvdbLang);
       for (const item of items ?? []) {
         try {
           const id = resolveTvdbSeriesId(item);
           if (id === undefined) continue;
-          const tvShow = await deps.tvdb.getTvShowMediaMetadata(id, deps.language);
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(id, tvdbLang);
           if (tvShow !== undefined) {
             result.tvShow = tvShow;
             return;
@@ -192,13 +196,13 @@ async function searchInTvdb(
         }
       }
     } else {
-      const items = await deps.tvdb.searchMovie(folderName, deps.language);
+      const items = await deps.tvdb.searchMovie(folderName, tvdbLang);
       for (const item of items ?? []) {
         try {
           if (item.name === folderName) {
             const id = resolveTvdbMovieId(item);
             if (id === undefined) continue;
-            const movie = await deps.tvdb.getMovieMediaMetadata(id, deps.language);
+            const movie = await deps.tvdb.getMovieMediaMetadata(id, tvdbLang);
             if (movie !== undefined) {
               result.movie = movie;
               return;
@@ -223,8 +227,9 @@ export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionD
   const result: RecognitionResult = {};
   const folderName = folderNameOf(mm);
   const isTvShow = mm.type === "tvshow-folder";
+  const tvdbLang = mapToTvdbLangCode(deps.language as PreferMediaLanguage);
 
-  await recognizeByNfo(mm, deps, result, isTvShow);
+  await recognizeByNfo(mm, deps, result, isTvShow, tvdbLang);
 
   const tmdbId = getTmdbIdFromFolderName(folderName);
   if (tmdbId !== null && result.tvShow === undefined && result.movie === undefined) {
@@ -250,10 +255,10 @@ export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionD
     if (n > 0) {
       try {
         if (isTvShow) {
-          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, deps.language);
+          const tvShow = await deps.tvdb.getTvShowMediaMetadata(n, tvdbLang);
           if (tvShow !== undefined) result.tvShow = tvShow;
         } else {
-          const movie = await deps.tvdb.getMovieMediaMetadata(n, deps.language);
+          const movie = await deps.tvdb.getMovieMediaMetadata(n, tvdbLang);
           if (movie !== undefined) result.movie = movie;
         }
       } catch {
@@ -266,7 +271,7 @@ export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionD
   for (const db of order) {
     if (result.tvShow !== undefined || result.movie !== undefined) break;
     if (db === "TMDB") await searchInTmdb(folderName, isTvShow, deps, result);
-    else await searchInTvdb(folderName, isTvShow, deps, result);
+    else await searchInTvdb(folderName, isTvShow, deps, result, tvdbLang);
   }
 
   return result;
