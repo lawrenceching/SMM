@@ -22,6 +22,7 @@ import { registerRenameEpisodeFileTool } from "./toolHandlers/renameEpisodeFile.
 import { registerScrapeTool } from "./toolHandlers/scrape.ts";
 import { registerGetJobTool } from "./toolHandlers/getJob.ts";
 import { registerTmdbTools } from "./toolHandlers/tmdbTools.ts";
+import { registerTvdbTools } from "./toolHandlers/tvdbTools.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
@@ -94,6 +95,7 @@ export async function createMcpStreamableHttpHandler(
   registerListFilesTool(server, config);
   registerGetMediaMetadataTool(server, config);
   registerTmdbTools(server, config);
+  registerTvdbTools(server, config);
 
   // Read-only documentation tools.
   registerStaticTextTools(server, config);

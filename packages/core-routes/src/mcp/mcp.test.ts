@@ -582,4 +582,53 @@ describe("createMcpStreamableHttpHandler", () => {
       await cleanup()
     }
   })
+
+  it("registers TVDB query tools when runners are provided", async () => {
+    const { appDataDir, userDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        userDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+        searchInTvdb: async () => [],
+        getMovieInTvdb: async () => ({}),
+        getTvShowInTvdb: async () => ({}),
+        getTvdbLanguages: async () => [],
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).toContain("tvdb-search")
+      expect(names).toContain("tvdb-get-movie")
+      expect(names).toContain("tvdb-get-tv-show")
+      expect(names).toContain("tvdb-get-languages")
+    } finally {
+      await cleanup()
+    }
+  })
 })

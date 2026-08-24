@@ -46,21 +46,21 @@ export type SearchInTvdbRunner = (
     password?: string;
     proxy?: string;
   },
-) => Promise<Array<Record<string, unknown>>>;
+) => Promise<unknown[]>;
 
 export type GetTvShowInTvdbRunner = (
   id: number,
   options?: { language?: string; host?: string; password?: string; proxy?: string },
-) => Promise<Record<string, unknown>>;
+) => Promise<unknown>;
 
 export type GetMovieInTvdbRunner = (
   id: number,
   options?: { language?: string; host?: string; password?: string; proxy?: string },
-) => Promise<Record<string, unknown>>;
+) => Promise<unknown>;
 
 export type GetTvdbLanguagesRunner = (
   options?: { language?: string; host?: string; password?: string; proxy?: string },
-) => Promise<Array<Record<string, unknown>>>;
+) => Promise<unknown[]>;
 
 export interface TvdbToolRunners {
   searchInTvdb?: SearchInTvdbRunner;

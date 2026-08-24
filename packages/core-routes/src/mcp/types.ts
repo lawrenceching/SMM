@@ -143,6 +143,50 @@ export interface McpConfig {
     },
   ) => Promise<import("@smm/core/types").TmdbSeriesDetails>;
 
+  /** Optional runner for `tvdb-search` → `Core.searchInTvdb`. */
+  searchInTvdb?: (
+    keyword: string,
+    options: {
+      type: "series" | "movie";
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown[]>;
+
+  /** Optional runner for `tvdb-get-movie` → `Core.getMovieInTvdb`. */
+  getMovieInTvdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown>;
+
+  /** Optional runner for `tvdb-get-tv-show` → `Core.getTvShowInTvdb`. */
+  getTvShowInTvdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown>;
+
+  /** Optional runner for `tvdb-get-languages` → `Core.getTvdbLanguages`. */
+  getTvdbLanguages?: (
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown[]>;
+
   /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
