@@ -52,6 +52,7 @@ import { handleImportFolder } from './src/route/ImportFolder';
 import { handleGetJob } from './src/route/GetJob';
 import { handleScrape } from './src/route/Scrape';
 import { handleTmdb } from './src/route/Tmdb';
+import { handleTvdb } from './src/route/Tvdb';
 import { handleCoreFetch } from './src/route/CoreFetch';
 import { handleShowFolder } from './src/route/ShowFolder';
 import { handleFolderMetadata } from './src/route/FolderMetadata';
@@ -298,6 +299,7 @@ export class Server {
     handleGetJob(this.app);
     handleScrape(this.app);
     handleTmdb(this.app);
+    handleTvdb(this.app);
     handleCoreFetch(this.app);
     handleShowFolder(this.app);
     handleFolderMetadata(this.app);
