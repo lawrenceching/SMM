@@ -694,3 +694,63 @@ describe('getTmdbLanguages', () => {
     )
   })
 })
+
+describe('v3 Core Internal HTTP', () => {
+  beforeEach(() => {
+    localStorage.setItem('smm.v3.enabled', 'true')
+  })
+
+  afterEach(() => {
+    localStorage.removeItem('smm.v3.enabled')
+  })
+
+  it('searchTmdb POSTs to /api/search-in-tmdb', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            results: [{ id: 1, name: 'Naruto' }],
+            page: 1,
+            total_pages: 1,
+            total_results: 1,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const result = await searchTmdb('naruto', 'tv', 'en-US')
+
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/search-in-tmdb')
+    expect(fetchSpy.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' })
+    expect(result.results).toEqual([{ id: 1, name: 'Naruto' }])
+    expect(result.total_results).toBe(1)
+  })
+
+  it('getMovieById POSTs to /api/get-movie-in-tmdb', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: { id: 550, title: 'Fight Club' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await getMovieById(550, 'en-US')
+    expect(result.title).toBe('Fight Club')
+    const fetchSpy = vi.mocked(globalThis.fetch)
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/get-movie-in-tmdb')
+  })
+
+  it('getTvShowById POSTs to /api/get-tvshow-in-tmdb', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: { id: 1396, name: 'Breaking Bad' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await getTvShowById(1396)
+    expect(result.name).toBe('Breaking Bad')
+    expect(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]).toBe('/api/get-tvshow-in-tmdb')
+  })
+})

@@ -75,16 +75,16 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-const { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
-  const mockFetchTmdb = vi.fn()
+const { mockSearchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
+  const mockSearchTmdb = vi.fn()
   const mockTvdbSearch = vi.fn()
   const mockGetTVDBv4Client = vi.fn(() => ({ search: mockTvdbSearch }))
-  return { mockFetchTmdb, mockGetTVDBv4Client, mockTvdbSearch }
+  return { mockSearchTmdb, mockGetTVDBv4Client, mockTvdbSearch }
 })
 
 vi.mock('@/api/tmdb', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/tmdb')>()
-  return { ...actual, fetchTmdbOrUndefined: mockFetchTmdb }
+  return { ...actual, searchTmdb: mockSearchTmdb }
 })
 
 vi.mock('@/lib/TvdbUtils', () => ({
@@ -486,10 +486,8 @@ describe('MediaDatabaseSearchbox', () => {
     ])
   })
 
-  it('handleSearch calls fetchTmdbOrUndefined with /search/tv? when database is TMDB', async () => {
-    mockFetchTmdb.mockResolvedValue(
-      new Response(JSON.stringify({ results: [] }), { status: 200 }),
-    )
+  it('handleSearch calls searchTmdb with keyword, type, and language when database is TMDB', async () => {
+    mockSearchTmdb.mockResolvedValue({ results: [] })
     render(<MediaDatabaseSearchbox {...defaultProps} value="naruto" />, {
       wrapper: createWrapper(),
     })
@@ -498,10 +496,8 @@ describe('MediaDatabaseSearchbox', () => {
       await mockImmersiveSearchboxProps.current.onSearch?.()
     })
 
-    await waitFor(() => expect(mockFetchTmdb).toHaveBeenCalledTimes(1))
-    const [urlPath] = mockFetchTmdb.mock.calls[0] as [string]
-    expect(urlPath.startsWith('/search/tv?')).toBe(true)
-    expect(urlPath).toContain('query=naruto')
+    await waitFor(() => expect(mockSearchTmdb).toHaveBeenCalledTimes(1))
+    expect(mockSearchTmdb).toHaveBeenCalledWith('naruto', 'tv', 'en-US')
     expect(mockGetTVDBv4Client).not.toHaveBeenCalled()
   })
 
@@ -534,13 +530,14 @@ describe('MediaDatabaseSearchbox', () => {
     expect(mockGetTVDBv4Client).toHaveBeenCalledTimes(1)
     const [searchParams] = mockTvdbSearch.mock.calls[0] as [{ query: string; type: string; language?: string }]
     expect(searchParams).toMatchObject({ query: 'inception', type: 'movie' })
-    expect(mockFetchTmdb).not.toHaveBeenCalled()
+    expect(mockSearchTmdb).not.toHaveBeenCalled()
   })
 
   it('shows database-specific unauthorized message when TMDB search returns 401', async () => {
-    mockFetchTmdb.mockResolvedValue(
-      new Response(JSON.stringify({ status_code: 7 }), { status: 401 }),
-    )
+    mockSearchTmdb.mockResolvedValue({
+      results: [],
+      error: 'Error Reason: Invalid API key: 401 Unauthorized',
+    })
     render(<MediaDatabaseSearchbox {...defaultProps} value="naruto" />, {
       wrapper: createWrapper(),
     })

@@ -73,8 +73,9 @@ describe('smm tmdb search CLI e2e (docs/dev/tmdb.md scenarios)', () => {
     '3) Search through custom TMDB host',
     { timeout: TMDB_SEARCH_TIMEOUT_MS },
     async () => {
-      // Official TMDB rejects unauthenticated search; --password is required for this host.
-      const { host, password } = officialTmdb()
+      // Official TMDB is often unreachable without a proxy in restricted networks.
+      // --password is required; --proxy matches docs/dev/tmdb.md custom-host example.
+      const { host, password, proxy } = officialTmdb()
       const result = await smm([
         'tmdb',
         'search',
@@ -85,6 +86,8 @@ describe('smm tmdb search CLI e2e (docs/dev/tmdb.md scenarios)', () => {
         host,
         '--password',
         password,
+        '--proxy',
+        proxy,
       ])
       expect(result.code, result.stderr || result.stdout).toBe(0)
       expect(result.stdout).toMatch(RESULT_HEADER)
@@ -96,7 +99,7 @@ describe('smm tmdb search CLI e2e (docs/dev/tmdb.md scenarios)', () => {
     '4) Search through custom TMDB host and password',
     { timeout: TMDB_SEARCH_TIMEOUT_MS },
     async () => {
-      const { host, password } = officialTmdb()
+      const { host, password, proxy } = officialTmdb()
       const result = await smm([
         'tmdb',
         'search',
@@ -107,6 +110,8 @@ describe('smm tmdb search CLI e2e (docs/dev/tmdb.md scenarios)', () => {
         host,
         '--password',
         password,
+        '--proxy',
+        proxy,
       ])
       expect(result.code, result.stderr || result.stdout).toBe(0)
       expect(result.stdout).toMatch(RESULT_HEADER)

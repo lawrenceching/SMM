@@ -67,6 +67,7 @@ describe('smm add', () => {
     const { Core } = await import('core-app')
     const importFolder = vi.spyOn(Core.prototype, 'importFolder').mockReturnValue({ id: 'job-1' })
     vi.spyOn(Core.prototype, 'getJob').mockReturnValue({
+      kind: 'import',
       id: 'job-1',
       folderPath: mediaFolder,
       type: 'tvshow',

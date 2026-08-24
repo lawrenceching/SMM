@@ -4,10 +4,18 @@ SMM 通过 `apps/core` 统一访问 TMDB：**全部出站流量**经 `Core` + `N
 
 | 入口 | 状态 | 说明 |
 |------|------|------|
-| CLI | ✅ | `smm tmdb search` → 进程内 `Core` |
-| AI Tool | ✅ | Chat 工具 → `core-routes` → `Core` |
-| MCP Tool | ✅ | MCP 工具 → `core-routes` → `Core` |
-| Web UI | ⏳ | 目标：`BrowserNetworkPort` → `POST /api/core/fetch` → `Core`（迁移中） |
+| CLI | ✅ | `smm tmdb search` → 进程内 `Core.searchInTmdb` |
+| AI Tool | ✅ | 应用内 Chat → 对应 HTTP API → Core；服务端 Chat 进程内注入 Core |
+| MCP Tool | ✅ | MCP 工具进程内调用 Core 同名方法（与 HTTP 路由同一 Core） |
+| Web UI | ⏳ | `smm.v3.enabled`：对应 HTTP API → Core 同名方法 |
+
+Core 方法与 Internal HTTP **一对一**暴露。Web UI（v3）与应用内 AI 走这些 API 再进入 Core；MCP / 服务端 Chat 在进程内调用同一套 Core 方法。均不走 `POST /api/core/fetch`（那是 `BrowserNetworkPort` 的通用出站中继，见 [network-core.md](./network-core.md)）。
+
+| Core 方法 | HTTP |
+|-----------|------|
+| `searchInTmdb` | `POST /api/search-in-tmdb` |
+| `getMovieInTmdb` | `POST /api/get-movie-in-tmdb` |
+| `getTvShowInTmdb` | `POST /api/get-tvshow-in-tmdb` |
 
 ```mermaid
 flowchart TB
@@ -16,16 +24,16 @@ flowchart TB
   AI["AI Tool ✅"]
   MCP["MCP Tool ✅"]
 
-  CR["packages/core-routes<br/>/api/core/fetch · chat · MCP"]
+  API["POST /api/search-in-tmdb<br/>POST /api/get-movie-in-tmdb<br/>POST /api/get-tvshow-in-tmdb"]
   CORE["apps/core<br/>searchInTmdb · getMovieInTmdb · getTvShowInTmdb"]
-  NET["NetworkPort<br/>NodejsNetworkPort / BrowserNetworkPort"]
+  NET["NetworkPort<br/>NodejsNetworkPort"]
   TMDB["TMDB 上游"]
 
   CLI -->|进程内| CORE
-  WEB --> CR
-  AI --> CR
-  MCP --> CR
-  CR --> CORE
+  WEB --> API
+  AI --> API
+  MCP --> API
+  API -->|一对一| CORE
   CORE --> NET --> TMDB
 ```
 
@@ -35,13 +43,13 @@ flowchart TB
 
 ## apps/core API
 
-三个公开方法，共用 `createTmdbClient` 与 `NetworkPort` 出站。
+三个公开方法，共用 `createTmdbClient` 与 `NetworkPort` 出站。每个方法一对一暴露为 HTTP：
 
-| 方法 | 用途 |
-|------|------|
-| `searchInTmdb(keyword, options)` | 按关键词搜索 TV / movie |
-| `getMovieInTmdb(id, options)` | 按 TMDB id 拉电影详情 |
-| `getTvShowInTmdb(id, options)` | 按 TMDB id 拉剧集详情 |
+| 方法 | HTTP | 用途 |
+|------|------|------|
+| `searchInTmdb(keyword, options)` | `POST /api/search-in-tmdb` | 按关键词搜索 TV / movie |
+| `getMovieInTmdb(id, options)` | `POST /api/get-movie-in-tmdb` | 按 TMDB id 拉电影详情 |
+| `getTvShowInTmdb(id, options)` | `POST /api/get-tvshow-in-tmdb` | 按 TMDB id 拉剧集详情 |
 
 ```ts
 core.searchInTmdb(keyword, {
@@ -118,13 +126,13 @@ smm tmdb search "keyword" --type tv \
 
 ## AI Tool
 
-Chat 后端工具，**仅服务端**（`packages/core/ai-tool/registry.ts` 中 `frontend: false`）。
+Chat 后端工具，**仅服务端也可执行**（registry 中 `backend: true`）。应用内 AI（`frontend: true`）经对应 HTTP API 进入 Core，不走 `/api/core/fetch`。MCP / 服务端 chat 在进程内注入 `Core.searchInTmdb` 等同名方法（与 HTTP 路由同一 Core）。
 
-| 工具名 | Core 方法 | 说明 |
-|--------|-----------|------|
-| `tmdb-search` | `searchInTmdb` | 关键词搜索 |
-| `tmdb-get-movie` | `getMovieInTmdb` | 电影详情 |
-| `tmdb-get-tv-show` | `getTvShowInTmdb` | 剧集详情 |
+| 工具名 | HTTP | Core 方法 | 说明 |
+|--------|------|-----------|------|
+| `tmdb-search` | `POST /api/search-in-tmdb` | `searchInTmdb` | 关键词搜索 |
+| `tmdb-get-movie` | `POST /api/get-movie-in-tmdb` | `getMovieInTmdb` | 电影详情 |
+| `tmdb-get-tv-show` | `POST /api/get-tvshow-in-tmdb` | `getTvShowInTmdb` | 剧集详情 |
 
 ### 参数（与 CLI 对照）
 
@@ -147,13 +155,13 @@ System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tmdb-sear
 
 ## MCP Tool
 
-与 AI Tool **同名、同 schema、同 Core 路径**，经 MCP HTTP 暴露。
+与 AI Tool **同名、同 schema**，经 MCP HTTP 暴露。工具 handler 在进程内调用 `Core.searchInTmdb` 等同名方法（与 `POST /api/search-in-tmdb` 等路由同一 Core），不走 `/api/core/fetch`。
 
-| MCP 工具名 | Core 方法 |
-|------------|-----------|
-| `tmdb-search` | `searchInTmdb` |
-| `tmdb-get-movie` | `getMovieInTmdb` |
-| `tmdb-get-tv-show` | `getTvShowInTmdb` |
+| MCP 工具名 | HTTP | Core 方法 |
+|------------|------|-----------|
+| `tmdb-search` | `POST /api/search-in-tmdb` | `searchInTmdb` |
+| `tmdb-get-movie` | `POST /api/get-movie-in-tmdb` | `getMovieInTmdb` |
+| `tmdb-get-tv-show` | `POST /api/get-tvshow-in-tmdb` | `getTvShowInTmdb` |
 
 注册：`packages/core-routes/src/mcp/toolHandlers/tmdbTools.ts`  
 CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `getTvShowInTmdb`）。
@@ -164,27 +172,28 @@ CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `ge
 
 ## Web UI（⏳ v3 迁移）
 
+Web UI 的改动需要使用 localStorage 开关 `smm.v3.enabled` 控制.
+
 搜索入口：`MediaDatabaseSearchbox`（`TvShowPanelHeader` / `MovieHeaderV2`）。
 
-**目标路径**（与 Core v3 一致）：
+**目标路径**（与 Core v3 一致）：UI 调用一对一 Internal HTTP，服务端再调对应 Core 方法。不经 `BrowserNetworkPort` / `POST /api/core/fetch`。
 
 ```mermaid
 flowchart LR
-  A[MediaDatabaseSearchbox] --> B[Core.searchInTmdb]
-  B --> C[BrowserNetworkPort]
-  C --> D[POST /api/core/fetch]
-  D --> E[NodejsNetworkPort]
-  E --> F[TMDB]
+  A[MediaDatabaseSearchbox] --> B[POST /api/search-in-tmdb]
+  B --> C[Core.searchInTmdb]
+  C --> D[NodejsNetworkPort]
+  D --> E[TMDB]
 ```
 
-| 层 | 文件 |
+| 层 | 文件 / 接口 |
 |----|------|
 | UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` |
-| 浏览器 Port | `apps/ui/src/core/BrowserNetworkPort.ts` |
-| RPC | `apps/cli/src/route/CoreFetch.ts` |
+| HTTP | `POST /api/search-in-tmdb` · `POST /api/get-movie-in-tmdb` · `POST /api/get-tvshow-in-tmdb` |
+| Core | `searchInTmdb` · `getMovieInTmdb` · `getTvShowInTmdb` |
 | 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |
 
-Web 不调用 `smm tmdb search`，但与 CLI 共用 `Core` 与 `userConfig.tmdb` 语义。
+Web 不调用 `smm tmdb search`，但与 CLI 共用 Core 方法与 `userConfig.tmdb` 语义。
 
 ---
 

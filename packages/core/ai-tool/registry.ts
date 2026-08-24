@@ -108,10 +108,10 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   { name: SCRAPE, backend: true, frontend: true },
   { name: GET_JOB, backend: true, frontend: true },
 
-  // TMDB query (Core-backed; backend chat / MCP on hosts with Core)
-  { name: TMDB_SEARCH, backend: true, frontend: false },
-  { name: TMDB_GET_MOVIE, backend: true, frontend: false },
-  { name: TMDB_GET_TV_SHOW, backend: true, frontend: false },
+  // TMDB query (Internal HTTP for Web UI / in-app AI; MCP and server chat inject Core runners)
+  { name: TMDB_SEARCH, backend: true, frontend: true },
+  { name: TMDB_GET_MOVIE, backend: true, frontend: true },
+  { name: TMDB_GET_TV_SHOW, backend: true, frontend: true },
 
   // Rename files task
   { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },

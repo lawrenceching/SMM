@@ -58,6 +58,15 @@ HTTP: `POST /api/import-folder` — starts Layer 2 `Core.importFolder(path, type
 Source Code: apps/cli/src/route/GetJob.ts
 HTTP: `POST /api/get-job` — returns an in-memory import job from `Core.getJob(id)`. Request body: `{ id: string }`. Response: `{ data: ImportJob }` or `{ error }` (`Job not found`). CLI `smm add` polls this internally until the job settles.
 
+## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
+Source Code: apps/cli/src/route/Tmdb.ts
+
+1:1 Internal HTTP for Core TMDB methods. Response `{ data }` or `{ error }` (HTTP 200). Optional `language` / `host` / `password` / `proxy` override `userConfig.tmdb`. Used by Web UI when `localStorage["smm.v3.enabled"] === "true"` and by in-app AI tools. MCP / server-side chat inject the same Core methods in-process.
+
+- `POST /api/search-in-tmdb` → `Core.searchInTmdb`. Body: `{ keyword: string, type: "tv" | "movie", language?, host?, password?, proxy? }`.
+- `POST /api/get-movie-in-tmdb` → `Core.getMovieInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvshow-in-tmdb` → `Core.getTvShowInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+
 ## ShowFolder
 Source Code: apps/cli/src/route/ShowFolder.ts
 HTTP: `POST /api/show-folder` — UI-aligned folder snapshot via the same helper as `smm show`. Request body: `{ path: string }`. Response: `{ data: { path, status, type?, title? } }` (`status`: `ok` | `folder_not_found` | `error_loading_metadata`) or `{ error }` (not imported / path missing).

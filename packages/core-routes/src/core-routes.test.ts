@@ -2,7 +2,7 @@ import { mkdtemp, mkdir, writeFile, rm, stat, readFile } from "node:fs/promises"
 import os from "node:os";
 import path from "node:path";
 import { Buffer } from "node:buffer";
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { validatePathIsInAllowlist } from "../src/allowlist.ts";
 import type { CoreRoutesConfig } from "../src/types.ts";
 
@@ -86,6 +86,12 @@ describe("doWriteFile", () => {
 });
 
 describe("handleCoreRoutesRequest", () => {
+  // register.ts pulls AI SDK / chat deps; under parallel `pnpm test` the first
+  // dynamic import can exceed vitest's default 5s and flake as a timeout.
+  beforeAll(async () => {
+    await import("../src/register.ts");
+  }, 30_000);
+
   async function requestCoreRoute(
     method: string,
     url: string,
@@ -104,8 +110,9 @@ describe("handleCoreRoutesRequest", () => {
 
     if (rawBody !== undefined) {
       req.push(Buffer.from(rawBody));
-      req.push(null);
     }
+    // Always end the stream so handlers that read the body cannot hang.
+    req.push(null);
 
     let status = 0;
     let headers: Record<string, string> = {};

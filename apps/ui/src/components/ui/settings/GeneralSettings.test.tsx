@@ -44,6 +44,17 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useMcpServerStatus", () => ({
+  useStartMcpServerMutation: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  useStopMcpServerMutation: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+}));
+
 describe("GeneralSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();

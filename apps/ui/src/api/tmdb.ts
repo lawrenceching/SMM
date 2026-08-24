@@ -12,6 +12,8 @@ import { fetchWithFailover, HttpFailoverExhaustedError } from '@/lib/http'
 import staticConfig from './staticConfig'
 import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 import { buildTmdbErrorFromResponse } from './tmdbErrors'
+import { isSmmV3Enabled } from '@/lib/localStorages'
+import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbV3'
 
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
 
@@ -129,6 +131,32 @@ export async function searchTmdb(
   language: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSearchResponseBody> {
+  if (isSmmV3Enabled()) {
+    const body = await searchInTmdb(
+      { keyword, type, language },
+      options?.signal,
+    )
+    if (body.error) {
+      return {
+        error: body.error,
+        results: [],
+        page: 0,
+        total_pages: 0,
+        total_results: 0,
+      }
+    }
+    if (!body.data) {
+      return {
+        error: 'Error Reason: empty search result',
+        results: [],
+        page: 0,
+        total_pages: 0,
+        total_results: 0,
+      }
+    }
+    return body.data
+  }
+
   const queryParams = new URLSearchParams()
   queryParams.append('query', keyword)
   queryParams.append('language', language)
@@ -150,6 +178,17 @@ export async function getTvShowById(
   language?: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
+  if (isSmmV3Enabled()) {
+    const body = await getTvShowInTmdb({ id, language }, options?.signal)
+    if (body.error) {
+      throw new Error(body.error)
+    }
+    if (!body.data) {
+      throw new Error('Error Reason: empty TV show result')
+    }
+    return body.data
+  }
+
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
   const resp = await fetchTmdb(
@@ -170,6 +209,17 @@ export async function getMovieById(
   language?: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
+  if (isSmmV3Enabled()) {
+    const body = await getMovieInTmdb({ id, language }, options?.signal)
+    if (body.error) {
+      throw new Error(body.error)
+    }
+    if (!body.data) {
+      throw new Error('Error Reason: empty movie result')
+    }
+    return body.data
+  }
+
   const queryParams = new URLSearchParams()
   if (language) queryParams.append('language', language)
   const resp = await fetchTmdb(

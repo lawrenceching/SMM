@@ -57,8 +57,11 @@ function dataToHttpResponse(data: CoreFetchResponseData): HttpResponse {
       }
       return jsonCache as T
     },
-    async arrayBuffer() {
-      return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+    async arrayBuffer(): Promise<ArrayBuffer> {
+      return bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength,
+      ) as ArrayBuffer
     },
   }
 }
