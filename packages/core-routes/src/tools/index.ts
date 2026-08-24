@@ -19,6 +19,17 @@ import {
   buildTmdbSearchTool,
   type TmdbToolRunners,
 } from "./tmdb.ts";
+import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
+import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
+import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
+import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
+import {
+  buildTvdbGetLanguagesTool,
+  buildTvdbGetMovieTool,
+  buildTvdbGetTvShowTool,
+  buildTvdbSearchTool,
+  type TvdbToolRunners,
+} from "./tvdb.ts";
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -86,6 +97,10 @@ export interface ChatTools {
   [TMDB_SEARCH]: ReturnType<typeof buildTmdbSearchTool>;
   [TMDB_GET_MOVIE]: ReturnType<typeof buildTmdbGetMovieTool>;
   [TMDB_GET_TV_SHOW]: ReturnType<typeof buildTmdbGetTvShowTool>;
+  [TVDB_SEARCH]: ReturnType<typeof buildTvdbSearchTool>;
+  [TVDB_GET_MOVIE]: ReturnType<typeof buildTvdbGetMovieTool>;
+  [TVDB_GET_TV_SHOW]: ReturnType<typeof buildTvdbGetTvShowTool>;
+  [TVDB_GET_LANGUAGES]: ReturnType<typeof buildTvdbGetLanguagesTool>;
   [BEGIN_RENAME_FILES_TASK]: ReturnType<typeof buildBeginRenameFilesTaskTool>;
   [ADD_RENAME_FILE_TO_TASK]: ReturnType<typeof buildAddRenameFileToTaskTool>;
   [END_RENAME_FILES_TASK]: ReturnType<typeof buildEndRenameFilesTaskTool>;
@@ -110,6 +125,8 @@ export interface ChatToolsExtraDeps {
   getJob?: GetJobRunner;
   /** Host Core runners for TMDB query tools. */
   tmdb?: TmdbToolRunners;
+  /** Host Core runners for TVDB query tools. */
+  tvdb?: TvdbToolRunners;
 }
 
 export interface CreateChatToolsArgs {
@@ -160,6 +177,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config.appDataDir);
 
   const tmdbRunners: TmdbToolRunners | undefined = extra?.tmdb;
+  const tvdbRunners: TvdbToolRunners | undefined = extra?.tvdb;
 
   return {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(
@@ -201,6 +219,10 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     [TMDB_SEARCH]: buildTmdbSearchTool(tmdbRunners, abortSignal),
     [TMDB_GET_MOVIE]: buildTmdbGetMovieTool(tmdbRunners, abortSignal),
     [TMDB_GET_TV_SHOW]: buildTmdbGetTvShowTool(tmdbRunners, abortSignal),
+    [TVDB_SEARCH]: buildTvdbSearchTool(tvdbRunners, abortSignal),
+    [TVDB_GET_MOVIE]: buildTvdbGetMovieTool(tvdbRunners, abortSignal),
+    [TVDB_GET_TV_SHOW]: buildTvdbGetTvShowTool(tvdbRunners, abortSignal),
+    [TVDB_GET_LANGUAGES]: buildTvdbGetLanguagesTool(tvdbRunners, abortSignal),
     [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(
       clientId,
       config.appDataDir,
