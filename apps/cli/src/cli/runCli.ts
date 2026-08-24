@@ -20,6 +20,7 @@ import {
   printEpisodeRenameResult,
 } from './renameDispatch'
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
+import { formatTvdbSearchResults } from './tvdbSearchFormat'
 import { Path } from '@core/path'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
@@ -432,6 +433,52 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
             return
           }
           const text = formatTmdbSearchResults(body, opts.type)
+          if (text) console.log(text)
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : String(error))
+          exitCode = 1
+        }
+      },
+    )
+
+  const tvdbCmd = program.command('tvdb').description('TVDB helpers')
+
+  tvdbCmd
+    .command('search')
+    .description('Search TVDB for TV series or movies')
+    .argument('<keyword>', 'Search keyword')
+    .addOption(
+      new Option('--type <type>', 'Media type')
+        .choices(['series', 'movie'])
+        .makeOptionMandatory(),
+    )
+    .option('--host <url>', 'TVDB API base URL (overrides userConfig.tvdb.host)')
+    .option('--password <key>', 'TVDB API key (overrides userConfig.tvdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tvdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
+    )
+    .action(
+      async (
+        keyword: string,
+        opts: {
+          type: 'series' | 'movie'
+          host?: string
+          password?: string
+          proxy?: string
+          lang?: string
+        },
+      ) => {
+        try {
+          const results = await getCore().searchInTvdb(keyword, {
+            type: opts.type,
+            host: opts.host,
+            password: opts.password,
+            proxy: opts.proxy,
+            language: opts.lang,
+          })
+          const text = formatTvdbSearchResults(results, opts.type)
           if (text) console.log(text)
         } catch (error) {
           console.error(error instanceof Error ? error.message : String(error))
