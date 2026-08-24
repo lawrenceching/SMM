@@ -9,7 +9,9 @@ loadEnvLocal(import.meta.dirname)
 
 const TVDB_SEARCH_TIMEOUT_MS = 60_000
 const RESULT_HEADER = /^#1 \d+ .+ \(\d{4}(-\d{2}-\d{2})?\)$/m
-const SERIES_TITLE = /天使降临到我身边|WATATEN|Angel Flew Down|Wataten/i
+// TVDB search returns the primary (often Japanese) title and the CLI prints
+// only `item.name` — WATATEN's TVDB primary title is "私に天使が舞い降りた！".
+const SERIES_TITLE = /天使|WATATEN|Angel Flew Down|Wataten/i
 
 function officialTvdb(): { host: string; password: string; proxy: string } {
   return {
