@@ -1165,6 +1165,9 @@ describe("Core.searchInTmdb", () => {
 });
 
 function tvdbResponse(url: string): HttpResponse {
+  if (url.endsWith("/login")) {
+    return jsonResponse({ status: "success", data: { token: "jwt-123" } });
+  }
   if (url.includes("/search")) {
     const type = url.includes("type=series") ? "series" : "movie";
     return jsonResponse({
@@ -1210,11 +1213,15 @@ describe("Core.searchInTvdb", () => {
     });
 
     expect(results[0]?.tvdb_id).toBe("1");
-    expect(calls[0]?.url).toContain("https://tvdb.example.com/v4/search");
-    expect(calls[0]?.url).toContain("query=keyword");
-    expect(calls[0]?.url).toContain("language=eng");
-    expect(calls[0]?.proxy).toBe("socks5://127.0.0.1:1080");
-    expect(calls[0]?.auth).toBe("Bearer secret");
+    // First call is the JWT login exchange.
+    expect(calls[0]?.url).toContain("https://tvdb.example.com/v4/login");
+    expect(calls[0]?.auth).toBeUndefined();
+    // The search request uses the JWT obtained from login.
+    expect(calls[1]?.url).toContain("https://tvdb.example.com/v4/search");
+    expect(calls[1]?.url).toContain("query=keyword");
+    expect(calls[1]?.url).toContain("language=eng");
+    expect(calls[1]?.proxy).toBe("socks5://127.0.0.1:1080");
+    expect(calls[1]?.auth).toBe("Bearer jwt-123");
   });
 
   it("maps explicit ISO 639-3 language through", async () => {

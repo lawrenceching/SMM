@@ -64,6 +64,55 @@ function authHeaders(apiKey?: string): Record<string, string> {
   return { Authorization: `Bearer ${key}` };
 }
 
+/** In-process TVDB JWT cache keyed by normalized custom host. */
+const tvdbTokenCache = new Map<
+  string,
+  { token: string; expiresAt: number }
+>();
+const TVDB_TOKEN_VALIDITY_MS = 30 * 24 * 60 * 60 * 1000; // ~1 month per docs
+const TVDB_TOKEN_REFRESH_BUFFER_MS = 60 * 60 * 1000; // refresh 1h early
+
+/** Test-only: clear the TVDB JWT cache. */
+export function _resetTvdbTokenCacheForTests(): void {
+  tvdbTokenCache.clear();
+}
+
+/**
+ * Obtain a TVDB bearer JWT for a custom host via `POST /login`, caching it in
+ * process memory and refreshing near expiry. The raw API key is NOT a bearer
+ * token for TVDB v4; a login exchange is required.
+ */
+async function ensureTvdbToken(
+  network: NetworkPort,
+  host: string,
+  apiKey: string | undefined,
+  proxy: string | undefined,
+): Promise<string> {
+  const key = normalizeBase(host);
+  const cached = tvdbTokenCache.get(key);
+  if (cached && Date.now() < cached.expiresAt - TVDB_TOKEN_REFRESH_BUFFER_MS) {
+    return cached.token;
+  }
+
+  const url = joinUrl(key, "/login");
+  const resp = await network.fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ apikey: apiKey?.trim() || "" }),
+    ...(proxy?.trim() ? { proxy: proxy.trim() } : {}),
+  });
+  if (!resp.ok) {
+    throw new Error(`TVDB login failed: ${resp.status} ${resp.statusText}`);
+  }
+  const body = await resp.json<{ data?: { token?: string }; token?: string }>();
+  const token = body?.data?.token ?? body?.token;
+  if (typeof token !== "string" || !token) {
+    throw new Error("TVDB login response missing token");
+  }
+  tvdbTokenCache.set(key, { token, expiresAt: Date.now() + TVDB_TOKEN_VALIDITY_MS });
+  return token;
+}
+
 function generalProxyHeaders(
   upstreamBaseURL: string,
   authorizationMethod: MediaDatabaseAuthorizationMethod,
@@ -145,15 +194,14 @@ export async function fetchMediaDatabase(
     // (httpProxy is passed as NetworkPort `proxy`, not X-Http-Proxy).
     const url = joinUrl(upstream, path);
     attempted.push(url);
-    const resp = await tryFetch(
-      network,
-      url,
-      {
-        Accept: "application/json",
-        ...authHeaders(options.apiKey),
-      },
-      options.httpProxy,
-    );
+    let headers: Record<string, string> = { Accept: "application/json" };
+    if (options.kind === "tvdb") {
+      const token = await ensureTvdbToken(network, upstream, options.apiKey, options.httpProxy);
+      headers.Authorization = `Bearer ${token}`;
+    } else {
+      Object.assign(headers, authHeaders(options.apiKey));
+    }
+    const resp = await tryFetch(network, url, headers, options.httpProxy);
     if (resp !== undefined) return resp;
     throw new MediaDatabaseFailoverExhaustedError(attempted);
   }

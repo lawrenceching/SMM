@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { HttpResponse, NetworkPort } from "../ports/NetworkPort";
-import { fetchMediaDatabase, MediaDatabaseFailoverExhaustedError } from "./mediaDatabaseTransport";
+import {
+  _resetTvdbTokenCacheForTests,
+  fetchMediaDatabase,
+  MediaDatabaseFailoverExhaustedError,
+} from "./mediaDatabaseTransport";
 
 function jsonOk(body: unknown = {}): HttpResponse {
   return {
@@ -158,3 +162,85 @@ describe("fetchMediaDatabase", () => {
     expect(proxies[0]).toBe("socks5://127.0.0.1:1080");
   });
 });
+
+describe("TVDB custom-host JWT login", () => {
+  it("logs in first and uses the JWT as Bearer for a custom TVDB host", async () => {
+    const urls: string[] = []
+    const headers: Array<Record<string, string | undefined>> = []
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        urls.push(url)
+        headers.push(init?.headers ?? {})
+        if (url.endsWith("/login")) {
+          expect(init?.method).toBe("POST")
+          expect(JSON.parse(init?.body ?? "{}")).toEqual({ apikey: "secret" })
+          return jsonOk({ status: "success", data: { token: "jwt-123" } })
+        }
+        return jsonOk({ status: "success", data: [{ id: "series-1", name: "My Show" }] })
+      },
+    }
+
+    const resp = await fetchMediaDatabase(network, {
+      kind: "tvdb",
+      path: "/search?query=x&type=series",
+      configuredHost: "https://api4.thetvdb.com/v4",
+      apiKey: "secret",
+    })
+
+    expect(resp.ok).toBe(true)
+    expect(urls[0]).toContain("/login")
+    expect(urls[1]).toContain("/search")
+    // The login request must NOT carry an Authorization header.
+    expect(headers[0]?.Authorization).toBeUndefined()
+    // The actual request uses the JWT.
+    expect(headers[1]?.Authorization).toBe("Bearer jwt-123")
+  })
+
+  it("caches the JWT and skips re-login for the same host", async () => {
+    let loginCount = 0
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        if (url.endsWith("/login")) {
+          loginCount += 1
+          return jsonOk({ status: "success", data: { token: "jwt-123" } })
+        }
+        return jsonOk({ status: "success", data: [] })
+      },
+    }
+    _resetTvdbTokenCacheForTests()
+
+    const opts = {
+      kind: "tvdb" as const,
+      path: "/search?query=x&type=series",
+      configuredHost: "https://api4.thetvdb.com/v4",
+      apiKey: "secret",
+    }
+    await fetchMediaDatabase(network, opts)
+    await fetchMediaDatabase(network, opts)
+
+    expect(loginCount).toBe(1)
+    _resetTvdbTokenCacheForTests()
+  })
+
+  it("still sends the raw API key as Bearer for a custom TMDB host (no login)", async () => {
+    const urls: string[] = []
+    const headers: Array<Record<string, string | undefined>> = []
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        urls.push(url)
+        headers.push(init?.headers ?? {})
+        return jsonOk({ results: [] })
+      },
+    }
+
+    await fetchMediaDatabase(network, {
+      kind: "tmdb",
+      path: "/search/tv?query=x",
+      configuredHost: "https://api.themoviedb.org/3",
+      apiKey: "secret",
+    })
+
+    expect(urls[0]).not.toContain("/login")
+    expect(headers[0]?.Authorization).toBe("Bearer secret")
+  })
+})
