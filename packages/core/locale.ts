@@ -220,3 +220,29 @@ export function detectOsLocale(): string {
 
   return ''
 }
+
+/** IETF BCP 47 media language → TVDB ISO 639-3 code (kept in @smm/core for offline resolution). */
+export function mediaLanguageToTvdbCode(lang: PreferMediaLanguage): string {
+  switch (lang) {
+    case 'zh-CN':
+      return 'zho'
+    case 'ja-JP':
+      return 'jpn'
+    default:
+      return 'eng'
+  }
+}
+
+/**
+ * Resolve the TVDB search/metadata language (ISO 639-3) with priority:
+ * 1. preferMediaLanguage (explicit smm.json config) → mapped to ISO 639-3
+ * 2. Resolved media language chain (applicationLanguage → OS → en)
+ * 3. eng
+ */
+export function resolveTvdbSearchLanguage(opts: ResolveMediaLanguageOptions): string {
+  if (opts.preferMediaLanguage) {
+    return mediaLanguageToTvdbCode(opts.preferMediaLanguage)
+  }
+  const mediaLang = resolveMediaLanguage(opts)
+  return mediaLanguageToTvdbCode(mediaLang)
+}
