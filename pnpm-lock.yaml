@@ -170,6 +170,9 @@ importers:
         specifier: ^1.42.0
         version: 1.44.0
     devDependencies:
+      '@smm/test':
+        specifier: workspace:*
+        version: link:../../packages/test
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

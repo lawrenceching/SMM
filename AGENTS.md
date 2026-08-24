@@ -174,6 +174,8 @@ pnpm ci               # 构建 + 测试 + 类型检查
 
 ## 技术架构
 
+见 [架构总览](./docs/dev/overview.md)
+
 ### 前后端通信
 - **HTTP API**: 使用 Hono 框架提供 RESTful API
 - **Socket.IO**: 使用 Socket.IO 进行实时双向通信

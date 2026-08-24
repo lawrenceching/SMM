@@ -28,6 +28,10 @@ export default defineConfig({
         find: "@smm/tvdb4",
         replacement: resolve(__dirname, "../../packages/tvdb4/src/index.ts"),
       },
+      {
+        find: "@smm/test",
+        replacement: resolve(__dirname, "../../packages/test/src/index.ts"),
+      },
     ],
   },
 });

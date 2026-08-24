@@ -16,6 +16,7 @@
     "es-toolkit": "^1.42.0"
   },
   "devDependencies": {
+    "@smm/test": "workspace:*",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
