@@ -51,6 +51,10 @@ import { GET_JOB } from '../types/ai-tools/getJob'
 import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
 import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
 import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
+import { TVDB_SEARCH } from '../types/ai-tools/tvdbSearch'
+import { TVDB_GET_MOVIE } from '../types/ai-tools/tvdbGetMovie'
+import { TVDB_GET_TV_SHOW } from '../types/ai-tools/tvdbGetTvShow'
+import { TVDB_GET_LANGUAGES } from '../types/ai-tools/tvdbGetLanguages'
 import {
   BEGIN_RENAME_FILES_TASK,
   ADD_RENAME_FILE_TO_TASK,
@@ -112,6 +116,13 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   { name: TMDB_SEARCH, backend: true, frontend: true },
   { name: TMDB_GET_MOVIE, backend: true, frontend: true },
   { name: TMDB_GET_TV_SHOW, backend: true, frontend: true },
+
+  // TVDB query (backend-only for now; Web UI v3 migration pending).
+  // MCP and server chat inject Core runners; in-app AI via Internal HTTP.
+  { name: TVDB_SEARCH, backend: true, frontend: false },
+  { name: TVDB_GET_MOVIE, backend: true, frontend: false },
+  { name: TVDB_GET_TV_SHOW, backend: true, frontend: false },
+  { name: TVDB_GET_LANGUAGES, backend: true, frontend: false },
 
   // Rename files task
   { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },
