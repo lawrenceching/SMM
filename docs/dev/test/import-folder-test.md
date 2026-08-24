@@ -41,19 +41,10 @@ Directory recognition scenarios (TMDB/TVDB ID, NFO, search by name, unknown) are
 | | ohos | apps/e2e/common/movie/InitializeMovieByTmdb.e2e.ts |
 | Import movie — unknown / no match | Web UI | apps/e2e/common/movie/InitializeMovieByTmdb.e2e.ts |
 | | ohos | apps/e2e/common/movie/InitializeMovieByTmdb.e2e.ts |
-| Import movie — batch media library | Web UI | apps/e2e/common/movie/ImportMovieLibrary.e2e.ts |
-| | ohos | apps/e2e/common/movie/ImportMovieLibrary.e2e.ts |
 | Import music | CLI | apps/cli/test/import-folder.e2e.ts |
-| | Web UI | apps/e2e/common/other/App.e2e.ts |
-| | ohos | apps/e2e/common/other/App.e2e.ts |
-| Import music — tutorial fixture (manual) | Web UI | apps/e2e/common/manual/MusicPanel-Transcribe.e2e.ts |
 | | ohos | apps/e2e/common/manual/MusicPanel-Transcribe.e2e.ts |
 | Import with `--skip-init` | CLI | apps/cli/test/import-folder.e2e.ts |
-| List imported folders | CLI | apps/cli/test/import-folder.e2e.ts |
-| Remove imported folder (`smm rm`) | CLI | apps/cli/test/import-folder.e2e.ts |
 | `smm show` / `smm metadata` after import | CLI | apps/cli/test/import-folder.e2e.ts |
-| Switch UI among TV / movie / music folders | Web UI | apps/e2e/common/other/App.e2e.ts |
-| | ohos | apps/e2e/common/other/App.e2e.ts |
 | Import behind HTTP proxy | Web UI | apps/e2e/common/httpproxy/InitTvShowByTmdbBehindHttpProxy.e2e.ts · InitTvShowByTvdbBehindHttpProxy.e2e.ts |
 | | ohos | apps/e2e/common/httpproxy/InitTvShowByTmdbBehindHttpProxy.e2e.ts · InitTvShowByTvdbBehindHttpProxy.e2e.ts |
 | Import with custom TMDB / TVDB host | Web UI | apps/e2e/common/httpproxy/InitTvShowByCustomTmdbHost.e2e.ts · InitTvShowByCustomTvdbHost.e2e.ts |

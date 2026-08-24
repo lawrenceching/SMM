@@ -7,7 +7,6 @@
 
 ```
 smm rename <from> <to>
-smm rename-episode-file <folder> --from <path> --to <path>
 ```
 
 ```mermaid
