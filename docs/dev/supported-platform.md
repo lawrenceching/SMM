@@ -26,6 +26,19 @@ smm
 Server is listening at http://localhost:8080
 ```
 
+**Electron**
+
+Electron desktop app
+
+```
+Electron
+  |-- Main Process (node.js side)
+        |-- core (built from apps/core)
+        |-- core-routes (built from packages/core-routes)
+  |-- UI (browser side, built from apps/ui)
+```
+
+
 **HarmonyOS/ohos**
 
 User operates in HarmonyOS app, which is a Electron desktop application ported to HarmonyOS.
