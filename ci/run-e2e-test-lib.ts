@@ -54,7 +54,7 @@ export function assignE2eLocalPortEnv(env: Record<string, string>): void {
   }
 }
 
-/** Opt-in UI v3 for e2e (`localStorage smm.v3.enabled`). Production default stays off. */
+/** Opt-in UI v3 for e2e (`localStorage smm.v3.enabled`). Production default is on; e2e still injects when E2E_SMM_V3=true. */
 function assignE2eSmmV3Env(env: Record<string, string>): void {
   if (process.env.E2E_SMM_V3 === 'true') {
     env.E2E_SMM_V3 = 'true';

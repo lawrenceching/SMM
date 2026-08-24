@@ -198,9 +198,11 @@ const localStorages = {
     },
     get isSmmV3Enabled(): boolean {
         try {
-            return localStorage.getItem(STORAGE_KEY_SMM_V3_ENABLED) === 'true'
+            const stored = localStorage.getItem(STORAGE_KEY_SMM_V3_ENABLED)
+            if (stored === 'false') return false
+            return true
         } catch {
-            return false
+            return true
         }
     },
 }

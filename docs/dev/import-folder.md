@@ -103,6 +103,7 @@ See [apps/core](#appscore) for pipeline stages and persistence details.
 smm add <folder> --type tvshow|movie|music|anime [--verbose] [--skip-init]
 smm list
 smm show <folder>
+smm metadata <folder>
 ```
 
 ```mermaid

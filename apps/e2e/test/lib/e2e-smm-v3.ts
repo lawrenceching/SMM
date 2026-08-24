@@ -2,7 +2,7 @@
 export const SMM_V3_LOCAL_STORAGE_KEY = 'smm.v3.enabled'
 
 /**
- * Opt-in for e2e: `E2E_SMM_V3=true` turns on UI v3 without changing production defaults.
+ * Opt-in for e2e: `E2E_SMM_V3=true` injects `smm.v3.enabled` (production default is already on).
  * Any other value (unset, `"1"`, `"false"`) leaves v3 off.
  */
 export function isE2eSmmV3Enabled(env: NodeJS.ProcessEnv = process.env): boolean {

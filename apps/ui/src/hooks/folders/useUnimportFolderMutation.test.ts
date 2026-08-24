@@ -11,7 +11,6 @@ import { mediaMetadataQueryKey } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useUnimportFolderMutation } from "./useUnimportFolderMutation"
 
-const STORAGE_KEY_SMM_V3_ENABLED = "smm.v3.enabled"
 const USER_DATA_DIR = "/tmp/smm-user-data"
 const PATH_A = "/media/A"
 const PATH_B = "/media/B"
@@ -50,7 +49,6 @@ describe("useUnimportFolderMutation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.removeItem(STORAGE_KEY_SMM_V3_ENABLED)
     unimportFolder.mockResolvedValue({ data: { path: PATH_A } })
     queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
@@ -66,7 +64,6 @@ describe("useUnimportFolderMutation", () => {
   })
 
   afterEach(() => {
-    localStorage.removeItem(STORAGE_KEY_SMM_V3_ENABLED)
     queryClient.clear()
     useUIMediaFolderStore.setState({
       folders: [],
@@ -75,8 +72,7 @@ describe("useUnimportFolderMutation", () => {
     })
   })
 
-  it("posts each path and invalidates folders query when v3 is enabled", async () => {
-    localStorage.setItem(STORAGE_KEY_SMM_V3_ENABLED, "true")
+  it("posts each path and invalidates folders query", async () => {
     seedCaches(queryClient)
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 

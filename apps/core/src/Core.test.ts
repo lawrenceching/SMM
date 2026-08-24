@@ -137,7 +137,7 @@ describe("Core", () => {
     expect(job?.status).toBe("failed");
   });
 
-  it("skipInit writes the folder to UserConfig and does not persist metadata", async () => {
+  it("skipInit writes the folder to UserConfig and persists blank metadata", async () => {
     const fs = inMemoryFs();
     const core = new Core({
       fs,
@@ -150,10 +150,16 @@ describe("Core", () => {
     await waitForStatus(core, id, "succeeded");
 
     expect(core.getJob(id)?.status).toBe("succeeded");
+    expect(core.getJob(id)?.stage).toBe("metadata");
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toContain("/m/Deferred");
     expect(fs.listFiles).not.toHaveBeenCalled();
-    expect(await fs.exists(metadataCachePath("/data/smm", Path.posix("/m/Deferred")))).toBe(false);
+    expect(await fs.exists(metadataCachePath("/data/smm", Path.posix("/m/Deferred")))).toBe(true);
+    expect(await core.getMediaMetadata("/m/Deferred")).toEqual({
+      mediaFolderPath: "/m/Deferred",
+      type: "tvshow-folder",
+      mediaFiles: [],
+    });
   });
 
   it("getJob returns undefined for unknown id", () => {

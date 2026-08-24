@@ -67,6 +67,22 @@ describe('POST /api/scrape', () => {
     const importJson = (await imported.json()) as { data?: { id: string }; error?: string }
     expect(importJson.error).toBeUndefined()
 
+    const importJobId = importJson.data!.id
+    const deadline = Date.now() + 2000
+    let importStatus: string | undefined
+    while (Date.now() < deadline) {
+      const jobRes = await app.request('/api/get-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: importJobId }),
+      })
+      const jobJson = (await jobRes.json()) as { data?: { status: string } }
+      importStatus = jobJson.data?.status
+      if (importStatus === 'succeeded' || importStatus === 'failed') break
+      await new Promise((r) => setTimeout(r, 20))
+    }
+    expect(importStatus).toBe('succeeded')
+
     const posixPath = Path.posix(folderPath)
     const metadata: MediaMetadata = {
       type: 'tvshow-folder',

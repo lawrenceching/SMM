@@ -31,6 +31,17 @@ function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
   return type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder";
 }
 
+/** Blank metadata created at the pipeline metadata stage (before listFiles/recognize). */
+export function createBlankMediaMetadata(folderPath: string, type: FolderType): MediaMetadata {
+  const posixPath = Path.posix(folderPath);
+  return {
+    mediaFolderPath: posixPath,
+    type: mediaMetadataType(type),
+    files: [],
+    mediaFiles: [],
+  };
+}
+
 export class ImportFolderPipeline {
   constructor(private readonly options: ImportFolderPipelineOptions) {}
 
@@ -49,12 +60,7 @@ export class ImportFolderPipeline {
     cb.onStage?.("config", 10);
 
     logger.info({ folderPath: posixPath, type }, "importFolder: stage=metadata");
-    const mm: MediaMetadata = {
-      mediaFolderPath: posixPath,
-      type: mediaMetadataType(type),
-      files: [],
-      mediaFiles: [],
-    };
+    const mm = createBlankMediaMetadata(folderPath, type);
     stages.push("metadata");
     cb.onStage?.("metadata", 25);
 

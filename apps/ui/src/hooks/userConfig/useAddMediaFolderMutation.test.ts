@@ -9,7 +9,6 @@ import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
 import { foldersQueryKey } from "@/hooks/folders/foldersQueryKeys"
 import { useAddMediaFolderMutation } from "./useAddMediaFolderMutation"
 
-const STORAGE_KEY_SMM_V3_ENABLED = "smm.v3.enabled"
 const USER_DATA_DIR = "/tmp/smm-user-data"
 const NEW_FOLDER = "/media/new"
 
@@ -37,19 +36,16 @@ describe("useAddMediaFolderMutation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    localStorage.removeItem(STORAGE_KEY_SMM_V3_ENABLED)
     queryClient = new QueryClient({
       defaultOptions: { mutations: { retry: false } },
     })
   })
 
   afterEach(() => {
-    localStorage.removeItem(STORAGE_KEY_SMM_V3_ENABLED)
     queryClient.clear()
   })
 
-  it("invalidates folders query when a new folder is added and v3 is enabled", async () => {
-    localStorage.setItem(STORAGE_KEY_SMM_V3_ENABLED, "true")
+  it("invalidates folders query when a new folder is added", async () => {
     seedUserConfigCache(queryClient)
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
@@ -65,23 +61,7 @@ describe("useAddMediaFolderMutation", () => {
   })
 
   it("does not invalidate folders query when folder was already present", async () => {
-    localStorage.setItem(STORAGE_KEY_SMM_V3_ENABLED, "true")
     seedUserConfigCache(queryClient, [NEW_FOLDER])
-    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
-
-    const { result } = renderHook(() => useAddMediaFolderMutation(), {
-      wrapper: createWrapper(queryClient),
-    })
-
-    await act(async () => {
-      await result.current.mutateAsync({ traceId: "t1", folder: NEW_FOLDER })
-    })
-
-    expect(invalidateSpy).not.toHaveBeenCalled()
-  })
-
-  it("does not invalidate folders query when v3 is disabled", async () => {
-    seedUserConfigCache(queryClient)
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
 
     const { result } = renderHook(() => useAddMediaFolderMutation(), {

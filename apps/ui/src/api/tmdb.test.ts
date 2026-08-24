@@ -38,6 +38,7 @@ import {
   getTmdbLanguages,
 } from './tmdb'
 import { _resetInternalReverseProxyCacheForTesting } from './fetchByInternalReverseProxy'
+import * as localStoragesModule from '@/lib/localStorages'
 
 const REVERSE_PROXY_URL = 'http://127.0.0.1:30005'
 const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
@@ -478,6 +479,10 @@ describe('tmdb routing through reverse proxy', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
+  beforeEach(() => {
+    vi.spyOn(localStoragesModule, 'isSmmV3Enabled').mockReturnValue(false)
+  })
+
   it('searches via discovered reverse proxy when TMDB host is empty', async () => {
     mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
     const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
@@ -696,14 +701,6 @@ describe('getTmdbLanguages', () => {
 })
 
 describe('v3 Core Internal HTTP', () => {
-  beforeEach(() => {
-    localStorage.setItem('smm.v3.enabled', 'true')
-  })
-
-  afterEach(() => {
-    localStorage.removeItem('smm.v3.enabled')
-  })
-
   it('searchTmdb POSTs to /api/search-in-tmdb', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       new Response(

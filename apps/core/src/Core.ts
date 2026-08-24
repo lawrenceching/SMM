@@ -36,7 +36,7 @@ import {
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { TvdbClient } from "./clients/TvdbClient";
-import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
+import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
@@ -598,7 +598,9 @@ export class Core {
         ...config,
         folders: [...new Set([...config.folders, folderPath])],
       }));
-      this.jobs.update(job.id, { status: "succeeded", stage: "config", progress: 100 });
+      const blankMetadata = createBlankMediaMetadata(folderPath, job.type);
+      await this.setMetadata(blankMetadata);
+      this.jobs.update(job.id, { status: "succeeded", stage: "metadata", progress: 100 });
     } catch (error) {
       this.jobs.update(job.id, {
         status: "failed",
