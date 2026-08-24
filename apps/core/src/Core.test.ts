@@ -47,6 +47,18 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
   };
 }
 
+function jsonResponse(body: unknown): HttpResponse {
+  return {
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    headers: {},
+    text: () => Promise.resolve(JSON.stringify(body)),
+    json: <T>() => Promise.resolve(body as T),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+  };
+}
+
 /** Network that satisfies the empty-seed recognition path (returns no results). */
 function emptyNetwork(): NetworkPort {
   return {
@@ -55,14 +67,7 @@ function emptyNetwork(): NetworkPort {
         url.includes("/api/tmdb/") || url.includes("tmdb")
           ? { results: [], page: 1, total_pages: 1, total_results: 0 }
           : { status: "success", data: [] };
-      return {
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        headers: {},
-        text: () => Promise.resolve(JSON.stringify(body)),
-        json: <T>() => Promise.resolve(body as T),
-      };
+      return jsonResponse(body);
     }) as never,
   };
 }
@@ -1156,5 +1161,150 @@ describe("Core.searchInTmdb", () => {
       appDataDir: "/data/smm",
     });
     await expect(core.searchInTmdb("  ", { type: "movie" })).rejects.toThrow(/keyword/i);
+  });
+});
+
+function tvdbResponse(url: string): HttpResponse {
+  if (url.includes("/search")) {
+    const type = url.includes("type=series") ? "series" : "movie";
+    return jsonResponse({
+      status: "success",
+      data: type === "series"
+        ? [{ id: "series-1", objectID: "series-1", name: "My Show", tvdb_id: "1", type: "series" }]
+        : [{ id: "movie-2", objectID: "movie-2", name: "My Film", tvdb_id: "2", type: "movie" }],
+    });
+  }
+  if (url.includes("/series/1/translations/eng")) return jsonResponse({ status: "success", data: { name: "My Show" } });
+  if (url.includes("/series/1/extended")) {
+    return jsonResponse({ status: "success", data: { id: 1, name: "My Show", firstAired: "2020-01-01", seasons: [{ id: 11, number: 1, type: { name: "Aired Order" } }] } });
+  }
+  if (url.includes("/seasons/11/extended")) {
+    return jsonResponse({ status: "success", data: { id: 11, episodes: [{ id: 1, number: 1, seasonNumber: 1, name: "Pilot" }] } });
+  }
+  if (url.includes("/movies/2/translations/eng")) return jsonResponse({ status: "success", data: { name: "My Film" } });
+  if (url.includes("/movies/2/extended")) return jsonResponse({ status: "success", data: { id: 2, name: "My Film", first_release: { first: "2019-05-01" } } });
+  if (url.includes("/languages")) return jsonResponse({ status: "success", data: [{ id: "zho", name: "Chinese" }] });
+  throw new Error("unexpected url: " + url);
+}
+
+describe("Core.searchInTvdb", () => {
+  it("searches via NetworkPort with host, password and proxy", async () => {
+    const calls: Array<{ url: string; proxy?: string; auth?: string }> = [];
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        calls.push({ url, proxy: init?.proxy, auth: init?.headers?.Authorization });
+        return tvdbResponse(url);
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    const results = await core.searchInTvdb("keyword", {
+      type: "series",
+      host: "https://tvdb.example.com/v4",
+      password: "secret",
+      proxy: "socks5://127.0.0.1:1080",
+    });
+
+    expect(results[0]?.tvdb_id).toBe("1");
+    expect(calls[0]?.url).toContain("https://tvdb.example.com/v4/search");
+    expect(calls[0]?.url).toContain("query=keyword");
+    expect(calls[0]?.url).toContain("language=eng");
+    expect(calls[0]?.proxy).toBe("socks5://127.0.0.1:1080");
+    expect(calls[0]?.auth).toBe("Bearer secret");
+  });
+
+  it("maps explicit ISO 639-3 language through", async () => {
+    const calls: string[] = [];
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => { calls.push(url); return tvdbResponse(url); } },
+      appDataDir: "/data/smm",
+    });
+    await core.searchInTvdb("keyword", { type: "movie", language: "zho" });
+    expect(calls[0]).toContain("language=zho");
+  });
+
+  it("rejects language not in the static TVDB supported list", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTvdb("keyword", { type: "series", language: "zh-CN" })).rejects.toThrow(/ISO 639-3/);
+    await expect(core.searchInTvdb("keyword", { type: "series", language: "zzz" })).rejects.toThrow(/ISO 639-3/);
+  });
+
+  it("rejects empty keyword", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTvdb("  ", { type: "movie" })).rejects.toThrow(/keyword/i);
+  });
+
+  it("resolves preferMediaLanguage zh-CN to zho when language omitted", async () => {
+    const calls: string[] = [];
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], preferMediaLanguage: "zh-CN", tmdb: {}, tvdb: {} }),
+      }),
+      network: { fetch: async (url) => { calls.push(url); return tvdbResponse(url); } },
+      appDataDir: "/data/smm",
+    });
+    await core.searchInTvdb("keyword", { type: "series" });
+    expect(calls[0]).toContain("language=zho");
+  });
+});
+
+describe("Core.getTvShowInTvdb / getMovieInTvdb / getTvdbLanguages", () => {
+  it("getTvShowInTvdb builds TvShowMediaMetadata", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const tvShow = await core.getTvShowInTvdb(1, { language: "eng" });
+    expect(tvShow).toEqual({
+      id: "1",
+      name: "My Show",
+      database: "TVDB",
+      airDate: "2020-01-01",
+      seasons: [{ season: 1, name: "", episodes: [{ season: 1, episode: 1, name: "Pilot" }] }],
+    });
+  });
+
+  it("getMovieInTvdb builds MovieMediaMetadata", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const movie = await core.getMovieInTvdb(2, { language: "eng" });
+    expect(movie).toEqual({ id: "2", name: "My Film", airDate: "2019-05-01", database: "TVDB" });
+  });
+
+  it("getTvdbLanguages returns language records", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const langs = await core.getTvdbLanguages();
+    expect(langs[0]?.id).toBe("zho");
+  });
+
+  it("validates id as a positive integer", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvShowInTvdb(0)).rejects.toThrow(/positive integer/);
+    await expect(core.getMovieInTvdb(-1)).rejects.toThrow(/positive integer/);
   });
 });

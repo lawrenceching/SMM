@@ -3,12 +3,21 @@ import type {
   AppConfig,
   FolderType,
   MediaMetadata,
+  MovieMediaMetadata,
   TmdbMovieDetails,
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
+  TvShowMediaMetadata,
   UserConfig as UserConfigData,
 } from "@smm/core";
-import { detectOsLocale, parseTmdbSearchLanguage, resolveMediaLanguage } from "@core/locale";
+import {
+  detectOsLocale,
+  parseTmdbSearchLanguage,
+  resolveMediaLanguage,
+  resolveTvdbSearchLanguage,
+} from "@core/locale";
+import { parseTvdbSearchLanguage } from "@core/tvdbSupportedLanguages";
+import type { TVDBv4LanguageRecord, TVDBv4SearchResult } from "@smm/tvdb4";
 import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { FsPort } from "./ports/FsPort";
@@ -25,6 +34,7 @@ import {
 } from "./pipeline/mcpServer";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
+import { TvdbClient } from "./clients/TvdbClient";
 import { ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { metadataCachePath } from "./pipeline/paths";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
@@ -63,6 +73,21 @@ export interface TmdbRequestOptions {
 
 export interface SearchInTmdbOptions extends TmdbRequestOptions {
   type: "tv" | "movie";
+}
+
+export interface TvdbRequestOptions {
+  /** TVDB language (CLI `--lang`). ISO 639-3 code, validated offline against the static list. */
+  language?: string;
+  /** Override userConfig.tvdb.host */
+  host?: string;
+  /** Override userConfig.tvdb.apiKey (CLI `--password`) */
+  password?: string;
+  /** Override userConfig.tvdb.httpProxy (CLI `--proxy`) */
+  proxy?: string;
+}
+
+export interface SearchInTvdbOptions extends TvdbRequestOptions {
+  type: "series" | "movie";
 }
 
 export type {
@@ -361,6 +386,62 @@ export class Core {
     return client.getTvShowById(id, language);
   }
 
+  /**
+   * Search TVDB via {@link NetworkPort} (CLI uses NodejsNetworkPort).
+   * Explicit `language` is ISO 639-3, validated offline against the static
+   * supported-languages snapshot. When omitted it resolves preferMediaLanguage → OS → eng.
+   */
+  async searchInTvdb(keyword: string, options: SearchInTvdbOptions): Promise<TVDBv4SearchResult[]> {
+    const trimmed = keyword.trim();
+    if (!trimmed) {
+      throw new Error("keyword is required");
+    }
+    const { client, language } = await this.createTvdbClient(options);
+    const results = options.type === "series"
+      ? await client.searchSeries(trimmed, language)
+      : await client.searchMovie(trimmed, language);
+    if (!results) {
+      throw new Error("TVDB search failed");
+    }
+    return results;
+  }
+
+  /** Fetch TVDB series metadata (seasons + episodes + translations) by id via {@link NetworkPort}. */
+  async getTvShowInTvdb(id: number, options: TvdbRequestOptions = {}): Promise<TvShowMediaMetadata> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTvdbClient(options);
+    const metadata = await client.getTvShowMediaMetadata(id, language);
+    if (!metadata) {
+      throw new Error(`Failed to get TVDB series ${id}`);
+    }
+    return metadata;
+  }
+
+  /** Fetch TVDB movie metadata by id via {@link NetworkPort}. */
+  async getMovieInTvdb(id: number, options: TvdbRequestOptions = {}): Promise<MovieMediaMetadata> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTvdbClient(options);
+    const metadata = await client.getMovieMediaMetadata(id, language);
+    if (!metadata) {
+      throw new Error(`Failed to get TVDB movie ${id}`);
+    }
+    return metadata;
+  }
+
+  /** Fetch the TVDB supported language list via {@link NetworkPort}. */
+  async getTvdbLanguages(options: TvdbRequestOptions = {}): Promise<TVDBv4LanguageRecord[]> {
+    const { client } = await this.createTvdbClient(options);
+    const languages = await client.getLanguages();
+    if (!languages) {
+      throw new Error("Failed to get TVDB languages");
+    }
+    return languages;
+  }
+
   private async createTmdbClient(
     options: TmdbRequestOptions,
   ): Promise<{ client: TmdbClient; language: string }> {
@@ -377,6 +458,32 @@ export class Core {
     const httpProxy = options.proxy?.trim() || config.tmdb?.httpProxy;
 
     const client = new TmdbClient(this.network, {
+      host,
+      apiKey,
+      httpProxy,
+      reverseProxyUrl: null,
+      discover: this.discover,
+    });
+
+    return { client, language };
+  }
+
+  private async createTvdbClient(
+    options: TvdbRequestOptions,
+  ): Promise<{ client: TvdbClient; language: string }> {
+    const config = await this.userConfig.read();
+    const language = options.language?.trim()
+      ? parseTvdbSearchLanguage(options.language)
+      : resolveTvdbSearchLanguage({
+          preferMediaLanguage: config.preferMediaLanguage,
+          configured: config.applicationLanguage,
+          osLocale: detectOsLocale(),
+        });
+    const host = options.host?.trim() || config.tvdb?.host;
+    const apiKey = options.password?.trim() || config.tvdb?.apiKey;
+    const httpProxy = options.proxy?.trim() || config.tvdb?.httpProxy;
+
+    const client = new TvdbClient(this.network, {
       host,
       apiKey,
       httpProxy,
