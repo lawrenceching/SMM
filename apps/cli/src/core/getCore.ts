@@ -5,7 +5,9 @@ import {
   StaticDiscoverAdapter,
   type LoggerPort,
 } from 'core-app'
-import { getUserDataDir } from '@/utils/config'
+import { detectOsLocale } from '@core/locale'
+import { getUserDataDir, getAppDataDir, getTmpDir, getLogDir } from '@/utils/config'
+import { APP_VERSION } from '@/version'
 import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
 
@@ -25,6 +27,12 @@ export function getCore(options?: GetCoreOptions): Core {
       logger: options?.logger ?? new NoopLoggerAdapter(),
       appDataDir: userDataDir,
       userDataDir,
+      version: APP_VERSION,
+      reportedAppDataDir: getAppDataDir(),
+      tmpDir: getTmpDir(),
+      logDir: getLogDir(),
+      platform: process.platform,
+      osLocale: detectOsLocale(),
       discover: new StaticDiscoverAdapter(),
       mcpServer: getBunMcpServerPort(),
     })

@@ -67,4 +67,4 @@ export type {
   ScrapeJobTask,
   ScrapeTaskRuntimeStatus,
 } from "./jobs/types";
-export type { FolderType } from "@smm/core";
+export type { FolderType, HelloCliBody } from "@smm/core";

@@ -223,7 +223,7 @@ export class Path {
     }
 
     /**
-     * Bind path format to the CLI server (from `POST /api/hello`).
+     * Bind path format to the CLI server (from `GET /api/hello`).
      * Call after bootstrap in browser UI; no-op in Node/Bun CLI where `process.platform` applies.
      */
     static setServerPlatform(platform: string): void {

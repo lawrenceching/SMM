@@ -30,6 +30,12 @@ import type { TestbedOs } from './ui-page-url'
 import { isOhosE2e, testbedOs as defaultTestbedOs } from './e2e-platform'
 import { browser } from '@wdio/globals'
 import { localStorageEntriesAfterClear } from './e2e-smm-v3'
+import {
+    applyResetUserConfig as applyResetUserConfigHost,
+    updateUserConfig as updateUserConfigHost,
+    type ResetUserConfigOption,
+    type UserConfigUpdater,
+} from './testbed-core'
 
 export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
@@ -79,11 +85,7 @@ export interface TestBedBeforeOptions {
     userConfig?: Partial<UserConfig>
 }
 
-export type UserConfigUpdater = (
-    userConfig: UserConfig
-) => UserConfig | void | Promise<UserConfig | void>
-
-export type ResetUserConfigOption = boolean | UserConfigUpdater
+export type { ResetUserConfigOption, UserConfigUpdater } from './testbed-core'
 
 /**
  * Flip to `false` to roll back all browser-protocol setup/cleanup paths to host Node fs.
@@ -91,6 +93,11 @@ export type ResetUserConfigOption = boolean | UserConfigUpdater
 const TESTBED_V2: boolean = true
 
 async function applyResetUserConfig(option: ResetUserConfigOption): Promise<void> {
+    if (!TESTBED_V2) {
+        await applyResetUserConfigHost(option)
+        return
+    }
+
     if (option === false) {
         return
     }
@@ -544,19 +551,7 @@ export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<voi
         return
     }
 
-    const userConfigPath = await getUserConfigPathV1()
-    if (!fs.existsSync(userConfigPath)) {
-        throw new Error(`updateUserConfig: user config not found at ${userConfigPath}`)
-    }
-
-    const raw = fs.readFileSync(userConfigPath, 'utf-8')
-    const current = JSON.parse(raw) as UserConfig
-    const next = await Promise.resolve(updateFn(current))
-    const toWrite = next ?? current
-
-    fs.writeFileSync(userConfigPath, JSON.stringify(toWrite, null, 2), 'utf-8')
-    console.log(`Updated user config at: ${userConfigPath}`)
-    console.log(`[DIAG] updateUserConfig: wrote folders=${JSON.stringify(toWrite.folders)} to ${userConfigPath}`)
+    await updateUserConfigHost(updateFn)
 }
 
 export async function importFolderWithMediaMetadata(
@@ -676,7 +671,7 @@ async function isReverseProxyAccessibleViaBrowser(): Promise<boolean> {
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`
             }
-            const helloRes = await fetch('/api/hello', { method: 'POST', headers })
+            const helloRes = await fetch('/api/hello', { method: 'GET', headers })
             const helloBody = await helloRes.json() as { reverseProxyUrl?: string | null }
             const proxyUrl = helloBody.reverseProxyUrl
             if (!proxyUrl) {

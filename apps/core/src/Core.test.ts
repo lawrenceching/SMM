@@ -193,6 +193,43 @@ describe("getAppConfig", () => {
   });
 });
 
+describe("hello", () => {
+  it("returns injected bootstrap fields and uptime >= 0", () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+      userDataDir: "/data/ud",
+      reportedAppDataDir: "/data/ad",
+      version: "1.3.8",
+      tmpDir: "/tmp/smm",
+      logDir: "/data/ad/logs",
+      platform: "linux",
+      osLocale: "zh-CN",
+    });
+    const result = core.hello();
+    expect(result.uptime).toBeGreaterThanOrEqual(0);
+    expect(result).toMatchObject({
+      version: "1.3.8",
+      platform: "linux",
+      userDataDir: "/data/ud",
+      appDataDir: "/data/ad",
+      tmpDir: "/tmp/smm",
+      logDir: "/data/ad/logs",
+      osLocale: "zh-CN",
+    });
+  });
+
+  it("falls back appDataDir to appDataDir and empty tmp/log when omitted", () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    const result = core.hello();
+    expect(result.appDataDir).toBe("/data/smm");
+    expect(result.tmpDir).toBe("");
+    expect(result.logDir).toBe("");
+    expect(result.platform).toBe(process.platform);
+  });
+});
+
 describe("getUserConfig", () => {
   it("returns the default config when no smm.json exists", async () => {
     const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });

@@ -3,23 +3,25 @@ import { Hono } from 'hono';
 import { registerExecuteRoutes } from './execute';
 import { readJson } from '../test/readJson';
 
-vi.mock('@smm/core-routes', () => ({
-  doHello: vi.fn((options: Record<string, unknown>) => ({
-    uptime: 1.5,
-    ...options,
-  })),
+vi.mock('../cli/helloHttp', () => ({
+  buildHelloHttpResponse: vi.fn(
+    (reverseProxyUrl: string | null, coreRoutesPort: number) => ({
+      uptime: 1.5,
+      version: '1.2.3-test',
+      platform: 'win32',
+      userDataDir: '/tmp/userData',
+      appDataDir: '/tmp/appData',
+      logDir: '/tmp/logs',
+      tmpDir: '/tmp',
+      osLocale: 'en-US',
+      reverseProxyUrl,
+      coreRoutesPort,
+    }),
+  ),
 }));
 
-vi.mock('../../tasks/HelloTask', () => ({
-  buildHelloOptions: vi.fn((reverseProxyUrl: string | null) => ({
-    version: '1.2.3-test',
-    userDataDir: '/tmp/userData',
-    appDataDir: '/tmp/appData',
-    logDir: '/tmp/logs',
-    tmpDir: '/tmp',
-    reverseProxyUrl,
-    osLocale: 'en-US',
-  })),
+vi.mock('@/coreRoutesPort', () => ({
+  resolveCoreRoutesPort: vi.fn(() => 3001),
 }));
 
 vi.mock('../../tasks/GetSelectedMediaMetadataTask', () => ({
@@ -41,10 +43,10 @@ describe('/api/hello — bootstrap handshake', () => {
     vi.clearAllMocks();
   });
 
-  it('returns the HelloResponseBody with the current proxyManager.url', async () => {
+  it('returns the HelloHttpResponseBody with the current proxyManager.url', async () => {
     const app = new Hono();
     registerExecuteRoutes(app, makeProxyManager('http://127.0.0.1:30001'));
-    const res = await app.request('/api/hello', { method: 'POST' });
+    const res = await app.request('/api/hello', { method: 'GET' });
     expect(res.status).toBe(200);
     const body = await readJson<Record<string, unknown>>(res);
     expect(body).toMatchObject({
@@ -55,6 +57,7 @@ describe('/api/hello — bootstrap handshake', () => {
       logDir: '/tmp/logs',
       tmpDir: '/tmp',
       reverseProxyUrl: 'http://127.0.0.1:30001',
+      coreRoutesPort: 3001,
       osLocale: 'en-US',
     });
   });
@@ -62,23 +65,17 @@ describe('/api/hello — bootstrap handshake', () => {
   it('forwards null reverseProxyUrl when the proxy is not yet available', async () => {
     const app = new Hono();
     registerExecuteRoutes(app, makeProxyManager(null));
-    const res = await app.request('/api/hello', { method: 'POST' });
+    const res = await app.request('/api/hello', { method: 'GET' });
     expect(res.status).toBe(200);
     const body = await readJson<Record<string, unknown>>(res);
     expect(body.reverseProxyUrl).toBeNull();
   });
 
-  it('ignores any request body', async () => {
+  it('returns 404 for POST (method not allowed via notFound)', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager('http://127.0.0.1:30001'));
-    const res = await app.request('/api/hello', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ignored: true }),
-    });
-    expect(res.status).toBe(200);
-    const body = await readJson<Record<string, unknown>>(res);
-    expect(body.version).toBe('1.2.3-test');
+    registerExecuteRoutes(app, makeProxyManager(null));
+    const res = await app.request('/api/hello', { method: 'POST' });
+    expect(res.status).toBe(404);
   });
 });
 

@@ -2,6 +2,7 @@ import { Path } from "@core/path";
 import type {
   AppConfig,
   FolderType,
+  HelloCliBody,
   MediaMetadata,
   MovieMediaMetadata,
   TmdbMovieDetails,
@@ -110,6 +111,16 @@ export interface CoreOptions {
   reverseProxyUrl?: string | null;
   /** userDataDir reported by getAppConfig(); falls back to appDataDir. */
   userDataDir?: string;
+  /** Hello appDataDir; may differ from smm.json root on Linux. Falls back to appDataDir. */
+  reportedAppDataDir?: string;
+  /** Tmp dir for hello bootstrap. */
+  tmpDir?: string;
+  /** Log dir for hello bootstrap. */
+  logDir?: string;
+  /** CLI process platform for hello bootstrap. Falls back to process.platform. */
+  platform?: string;
+  /** OS locale for hello bootstrap. Falls back to detectOsLocale(). */
+  osLocale?: string;
   /** Discover hosts for TMDB/TVDB failover. */
   discover?: DiscoverPort;
   /** MCP HTTP runtime (injected by CLI / OHOS host). */
@@ -138,6 +149,11 @@ export class Core {
   private readonly version: string;
   private readonly reverseProxyUrl: string | null;
   private readonly userDataDir: string;
+  private readonly reportedAppDataDir: string | undefined;
+  private readonly tmpDir: string | undefined;
+  private readonly logDir: string | undefined;
+  private readonly platform: string | undefined;
+  private readonly osLocale: string | undefined;
   private readonly userConfig: UserConfig;
   private readonly discover?: DiscoverPort;
   private readonly mcpServer?: McpServerPort;
@@ -150,6 +166,11 @@ export class Core {
     this.version = options.version ?? "";
     this.reverseProxyUrl = options.reverseProxyUrl ?? null;
     this.userDataDir = options.userDataDir ?? options.appDataDir;
+    this.reportedAppDataDir = options.reportedAppDataDir;
+    this.tmpDir = options.tmpDir;
+    this.logDir = options.logDir;
+    this.platform = options.platform;
+    this.osLocale = options.osLocale;
     this.userConfig = new UserConfig(this.fs, this.appDataDir);
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
@@ -225,6 +246,20 @@ export class Core {
       version: this.version,
       userDataDir: this.userDataDir,
       reverseProxyUrl: this.reverseProxyUrl,
+    };
+  }
+
+  /** Bootstrap info for CLI and HTTP adapters; never touches fs. */
+  hello(): HelloCliBody {
+    return {
+      uptime: process.uptime(),
+      version: this.version,
+      platform: this.platform ?? process.platform,
+      userDataDir: this.userDataDir,
+      appDataDir: this.reportedAppDataDir ?? this.appDataDir,
+      tmpDir: this.tmpDir ?? "",
+      logDir: this.logDir ?? "",
+      osLocale: this.osLocale ?? detectOsLocale(),
     };
   }
 

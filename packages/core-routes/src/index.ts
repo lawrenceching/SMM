@@ -149,6 +149,7 @@ export {
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
+  handleHelloGet,
   handleHelloPost,
   handleIsFolderAvailablePost,
   handleGetEpisodesPost,

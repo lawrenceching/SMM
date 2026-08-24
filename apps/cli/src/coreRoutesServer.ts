@@ -6,7 +6,7 @@ import {
 } from "@smm/core-routes";
 import { buildAllowlist } from "@/utils/buildAllowlist";
 import { getAppDataDir } from "@/utils/config";
-import { buildHelloOptions } from "../tasks/HelloTask";
+import { buildHelloHttpResponse } from "@/cli/helloHttp";
 import { logger } from "../lib/logger";
 import { broadcast } from "@/utils/socketIO";
 import { resolveCoreRoutesPort } from "@/coreRoutesPort";
@@ -26,13 +26,12 @@ export async function startCoreRoutesServer(
   const port = resolveCoreRoutesPort();
   const allowlist = await buildAllowlist();
   const appDataDir = getAppDataDir();
-  const helloOptions = { ...buildHelloOptions(null), coreRoutesPort: port };
   const handler = createCoreRoutesRequestHandler(
     {
       allowlist,
       resolveAllowlist: buildAllowlist,
       logger: createCoreRoutesLogger(),
-      hello: helloOptions,
+      resolveHello: () => buildHelloHttpResponse(null, port),
       appDataDir,
       broadcast: (message) => broadcast(message),
       auth,

@@ -159,7 +159,7 @@ export interface UserConfig {
  * Request body for POST /api/execute endpoint.
  *
  * Note: the bootstrap application handshake is exposed separately at
- * POST /api/hello (no request body required, returns `HelloResponseBody`).
+ * GET /api/hello (returns `HelloHttpResponseBody`).
  */
 export interface ApiExecutePostRequestBody {
   name: string;
@@ -999,52 +999,39 @@ export interface ScrapeResponseBody {
   error?: string;
 }
 
-export interface HelloResponseBody {
-  /**
-   * application uptime in seconds
-   */
+/** Shared bootstrap payload — CLI and HTTP base. */
+export interface HelloCliBody {
+  /** Application uptime in seconds. */
   uptime: number;
   version: string;
-
   /**
    * CLI process platform (`process.platform`), e.g. `win32`, `linux`, `darwin`.
    * The UI uses this (not the browser OS) when converting paths to the server's platform format.
    */
   platform: string;
-
-  /**
-   * path in platform-specific format
-   */
+  /** Path in platform-specific format. */
   userDataDir: string;
-
-  /**
-   * path in platform-specific format
-   */
+  /** Path in platform-specific format. */
   appDataDir: string;
-
-  /**
-   * path in platform-specific format — cached / transient files (e.g. screenshots)
-   */
+  /** Path in platform-specific format — cached / transient files (e.g. screenshots). */
   tmpDir: string;
-
-  /**
-   * path in platform-specific format
-   */
+  /** Path in platform-specific format. */
   logDir: string;
+  /**
+   * OS locale detected by the CLI process (e.g. en-US, zh-CN).
+   * Used by the UI when applicationLanguage is not explicitly configured.
+   */
+  osLocale: string;
+}
 
+/** HTTP-only extensions for browser / embedded UI. */
+export interface HelloHttpResponseBody extends HelloCliBody {
   /**
    * The base URL of the CLI reverse proxy (e.g. http://127.0.0.1:30001).
    * Used by the UI to route external metadata API requests through a CORS-safe local proxy.
    * This field is null when the reverse proxy fails to start.
    */
   reverseProxyUrl: string | null;
-
-  /**
-   * OS locale detected by the CLI process (e.g. en-US, zh-CN).
-   * Used by the UI when applicationLanguage is not explicitly configured.
-   */
-  osLocale: string;
-
   /**
    * Port that the core-routes Node `http` server is listening on.
    * The UI uses this to call endpoints that live on core-routes
@@ -1053,12 +1040,12 @@ export interface HelloResponseBody {
    * Node server.
    */
   coreRoutesPort: number;
-
-  /**
-   * error message when the hello task fails (e.g. validation, server error)
-   */
+  /** Error message when the hello task fails (e.g. validation, server error). */
   error?: string;
 }
+
+/** @deprecated Use HelloHttpResponseBody */
+export type HelloResponseBody = HelloHttpResponseBody;
 
 /**
  * Standard result type for rename validation operations.

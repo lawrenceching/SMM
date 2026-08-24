@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   const cliReadyUrl = `http://localhost:${cliPort}/api/hello`;
   console.log(`[wait-for-e2e-ready] waiting for CLI (${cliReadyUrl})`);
   await waitForHttp(cliReadyUrl, {
-    method: 'POST',
+    method: 'GET',
     headers: { Authorization: `Bearer ${CLI_AUTH_TOKEN}` },
   });
 

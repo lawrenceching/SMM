@@ -1,14 +1,14 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { doHello } from '@smm/core-routes';
-import { buildHelloOptions } from '../../tasks/HelloTask';
+import { buildHelloHttpResponse } from '../cli/helloHttp';
+import { resolveCoreRoutesPort } from '@/coreRoutesPort';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
 import type { ReverseProxyManager } from '@smm/core-routes';
 
 /**
  * Zod schema for /api/execute request body validation.
  *
- * Note: the bootstrap handshake ("hello") is exposed at POST /api/hello,
+ * Note: the bootstrap handshake ("hello") is exposed at GET /api/hello,
  * not through this /api/execute orchestration endpoint.
  */
 const executeRequestSchema = z.object({
@@ -21,20 +21,16 @@ const executeRequestSchema = z.object({
 /**
  * Register /api/hello and /api/execute routes on the given Hono app.
  *
- * POST /api/hello — Application bootstrap handshake. Returns environment
- *   paths, version, reverse-proxy URL and OS locale. Body is ignored; an
- *   empty body is acceptable.
+ * GET /api/hello — Application bootstrap handshake. Returns environment
+ *   paths, version, reverse-proxy URL and OS locale.
  *
  * POST /api/execute — Special orchestration route for multiple user tasks.
  *   Currently dispatches `name: "GetSelectedMediaMetadata"`. The previous
  *   `name: "hello"` task has been moved to /api/hello.
  */
 export function registerExecuteRoutes(app: Hono, proxyManager: ReverseProxyManager): void {
-  // POST /api/hello - Application bootstrap handshake.
-  // Returns environment paths, version, reverse-proxy URL and OS locale.
-  // Body is ignored; an empty body is acceptable.
-  app.post('/api/hello', async (c) => {
-    const result = doHello(buildHelloOptions(proxyManager.url));
+  app.get('/api/hello', async (c) => {
+    const result = buildHelloHttpResponse(proxyManager.url, resolveCoreRoutesPort());
     return c.json(result);
   });
 

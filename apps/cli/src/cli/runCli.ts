@@ -4,6 +4,7 @@ import type { FolderType, RenameRuleName } from 'core-app'
 import type { MediaMetadata } from '@smm/core'
 import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
+import { formatHelloLines } from './helloFormat'
 import { waitUntilImportSettled } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
@@ -69,6 +70,27 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
 
   const program = new Command()
   program.name('smm').exitOverride()
+
+  program
+    .command('hello')
+    .description('Print application bootstrap info')
+    .option('-f, --format <fmt>', 'Output format (json)')
+    .action(async (opts: { format?: string }) => {
+      try {
+        const body = getCore().hello()
+        if (opts.format === 'json') {
+          printJson(body)
+          return
+        }
+        for (const line of formatHelloLines(body)) {
+          console.log(line)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
 
   program
     .command('list')

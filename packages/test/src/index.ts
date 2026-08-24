@@ -251,7 +251,7 @@ export async function hello(): Promise<HelloResponse> {
         headers['Authorization'] = `Bearer ${token}`
     }
     const response = await fetch('http://localhost:30000/api/hello', {
-        method: 'POST',
+        method: 'GET',
         headers,
     })
     const data = await response.json() as HelloResponse

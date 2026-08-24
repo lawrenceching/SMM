@@ -145,7 +145,7 @@ describe("handleCoreRoutesRequest", () => {
   });
 
   it("returns HelloResponseBody when config.hello is provided", async () => {
-    const { status, body } = await requestCoreRoute("POST", "/api/hello", {
+    const { status, body } = await requestCoreRoute("GET", "/api/hello", {
       allowlist: [],
       hello: {
         version: "1.3.8",
@@ -167,7 +167,7 @@ describe("handleCoreRoutesRequest", () => {
   });
 
   it("sets Cache-Control: no-store on JSON responses so the browser never caches them", async () => {
-    const { status, headers } = await requestCoreRoute("POST", "/api/hello", {
+    const { status, headers } = await requestCoreRoute("GET", "/api/hello", {
       allowlist: [],
       hello: {
         version: "1.3.8",
@@ -186,7 +186,7 @@ describe("handleCoreRoutesRequest", () => {
   });
 
   it('returns { error: "hello not configured" } when config.hello is undefined', async () => {
-    const { status, body } = await requestCoreRoute("POST", "/api/hello", { allowlist: [] });
+    const { status, body } = await requestCoreRoute("GET", "/api/hello", { allowlist: [] });
 
     expect(status).toBe(200);
     expect(body.error).toBe("hello not configured");

@@ -4,7 +4,7 @@ import { with401Suppressed } from '@/lib/authSession';
 import { syncPathServerPlatformFromHello } from '@/lib/syncPathServerPlatform';
 
 /**
- * Validates an auth token by calling POST /api/hello with an explicit Bearer header.
+ * Validates an auth token by calling GET /api/hello with an explicit Bearer header.
  * Does not persist the token — callers should use saveAuthToken on success.
  */
 export async function verifyHelloWithToken(token: string): Promise<HelloResponseBody> {
@@ -15,7 +15,7 @@ export async function verifyHelloWithToken(token: string): Promise<HelloResponse
 
   return with401Suppressed(async () => {
     const resp = await fetch('/api/hello', {
-      method: 'POST',
+      method: 'GET',
       headers: {
         Authorization: buildAuthorizationHeader(trimmed),
       },

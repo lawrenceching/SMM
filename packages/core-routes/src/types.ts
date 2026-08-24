@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FetchLike } from "./fetchInput.ts";
+import type { HelloHttpResponseBody } from "@smm/core/types";
 import type { HelloOptions } from "./hello.ts";
 import type { ChatConfig } from "./chatTypes.ts";
 import type { McpLifecycleManager } from "./mcp/lifecycleTypes.ts";
@@ -29,8 +30,10 @@ export interface CoreRoutesConfig {
    */
   resolveAllowlist?: () => Promise<string[]> | string[];
   logger?: CoreRoutesLogger;
-  /** When set, POST /api/hello returns bootstrap handshake data via doHello. */
+  /** When set, GET /api/hello returns bootstrap handshake data via doHello. */
   hello?: HelloOptions;
+  /** When set, GET /api/hello calls this instead of doHello(config.hello). */
+  resolveHello?: () => HelloHttpResponseBody;
   /**
    * POSIX or platform-specific app-data directory where media metadata
    * cache files live (e.g. `{appDataDir}/metadata/{sanitized-folder}.json`).
