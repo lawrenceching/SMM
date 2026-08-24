@@ -24,6 +24,12 @@ export function handleChatRequest(app: Hono, chatConfig: ChatConfig) {
           getMovieInTmdb: (id, options) => getCore().getMovieInTmdb(id, options),
           getTvShowInTmdb: (id, options) => getCore().getTvShowInTmdb(id, options),
         },
+        tvdb: {
+          searchInTvdb: (keyword, options) => getCore().searchInTvdb(keyword, options),
+          getMovieInTvdb: (id, options) => getCore().getMovieInTvdb(id, options),
+          getTvShowInTvdb: (id, options) => getCore().getTvShowInTvdb(id, options),
+          getTvdbLanguages: (options) => getCore().getTvdbLanguages(options),
+        },
       })
       return response
     } catch (error) {
