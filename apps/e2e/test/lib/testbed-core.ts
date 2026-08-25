@@ -1,8 +1,9 @@
 /**
- * Host-filesystem testbed setup/cleanup shared by wdio and CLI e2e tests.
+ * Host-filesystem testbed setup/cleanup for Web UI e2e (wdio) host fallback.
  *
- * CLI e2e: pass `binary` and paths are resolved via `smm hello -f json` (no HTTP server).
- * Wdio host fallback: omit `binary` and paths come from `GET /api/hello` via `@smm/test`.
+ * Resolves data dirs via `GET /api/hello` (`@smm/test` hello).
+ * CLI e2e must not import this path for hello — see `apps/e2e/cli/base.ts`,
+ * which injects `smm hello -f json` via {@link HelloPathsResolver}.
  */
 import * as fs from 'node:fs'
 import * as path from 'node:path'
@@ -14,7 +15,6 @@ import {
     removeTestMediaTmpDir as removeTestMediaTmpDirV1,
     resetUserConfig as resetUserConfigV1,
 } from '@smm/test'
-import { runCliHello } from './cli-hello'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -27,9 +27,17 @@ export type UserConfigUpdater = (
 
 export type ResetUserConfigOption = boolean | UserConfigUpdater
 
+export type HelloPaths = {
+    userDataDir: string
+    appDataDir: string
+}
+
+/** Optional override; default uses `GET /api/hello`. CLI supplies `smm hello`. */
+export type HelloPathsResolver = () => Promise<HelloPaths>
+
 export interface TestBedCoreCleanupOptions {
-    /** Path to the `smm` CLI executable. When set, `smm hello -f json` resolves data dirs. */
-    binary?: string
+    /** When set, used instead of `GET /api/hello` (CLI e2e). */
+    resolveHelloPaths?: HelloPathsResolver
     removeMetadataDir?: boolean
     removePlansDir?: boolean
     removeMediaFolders?: boolean
@@ -40,26 +48,22 @@ export interface TestBedCoreSetupOptions extends TestBedCoreCleanupOptions {
     resetUserConfig: ResetUserConfigOption
 }
 
-async function resolveHelloPaths(binary?: string): Promise<{
-    userDataDir: string
-    appDataDir: string
-}> {
-    if (binary) {
-        const body = await runCliHello(binary)
-        return { userDataDir: body.userDataDir, appDataDir: body.appDataDir }
-    }
-
+async function defaultHelloPaths(): Promise<HelloPaths> {
     const data = await helloHttp()
     return { userDataDir: data.userDataDir, appDataDir: data.appDataDir }
 }
 
-async function getUserConfigPath(binary?: string): Promise<string> {
-    const { userDataDir } = await resolveHelloPaths(binary)
+function helloPathsOf(options?: { resolveHelloPaths?: HelloPathsResolver }): HelloPathsResolver {
+    return options?.resolveHelloPaths ?? defaultHelloPaths
+}
+
+async function getUserConfigPath(resolveHelloPaths: HelloPathsResolver): Promise<string> {
+    const { userDataDir } = await resolveHelloPaths()
     return path.join(userDataDir, 'smm.json')
 }
 
-async function removeMetadataDir(binary?: string): Promise<string | null> {
-    const { appDataDir } = await resolveHelloPaths(binary)
+async function removeMetadataDir(resolveHelloPaths: HelloPathsResolver): Promise<string | null> {
+    const { appDataDir } = await resolveHelloPaths()
     const metadataDir = path.join(appDataDir, 'metadata')
     if (!fs.existsSync(metadataDir)) {
         return null
@@ -69,8 +73,8 @@ async function removeMetadataDir(binary?: string): Promise<string | null> {
     return metadataDir
 }
 
-async function removePlansDir(binary?: string): Promise<string | null> {
-    const { appDataDir } = await resolveHelloPaths(binary)
+async function removePlansDir(resolveHelloPaths: HelloPathsResolver): Promise<string | null> {
+    const { appDataDir } = await resolveHelloPaths()
     const plansDir = path.join(appDataDir, 'plans')
     if (!fs.existsSync(plansDir)) {
         return null
@@ -82,9 +86,10 @@ async function removePlansDir(binary?: string): Promise<string | null> {
 
 export async function updateUserConfig(
     updateFn: UserConfigUpdater,
-    options?: { binary?: string },
+    options?: { resolveHelloPaths?: HelloPathsResolver },
 ): Promise<void> {
-    const userConfigPath = await getUserConfigPath(options?.binary)
+    const resolveHelloPaths = helloPathsOf(options)
+    const userConfigPath = await getUserConfigPath(resolveHelloPaths)
     if (!fs.existsSync(userConfigPath)) {
         throw new Error(`updateUserConfig: user config not found at ${userConfigPath}`)
     }
@@ -100,13 +105,14 @@ export async function updateUserConfig(
 
 export async function applyResetUserConfig(
     option: ResetUserConfigOption,
-    options?: { binary?: string },
+    options?: { resolveHelloPaths?: HelloPathsResolver },
 ): Promise<void> {
     if (option === false) {
         return
     }
 
-    const userConfigPath = await getUserConfigPath(options?.binary)
+    const resolveHelloPaths = helloPathsOf(options)
+    const userConfigPath = await getUserConfigPath(resolveHelloPaths)
 
     if (option === true) {
         await resetUserConfigV1(userConfigPath)
@@ -125,23 +131,25 @@ export async function applyResetUserConfig(
  */
 export async function cleanupCore(options?: TestBedCoreCleanupOptions): Promise<void> {
     const {
-        binary,
+        resolveHelloPaths,
         removeMetadataDir: isToRemoveMetadataDir = true,
         removePlansDir: isToRemovePlansDir = true,
         removeMediaFolders: isToRemoveMediaFolders = true,
         resetUserConfig: needToResetUserConfig = false,
     } = options ?? {}
 
+    const resolve = helloPathsOf({ resolveHelloPaths })
+
     if (isToRemoveMediaFolders) {
         await removeTestMediaTmpDirV1({ waitForUnlockMs: 30_000 })
     }
     if (isToRemovePlansDir) {
-        await removePlansDir(binary)
+        await removePlansDir(resolve)
     }
     if (isToRemoveMetadataDir) {
-        await removeMetadataDir(binary)
+        await removeMetadataDir(resolve)
     }
-    await applyResetUserConfig(needToResetUserConfig, { binary })
+    await applyResetUserConfig(needToResetUserConfig, { resolveHelloPaths: resolve })
 }
 
 /**
@@ -149,5 +157,7 @@ export async function cleanupCore(options?: TestBedCoreCleanupOptions): Promise<
  */
 export async function setupCore(options: TestBedCoreSetupOptions): Promise<void> {
     await cleanupCore(options)
-    await applyResetUserConfig(options.resetUserConfig, { binary: options.binary })
+    await applyResetUserConfig(options.resetUserConfig, {
+        resolveHelloPaths: helloPathsOf(options),
+    })
 }

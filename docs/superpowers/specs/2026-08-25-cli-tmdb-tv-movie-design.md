@@ -43,7 +43,7 @@ No new HTTP routes, AI tools, or MCP tools. CLI talks to Core in-process (same p
 | Human-readable formatter | `apps/cli/src/cli/tmdbDetailsFormat.ts` |
 | Formatter unit tests | `apps/cli/src/cli/tmdbDetailsFormat.test.ts` |
 | Optional command unit tests | `apps/cli/src/cli/tmdbGet.test.ts` (mock `getCore`, same style as `hello.test.ts`) |
-| Live CLI e2e | Extend `apps/cli/test/tmdb.e2e.ts` and/or `apps/e2e/cli/tmdb.test.ts` |
+| Live CLI e2e | Extend `apps/e2e/cli/tmdb.test.ts` |
 | Docs | Update `docs/dev/tmdb.md` CLI section |
 
 ## 2.3 Key Design

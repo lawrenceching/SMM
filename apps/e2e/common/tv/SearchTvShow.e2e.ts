@@ -120,24 +120,17 @@ describe('Search TV Show', () => {
         await when('I search for "我推的孩子"')
         await when('I select search result with title "【我推的孩子】" and date "April 12, 2023"')
 
-        // TODO: in macOS, query large block of HTML will random caused more than 1 minutes
-        // So I can't use waitUntil to check HTML state in some interval.
-        // hard delay is added here as workaround
+        // After select: UI clears the panel, then POST /api/get-tvshow-in-tmdb (~20–30s in e2e)
+        // plus sequential season fetches. Wait for panel state (not full getHTML — slow on macOS).
         await then('episode table shows Oshi no Ko TMDB seasons', async () => {
-            console.log(`${new Date().toISOString()} PAUSED 10 seconds`)
-            await browser.pause(10000)
-            console.log(`${new Date().toISOString()} RESUMED`)
-            const html = await $('[data-testid="tv-show-panel"]').getHTML()
-            console.log(`${new Date().toISOString()} html="${html}"`)
-
             await browser.waitUntil(async () => {
                 const stateInString = await TvShowPanelCO.toString()
                 console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
                 return stateInString.includes(OSHI_NO_KO_TMDB_EPISODE_TABLE)
             }, {
-                timeout: 5000,
-                interval: 1000,
-                timeoutMsg: 'Expected to see Season 0 in the TV show panel',
+                timeout: 3 * 60 * 1000,
+                interval: 2000,
+                timeoutMsg: 'Expected to see Season 0 in the TV show panel within 3 minutes after TMDB select',
             })
         })
 

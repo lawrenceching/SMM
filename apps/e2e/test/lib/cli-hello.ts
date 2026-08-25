@@ -3,7 +3,9 @@ import type { HelloCliBody } from '@smm/core/types'
 
 /**
  * Run `smm hello -f json` and parse {@link HelloCliBody}.
- * Used by CLI e2e setup/cleanup instead of `GET /api/hello`.
+ *
+ * CLI e2e only (`apps/e2e/cli`). Web UI / wdio e2e must use `GET /api/hello`
+ * via `@smm/test` hello — do not import this module from wdio conf or `testbed.ts`.
  */
 export async function runCliHello(binary: string): Promise<HelloCliBody> {
     const result = await $`${binary} hello -f json`.quiet().nothrow()

@@ -107,18 +107,29 @@ export function handleTmdb(app: Hono): void {
   })
 
   app.post('/api/get-tvshow-in-tmdb', async (c) => {
+    const startedAt = Date.now()
+    let idForLog: number | undefined
     try {
       const rec = await readJsonObject(c)
       const id = parsePositiveInt(rec.id)
+      idForLog = id
       if (id === undefined) {
         const err: TmdbDetailsHttpResponseBody = errorBody('id is required')
         return c.json(err, 200)
       }
+      logger.info({ id }, '[POST /api/get-tvshow-in-tmdb] start')
       const data = await getCore().getTvShowInTmdb(id, tmdbRequestOptions(rec))
+      logger.info(
+        { id, durationMs: Date.now() - startedAt },
+        '[POST /api/get-tvshow-in-tmdb] ok',
+      )
       const ok: TmdbDetailsHttpResponseBody = { data }
       return c.json(ok, 200)
     } catch (error) {
-      logger.error({ error }, '[POST /api/get-tvshow-in-tmdb] route error')
+      logger.error(
+        { error, id: idForLog, durationMs: Date.now() - startedAt },
+        '[POST /api/get-tvshow-in-tmdb] route error',
+      )
       const err: TmdbDetailsHttpResponseBody = errorBody(
         error instanceof Error ? error.message : 'Unknown error',
       )

@@ -162,9 +162,9 @@ class SearchboxComponentObject {
                 return (await resultItems.length) > 0
             },
             {
-                timeout: 10000,
+                timeout: 60000,
                 interval: 200,
-                timeoutMsg: 'Search result items did not appear after 10000ms',
+                timeoutMsg: 'Search result items did not appear after 60000ms',
             }
         )
 

@@ -1,7 +1,7 @@
 # Import Folder
 
 **Supported Platform** Web UI, CLI, Electron, ohos
-**Status** wip
+**Status** done
 
 ## apps/core
 

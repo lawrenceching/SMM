@@ -119,6 +119,31 @@ describe('tmdb tv / movie get', () => {
         expect(text).toMatch(TV_TITLE)
     }, FIVE_MINUTES_MS)
 
+    it('gets TV show details as JSON via SMM-provided host', async () => {
+        const ret = await $`${bin} tmdb tv 84666 -f json --lang zh-CN`.nothrow()
+        expect(ret.exitCode).toBe(0)
+        const body = JSON.parse(ret.text())
+        expect(body.id).toBe(84666)
+        expect(String(body.name ?? '')).toMatch(TV_TITLE)
+    }, FIVE_MINUTES_MS)
+
+    it('gets TV show details via custom host, password and HTTP proxy', async () => {
+        const { host, password, proxy } = officialTmdb()
+        const ret = await $`${bin} tmdb tv 84666 --lang zh-CN --host ${host} --password ${password} --proxy ${proxy}`.nothrow()
+        expect(ret.exitCode).toBe(0)
+        const text = ret.text()
+        expect(text).toMatch(/id: 84666/)
+        expect(text).toMatch(TV_TITLE)
+    }, FIVE_MINUTES_MS)
+
+    it('gets movie details (default format) via SMM-provided host', async () => {
+        const ret = await $`${bin} tmdb movie 550`.nothrow()
+        expect(ret.exitCode).toBe(0)
+        const text = ret.text()
+        expect(text).toMatch(/id: 550/)
+        expect(text).toMatch(/Fight Club/i)
+    }, FIVE_MINUTES_MS)
+
     it('gets movie details as JSON via custom host', async () => {
         const { host, password, proxy } = officialTmdb()
         const ret = await $`${bin} tmdb movie 550 -f json --host ${host} --password ${password} --proxy ${proxy}`.nothrow()
@@ -126,5 +151,12 @@ describe('tmdb tv / movie get', () => {
         const body = JSON.parse(ret.text())
         expect(body.id).toBe(550)
         expect(String(body.title ?? '')).toMatch(/Fight Club/i)
+    }, FIVE_MINUTES_MS)
+
+    it('rejects invalid TMDB id', async () => {
+        const ret = await $`${bin} tmdb tv abc`.nothrow()
+        expect(ret.exitCode).toBe(1)
+        const err = ret.stderr.toString() || ret.text()
+        expect(err).toMatch(/id must be a positive integer/i)
     }, FIVE_MINUTES_MS)
 })

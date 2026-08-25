@@ -21,24 +21,40 @@ export function useGetTmdbTvShowMutation<
   return useMutation({
     ...options,
     mutationFn: async (variables: TVariables) => {
-      console.log(`useGetTmdbTvShowMutation CALLED`, {...variables})
+      const startedAt = Date.now()
+      console.log(`useGetTmdbTvShowMutation CALLED`, { ...variables })
       const tmdbTvSeriesDetails: TmdbSeriesDetails = await getTvShowById(
         variables.id,
         variables.language,
         variables.tmdb
       )
+      console.log(`useGetTmdbTvShowMutation series ok`, {
+        id: variables.id,
+        seasonCount: tmdbTvSeriesDetails.seasons?.length ?? 0,
+        durationMs: Date.now() - startedAt,
+      })
 
       const seasonDetails: TmdbSeasonDetails[] = []
-      for(const season of tmdbTvSeriesDetails.seasons) {
+      for (const season of tmdbTvSeriesDetails.seasons) {
+        const seasonStartedAt = Date.now()
         const tmdbTvShowSeasonDetails: TmdbSeasonDetails = await getTvShowSeasonDetails(
           variables.id,
           season.season_number,
           variables.language,
           variables.tmdb
         )
+        console.log(`useGetTmdbTvShowMutation season ok`, {
+          id: variables.id,
+          season: season.season_number,
+          durationMs: Date.now() - seasonStartedAt,
+        })
         seasonDetails.push(tmdbTvShowSeasonDetails)
       }
-      
+
+      console.log(`useGetTmdbTvShowMutation done`, {
+        id: variables.id,
+        durationMs: Date.now() - startedAt,
+      })
       return buildTvShowMediaMetadata(tmdbTvSeriesDetails, seasonDetails)
     },
   })

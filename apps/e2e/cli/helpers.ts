@@ -12,6 +12,15 @@ const helpersDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(helpersDir, '../../..')
 const MEDIA_METADATA_TEMPLATES_DIR = join(repoRoot, 'test', 'templates', 'mediaMetadatas')
 
+/** Require a non-empty env var (loaded from `apps/e2e/.env.local` via testbed-core). */
+export function requiredEnv(name: string): string {
+    const value = process.env[name]?.trim()
+    if (!value) {
+        throw new Error(`${name} is not set (apps/e2e/.env.local)`)
+    }
+    return value
+}
+
 /** Combine stdout and stderr from a CLI subprocess result. */
 export function cliOutput(result: ShellOutput): string {
     const stdout = result.stdout.toString()
