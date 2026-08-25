@@ -21,6 +21,7 @@ import {
   printEpisodeRenameResult,
 } from './renameDispatch'
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
+import { formatTmdbDetailsTree } from './tmdbDetailsFormat'
 import { formatTvdbSearchResults } from './tvdbSearchFormat'
 import { Path } from '@core/path'
 
@@ -462,6 +463,79 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         }
       },
     )
+
+  function registerTmdbGetCommand(
+    name: 'tv' | 'movie',
+    description: string,
+    fetch: (
+      id: number,
+      options: {
+        language?: string
+        host?: string
+        password?: string
+        proxy?: string
+      },
+    ) => Promise<unknown>,
+  ) {
+    tmdbCmd
+      .command(name)
+      .description(description)
+      .argument('<tmdbid>', 'TMDB id')
+      .addOption(
+        new Option('-f, --format <fmt>', 'Output format')
+          .choices(['json', 'default'])
+          .default('default'),
+      )
+      .option('--host <url>', 'TMDB API base URL (overrides userConfig.tmdb.host)')
+      .option('--password <key>', 'TMDB API key (overrides userConfig.tmdb.apiKey)')
+      .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tmdb.httpProxy)')
+      .option(
+        '--lang <language>',
+        'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
+      )
+      .action(
+        async (
+          tmdbIdRaw: string,
+          opts: {
+            format?: string
+            host?: string
+            password?: string
+            proxy?: string
+            lang?: string
+          },
+        ) => {
+          try {
+            const id = Number(tmdbIdRaw)
+            if (!Number.isInteger(id) || id <= 0) {
+              console.error('id must be a positive integer')
+              exitCode = 1
+              return
+            }
+            const details = await fetch(id, {
+              language: opts.lang,
+              host: opts.host,
+              password: opts.password,
+              proxy: opts.proxy,
+            })
+            if (opts.format === 'json') {
+              printJson(details)
+              return
+            }
+            console.log(formatTmdbDetailsTree(details))
+          } catch (error) {
+            console.error(error instanceof Error ? error.message : String(error))
+            exitCode = 1
+          }
+        },
+      )
+  }
+
+  registerTmdbGetCommand('tv', 'Get TMDB TV show details by id', (id, options) =>
+    getCore().getTvShowInTmdb(id, options),
+  )
+  registerTmdbGetCommand('movie', 'Get TMDB movie details by id', (id, options) =>
+    getCore().getMovieInTmdb(id, options),
+  )
 
   const tvdbCmd = program.command('tvdb').description('TVDB helpers')
 
