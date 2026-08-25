@@ -52,7 +52,7 @@ import {
   type ListPlansOptions,
   type Plan,
 } from "./pipeline/plans";
-import { tryToRecognizeFolderPipeline as tryToRecognizeEpisodesPipeline } from "./pipeline/tryToRecognizeFolder";
+import { tryToRecognizeEpisodesPipeline } from "./pipeline/tryToRecognizeEpisodes";
 import {
   recognizeFolderPipeline,
   tryToRecognizeFolderPipeline,

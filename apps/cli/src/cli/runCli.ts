@@ -240,7 +240,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<folder>', 'Imported media folder path')
     .action(async (folder: string) => {
       try {
-        const plan = await getCore().tryToRecognizeFolder(folder)
+        const plan = await getCore().tryToRecognizeEpisodes(folder)
         console.log(`plan: ${plan.id}`)
         console.log(`task: ${plan.task}`)
         console.log(`status: ${plan.status}`)

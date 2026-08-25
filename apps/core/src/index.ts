@@ -48,7 +48,7 @@ export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFo
 export { UserConfig, DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } from "./pipeline/userConfig";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
-export { tryToRecognizeFolderPipeline as tryToRecognizeEpisodesPipeline, type TryToRecognizeFolderDeps as TryToRecognizeEpisodesDeps } from "./pipeline/tryToRecognizeFolder";
+export { tryToRecognizeEpisodesPipeline, type TryToRecognizeEpisodesDeps } from "./pipeline/tryToRecognizeEpisodes";
 export {
   tryToRecognizeFolderPipeline,
   recognizeFolderPipeline,

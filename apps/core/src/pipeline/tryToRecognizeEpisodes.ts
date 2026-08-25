@@ -8,7 +8,7 @@ import { writePlan } from "./plans";
 import { recognizeEpisodes } from "./recognizeEpisodes";
 import type { UserConfig } from "./userConfig";
 
-export interface TryToRecognizeFolderDeps {
+export interface TryToRecognizeEpisodesDeps {
   fs: FsPort;
   appDataDir: string;
   userConfig: UserConfig;
@@ -34,9 +34,9 @@ function hasTvShowEpisodes(mm: MediaMetadata): boolean {
 }
 
 /** Rule-based episode matching → pending recognize-media-file plan (throws instead of { error }). */
-export async function tryToRecognizeFolderPipeline(
+export async function tryToRecognizeEpisodesPipeline(
   path: string,
-  deps: TryToRecognizeFolderDeps,
+  deps: TryToRecognizeEpisodesDeps,
 ): Promise<RecognizeMediaFilePlan> {
   const posixPath = deps.normalizePosix(path);
   const createId = deps.createId ?? randomUUID;
