@@ -583,6 +583,79 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       },
     )
 
+  function registerTvdbGetCommand(
+    name: 'tv' | 'movie',
+    description: string,
+    fetch: (
+      id: number,
+      options: {
+        language?: string
+        host?: string
+        password?: string
+        proxy?: string
+      },
+    ) => Promise<unknown>,
+  ) {
+    tvdbCmd
+      .command(name)
+      .description(description)
+      .argument('<tvdbid>', 'TVDB id')
+      .addOption(
+        new Option('-f, --format <fmt>', 'Output format')
+          .choices(['json', 'default'])
+          .default('default'),
+      )
+      .option('--host <url>', 'TVDB API base URL (overrides userConfig.tvdb.host)')
+      .option('--password <key>', 'TVDB API key (overrides userConfig.tvdb.apiKey)')
+      .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tvdb.httpProxy)')
+      .option(
+        '--lang <language>',
+        'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
+      )
+      .action(
+        async (
+          tvdbIdRaw: string,
+          opts: {
+            format?: string
+            host?: string
+            password?: string
+            proxy?: string
+            lang?: string
+          },
+        ) => {
+          try {
+            const id = Number(tvdbIdRaw)
+            if (!Number.isInteger(id) || id <= 0) {
+              console.error('id must be a positive integer')
+              exitCode = 1
+              return
+            }
+            const details = await fetch(id, {
+              language: opts.lang,
+              host: opts.host,
+              password: opts.password,
+              proxy: opts.proxy,
+            })
+            if (opts.format === 'json') {
+              printJson(details)
+              return
+            }
+            console.log(formatTmdbDetailsTree(details))
+          } catch (error) {
+            console.error(error instanceof Error ? error.message : String(error))
+            exitCode = 1
+          }
+        },
+      )
+  }
+
+  registerTvdbGetCommand('tv', 'Get TVDB series details by id (raw API)', (id, options) =>
+    getCore().getTvdbSeriesById(id, options),
+  )
+  registerTvdbGetCommand('movie', 'Get TVDB movie details by id (raw API)', (id, options) =>
+    getCore().getTvdbMovieById(id, options),
+  )
+
   const configCmd = program.command('config').description('Read or write user config (smm.json)')
 
   configCmd
