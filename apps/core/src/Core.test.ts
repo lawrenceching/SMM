@@ -1358,3 +1358,65 @@ describe("Core.getTvShowInTvdb / getMovieInTvdb / getTvdbLanguages", () => {
     await expect(core.getMovieInTvdb(-1)).rejects.toThrow(/positive integer/);
   });
 });
+
+describe("Core.getTvdbSeriesById / getTvdbMovieById", () => {
+  it("returns raw extended + translation for series", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbSeriesById(1, { language: "eng" });
+    expect(result.extended).toMatchObject({ id: 1, name: "My Show" });
+    expect(result.translation).toEqual({ name: "My Show" });
+    expect(result).not.toHaveProperty("database");
+  });
+
+  it("returns raw extended + translation for movie", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbMovieById(2, { language: "eng" });
+    expect(result.extended).toMatchObject({ id: 2, name: "My Film" });
+    expect(result.translation).toEqual({ name: "My Film" });
+  });
+
+  it("rejects IETF language tags (ISO 639-3 only)", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvdbSeriesById(1, { language: "zh-CN" })).rejects.toThrow(/ISO 639-3/);
+  });
+
+  it("validates id as a positive integer", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvdbSeriesById(0)).rejects.toThrow(/positive integer/);
+    await expect(core.getTvdbMovieById(-1)).rejects.toThrow(/positive integer/);
+  });
+
+  it("sets translation null when translation endpoint has no data", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: {
+        fetch: async (url) => {
+          if (url.includes("/translations/zho")) {
+            return jsonResponse({ status: "success", data: null });
+          }
+          return tvdbResponse(url);
+        },
+      },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbSeriesById(1, { language: "zho" });
+    expect(result.extended).toMatchObject({ id: 1 });
+    expect(result.translation).toBeNull();
+  });
+});

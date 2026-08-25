@@ -9,6 +9,8 @@ export {
   type ScrapeFolderResult,
   type SearchInTmdbOptions,
   type TmdbRequestOptions,
+  type TvdbByIdResult,
+  type TvdbRequestOptions,
 } from "./Core";
 export type { FsPort } from "./ports/FsPort";
 export type { NetworkPort, FetchInit, HttpResponse } from "./ports/NetworkPort";

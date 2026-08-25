@@ -87,6 +87,12 @@ export interface TvdbRequestOptions {
   proxy?: string;
 }
 
+/** Raw TVDB get-by-id payload for CLI / API inspection (not MediaMetadata). */
+export type TvdbByIdResult = {
+  extended: unknown;
+  translation: unknown | null;
+};
+
 export interface SearchInTvdbOptions extends TvdbRequestOptions {
   type: "series" | "movie";
 }
@@ -465,6 +471,40 @@ export class Core {
       throw new Error(`Failed to get TVDB movie ${id}`);
     }
     return metadata;
+  }
+
+  /**
+   * Fetch raw TVDB series extended + translation payloads (not MediaMetadata).
+   * `language` is ISO 639-3 (CLI `--lang`); translation may be null if unavailable.
+   */
+  async getTvdbSeriesById(id: number, options: TvdbRequestOptions = {}): Promise<TvdbByIdResult> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTvdbClient(options);
+    const extended = await client.getSeriesExtended(id);
+    if (!extended) {
+      throw new Error(`Failed to get TVDB series ${id}`);
+    }
+    const translation = (await client.getSeriesTranslation(id, language)) ?? null;
+    return { extended, translation };
+  }
+
+  /**
+   * Fetch raw TVDB movie extended + translation payloads (not MediaMetadata).
+   * `language` is ISO 639-3 (CLI `--lang`); translation may be null if unavailable.
+   */
+  async getTvdbMovieById(id: number, options: TvdbRequestOptions = {}): Promise<TvdbByIdResult> {
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error("id must be a positive integer");
+    }
+    const { client, language } = await this.createTvdbClient(options);
+    const extended = await client.getMovieExtended(id);
+    if (!extended) {
+      throw new Error(`Failed to get TVDB movie ${id}`);
+    }
+    const translation = (await client.getMovieTranslation(id, language)) ?? null;
+    return { extended, translation };
   }
 
   /** Fetch the TVDB supported language list via {@link NetworkPort}. */
