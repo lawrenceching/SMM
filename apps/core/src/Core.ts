@@ -52,7 +52,13 @@ import {
   type ListPlansOptions,
   type Plan,
 } from "./pipeline/plans";
-import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
+import { tryToRecognizeFolderPipeline as tryToRecognizeEpisodesPipeline } from "./pipeline/tryToRecognizeFolder";
+import {
+  recognizeFolderPipeline,
+  tryToRecognizeFolderPipeline,
+  type RecognizeFolderCandidate,
+  type RecognizeFolderDb,
+} from "./pipeline/recognizeFolder";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
   prepareScrapeFolder,
@@ -109,6 +115,8 @@ export type {
   RenameEpisodeFileResult,
   ScrapeFolderOptions,
   ScrapeFolderResult,
+  RecognizeFolderCandidate,
+  RecognizeFolderDb,
 };
 
 export interface CoreOptions {
@@ -353,12 +361,49 @@ export class Core {
     });
   }
 
-  async tryToRecognizeFolder(path: string): Promise<RecognizeMediaFilePlan> {
+  async tryToRecognizeEpisodes(path: string): Promise<RecognizeMediaFilePlan> {
+    return tryToRecognizeEpisodesPipeline(path, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p) => this.normalizePosix(p),
+    });
+  }
+
+  async tryToRecognizeFolder(path: string): Promise<RecognizeFolderCandidate> {
+    const config = await this.userConfig.read();
+    const language = config.preferMediaLanguage ?? "en-US";
+    const { client: tmdb } = await this.createTmdbClient({});
+    const { client: tvdb } = await this.createTvdbClient({}, false);
     return tryToRecognizeFolderPipeline(path, {
       fs: this.fs,
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (p) => this.normalizePosix(p),
+      tmdb,
+      tvdb,
+      language,
+      primaryDatabase: config.primaryDatabase,
+    });
+  }
+
+  async recognizeFolder(
+    path: string,
+    options: { db: RecognizeFolderDb; id: string },
+  ): Promise<void> {
+    const config = await this.userConfig.read();
+    const language = config.preferMediaLanguage ?? "en-US";
+    const { client: tmdb } = await this.createTmdbClient({});
+    const { client: tvdb } = await this.createTvdbClient({}, false);
+    await recognizeFolderPipeline(path, options, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      userConfig: this.userConfig,
+      normalizePosix: (p) => this.normalizePosix(p),
+      tmdb,
+      tvdb,
+      language,
+      primaryDatabase: config.primaryDatabase,
     });
   }
 

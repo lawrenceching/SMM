@@ -572,7 +572,7 @@ describe("renameFolder", () => {
   });
 });
 
-describe("tryToRecognizeFolder", () => {
+describe("tryToRecognizeEpisodes", () => {
   const appDataDir = "/data";
   const folder = "/m/Show";
   const tvMetadata = {
@@ -608,7 +608,7 @@ describe("tryToRecognizeFolder", () => {
       "/m/Show/S01E02.mkv": "",
     });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    const plan = await core.tryToRecognizeFolder("/m/Show");
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
     expect(plan.task).toBe("recognize-media-file");
     expect(plan.status).toBe("pending");
     expect(plan.creator).toBe("app");
@@ -622,7 +622,7 @@ describe("tryToRecognizeFolder", () => {
   it("returns pending plan with empty files when nothing matches", async () => {
     const fs = seed({ "/m/Show/random.mkv": "" });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    const plan = await core.tryToRecognizeFolder("/m/Show");
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
     expect(plan.files).toEqual([]);
     expect(plan.status).toBe("pending");
   });
@@ -630,7 +630,7 @@ describe("tryToRecognizeFolder", () => {
   it("rejects unmanaged folders", async () => {
     const fs = seed();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    await expect(core.tryToRecognizeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+    await expect(core.tryToRecognizeEpisodes("/m/Other")).rejects.toThrow(/not managed by SMM/);
   });
 });
 
@@ -735,7 +735,7 @@ describe("applyPlan", () => {
       "/m/Show/S01E02.mkv": "",
     });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    const plan = await core.tryToRecognizeFolder("/m/Show");
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
     await core.applyPlan(plan);
     const mm = await core.getMediaMetadata("/m/Show");
     expect(mm?.mediaFiles).toEqual([
@@ -749,7 +749,7 @@ describe("applyPlan", () => {
     const fs = seed({ "/m/Show/random.mkv": "" });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
     const before = await core.getMediaMetadata("/m/Show");
-    const plan = await core.tryToRecognizeFolder("/m/Show");
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
     expect(plan.files).toEqual([]);
     await core.applyPlan(plan);
     const after = await core.getMediaMetadata("/m/Show");
@@ -1420,3 +1420,79 @@ describe("Core.getTvdbSeriesById / getTvdbMovieById", () => {
     expect(result.translation).toBeNull();
   });
 });
+
+describe("tryToRecognizeFolder / recognizeFolder", () => {
+  const series84666 = {
+    id: 84666,
+    name: "WATATEN",
+    first_air_date: "2019-01-08",
+    seasons: [{ id: 1, name: "S1", season_number: 1, air_date: "2019-01-08", episode_count: 1 }],
+  };
+  const season84666 = {
+    id: 1,
+    name: "S1",
+    season_number: 1,
+    air_date: "2019-01-08",
+    episode_count: 1,
+    episodes: [],
+  };
+
+  function tmdbTvShowNetwork(): NetworkPort {
+    return {
+      fetch: vi.fn(async (url: string) => {
+        if (url.includes("/tv/84666/season/")) {
+          return jsonResponse(season84666);
+        }
+        if (url.includes("/tv/84666")) {
+          return jsonResponse(series84666);
+        }
+        return jsonResponse({ results: [], page: 1, total_pages: 0, total_results: 0 });
+      }) as never,
+    };
+  }
+
+  it("tryToRecognizeFolder returns candidate from folder tmdbid", async () => {
+    const folder = "/m/Show {tmdbid=84666}";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath("/data/smm", folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        mediaFiles: [],
+      }),
+    });
+    const core = new Core({
+      fs,
+      network: tmdbTvShowNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const candidate = await core.tryToRecognizeFolder(folder);
+    expect(candidate.db).toBe("tmdb");
+    expect(candidate.id).toBe("84666");
+    expect(candidate.title).toContain("WATATEN");
+  });
+
+  it("recognizeFolder clears mediaFiles", async () => {
+    const folder = "/m/Show";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath("/data/smm", folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        mediaFiles: [{ absolutePath: "/m/Show/a.mkv", seasonNumber: 1, episodeNumber: 1 }],
+      }),
+    });
+    const core = new Core({
+      fs,
+      network: tmdbTvShowNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
+    const mm = await core.getMediaMetadata(folder);
+    expect(mm?.tvShow?.id).toBe("84666");
+    expect(mm?.mediaFiles).toEqual([]);
+  });
+});
+
