@@ -29,6 +29,7 @@ import {
   planFileCount,
 } from './planFormat'
 import { Path } from '@core/path'
+import { confirmRecognizeCandidate } from './recognizeConfirm'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -67,7 +68,7 @@ const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 const SCRAPE_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -230,6 +231,45 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('recognize')
+    .description('Recognize an imported media folder as a TMDB/TVDB TV show or movie')
+    .argument('<folder>', 'Imported media folder path')
+    .addOption(new Option('--db <db>', 'Media database').choices(['tmdb', 'tvdb']))
+    .option('--id <id>', 'TMDB or TVDB id')
+    .option('-y, --yes', 'Accept auto-recognition candidate without prompting')
+    .action(async (folder: string, opts: { db?: string; id?: string; yes?: boolean }) => {
+      try {
+        const hasDb = opts.db !== undefined
+        const hasId = opts.id !== undefined
+        if (hasDb !== hasId) {
+          console.error('--db and --id must be provided together')
+          exitCode = 1
+          return
+        }
+        const core = getCore()
+        if (hasDb && hasId) {
+          await core.recognizeFolder(folder, {
+            db: opts.db as 'tmdb' | 'tvdb',
+            id: opts.id!,
+          })
+          console.log('Metadata is updated')
+          return
+        }
+        const candidate = await core.tryToRecognizeFolder(folder)
+        const accepted = await confirmRecognizeCandidate(candidate, { yes: Boolean(opts.yes) })
+        if (!accepted) {
+          console.log('Cancelled')
+          return
+        }
+        await core.recognizeFolder(folder, { db: candidate.db, id: candidate.id })
+        console.log('Metadata is updated')
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
         exitCode = 1
       }
     })
