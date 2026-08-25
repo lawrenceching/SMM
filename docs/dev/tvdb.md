@@ -80,11 +80,16 @@ core.getTvdbLanguages({ host?, password?, proxy? })
 
 ### 命令
 
-仅暴露搜索子命令：
+已暴露搜索与按 id 拉取**原始 TVDB API**详情（与本地 MediaMetadata / `getTvShowInTvdb` 无关）：
 
 ```bash
 smm tvdb search "<keyword>" --type series|movie [options]
+smm tvdb tv "<tvdbid>" -f|--format json|default --lang "<iso639-3>" [options]
+smm tvdb movie "<tvdbid>" -f|--format json|default --lang "<iso639-3>" [options]
 ```
+
+Core：`getTvdbSeriesById` / `getTvdbMovieById` → `{ extended, translation }`。  
+勿与 `getTvShowInTvdb` / `getMovieInTvdb`（构建 MediaMetadata）混淆。
 
 ### 输出格式
 
@@ -94,7 +99,23 @@ $ smm tvdb search "keyword" --type series
 {overview}
 #2 {tvdbid2} {title2} ({release date})
 {overview}
+
+$ smm tvdb tv 355969 --lang zho
+extended:
+  id: 355969
+  name: ...
+translation:
+  name: ...
+
+$ smm tvdb movie 116 -f json --lang eng
+{
+  "extended": { "id": 116, "name": "The Dark Knight", ... },
+  "translation": { "name": "...", ... }
+}
 ```
+
+`default`：完整 `{ extended, translation }` 的缩进 key/value 树。  
+`json`：pretty-print JSON。
 
 ### 常用场景
 
@@ -113,19 +134,27 @@ smm tvdb search "keyword" --type series \
   --host "https://api4.thetvdb.com/v4" \
   --password "your-api-key" \
   --proxy "socks5://proxy.example.com:7079"
+
+# 按 id 拉原始详情（--lang 为翻译语言，ISO 639-3；勿传 zh-CN）
+smm tvdb tv 355969 --lang zho
+smm tvdb movie 116 -f json --lang eng \
+  --host "https://api4.thetvdb.com/v4" \
+  --password "your-api-key" \
+  --proxy "socks5://proxy.example.com:7079"
 ```
 
 ### 参数
 
 | 参数 | 说明 |
 |------|------|
-| `--type` | `series` \| `movie`（必填） |
-| `--lang` | ISO 639-3 主语言过滤（如 `zho`）；无效值离线报错 |
+| `--type` | `series` \| `movie`（仅 `search`，必填） |
+| `-f` / `--format` | `json` \| `default`（仅 `tv` / `movie`；省略为 `default`） |
+| `--lang` | ISO 639-3（如 `zho`）。`search`：主语言过滤；`tv`/`movie`：翻译语言。`zh-CN` 等 IETF 标签离线报错 |
 | `--host` | 覆盖 `userConfig.tvdb.host` |
 | `--password` | 覆盖 `userConfig.tvdb.apiKey` |
 | `--proxy` | 覆盖 `userConfig.tvdb.httpProxy` |
 
-实现：`apps/cli/src/cli/runCli.ts`（格式化：`tvdbSearchFormat.ts`）。
+实现：`apps/cli/src/cli/runCli.ts`（搜索：`tvdbSearchFormat.ts`；详情树：复用 `tmdbDetailsFormat.ts`）。
 
 ---
 
@@ -208,12 +237,19 @@ Web 不调用 `smm tvdb search`，但与 CLI 共用 Core 方法与 `userConfig.t
 
 | 范围 | 文件 |
 |------|------|
-| CLI e2e | `apps/cli/test/tvdb.e2e.ts` — 文档「常用场景」四类搜索 |
+| CLI e2e | `apps/e2e/cli/tvdb.test.ts` — 搜索 + `tvdb tv` / `tvdb movie` get-by-id |
 | core-routes 单测 | `packages/core-routes/src/tools/tvdb.test.ts` |
 | MCP e2e (⏳) | `apps/e2e/common/mcp/McpOther-TvdbTools.e2e.ts` — 四工具 + live TVDB（待添加） |
 | MCP 客户端 | `apps/e2e/test/lib/McpClient.ts` |
 
 MCP / 需直连 TVDB 的 e2e 在 `apps/e2e/.env.local` 配置 `TVDB_HOST`、`TVDB_API_KEY`、`TVDB_HTTP_PROXY`（网络受限环境）。
+
+运行 CLI e2e：
+
+```bash
+cd apps/e2e/cli
+bun test ./tvdb.test.ts
+```
 
 运行 MCP spec（⏳ 待 spec 添加后可用）：
 
