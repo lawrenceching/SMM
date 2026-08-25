@@ -6,10 +6,43 @@ import {
 } from 'test/lib/browser-fs'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import Prompts from 'test/componentobjects/Prompts'
+import { folder1 } from 'test/actions/import-folders'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 
 import { testbedOs } from 'test/lib/e2e-platform'
+
+const RENAMED_PLEX_EPISODE_TABLE = `Specials
+S00E01 - - - -
+Season 1
+S01E01 Season 01/WATATEN an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv V V V
+S01E02 Season 01/WATATEN an Angel Flew Down to Me - S01E02 - Incontestably Cute.mkv V V V
+S01E03 Season 01/WATATEN an Angel Flew Down to Me - S01E03 - Imprinting.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`
+
+const RENAMED_EMBY_EPISODE_TABLE = `Specials
+S00E01 - - - -
+Season 1
+S01E01 Season 1/WATATEN an Angel Flew Down to Me S1E1 A Funny, Squirmy Feeling.mkv V V V
+S01E02 Season 1/WATATEN an Angel Flew Down to Me S1E2 Incontestably Cute.mkv V V V
+S01E03 Season 1/WATATEN an Angel Flew Down to Me S1E3 Imprinting.mkv V V V
+S01E04 - - - -
+S01E05 - - - -
+S01E06 - - - -
+S01E07 - - - -
+S01E08 - - - -
+S01E09 - - - -
+S01E10 - - - -
+S01E11 - - - -
+S01E12 - - - -`
 
 /**
  * @supports local, Electron, HarmonyOS, Docker
@@ -53,6 +86,48 @@ describe('TVShow - Rename', () => {
         await given('TV show folder "UnKnown Folder 123123123123" was imported')
         await when('folder "UnKnown Folder 123123123123" was selected')
         await then('"Rename" button is disabled')
+    })
+
+    it('UC1: confirm rename applies default Plex naming rule', async function () {
+        this.timeout(90 * 1000)
+
+        await given('TV show folder with three episodes was imported and recognized')
+        await when(`folder "${folder1.folderName}" was selected`)
+        await when('I click "Rename" button')
+        await then('"Rename" prompt is open')
+        await when('I click "Confirm" on rename prompt')
+        await then('episode table shows renamed Plex-style paths', async () => {
+            await browser.waitUntil(
+                async () =>
+                    (await TvShowPanelCO.toString()).includes(
+                        'Season 01/WATATEN an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
+                    ),
+                { timeout: 15000, interval: 500 },
+            )
+            expect(await TvShowPanelCO.toString()).toContain(RENAMED_PLEX_EPISODE_TABLE)
+        })
+    })
+
+    it('UC2: switch naming rule regenerates preview then apply Emby names', async function () {
+        this.timeout(90 * 1000)
+
+        await given('TV show folder with three episodes was imported and recognized')
+        await when(`folder "${folder1.folderName}" was selected`)
+        await when('I click "Rename" button')
+        await then('"Rename" prompt is open')
+        await when('I select naming rule "emby" on rename prompt')
+        await then('"Rename" prompt shows Emby-style preview paths')
+        await when('I click "Confirm" on rename prompt')
+        await then('episode table shows renamed Emby-style paths', async () => {
+            await browser.waitUntil(
+                async () =>
+                    (await TvShowPanelCO.toString()).includes(
+                        'Season 1/WATATEN an Angel Flew Down to Me S1E1 A Funny, Squirmy Feeling.mkv',
+                    ),
+                { timeout: 15000, interval: 500 },
+            )
+            expect(await TvShowPanelCO.toString()).toContain(RENAMED_EMBY_EPISODE_TABLE)
+        })
     })
 
     it('cancel rename dialog — prompt closes and files remain unchanged (S2)', async function () {

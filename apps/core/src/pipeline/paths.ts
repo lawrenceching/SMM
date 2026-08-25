@@ -25,9 +25,14 @@ export function userConfigPath(appDataDir: string): string {
   return joinPosix(Path.posix(appDataDir), "smm.json");
 }
 
+/** `<appDataDir>/plans`, POSIX form (same layout as core-routes). */
+export function plansDir(appDataDir: string): string {
+  return joinPosix(Path.posix(appDataDir), "plans");
+}
+
 /** `<appDataDir>/plans/{id}.plan.json`, POSIX form (same layout as core-routes). */
 export function planFilePath(appDataDir: string, planId: string): string {
-  return joinPosix(Path.posix(appDataDir), "plans", `${planId}.plan.json`);
+  return joinPosix(plansDir(appDataDir), `${planId}.plan.json`);
 }
 
 /**

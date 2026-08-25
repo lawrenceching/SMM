@@ -110,6 +110,48 @@ describe('rename files', () => {
         )
     })
 
+    it('UC2: reject plex plan then try-to-rename --rule emby builds new plan', async () => {
+        const folder = await createAndImportInitializedFolder(
+            bin,
+            { ...tvShowFolder, folderName: 'SwitchRule 123123' },
+            {
+                updateMediaMetadata: (mm) =>
+                    withWindowsSafeTvShowName({ ...mm, mediaFiles: [] }),
+            },
+        )
+        const folderPath = folder.path!
+
+        await recognizeAndApply(bin, folderPath)
+
+        const plexTried = await $`${bin} try-to-rename ${folderPath} --rule plex`.nothrow()
+        expect(plexTried.exitCode).toBe(0)
+        expect(plexTried.text()).toContain(PLEX_S01E01_BASENAME)
+        const plexPlanId = parsePlanId(plexTried.text())
+        expect(existsSync(await planFilePath(bin, plexPlanId))).toBe(true)
+
+        const rejected = await $`${bin} reject ${plexPlanId}`.nothrow()
+        expect(rejected.exitCode).toBe(0)
+        expect(existsSync(await planFilePath(bin, plexPlanId))).toBe(true)
+        const rejectedPlan = JSON.parse(
+            readFileSync(await planFilePath(bin, plexPlanId), 'utf-8'),
+        ) as { status: string }
+        expect(rejectedPlan.status).toBe('rejected')
+
+        const embyTried = await $`${bin} try-to-rename ${folderPath} --rule emby`.nothrow()
+        expect(embyTried.exitCode).toBe(0)
+        expect(embyTried.text()).toContain(EMBY_S01E01_BASENAME)
+        expect(embyTried.text()).not.toContain(PLEX_S01E01_BASENAME)
+
+        const embyPlanId = parsePlanId(embyTried.text())
+        expect(embyPlanId).not.toBe(plexPlanId)
+        expect(existsSync(await planFilePath(bin, embyPlanId))).toBe(true)
+
+        const applied = await $`${bin} apply ${embyPlanId}`.nothrow()
+        expect(applied.exitCode).toBe(0)
+        expect(existsSync(join(folderPath, 'Season 1', EMBY_S01E01_BASENAME))).toBe(true)
+        expect(existsSync(join(folderPath, 'Season 01', PLEX_S01E01_BASENAME))).toBe(false)
+    })
+
     it('associated files: apply renames same-stem subtitle alongside video', async () => {
         const folder = await createAndImportInitializedFolder(
             bin,

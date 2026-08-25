@@ -62,12 +62,19 @@ export function RuleBasedRenameFilePrompt({
           onNamingRulesSelected?.(value)
         }}
       >
-        <SelectTrigger className="w-[200px]">
+        <SelectTrigger
+          className="w-[200px]"
+          data-testid="rename-naming-rule-select"
+        >
           <SelectValue placeholder={defaultPlaceholder} />
         </SelectTrigger>
         <SelectContent>
           {namingRuleOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              data-testid={`rename-naming-rule-option-${option.value}`}
+            >
               {option.label}
             </SelectItem>
           ))}

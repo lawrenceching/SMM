@@ -45,7 +45,13 @@ import {
   type RenameEpisodeFileResult,
 } from "./pipeline/renameEpisodeFile";
 import { applyPlanPipeline } from "./pipeline/applyPlan";
-import { readPlan, type Plan } from "./pipeline/plans";
+import {
+  listPlans,
+  readPlan,
+  rejectPlan,
+  type ListPlansOptions,
+  type Plan,
+} from "./pipeline/plans";
 import { tryToRecognizeFolderPipeline } from "./pipeline/tryToRecognizeFolder";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
@@ -369,6 +375,14 @@ export class Core {
     const plan = await readPlan(this.fs, this.appDataDir, id);
     if (!plan) throw new Error(`Plan not found: ${id}`);
     return plan;
+  }
+
+  async listPlans(options?: ListPlansOptions): Promise<Plan[]> {
+    return listPlans(this.fs, this.appDataDir, options);
+  }
+
+  async rejectPlan(id: string): Promise<Plan> {
+    return rejectPlan(this.fs, this.appDataDir, id);
   }
 
   async applyPlan(plan: Plan): Promise<void> {

@@ -46,6 +46,7 @@ import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMedia
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handlePlans } from './src/route/Plans';
+import { handleRenameEpisodesPlan } from './src/route/RenameEpisodesPlan';
 import { handleGetFolders } from './src/route/GetFolders';
 import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleImportFolder } from './src/route/ImportFolder';
@@ -293,6 +294,7 @@ export class Server {
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
     handlePlans(this.app);
+    handleRenameEpisodesPlan(this.app);
     handleGetFolders(this.app);
     handleUnimportFolder(this.app);
     handleImportFolder(this.app);

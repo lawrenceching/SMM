@@ -1,5 +1,14 @@
 # Rename Episode File (context-menu rename → Core)
 
+
+SMM provides 3 renaming functions:
+**Rename Folder** rename media folder, see [Rename Folder](./rename-folder.md)
+**Rename Episodes** Rename recognized episode files all at once. See [Rename Episode Files](./rename-episodes.md)
+**Rename Episode** Rename single recognized episode file
+
+This page is for **Rename Episode**. Don't get confused.
+
+
 This design document is the **golden source** for porting the **TV episode context-menu “Rename”** flow into Layer 2 Core, then wiring Layer 1 clients through the Internal HTTP API (and thin Core callers).
 
 **Naming:** Core / HTTP / CLI / MCP / AI use **`renameEpisodeFile`** / **`rename-episode-file`** only. Do **not** name this `renameVideoFile` — that is too broad. This API renames an **episode’s linked media file** (and same-stem associates) inside a **TV show** folder. It does **not** support renaming arbitrary video files (e.g. orphan files, music videos, or movie-panel videos).

@@ -13,8 +13,8 @@ registerStep('"Rename" prompt is open', async (_ctx, _args) => {
 
     const newVideoFilePaths = await TvShowPanelCO.newVideoFilePaths.map(i => i.getText())
     expect(newVideoFilePaths).toEqual([
-        'Season 01/WATATEN!: an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
-        'Season 01/WATATEN!: an Angel Flew Down to Me - S01E02 - Incontestably Cute.mkv',
-        'Season 01/WATATEN!: an Angel Flew Down to Me - S01E03 - Imprinting.mkv',
+        'Season 01/WATATEN an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
+        'Season 01/WATATEN an Angel Flew Down to Me - S01E02 - Incontestably Cute.mkv',
+        'Season 01/WATATEN an Angel Flew Down to Me - S01E03 - Imprinting.mkv',
     ])
 })

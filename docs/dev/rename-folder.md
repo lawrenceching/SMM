@@ -3,6 +3,14 @@
 **Supported Platform** Web UI, CLI, Electron, ohos
 **Status** done
 
+
+SMM provides 3 renaming functions:
+**Rename Folder** rename media folder
+**Rename Episodes** Rename recognized episode files all at once. See [Rename Episode Files](./rename-episodes.md)
+**Rename Episode** Rename single recognized episode file. see [Rename Episode File](./rename-episode-file.md)
+
+This page is for **Rename Folder**. Don't get confused.
+
 ## CLI
 
 ```
