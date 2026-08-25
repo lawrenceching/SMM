@@ -1,85 +1,75 @@
-# TMDB 集成（v3）
+# TMDB
 
-SMM 通过 `apps/core` 统一访问 TMDB：**全部出站流量**经 `Core` + `NetworkPort`，不直连上游（浏览器侧见 [network-core.md](./network-core.md)）。
+**Supported Platform** Web UI, CLI, Electron, ohos, AI tool, MCP tool
+**Status** done
 
-| 入口 | 状态 | 说明 |
-|------|------|------|
-| CLI | ✅ | `smm tmdb search` → 进程内 `Core.searchInTmdb` |
-| AI Tool | ✅ | 应用内 Chat → 对应 HTTP API → Core；服务端 Chat 进程内注入 Core |
-| MCP Tool | ✅ | MCP 工具进程内调用 Core 同名方法（与 HTTP 路由同一 Core） |
-| Web UI | ⏳ | `smm.v3.enabled`：对应 HTTP API → Core 同名方法 |
+## Overview
 
-Core 方法与 Internal HTTP **一对一**暴露。Web UI（v3）与应用内 AI 走这些 API 再进入 Core；MCP / 服务端 Chat 在进程内调用同一套 Core 方法。均不走 `POST /api/core/fetch`（那是 `BrowserNetworkPort` 的通用出站中继，见 [network-core.md](./network-core.md)）。
-
-| Core 方法 | HTTP |
+| Key Methods in Core Module | HTTP API |
 |-----------|------|
 | `searchInTmdb` | `POST /api/search-in-tmdb` |
 | `getMovieInTmdb` | `POST /api/get-movie-in-tmdb` |
 | `getTvShowInTmdb` | `POST /api/get-tvshow-in-tmdb` |
 
 ```mermaid
-flowchart TB
-  CLI["apps/cli"]
-  WEB["apps/ui ⏳"]
-  AI["AI Tool ✅"]
-  MCP["MCP Tool ✅"]
+sequenceDiagram
+  participant F as Frontend
+  participant S as Server
+  participant C as Core
+  participant TMDB
 
-  API["POST /api/search-in-tmdb<br/>POST /api/get-movie-in-tmdb<br/>POST /api/get-tvshow-in-tmdb"]
-  CORE["apps/core<br/>searchInTmdb · getMovieInTmdb · getTvShowInTmdb"]
-  NET["NetworkPort<br/>NodejsNetworkPort"]
-  TMDB["TMDB 上游"]
-
-  CLI -->|进程内| CORE
-  WEB --> API
-  AI --> API
-  MCP --> API
-  API -->|一对一| CORE
-  CORE --> NET --> TMDB
+  F->>S: search
+  S->>C: searchInTmdb()
+  C->>TMDB: HTTP
 ```
 
-**配置**：host / apiKey / httpProxy 来自 `userConfig.tmdb`；各入口可临时覆盖（CLI flags、工具参数 `baseURL` 等）。
+## Web UI, Electron and ohos
 
----
-
-## apps/core API
-
-三个公开方法，共用 `createTmdbClient` 与 `NetworkPort` 出站。每个方法一对一暴露为 HTTP：
-
-| 方法 | HTTP | 用途 |
-|------|------|------|
-| `searchInTmdb(keyword, options)` | `POST /api/search-in-tmdb` | 按关键词搜索 TV / movie |
-| `getMovieInTmdb(id, options)` | `POST /api/get-movie-in-tmdb` | 按 TMDB id 拉电影详情 |
-| `getTvShowInTmdb(id, options)` | `POST /api/get-tvshow-in-tmdb` | 按 TMDB id 拉剧集详情 |
-
-```ts
-core.searchInTmdb(keyword, {
-  type: "tv" | "movie",
-  language?: string,   // 离线校验 packages/core/tmdbPrimaryTranslations.ts
-  host?: string,       // 默认 userConfig.tmdb.host
-  password?: string,   // 默认 userConfig.tmdb.apiKey
-  proxy?: string,      // 默认 userConfig.tmdb.httpProxy
-})
-
-core.getMovieInTmdb(id, { language?, host?, password?, proxy? })
-core.getTvShowInTmdb(id, { language?, host?, password?, proxy? })
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant W as Web UI
+  participant S as Server
+  participant C as Core
+  
+  U->>W: click search
+  W->>S: POST /api/search-in-tmdb
+  S->>C: searchInTmdb()
+  C->>S: search result
+  S->>W: search result
+  W->>U: display result
+  U->>W: select tvshow
+  W->>S: POST /api/get-tvshow-in-tmdb or /api/get-movie-in-tmdb
+  S->>C: getTvShowInTmdb()/getMovieInTmdb()
+  C->>S: tvshow details
+  S->>W: tvshow details
+  W->>U: display tvshow details
 ```
-
-- `TmdbClient` 经 `NetworkPort` 发请求；`reverseProxyUrl: null`，`proxy` 作为 `FetchInit.proxy`（非浏览器 reverse proxy）。
-- 显式 `language` 须在静态 primary translations 列表中；省略时按 `preferMediaLanguage` → OS → `en-US`。
-
-实现：`apps/core/src/Core.ts`。
-
----
 
 ## CLI
 
 ### 命令
 
-目前仅暴露搜索子命令：
+已暴露搜索与按 id 拉取详情：
 
 ```bash
 smm tmdb search "<keyword>" --type tv|movie [options]
+smm tmdb tv "<tmdbid>" -f|--format json|default --lang "<lang>" [options]
+smm tmdb movie "<tmdbid>" -f|--format json|default --lang "<lang>" [options]
 ```
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant CLI as CLI
+  participant C as Core
+  
+  U->>CLI: smm tmdb search
+  CLI->>C: searchInTmdb()
+  U->>CLI: smm tmdb tv/movie
+  CLI->>C: getTvShowInTmdb()/getMovieInTmdb()
+```
+
 
 ### 输出格式
 
@@ -89,7 +79,25 @@ $ smm tmdb search "keyword" --type tv
 {overview}
 #2 {tmdbid2} {title2} ({release date})
 {overview}
+
+$ smm tmdb tv 84666
+id: 84666
+name: ...
+genres:
+  [0]:
+    id: ...
+    name: ...
+
+$ smm tmdb movie 550 -f json
+{
+  "id": 550,
+  "title": "Fight Club",
+  ...
+}
 ```
+
+`default`：完整 TMDB 响应的缩进 key/value 树（含全部字段）。  
+`json`：pretty-print JSON。
 
 ### 常用场景
 
@@ -108,19 +116,27 @@ smm tmdb search "keyword" --type tv \
   --host "https://api.themoviedb.org/3" \
   --password "your-api-key" \
   --proxy "socks5://proxy.example.com:7079"
+
+# 按 id 拉详情
+smm tmdb tv 84666 --lang zh-CN
+smm tmdb movie 550 -f json \
+  --host "https://api.themoviedb.org/3" \
+  --password "your-api-key" \
+  --proxy "socks5://proxy.example.com:7079"
 ```
 
 ### 参数
 
 | 参数 | 说明 |
 |------|------|
-| `--type` | `tv` \| `movie`（必填） |
+| `--type` | `tv` \| `movie`（仅 `search`，必填） |
+| `-f` / `--format` | `json` \| `default`（仅 `tv` / `movie`；省略为 `default`） |
 | `--lang` | TMDB primary translation（如 `zh-CN`）；无效值离线报错 |
 | `--host` | 覆盖 `userConfig.tmdb.host` |
 | `--password` | 覆盖 `userConfig.tmdb.apiKey` |
 | `--proxy` | 覆盖 `userConfig.tmdb.httpProxy` |
 
-实现：`apps/cli/src/cli/runCli.ts`（格式化：`tmdbSearchFormat.ts`）。
+实现：`apps/cli/src/cli/runCli.ts`（搜索格式化：`tmdbSearchFormat.ts`；详情格式化：`tmdbDetailsFormat.ts`）。
 
 ---
 
@@ -201,12 +217,19 @@ Web 不调用 `smm tmdb search`，但与 CLI 共用 Core 方法与 `userConfig.t
 
 | 范围 | 文件 |
 |------|------|
-| CLI e2e | `apps/cli/test/tmdb.e2e.ts` — 文档「常用场景」四类搜索 |
+| CLI e2e | `apps/e2e/cli/tmdb.test.ts` — 文档「常用场景」搜索 + `tmdb tv` / `tmdb movie` get-by-id |
 | core-routes 单测 | `packages/core-routes/src/tools/tmdb.test.ts` |
 | MCP e2e | `apps/e2e/common/mcp/McpOther-TmdbTools.e2e.ts` — 三工具 +  live TMDB |
 | MCP 客户端 | `apps/e2e/test/lib/McpClient.ts` |
 
 MCP / 需直连 TMDB 的 e2e 在 `apps/e2e/.env.local` 配置 `TMDB_HOST`、`TMDB_API_KEY`、`TMDB_HTTP_PROXY`（网络受限环境）。
+
+运行 CLI e2e：
+
+```bash
+cd apps/e2e/cli
+bun test ./tmdb.test.ts
+```
 
 运行 MCP spec：
 
