@@ -98,10 +98,19 @@ vi.mock("debug", () => ({
   default: () => vi.fn(),
 }))
 
+vi.mock("@/lib/localStorages", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/localStorages")>()
+  return {
+    ...actual,
+    isSmmV3Enabled: vi.fn().mockReturnValue(false),
+  }
+})
+
 import { readUserConfig } from "@/api/readUserConfig"
 import { hello } from "@/api/hello"
 import { fetchDiscoverConfig } from "@/api/discover"
 import { _resetInternalReverseProxyCacheForTesting } from "@/api/fetchByInternalReverseProxy"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 
 const mockReadUserConfig = vi.mocked(readUserConfig)
 const mockHello = vi.mocked(hello)
@@ -153,6 +162,7 @@ describe("useScrapeNfoMutation — TMDB fetch wiring", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
     _resetInternalReverseProxyCacheForTesting()
     mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
     mockHello.mockResolvedValue({

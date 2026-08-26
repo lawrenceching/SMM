@@ -40,6 +40,16 @@ vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => ({ userConfig: userConfigMock }),
 }))
 
+vi.mock("@/lib/localStorages", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/localStorages")>()
+  return {
+    ...actual,
+    isSmmV3Enabled: vi.fn().mockReturnValue(false),
+  }
+})
+
+import { isSmmV3Enabled } from "@/lib/localStorages"
+
 const I18N_KEYS: Record<string, string> = {
   "scrape.tasks.poster": "海报",
   "scrape.tasks.fanart": "背景图",
@@ -105,6 +115,7 @@ describe("useScrapeDialog — movie folder tasks", () => {
   beforeEach(() => {
     listFilesMock.mockReset()
     listFilesMock.mockResolvedValue({ data: { items: [] } })
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
   })
 
   it("does not show the thumbnails row for movie folders", async () => {
@@ -128,6 +139,7 @@ describe("useScrapeDialog — error propagation", () => {
   } as any
 
   beforeEach(() => {
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
     scrapePosterMock.mockReset()
     scrapeFanartMock.mockReset()
     scrapeThumbnailMock.mockReset()
@@ -235,6 +247,7 @@ describe("useScrapeDialog — cancel button", () => {
   } as any
 
   beforeEach(() => {
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
     scrapePosterMock.mockReset()
     scrapeFanartMock.mockReset()
     scrapeThumbnailMock.mockReset()

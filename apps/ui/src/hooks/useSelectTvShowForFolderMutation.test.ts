@@ -9,12 +9,14 @@ import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import { useSelectTvShowForFolderMutation } from "./useSelectTvShowForFolderMutation"
 import { useGetTmdbTvShowMutation } from "./useGetTmdbTvShowMutation"
 import { useGetTvdbTvShowMutation } from "./useGetTvdbTvShowMutation"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 import { toast } from "sonner"
 
 const hoisted = vi.hoisted(() => ({
   fetchMediaMetadataAsync: vi.fn(),
   updateMediaMetadataAsync: vi.fn(),
   updateFolderStatus: vi.fn(),
+  recognizeFolderViaCore: vi.fn(),
 }))
 
 vi.mock("@/hooks/mediaMetadata/useFetchMediaMetadataMutation", () => ({
@@ -33,6 +35,14 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
   useUIMediaFolderStore: {
     getState: () => ({ updateFolderStatus: hoisted.updateFolderStatus }),
   },
+}))
+
+vi.mock("@/api/recognizeFolder", () => ({
+  recognizeFolderViaCore: hoisted.recognizeFolderViaCore,
+}))
+
+vi.mock("@/lib/localStorages", () => ({
+  isSmmV3Enabled: vi.fn().mockReturnValue(false),
 }))
 
 vi.mock("@/lib/utils", async (importOriginal) => {
@@ -124,11 +134,13 @@ function tvdbResult(overrides: Partial<TVDBv4SearchResult> = {}): TVDBv4SearchRe
 describe("useSelectTvShowForFolderMutation", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
     hoisted.fetchMediaMetadataAsync.mockResolvedValue({
       mediaFolderPath: "/library/show",
       type: "tvshow-folder",
     })
     hoisted.updateMediaMetadataAsync.mockResolvedValue(undefined)
+    hoisted.recognizeFolderViaCore.mockResolvedValue(undefined)
   })
 
   it("TMDB: routes mutate to useGetTmdbTvShowMutation with id, language, mediaFolderPath, traceId", () => {
@@ -305,5 +317,95 @@ describe("useSelectTvShowForFolderMutation", () => {
     })
 
     expect(result.current.isSelectTvShowForFolderPending).toBe(true)
+  })
+
+  describe("when SMM v3 is enabled", () => {
+    beforeEach(() => {
+      vi.mocked(isSmmV3Enabled).mockReturnValue(true)
+    })
+
+    it("TMDB: calls recognizeFolderViaCore and invalidates media metadata query", async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
+
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        return React.createElement(QueryClientProvider, { client: queryClient }, children)
+      }
+
+      const { result } = renderHook(() => useSelectTvShowForFolderMutation(), {
+        wrapper: Wrapper,
+      })
+
+      await act(async () => {
+        result.current.selectTvShowForFolderMutation.mutate({
+          mediaFolderPath: "/library/show",
+          database: "TMDB",
+          result: minimalTmdbTv,
+          searchLanguage: "en-US",
+        })
+      })
+
+      await waitFor(() => {
+        expect(hoisted.recognizeFolderViaCore).toHaveBeenCalledWith({
+          path: "/library/show",
+          db: "tmdb",
+          id: "42",
+        })
+      })
+
+      expect(hoisted.updateFolderStatus).toHaveBeenCalledWith(expect.any(String), "loading")
+      expect(hoisted.updateFolderStatus).toHaveBeenCalledWith(expect.any(String), "ok")
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["mediaMetadata", "/library/show"],
+      })
+      expect(hoisted.updateMediaMetadataAsync).not.toHaveBeenCalled()
+    })
+
+    it("TVDB: calls recognizeFolderViaCore with tvdb db and id", async () => {
+      const { result } = renderHook(() => useSelectTvShowForFolderMutation(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.selectTvShowForFolderMutation.mutate({
+          mediaFolderPath: "/library/show",
+          database: "TVDB",
+          result: tvdbResult({ tvdb_id: "999" }) as unknown as TVDBSearchItem,
+          searchLanguage: "zh-CN",
+        })
+      })
+
+      await waitFor(() => {
+        expect(hoisted.recognizeFolderViaCore).toHaveBeenCalledWith({
+          path: "/library/show",
+          db: "tvdb",
+          id: "999",
+        })
+      })
+    })
+
+    it("on recognize error: toast.error and folder status ok", async () => {
+      hoisted.recognizeFolderViaCore.mockRejectedValueOnce(new Error("not managed"))
+
+      const { result } = renderHook(() => useSelectTvShowForFolderMutation(), {
+        wrapper: createWrapper(),
+      })
+
+      await act(async () => {
+        result.current.selectTvShowForFolderMutation.mutate({
+          mediaFolderPath: "/library/show",
+          database: "TMDB",
+          result: minimalTmdbTv,
+          searchLanguage: "en-US",
+        })
+      })
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith("not managed")
+      })
+      expect(hoisted.updateFolderStatus).toHaveBeenCalledWith(expect.any(String), "ok")
+    })
   })
 })

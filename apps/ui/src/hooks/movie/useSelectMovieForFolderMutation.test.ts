@@ -8,12 +8,14 @@ import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import { useSelectMovieForFolderMutation } from "./useSelectMovieForFolderMutation"
 import { useGetTmdbMovieMutation } from "../useGetTmdbMovieMutation"
 import { useGetTvdbMovieMutation } from "../useGetTvdbMovieMutation"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 import { toast } from "sonner"
 
 const hoisted = vi.hoisted(() => ({
   fetchMediaMetadataAsync: vi.fn(),
   updateMediaMetadataAsync: vi.fn(),
   updateFolderStatus: vi.fn(),
+  recognizeFolderViaCore: vi.fn(),
 }))
 
 vi.mock("@/hooks/mediaMetadata/useFetchMediaMetadataMutation", () => ({
@@ -32,6 +34,14 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
   useUIMediaFolderStore: {
     getState: () => ({ updateFolderStatus: hoisted.updateFolderStatus }),
   },
+}))
+
+vi.mock("@/api/recognizeFolder", () => ({
+  recognizeFolderViaCore: hoisted.recognizeFolderViaCore,
+}))
+
+vi.mock("@/lib/localStorages", () => ({
+  isSmmV3Enabled: vi.fn().mockReturnValue(false),
 }))
 
 vi.mock("@/lib/utils", async (importOriginal) => {
@@ -128,10 +138,12 @@ function tvdbResult(overrides: Partial<TVDBv4SearchResult> = {}): TVDBv4SearchRe
 describe("useSelectMovieForFolderMutation", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
     hoisted.fetchMediaMetadataAsync.mockResolvedValue({
       ...baseMovieFolderMetadata,
     })
     hoisted.updateMediaMetadataAsync.mockResolvedValue(undefined)
+    hoisted.recognizeFolderViaCore.mockResolvedValue(undefined)
   })
 
   it("TMDB: routes mutate to useGetTmdbMovieMutation with id, language, mediaFolderPath, traceId, baseMetadata", () => {
@@ -344,5 +356,51 @@ describe("useSelectMovieForFolderMutation", () => {
     })
 
     expect(out).toEqual(resolvedMovie)
+  })
+
+  describe("when SMM v3 is enabled", () => {
+    beforeEach(() => {
+      vi.mocked(isSmmV3Enabled).mockReturnValue(true)
+    })
+
+    it("TMDB: calls recognizeFolderViaCore and invalidates media metadata query", async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      })
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries")
+
+      function Wrapper({ children }: { children: React.ReactNode }) {
+        return React.createElement(QueryClientProvider, { client: queryClient }, children)
+      }
+
+      const { result } = renderHook(() => useSelectMovieForFolderMutation(), {
+        wrapper: Wrapper,
+      })
+
+      await act(async () => {
+        result.current.selectMovieForFolderMutation.mutate({
+          mediaFolderPath: "/library/movie",
+          baseMetadata: baseMovieFolderMetadata,
+          database: "TMDB",
+          result: minimalTmdbMovie,
+          searchLanguage: "en-US",
+        })
+      })
+
+      await waitFor(() => {
+        expect(hoisted.recognizeFolderViaCore).toHaveBeenCalledWith({
+          path: "/library/movie",
+          db: "tmdb",
+          id: "99",
+        })
+      })
+
+      expect(hoisted.updateFolderStatus).toHaveBeenCalledWith("/library/movie", "loading")
+      expect(hoisted.updateFolderStatus).toHaveBeenCalledWith("/library/movie", "ok")
+      expect(invalidateSpy).toHaveBeenCalledWith({
+        queryKey: ["mediaMetadata", "/library/movie"],
+      })
+      expect(hoisted.updateMediaMetadataAsync).not.toHaveBeenCalled()
+    })
   })
 })

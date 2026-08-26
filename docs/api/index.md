@@ -67,6 +67,13 @@ Source Code: apps/cli/src/route/Tmdb.ts
 - `POST /api/get-movie-in-tmdb` → `Core.getMovieInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
 - `POST /api/get-tvshow-in-tmdb` → `Core.getTvShowInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
 
+## RecognizeFolder
+Source Code: apps/cli/src/route/RecognizeFolder.ts
+
+1:1 Internal HTTP for `Core.recognizeFolder`. Assigns TMDB/TVDB TV show or movie metadata to an imported folder; sets `mediaFiles: []`. Response `{ data: { path } }` or `{ error }` (HTTP 200). Used by Web UI when the user selects a search result (`useSelectTvShowForFolderMutation` / `useSelectMovieForFolderMutation`) and `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm recognize <folder> --db tmdb|tvdb --id <id>`.
+
+- `POST /api/recognize-folder` → `Core.recognizeFolder`. Body: `{ path: string, db: "tmdb" | "tvdb", id: string }`.
+
 ## SearchInTvdb / GetMovieInTvdb / GetTvShowInTvdb / GetTvdbLanguages
 Source Code: apps/cli/src/route/Tvdb.ts
 
