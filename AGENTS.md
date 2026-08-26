@@ -171,6 +171,8 @@ pnpm ci               # 构建 + 测试 + 类型检查
 **识别季集视频文件(Recognize Episode Video File)**: 该操作用于指定电视剧每一集对应的本地视频文件
 **元数据(Media Metadata)**: 元数据, 保存了文件夹对应的电视剧或电影的信息，以及本地视频文件和季集的对应关系
 **视频文件和关联文件(Video File and Associated Files)** 视频文件通常还对应着字幕文件, 音频文件, 封面文件和 NFO 文件等, 这类文件被称为关联文件
+**DVD** UI组件 Download Video Dialog, 其代码位于 `apps/ui/src/components/dialogs/UIDownloadVideoDialogContent.tsx`
+
 
 ## 技术架构
 
@@ -253,9 +255,6 @@ bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 ## apps/cli API 列表
 API列表可查阅文件: `docs/api/index.md`.
 
-## 术语
-
-**DVD** Download Video Dialog
 
 ## 注意事项
 

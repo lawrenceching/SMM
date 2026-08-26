@@ -45,6 +45,31 @@ sequenceDiagram
   CLI->>Core: recognizeFolder(folder)
 ```
 
+## Web UI, Electron and HarmonyOS
+
+NOTE: The function of searching media in TMDB/TVDB is described in [Search in TMDB](./tmdb.md) and [Search in TVDB](./tvdb.md).
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant W as Web UI
+  participant S as Server
+  participant C as Core
+
+  U->>W: Search TV series or movie
+  W->>S: POST /api/search-in-tmdb
+  S->>C: searchInTmdb()
+  C->>S: return
+  S->>W: return
+  W->>U: display results
+  U->>W: select TV series or movie
+  W->>S: POST /api/recognize-folder
+  S->>C: recognizeFolder()
+  C->>S: return
+  S->>W: return
+  W->>W: invalidate useMediaMetadataQuery
+```
+
 ### Recognize folder in auto
 
 ```
