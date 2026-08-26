@@ -56,6 +56,30 @@ S01E33 - - - -
 S01E34 - - - -
 S01E35 - - - -`
 
+/** TVDB lists 5 aired-order seasons (S0–S4); empty season names render as "Season N" in zh-CN UI. */
+function buildEpisodeTableExpectation(
+    seasons: ReadonlyArray<{ season: number; episodes: number }>,
+): string {
+    const lines: string[] = []
+    for (const { season, episodes } of seasons) {
+        lines.push(`Season ${season}`)
+        for (let episode = 1; episode <= episodes; episode += 1) {
+            lines.push(
+                `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')} - - - -`,
+            )
+        }
+    }
+    return lines.join('\n')
+}
+
+const OSHI_NO_KO_TVDB_EPISODE_TABLE = buildEpisodeTableExpectation([
+    { season: 0, episodes: 2 },
+    { season: 1, episodes: 11 },
+    { season: 2, episodes: 13 },
+    { season: 3, episodes: 11 },
+    { season: 4, episodes: 1 },
+])
+
 /**
  * @supports local, Electron, HarmonyOS, Docker
  */
@@ -169,23 +193,27 @@ describe('Search TV Show', () => {
         await when('I search for "我推的孩子"')
         await when('I select search result with title "【我推的孩子】"')
 
-        await then('metadata has tvShow defined', async () => {
-            const folder = getStepContext()._folder as { path: string }
+        await then('episode table shows Oshi no Ko TVDB seasons', async () => {
             await browser.waitUntil(async () => {
-                try {
-                    await expectMediaMetadataViaBrowser(folder.path, (obj) => {
-                        console.log(JSON.stringify(obj))
-                        const mm = obj as MediaMetadata
-                        return mm.tvShow !== undefined
-                    }, { timeoutMs: 5_000, intervalMs: 1_000 })
-                } catch {
-                    return false
-                }
-                return true
+                const stateInString = await TvShowPanelCO.toString()
+                console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
+                return stateInString.includes(OSHI_NO_KO_TVDB_EPISODE_TABLE)
             }, {
-                timeout: 5 * 60 * 1000,
-                interval: 1000,
-                timeoutMsg: 'Expected to see TV show metadata in the media metadata',
+                timeout: 3 * 60 * 1000,
+                interval: 2000,
+                timeoutMsg: 'Expected to see TVDB Season 4 in the TV show panel within 3 minutes after TVDB select',
+            })
+        })
+
+        await then('metadata is persisted with TVDB Oshi no Ko', async () => {
+            const folder = getStepContext()._folder as { path: string }
+            await expectMediaMetadataViaBrowser(folder.path, (obj) => {
+                const mm = obj as MediaMetadata
+                expect(mm.tvShow?.id).toBe('421069')
+                expect(mm.tvShow?.name).toBe('【我推的孩子】')
+                expect(mm.tvShow?.database).toBe('TVDB')
+                expect(mm.tvShow?.seasons?.length).toBe(5)
+                return true
             })
         })
 

@@ -206,7 +206,7 @@ CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTvdb` / `getMovieInTvdb` / `ge
 
 ---
 
-## Web UI（⏳ v3 迁移）
+## Web UI（✅ v3 搜索）
 
 Web UI 的改动需要使用 localStorage 开关 `smm.v3.enabled` 控制.
 
@@ -224,7 +224,7 @@ flowchart LR
 
 | 层 | 文件 / 接口 |
 |----|------|
-| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` |
+| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` · `apps/ui/src/api/tvdbSearch.ts` · `apps/ui/src/api/tvdbV3.ts` |
 | HTTP | `POST /api/search-in-tvdb` · `POST /api/get-movie-in-tvdb` · `POST /api/get-tvshow-in-tvdb` · `POST /api/get-tvdb-languages` |
 | Core | `searchInTvdb` · `getMovieInTvdb` · `getTvShowInTvdb` · `getTvdbLanguages` |
 | 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |

@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useConfig } from '@/hooks/userConfig'
 import { MediaDatabaseSearchbox } from './MediaDatabaseSearchbox'
 import localStorages from '@/lib/localStorages'
-import { TVDBv4Error } from '@smm/tvdb4'
 
 const mockImmersiveSearchboxProps = {
   current: {} as {
@@ -75,17 +74,22 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-const { mockSearchTmdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
+const { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
   const mockSearchTmdb = vi.fn()
+  const mockSearchTvdb = vi.fn()
   const mockTvdbSearch = vi.fn()
   const mockGetTVDBv4Client = vi.fn(() => ({ search: mockTvdbSearch }))
-  return { mockSearchTmdb, mockGetTVDBv4Client, mockTvdbSearch }
+  return { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client, mockTvdbSearch }
 })
 
 vi.mock('@/api/tmdb', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/tmdb')>()
   return { ...actual, searchTmdb: mockSearchTmdb }
 })
+
+vi.mock('@/api/tvdbSearch', () => ({
+  searchTvdb: mockSearchTvdb,
+}))
 
 vi.mock('@/lib/TvdbUtils', () => ({
   getTVDBv4Client: mockGetTVDBv4Client,
@@ -501,7 +505,7 @@ describe('MediaDatabaseSearchbox', () => {
     expect(mockGetTVDBv4Client).not.toHaveBeenCalled()
   })
 
-  it('handleSearch calls getTVDBv4Client().search() with type=movie when database is TVDB and mediaType is movie', async () => {
+  it('handleSearch calls searchTvdb with keyword, type, and language when database is TVDB and mediaType is movie', async () => {
     vi.mocked(useConfig).mockImplementation(() => ({
       userConfig: {
         applicationLanguage: 'en',
@@ -512,7 +516,7 @@ describe('MediaDatabaseSearchbox', () => {
       },
       appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
     } as any))
-    mockTvdbSearch.mockResolvedValue({ status: 'success', data: [] })
+    mockSearchTvdb.mockResolvedValue({ results: [] })
     render(
       <MediaDatabaseSearchbox
         mediaType="movie"
@@ -526,10 +530,9 @@ describe('MediaDatabaseSearchbox', () => {
       await mockImmersiveSearchboxProps.current.onSearch?.()
     })
 
-    await waitFor(() => expect(mockTvdbSearch).toHaveBeenCalledTimes(1))
-    expect(mockGetTVDBv4Client).toHaveBeenCalledTimes(1)
-    const [searchParams] = mockTvdbSearch.mock.calls[0] as [{ query: string; type: string; language?: string }]
-    expect(searchParams).toMatchObject({ query: 'inception', type: 'movie' })
+    await waitFor(() => expect(mockSearchTvdb).toHaveBeenCalledTimes(1))
+    expect(mockSearchTvdb).toHaveBeenCalledWith('inception', 'movie', 'eng')
+    expect(mockGetTVDBv4Client).not.toHaveBeenCalled()
     expect(mockSearchTmdb).not.toHaveBeenCalled()
   })
 
@@ -553,7 +556,7 @@ describe('MediaDatabaseSearchbox', () => {
     })
   })
 
-  it('shows database-specific unauthorized message when TVDB login returns 401', async () => {
+  it('shows database-specific unauthorized message when TVDB search returns 401', async () => {
     vi.mocked(useConfig).mockImplementation(() => ({
       userConfig: {
         applicationLanguage: 'en',
@@ -564,12 +567,10 @@ describe('MediaDatabaseSearchbox', () => {
       },
       appConfig: { reverseProxyUrl: 'http://127.0.0.1:30005' },
     } as any))
-    mockTvdbSearch.mockRejectedValue(
-      new TVDBv4Error('TVDB login failed: 401 Unauthorized', {
-        status: 401,
-        url: 'http://127.0.0.1:30005/login',
-      }),
-    )
+    mockSearchTvdb.mockResolvedValue({
+      results: [],
+      error: 'Error Reason: TVDB login failed: 401 Unauthorized',
+    })
     render(
       <MediaDatabaseSearchbox
         {...defaultProps}

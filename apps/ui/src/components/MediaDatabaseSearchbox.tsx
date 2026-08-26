@@ -18,7 +18,7 @@ import type {
   PreferMediaLanguage,
 } from "@core/types"
 import { TVDBv4Error } from "@smm/tvdb4"
-import { getTVDBv4Client } from "@/lib/TvdbUtils"
+import { searchTvdb } from "@/api/tvdbSearch"
 import {
   getTvdbSearchResultAlternateName,
   getTvdbSearchResultName,
@@ -91,7 +91,7 @@ export function MediaDatabaseSearchbox({
   unrecognizedHint,
 }: TMDBSearchboxProps) {
   const { t } = useTranslation(["errors", "components"])
-  const { userConfig, appConfig } = useConfig()
+  const { userConfig } = useConfig()
   const { mediaLanguage: resolvedMediaLanguage } = useResolvedLanguages()
 
   const [searchDatabase, setSearchDatabase] = useState<PrimaryDatabase>(() => {
@@ -235,19 +235,19 @@ export function MediaDatabaseSearchbox({
         const query = searchQuery.trim()
         const language = searchLanguage.trim() || undefined
 
-        const tvdb = getTVDBv4Client({
-          reverseProxyUrl: appConfig?.reverseProxyUrl ?? null,
-          upstreamBaseURL: userConfig?.tvdb?.host?.trim() || undefined,
-          apiKey: userConfig?.tvdb?.apiKey?.trim() || undefined,
-        })
-        const envelope = await tvdb.search({ query, type, language })
+        const response = await searchTvdb(query, type, language)
+        if (response.error) {
+          const errText = response.error
+          if (/401|API key|unauthorized/i.test(errText)) {
+            setSearchError(t("errors:searchFailedUnauthorizedTvdb"))
+          } else {
+            setSearchError(errText.replace(/^Error Reason:\s*/i, ""))
+          }
+          return
+        }
 
-        if (
-          envelope.status === "success" &&
-          Array.isArray(envelope.data) &&
-          envelope.data.length > 0
-        ) {
-          setTvdbSearchResultsRaw(buildTvdbSearchResults(envelope.data))
+        if (response.results.length > 0) {
+          setTvdbSearchResultsRaw(buildTvdbSearchResults(response.results))
           return
         }
         setSearchError(t("errors:searchNoResults"))
