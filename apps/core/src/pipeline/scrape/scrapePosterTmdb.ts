@@ -108,7 +108,9 @@ export async function scrapePoster(deps: ScrapeTaskDeps): Promise<ScrapeTaskResu
       return { status: "skipped" };
     }
 
-    await downloadScrapeImage(mediaMetadata, posterUrl, posterPath, userConfig, fs, network);
+    await downloadScrapeImage(mediaMetadata, posterUrl, posterPath, userConfig, fs, network, {
+      discover: deps.discover,
+    });
     return { status: "completed" };
   } catch (error) {
     return { status: "failed", error: scrapeErrorMessage(error) };

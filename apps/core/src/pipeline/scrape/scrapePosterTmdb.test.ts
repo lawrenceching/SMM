@@ -1,6 +1,7 @@
 import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, UserConfig } from "@smm/core";
 import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
+import type { DiscoverPort } from "../../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
 import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
@@ -94,6 +95,7 @@ function createDeps(
   network: NetworkPort,
   tmdb: Partial<TmdbClient>,
   mediaMetadata: MediaMetadata = tvShowMetadata,
+  discover?: DiscoverPort,
 ): ScrapeTaskDeps {
   return {
     fs,
@@ -103,6 +105,7 @@ function createDeps(
     mediaMetadata,
     language: "en-US",
     userConfig: DEFAULT_USER_CONFIG,
+    discover,
   };
 }
 
@@ -159,5 +162,55 @@ describe("scrapePosterTmdb", () => {
 
     expect(result.status).toBe("failed");
     expect(result.error).toContain("No poster available");
+  });
+
+  it("failovers to a discover tmdb-asset mirror when the default CDN host is unreachable", async () => {
+    const fs = createInMemoryFs();
+    const fakeBytes = new Uint8Array([0xff, 0xd8, 0xff]);
+    const urls: string[] = [];
+    const network: NetworkPort = {
+      fetch: vi.fn(async (url: string) => {
+        urls.push(url);
+        if (url.includes("wronghost.tmdb.local")) {
+          return {
+            ok: false,
+            status: 503,
+            statusText: "Service Unavailable",
+            headers: {},
+            text: () => Promise.resolve(""),
+            json: <T>() => Promise.resolve({} as T),
+            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+          };
+        }
+        if (url.includes("tmdb-mirror.example")) {
+          return fakeImageResponse(fakeBytes);
+        }
+        throw new Error(`unexpected url: ${url}`);
+      }),
+    };
+    const tmdb = { getTvShowById: vi.fn().mockResolvedValue(seriesDetails) };
+    const discover: DiscoverPort = {
+      getDiscoverConfig: async () => ({
+        mediaDatabases: [
+          {
+            type: "tmdb-asset",
+            url: "https://tmdb-mirror.example",
+            authorizationMethod: "none",
+          },
+        ],
+        reverseProxies: [],
+      }),
+    };
+
+    const result = await scrapePosterTmdb(
+      createDeps(fs, network, tmdb, tvShowMetadata, discover),
+    );
+
+    expect(result).toEqual({ status: "completed" });
+    expect(urls).toEqual([
+      "https://image.tmdb.org/t/p/original/poster.jpg",
+      "https://tmdb-mirror.example/t/p/original/poster.jpg",
+    ]);
+    expect(fs.binaryFiles.get("/media/Test Show/poster.jpg")).toEqual(fakeBytes);
   });
 });

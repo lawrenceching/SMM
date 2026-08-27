@@ -153,6 +153,7 @@ export async function runPreparedScrape(
     language,
     userConfig: config,
     reverseProxyUrl: deps.reverseProxyUrl ?? undefined,
+    discover: deps.discover,
   };
 
   const tasks = {} as Record<ScrapeTaskId, ScrapeTaskResult>;

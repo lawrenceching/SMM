@@ -1,8 +1,9 @@
-import { isEmpty } from "es-toolkit/compat";
 import type { MediaMetadata, UserConfig } from "@smm/core";
+import type { DiscoverConfig, DiscoverPort } from "../../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
 import { dirname } from "../paths";
+import { buildAssetUrlCandidates } from "./assetImageUrls";
 import { resolveScrapeHttpProxy } from "./resolveScrapeHttpProxy";
 
 /** Browser-like request headers for remote TMDB/TVDB image fetches. */
@@ -17,7 +18,12 @@ export const REMOTE_IMAGE_REQUEST_HEADERS: Record<string, string> = {
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 };
 
+const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxies: [] };
+
 export interface DownloadScrapeImageDeps {
+  discover?: DiscoverPort;
+  /** Test hook: simulate TMDB CDN outage (see buildAssetUrlCandidates). */
+  overrideDefaultTmdbAssetServerHost?: string | null;
   /**
    * Optional fetch override (e.g. proxied). Receives the resolved httpProxy
    * when a custom media-database host + proxy pair is configured.
@@ -32,9 +38,22 @@ function normalizeImageUrl(url: string): string {
   return url;
 }
 
+async function fetchImageResponse(
+  url: string,
+  init: FetchInit,
+  httpProxy: string | undefined,
+  network: NetworkPort,
+  customFetch: DownloadScrapeImageDeps["fetch"],
+): Promise<HttpResponse> {
+  if (customFetch) {
+    return customFetch(url, init, httpProxy);
+  }
+  return network.fetch(url, init);
+}
+
 /**
- * Download one scrape image: resolve HTTP proxy from metadata, fetch via
- * NetworkPort, mkdir parent, write bytes with FsPort.writeBinaryFile.
+ * Download one scrape image with TMDB/TVDB asset-server failover: try official CDN
+ * URL first, then discover-configured asset mirrors (host-swap).
  */
 export async function downloadScrapeImage(
   mediaMetadata: MediaMetadata,
@@ -57,25 +76,47 @@ export async function downloadScrapeImage(
     );
   }
 
+  const discoverConfig = deps.discover
+    ? await deps.discover.getDiscoverConfig().catch(() => EMPTY_DISCOVER_CONFIG)
+    : EMPTY_DISCOVER_CONFIG;
+
+  const candidates = buildAssetUrlCandidates(normalizedUrl, discoverConfig, {
+    overrideDefaultTmdbAssetServerHost: deps.overrideDefaultTmdbAssetServerHost,
+  });
+
   const init: FetchInit = {
     method: "GET",
     headers: REMOTE_IMAGE_REQUEST_HEADERS,
   };
 
-  const response = deps.fetch
-    ? await deps.fetch(normalizedUrl, init, httpProxy)
-    : await network.fetch(normalizedUrl, init);
+  let lastError: Error | undefined;
+  for (const candidate of candidates) {
+    try {
+      const response = await fetchImageResponse(
+        candidate,
+        init,
+        httpProxy,
+        network,
+        deps.fetch,
+      );
+      if (!response.ok) {
+        lastError = new Error(`HTTP error! status: ${response.status}`);
+        continue;
+      }
 
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+      const arrayBuffer = await response.arrayBuffer();
+      const data = new Uint8Array(arrayBuffer);
+
+      const parentDir = dirname(filePath);
+      if (parentDir !== "/") {
+        await fs.mkdir(parentDir);
+      }
+      await fs.writeBinaryFile(filePath, data);
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const data = new Uint8Array(arrayBuffer);
-
-  const parentDir = dirname(filePath);
-  if (parentDir !== "/") {
-    await fs.mkdir(parentDir);
-  }
-  await fs.writeBinaryFile(filePath, data);
+  throw lastError ?? new Error("Failed to download image: no candidates");
 }

@@ -1,5 +1,6 @@
 import type { MediaMetadata, UserConfig } from "@smm/core";
 import { describe, expect, it, vi } from "vitest";
+import type { DiscoverConfig, DiscoverPort } from "../../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
 import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
@@ -195,5 +196,156 @@ describe("downloadScrapeImage", () => {
     );
 
     expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("failovers to discover tmdb-asset mirror when the default CDN host fails", async () => {
+    const fs = createInMemoryFs();
+    const fakeBytes = new Uint8Array([0xff, 0xd8, 0xff]);
+    const urls: string[] = [];
+    const network: NetworkPort = {
+      fetch: vi.fn(async (url: string) => {
+        urls.push(url);
+        if (url.includes("wronghost.tmdb.local")) {
+          return fakeImageResponse(new Uint8Array(), false);
+        }
+        if (url.includes("tmdb-mirror.example")) {
+          return fakeImageResponse(fakeBytes);
+        }
+        throw new Error(`unexpected url: ${url}`);
+      }),
+    };
+
+    const discoverConfig: DiscoverConfig = {
+      mediaDatabases: [
+        {
+          type: "tmdb-asset",
+          url: "https://tmdb-mirror.example",
+          authorizationMethod: "none",
+        },
+      ],
+      reverseProxies: [],
+    };
+    const discover: DiscoverPort = {
+      getDiscoverConfig: vi.fn(async () => discoverConfig),
+    };
+
+    await downloadScrapeImage(
+      movieMetadata,
+      "https://image.tmdb.org/t/p/original/poster.jpg",
+      "/media/Fight Club/poster.jpg",
+      userConfig(),
+      fs,
+      network,
+      {
+        discover,
+        overrideDefaultTmdbAssetServerHost: "wronghost.tmdb.local",
+      },
+    );
+
+    expect(urls).toEqual([
+      "https://wronghost.tmdb.local/t/p/original/poster.jpg",
+      "https://tmdb-mirror.example/t/p/original/poster.jpg",
+    ]);
+    expect(fs.binaryFiles.get("/media/Fight Club/poster.jpg")).toEqual(fakeBytes);
+  });
+
+  it("failovers when the first candidate throws a network error", async () => {
+    const fs = createInMemoryFs();
+    const fakeBytes = new Uint8Array([1, 2, 3]);
+    const network: NetworkPort = {
+      fetch: vi.fn(async (url: string) => {
+        if (url.includes("image.tmdb.org")) {
+          throw new Error("network down");
+        }
+        return fakeImageResponse(fakeBytes);
+      }),
+    };
+    const discover: DiscoverPort = {
+      getDiscoverConfig: async () => ({
+        mediaDatabases: [
+          {
+            type: "tmdb-asset",
+            url: "https://tmdb-mirror.example",
+            authorizationMethod: "none",
+          },
+        ],
+        reverseProxies: [],
+      }),
+    };
+
+    await downloadScrapeImage(
+      movieMetadata,
+      "https://image.tmdb.org/t/p/original/poster.jpg",
+      "/media/poster.jpg",
+      userConfig(),
+      fs,
+      network,
+      { discover },
+    );
+
+    expect(fs.binaryFiles.get("/media/poster.jpg")).toEqual(fakeBytes);
+    expect(network.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws the last error when all candidates fail", async () => {
+    const fs = createInMemoryFs();
+    const network: NetworkPort = {
+      fetch: vi.fn(async () => fakeImageResponse(new Uint8Array(), false)),
+    };
+    const discover: DiscoverPort = {
+      getDiscoverConfig: async () => ({
+        mediaDatabases: [
+          {
+            type: "tmdb-asset",
+            url: "https://tmdb-mirror.example",
+            authorizationMethod: "none",
+          },
+        ],
+        reverseProxies: [],
+      }),
+    };
+
+    await expect(
+      downloadScrapeImage(
+        movieMetadata,
+        "https://image.tmdb.org/t/p/original/poster.jpg",
+        "/media/poster.jpg",
+        userConfig(),
+        fs,
+        network,
+        { discover },
+      ),
+    ).rejects.toThrow("HTTP error! status: 503");
+
+    expect(network.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("downloads from the official CDN when discover is unavailable", async () => {
+    const fs = createInMemoryFs();
+    const fakeBytes = new Uint8Array([9]);
+    const fetch = vi.fn(async () => fakeImageResponse(fakeBytes));
+    const network: NetworkPort = { fetch };
+    const discover: DiscoverPort = {
+      getDiscoverConfig: async () => {
+        throw new Error("discover offline");
+      },
+    };
+
+    await downloadScrapeImage(
+      movieMetadata,
+      "https://image.tmdb.org/t/p/original/poster.jpg",
+      "/media/poster.jpg",
+      userConfig(),
+      fs,
+      network,
+      { discover },
+    );
+
+    expect(fetch).toHaveBeenCalledOnce();
+    expect(fetch).toHaveBeenCalledWith(
+      "https://image.tmdb.org/t/p/original/poster.jpg",
+      expect.any(Object),
+    );
+    expect(fs.binaryFiles.get("/media/poster.jpg")).toEqual(fakeBytes);
   });
 });
