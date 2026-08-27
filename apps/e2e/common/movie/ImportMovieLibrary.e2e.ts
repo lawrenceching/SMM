@@ -8,7 +8,6 @@ import {
     clearFolderViaBrowser,
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
-import { delay } from 'es-toolkit'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
@@ -67,8 +66,6 @@ describe('Import Movie Library', () => {
         await given('Media library was imported with movie folders', {
             base: testFolder,
         })
-
-        await delay(30 * 1000)
 
         const folders = getStepContext()._folders as Array<{
             folderName: string

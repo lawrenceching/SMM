@@ -7,8 +7,8 @@ import {
 import {
     clearFolderViaBrowser,
     resolveSmmTestFolderViaBrowser,
+    listFilesViaBrowser,
 } from 'test/lib/browser-fs'
-import { delay } from 'es-toolkit'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import type { MediaMetadata } from '@smm/core/types'
@@ -65,8 +65,6 @@ describe('Import Library', () => {
         await given('Media library was imported with TV show folders', {
             base: testFolder,
         })
-
-        await delay(30 * 1000)
 
         const folders = getStepContext()._folders as Array<{
             folderName: string
@@ -127,8 +125,6 @@ describe('Import Library', () => {
             base: testFolder,
         })
 
-        await delay(30 * 1000)
-
         const folders = getStepContext()._folders as Array<{
             folderName: string
             path: string
@@ -188,8 +184,6 @@ describe('Import Library', () => {
             base: testFolder,
         })
 
-        await delay(15 * 1000)
-
         const folders = getStepContext()._folders as Array<{
             folderName: string
             path: string
@@ -203,9 +197,10 @@ describe('Import Library', () => {
                 const mm = obj as MediaMetadata
                 expect(mm.mediaFolderPath).toBe(Path.posix(f.path))
                 expect(mm.type).toBe('music-folder')
-                expect(mm.files?.some((file) => file.endsWith('01.mp3'))).toBe(true)
                 return true
             })
+            const listed = await listFilesViaBrowser(f.path, { recursively: true, onlyFiles: true })
+            expect(listed.some((file) => file.path.endsWith('01.mp3'))).toBe(true)
         })
     })
 })
