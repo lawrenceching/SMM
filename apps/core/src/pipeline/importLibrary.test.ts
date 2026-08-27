@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { dedupLibraryFolders, prepareLibraryFoldersForImport } from './importLibrary'
+import {
+  createImportLibraryTasks,
+  dedupLibraryFolders,
+  importLibraryJobProgress,
+  prepareLibraryFoldersForImport,
+} from './importLibrary'
 
 describe('dedupLibraryFolders', () => {
   it('removes folders already imported (POSIX comparison)', () => {
@@ -43,5 +48,26 @@ describe('prepareLibraryFoldersForImport', () => {
       upsertFolders,
     })
     expect(upsertFolders).not.toHaveBeenCalled()
+  })
+})
+
+describe('createImportLibraryTasks', () => {
+  it('creates pending tasks for each folder path', () => {
+    const tasks = createImportLibraryTasks('job-1', ['/lib/A', '/lib/B'])
+    expect(tasks).toEqual([
+      { id: 'job-1-task-0', path: '/lib/A', status: 'pending' },
+      { id: 'job-1-task-1', path: '/lib/B', status: 'pending' },
+    ])
+  })
+})
+
+describe('importLibraryJobProgress', () => {
+  it('returns percentage of completed tasks', () => {
+    expect(
+      importLibraryJobProgress([
+        { id: '1', path: '/a', status: 'succeeded' },
+        { id: '2', path: '/b', status: 'pending' },
+      ]),
+    ).toBe(50)
   })
 })

@@ -1,5 +1,11 @@
 import type { FolderType } from "@smm/core";
+import type {
+  ImportLibraryJob as ImportLibraryJobPayload,
+  ImportLibraryJobTask,
+} from "@smm/core/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
+
+export type { ImportLibraryJobTask } from "@smm/core/job/ImportLibraryJob";
 
 export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "aborted";
 export type JobStage = "config" | "metadata" | "listFiles" | "recognize" | "episodes" | "persist" | null;
@@ -19,21 +25,8 @@ export interface ImportJob {
   updatedAt: number;
 }
 
-export interface ImportLibraryJob {
+export interface ImportLibraryJob extends ImportLibraryJobPayload {
   kind: "import-library";
-  id: string;
-  libraryPath: string;
-  type: FolderType;
-  status: JobStatus;
-  progress: number;
-  folderPaths: string[];
-  importedCount: number;
-  totalCount: number;
-  currentFolderPath?: string;
-  currentFolderJobId?: string;
-  error?: string;
-  createdAt: number;
-  updatedAt: number;
 }
 
 export type ScrapeTaskRuntimeStatus =

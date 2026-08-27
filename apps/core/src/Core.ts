@@ -27,6 +27,12 @@ import type { LoggerPort } from "./ports/LoggerPort";
 import type { DiscoverPort } from "./ports/DiscoverPort";
 import type { McpServerPort, McpServerState } from "./ports/McpServerPort";
 import {
+  CoreEventBus,
+  MEDIA_METADATA_UPDATED_EVENT,
+  type CoreEventMap,
+  type CoreEventName,
+} from "./coreEvents";
+import {
   getMcpServerStatusWithConfig,
   startMcpServerWithConfig,
   stopMcpServerWithConfig,
@@ -37,7 +43,7 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { TvdbClient } from "./clients/TvdbClient";
 import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
-import { dedupLibraryFolders, prepareLibraryFoldersForImport } from "./pipeline/importLibrary";
+import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
   renameEpisodeFilePipeline,
@@ -191,6 +197,7 @@ export class Core {
   private readonly mediaMetadata: MediaMetadataHelper;
   private readonly discover?: DiscoverPort;
   private readonly mcpServer?: McpServerPort;
+  private readonly eventBus = new CoreEventBus();
 
   constructor(options: CoreOptions) {
     this.fs = options.fs;
@@ -209,6 +216,24 @@ export class Core {
     this.mediaMetadata = new MediaMetadataHelper(this.fs, this.appDataDir);
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
+  }
+
+  on<E extends CoreEventName>(event: E, listener: (data: CoreEventMap[E]) => void): void {
+    this.eventBus.on(event, listener);
+  }
+
+  off<E extends CoreEventName>(event: E, listener: (data: CoreEventMap[E]) => void): void {
+    this.eventBus.off(event, listener);
+  }
+
+  once<E extends CoreEventName>(event: E, listener: (data: CoreEventMap[E]) => void): void {
+    this.eventBus.once(event, listener);
+  }
+
+  private notifyMediaMetadataUpdated(folderPath: string): void {
+    this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, {
+      folderPath: this.normalizePosix(folderPath),
+    });
   }
 
   private requireMcpServer(): McpServerPort {
@@ -280,13 +305,15 @@ export class Core {
       kind: "import-library",
       libraryPath,
       type,
-      status: "running",
+      status: "pending",
       progress: 0,
-      folderPaths: [],
-      importedCount: 0,
-      totalCount: 0,
+      tasks: [],
     });
     void this.runImportLibrary(job, path, type, options?.skipInit === true);
+    this.logger.info(
+      { jobId: job.id, libraryPath, type, skipInit: options?.skipInit === true },
+      "importLibrary: job created",
+    );
     return { id: job.id };
   }
 
@@ -756,6 +783,7 @@ export class Core {
         { skipRegistration: options?.skipRegistration === true },
       );
       this.jobs.update(job.id, { status: "succeeded", stage: null, progress: 100 });
+      this.notifyMediaMetadataUpdated(folderPath);
     } catch (error) {
       this.jobs.update(job.id, {
         status: "failed",
@@ -777,11 +805,12 @@ export class Core {
       const subdirs = await this.fs.listSubdirectories(libraryPath);
       const existing = await this.getFolders();
       const toImport = dedupLibraryFolders(subdirs, existing);
-      this.jobs.update(job.id, {
-        folderPaths: toImport,
-        totalCount: toImport.length,
-        importedCount: 0,
-      });
+      const tasks = createImportLibraryTasks(job.id, toImport);
+      this.jobs.update(job.id, { tasks });
+      this.logger.info(
+        { jobId: job.id, libraryPath, folderCount: toImport.length, folderPaths: toImport },
+        "importLibrary: folders discovered",
+      );
 
       await prepareLibraryFoldersForImport(toImport, type, {
         writeBlankMetadata: (metadata) => this.mediaMetadata.write(metadata),
@@ -792,46 +821,74 @@ export class Core {
           }));
         },
       });
+      this.logger.info(
+        { jobId: job.id, folderCount: toImport.length },
+        "importLibrary: folder registration complete (metadata + UserConfig)",
+      );
 
       if (skipInit) {
+        const succeededTasks = tasks.map((task) => ({
+          ...task,
+          status: "succeeded" as const,
+          importJobId: undefined,
+        }));
         this.jobs.update(job.id, {
           status: "succeeded",
           progress: 100,
-          currentFolderPath: undefined,
-          currentFolderJobId: undefined,
+          tasks: succeededTasks,
         });
         return;
       }
 
-      for (let i = 0; i < toImport.length; i++) {
-        const folder = toImport[i]!;
-        const { id: childId } = this.importFolder(folder, type, { skipRegistration: true });
-        this.jobs.update(job.id, {
-          currentFolderPath: folder,
-          currentFolderJobId: childId,
-          progress: toImport.length === 0 ? 100 : Math.floor((i / toImport.length) * 100),
+      this.jobs.update(job.id, { status: "running" });
+      let currentTasks = tasks;
+
+      for (const task of tasks) {
+        currentTasks = patchImportLibraryTask(currentTasks, task.id, {
+          status: "running",
         });
+        this.jobs.update(job.id, {
+          tasks: currentTasks,
+          progress: importLibraryJobProgress(currentTasks),
+        });
+
+        const { id: childId } = this.importFolder(task.path, type, { skipRegistration: true });
+        currentTasks = patchImportLibraryTask(currentTasks, task.id, { importJobId: childId });
+        this.jobs.update(job.id, { tasks: currentTasks });
+
         await this.waitForImportJob(childId);
         const childJob = this.jobs.get(childId);
         if (childJob?.kind === "import" && childJob.status === "failed") {
-          throw new Error(childJob.error ?? `Failed to import folder: ${folder}`);
+          currentTasks = patchImportLibraryTask(currentTasks, task.id, {
+            status: "failed",
+            importJobId: undefined,
+          });
+          this.jobs.update(job.id, { tasks: currentTasks });
+          throw new Error(childJob.error ?? `Failed to import folder: ${task.path}`);
         }
+
+        currentTasks = patchImportLibraryTask(currentTasks, task.id, {
+          status: "succeeded",
+          importJobId: undefined,
+        });
         this.jobs.update(job.id, {
-          importedCount: i + 1,
-          progress: Math.floor(((i + 1) / toImport.length) * 100),
+          tasks: currentTasks,
+          progress: importLibraryJobProgress(currentTasks),
         });
       }
 
       this.jobs.update(job.id, {
         status: "succeeded",
         progress: 100,
-        currentFolderPath: undefined,
-        currentFolderJobId: undefined,
+        tasks: currentTasks,
       });
+      this.logger.info({ jobId: job.id, taskCount: tasks.length }, "importLibrary: job succeeded");
     } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error({ jobId: job.id, libraryPath, error: message }, "importLibrary: job failed");
       this.jobs.update(job.id, {
         status: "failed",
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       });
     }
   }

@@ -208,8 +208,8 @@ describe("Core", () => {
     expect(job?.kind).toBe("import-library");
     if (job?.kind !== "import-library") return;
     expect(job.status).toBe("succeeded");
-    expect(job.totalCount).toBe(2);
-    expect(job.importedCount).toBe(2);
+    expect(job.tasks).toHaveLength(2);
+    expect(job.tasks.every((task) => task.status === "succeeded")).toBe(true);
 
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
@@ -290,8 +290,8 @@ describe("Core", () => {
 
     const job = core.getJob(id);
     if (job?.kind !== "import-library") throw new Error("expected import-library job");
-    expect(job.totalCount).toBe(1);
-    expect(job.folderPaths).toEqual(["/lib/Show2"]);
+    expect(job.tasks).toHaveLength(1);
+    expect(job.tasks[0]?.path).toBe("/lib/Show2");
   });
 
   it("importLibrary marks the job failed when the library path is missing", async () => {
@@ -307,6 +307,51 @@ describe("Core", () => {
     const job = core.getJob(id);
     expect(job?.status).toBe("failed");
     expect(job?.error).toContain("Library path not found");
+  });
+
+  it("importFolder emits mediaMetadataUpdated after persist (not on skipInit blank metadata)", async () => {
+    const fs = inMemoryFs({ "/m/Show/ep.mkv": "" });
+    const updated: string[] = [];
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    core.on("mediaMetadataUpdated", (data) => {
+      if (data.folderPath) updated.push(data.folderPath);
+    });
+
+    const { id: fullId } = core.importFolder("/m/Show", "music");
+    await waitForStatus(core, fullId, "succeeded");
+    expect(updated).toEqual(["/m/Show"]);
+
+    updated.length = 0;
+    const { id: skipId } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, skipId, "succeeded");
+    expect(updated).toEqual([]);
+  });
+
+  it("importLibrary emits mediaMetadataUpdated once per folder after importFolder persist", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const updated: string[] = [];
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    core.on("mediaMetadataUpdated", (data) => {
+      if (data.folderPath) updated.push(data.folderPath);
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    expect(updated.sort()).toEqual(["/lib/Show1", "/lib/Show2"].sort());
   });
 });
 

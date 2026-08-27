@@ -1,5 +1,10 @@
 import { apiFetch } from '@/lib/apiFetch'
+import type {
+  ImportLibraryJob as ImportLibraryJobBody,
+} from '@smm/core/job/ImportLibraryJob'
 import type { ScrapeTaskId } from '@/lib/scrapeDialog'
+
+export type { ImportLibraryJobTask } from '@smm/core/job/ImportLibraryJob'
 
 export type JobStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'aborted'
 
@@ -40,21 +45,8 @@ export interface ImportJob {
   updatedAt: number
 }
 
-export interface ImportLibraryJob {
+export interface ImportLibraryJob extends ImportLibraryJobBody {
   kind: 'import-library'
-  id: string
-  libraryPath: string
-  type: string
-  status: JobStatus
-  progress: number
-  folderPaths: string[]
-  importedCount: number
-  totalCount: number
-  currentFolderPath?: string
-  currentFolderJobId?: string
-  error?: string
-  createdAt: number
-  updatedAt: number
 }
 
 export type Job = ImportJob | ImportLibraryJob | ScrapeJob

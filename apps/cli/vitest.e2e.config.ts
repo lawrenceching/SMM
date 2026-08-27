@@ -3,17 +3,18 @@ import { resolve } from 'path'
 
 const coreRoot = resolve(__dirname, '../../packages/core')
 
+/** Network/integration CLI tests — not part of default `pnpm test`. */
 export default defineConfig({
   test: {
     environment: 'node',
-    // Unit tests only. E2E lives in test/*.e2e.ts — run via `pnpm run test:e2e`.
-    include: ['src/**/*.test.ts', 'test/helpers/**/*.test.ts'],
+    include: ['test/**/*.e2e.ts'],
+    exclude: ['test/test-mcp.e2e.ts'],
+    testTimeout: 10 * 60 * 1000,
   },
   resolve: {
     alias: [
       { find: '@', replacement: resolve(__dirname, './src') },
       { find: '@core', replacement: coreRoot },
-      // Subpaths (`@smm/core/path`, …) must win over bare `@smm/core` → types.ts.
       {
         find: /^@smm\/core\/(.+)$/,
         replacement: `${coreRoot}/$1`,

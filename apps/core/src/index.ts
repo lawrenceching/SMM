@@ -19,6 +19,12 @@ export {
 export type { FsPort } from "./ports/FsPort";
 export type { NetworkPort, FetchInit, HttpResponse } from "./ports/NetworkPort";
 export type { LoggerPort } from "./ports/LoggerPort";
+export {
+  CoreEventBus,
+  MEDIA_METADATA_UPDATED_EVENT,
+  type CoreEventMap,
+  type CoreEventName,
+} from "./coreEvents";
 export type {
   DiscoverPort,
   DiscoverConfig,
@@ -86,6 +92,7 @@ export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type {
   ImportJob,
   ImportLibraryJob,
+  ImportLibraryJobTask,
   ScrapeJob,
   Job,
   JobStatus,

@@ -99,9 +99,7 @@ describe('smm addlib', () => {
       type: 'tvshow',
       status: 'succeeded',
       progress: 100,
-      folderPaths: [],
-      importedCount: 0,
-      totalCount: 0,
+      tasks: [],
       createdAt: 0,
       updatedAt: 0,
     })

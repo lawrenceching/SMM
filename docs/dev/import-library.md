@@ -1,11 +1,11 @@
 # Import Library
 
-**Supported Platform** Web UI, CLI, Electron, ohos
+**Supported Platform** Web UI, CLI, Electron, ohos  
 **Status** wip
 
 ## Core
 
-The function of importing library reuses the function of [importing folder](./import-folder.md).
+Reuses [import folder](./import-folder.md). Job shape: [ImportLibraryJob](../../packages/core/job/ImportLibraryJob.ts).
 
 ```mermaid
 sequenceDiagram
@@ -13,84 +13,64 @@ sequenceDiagram
   participant C as Core
   participant UC as UserConfigHelper
   participant M as MediaMetadataHelper
+  participant E as Core events
 
   U->>C: importLibrary(path, type)
-  C->>C: create job
+  C->>C: create job (pending) + tasks (pending)
   C->>U: job id
-  C->>C: read folders in library
-  loop #1: for each folder
-    C->>M: create blank metadata file
+  loop #1 prep
+    C->>M: blank metadata per folder
   end
-  C->>UC: upsert folders in UserConfig at at once
-  loop import folders
-    C->>C: importFolder(jobId)
+  C->>UC: batch upsert folders
+  C->>C: job → running
+  loop #2 import each folder
+    C->>C: task → running → importFolder
+    C->>C: task → succeeded | failed
+    C->>E: emit mediaMetadataUpdated
   end
-  C->>C: update job status
+  C->>C: job → succeeded | failed
 ```
 
-> #1: this loop supports Web UI to render folder list immediately after user import library.
-> Web UI first get folder list from user config. And then get folder status from media metadata.
-> So we need to create metadata file before upsert folder in UserConfig
-> To avoid Web UI find new folder but fail to get its metadata
-
+- **Loop #1**: Sidebar can list folders early; blank metadata must exist before UserConfig upsert.
+- **Loop #2**: Each `importFolder` persist completion emits `mediaMetadataUpdated` (not Loop #1, not `skipInit` blank writes). Host subscribes via `core.on(...)` and forwards to Socket.IO.
 
 ## CLI
 
 ```bash
-smm addlib "<path>" --type --type tvshow|movie|music|anime --skip-init
+smm addlib "<path>" --type tvshow|movie|music|anime [--skip-init]
 ```
 
-```mermaid
-sequenceDiagram
-  participant U as User
-  participant S as CLI
-  participant C as Core
-
-  U->>S: smm addlib "<path>"
-  S->>C: importLibrary(path, type)
-  C->>S: job id
-  loop looping job status
-    S->>C: getJob(jobId)
-  end
-  S->>U: print result
-```
+Poll `getJob(jobId)` until the import-library job settles.
 
 ## Web UI, Electron and ohos
 
-TODO: There is bug
-The folder list was not updated before importFolder job completed.
-UI should show all folders at the first step
-and then run import job to trigger init process
-
 ```mermaid
 sequenceDiagram
-  participant U as User
   participant W as Web UI
   participant S as Server
   participant C as Core
 
-  U->>W: import library
   W->>S: POST /api/import-library
-  S->>C: importLibrary(path, type)
-  C->>S: job id
+  S->>C: importLibrary
   S->>W: job id
-  W->>U: display job in running status
-  W->>W: invalidate useUserConfigQuery
-  W->>W: display folders in Sidebar
-  loop looping job status
-    W->>S: /api/get-job
-    S->>C: getJob(jobId)
-    C->>S: return
-    S->>W: return
+  W->>W: refresh Sidebar (UserConfig + job tasks)
+  par poll job
+    W->>S: POST /api/get-job
+  and metadata push
+    C->>S: core.on → emit mediaMetadataUpdated
+    S->>W: Socket.IO mediaMetadataUpdated
+    W->>W: fetchMediaMetadata (selected folder)
   end
-  W->>U: display job in success/failure status
 ```
 
-## Testing 
+- Sidebar status: `ImportLibraryJob.tasks[]` via get-job poll.
+- Panel content (TvShowPanel, etc.): existing `MediaMetadataUpdatedEventListener` refetches metadata when the selected folder’s import completes.
+
+## Testing
 
 | Use Case | Platform | File |
 |--|--|--|
-|UC1|Web UI, Electron, ohos| apps/e2e/common/ImportLibrary.e2e.ts|
-|UC1|CLI| apps/e2e/cli/import-library.test.ts|
+| UC1 | Web UI, Electron, ohos | `apps/e2e/common/ImportLibrary.e2e.ts` |
+| UC1 | CLI | `apps/e2e/cli/import-library.test.ts` |
 
 ### UC1: import tvshow/movie/music libraries

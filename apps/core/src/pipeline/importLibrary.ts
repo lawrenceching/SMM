@@ -1,5 +1,6 @@
 import { Path } from "@core/path";
 import type { FolderType } from "@smm/core";
+import type { ImportLibraryJobTask } from "../jobs/types";
 import { createBlankMediaMetadata } from "./importFolderPipeline";
 import type { PersistedMediaMetadata } from "./mediaMetadataValidation";
 
@@ -7,6 +8,32 @@ import type { PersistedMediaMetadata } from "./mediaMetadataValidation";
 export function dedupLibraryFolders(newFolders: string[], existingFolderPaths: string[]): string[] {
   const importedPosix = new Set(existingFolderPaths.map((p) => Path.posix(p)));
   return newFolders.filter((folder) => !importedPosix.has(Path.posix(folder)));
+}
+
+export function createImportLibraryTasks(jobId: string, folderPaths: string[]): ImportLibraryJobTask[] {
+  return folderPaths.map((path, index) => ({
+    id: `${jobId}-task-${index}`,
+    path,
+    status: "pending" as const,
+  }));
+}
+
+export function patchImportLibraryTask(
+  tasks: ImportLibraryJobTask[],
+  taskId: string,
+  patch: Partial<ImportLibraryJobTask>,
+): ImportLibraryJobTask[] {
+  return tasks.map((task) => (task.id === taskId ? { ...task, ...patch } : task));
+}
+
+export function importLibraryJobProgress(tasks: ImportLibraryJobTask[]): number {
+  if (tasks.length === 0) return 100;
+  const completed = tasks.filter((task) => task.status === "succeeded" || task.status === "failed").length;
+  return Math.floor((completed / tasks.length) * 100);
+}
+
+export function importLibraryTaskPaths(tasks: ImportLibraryJobTask[]): string[] {
+  return tasks.map((task) => task.path);
 }
 
 export interface PrepareLibraryFoldersDeps {

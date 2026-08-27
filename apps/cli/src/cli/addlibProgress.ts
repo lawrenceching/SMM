@@ -17,7 +17,7 @@ export async function waitUntilLibraryImportSettled(
   const log = options.log ?? console.log
   const emitProgress = options.progress !== false
   let announcedLibrary = false
-  let lastFolderJobId: string | undefined
+  let lastImportJobId: string | undefined
   let folderProgress = createAddProgressState()
   const deadline = Date.now() + options.timeoutMs
 
@@ -26,29 +26,30 @@ export async function waitUntilLibraryImportSettled(
     if (job?.kind === 'import-library') {
       if (
         !announcedLibrary &&
-        (job.totalCount > 0 || (job.status !== 'running' && job.status !== 'pending'))
+        (job.tasks.length > 0 || (job.status !== 'running' && job.status !== 'pending'))
       ) {
-        log(`importing library ${options.libraryPath} (${job.totalCount} folders)`)
+        log(`importing library ${options.libraryPath} (${job.tasks.length} folders)`)
         announcedLibrary = true
       }
 
-      if (job.currentFolderJobId && job.currentFolderJobId !== lastFolderJobId) {
-        lastFolderJobId = job.currentFolderJobId
+      const runningTask = job.tasks.find((task) => task.status === 'running')
+      if (runningTask?.importJobId && runningTask.importJobId !== lastImportJobId) {
+        lastImportJobId = runningTask.importJobId
         folderProgress = createAddProgressState()
       }
 
       if (
         emitProgress &&
         !options.skipInit &&
-        lastFolderJobId &&
-        job.currentFolderPath
+        lastImportJobId &&
+        runningTask
       ) {
-        const childJob = core.getJob(lastFolderJobId)
+        const childJob = core.getJob(lastImportJobId)
         if (childJob?.kind === 'import') {
           folderProgress = emitAddProgress(
             folderProgress,
             childJob,
-            job.currentFolderPath,
+            runningTask.path,
             options.type,
             log,
           )

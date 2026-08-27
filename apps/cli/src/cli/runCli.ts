@@ -192,8 +192,8 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           return
         }
         if (skipInit) {
-          for (const folder of job.folderPaths) {
-            console.log(`imported folder ${folder}`)
+          for (const task of job.tasks) {
+            console.log(`imported folder ${task.path}`)
           }
         }
       } catch (error) {

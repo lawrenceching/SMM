@@ -53,6 +53,7 @@
     "build": "bun run scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "test:mcp": "bun test ./test/test-mcp.e2e.ts"

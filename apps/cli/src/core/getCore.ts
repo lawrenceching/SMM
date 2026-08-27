@@ -10,6 +10,7 @@ import { getUserDataDir, getAppDataDir, getTmpDir, getLogDir } from '@/utils/con
 import { APP_VERSION } from '@/version'
 import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
+import { wireCoreEvents } from './wireCoreEvents'
 
 let instance: Core | undefined
 
@@ -36,6 +37,7 @@ export function getCore(options?: GetCoreOptions): Core {
       discover: new StaticDiscoverAdapter(),
       mcpServer: getBunMcpServerPort(),
     })
+    wireCoreEvents(instance)
   }
   return instance
 }
