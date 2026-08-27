@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { searchInTvdb } from './tvdbV3'
+import { searchInTvdb, toTvdbApiLanguage } from './tvdbV3'
 
 vi.mock('@/lib/apiFetch', () => ({
   apiFetch: vi.fn(),
@@ -24,6 +24,33 @@ describe('tvdbV3 Internal HTTP clients', () => {
 
   afterEach(() => {
     mockApiFetch.mockReset()
+  })
+
+  it('toTvdbApiLanguage maps preferMediaLanguage to ISO 639-3', () => {
+    expect(toTvdbApiLanguage('zh-CN')).toBe('zho')
+    expect(toTvdbApiLanguage('en-US')).toBe('eng')
+    expect(toTvdbApiLanguage('ja-JP')).toBe('jpn')
+    expect(toTvdbApiLanguage('zho')).toBe('zho')
+    expect(toTvdbApiLanguage(undefined)).toBeUndefined()
+  })
+
+  it('searchInTvdb maps zh-CN to zho for Core.searchInTvdb', async () => {
+    mockApiFetch.mockResolvedValue(
+      jsonResponse({
+        data: [{ tvdb_id: '355969', name: '天使降临到了我身边！' }],
+      }),
+    )
+    await searchInTvdb({ keyword: '天使降临到我身边', type: 'series', language: 'zh-CN' })
+    expect(mockApiFetch).toHaveBeenCalledWith('/api/search-in-tvdb', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        keyword: '天使降临到我身边',
+        type: 'series',
+        language: 'zho',
+      }),
+      signal: undefined,
+    })
   })
 
   it('searchInTvdb POSTs keyword and type', async () => {

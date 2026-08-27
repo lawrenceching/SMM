@@ -1,5 +1,19 @@
 import { apiFetch } from '@/lib/apiFetch'
+import { mediaLanguageToTvdbCode } from '@core/locale'
+import type { PreferMediaLanguage } from '@core/types'
 import type { TVDBv4SearchResult } from '@smm/tvdb4/types'
+
+const PREFER_MEDIA_LANGUAGES = new Set<string>(['zh-CN', 'en-US', 'ja-JP'])
+
+/** Map UI media language (BCP 47) to TVDB ISO 639-3 before calling Core routes. */
+export function toTvdbApiLanguage(language?: string): string | undefined {
+  const trimmed = language?.trim()
+  if (!trimmed) return undefined
+  if (PREFER_MEDIA_LANGUAGES.has(trimmed)) {
+    return mediaLanguageToTvdbCode(trimmed as PreferMediaLanguage)
+  }
+  return trimmed
+}
 
 export interface TvdbCoreRequestOptions {
   language?: string
@@ -20,7 +34,8 @@ export interface SearchInTvdbResponseBody {
 
 function optionalFields(options?: TvdbCoreRequestOptions): Record<string, string> {
   const body: Record<string, string> = {}
-  if (options?.language) body.language = options.language
+  const language = toTvdbApiLanguage(options?.language)
+  if (language) body.language = language
   if (options?.host) body.host = options.host
   if (options?.password) body.password = options.password
   if (options?.proxy) body.proxy = options.proxy
