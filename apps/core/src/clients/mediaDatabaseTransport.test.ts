@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { HttpResponse, NetworkPort } from "../ports/NetworkPort";
+import { HostPerformanceStore } from "./hostPerformance";
 import {
   _resetTvdbTokenCacheForTests,
   fetchMediaDatabase,
@@ -39,9 +40,8 @@ describe("fetchMediaDatabase", () => {
     const network: NetworkPort = {
       fetch: async (url) => {
         urls.push(url);
-        if (url.includes("dead.example")) throw new Error("network down");
         if (url.includes("live.example")) return jsonOk({ results: [] });
-        throw new Error("unexpected: " + url);
+        throw new Error("network down");
       },
     };
     const discover: DiscoverPort = {
@@ -61,8 +61,7 @@ describe("fetchMediaDatabase", () => {
     });
 
     expect(resp.ok).toBe(true);
-    expect(urls[0]).toContain("https://dead.example/api/tmdb/search/tv");
-    expect(urls[1]).toContain("https://live.example/api/tmdb/search/tv");
+    expect(urls.some((url) => url.includes("https://live.example/api/tmdb/search/tv"))).toBe(true);
   });
 
   it("routes custom host via local reverse proxy with X-SMM-Proxy-Upstream-BaseURL", async () => {
@@ -114,7 +113,7 @@ describe("fetchMediaDatabase", () => {
     ).rejects.toBeInstanceOf(MediaDatabaseFailoverExhaustedError);
   });
 
-  it("failovers on HTTP non-OK for default upstream hosts", async () => {
+  it("treats HTTP 5xx as success and does not failover", async () => {
     const urls: string[] = [];
     const network: NetworkPort = {
       fetch: async (url) => {
@@ -123,23 +122,20 @@ describe("fetchMediaDatabase", () => {
         return jsonOk({});
       },
     };
-    const discover: DiscoverPort = {
-      getDiscoverConfig: async () => ({
-        mediaDatabases: [
-          { type: "tmdb", url: "https://a.example", authorizationMethod: "none" },
-          { type: "tmdb", url: "https://b.example", authorizationMethod: "none" },
-        ],
-        reverseProxies: [],
-      }),
-    };
+    const hostPerformance = new HostPerformanceStore();
+    hostPerformance.set("tmdb", [
+      { host: "https://a.example", score: 1 },
+      { host: "https://b.example", score: 2 },
+    ]);
 
     const resp = await fetchMediaDatabase(network, {
       kind: "tmdb",
       path: "/tv/1",
-      discover,
+      hostPerformance,
     });
-    expect(resp.ok).toBe(true);
-    expect(urls).toHaveLength(2);
+    expect(resp.status).toBe(502);
+    expect(urls).toEqual(["https://a.example/tv/1"]);
+    expect(hostPerformance.get("tmdb")[0]).toEqual({ host: "https://a.example", score: 0 });
   });
 
   it("passes httpProxy to NetworkPort on direct custom-host fetch", async () => {
@@ -160,6 +156,59 @@ describe("fetchMediaDatabase", () => {
     });
 
     expect(proxies[0]).toBe("socks5://127.0.0.1:1080");
+  });
+
+  it("tries hosts in performance-list order and failovers only on TCP failure", async () => {
+    const urls: string[] = [];
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        urls.push(url);
+        if (url.includes("slow.example")) throw new Error("ECONNREFUSED");
+        if (url.includes("fast.example")) return jsonOk({ results: [] });
+        throw new Error("unexpected: " + url);
+      },
+    };
+    const hostPerformance = new HostPerformanceStore();
+    hostPerformance.set("tmdb", [
+      { host: "https://slow.example/api/tmdb", score: 0.2 },
+      { host: "https://fast.example/api/tmdb", score: 1.5 },
+    ]);
+
+    const resp = await fetchMediaDatabase(network, {
+      kind: "tmdb",
+      path: "/search/tv?query=x",
+      hostPerformance,
+    });
+
+    expect(resp.ok).toBe(true);
+    expect(urls[0]).toContain("https://slow.example/api/tmdb/search/tv");
+    expect(urls[1]).toContain("https://fast.example/api/tmdb/search/tv");
+    expect(hostPerformance.get("tmdb")[0]).toEqual({
+      host: "https://fast.example/api/tmdb",
+      score: 0,
+    });
+  });
+
+  it("does not failover a custom host when it fails at TCP layer", async () => {
+    const urls: string[] = [];
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        urls.push(url);
+        throw new Error("ECONNREFUSED");
+      },
+    };
+    const hostPerformance = new HostPerformanceStore();
+    hostPerformance.set("tmdb", [{ host: "https://fast.example", score: 0.1 }]);
+
+    await expect(
+      fetchMediaDatabase(network, {
+        kind: "tmdb",
+        path: "/search/tv?query=x",
+        configuredHost: "https://api.themoviedb.org/3",
+        hostPerformance,
+      }),
+    ).rejects.toBeInstanceOf(MediaDatabaseFailoverExhaustedError);
+    expect(urls).toEqual(["https://api.themoviedb.org/3/search/tv?query=x"]);
   });
 });
 

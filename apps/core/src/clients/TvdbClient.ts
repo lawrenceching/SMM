@@ -9,6 +9,7 @@ import type {
 import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/core";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
+import type { HostPerformanceStore } from "./hostPerformance";
 import {
   fetchMediaDatabase,
   SMM_TVDB_DEFAULT_UPSTREAM,
@@ -36,6 +37,7 @@ export interface TvdbClientOptions {
   httpProxy?: string;
   reverseProxyUrl?: string | null;
   discover?: DiscoverPort;
+  hostPerformance?: HostPerformanceStore;
 }
 
 /** Sentinel base URL; real routing goes through {@link fetchMediaDatabase}. */
@@ -50,6 +52,7 @@ export class TvdbClient {
     const httpProxy = options.httpProxy?.trim() || undefined;
     const reverseProxyUrl = options.reverseProxyUrl;
     const discover = options.discover;
+    const hostPerformance = options.hostPerformance;
 
     this.client = new TVDBv4({
       baseUrl: TVDB_TRANSPORT_BASE,
@@ -67,6 +70,7 @@ export class TvdbClient {
           httpProxy,
           reverseProxyUrl,
           discover,
+          hostPerformance,
         });
       },
     });

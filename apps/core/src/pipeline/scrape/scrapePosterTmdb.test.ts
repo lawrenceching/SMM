@@ -171,16 +171,8 @@ describe("scrapePosterTmdb", () => {
     const network: NetworkPort = {
       fetch: vi.fn(async (url: string) => {
         urls.push(url);
-        if (url.includes("wronghost.tmdb.local")) {
-          return {
-            ok: false,
-            status: 503,
-            statusText: "Service Unavailable",
-            headers: {},
-            text: () => Promise.resolve(""),
-            json: <T>() => Promise.resolve({} as T),
-            arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          };
+        if (url.includes("image.tmdb.org")) {
+          throw new Error("ECONNREFUSED");
         }
         if (url.includes("tmdb-mirror.example")) {
           return fakeImageResponse(fakeBytes);

@@ -1,5 +1,13 @@
+import { STATIC_MEDIA_DATABASES } from "../adapters/StaticDiscoverAdapter";
 import type { DiscoverPort, MediaDatabaseAuthorizationMethod, ReverseProxyEntry } from "../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../ports/NetworkPort";
+import {
+  isCustomHost,
+  mergeHostUrls,
+  normalizeHostUrl,
+  selectCandidateHosts,
+  type HostPerformanceStore,
+} from "./hostPerformance";
 
 export const SMM_TMDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tmdb";
 export const SMM_TVDB_DEFAULT_UPSTREAM = "https://mediadb.vercel.app/api/tvdb";
@@ -27,28 +35,14 @@ export interface FetchMediaDatabaseOptions {
   /** Local SMM reverse proxy base URL (required for reliable custom-host routing). */
   reverseProxyUrl?: string | null;
   discover?: DiscoverPort;
-}
-
-function normalizeBase(url: string): string {
-  return url.trim().replace(/\/+$/, "");
+  /** In-memory speed-test results; empty means use static+remote fallback order. */
+  hostPerformance?: HostPerformanceStore;
 }
 
 function joinUrl(base: string, path: string): string {
-  const cleanBase = normalizeBase(base);
+  const cleanBase = normalizeHostUrl(base);
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return cleanBase + cleanPath;
-}
-
-function isCustomHost(host: string | undefined, defaultUpstream: string): boolean {
-  const trimmed = host?.trim() ?? "";
-  if (!trimmed) return false;
-  try {
-    // eslint-disable-next-line no-new
-    new URL(trimmed);
-  } catch {
-    return false;
-  }
-  return normalizeBase(trimmed) !== normalizeBase(defaultUpstream);
 }
 
 function dateToken(now = new Date()): string {
@@ -88,7 +82,7 @@ async function ensureTvdbToken(
   apiKey: string | undefined,
   proxy: string | undefined,
 ): Promise<string> {
-  const key = normalizeBase(host);
+  const key = normalizeHostUrl(host);
   const cached = tvdbTokenCache.get(key);
   if (cached && Date.now() < cached.expiresAt - TVDB_TOKEN_REFRESH_BUFFER_MS) {
     return cached.token;
@@ -121,7 +115,7 @@ function generalProxyHeaders(
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...authHeaders(apiKey),
-    "X-Upstream-Base-Url": normalizeBase(upstreamBaseURL),
+    "X-Upstream-Base-Url": normalizeHostUrl(upstreamBaseURL),
   };
   if (authorizationMethod === "date-token") {
     headers["X-Proxy-Authorization"] = `Bearer ${dateToken()}`;
@@ -137,11 +131,15 @@ function localProxyHeaders(
   const headers: Record<string, string> = {
     Accept: "application/json",
     ...authHeaders(apiKey),
-    "X-SMM-Proxy-Upstream-BaseURL": normalizeBase(upstreamBaseURL),
+    "X-SMM-Proxy-Upstream-BaseURL": normalizeHostUrl(upstreamBaseURL),
   };
   const proxy = httpProxy?.trim();
   if (proxy) headers["X-Http-Proxy"] = proxy;
   return headers;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 async function tryFetch(
@@ -154,18 +152,25 @@ async function tryFetch(
     const init: FetchInit = { method: "GET", headers };
     const trimmedProxy = proxy?.trim();
     if (trimmedProxy) init.proxy = trimmedProxy;
-    const resp = await network.fetch(url, init);
-    if (resp.ok) return resp;
-    return undefined;
-  } catch {
+    // Any HTTP status means the host is reachable at TCP layer.
+    return await network.fetch(url, init);
+  } catch (error) {
+    if (isAbortError(error)) throw error;
     return undefined;
   }
 }
 
+function fallbackHostsForKind(kind: MediaDatabaseKind, remoteUrls: string[], defaultUpstream: string): string[] {
+  const staticUrls = STATIC_MEDIA_DATABASES.filter((entry) => entry.type === kind).map((entry) => entry.url);
+  const merged = mergeHostUrls(staticUrls, remoteUrls);
+  return merged.length > 0 ? merged : [normalizeHostUrl(defaultUpstream)];
+}
+
 /**
- * Fetch a TMDB/TVDB API path with the same routing policy as UI `fetchTmdb` / `fetchTvdb`:
- * - custom host → local reverse proxy (or direct if no reverseProxyUrl, for tests)
- * - default → discover hosts, each tried direct then via general reverse proxies
+ * Fetch a TMDB/TVDB API path:
+ * - custom host → no failover
+ * - empty performance list → static+remote order
+ * - otherwise performance-list order; TCP-or-below failure tries the next host
  */
 export async function fetchMediaDatabase(
   network: NetworkPort,
@@ -177,7 +182,7 @@ export async function fetchMediaDatabase(
   const attempted: string[] = [];
 
   if (isCustomHost(options.configuredHost, defaultUpstream)) {
-    const upstream = normalizeBase(options.configuredHost!);
+    const upstream = normalizeHostUrl(options.configuredHost!);
     const localProxy = options.reverseProxyUrl?.trim();
     if (localProxy) {
       const url = joinUrl(localProxy, path);
@@ -194,7 +199,7 @@ export async function fetchMediaDatabase(
     // (httpProxy is passed as NetworkPort `proxy`, not X-Http-Proxy).
     const url = joinUrl(upstream, path);
     attempted.push(url);
-    let headers: Record<string, string> = { Accept: "application/json" };
+    const headers: Record<string, string> = { Accept: "application/json" };
     if (options.kind === "tvdb") {
       const token = await ensureTvdbToken(network, upstream, options.apiKey, options.httpProxy);
       headers.Authorization = `Bearer ${token}`;
@@ -210,14 +215,15 @@ export async function fetchMediaDatabase(
     ? await options.discover.getDiscoverConfig()
     : { mediaDatabases: [], reverseProxies: [] as ReverseProxyEntry[] };
 
-  let hosts = config.mediaDatabases
-    .filter((e) => e.type === options.kind)
-    .map((e) => normalizeBase(e.url))
-    .filter(Boolean);
-
-  if (hosts.length === 0) {
-    hosts = [normalizeBase(defaultUpstream)];
-  }
+  const remoteUrls = config.mediaDatabases
+    .filter((entry) => entry.type === options.kind)
+    .map((entry) => entry.url);
+  const { hosts, allowFailover } = selectCandidateHosts({
+    customHost: options.configuredHost,
+    defaultUpstream,
+    performanceList: options.hostPerformance?.get(options.kind) ?? [],
+    fallbackHosts: fallbackHostsForKind(options.kind, remoteUrls, defaultUpstream),
+  });
 
   const proxies = config.reverseProxies.filter((p) => {
     try {
@@ -241,7 +247,10 @@ export async function fetchMediaDatabase(
       },
       options.httpProxy,
     );
-    if (direct !== undefined) return direct;
+    if (direct !== undefined) {
+      options.hostPerformance?.promoteToTop(options.kind, host);
+      return direct;
+    }
 
     for (const proxy of proxies) {
       const proxyUrl = joinUrl(proxy.url, path);
@@ -251,8 +260,13 @@ export async function fetchMediaDatabase(
         proxyUrl,
         generalProxyHeaders(host, proxy.authorizationMethod, options.apiKey),
       );
-      if (viaProxy !== undefined) return viaProxy;
+      if (viaProxy !== undefined) {
+        options.hostPerformance?.promoteToTop(options.kind, host);
+        return viaProxy;
+      }
     }
+
+    if (!allowFailover) break;
   }
 
   throw new MediaDatabaseFailoverExhaustedError(attempted);

@@ -42,6 +42,14 @@ import {
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { TvdbClient } from "./clients/TvdbClient";
+import {
+  HostPerformanceStore,
+  mergeHostUrls,
+  type HostPerformanceEntry,
+  type HostPerformanceKind,
+} from "./clients/hostPerformance";
+import { speedTestHosts } from "./clients/hostSpeedTest";
+import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
 import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
@@ -151,6 +159,8 @@ export interface CoreOptions {
   osLocale?: string;
   /** Discover hosts for TMDB/TVDB failover. */
   discover?: DiscoverPort;
+  /** When true, run host speed tests in the background after construction. */
+  enableHostSpeedTest?: boolean;
   /** MCP HTTP runtime (injected by CLI / OHOS host). */
   mcpServer?: McpServerPort;
 }
@@ -198,6 +208,7 @@ export class Core {
   private readonly discover?: DiscoverPort;
   private readonly mcpServer?: McpServerPort;
   private readonly eventBus = new CoreEventBus();
+  private readonly hostPerformance = new HostPerformanceStore();
 
   constructor(options: CoreOptions) {
     this.fs = options.fs;
@@ -216,6 +227,9 @@ export class Core {
     this.mediaMetadata = new MediaMetadataHelper(this.fs, this.appDataDir);
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
+    if (options.enableHostSpeedTest === true) {
+      void this.runHostSpeedTests();
+    }
   }
 
   on<E extends CoreEventName>(event: E, listener: (data: CoreEventMap[E]) => void): void {
@@ -228,6 +242,28 @@ export class Core {
 
   once<E extends CoreEventName>(event: E, listener: (data: CoreEventMap[E]) => void): void {
     this.eventBus.once(event, listener);
+  }
+
+  /**
+   * Measure TMDB/TVDB (and asset CDN) hosts after app start-up.
+   * CLI one-shot commands skip this so the performance list stays empty.
+   */
+  async runHostSpeedTests(): Promise<void> {
+    const remote = this.discover
+      ? await this.discover.getDiscoverConfig().catch(() => ({ mediaDatabases: [], reverseProxies: [] }))
+      : { mediaDatabases: [], reverseProxies: [] };
+    const kinds: HostPerformanceKind[] = ["tmdb", "tvdb", "tmdb-asset", "tvdb-asset"];
+    for (const kind of kinds) {
+      const staticUrls = STATIC_MEDIA_DATABASES.filter((entry) => entry.type === kind).map((entry) => entry.url);
+      const remoteUrls = remote.mediaDatabases.filter((entry) => entry.type === kind).map((entry) => entry.url);
+      const hosts = mergeHostUrls(staticUrls, remoteUrls);
+      const results = await speedTestHosts(this.network, hosts);
+      this.hostPerformance.set(kind, results);
+    }
+  }
+
+  getHostPerformanceList(kind: HostPerformanceKind): readonly HostPerformanceEntry[] {
+    return this.hostPerformance.get(kind);
   }
 
   private notifyMediaMetadataUpdated(folderPath: string): void {
@@ -645,6 +681,7 @@ export class Core {
       httpProxy,
       reverseProxyUrl: null,
       discover: this.discover,
+      hostPerformance: this.hostPerformance,
     });
 
     return { client, language };
@@ -674,6 +711,7 @@ export class Core {
       httpProxy,
       reverseProxyUrl: null,
       discover: this.discover,
+      hostPerformance: this.hostPerformance,
     });
 
     return { client, language };
@@ -696,6 +734,7 @@ export class Core {
       normalizePosix: (p: string) => this.normalizePosix(p),
       discover: this.discover,
       reverseProxyUrl: this.reverseProxyUrl,
+      hostPerformance: this.hostPerformance,
     };
   }
 

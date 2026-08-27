@@ -110,6 +110,7 @@ export async function scrapePoster(deps: ScrapeTaskDeps): Promise<ScrapeTaskResu
 
     await downloadScrapeImage(mediaMetadata, posterUrl, posterPath, userConfig, fs, network, {
       discover: deps.discover,
+      hostPerformance: deps.hostPerformance,
     });
     return { status: "completed" };
   } catch (error) {

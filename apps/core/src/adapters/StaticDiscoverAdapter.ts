@@ -25,6 +25,26 @@ export const STATIC_MEDIA_DATABASES: MediaDatabaseEntry[] = [
     url: "https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com",
     authorizationMethod: "none",
   },
+  {
+    type: "tmdb-asset",
+    url: "https://image.tmdb.org",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tmdb-asset",
+    url: "https://1255396852-19bqcvs6wn.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tvdb-asset",
+    url: "https://artworks.thetvdb.com",
+    authorizationMethod: "none",
+  },
+  {
+    type: "tvdb-asset",
+    url: "https://1255396852-2gz8ynvtkt.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none",
+  },
 ];
 
 export class StaticDiscoverAdapter implements DiscoverPort {

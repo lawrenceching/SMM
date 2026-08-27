@@ -128,6 +128,7 @@ export async function scrapeFanart(deps: ScrapeTaskDeps): Promise<ScrapeTaskResu
 
     await downloadScrapeImage(mediaMetadata, fanartUrl, fanartPath, userConfig, fs, network, {
       discover: deps.discover,
+      hostPerformance: deps.hostPerformance,
     });
     return { status: "completed" };
   } catch (error) {

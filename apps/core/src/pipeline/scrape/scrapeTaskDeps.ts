@@ -1,6 +1,7 @@
 import type { MediaMetadata, UserConfig } from "@smm/core";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { TvdbClient } from "../../clients/TvdbClient";
+import type { HostPerformanceStore } from "../../clients/hostPerformance";
 import type { DiscoverPort } from "../../ports/DiscoverPort";
 import type { FsPort } from "../../ports/FsPort";
 import type { NetworkPort } from "../../ports/NetworkPort";
@@ -16,6 +17,7 @@ export interface ScrapeTaskDeps {
   userConfig: UserConfig;
   reverseProxyUrl?: string;
   discover?: DiscoverPort;
+  hostPerformance?: HostPerformanceStore;
 }
 
 export function fileExtensionFromUrl(url: string): string {

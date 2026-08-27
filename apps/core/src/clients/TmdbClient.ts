@@ -12,6 +12,7 @@ import type {
 } from "@smm/core";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
+import type { HostPerformanceStore } from "./hostPerformance";
 import {
   fetchMediaDatabase,
   SMM_TMDB_DEFAULT_UPSTREAM,
@@ -25,6 +26,7 @@ export interface TmdbClientOptions {
   httpProxy?: string;
   reverseProxyUrl?: string | null;
   discover?: DiscoverPort;
+  hostPerformance?: HostPerformanceStore;
 }
 
 export class TmdbClient {
@@ -33,6 +35,7 @@ export class TmdbClient {
   private readonly httpProxy?: string;
   private readonly reverseProxyUrl?: string | null;
   private readonly discover?: DiscoverPort;
+  private readonly hostPerformance?: HostPerformanceStore;
 
   constructor(
     private readonly network: NetworkPort,
@@ -43,6 +46,7 @@ export class TmdbClient {
     this.httpProxy = options.httpProxy?.trim() || undefined;
     this.reverseProxyUrl = options.reverseProxyUrl;
     this.discover = options.discover;
+    this.hostPerformance = options.hostPerformance;
   }
 
   private async request<T>(urlPath: string): Promise<T> {
@@ -54,6 +58,7 @@ export class TmdbClient {
       httpProxy: this.httpProxy,
       reverseProxyUrl: this.reverseProxyUrl,
       discover: this.discover,
+      hostPerformance: this.hostPerformance,
     });
     if (!resp.ok) {
       throw new Error(`TMDB request failed: ${resp.status} ${resp.statusText}`);

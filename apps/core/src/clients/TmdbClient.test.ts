@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { HttpResponse, NetworkPort } from "../ports/NetworkPort";
+import { HostPerformanceStore } from "./hostPerformance";
 import { buildTvShowMediaMetadata, TmdbClient } from "./TmdbClient";
 
 function jsonResponse(body: unknown): HttpResponse {
@@ -112,20 +113,18 @@ describe("TmdbClient", () => {
       fetch: async (url) => {
         urls.push(url);
         if (url.includes("dead.example")) throw new Error("down");
-        return jsonResponse({ results: [{ id: 9, name: "X" }], page: 1, total_pages: 1, total_results: 1 });
+        if (url.includes("live.example")) {
+          return jsonResponse({ results: [{ id: 9, name: "X" }], page: 1, total_pages: 1, total_results: 1 });
+        }
+        throw new Error("unexpected: " + url);
       },
     };
-    const client = new TmdbClient(network, {
-      discover: {
-        getDiscoverConfig: async () => ({
-          mediaDatabases: [
-            { type: "tmdb", url: "https://dead.example/api/tmdb", authorizationMethod: "none" },
-            { type: "tmdb", url: "https://live.example/api/tmdb", authorizationMethod: "none" },
-          ],
-          reverseProxies: [],
-        }),
-      },
-    });
+    const hostPerformance = new HostPerformanceStore();
+    hostPerformance.set("tmdb", [
+      { host: "https://dead.example/api/tmdb", score: 0.2 },
+      { host: "https://live.example/api/tmdb", score: 1.1 },
+    ]);
+    const client = new TmdbClient(network, { hostPerformance });
 
     const body = await client.search("X", "tv", "en-US");
     expect(body.results[0]?.id).toBe(9);

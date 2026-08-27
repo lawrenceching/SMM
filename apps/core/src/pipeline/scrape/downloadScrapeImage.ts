@@ -1,9 +1,10 @@
 import type { MediaMetadata, UserConfig } from "@smm/core";
+import type { HostPerformanceStore } from "../../clients/hostPerformance";
 import type { DiscoverConfig, DiscoverPort } from "../../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
 import { dirname } from "../paths";
-import { buildAssetUrlCandidates } from "./assetImageUrls";
+import { assetTypeForHost, buildAssetUrlCandidates, hostSwap } from "./assetImageUrls";
 import { resolveScrapeHttpProxy } from "./resolveScrapeHttpProxy";
 
 /** Browser-like request headers for remote TMDB/TVDB image fetches. */
@@ -22,6 +23,7 @@ const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxi
 
 export interface DownloadScrapeImageDeps {
   discover?: DiscoverPort;
+  hostPerformance?: HostPerformanceStore;
   /** Test hook: simulate TMDB CDN outage (see buildAssetUrlCandidates). */
   overrideDefaultTmdbAssetServerHost?: string | null;
   /**
@@ -80,9 +82,10 @@ export async function downloadScrapeImage(
     ? await deps.discover.getDiscoverConfig().catch(() => EMPTY_DISCOVER_CONFIG)
     : EMPTY_DISCOVER_CONFIG;
 
-  const candidates = buildAssetUrlCandidates(normalizedUrl, discoverConfig, {
+  const fallbackCandidates = buildAssetUrlCandidates(normalizedUrl, discoverConfig, {
     overrideDefaultTmdbAssetServerHost: deps.overrideDefaultTmdbAssetServerHost,
   });
+  const candidates = orderAssetCandidates(normalizedUrl, fallbackCandidates, deps.hostPerformance);
 
   const init: FetchInit = {
     method: "GET",
@@ -99,24 +102,71 @@ export async function downloadScrapeImage(
         network,
         deps.fetch,
       );
-      if (!response.ok) {
-        lastError = new Error(`HTTP error! status: ${response.status}`);
-        continue;
+      if (response.ok) {
+        const arrayBuffer = await response.arrayBuffer();
+        const data = new Uint8Array(arrayBuffer);
+
+        const parentDir = dirname(filePath);
+        if (parentDir !== "/") {
+          await fs.mkdir(parentDir);
+        }
+        await fs.writeBinaryFile(filePath, data);
+        promoteAssetHost(normalizedUrl, candidate, deps.hostPerformance);
+        return;
       }
 
-      const arrayBuffer = await response.arrayBuffer();
-      const data = new Uint8Array(arrayBuffer);
-
-      const parentDir = dirname(filePath);
-      if (parentDir !== "/") {
-        await fs.mkdir(parentDir);
-      }
-      await fs.writeBinaryFile(filePath, data);
-      return;
+      lastError = new Error(`HTTP error! status: ${response.status}`);
+      promoteAssetHost(normalizedUrl, candidate, deps.hostPerformance);
+      // HTTP-layer failure means the host is reachable — stop failover.
+      break;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
 
   throw lastError ?? new Error("Failed to download image: no candidates");
+}
+
+function orderAssetCandidates(
+  originalUrl: string,
+  fallbackCandidates: string[],
+  hostPerformance: HostPerformanceStore | undefined,
+): string[] {
+  let hostname = "";
+  try {
+    hostname = new URL(originalUrl).hostname;
+  } catch {
+    return fallbackCandidates;
+  }
+  const assetType = assetTypeForHost(hostname);
+  const list = assetType ? hostPerformance?.get(assetType) : undefined;
+  if (!list || list.length === 0) return fallbackCandidates;
+
+  const ordered: string[] = [];
+  for (const entry of list) {
+    const swapped = hostSwap(originalUrl, entry.host);
+    if (swapped && !ordered.includes(swapped)) ordered.push(swapped);
+  }
+  return ordered.length > 0 ? ordered : fallbackCandidates;
+}
+
+function promoteAssetHost(
+  originalUrl: string,
+  succeededUrl: string,
+  hostPerformance: HostPerformanceStore | undefined,
+): void {
+  if (!hostPerformance) return;
+  let hostname = "";
+  try {
+    hostname = new URL(originalUrl).hostname;
+  } catch {
+    return;
+  }
+  const assetType = assetTypeForHost(hostname);
+  if (!assetType) return;
+  try {
+    hostPerformance.promoteToTop(assetType, new URL(succeededUrl).origin);
+  } catch {
+    // ignore invalid URLs
+  }
 }

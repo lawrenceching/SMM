@@ -52,6 +52,11 @@ export { NetworkFsAdapter, type NetworkFsAdapterOptions } from "./adapters/netwo
 export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";
 export { ConsoleLoggerAdapter, NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 export { StaticDiscoverAdapter, STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
+export {
+  HostPerformanceStore,
+  type HostPerformanceEntry,
+  type HostPerformanceKind,
+} from "./clients/hostPerformance";
 export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
 export {
   UserConfigHelper,

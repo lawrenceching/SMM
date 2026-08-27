@@ -71,6 +71,7 @@ import { handleSpeedtest } from './src/route/speedtest';
 import { handleDiscover } from './src/route/discover';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
+import { getCore } from '@/core/getCore';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
@@ -417,6 +418,10 @@ export class Server {
     );
 
     applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
+
+    getCore().runHostSpeedTests().catch((err) =>
+      logger.error({ err }, "Failed to run TMDB/TVDB host speed tests"),
+    );
   }
 
   async stop(): Promise<void> {

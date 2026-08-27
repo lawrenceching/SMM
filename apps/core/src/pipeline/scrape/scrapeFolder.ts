@@ -5,6 +5,7 @@ import { TvdbClient } from "../../clients/TvdbClient";
 import type { DiscoverPort } from "../../ports/DiscoverPort";
 import type { FsPort } from "../../ports/FsPort";
 import type { NetworkPort } from "../../ports/NetworkPort";
+import type { HostPerformanceStore } from "../../clients/hostPerformance";
 import { metadataCachePath } from "../paths";
 import type { UserConfigHelper } from "../userConfigHelper";
 import type { UserConfig as UserConfigData } from "@smm/core";
@@ -29,6 +30,7 @@ export interface ScrapeFolderDeps {
   normalizePosix: (path: string) => string;
   discover?: DiscoverPort;
   reverseProxyUrl?: string | null;
+  hostPerformance?: HostPerformanceStore;
 }
 
 export interface ScrapeFolderProgress {
@@ -135,11 +137,13 @@ export async function runPreparedScrape(
     ...config.tmdb,
     discover: deps.discover,
     reverseProxyUrl: deps.reverseProxyUrl,
+    hostPerformance: deps.hostPerformance,
   });
   const tvdb = new TvdbClient(deps.network, {
     ...config.tvdb,
     discover: deps.discover,
     reverseProxyUrl: deps.reverseProxyUrl,
+    hostPerformance: deps.hostPerformance,
   });
 
   const completion = await checkScrapeCompletion(mediaMetadata, deps.fs);
@@ -154,6 +158,7 @@ export async function runPreparedScrape(
     userConfig: config,
     reverseProxyUrl: deps.reverseProxyUrl ?? undefined,
     discover: deps.discover,
+    hostPerformance: deps.hostPerformance,
   };
 
   const tasks = {} as Record<ScrapeTaskId, ScrapeTaskResult>;

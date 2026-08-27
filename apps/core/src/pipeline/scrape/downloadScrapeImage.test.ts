@@ -206,7 +206,7 @@ describe("downloadScrapeImage", () => {
       fetch: vi.fn(async (url: string) => {
         urls.push(url);
         if (url.includes("wronghost.tmdb.local")) {
-          return fakeImageResponse(new Uint8Array(), false);
+          throw new Error("ECONNREFUSED");
         }
         if (url.includes("tmdb-mirror.example")) {
           return fakeImageResponse(fakeBytes);
@@ -317,7 +317,7 @@ describe("downloadScrapeImage", () => {
       ),
     ).rejects.toThrow("HTTP error! status: 503");
 
-    expect(network.fetch).toHaveBeenCalledTimes(2);
+    expect(network.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("downloads from the official CDN when discover is unavailable", async () => {

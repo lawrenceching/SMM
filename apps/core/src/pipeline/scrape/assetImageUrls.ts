@@ -13,7 +13,7 @@ function normalizeImageUrl(url: string): string {
   return url;
 }
 
-function hostSwap(originalUrl: string, assetBaseUrl: string): string | null {
+export function hostSwap(originalUrl: string, assetBaseUrl: string): string | null {
   try {
     const original = new URL(originalUrl);
     const base = new URL(assetBaseUrl);
@@ -30,7 +30,7 @@ function hostSwap(originalUrl: string, assetBaseUrl: string): string | null {
   }
 }
 
-function assetTypeForHost(hostname: string): MediaDatabaseType | null {
+export function assetTypeForHost(hostname: string): MediaDatabaseType | null {
   if (TMDB_IMAGE_HOSTS.has(hostname)) return "tmdb-asset";
   if (TVDB_ARTWORK_HOSTS.has(hostname)) return "tvdb-asset";
   return null;

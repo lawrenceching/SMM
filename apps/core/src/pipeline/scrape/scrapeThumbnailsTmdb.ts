@@ -104,7 +104,7 @@ async function downloadStills(
       userConfig,
       fs,
       network,
-      { discover: deps.discover },
+      { discover: deps.discover, hostPerformance: deps.hostPerformance },
     );
     downloaded += 1;
   }
