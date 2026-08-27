@@ -114,10 +114,17 @@ async function applyResetUserConfig(option: ResetUserConfigOption): Promise<void
     })
 }
 
+
 export async function setup(options: {
     removeMetadataDir: boolean,
     removePlansDir: boolean,
     removeMediaFolders: boolean,
+    /**
+     * @deprecated
+     * resetUserConfig will reset the user config which clear all imported folders
+     * So we don't need to remove the folders in sidebar by browser operations.
+     * Please set the removeDirInSidebar to false.
+     */
     removeDirInSidebar: boolean,
     resetUserConfig: ResetUserConfigOption,
     openBrowserPage: boolean,
