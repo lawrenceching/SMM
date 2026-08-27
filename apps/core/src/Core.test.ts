@@ -215,6 +215,63 @@ describe("Core", () => {
     expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
   });
 
+  it("importLibrary registers blank metadata before UserConfig upsert", async () => {
+    const writeOrder: string[] = [];
+    const baseFs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const fs: FsPort = {
+      ...baseFs,
+      writeTextFile: vi.fn(async (path: string, content: string) => {
+        if (path === userConfigPath("/data/smm")) {
+          writeOrder.push("config");
+        } else if (path.includes("/metadata/")) {
+          writeOrder.push(`metadata:${path}`);
+        }
+        await baseFs.writeTextFile(path, content);
+      }),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const configIndex = writeOrder.indexOf("config");
+    expect(configIndex).toBeGreaterThan(-1);
+    expect(writeOrder.slice(0, configIndex).every((entry) => entry.startsWith("metadata:"))).toBe(true);
+    expect(writeOrder.slice(0, configIndex).length).toBe(2);
+  });
+
+  it("importLibrary with skipInit only registers folders without running importFolder init", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+
+    const jobs = [core.getJob(id)];
+    expect(jobs.filter((job) => job?.kind === "import")).toHaveLength(0);
+
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show1"))).toBe(true);
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show2"))).toBe(true);
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
+  });
+
   it("importLibrary skips folders already in user config", async () => {
     const fs = inMemoryFs({
       [userConfigPath("/data/smm")]: JSON.stringify({ folders: ["/lib/Show1"], tmdb: {}, tvdb: {} }),

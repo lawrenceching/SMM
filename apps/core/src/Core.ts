@@ -37,7 +37,7 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { TvdbClient } from "./clients/TvdbClient";
 import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
-import { dedupLibraryFolders } from "./pipeline/importLibrary";
+import { dedupLibraryFolders, prepareLibraryFoldersForImport } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
   renameEpisodeFilePipeline,
@@ -164,6 +164,8 @@ export interface ScrapeFolderHandle {
 export interface ImportFolderOptions {
   /** When true, only register the path in UserConfig.folders; skip recognition and metadata. */
   skipInit?: boolean;
+  /** When true, folder is already registered (import-library prep); run init from listFiles. */
+  skipRegistration?: boolean;
 }
 
 export interface ImportLibraryOptions {
@@ -258,13 +260,15 @@ export class Core {
       folderPath,
       type,
       status: "running",
-      stage: "config",
+      stage: options?.skipRegistration === true ? "listFiles" : "config",
       progress: 0,
     });
     if (options?.skipInit === true) {
       void this.runImportSkipInit(job, path);
     } else {
-      void this.runImport(job, path, type);
+      void this.runImport(job, path, type, {
+        skipRegistration: options?.skipRegistration === true,
+      });
     }
     return { id: job.id };
   }
@@ -722,7 +726,12 @@ export class Core {
     }
   }
 
-  private async runImport(job: ImportJob, folderPath: string, type: FolderType): Promise<void> {
+  private async runImport(
+    job: ImportJob,
+    folderPath: string,
+    type: FolderType,
+    options?: { skipRegistration?: boolean },
+  ): Promise<void> {
     try {
       const pipeline = new ImportFolderPipeline({
         fs: this.fs,
@@ -732,15 +741,20 @@ export class Core {
         discover: this.discover,
         reverseProxyUrl: this.reverseProxyUrl,
       });
-      await pipeline.run(folderPath, type, {
-        onStage: (stage, progress, detail) => {
-          this.jobs.update(job.id, {
-            stage,
-            progress,
-            ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
-          });
+      await pipeline.run(
+        folderPath,
+        type,
+        {
+          onStage: (stage, progress, detail) => {
+            this.jobs.update(job.id, {
+              stage,
+              progress,
+              ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
+            });
+          },
         },
-      });
+        { skipRegistration: options?.skipRegistration === true },
+      );
       this.jobs.update(job.id, { status: "succeeded", stage: null, progress: 100 });
     } catch (error) {
       this.jobs.update(job.id, {
@@ -769,9 +783,29 @@ export class Core {
         importedCount: 0,
       });
 
+      await prepareLibraryFoldersForImport(toImport, type, {
+        writeBlankMetadata: (metadata) => this.mediaMetadata.write(metadata),
+        upsertFolders: async (folders) => {
+          await this.userConfig.update((config) => ({
+            ...config,
+            folders: [...new Set([...config.folders, ...folders])],
+          }));
+        },
+      });
+
+      if (skipInit) {
+        this.jobs.update(job.id, {
+          status: "succeeded",
+          progress: 100,
+          currentFolderPath: undefined,
+          currentFolderJobId: undefined,
+        });
+        return;
+      }
+
       for (let i = 0; i < toImport.length; i++) {
         const folder = toImport[i]!;
-        const { id: childId } = this.importFolder(folder, type, skipInit ? { skipInit: true } : undefined);
+        const { id: childId } = this.importFolder(folder, type, { skipRegistration: true });
         this.jobs.update(job.id, {
           currentFolderPath: folder,
           currentFolderJobId: childId,

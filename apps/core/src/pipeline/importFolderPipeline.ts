@@ -27,6 +27,11 @@ export interface ImportFolderPipelineCallbacks {
   onStage?: (stage: JobStage, progress: number, detail?: { title?: string }) => void;
 }
 
+export interface ImportFolderPipelineRunOptions {
+  /** Folder already has blank metadata and is listed in UserConfig (import-library prep). */
+  skipRegistration?: boolean;
+}
+
 function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
   return type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder";
 }
@@ -45,24 +50,36 @@ export function createBlankMediaMetadata(folderPath: string, type: FolderType): 
 export class ImportFolderPipeline {
   constructor(private readonly options: ImportFolderPipelineOptions) {}
 
-  async run(folderPath: string, type: FolderType, cb: ImportFolderPipelineCallbacks = {}): Promise<MediaMetadata> {
+  async run(
+    folderPath: string,
+    type: FolderType,
+    cb: ImportFolderPipelineCallbacks = {},
+    runOptions: ImportFolderPipelineRunOptions = {},
+  ): Promise<MediaMetadata> {
     const { fs, logger, appDataDir, network, discover, reverseProxyUrl } = this.options;
     const posixPath = Path.posix(folderPath);
     const stages: JobStage[] = [];
+    const skipRegistration = runOptions.skipRegistration === true;
 
-    logger.info({ folderPath: posixPath, type }, "importFolder: stage=config");
     const userConfigStore = new UserConfigHelper(fs, appDataDir);
-    const userConfig = await userConfigStore.update((config) => ({
-      ...config,
-      folders: [...new Set([...config.folders, folderPath])],
-    }));
-    stages.push("config");
-    cb.onStage?.("config", 10);
+    let userConfig;
+    if (skipRegistration) {
+      userConfig = await userConfigStore.read();
+    } else {
+      logger.info({ folderPath: posixPath, type }, "importFolder: stage=config");
+      userConfig = await userConfigStore.update((config) => ({
+        ...config,
+        folders: [...new Set([...config.folders, folderPath])],
+      }));
+      stages.push("config");
+      cb.onStage?.("config", 10);
 
-    logger.info({ folderPath: posixPath, type }, "importFolder: stage=metadata");
+      logger.info({ folderPath: posixPath, type }, "importFolder: stage=metadata");
+      stages.push("metadata");
+      cb.onStage?.("metadata", 25);
+    }
+
     const mm = createBlankMediaMetadata(folderPath, type);
-    stages.push("metadata");
-    cb.onStage?.("metadata", 25);
 
     logger.info({ folderPath: posixPath, type }, "importFolder: stage=listFiles");
     const listed = await fs.listFiles(posixPath);

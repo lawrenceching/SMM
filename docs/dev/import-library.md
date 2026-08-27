@@ -10,7 +10,7 @@ The function of importing library reuses the function of [importing folder](./im
 ```mermaid
 sequenceDiagram
   participant U as Upstream
-  participant C as C
+  participant C as Core
   participant UC as UserConfigHelper
   participant M as MediaMetadataHelper
 
@@ -20,8 +20,8 @@ sequenceDiagram
   C->>C: read folders in library
   loop #1: for each folder
     C->>M: create blank metadata file
-    C->>UC: upsert folder in UserConfig
   end
+  C->>UC: upsert folders in UserConfig at at once
   loop import folders
     C->>C: importFolder(jobId)
   end

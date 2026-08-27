@@ -80,6 +80,40 @@ describe("ImportFolderPipeline", () => {
     expect(cached.type).toBe("music-folder");
   });
 
+  it("skipRegistration does not rewrite userConfig but still lists files and persists metadata", async () => {
+    const mediaDir = "/m/My.Show";
+    const { fs, pipeline, appDataDir } = makePipeline({
+      seed: {
+        "/m/My.Show/S01E01.mkv": "",
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [mediaDir], tmdb: {}, tvdb: {} }),
+        [metadataCachePath("/data/smm", mediaDir)]: JSON.stringify({
+          mediaFolderPath: mediaDir,
+          type: "music-folder",
+          mediaFiles: [],
+        }),
+      },
+    });
+
+    const stages: string[] = [];
+    await pipeline.run(
+      mediaDir,
+      "music",
+      {
+        onStage: (stage) => {
+          stages.push(stage ?? "null");
+        },
+      },
+      { skipRegistration: true },
+    );
+
+    expect(stages).toEqual(["listFiles", "persist"]);
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath(appDataDir))) as string);
+    expect(savedConfig.folders).toEqual([mediaDir]);
+    const cached = JSON.parse((await fs.readTextFile(metadataCachePath(appDataDir, mediaDir))) as string);
+    expect(cached.mediaFiles).toEqual([]);
+    expect(cached.type).toBe("music-folder");
+  });
+
   it("dedupes an already-present folder in userConfig", async () => {
     const mediaDir = "/m/My.Show";
     const { fs, pipeline, appDataDir } = makePipeline({
