@@ -28,6 +28,7 @@ function inMemoryFs(): FsPort & { raw: Map<string, string> } {
     }),
     rename: vi.fn(async () => {}),
     mkdir: vi.fn(async () => {}),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 

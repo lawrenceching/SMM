@@ -4,7 +4,7 @@ import {
     joinPlatformPath,
     writeFileViaBrowser,
 } from '../lib/browser-fs'
-import { folder1, folder2 } from 'test/actions/import-folders'
+import { folder1, folder2, musicFolder } from 'test/actions/import-folders'
 import { importMediaLibrary } from 'test/actions/events'
 
 interface InitializedFolder {
@@ -108,6 +108,22 @@ registerStep('Media library was imported with movie folders', async (ctx) => {
         libraryPathInPlatformFormat: base,
         type: 'movie',
         traceId: 'e2e:Import Media Library:Import Movie Library',
+    })
+
+    ctx._folders = folders
+})
+
+registerStep('Media library was imported with music folders', async (ctx) => {
+    const base = requireLibraryBase(ctx)
+    const folders: InitializedFolder[] = []
+
+    const musicPath = await createTestFolderViaBrowser(base, musicFolder)
+    folders.push({ folderName: musicFolder.folderName, path: musicPath, type: 'music-folder' })
+
+    await importMediaLibrary({
+        libraryPathInPlatformFormat: base,
+        type: 'music',
+        traceId: 'e2e:ImportLibrary:music',
     })
 
     ctx._folders = folders

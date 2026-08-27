@@ -19,6 +19,23 @@ export interface ImportJob {
   updatedAt: number;
 }
 
+export interface ImportLibraryJob {
+  kind: "import-library";
+  id: string;
+  libraryPath: string;
+  type: FolderType;
+  status: JobStatus;
+  progress: number;
+  folderPaths: string[];
+  importedCount: number;
+  totalCount: number;
+  currentFolderPath?: string;
+  currentFolderJobId?: string;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ScrapeTaskRuntimeStatus =
   | "pending"
   | "running"
@@ -42,7 +59,7 @@ export interface ScrapeJob {
   updatedAt: number;
 }
 
-export type Job = ImportJob | ScrapeJob;
+export type Job = ImportJob | ImportLibraryJob | ScrapeJob;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {

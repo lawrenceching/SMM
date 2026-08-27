@@ -12,6 +12,8 @@ export interface FsPort {
   isFile?(path: string): Promise<boolean>;
   /** Recursively list all files under `dir` (not directories). */
   listFiles(dir: string): Promise<string[]>;
+  /** List immediate child directories under `dir` (non-recursive; hidden entries excluded). */
+  listSubdirectories(dir: string): Promise<string[]>;
   /** Delete a file; missing files count as success (idempotent). */
   deleteFile(path: string): Promise<void>;
   /** Rename/move a file or directory. Paths are POSIX. Missing source should reject. */

@@ -40,7 +40,24 @@ export interface ImportJob {
   updatedAt: number
 }
 
-export type Job = ImportJob | ScrapeJob
+export interface ImportLibraryJob {
+  kind: 'import-library'
+  id: string
+  libraryPath: string
+  type: string
+  status: JobStatus
+  progress: number
+  folderPaths: string[]
+  importedCount: number
+  totalCount: number
+  currentFolderPath?: string
+  currentFolderJobId?: string
+  error?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export type Job = ImportJob | ImportLibraryJob | ScrapeJob
 
 export interface GetJobResponseBody {
   data?: Job

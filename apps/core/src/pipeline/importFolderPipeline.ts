@@ -9,8 +9,8 @@ import { TvdbClient } from "../clients/TvdbClient";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import { isVideoFile, recognizeEpisodes } from "./recognizeEpisodes";
 import { recognizeMediaFolder } from "./recognizeMediaFolder";
-import { metadataCachePath } from "./paths";
-import { UserConfig } from "./userConfig";
+import { UserConfigHelper } from "./userConfigHelper";
+import { MediaMetadataHelper } from "./mediaMetadataHelper";
 
 export interface ImportFolderPipelineOptions {
   fs: FsPort;
@@ -51,7 +51,7 @@ export class ImportFolderPipeline {
     const stages: JobStage[] = [];
 
     logger.info({ folderPath: posixPath, type }, "importFolder: stage=config");
-    const userConfigStore = new UserConfig(fs, appDataDir);
+    const userConfigStore = new UserConfigHelper(fs, appDataDir);
     const userConfig = await userConfigStore.update((config) => ({
       ...config,
       folders: [...new Set([...config.folders, folderPath])],
@@ -118,7 +118,8 @@ export class ImportFolderPipeline {
 
     logger.info({ folderPath: posixPath }, "importFolder: stage=persist");
     const { files: _files, ...mmToPersist } = mm;
-    await fs.writeTextFile(metadataCachePath(appDataDir, posixPath), JSON.stringify(mmToPersist, null, 2));
+    const mediaMetadataStore = new MediaMetadataHelper(fs, appDataDir);
+    await mediaMetadataStore.write(mmToPersist);
     stages.push("persist");
     cb.onStage?.("persist", 95);
 

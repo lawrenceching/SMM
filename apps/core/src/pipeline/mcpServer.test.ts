@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../ports/FsPort";
 import type { McpServerPort, McpServerState } from "../ports/McpServerPort";
-import { UserConfig } from "./userConfig";
+import { UserConfigHelper } from "./userConfigHelper";
 import { userConfigPath } from "./paths";
 import {
   getMcpServerStatusWithConfig,
@@ -28,6 +28,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     }),
     rename: vi.fn(async () => {}),
     mkdir: vi.fn(async () => {}),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 
@@ -56,7 +57,7 @@ describe("mcpServer pipeline", () => {
   it("startMcpServerWithConfig persists enableMcpServer and host/port on success", async () => {
     const fs = inMemoryFs();
     const appDataDir = "/data";
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const port = createMockPort();
 
     const state = await startMcpServerWithConfig(
@@ -79,7 +80,7 @@ describe("mcpServer pipeline", () => {
   it("startMcpServerWithConfig does not persist when start fails", async () => {
     const fs = inMemoryFs();
     const appDataDir = "/data";
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const port = createMockPort();
     port.start.mockRejectedValueOnce(new Error("port in use"));
 
@@ -93,7 +94,7 @@ describe("mcpServer pipeline", () => {
   it("startMcpServerWithConfig skips config write when persistUserConfig is false", async () => {
     const fs = inMemoryFs();
     const appDataDir = "/data";
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const port = createMockPort();
 
     await startMcpServerWithConfig(port, userConfig, {}, { persistUserConfig: false });
@@ -109,7 +110,7 @@ describe("mcpServer pipeline", () => {
       configPath,
       JSON.stringify({ folders: [], enableMcpServer: true, mcpHost: "127.0.0.1", mcpPort: 30001 }),
     );
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const port = createMockPort({ status: "running", host: "127.0.0.1", port: 30001 });
 
     const state = await stopMcpServerWithConfig(port, userConfig, { persistUserConfig: true });
@@ -127,7 +128,7 @@ describe("mcpServer pipeline", () => {
       configPath,
       JSON.stringify({ folders: [], enableMcpServer: true }),
     );
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const port = createMockPort({ status: "stopped" });
 
     const state = await getMcpServerStatusWithConfig(port, userConfig);

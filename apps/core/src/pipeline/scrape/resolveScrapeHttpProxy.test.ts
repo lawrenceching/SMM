@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { MediaMetadata, UserConfig } from "@smm/core";
-import { DEFAULT_USER_CONFIG } from "../userConfig";
+import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
 import {
   resolveMediaDatabaseHttpProxy,
   resolveScrapeHttpProxy,

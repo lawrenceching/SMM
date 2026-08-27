@@ -39,6 +39,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     deleteFile: vi.fn(async () => {}),
     rename: vi.fn(async () => {}),
     mkdir: vi.fn(async () => {}),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 

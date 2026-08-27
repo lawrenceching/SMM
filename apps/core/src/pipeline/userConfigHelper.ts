@@ -2,50 +2,10 @@ import { Mutex } from "es-toolkit"
 import type { UserConfig as UserConfigData } from "@smm/core"
 import type { FsPort } from "../ports/FsPort"
 import { userConfigPath } from "./paths"
+import { DEFAULT_USER_CONFIG, isUserConfigKey } from "./userConfigDefaults"
+import { validateUserConfig, validateUserConfigValue } from "./userConfigValidation"
 
-export const DEFAULT_USER_CONFIG: UserConfigData = {
-  folders: [],
-  tmdb: {},
-  tvdb: {},
-  renameRules: [],
-  dryRun: false,
-  selectedRenameRule: "plex",
-}
-
-/** Exhaustive UserConfig keys; adding a field to UserConfig without updating this fails typecheck. */
-const USER_CONFIG_KEY_FLAGS = {
-  applicationLanguage: true,
-  tmdb: true,
-  tvdb: true,
-  primaryDatabase: true,
-  preferMediaLanguage: true,
-  folders: true,
-  selectedFolder: true,
-  renameRules: true,
-  dryRun: true,
-  ai: true,
-  selectedAI: true,
-  aiProviders: true,
-  selectedAIProvider: true,
-  selectedTMDBIntance: true,
-  selectedRenameRule: true,
-  enableMcpServer: true,
-  mcpHost: true,
-  mcpPort: true,
-  anonymousTelemetryConsent: true,
-  ytdlpExecutablePath: true,
-  ytdlpProxy: true,
-  ffmpegExecutablePath: true,
-  videoCaptionerExecutablePath: true,
-  useBundledFfmpegForVideoCaptioner: true,
-  quickjsExecutablePath: true,
-} as const satisfies { [K in keyof UserConfigData]: true }
-
-export const USER_CONFIG_KEYS = Object.keys(USER_CONFIG_KEY_FLAGS) as (keyof UserConfigData)[]
-
-export function isUserConfigKey(key: string): key is keyof UserConfigData {
-  return Object.prototype.hasOwnProperty.call(USER_CONFIG_KEY_FLAGS, key)
-}
+export { DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } from "./userConfigDefaults"
 
 const mutexByPath = new Map<string, Mutex>()
 
@@ -58,7 +18,7 @@ function mutexFor(path: string): Mutex {
 }
 
 /** Locked reader/writer for `{appDataDir}/smm.json`. Instances that share a path share one mutex. */
-export class UserConfig {
+export class UserConfigHelper {
   private readonly path: string
   private readonly mutex: Mutex
 
@@ -80,12 +40,49 @@ export class UserConfig {
   }
 
   async write(config: UserConfigData): Promise<void> {
+    const validated = validateUserConfig(config)
     await this.mutex.acquire()
     try {
-      await this.persistUnlocked(config)
+      await this.persistUnlocked(validated)
     } finally {
       this.mutex.release()
     }
+  }
+
+  /** Reads a single field under the file lock. */
+  async getKey<K extends keyof UserConfigData>(key: K): Promise<UserConfigData[K]> {
+    const config = await this.read()
+    return config[key]
+  }
+
+  /** Validates and persists one field; returns the updated config. */
+  async setKey<K extends keyof UserConfigData>(
+    key: K,
+    value: unknown,
+  ): Promise<UserConfigData> {
+    if (!isUserConfigKey(key)) {
+      throw new Error(`Unknown config key: ${String(key)}`)
+    }
+    const validated = validateUserConfigValue(key, value)
+    return this.update((config) => ({ ...config, [key]: validated }))
+  }
+
+  async getFolders(): Promise<string[]> {
+    return this.getKey("folders")
+  }
+
+  async setFolders(folders: string[]): Promise<UserConfigData> {
+    return this.setKey("folders", folders)
+  }
+
+  async addFolder(folderPath: string): Promise<UserConfigData> {
+    if (typeof folderPath !== "string" || !folderPath.trim()) {
+      throw new Error("folder path must be a non-empty string")
+    }
+    return this.update((config) => ({
+      ...config,
+      folders: [...new Set([...config.folders, folderPath])],
+    }))
   }
 
   async update(mutator: (config: UserConfigData) => UserConfigData): Promise<UserConfigData> {
@@ -93,10 +90,12 @@ export class UserConfig {
     try {
       const current = await this.loadUnlocked()
       const next = mutator(current)
-      if (next !== current) {
-        await this.persistUnlocked(next)
+      if (next === current) {
+        return current
       }
-      return next
+      const validated = validateUserConfig(next)
+      await this.persistUnlocked(validated)
+      return validated
     } finally {
       this.mutex.release()
     }

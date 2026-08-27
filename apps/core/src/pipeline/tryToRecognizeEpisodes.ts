@@ -6,12 +6,12 @@ import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath } from "./paths";
 import { writePlan } from "./plans";
 import { recognizeEpisodes } from "./recognizeEpisodes";
-import type { UserConfig } from "./userConfig";
+import type { UserConfigHelper } from "./userConfigHelper";
 
 export interface TryToRecognizeEpisodesDeps {
   fs: FsPort;
   appDataDir: string;
-  userConfig: UserConfig;
+  userConfig: UserConfigHelper;
   normalizePosix: (path: string) => string;
   /** Injected for tests; default `randomUUID` from `node:crypto`. */
   createId?: () => string;

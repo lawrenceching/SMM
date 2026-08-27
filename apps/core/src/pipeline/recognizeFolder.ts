@@ -14,8 +14,8 @@ import {
   type TmdbRecognitionClient,
   type TvdbRecognitionClient,
 } from "./recognizeMediaFolder";
-import { metadataCachePath } from "./paths";
-import type { UserConfig } from "./userConfig";
+import type { UserConfigHelper } from "./userConfigHelper";
+import type { MediaMetadataHelper } from "./mediaMetadataHelper";
 
 export type RecognizeFolderDb = "tmdb" | "tvdb";
 
@@ -30,7 +30,8 @@ export interface RecognizeFolderCandidate {
 export interface RecognizeFolderDeps {
   fs: FsPort;
   appDataDir: string;
-  userConfig: UserConfig;
+  userConfig: UserConfigHelper;
+  mediaMetadata: MediaMetadataHelper;
   normalizePosix: (path: string) => string;
   tmdb: TmdbRecognitionClient;
   tvdb: TvdbRecognitionClient;
@@ -56,14 +57,8 @@ async function loadManagedMediaMetadata(
   if (!isManaged(config.folders ?? [], path)) {
     throw new Error(`${posixPath} is not managed by SMM`);
   }
-  const cachePath = metadataCachePath(deps.appDataDir, posixPath);
-  if (!(await deps.fs.exists(cachePath))) {
-    throw new Error(`Media metadata not found: ${path}`);
-  }
-  let mm: MediaMetadata;
-  try {
-    mm = JSON.parse(await deps.fs.readTextFile(cachePath)) as MediaMetadata;
-  } catch {
+  const mm = await deps.mediaMetadata.read(posixPath);
+  if (!mm) {
     throw new Error(`Media metadata not found: ${path}`);
   }
   if (mm.type !== "tvshow-folder" && mm.type !== "movie-folder") {
@@ -166,8 +161,5 @@ export async function recognizeFolderPipeline(
     mediaFiles: [],
     ...(isTv ? { tvShow } : { movie }),
   };
-  await deps.fs.writeTextFile(
-    metadataCachePath(deps.appDataDir, posixPath),
-    JSON.stringify(next, null, 2),
-  );
+  await deps.mediaMetadata.write(next);
 }

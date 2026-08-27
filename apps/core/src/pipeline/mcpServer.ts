@@ -1,6 +1,6 @@
 import type { UserConfig as UserConfigData } from "@smm/core";
 import type { McpServerPort, McpServerState } from "../ports/McpServerPort";
-import type { UserConfig } from "./userConfig";
+import type { UserConfigHelper } from "./userConfigHelper";
 
 export const DEFAULT_MCP_HOST = "127.0.0.1";
 export const DEFAULT_MCP_PORT = 30001;
@@ -27,7 +27,7 @@ export function resolveMcpStartOptions(
 
 export async function startMcpServerWithConfig(
   mcpServer: McpServerPort,
-  userConfig: UserConfig,
+  userConfig: UserConfigHelper,
   options?: StartMcpServerOptions,
   operation?: McpServerOperationOptions,
 ): Promise<McpServerState> {
@@ -50,7 +50,7 @@ export async function startMcpServerWithConfig(
 
 export async function stopMcpServerWithConfig(
   mcpServer: McpServerPort,
-  userConfig: UserConfig,
+  userConfig: UserConfigHelper,
   operation?: McpServerOperationOptions,
 ): Promise<McpServerState> {
   try {
@@ -69,7 +69,7 @@ export async function stopMcpServerWithConfig(
 
 export async function getMcpServerStatusWithConfig(
   mcpServer: McpServerPort,
-  userConfig: UserConfig,
+  userConfig: UserConfigHelper,
 ): Promise<McpServerState> {
   const state = mcpServer.getState();
 

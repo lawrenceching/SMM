@@ -6,7 +6,7 @@ import type { DiscoverPort } from "../../ports/DiscoverPort";
 import type { FsPort } from "../../ports/FsPort";
 import type { NetworkPort } from "../../ports/NetworkPort";
 import { metadataCachePath } from "../paths";
-import type { UserConfig as UserConfigHandle } from "../userConfig";
+import type { UserConfigHelper } from "../userConfigHelper";
 import type { UserConfig as UserConfigData } from "@smm/core";
 import { checkScrapeCompletion } from "./checkScrapeCompletion";
 import { scrapeFanartTmdb } from "./scrapeFanartTmdb";
@@ -25,7 +25,7 @@ export interface ScrapeFolderDeps {
   fs: FsPort;
   network: NetworkPort;
   appDataDir: string;
-  userConfig: UserConfigHandle;
+  userConfig: UserConfigHelper;
   normalizePosix: (path: string) => string;
   discover?: DiscoverPort;
   reverseProxyUrl?: string | null;

@@ -99,7 +99,7 @@ See [apps/core](#appscore) for pipeline stages and persistence details.
 
 ## CLI
 
-```
+```bash
 smm add <folder> --type tvshow|movie|music|anime [--verbose] [--skip-init]
 smm list
 smm show <folder>

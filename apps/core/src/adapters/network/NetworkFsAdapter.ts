@@ -66,6 +66,20 @@ export class NetworkFsAdapter implements FsPort {
     return (json.data?.items ?? []).map((i) => i.path);
   }
 
+  async listSubdirectories(dir: string): Promise<string[]> {
+    const json = await this.post<{
+      error?: string;
+      data?: { items: Array<{ path: string }> };
+    }>("/api/listFiles", {
+      path: dir,
+      recursively: false,
+      onlyFolders: true,
+      includeHiddenFiles: false,
+    });
+    if (json.error !== undefined) throw new Error(json.error);
+    return (json.data?.items ?? []).map((i) => i.path);
+  }
+
   async deleteFile(path: string): Promise<void> {
     const json = await this.post<{ error?: string }>("/api/deleteFile", { path });
     if (json.error !== undefined) throw new Error(json.error);

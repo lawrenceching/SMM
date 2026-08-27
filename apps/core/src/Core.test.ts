@@ -19,13 +19,31 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
       files.set(path, content);
     }),
     writeBinaryFile: vi.fn(async () => {}),
-    exists: vi.fn(async (path: string) => files.has(path)),
+    exists: vi.fn(async (path: string) => {
+      if (files.has(path)) return true;
+      const prefix = path.endsWith("/") ? path : path + "/";
+      for (const key of files.keys()) {
+        if (key.startsWith(prefix)) return true;
+      }
+      return false;
+    }),
     listFiles: vi.fn(async (dir: string) => {
       const out: string[] = [];
       for (const key of files.keys()) {
         if (key.startsWith(dir + "/") && !key.endsWith("/")) out.push(key);
       }
       return out;
+    }),
+    listSubdirectories: vi.fn(async (dir: string) => {
+      const prefix = dir.endsWith("/") ? dir : dir + "/";
+      const subdirs = new Set<string>();
+      for (const key of files.keys()) {
+        if (!key.startsWith(prefix)) continue;
+        const rest = key.slice(prefix.length);
+        const slash = rest.indexOf("/");
+        if (slash >= 0) subdirs.add(prefix + rest.slice(0, slash));
+      }
+      return [...subdirs];
     }),
     deleteFile: vi.fn(async (path: string) => {
       files.delete(path);
@@ -169,6 +187,69 @@ describe("Core", () => {
       appDataDir: "/data/smm",
     });
     expect(core.getJob("nope")).toBeUndefined();
+  });
+
+  it("importLibrary imports each subdirectory via importFolder", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const job = core.getJob(id);
+    expect(job?.kind).toBe("import-library");
+    if (job?.kind !== "import-library") return;
+    expect(job.status).toBe("succeeded");
+    expect(job.totalCount).toBe(2);
+    expect(job.importedCount).toBe(2);
+
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
+  });
+
+  it("importLibrary skips folders already in user config", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: ["/lib/Show1"], tmdb: {}, tvdb: {} }),
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const job = core.getJob(id);
+    if (job?.kind !== "import-library") throw new Error("expected import-library job");
+    expect(job.totalCount).toBe(1);
+    expect(job.folderPaths).toEqual(["/lib/Show2"]);
+  });
+
+  it("importLibrary marks the job failed when the library path is missing", async () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/missing/lib", "music");
+    await waitForStatus(core, id, "failed");
+
+    const job = core.getJob(id);
+    expect(job?.status).toBe("failed");
+    expect(job?.error).toContain("Library path not found");
   });
 });
 
@@ -355,7 +436,7 @@ describe("setMetadata", () => {
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
 
-    await expect(core.setMetadata({ type: "tvshow-folder" })).rejects.toThrow("Media folder path is required");
+    await expect(core.setMetadata({ type: "tvshow-folder" })).rejects.toThrow("mediaFolderPath is required");
     expect(fs.writeTextFile).not.toHaveBeenCalled();
   });
 
@@ -364,7 +445,7 @@ describe("setMetadata", () => {
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
 
     await expect(core.setMetadata({ mediaFolderPath: "", type: "tvshow-folder" })).rejects.toThrow(
-      "Media folder path is required",
+      "mediaFolderPath is required",
     );
     expect(fs.writeTextFile).not.toHaveBeenCalled();
   });
@@ -479,6 +560,7 @@ describe("unimportFolder", () => {
       },
       rename: async () => {},
       mkdir: async () => {},
+      listSubdirectories: async () => [],
     };
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
 
@@ -521,7 +603,7 @@ describe("renameFolder", () => {
     expect(await fs.exists(newCache)).toBe(true);
     const written = JSON.parse(await fs.readTextFile(newCache)) as typeof mm;
     expect(written.mediaFolderPath).toBe(to);
-    expect(written.files).toEqual([`${to}/S01E01.mkv`]);
+    expect(written.files).toBeUndefined();
     expect(written.mediaFiles?.[0]?.absolutePath).toBe(`${to}/S01E01.mkv`);
 
     const folders = await core.getFolders();
@@ -950,6 +1032,7 @@ describe("scrapeFolder", () => {
       }),
       rename: vi.fn(async () => {}),
       mkdir: vi.fn(async () => {}),
+      listSubdirectories: vi.fn(async () => []),
     };
   }
 

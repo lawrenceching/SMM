@@ -37,7 +37,7 @@ import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { TmdbClient } from "./clients/TmdbClient";
 import { TvdbClient } from "./clients/TvdbClient";
 import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
-import { metadataCachePath } from "./pipeline/paths";
+import { dedupLibraryFolders } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
   renameEpisodeFilePipeline,
@@ -69,9 +69,11 @@ import {
 } from "./pipeline/scrape/scrapeFolder";
 import type { ScrapeFolderResult } from "./pipeline/scrape/types";
 import type { RenameRuleName } from "./pipeline/renameRules";
-import { isUserConfigKey, UserConfig } from "./pipeline/userConfig";
+import { isUserConfigKey, UserConfigHelper } from "./pipeline/userConfigHelper";
+import { MediaMetadataHelper } from "./pipeline/mediaMetadataHelper";
+import type { PersistedMediaMetadata } from "./pipeline/mediaMetadataValidation";
 import { JobStore } from "./jobs/jobStore";
-import { initialScrapeTasks, type ImportJob, type Job } from "./jobs/types";
+import { initialScrapeTasks, type ImportJob, type ImportLibraryJob, type Job } from "./jobs/types";
 
 export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
@@ -151,12 +153,21 @@ export interface ImportFolderHandle {
   id: string;
 }
 
+export interface ImportLibraryHandle {
+  id: string;
+}
+
 export interface ScrapeFolderHandle {
   id: string;
 }
 
 export interface ImportFolderOptions {
   /** When true, only register the path in UserConfig.folders; skip recognition and metadata. */
+  skipInit?: boolean;
+}
+
+export interface ImportLibraryOptions {
+  /** When true, only register each subfolder in UserConfig.folders; skip recognition and metadata. */
   skipInit?: boolean;
 }
 
@@ -174,7 +185,8 @@ export class Core {
   private readonly logDir: string | undefined;
   private readonly platform: string | undefined;
   private readonly osLocale: string | undefined;
-  private readonly userConfig: UserConfig;
+  private readonly userConfig: UserConfigHelper;
+  private readonly mediaMetadata: MediaMetadataHelper;
   private readonly discover?: DiscoverPort;
   private readonly mcpServer?: McpServerPort;
 
@@ -191,7 +203,8 @@ export class Core {
     this.logDir = options.logDir;
     this.platform = options.platform;
     this.osLocale = options.osLocale;
-    this.userConfig = new UserConfig(this.fs, this.appDataDir);
+    this.userConfig = new UserConfigHelper(this.fs, this.appDataDir);
+    this.mediaMetadata = new MediaMetadataHelper(this.fs, this.appDataDir);
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
   }
@@ -256,6 +269,23 @@ export class Core {
     return { id: job.id };
   }
 
+  /** Imports every immediate subfolder of a library directory via {@link importFolder}. */
+  importLibrary(path: string, type: FolderType, options?: ImportLibraryOptions): ImportLibraryHandle {
+    const libraryPath = this.normalizePosix(path);
+    const job = this.jobs.create({
+      kind: "import-library",
+      libraryPath,
+      type,
+      status: "running",
+      progress: 0,
+      folderPaths: [],
+      importedCount: 0,
+      totalCount: 0,
+    });
+    void this.runImportLibrary(job, path, type, options?.skipInit === true);
+    return { id: job.id };
+  }
+
   getJob(id: string): Job | undefined {
     return this.jobs.get(id);
   }
@@ -287,42 +317,27 @@ export class Core {
     return this.userConfig.read();
   }
 
-  /** Updates one known UserConfig key. Rejects unknown keys without writing. */
+  /** Updates one known UserConfig key. Rejects unknown keys and invalid values without writing. */
   async setUserConfigKey(key: string, value: unknown): Promise<UserConfigData> {
     if (!isUserConfigKey(key)) {
       throw new Error(`Unknown config key: ${key}`);
     }
-    return this.userConfig.update((config) => ({ ...config, [key]: value }));
+    return this.userConfig.setKey(key, value);
   }
 
   async getFolders(): Promise<string[]> {
-    return (await this.userConfig.read()).folders;
+    return this.userConfig.getFolders();
   }
 
   /** Reads the persisted metadata cache for a folder; null when absent or corrupt. */
-  async getMediaMetadata(folder: string): Promise<MediaMetadata | null> {
-    const posixPath = this.normalizePosix(folder);
-    const cachePath = metadataCachePath(this.appDataDir, posixPath);
-    if (!(await this.fs.exists(cachePath))) return null;
-    try {
-      const content = await this.fs.readTextFile(cachePath);
-      return JSON.parse(content) as MediaMetadata;
-    } catch {
-      return null;
-    }
+  async getMediaMetadata(folder: string): Promise<PersistedMediaMetadata | null> {
+    return this.mediaMetadata.read(this.normalizePosix(folder));
   }
 
-  /** Writes the metadata cache for `mm.mediaFolderPath`. Strips `files`. Full replace. */
+  /** Writes the metadata cache for `mm.mediaFolderPath`. Strips deprecated `files`. Full replace. */
   async setMetadata(mm: MediaMetadata): Promise<void> {
-    if (!mm.mediaFolderPath) {
-      throw new Error("Media folder path is required");
-    }
-    const posixPath = this.normalizePosix(mm.mediaFolderPath);
-    const { files: _files, ...toPersist } = mm;
-    await this.fs.writeTextFile(
-      metadataCachePath(this.appDataDir, posixPath),
-      JSON.stringify(toPersist, null, 2),
-    );
+    const { files: _files, ...rest } = mm;
+    await this.mediaMetadata.write(rest);
   }
 
   /** Removes a folder from the user config and deletes its metadata cache. Idempotent. */
@@ -336,15 +351,15 @@ export class Core {
       return { ...config, folders };
     });
     if (removed) {
-      await this.fs.deleteFile(metadataCachePath(this.appDataDir, posixPath));
+      await this.mediaMetadata.delete(posixPath);
     }
   }
 
   async renameFolder(args: RenameFolderArgs): Promise<void> {
     await renameFolderPipeline(args, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
       userConfig: this.userConfig,
+      mediaMetadata: this.mediaMetadata,
       normalizePosix: (path) => this.normalizePosix(path),
     });
   }
@@ -379,6 +394,7 @@ export class Core {
       fs: this.fs,
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
+      mediaMetadata: this.mediaMetadata,
       normalizePosix: (p) => this.normalizePosix(p),
       tmdb,
       tvdb,
@@ -399,6 +415,7 @@ export class Core {
       fs: this.fs,
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
+      mediaMetadata: this.mediaMetadata,
       normalizePosix: (p) => this.normalizePosix(p),
       tmdb,
       tvdb,
@@ -693,10 +710,7 @@ export class Core {
 
   private async runImportSkipInit(job: ImportJob, folderPath: string): Promise<void> {
     try {
-      await this.userConfig.update((config) => ({
-        ...config,
-        folders: [...new Set([...config.folders, folderPath])],
-      }));
+      await this.userConfig.addFolder(folderPath);
       const blankMetadata = createBlankMediaMetadata(folderPath, job.type);
       await this.setMetadata(blankMetadata);
       this.jobs.update(job.id, { status: "succeeded", stage: "metadata", progress: 100 });
@@ -733,6 +747,68 @@ export class Core {
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
       });
+    }
+  }
+
+  private async runImportLibrary(
+    job: ImportLibraryJob,
+    libraryPath: string,
+    type: FolderType,
+    skipInit: boolean,
+  ): Promise<void> {
+    try {
+      if (!(await this.fs.exists(libraryPath))) {
+        throw new Error(`Library path not found: ${libraryPath}`);
+      }
+      const subdirs = await this.fs.listSubdirectories(libraryPath);
+      const existing = await this.getFolders();
+      const toImport = dedupLibraryFolders(subdirs, existing);
+      this.jobs.update(job.id, {
+        folderPaths: toImport,
+        totalCount: toImport.length,
+        importedCount: 0,
+      });
+
+      for (let i = 0; i < toImport.length; i++) {
+        const folder = toImport[i]!;
+        const { id: childId } = this.importFolder(folder, type, skipInit ? { skipInit: true } : undefined);
+        this.jobs.update(job.id, {
+          currentFolderPath: folder,
+          currentFolderJobId: childId,
+          progress: toImport.length === 0 ? 100 : Math.floor((i / toImport.length) * 100),
+        });
+        await this.waitForImportJob(childId);
+        const childJob = this.jobs.get(childId);
+        if (childJob?.kind === "import" && childJob.status === "failed") {
+          throw new Error(childJob.error ?? `Failed to import folder: ${folder}`);
+        }
+        this.jobs.update(job.id, {
+          importedCount: i + 1,
+          progress: Math.floor(((i + 1) / toImport.length) * 100),
+        });
+      }
+
+      this.jobs.update(job.id, {
+        status: "succeeded",
+        progress: 100,
+        currentFolderPath: undefined,
+        currentFolderJobId: undefined,
+      });
+    } catch (error) {
+      this.jobs.update(job.id, {
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async waitForImportJob(id: string): Promise<void> {
+    for (;;) {
+      const job = this.jobs.get(id);
+      if (job?.kind === "import" && job.status !== "pending" && job.status !== "running") {
+        return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
     }
   }
 }

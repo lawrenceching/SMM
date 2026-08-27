@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { FsPort } from "../../ports/FsPort";
 import type { NetworkPort } from "../../ports/NetworkPort";
-import { DEFAULT_USER_CONFIG } from "../userConfig";
+import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
 import { scrapeThumbnailsTmdb } from "./scrapeThumbnailsTmdb";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";
 
@@ -61,6 +61,7 @@ function createInMemoryFs(): FsPort & { binaryFiles: Map<string, Uint8Array> } {
     deleteFile: vi.fn(),
     rename: vi.fn(),
     mkdir: vi.fn(),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 

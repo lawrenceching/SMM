@@ -3,7 +3,7 @@ import type { MediaMetadata } from "@smm/core";
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath, userConfigPath } from "./paths";
 import { renameEpisodeFilePipeline } from "./renameEpisodeFile";
-import { UserConfig } from "./userConfig";
+import { UserConfigHelper } from "./userConfigHelper";
 
 const appDataDir = "/app";
 const folder = "/m/Show";
@@ -75,6 +75,7 @@ function createFs(seed: Record<string, string>): FsPort & {
       textFiles.set(to, content);
     }),
     mkdir: vi.fn(async () => {}),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 
@@ -84,12 +85,12 @@ function managedFs(extraFiles: Record<string, string> = {}, mm: MediaMetadata = 
     [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
     ...extraFiles,
   });
-  return { fs, userConfig: new UserConfig(fs, appDataDir), mm };
+  return { fs, userConfig: new UserConfigHelper(fs, appDataDir), mm };
 }
 
 function baseDeps(
   fs: FsPort,
-  userConfig: UserConfig,
+  userConfig: UserConfigHelper,
   mm: MediaMetadata | null,
   setMetadata: (next: MediaMetadata) => Promise<void> = async () => {},
 ) {
@@ -113,7 +114,7 @@ describe("renameEpisodeFilePipeline", () => {
       "/m/Show/S01E01.srt": "sub",
       "/m/Show/S01E01.en.srt": "en",
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
 
     const result = await renameEpisodeFilePipeline(
       {
@@ -155,7 +156,7 @@ describe("renameEpisodeFilePipeline", () => {
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
       "/m/Show/orphan.mp4": "x",
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
 
     await expect(
       renameEpisodeFilePipeline(
@@ -183,7 +184,7 @@ describe("renameEpisodeFilePipeline", () => {
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
       "/m/Show/movie.mkv": "x",
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
 
     await expect(
       renameEpisodeFilePipeline(
@@ -211,7 +212,7 @@ describe("renameEpisodeFilePipeline", () => {
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
       "/m/Show/S01E01.mp4": "video",
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
 
     await expect(
       renameEpisodeFilePipeline(
@@ -240,7 +241,7 @@ describe("renameEpisodeFilePipeline", () => {
       "/m/Show/S01E01.mp4": "video",
       "/m/Show/S01E01_renamed.mp4": "already",
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const rename = vi.fn(fs.rename);
 
     await expect(
@@ -271,7 +272,7 @@ describe("renameEpisodeFilePipeline", () => {
       [userConfigPath(appDataDir)]: configWith([folder]),
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
     });
-    const userConfig = new UserConfig(fs, appDataDir);
+    const userConfig = new UserConfigHelper(fs, appDataDir);
     const rename = vi.fn(fs.rename);
 
     await expect(

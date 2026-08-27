@@ -3,6 +3,8 @@ export {
   type CoreOptions,
   type ImportFolderHandle,
   type ImportFolderOptions,
+  type ImportLibraryHandle,
+  type ImportLibraryOptions,
   type RenameFolderArgs,
   type ScrapeFolderHandle,
   type ScrapeFolderOptions,
@@ -45,7 +47,21 @@ export { FetchNetworkAdapter } from "./adapters/FetchNetworkAdapter";
 export { ConsoleLoggerAdapter, NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 export { StaticDiscoverAdapter, STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
-export { UserConfig, DEFAULT_USER_CONFIG, USER_CONFIG_KEYS, isUserConfigKey } from "./pipeline/userConfig";
+export {
+  UserConfigHelper,
+  DEFAULT_USER_CONFIG,
+  USER_CONFIG_KEYS,
+  isUserConfigKey,
+} from "./pipeline/userConfigHelper";
+export { validateUserConfig, validateUserConfigValue } from "./pipeline/userConfigValidation";
+export {
+  MediaMetadataHelper,
+} from "./pipeline/mediaMetadataHelper";
+export {
+  validatePersistedMediaMetadata,
+  stripDeprecatedFiles,
+  type PersistedMediaMetadata,
+} from "./pipeline/mediaMetadataValidation";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { tryToRecognizeEpisodesPipeline, type TryToRecognizeEpisodesDeps } from "./pipeline/tryToRecognizeEpisodes";
@@ -69,6 +85,7 @@ export type {
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type {
   ImportJob,
+  ImportLibraryJob,
   ScrapeJob,
   Job,
   JobStatus,

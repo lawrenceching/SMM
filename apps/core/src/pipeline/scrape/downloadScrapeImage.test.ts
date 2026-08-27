@@ -2,7 +2,7 @@ import type { MediaMetadata, UserConfig } from "@smm/core";
 import { describe, expect, it, vi } from "vitest";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
-import { DEFAULT_USER_CONFIG } from "../userConfig";
+import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
 import { downloadScrapeImage } from "./downloadScrapeImage";
 
 function createInMemoryFs(): FsPort & {
@@ -26,6 +26,7 @@ function createInMemoryFs(): FsPort & {
     mkdir: vi.fn(async (path) => {
       mkdirCalls.push(path);
     }),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 

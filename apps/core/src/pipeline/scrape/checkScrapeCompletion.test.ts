@@ -18,6 +18,7 @@ function createFs(listFiles: string[] | (() => never)): FsPort {
     deleteFile: vi.fn(),
     rename: vi.fn(),
     mkdir: vi.fn(),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 

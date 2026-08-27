@@ -1,4 +1,4 @@
-import type { ImportJob, Job, ScrapeJob } from "./types";
+import type { ImportJob, ImportLibraryJob, Job, ScrapeJob } from "./types";
 
 let seq = 0;
 
@@ -8,21 +8,23 @@ export function nextJobId(): string {
 }
 
 type ImportJobInit = Omit<ImportJob, "id" | "createdAt" | "updatedAt">;
+type ImportLibraryJobInit = Omit<ImportLibraryJob, "id" | "createdAt" | "updatedAt">;
 type ScrapeJobInit = Omit<ScrapeJob, "id" | "createdAt" | "updatedAt">;
 
 export class JobStore {
   private readonly jobs = new Map<string, Job>();
 
   create(init: ImportJobInit): ImportJob;
+  create(init: ImportLibraryJobInit): ImportLibraryJob;
   create(init: ScrapeJobInit): ScrapeJob;
-  create(init: ImportJobInit | ScrapeJobInit): Job {
+  create(init: ImportJobInit | ImportLibraryJobInit | ScrapeJobInit): Job {
     const now = Date.now();
     const job = { id: nextJobId(), createdAt: now, updatedAt: now, ...init } as Job;
     this.jobs.set(job.id, job);
     return job;
   }
 
-  update(id: string, patch: Partial<ImportJob> | Partial<ScrapeJob>): void {
+  update(id: string, patch: Partial<ImportJob> | Partial<ImportLibraryJob> | Partial<ScrapeJob>): void {
     const job = this.jobs.get(id);
     if (job === undefined) return;
     Object.assign(job, patch, { updatedAt: Date.now() });

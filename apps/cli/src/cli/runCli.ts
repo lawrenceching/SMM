@@ -6,6 +6,7 @@ import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
 import { getCore } from '../core/getCore'
 import { formatHelloLines } from './helloFormat'
 import { waitUntilImportSettled } from './addProgress'
+import { waitUntilLibraryImportSettled } from './addlibProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
 import { waitUntilScrapeSettled } from './waitScrapeJob'
@@ -150,6 +151,50 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         }
         if (skipInit) {
           console.log(`imported folder ${folder}`)
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(message)
+        exitCode = 1
+      }
+    })
+
+  program
+    .command('addlib')
+    .description('Import all media folders in a library directory and wait until initialization succeeds')
+    .argument('<library>', 'Library directory path')
+    .addOption(
+      new Option('--type <type>', 'Folder type for every subfolder (anime is an alias for tvshow)')
+        .choices([...TYPE_CHOICES])
+        .makeOptionMandatory(),
+    )
+    .option('-v, --verbose', 'Print detailed logs')
+    .option('--skip-init', 'Only register subfolders in UserConfig; skip recognition and metadata')
+    .action(async (library: string, opts: { type: string; verbose?: boolean; skipInit?: boolean }) => {
+      try {
+        const type = resolveFolderType(opts.type)
+        const verbose = Boolean(opts.verbose)
+        const skipInit = Boolean(opts.skipInit)
+        const core = getCore({
+          logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
+        })
+        const { id } = core.importLibrary(library, type, skipInit ? { skipInit: true } : undefined)
+        const job = await waitUntilLibraryImportSettled(core, id, {
+          libraryPath: library,
+          type,
+          timeoutMs: IMPORT_WAIT_TIMEOUT_MS,
+          progress: !skipInit,
+          skipInit,
+        })
+        if (job.status !== 'succeeded') {
+          console.error(job.error ?? `Import library failed with status ${job.status}`)
+          exitCode = 1
+          return
+        }
+        if (skipInit) {
+          for (const folder of job.folderPaths) {
+            console.log(`imported folder ${folder}`)
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
@@ -531,6 +576,10 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           for (const line of formatScrapeJobTaskLines(job)) {
             console.log(line)
           }
+          return
+        }
+        if (job.kind === 'import-library') {
+          printJson(job)
           return
         }
         printJson(job)

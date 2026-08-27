@@ -7,7 +7,7 @@ import type { FsPort } from "../ports/FsPort";
 import { expandAssociatedFileRenames } from "./expandAssociatedFileRenames";
 import { mediaFilePathEqual } from "./mediaFilePathEqual";
 import { dirname } from "./paths";
-import type { UserConfig } from "./userConfig";
+import type { UserConfigHelper } from "./userConfigHelper";
 
 function renameFileExistenceProbe(fs: FsPort): RenameFileExistenceProbe {
   return {
@@ -34,7 +34,7 @@ export interface RenameEpisodeFileResult {
 export interface RenameEpisodeFileDeps {
   fs: FsPort;
   appDataDir: string;
-  userConfig: UserConfig;
+  userConfig: UserConfigHelper;
   normalizePosix: (path: string) => string;
   getMediaMetadata: (folder: string) => Promise<MediaMetadata | null>;
   setMetadata: (mm: MediaMetadata) => Promise<void>;

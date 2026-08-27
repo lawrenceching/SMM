@@ -1,10 +1,9 @@
 import { Path } from "@core/path";
 import { renameFolderInMediaMetadata } from "@core/mediaMetadata";
 import { renameFolderInUserConfig } from "@core/userConfig";
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadataHelper } from "./mediaMetadataHelper";
 import type { FsPort } from "../ports/FsPort";
-import { metadataCachePath } from "./paths";
-import type { UserConfig } from "./userConfig";
+import type { UserConfigHelper } from "./userConfigHelper";
 
 export interface RenameFolderArgs {
   from: string;
@@ -13,8 +12,8 @@ export interface RenameFolderArgs {
 
 export interface RenameFolderDeps {
   fs: FsPort;
-  appDataDir: string;
-  userConfig: UserConfig;
+  userConfig: UserConfigHelper;
+  mediaMetadata: MediaMetadataHelper;
   normalizePosix: (path: string) => string;
 }
 
@@ -40,14 +39,8 @@ export async function renameFolderPipeline(
     throw new Error(`${fromAsPosix} is not managed by SMM`);
   }
 
-  const cachePath = metadataCachePath(deps.appDataDir, fromAsPosix);
-  if (!(await deps.fs.exists(cachePath))) {
-    throw new Error(`Media metadata not found: ${args.from}`);
-  }
-  let mediaMetadata: MediaMetadata;
-  try {
-    mediaMetadata = JSON.parse(await deps.fs.readTextFile(cachePath)) as MediaMetadata;
-  } catch {
+  const mediaMetadata = await deps.mediaMetadata.read(fromAsPosix);
+  if (!mediaMetadata) {
     throw new Error(`Media metadata not found: ${args.from}`);
   }
 
@@ -55,9 +48,12 @@ export async function renameFolderPipeline(
   if (!updatedMetadata.mediaFolderPath) {
     throw new Error("Media folder path is required");
   }
-  const newCachePath = metadataCachePath(deps.appDataDir, Path.posix(updatedMetadata.mediaFolderPath));
-  await deps.fs.writeTextFile(newCachePath, JSON.stringify(updatedMetadata, null, 2));
-  await deps.fs.deleteFile(cachePath);
+
+  await deps.mediaMetadata.move(
+    fromAsPosix,
+    Path.posix(updatedMetadata.mediaFolderPath),
+    updatedMetadata,
+  );
 
   await deps.userConfig.update((current) =>
     renameFolderInUserConfig(current, fromAsPosix, toAsPosix),

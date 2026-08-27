@@ -60,6 +60,17 @@ export class NodejsFsAdapter implements FsPort {
     return out;
   }
 
+  async listSubdirectories(dir: string): Promise<string[]> {
+    const root = Path.toPlatformPath(dir);
+    const entries = await fsp.readdir(root, { withFileTypes: true });
+    const out: string[] = [];
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+      out.push(join(root, entry.name));
+    }
+    return out;
+  }
+
   async deleteFile(path: string): Promise<void> {
     try {
       await fsp.unlink(Path.toPlatformPath(path));

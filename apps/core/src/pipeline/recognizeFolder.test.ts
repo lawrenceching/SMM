@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath, userConfigPath } from "./paths";
-import { UserConfig } from "./userConfig";
+import { UserConfigHelper } from "./userConfigHelper";
+import { MediaMetadataHelper } from "./mediaMetadataHelper";
 import {
   recognizeFolderPipeline,
   tryToRecognizeFolderPipeline,
@@ -27,13 +28,16 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
     }),
     rename: vi.fn(async () => {}),
     mkdir: vi.fn(async () => {}),
+    listSubdirectories: vi.fn(async () => []),
   };
 }
 
 function deps(partial: Partial<RecognizeFolderDeps> & { fs: FsPort; appDataDir: string }): RecognizeFolderDeps {
-  const userConfig = new UserConfig(partial.fs, partial.appDataDir);
+  const userConfig = new UserConfigHelper(partial.fs, partial.appDataDir);
+  const mediaMetadata = new MediaMetadataHelper(partial.fs, partial.appDataDir);
   return {
     userConfig,
+    mediaMetadata,
     normalizePosix: (p) => p.replace(/\\/g, "/"),
     language: "en-US",
     tmdb: {
@@ -83,7 +87,7 @@ describe("tryToRecognizeFolderPipeline", () => {
     const writes = (fs.writeTextFile as ReturnType<typeof vi.fn>).mock.calls.filter(
       ([p]) => p === cachePath,
     );
-    expect(writes).toHaveLength(1); // only the seed write above
+    expect(writes).toHaveLength(1);
   });
 
   it("throws when unmanaged", async () => {
