@@ -2,6 +2,9 @@ name: CI
 
 # Merged from build.yml + e2e-test.yml + e2e-docker.yml + e2e-http-proxy.yml.
 # E2E groups run only after the build pipeline (test / lint / typecheck / build) succeeds.
+#
+# CLI bun:test e2e: reusable _e2e-cli.yml (also callable via "E2E Tests for CLI" workflow).
+#
 # Required check names (RELEASE_REQUIRED_CHECKS) must stay stable:
 #   Run Unit Tests, Lint UI, Typecheck, Build UI, Build CLI,
 #   host-e2e / gate, docker-e2e / gate, http-proxy-e2e / gate
@@ -16,6 +19,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/_e2e-cli.yml'
+      - '.github/workflows/e2e-cli.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
@@ -25,6 +30,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/_e2e-cli.yml'
+      - '.github/workflows/e2e-cli.yml'
   workflow_dispatch:
 
 permissions:
@@ -320,7 +327,7 @@ jobs:
 
   e2e-docker:
     name: ${{ matrix.name }}
-    needs: build-image
+    needs: [build-image]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -559,68 +566,9 @@ jobs:
           echo "All HTTP Proxy E2E jobs passed."
 
   # ------------------------------------------------------------------
-  # CLI E2E (bun:test under apps/e2e/cli)
+  # CLI E2E (bun:test under apps/e2e/cli) — reusable _e2e-cli.yml
   # ------------------------------------------------------------------
   e2e-cli:
-    name: E2E Tests for CLI
-    needs: [test, typecheck, build-cli]
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
-      TMDB_HOST: https://api.themoviedb.org/3
-      TVDB_HOST: https://api4.thetvdb.com/v4
-      USE_EMBEDDED_HTTP_PROXY: 'true'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Download CLI build
-        uses: actions/download-artifact@v4
-        with:
-          name: cli-dist
-          path: apps/cli/dist
-
-      - name: Require API key secrets
-        run: |
-          missing=0
-          if [ -z "${TMDB_API_KEY:-}" ]; then
-            echo "::error::Secret TMDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
-            missing=1
-          fi
-          if [ -z "${TVDB_API_KEY:-}" ]; then
-            echo "::error::Secret TVDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
-            missing=1
-          fi
-          exit "$missing"
-
-      - name: Run CLI E2E tests
-        run: bun ci/run-cli-e2e-test.ts
-
-  e2e-cli-gate:
-    name: cli-e2e / gate
-    needs: [e2e-cli]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require CLI E2E job passed
-        run: |
-          set -euo pipefail
-          if [ "${{ needs.e2e-cli.result }}" != "success" ]; then
-            echo "::error::cli e2e: ${{ needs.e2e-cli.result }}"
-            exit 1
-          fi
-          echo "CLI E2E job passed."
+    needs: [build-cli]
+    uses: ./.github/workflows/_e2e-cli.yml
+    secrets: inherit

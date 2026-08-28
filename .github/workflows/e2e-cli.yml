@@ -1,0 +1,55 @@
+name: E2E Tests for CLI
+
+# Manual-only entry for CLI bun:test e2e (apps/e2e/cli).
+# Builds CLI, then calls reusable _e2e-cli.yml (same job used by CI).
+#
+# For full CI (unit + host/docker/http-proxy + CLI e2e), use the CI workflow.
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Optional bun test path under apps/e2e/cli (e.g. ./cli/tmdb.test.ts). Empty runs all CLI e2e tests.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build-cli:
+    name: Build CLI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: cd apps/cli && pnpm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-dist
+          path: apps/cli/dist
+          retention-days: 7
+
+  e2e-cli:
+    needs: [build-cli]
+    uses: ./.github/workflows/_e2e-cli.yml
+    with:
+      test_filter: ${{ inputs.test_filter }}
+    secrets: inherit
