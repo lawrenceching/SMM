@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useMount, useUnmount } from "react-use";
 import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
@@ -11,7 +11,9 @@ export function MediaMetadataUpdatedEventListener() {
     const { refreshUserConfig } = useConfig();
     const selectedFolder = useUIMediaFolderStore((s) => s.selectedFolder);
     const selectedFolderRef = useRef(selectedFolder);
-    selectedFolderRef.current = selectedFolder;
+    useEffect(() => {
+        selectedFolderRef.current = selectedFolder;
+    }, [selectedFolder]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const eventListener = useRef<((event: any) => void) | null>(null);
 

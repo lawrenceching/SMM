@@ -74,12 +74,12 @@ vi.mock('./ImmersiveSearchbox', () => ({
   }),
 }))
 
-const { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client, mockTvdbSearch } = vi.hoisted(() => {
+const { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client } = vi.hoisted(() => {
   const mockSearchTmdb = vi.fn()
   const mockSearchTvdb = vi.fn()
   const mockTvdbSearch = vi.fn()
   const mockGetTVDBv4Client = vi.fn(() => ({ search: mockTvdbSearch }))
-  return { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client, mockTvdbSearch }
+  return { mockSearchTmdb, mockSearchTvdb, mockGetTVDBv4Client }
 })
 
 vi.mock('@/api/tmdb', async (importOriginal) => {

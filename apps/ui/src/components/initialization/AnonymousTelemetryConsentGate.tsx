@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback } from "react"
 import { toast } from "sonner"
 import { useConfig } from "@/hooks/userConfig"
 import { nextTraceId } from "@/lib/utils"
@@ -16,36 +16,24 @@ export function AnonymousTelemetryConsentGate() {
     isUserConfigLoaded,
     setAndSaveUserConfig,
   } = useConfig()
-  const [isOpen, setIsOpen] = useState(false)
-
-  useEffect(() => {
-    if (isLoading || !isUserConfigLoaded) return
-    if (shouldShowAnonymousTelemetryConsent(userConfig.anonymousTelemetryConsent)) {
-      setIsOpen(true)
-    } else {
-      setIsOpen(false)
-    }
-  }, [
-    isLoading,
-    isUserConfigLoaded,
-    userConfig.anonymousTelemetryConsent,
-  ])
+  // Dialog visibility is derived from config state: it stays open while consent
+  // is still undefined (including after a failed save) and closes once a choice
+  // has been persisted.
+  const isOpen =
+    !isLoading &&
+    isUserConfigLoaded &&
+    shouldShowAnonymousTelemetryConsent(userConfig.anonymousTelemetryConsent)
 
   const persist = useCallback(
     async (value: boolean) => {
-      const previous = userConfig.anonymousTelemetryConsent
       const next = { ...userConfig, anonymousTelemetryConsent: value }
       const traceId = `AnonymousTelemetryConsent-${nextTraceId()}`
-      setIsOpen(false)
       try {
         await setAndSaveUserConfig(traceId, next)
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(message)
-        // Re-open if still unset after failure so the user can retry
-        if (previous === undefined) {
-          setIsOpen(true)
-        }
+        // If consent is still unset after failure the dialog stays open so the user can retry
       }
     },
     [setAndSaveUserConfig, userConfig],

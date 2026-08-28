@@ -72,7 +72,6 @@ export function useMediaDatabaseSettings(): MediaDatabasesSettingsProps {
   const [primaryDatabase, setPrimaryDatabase] = useState<PrimaryDatabase>(initialValues.primaryDatabase)
 
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     setTmdbHost(initialValues.tmdbHost)
     setTmdbApiKey(initialValues.tmdbApiKey)
     setTmdbProxy(initialValues.tmdbProxy)
@@ -80,7 +79,6 @@ export function useMediaDatabaseSettings(): MediaDatabasesSettingsProps {
     setTvdbApiKey(initialValues.tvdbApiKey)
     setTvdbProxy(initialValues.tvdbProxy)
     setPrimaryDatabase(initialValues.primaryDatabase)
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [initialValues])
 
   const hasChanges = useMemo(() => {
