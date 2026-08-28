@@ -21,6 +21,8 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/core packages/core
 COPY packages/core-routes packages/core-routes
 COPY packages/tvdb4 packages/tvdb4
+# core-app (apps/core) is a runtime dependency of apps/cli (Core singleton)
+COPY apps/core apps/core
 COPY apps/cli apps/cli
 
 # pnpm --frozen-lockfile tolerates missing workspace members: only packages
