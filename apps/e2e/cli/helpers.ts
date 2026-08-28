@@ -45,10 +45,15 @@ export function parsePlanId(stdout: string): string {
     return planId
 }
 
+async function resolveCoreDataDir(binary: string): Promise<string> {
+    const { userDataDir } = await runCliHello(binary)
+    return userDataDir
+}
+
 export async function planFilePath(binary: string, planId: string): Promise<string> {
-    const { appDataDir } = await runCliHello(binary)
+    const dataDir = await resolveCoreDataDir(binary)
     const filename = `${planId}.plan.json`
-    return join(appDataDir, 'plans', filename)
+    return join(dataDir, 'plans', filename)
 }
 
 export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: string): string {
@@ -60,8 +65,18 @@ export async function resolveMetadataCachePath(
     binary: string,
     folderPathInPosix: string,
 ): Promise<string> {
-    const { appDataDir } = await runCliHello(binary)
-    return metadataCacheFilePath(appDataDir, folderPathInPosix)
+    const dataDir = await resolveCoreDataDir(binary)
+    return metadataCacheFilePath(dataDir, folderPathInPosix)
+}
+
+/** CLI `metadata` output line for a linked media file (platform path separators). */
+export function metadataMediaFileLine(
+    folderPath: string,
+    fileName: string,
+    seasonNumber: number,
+    episodeNumber: number,
+): string {
+    return `absolutePath: ${Path.toPlatformPath(join(folderPath, fileName))}  seasonNumber: ${seasonNumber}  episodeNumber: ${episodeNumber}`
 }
 
 export function renamedFolderPath(folderPath: string, folderName: string): string {
@@ -122,8 +137,8 @@ export async function createAndImportInitializedFolder(
     }
     mediaMetadata.mediaFolderPath = Path.posix(folderPath)
 
-    const { appDataDir } = await runCliHello(binary)
-    const cachePath = metadataCacheFilePath(appDataDir, Path.posix(folderPath))
+    const dataDir = await resolveCoreDataDir(binary)
+    const cachePath = metadataCacheFilePath(dataDir, Path.posix(folderPath))
     mkdirSync(dirname(cachePath), { recursive: true })
     const { files: _files, ...toPersist } = mediaMetadata
     writeFileSync(cachePath, JSON.stringify(toPersist, null, 2))

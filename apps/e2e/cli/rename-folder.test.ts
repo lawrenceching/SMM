@@ -9,6 +9,7 @@ import {
     createAndImportInitializedFolder,
     renamedFolderPath,
     cliOutput,
+    metadataMediaFileLine,
 } from './helpers'
 
 describe('rename', () => {
@@ -54,9 +55,7 @@ describe('rename', () => {
         expect(cliOutput(meta)).toContain(`mediaFolderPath: ${to}`)
         expect(meta.text()).toContain('type: tvshow-folder')
         expect(meta.text()).toContain('id: 84666')
-        expect(meta.text()).toContain(
-            `absolutePath: ${to}\\S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
-        )
+        expect(meta.text()).toContain(metadataMediaFileLine(to, 'S01E01.mkv', 1, 1))
     })
 
     it('renames a pre-initialized movie folder via smm rename', async () => {
@@ -108,7 +107,7 @@ describe('rename', () => {
         expect(cliOutput(meta)).toContain('id: 116')
         expect(cliOutput(meta)).not.toContain('tvShow:')
         expect(cliOutput(meta)).toContain(
-            `absolutePath: ${to}\\The Dark Knight [1080P].mkv`,
+            `absolutePath: ${Path.toPlatformPath(join(to, 'The Dark Knight [1080P].mkv'))}`,
         )
     })
 
@@ -134,9 +133,7 @@ describe('rename', () => {
         expect(existsSync(join(media, 'S01E01.jpg'))).toBe(false)
 
         const meta = await $`${bin} metadata ${media}`.nothrow()
-        expect(meta.text()).toContain(
-            `absolutePath: ${media}\\S01E01_renamed.mkv  seasonNumber: 1  episodeNumber: 1`,
-        )
+        expect(meta.text()).toContain(metadataMediaFileLine(media, 'S01E01_renamed.mkv', 1, 1))
     })
 
     it('rejects renaming a subdirectory that is not a managed media folder', async () => {

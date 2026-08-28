@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { folder1, createFolderInTestFolder, folder2 } from '../test/actions/import-folders'
 import { setup, cleanup, bin } from './base'
+import { metadataMediaFileLine } from './helpers'
 import { $ } from 'bun'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
@@ -80,9 +81,9 @@ tvShow:
       E11  In Short, It's Your Fault, Onee-san
       E12  Angel's Gaze
 mediaFiles:
-  - absolutePath: ${folderPath}\\S01E01.mkv  seasonNumber: 1  episodeNumber: 1
-  - absolutePath: ${folderPath}\\S01E02.mkv  seasonNumber: 1  episodeNumber: 2
-  - absolutePath: ${folderPath}\\S01E03.mkv  seasonNumber: 1  episodeNumber: 3`)
+  - ${metadataMediaFileLine(folderPath!, 'S01E01.mkv', 1, 1)}
+  - ${metadataMediaFileLine(folderPath!, 'S01E02.mkv', 1, 2)}
+  - ${metadataMediaFileLine(folderPath!, 'S01E03.mkv', 1, 3)}`)
     }, FIVE_MINUTES_MS)
 
     it('import TV show folder with --skip-init', async () => {
