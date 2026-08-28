@@ -15,7 +15,7 @@ const JOB_SUCCEEDED_BADGES = ['succeeded', '成功'] as const
 async function findImportMediaLibraryJobId(): Promise<string | null> {
     return browser.execute((jobNames: readonly string[]) => {
         const matches: Array<{ id: string; status: string }> = []
-        for (const el of document.querySelectorAll('[data-testid$="-name"]')) {
+        for (const el of Array.from(document.querySelectorAll('[data-testid$="-name"]'))) {
             const testId = el.getAttribute('data-testid')
             if (!testId?.startsWith('background-job-') || !testId.endsWith('-name')) {
                 continue

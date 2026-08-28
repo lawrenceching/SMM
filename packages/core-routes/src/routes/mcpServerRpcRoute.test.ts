@@ -80,7 +80,17 @@ describe("MCP RPC route handlers", () => {
     );
     manager = createGateManager();
     config = {
-      hello: { userDataDir: tmpDir },
+      allowlist: [],
+      hello: {
+        version: "test",
+        userDataDir: tmpDir,
+        appDataDir: tmpDir,
+        logDir: tmpDir,
+        tmpDir: tmpDir,
+        reverseProxyUrl: null,
+        osLocale: "en-US",
+        coreRoutesPort: 3001,
+      },
       appDataDir: tmpDir,
       mcp: { manager },
     };

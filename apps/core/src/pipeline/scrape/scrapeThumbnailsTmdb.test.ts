@@ -16,13 +16,18 @@ const seriesDetails: TmdbSeriesDetails = {
 const seasonDetails: TmdbSeasonDetails = {
   id: 1,
   name: "Season 1",
+  overview: "Season overview",
+  poster_path: null,
   season_number: 1,
+  air_date: "2021-01-15",
   episode_count: 1,
   episodes: [
     {
       id: 8415207,
       name: "Episode One",
+      overview: "Episode overview",
       still_path: "/still.jpg",
+      air_date: "2021-01-15",
       episode_number: 1,
       season_number: 1,
       runtime: 24,

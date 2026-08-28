@@ -39,8 +39,7 @@ export function handleFolderMetadata(app: Hono): void {
         }
         return c.json(err, 200)
       }
-      const { files: _files, ...rest } = mm
-      const ok: FolderMetadataResponseBody = { data: rest }
+      const ok: FolderMetadataResponseBody = { data: mm }
       return c.json(ok, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/folder-metadata] route error')

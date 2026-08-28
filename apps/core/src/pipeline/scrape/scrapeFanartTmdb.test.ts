@@ -14,7 +14,7 @@ const seriesDetails: TmdbSeriesDetails = {
   poster_path: "/poster.jpg",
   backdrop_path: "/fanart.jpg",
   seasons: [],
-} as TmdbSeriesDetails;
+} as unknown as TmdbSeriesDetails;
 
 const tvShowMetadata: MediaMetadata = {
   type: "tvshow-folder",

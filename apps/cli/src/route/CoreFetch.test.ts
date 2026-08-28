@@ -119,7 +119,7 @@ describe('POST /api/core/fetch', () => {
     controller.abort()
 
     // Hono may surface abort as a rejected fetch or an error Response.
-    const result = await pending.then(
+    const result = await Promise.resolve(pending).then(
       (res) => ({ type: 'response' as const, res }),
       (err: unknown) => ({ type: 'reject' as const, err }),
     )

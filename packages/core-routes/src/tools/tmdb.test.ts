@@ -1,4 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
+import type {
+  TmdbMovieDetails,
+  TmdbSearchResponseBody,
+  TmdbSeriesDetails,
+  TMDBTVShow,
+} from "@smm/core/types";
 import {
   executeTmdbGetMovie,
   executeTmdbGetTvShow,
@@ -15,8 +21,8 @@ describe("executeTmdbSearch", () => {
   });
 
   it("maps keyword and type to Core runner", async () => {
-    const runner = vi.fn(async () => ({
-      results: [{ id: 1, name: "Show" }],
+    const runner = vi.fn(async (): Promise<TmdbSearchResponseBody> => ({
+      results: [{ id: 1, name: "Show" } as TMDBTVShow],
       page: 1,
       total_pages: 1,
       total_results: 1,
@@ -53,7 +59,10 @@ describe("executeTmdbGetMovie", () => {
   });
 
   it("returns movie details on success", async () => {
-    const runner = vi.fn(async () => ({ id: 550, title: "Fight Club" }));
+    const runner = vi.fn(async (): Promise<TmdbMovieDetails> => ({
+      id: 550,
+      title: "Fight Club",
+    } as TmdbMovieDetails));
     const result = await executeTmdbGetMovie({ id: 550, language: "en-US" }, runner);
     expect(result.title).toBe("Fight Club");
     expect(runner).toHaveBeenCalledWith(550, { language: "en-US", host: undefined });
@@ -67,7 +76,10 @@ describe("executeTmdbGetTvShow", () => {
   });
 
   it("returns series details on success", async () => {
-    const runner = vi.fn(async () => ({ id: 31917, name: "Show" }));
+    const runner = vi.fn(async (): Promise<TmdbSeriesDetails> => ({
+      id: 31917,
+      name: "Show",
+    } as TmdbSeriesDetails));
     const result = await executeTmdbGetTvShow({ id: 31917 }, runner);
     expect(result.name).toBe("Show");
   });

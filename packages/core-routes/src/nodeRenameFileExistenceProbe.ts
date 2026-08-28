@@ -28,7 +28,7 @@ export function createNodeRenameFileExistenceProbe(
     async isFile(posixPath: string): Promise<boolean> {
       try {
         const stats = await statWithTimeout(Path.toPlatformPath(posixPath), timeoutMs);
-        return stats.isFile();
+        return stats?.isFile() ?? false;
       } catch {
         return false;
       }

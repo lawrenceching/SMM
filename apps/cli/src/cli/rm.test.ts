@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MockInstance } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -8,8 +9,8 @@ describe('smm rm', () => {
   let userDataDir: string
   let mediaFolder: string
   let prevUserDataDir: string | undefined
-  let logSpy: ReturnType<typeof vi.spyOn>
-  let errorSpy: ReturnType<typeof vi.spyOn>
+  let logSpy: MockInstance<(...args: any[]) => void>
+  let errorSpy: MockInstance<(...args: any[]) => void>
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR

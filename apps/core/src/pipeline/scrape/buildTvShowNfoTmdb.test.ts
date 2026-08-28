@@ -157,7 +157,7 @@ describe("buildTvShowEpisodeNfo", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-19T12:00:00.000Z"));
 
-    const episode = seasonDetails.episodes![0];
+    const episode = seasonDetails.episodes![0]!;
     const nfo = buildTvShowEpisodeNfo(seriesDetails, seasonDetails, episode);
 
     expect(nfo.id).toBe("8415207");

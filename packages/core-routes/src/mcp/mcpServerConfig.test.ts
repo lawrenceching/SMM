@@ -54,7 +54,17 @@ describe("mcpServerConfig persistence", () => {
       "utf-8",
     );
     routesConfig = {
-      hello: { userDataDir: tmpDir },
+      allowlist: [],
+      hello: {
+        version: "test",
+        userDataDir: tmpDir,
+        appDataDir: tmpDir,
+        logDir: tmpDir,
+        tmpDir: tmpDir,
+        reverseProxyUrl: null,
+        osLocale: "en-US",
+        coreRoutesPort: 3001,
+      },
       appDataDir: tmpDir,
     };
     manager = createGateManager();

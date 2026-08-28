@@ -35,7 +35,7 @@ const seriesDetails: TmdbSeriesDetails = {
   last_air_date: "2021-03-26",
   networks: [],
   production_companies: [],
-} as TmdbSeriesDetails;
+} as unknown as TmdbSeriesDetails;
 
 const tvShowMetadata: MediaMetadata = {
   type: "tvshow-folder",

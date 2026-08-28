@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { $, type ShellOutput } from 'bun'
+import { $ } from 'bun'
 import { Path } from '@smm/core'
 import type { MediaMetadata } from '@smm/core/types'
 import type { TestFolder } from '@smm/test'
@@ -21,8 +21,15 @@ export function requiredEnv(name: string): string {
     return value
 }
 
+/** Shape of an awaited `$` subprocess result (bun-types does not export ShellOutput). */
+interface CliSubprocessResult {
+    stdout: Buffer
+    stderr: Buffer
+    exitCode: number
+}
+
 /** Combine stdout and stderr from a CLI subprocess result. */
-export function cliOutput(result: ShellOutput): string {
+export function cliOutput(result: CliSubprocessResult): string {
     const stdout = result.stdout.toString()
     const stderr = result.stderr.toString()
     if (!stdout) return stderr

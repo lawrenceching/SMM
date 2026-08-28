@@ -92,7 +92,7 @@ export async function executeTmdbSearch(
       return { error: body.error };
     }
     return {
-      results: body.results,
+      results: body.results as unknown as Record<string, unknown>[],
       page: body.page,
       total_pages: body.total_pages,
       total_results: body.total_results,
@@ -119,7 +119,9 @@ export async function executeTmdbGetMovie(
 
   try {
     const details = await runner(params.id, toTmdbCoreOptions(params));
-    return details as TmdbGetMovieOutput;
+    // Core TMDB types are interfaces without index signatures, while the tool
+    // output schema describes plain records for AI function calling.
+    return details as unknown as TmdbGetMovieOutput;
   } catch (error) {
     return { error: formatTmdbToolError(error) };
   }
@@ -142,7 +144,9 @@ export async function executeTmdbGetTvShow(
 
   try {
     const details = await runner(params.id, toTmdbCoreOptions(params));
-    return details as TmdbGetTvShowOutput;
+    // Core TMDB types are interfaces without index signatures, while the tool
+    // output schema describes plain records for AI function calling.
+    return details as unknown as TmdbGetTvShowOutput;
   } catch (error) {
     return { error: formatTmdbToolError(error) };
   }

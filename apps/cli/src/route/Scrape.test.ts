@@ -93,6 +93,7 @@ describe('POST /api/scrape', () => {
         database: 'TMDB',
         id: '1',
         name: 'Test Show',
+        seasons: [],
       },
     }
     await getCore().setMetadata(metadata)

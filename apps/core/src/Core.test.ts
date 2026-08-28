@@ -168,7 +168,8 @@ describe("Core", () => {
     await waitForStatus(core, id, "succeeded");
 
     expect(core.getJob(id)?.status).toBe("succeeded");
-    expect(core.getJob(id)?.stage).toBe("metadata");
+    const job = core.getJob(id);
+    expect(job?.kind === "import" ? job.stage : undefined).toBe("metadata");
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toContain("/m/Deferred");
     expect(fs.listFiles).not.toHaveBeenCalled();
@@ -1057,7 +1058,7 @@ describe("scrapeFolder", () => {
     last_air_date: "2021-03-26",
     networks: [],
     production_companies: [],
-  } as TmdbSeriesDetails;
+  } as unknown as TmdbSeriesDetails;
 
   const seasonDetails: TmdbSeasonDetails = {
     id: 1,
@@ -1146,7 +1147,10 @@ describe("scrapeFolder", () => {
       headers: { "content-type": "image/jpeg" },
       text: () => Promise.resolve(""),
       json: <T>() => Promise.resolve({} as T),
-      arrayBuffer: () => Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)),
+      arrayBuffer: () =>
+        Promise.resolve(
+          bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+        ),
     };
   }
 

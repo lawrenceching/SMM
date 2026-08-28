@@ -66,7 +66,7 @@ export function buildAssetUrlCandidates(
   const overrideHost = options.overrideDefaultTmdbAssetServerHost;
   if (overrideHost && assetType === "tmdb-asset" && candidates.length > 0) {
     try {
-      const overridden = new URL(candidates[0]);
+      const overridden = new URL(candidates[0]!);
       overridden.host = overrideHost;
       candidates[0] = overridden.href;
     } catch {

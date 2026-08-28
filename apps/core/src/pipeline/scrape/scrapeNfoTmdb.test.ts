@@ -30,7 +30,7 @@ const seriesDetails: TmdbSeriesDetails = {
   networks: [],
   production_companies: [{ id: 1, name: "Studio Alpha", logo_path: null }],
   genres: [{ id: 16, name: "Animation" }],
-} as TmdbSeriesDetails;
+} as unknown as TmdbSeriesDetails;
 
 const seasonDetails: TmdbSeasonDetails = {
   id: 1,

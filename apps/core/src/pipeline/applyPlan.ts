@@ -14,13 +14,14 @@ export interface ApplyPlanDeps {
 
 /** Dispatches apply by plan task (recognize-media-file or rename-files). */
 export async function applyPlanPipeline(plan: Plan, deps: ApplyPlanDeps): Promise<void> {
-  if (plan.task === "recognize-media-file") {
+  const task = plan.task;
+  if (task === "recognize-media-file") {
     return applyRecognizeMediaFilePlanPipeline(plan, deps);
   }
-  if (plan.task === "rename-files") {
+  if (task === "rename-files") {
     return applyRenameFilesPlanPipeline(plan, deps);
   }
-  throw new Error(`Unsupported plan task: ${plan.task}`);
+  throw new Error(`Unsupported plan task: ${task}`);
 }
 
 /** Applies a pending recognize-media-file plan: merge mediaFiles, persist, delete plan. */

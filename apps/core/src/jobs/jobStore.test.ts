@@ -17,7 +17,8 @@ describe("JobStore", () => {
     expect(job.kind).toBe("import");
     expect(job.createdAt).toBeGreaterThan(0);
     expect(job.updatedAt).toBeGreaterThanOrEqual(job.createdAt);
-    expect(store.get(job.id)?.folderPath).toBe("/m/My.Show");
+    const stored = store.get(job.id);
+    expect(stored?.kind === "import" && stored.folderPath).toBe("/m/My.Show");
   });
 
   it("update patches fields and bumps updatedAt", async () => {

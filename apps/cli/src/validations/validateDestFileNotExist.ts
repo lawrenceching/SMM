@@ -39,7 +39,7 @@ export async function validateDestFileNotExist(
       const platformPath = Path.toPlatformPath(task.to);
       const stats = await statWithTimeout(platformPath);
       // Only check for files, not directories
-      if (stats.isFile()) {
+      if (stats?.isFile()) {
         existingFiles.push(task.to);
       }
     } catch (error) {

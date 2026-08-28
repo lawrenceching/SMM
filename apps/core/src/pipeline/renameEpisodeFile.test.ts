@@ -478,7 +478,7 @@ describe("renameEpisodeFilePipeline", () => {
       "/m/Show/S01E01.mp4": "video",
       "/m/Show/S01E01.srt": "sub",
     });
-    const setMetadata = vi.fn(async () => {});
+    const setMetadata = vi.fn(async (_mm: MediaMetadata) => {});
     const rename = vi.fn(async (from: string, to: string) => {
       if (from.endsWith(".srt")) {
         throw new Error("EACCES: subtitle locked");
@@ -511,7 +511,7 @@ describe("renameEpisodeFilePipeline", () => {
 
   it("does not call setMetadata when every rename fails", async () => {
     const { fs, userConfig, mm } = managedFs({ "/m/Show/S01E01.mp4": "video" });
-    const setMetadata = vi.fn(async () => {});
+    const setMetadata = vi.fn(async (_mm: MediaMetadata) => {});
     const rename = vi.fn(async () => {
       throw new Error("EIO: disk error");
     });

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { MockInstance } from 'vitest'
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
@@ -9,8 +10,8 @@ describe('smm addlib', () => {
   let userDataDir: string
   let libraryPath: string
   let prevUserDataDir: string | undefined
-  let logSpy: ReturnType<typeof vi.spyOn>
-  let errorSpy: ReturnType<typeof vi.spyOn>
+  let logSpy: MockInstance<(...args: any[]) => void>
+  let errorSpy: MockInstance<(...args: any[]) => void>
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR

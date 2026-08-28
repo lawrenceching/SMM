@@ -178,7 +178,7 @@ function agentForProxy(proxyUrl: string, targetUrl: string): Agent {
     // (`socks5://`). `socks5h://` lets the proxy resolve the hostname (same as curl --socks5-hostname).
     const socks = new URL(proxyUrl)
     if (socks.protocol === 'socks5:') socks.protocol = 'socks5h:'
-    return new SocksProxyAgent(socks) as unknown as Agent
+    return new SocksProxyAgent(socks.toString()) as unknown as Agent
   }
 
   // https:// target → CONNECT tunnel; http:// target → absolute-URL forward.
