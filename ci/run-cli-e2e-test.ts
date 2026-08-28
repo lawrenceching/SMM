@@ -43,6 +43,11 @@ function ensureCliBinary(): void {
     console.error('Run: cd apps/cli && pnpm run build');
     process.exit(1);
   }
+
+  // GitHub Actions download-artifact does not preserve the executable bit.
+  if (process.platform !== 'win32') {
+    fs.chmodSync(CLI_BIN, 0o755);
+  }
 }
 
 async function main(): Promise<number> {
