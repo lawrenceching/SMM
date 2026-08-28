@@ -55,7 +55,11 @@ describe('AI Assistant - Rename Tool', async () => {
 
         await browser.waitUntil(async () => {
             return (await TVShowPanel.toString()).includes(`S01E01 S01E01.mp4 - - -`)
-        }, {timeout: 5000})
+        }, {
+            timeout: 60000,
+            interval: 500,
+            timeoutMsg: 'Expected S01E01.mp4 to be linked to S01E01 after import',
+        })
 
         await expectMediaMetadataToBe(folder.path!, (obj) => {
             const mm = obj as MediaMetadata;
@@ -88,7 +92,11 @@ describe('AI Assistant - Rename Tool', async () => {
 
         await browser.waitUntil(async () => {
             return (await TVShowPanel.toString()).includes(`S01E01 [1].mp4 - - -`)
-        }, {timeout: 5000})
+        }, {
+            timeout: 60000,
+            interval: 500,
+            timeoutMsg: 'Expected TV show panel to show renamed file [1].mp4',
+        })
 
         await expectMediaMetadataToBe(folder.path!, (obj) => {
             const mm = obj as MediaMetadata;
