@@ -152,4 +152,65 @@ describe('POST /api/rename-episode-file', () => {
     const json = (await res.json()) as { error?: string }
     expect(json.error).toMatch(/not a linked episode/i)
   })
+
+  it('renames movie video and associates via Core', async () => {
+    const movieDir = join(mediaDir, 'Ne Zha (2019)')
+    mkdirSync(movieDir)
+    const video = join(movieDir, 'movie.mp4')
+    const srt = join(movieDir, 'movie.srt')
+    const enSrt = join(movieDir, 'movie.en.srt')
+    writeFileSync(video, 'v')
+    writeFileSync(srt, 's')
+    writeFileSync(enSrt, 'e')
+
+    const folderPosix = Path.posix(movieDir)
+    writeFileSync(
+      join(userDataDir, 'smm.json'),
+      JSON.stringify({
+        folders: [movieDir],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: 'plex',
+      }),
+      'utf-8',
+    )
+    const cacheName = folderPosix.replace(/[/\\:?*|<>"]/g, '_')
+    mkdirSync(join(userDataDir, 'metadata'), { recursive: true })
+    writeFileSync(
+      join(userDataDir, 'metadata', `${cacheName}.json`),
+      JSON.stringify({
+        mediaFolderPath: folderPosix,
+        type: 'movie-folder',
+        files: [Path.posix(video), Path.posix(srt), Path.posix(enSrt)],
+        mediaFiles: [{ absolutePath: Path.posix(video) }],
+        movie: { database: 'TMDB', id: '615453', name: 'Ne Zha' },
+      }),
+      'utf-8',
+    )
+    resetCoreForTests()
+
+    const to = join(movieDir, 'movie_renamed.mp4')
+    const res = await post({ mediaFolder: movieDir, from: video, to })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as {
+      data?: { succeeded: Array<{ from: string; to: string }> }
+      error?: string
+    }
+    expect(json.error).toBeUndefined()
+    expect(json.data?.succeeded.length).toBeGreaterThanOrEqual(3)
+
+    expect(existsSync(to)).toBe(true)
+    expect(existsSync(video)).toBe(false)
+    expect(existsSync(join(movieDir, 'movie_renamed.srt'))).toBe(true)
+    expect(existsSync(join(movieDir, 'movie_renamed.en.srt'))).toBe(true)
+    expect(existsSync(srt)).toBe(false)
+    expect(existsSync(enSrt)).toBe(false)
+
+    const mm = JSON.parse(
+      readFileSync(join(userDataDir, 'metadata', `${cacheName}.json`), 'utf-8'),
+    ) as { mediaFiles: Array<{ absolutePath: string }> }
+    expect(mm.mediaFiles[0]?.absolutePath).toBe(Path.posix(to))
+  })
 })

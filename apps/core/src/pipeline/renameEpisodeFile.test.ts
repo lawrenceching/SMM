@@ -177,12 +177,70 @@ describe("renameEpisodeFilePipeline", () => {
     ).rejects.toThrow(/not a linked episode/i);
   });
 
-  it("rejects movie folders", async () => {
-    const mm = tvMetadata({ type: "movie-folder", mediaFiles: [{ absolutePath: "/m/Show/movie.mkv" }] });
+  it("renames movie video + associates and updates metadata", async () => {
+    const movieFolder = "/m/Movie";
+    const mm: MediaMetadata = {
+      mediaFolderPath: movieFolder,
+      type: "movie-folder",
+      files: [
+        "/m/Movie/movie.mp4",
+        "/m/Movie/movie.srt",
+        "/m/Movie/movie.en.srt",
+        "/m/Movie/movie.ass",
+      ],
+      mediaFiles: [{ absolutePath: "/m/Movie/movie.mp4" }],
+      movie: { database: "TMDB", id: "615453", name: "Ne Zha" },
+    };
+    const fs = createFs({
+      [userConfigPath(appDataDir)]: configWith([movieFolder]),
+      [metadataCachePath(appDataDir, movieFolder)]: JSON.stringify(mm),
+      "/m/Movie/movie.mp4": "video",
+      "/m/Movie/movie.srt": "sub",
+      "/m/Movie/movie.en.srt": "en",
+      "/m/Movie/movie.ass": "ass",
+    });
+    const userConfig = new UserConfigHelper(fs, appDataDir);
+
+    const result = await renameEpisodeFilePipeline(
+      {
+        mediaFolderPath: movieFolder,
+        from: "/m/Movie/movie.mp4",
+        to: "/m/Movie/movie_renamed.mp4",
+      },
+      {
+        fs,
+        appDataDir,
+        userConfig,
+        normalizePosix: (p) => p,
+        getMediaMetadata: async () => mm,
+        setMetadata: async (next) => {
+          await fs.writeTextFile(metadataCachePath(appDataDir, movieFolder), JSON.stringify(next));
+        },
+      },
+    );
+
+    expect(result.failed).toEqual([]);
+    expect(result.succeeded).toEqual([
+      { from: "/m/Movie/movie.mp4", to: "/m/Movie/movie_renamed.mp4" },
+      { from: "/m/Movie/movie.srt", to: "/m/Movie/movie_renamed.srt" },
+      { from: "/m/Movie/movie.en.srt", to: "/m/Movie/movie_renamed.en.srt" },
+      { from: "/m/Movie/movie.ass", to: "/m/Movie/movie_renamed.ass" },
+    ]);
+    expect(fs.textFiles.has("/m/Movie/movie_renamed.mp4")).toBe(true);
+    expect(fs.textFiles.has("/m/Movie/movie.mp4")).toBe(false);
+
+    const saved = JSON.parse(
+      fs.textFiles.get(metadataCachePath(appDataDir, movieFolder))!,
+    ) as MediaMetadata;
+    expect(saved.mediaFiles?.[0]?.absolutePath).toBe("/m/Movie/movie_renamed.mp4");
+  });
+
+  it("rejects unsupported folder types", async () => {
+    const mm = tvMetadata({ type: "music-folder", mediaFiles: [{ absolutePath: "/m/Show/track.mp3" }] });
     const fs = createFs({
       [userConfigPath(appDataDir)]: configWith([folder]),
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(mm),
-      "/m/Show/movie.mkv": "x",
+      "/m/Show/track.mp3": "x",
     });
     const userConfig = new UserConfigHelper(fs, appDataDir);
 
@@ -190,8 +248,8 @@ describe("renameEpisodeFilePipeline", () => {
       renameEpisodeFilePipeline(
         {
           mediaFolderPath: folder,
-          from: "/m/Show/movie.mkv",
-          to: "/m/Show/movie2.mkv",
+          from: "/m/Show/track.mp3",
+          to: "/m/Show/track2.mp3",
         },
         {
           fs,
@@ -202,7 +260,40 @@ describe("renameEpisodeFilePipeline", () => {
           setMetadata: async () => {},
         },
       ),
-    ).rejects.toThrow(/not a TV show/i);
+    ).rejects.toThrow(/not a TV show or movie/i);
+  });
+
+  it("rejects unlinked movie video files", async () => {
+    const movieFolder = "/m/Movie";
+    const mm: MediaMetadata = {
+      mediaFolderPath: movieFolder,
+      type: "movie-folder",
+      mediaFiles: [{ absolutePath: "/m/Movie/movie.mp4" }],
+    };
+    const fs = createFs({
+      [userConfigPath(appDataDir)]: configWith([movieFolder]),
+      [metadataCachePath(appDataDir, movieFolder)]: JSON.stringify(mm),
+      "/m/Movie/orphan.mp4": "x",
+    });
+    const userConfig = new UserConfigHelper(fs, appDataDir);
+
+    await expect(
+      renameEpisodeFilePipeline(
+        {
+          mediaFolderPath: movieFolder,
+          from: "/m/Movie/orphan.mp4",
+          to: "/m/Movie/orphan2.mp4",
+        },
+        {
+          fs,
+          appDataDir,
+          userConfig,
+          normalizePosix: (p) => p,
+          getMediaMetadata: async () => mm,
+          setMetadata: async () => {},
+        },
+      ),
+    ).rejects.toThrow(/not a linked movie video/i);
   });
 
   it("rejects unmanaged folders", async () => {

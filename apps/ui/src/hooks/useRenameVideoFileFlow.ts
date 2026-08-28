@@ -24,9 +24,8 @@ export interface UseRenameVideoFileFlowOptions {
    */
   files: string[]
   /**
-   * When `"episode"` and `smm.v3.enabled`, confirm calls Core
-   * `renameEpisodeFile` (TV only). Default `"generic"` keeps legacy
-   * `/api/renameFiles` (movie panel).
+   * When `smm.v3.enabled`, confirm calls Core `renameEpisodeFile` (TV + movie).
+   * Default `"generic"` keeps legacy `/api/renameFiles` when v3 is off.
    */
   mode?: "episode" | "generic"
   /**
@@ -51,13 +50,13 @@ export interface RenameVideoFileFlow {
  * Encapsulates the "rename the selected video file" right-click flow that
  * `TvShowPanel` and `MoviePanel` inject into `MediaFileTable`.
  *
- * TV (`mode: "episode"`) + v3: `POST /api/rename-episode-file` → Core.
+ * TV + movie + v3 ON: `POST /api/rename-episode-file` → Core.
  * Otherwise: client expands associates and calls `POST /api/renameFiles`.
  */
 export function useRenameVideoFileFlow(
   options: UseRenameVideoFileFlowOptions,
 ): RenameVideoFileFlow {
-  const { mediaFolderPath, files, mode = "generic", onAfterRename } = options
+  const { mediaFolderPath, files, onAfterRename } = options
   const { t } = useTranslation(["components", "dialogs"])
   const { renameFileDialog } = useDialogs()
   const [openRename] = renameFileDialog
@@ -79,7 +78,7 @@ export function useRenameVideoFileFlow(
           if (!row.videoFile) return
           const newAbsolutePath = join(mediaFolderPath, newRelativePath)
           try {
-            if (mode === "episode" && isSmmV3Enabled()) {
+            if (isSmmV3Enabled()) {
               await renameEpisodeFileViaCore({
                 mediaFolder: Path.posix(mediaFolderPath),
                 from: row.videoFile,
@@ -123,7 +122,6 @@ export function useRenameVideoFileFlow(
     [
       mediaFolderPath,
       files,
-      mode,
       onAfterRename,
       openRename,
       fetchMediaMetadata,

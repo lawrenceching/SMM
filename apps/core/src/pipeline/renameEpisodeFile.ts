@@ -54,16 +54,26 @@ function isUnderFolder(folderPosix: string, filePosix: string): boolean {
   return filePosix === folderPosix || filePosix.startsWith(prefix);
 }
 
-function isLinkedEpisode(mm: MediaMetadata, fromPosix: string): boolean {
-  return (mm.mediaFiles ?? []).some(
-    (f) =>
-      mediaFilePathEqual(f.absolutePath, fromPosix) &&
-      f.seasonNumber !== undefined &&
-      f.episodeNumber !== undefined,
-  );
+function isSupportedMediaFolderType(
+  type: MediaMetadata["type"],
+): type is "tvshow-folder" | "movie-folder" {
+  return type === "tvshow-folder" || type === "movie-folder";
 }
 
-/** Rename a linked TV episode file (+ same-stem associates). Throws on prerequisite failure. */
+/** TV: linked episode with season/episode. Movie: any entry in mediaFiles (video path). */
+function isLinkedMediaFile(mm: MediaMetadata, fromPosix: string): boolean {
+  return (mm.mediaFiles ?? []).some((f) => {
+    if (!mediaFilePathEqual(f.absolutePath, fromPosix)) {
+      return false;
+    }
+    if (mm.type === "movie-folder") {
+      return true;
+    }
+    return f.seasonNumber !== undefined && f.episodeNumber !== undefined;
+  });
+}
+
+/** Rename a linked TV episode or movie video file (+ same-stem associates). Throws on prerequisite failure. */
 export async function renameEpisodeFilePipeline(
   input: RenameEpisodeFileInput,
   deps: RenameEpisodeFileDeps,
@@ -99,11 +109,15 @@ export async function renameEpisodeFilePipeline(
   if (!mm) {
     throw new Error(`Media metadata not found: ${mediaFolderRaw}`);
   }
-  if (mm.type !== "tvshow-folder") {
-    throw new Error(`Folder is not a TV show: ${mediaFolderRaw}`);
+  if (!isSupportedMediaFolderType(mm.type)) {
+    throw new Error(`Folder is not a TV show or movie: ${mediaFolderRaw}`);
   }
-  if (!isLinkedEpisode(mm, fromPosix)) {
-    throw new Error(`File is not a linked episode: ${fromRaw}`);
+  if (!isLinkedMediaFile(mm, fromPosix)) {
+    const detail =
+      mm.type === "movie-folder"
+        ? "File is not a linked movie video"
+        : "File is not a linked episode";
+    throw new Error(`${detail}: ${fromRaw}`);
   }
   if (!isUnderFolder(folderPosix, fromPosix)) {
     throw new Error(`Path is outside media folder: ${fromRaw}`);
