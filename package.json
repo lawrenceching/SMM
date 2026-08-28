@@ -31,6 +31,7 @@
     "test:core-app": "cd apps/core && pnpm test",
     "test:cli": "cd apps/cli && pnpm test",
     "test:cli:e2e": "cd apps/cli && pnpm run test:e2e",
+    "e2e:cli:bun": "bun ci/run-cli-e2e-test.ts",
     "test:ui": "cd apps/ui && pnpm test",
     "test:e2e": "cd apps/e2e && pnpm run test",
     "e2e:ai": "bun ci/run-e2e-test.ts --spec \"./test/specs/ai/*.e2e.ts\"",
