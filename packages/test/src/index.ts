@@ -202,7 +202,8 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
     if(initConfig) {
         userConfig = { ...userConfig, ...initConfig }
     }
-    
+
+    fs.mkdirSync(path.dirname(userConfigPath), { recursive: true })
     fs.writeFileSync(userConfigPath, JSON.stringify(userConfig, null, 2), 'utf-8')
     console.log(`Reset user config at: ${userConfigPath}`)
     console.log(`[DIAG] resetUserConfig: wrote folders=[] to ${userConfigPath}`)
