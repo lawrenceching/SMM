@@ -1,6 +1,7 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
+import { clickContextMenuItem, rightClickElement } from '../lib/context-menu'
 import SearchboxCO from './Searchbox.co'
 
 /** Confirm button labels (en and zh-CN). */
@@ -246,10 +247,12 @@ class TVShowPanel {
      * This simulates a right-click on the corresponding table row.
      */
     async openContextMenuForEpisode(episodeId: string): Promise<void> {
-        const episodeIdCell = await $('td=' + episodeId)
-        await episodeIdCell.waitForDisplayed({ timeout: 10000 })
+        const table = await $('[data-testid="tvshow-episode-table"]')
+        await table.waitForDisplayed({ timeout: 10_000 })
+        const episodeIdCell = await table.$(`td=${episodeId}`)
+        await episodeIdCell.waitForDisplayed({ timeout: 10_000 })
         const row = await episodeIdCell.parentElement()
-        await row.click({ button: 'right' })
+        await rightClickElement(row)
     }
 
     /**
@@ -266,35 +269,9 @@ class TVShowPanel {
         const labels = labelMap[labelEn] ?? [labelEn]
 
         await this.openContextMenuForEpisode(episodeId)
-        await browser.pause(300)
         console.log(`[TVShowPanel] Right-clicked on episode row ${episodeId}`)
-
-        await browser.waitUntil(
-            async () => {
-                for (const label of labels) {
-                    const item = await $(`[role="menuitem"]=${label}`)
-                    if (await item.isDisplayed().catch(() => false)) return true
-                }
-                return false
-            },
-            {
-                timeout: 5000,
-                interval: 200,
-                timeoutMsg: `Context menu item [${labels.join(', ')}] did not appear`,
-            }
-        )
-
-        for (const label of labels) {
-            const item = await $(`[role="menuitem"]=${label}`)
-            if (await item.isDisplayed().catch(() => false)) {
-                await item.waitForClickable({ timeout: 3000 })
-                await item.click()
-                console.log(`[TVShowPanel] Clicked context menu item: ${label}`)
-                return
-            }
-        }
-
-        throw new Error(`[TVShowPanel] Context menu item [${labels.join(', ')}] not found`)
+        await clickContextMenuItem(labels)
+        console.log(`[TVShowPanel] Clicked context menu item: ${labels.join(' / ')}`)
     }
 
     /**

@@ -103,9 +103,14 @@ class Sidebar {
      * @param folderName The name of the folder to click
      */
     async clickFolder(folderName: string): Promise<void> {
-        const folderElement = await this.getFolderByName(folderName)
-        await folderElement.waitForClickable({ timeout: 5000 })
-        await folderElement.click()
+        // Click the row container (ContextMenuTrigger child), not the inner <p> label.
+        const folderRow = $(
+            `//*[@data-testid="sidebar-folder-name" and text()="${folderName}"]/ancestor::div[contains(@class,"cursor-pointer")][1]`,
+        )
+        await folderRow.waitForExist({ timeout: 5000 })
+        await folderRow.scrollIntoView()
+        // Radix ContextMenuTrigger often fails WebdriverIO "clickable" checks; JS click is reliable.
+        await folderRow.click({ js: true })
     }
 
     /**
