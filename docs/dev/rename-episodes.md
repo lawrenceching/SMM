@@ -1,6 +1,6 @@
 # Rename Episodes
 
-**Supported Platform** Web UI, CLI, Electron, ohos
+**Supported Platform** Web UI, CLI, Electron, ohos, MCP tool, AI tool
 **Status** wip
 
 SMM provides 3 renaming functions:
@@ -54,7 +54,6 @@ sequenceDiagram
 
 
 ## Web UI, Electron and ohos
-
 
 ### UC1: Rename episodes
 
@@ -114,7 +113,40 @@ sequenceDiagram
   W->>W: invalidate useMediaMetadataQuery
 ```
 
-# Testing
+## MCP Tool and AI Tool
+
+AI and MCP clients use a single tool, **`create-rename-episode-plan`**, instead of the former begin/add/end rename task flow.
+
+Input:
+
+- `mediaFolderPath` — absolute media folder path (POSIX or Windows)
+- `files` — non-empty array of `{ from, to }` video paths chosen by the agent
+
+The tool calls `Core.createRenameEpisodePlan(..., { creator: "ai" })`, writes a pending rename plan under `{appDataDir}/plans/`, broadcasts **`RenameFilesPlanReady`**, and returns a success message telling the user to open SMM and approve the plan. Confirm/reject/apply follow [Manage Plan](./manage-plan.md) (`POST /api/apply-plan`, `POST /api/reject-plan`).
+
+HTTP surface (same Core call): `POST /api/create-rename-episode-plan`. E2e/debug helper: `POST /debug/createRenameEpisodePlan`.
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant A as AI Agent
+  participant T as MCP Tool/AI Tool
+  participant C as Core
+  participant W as UI
+
+  U->>A: ask for renaming episodes
+  A->>T: create-rename-episode-plan(folder, files)
+  T->>C: createRenameEpisodePlan(..., creator ai)
+  C->>T: RenameFilesPlan (pending)
+  T->>W: RenameFilesPlanReady
+  T->>A: success message (review in SMM)
+  A->>U: message to user
+  U->>W: review + confirm
+  W->>C: applyPlan()
+```
+
+
+## Testing
 
 | Use Case | Platform | Test |
 |--|--|--|
@@ -122,6 +154,7 @@ sequenceDiagram
 | UC1 | CLI | apps/e2e/cli/rename-episodes.test.ts |
 | UC2 | Web UI, Electron and Ohos | apps/e2e/common/tv/TVShow-RenameEpisodes.e2e.ts |
 | UC2 | CLI | apps/e2e/cli/rename-episodes.test.ts |
+| AI rename plan | MCP tool, AI tool | apps/e2e/test/specs/ai/AiTool-RenameTool.e2e.ts |
 
 
 ## References

@@ -162,27 +162,33 @@ curl -X POST http://localhost:30000/debug \
 - If `clientId` is not provided or no UI is connected, the confirmation will timeout and the operation will fail
 - The function returns validation errors if any rename operations are invalid
 
-### beginRenameFilesTask
+### createRenameEpisodePlan
 
-The beginRenameFilesTask function creates a new rename task for a media folder. This allows you to collect multiple file rename operations before executing them all at once. You should call this function first, then use `addRenameFileToTask` to add files, and finally call `endRenameFilesTask` to execute all renames.
+Creates a pending rename-files plan via `Core.createRenameEpisodePlan` (same as the AI/MCP tool **`create-rename-episode-plan`**). Use this in e2e tests to skip the AI chat flow and drive the rename review UI directly.
+
+When `creator` is omitted, the debug route defaults to `"ai"` and broadcasts **`RenameFilesPlanReady`**. The user still confirms in SMM; apply with `POST /api/apply-plan` or CLI `smm apply <planId>`.
 
 ```typescript
-interface BeginRenameFilesTaskDebugApiRequestBody {
-    name: "beginRenameFilesTask",
-    mediaFolderPath: string,
-    clientId?: string
+interface CreateRenameEpisodePlanDebugApiRequestBody {
+  mediaFolderPath: string
+  files: Array<{ from: string; to: string }>
+  creator?: "ai" | "app"
 }
 ```
 
-#### Example: Begin a rename task
+#### Example: Create an AI rename plan
 
 ```bash
-curl -X POST http://localhost:30000/debug \
+curl -X POST http://localhost:30000/debug/createRenameEpisodePlan \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "beginRenameFilesTask",
     "mediaFolderPath": "/path/to/media/folder",
-    "clientId": "optional-client-id"
+    "files": [
+      {
+        "from": "/path/to/media/folder/S01E01.mkv",
+        "to": "/path/to/media/folder/Show Name - S01E01 - Episode Title.mkv"
+      }
+    ]
   }'
 ```
 
@@ -191,89 +197,20 @@ curl -X POST http://localhost:30000/debug \
 {
   "success": true,
   "data": {
-    "taskId": "550e8400-e29b-41d4-a716-446655440000",
-    "error": undefined
+    "planId": "550e8400-e29b-41d4-a716-446655440000",
+    "plan": { "id": "...", "task": "rename-files", "status": "pending", "files": [] }
   }
 }
 ```
 
 **Note:**
-- The `mediaFolderPath` must be a folder that is currently opened in SMM (has metadata cache)
-- Returns a `taskId` that must be used with `addRenameFileToTask` and `endRenameFilesTask`
-- The task is stored in memory and will be lost if the server restarts
-
-### addRenameFileToTask
-
-The addRenameFileToTask function adds a single file rename operation to an existing task. You can call this function multiple times to add multiple files to the same task.
-
-```typescript
-interface AddRenameFileToTaskDebugApiRequestBody {
-    name: "addRenameFileToTask",
-    taskId: string,
-    from: string,
-    to: string,
-    clientId?: string
-}
-```
-
-#### Example: Add a file rename to a task
-
-```bash
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "addRenameFileToTask",
-    "taskId": "550e8400-e29b-41d4-a716-446655440000",
-    "from": "/path/to/media/folder/file1.txt",
-    "to": "/path/to/media/folder/file1_renamed.txt",
-    "clientId": "optional-client-id"
-  }'
-```
-
-**Note:**
-- The `taskId` must be a valid task ID returned from `beginRenameFilesTask`
-- You can call this function multiple times with the same `taskId` to add multiple files
-- Paths can be in POSIX format or Windows format (they will be normalized)
-
-### endRenameFilesTask
-
-The endRenameFilesTask function ends a rename task and executes all collected rename operations. It will:
-1. Validate all rename operations
-2. Ask for user confirmation (if clientId is provided and UI is connected)
-3. Perform the file renames on the filesystem
-4. Update media metadata
-5. Clean up the task
-
-```typescript
-interface EndRenameFilesTaskDebugApiRequestBody {
-    name: "endRenameFilesTask",
-    taskId: string,
-    clientId?: string
-}
-```
-
-#### Example: End a rename task and execute all renames
-
-```bash
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "endRenameFilesTask",
-    "taskId": "550e8400-e29b-41d4-a716-446655440000",
-    "clientId": "optional-client-id"
-  }'
-```
-
-**Note:**
-- The `taskId` must be a valid task ID returned from `beginRenameFilesTask`
-- If `clientId` is provided and a UI client is connected, it will show a confirmation dialog
-- If `clientId` is not provided or no UI is connected, the confirmation will timeout and the operation will fail
-- The function returns validation errors if any rename operations are invalid
-- After execution, the task is removed from memory
+- `mediaFolderPath` must be a managed TV show folder with metadata cache
+- `files` must be non-empty; validation errors return `{ success: false, error: "..." }`
+- See [Rename Episodes](./dev/rename-episodes.md) for product flow and [Manage Plan](./dev/manage-plan.md) for apply/reject
 
 ### Simulate Rename Plan Ready
 
-Simulate MCP client call `"end-rename-episode-video-file-task"` MCP tool.
+Simulate the **`RenameFilesPlanReady`** Socket.IO event after a plan file already exists (e.g. when testing UI without calling `createRenameEpisodePlan`).
 
 ```bash
 curl -X POST http://localhost:30000/debug \
@@ -324,45 +261,21 @@ curl -X POST http://localhost:30000/debug \
 - Errors are collected and returned in the response if any occur
 - The function returns success if at least one operation completes, even if the other fails
 
-#### Complete Example: Using all three functions together
+#### Complete Example: Create plan, then apply from CLI
 
 ```bash
-# Step 1: Begin a rename task
-TASK_ID=$(curl -s -X POST http://localhost:30000/debug \
+PLAN_ID=$(curl -s -X POST http://localhost:30000/debug/createRenameEpisodePlan \
   -H "Content-Type: application/json" \
   -d '{
-    "name": "beginRenameFilesTask",
     "mediaFolderPath": "/path/to/media/folder",
-    "clientId": "optional-client-id"
-  }' | jq -r '.data.taskId')
+    "files": [
+      {
+        "from": "/path/to/media/folder/S01E01.mkv",
+        "to": "/path/to/media/folder/Show Name - S01E01 - Episode Title.mkv"
+      }
+    ]
+  }' | jq -r '.data.planId')
 
-# Step 2: Add multiple files to the task
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"addRenameFileToTask\",
-    \"taskId\": \"$TASK_ID\",
-    \"from\": \"/path/to/media/folder/file1.txt\",
-    \"to\": \"/path/to/media/folder/file1_renamed.txt\",
-    \"clientId\": \"optional-client-id\"
-  }"
-
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"addRenameFileToTask\",
-    \"taskId\": \"$TASK_ID\",
-    \"from\": \"/path/to/media/folder/file2.txt\",
-    \"to\": \"/path/to/media/folder/file2_renamed.txt\",
-    \"clientId\": \"optional-client-id\"
-  }"
-
-# Step 3: End the task and execute all renames
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"name\": \"endRenameFilesTask\",
-    \"taskId\": \"$TASK_ID\",
-    \"clientId\": \"optional-client-id\"
-  }"
+# Review in SMM UI, or apply directly:
+smm apply "$PLAN_ID"
 ```
