@@ -8,10 +8,9 @@ import * as path from 'node:path'
 import * as fs from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import { setupTestMediaFolders, resetUserConfig as resetUserConfigV1, getUserConfigPath as getUserConfigPathV1, getMetadataDir, removeMetadataDir as removeMetadataDirV1, removeTestMediaTmpDir as removeTestMediaTmpDirV1, removePlansDir as removePlansDirV1, prepareMediaMetadata, removePlanFolder, hello } from '@smm/test'
+import { setupTestMediaFolders, resetUserConfig as resetUserConfigV1, getUserConfigPath as getUserConfigPathV1, removeMetadataDir as removeMetadataDirV1, removeTestMediaTmpDir as removeTestMediaTmpDirV1, removePlansDir as removePlansDirV1, removePlanFolder, hello } from '@smm/test'
 import { Path } from '@smm/core'
-import { createMediaMetadata as coreCreateMediaMetadata } from '@smm/core/mediaMetadata'
-import type { MediaFileMetadata, MediaMetadata, UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/core/types'
 import type { TestFolder } from 'test/actions/import-folders'
 import Sidebar from '../componentobjects/Sidebar'
 import StatusBar from '../componentobjects/StatusBar'
@@ -20,11 +19,9 @@ import {
     ensureBrowserOnUiPage,
     fetchHelloPathsViaBrowser,
     joinPlatformPath,
-    readFileViaBrowser,
     resetUserConfigViaBrowser,
     setActiveTestbedOs,
     updateUserConfigViaBrowser,
-    writeFileViaBrowser,
 } from './browser-fs'
 import type { TestbedOs } from './ui-page-url'
 import { isOhosE2e, testbedOs as defaultTestbedOs } from './e2e-platform'
@@ -36,10 +33,15 @@ import {
     type ResetUserConfigOption,
     type UserConfigUpdater,
 } from './testbed-core'
+import {
+    createMetadataViaBrowser,
+    getMetadataViaBrowser,
+    setMetadataViaBrowser,
+} from './metadata-http'
 
 export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
-export { setupTestMediaFolders, getMetadataDir }
+export { setupTestMediaFolders }
 
 import {
     useEmbeddedHttpProxy,
@@ -220,7 +222,21 @@ export function createBeforeHook(options: TestBedBeforeOptions = {}) {
             const tvshowFolderPosixPath = Path.posix(tvshowFolderPlatformPath);
 
             if(setupMediaMetadata) {
-                await prepareMediaMetadata(tvshowFolderPosixPath, '古见同学有交流障碍症.metadata.json')
+                const templatePath = path.resolve(
+                    __dirname,
+                    '..',
+                    '..',
+                    '..',
+                    '..',
+                    'test',
+                    'configs',
+                    '古见同学有交流障碍症.metadata.json',
+                )
+                const metadata = JSON.parse(fs.readFileSync(templatePath, 'utf-8')) as MediaMetadata
+                await writeMediaMetadata({
+                    ...metadata,
+                    mediaFolderPath: tvshowFolderPosixPath,
+                })
             }
         }
 
@@ -411,66 +427,26 @@ export function createAfterHook(): () => Promise<void> {
 }
 
 /**
- * Assert that media metadata JSON for a given media folder path satisfies the provided predicate.
- * 
+ * Assert that metadata for a media folder satisfies the provided predicate.
+ *
  * @param mediaFolderPathInPlatformFormat Absolute media folder path in platform-specific format.
- *                                        It will be converted to POSIX and then to metadata cache file name.
  * @param predicate A function that receives the parsed JSON object and should return true when expectations are met.
  */
 export async function expectMediaMetadataToBe(
     mediaFolderPathInPlatformFormat: string,
-    predicate: (json: any) => boolean
+    predicate: (json: MediaMetadata) => boolean
 ): Promise<void> {
-    const metadataDir = await getMetadataDir()
-
-    // Convert media folder path to POSIX format for metadata file naming
-    const mediaFolderPosix = Path.posix(mediaFolderPathInPlatformFormat)
-    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
-    const metadataFilePath = path.join(metadataDir, `${safeFileName}.json`)
-
-    // Wait a bit for metadata write to complete
-    const { setTimeout } = await import('node:timers/promises')
-    await setTimeout(2000)
-
-    if (!fs.existsSync(metadataFilePath)) {
-        throw new Error(`Expect file "${metadataFilePath}" to exist but it didn't`)
-    }
-
-    const metadataRaw = fs.readFileSync(metadataFilePath, 'utf-8')
-    const metadataJson = JSON.parse(metadataRaw)
-
-    const ok = predicate(metadataJson)
-    if (!ok) {
-        const m: MediaMetadata = metadataJson as MediaMetadata;
-        const obj = {
-            ...m,
-            tvShow: m.tvShow !== undefined
-                ? { id: m.tvShow.id, name: m.tvShow.name, database: m.tvShow.database }
-                : undefined,
-            movie: m.movie !== undefined
-                ? { id: m.movie.id, name: m.movie.name, database: m.movie.database }
-                : undefined,
-        }
-
-        throw new Error(`Media metadata for "${mediaFolderPathInPlatformFormat}" did not satisfy expectations.\nActual JSON: ${JSON.stringify(obj)}`)
-    }
+    await expectMediaMetadataViaBrowser(mediaFolderPathInPlatformFormat, predicate)
 }
 
 /**
- * Same assertions as {@link expectMediaMetadataToBe}, but reads metadata via
- * browser `POST /api/readFile` (works on ohos / electron / desktop).
+ * Poll metadata through browser `POST /api/get-metadata`.
  */
 export async function expectMediaMetadataViaBrowser(
     mediaFolderPathInPlatformFormat: string,
-    predicate: (json: unknown) => boolean,
+    predicate: (json: MediaMetadata) => boolean,
     options?: { timeoutMs?: number; intervalMs?: number },
 ): Promise<void> {
-    const { appDataDir } = await fetchHelloPathsViaBrowser()
-    const metadataDir = joinPlatformPath(appDataDir, 'metadata')
-    const mediaFolderPosix = Path.posix(mediaFolderPathInPlatformFormat)
-    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
-    const metadataFilePath = joinPlatformPath(metadataDir, `${safeFileName}.json`)
-
     const timeoutMs = options?.timeoutMs ?? 90_000
     const intervalMs = options?.intervalMs ?? 2_000
     const deadline = Date.now() + timeoutMs
@@ -478,19 +454,17 @@ export async function expectMediaMetadataViaBrowser(
 
     while (Date.now() < deadline) {
         try {
-            const metadataRaw = await readFileViaBrowser(metadataFilePath)
-            const metadataJson = JSON.parse(metadataRaw) as MediaMetadata
-            if (predicate(metadataJson)) {
+            const metadata = await getMetadataViaBrowser(mediaFolderPathInPlatformFormat)
+            if (metadata !== null && predicate(metadata)) {
                 return
             }
-            const m = metadataJson
             const obj = {
-                ...m,
-                tvShow: m.tvShow !== undefined
-                    ? { id: m.tvShow.id, name: m.tvShow.name, database: m.tvShow.database }
+                ...metadata,
+                tvShow: metadata?.tvShow !== undefined
+                    ? { id: metadata.tvShow.id, name: metadata.tvShow.name, database: metadata.tvShow.database }
                     : undefined,
-                movie: m.movie !== undefined
-                    ? { id: m.movie.id, name: m.movie.name, database: m.movie.database }
+                movie: metadata?.movie !== undefined
+                    ? { id: metadata.movie.id, name: metadata.movie.name, database: metadata.movie.database }
                     : undefined,
             }
             lastError = new Error(
@@ -503,18 +477,13 @@ export async function expectMediaMetadataViaBrowser(
     }
 
     throw new Error(
-        `expectMediaMetadataViaBrowser timed out after ${timeoutMs}ms for "${metadataFilePath}". ` +
+        `expectMediaMetadataViaBrowser timed out after ${timeoutMs}ms for "${mediaFolderPathInPlatformFormat}". ` +
             `Last error: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     )
 }
 
 /**
- * Write a media metadata JSON file into the app's metadata cache directory.
- *
- * The output path matches {@link expectMediaMetadataToBe}: `getMetadataDir()` plus
- * a filename derived from the folder path (POSIX, invalid path chars replaced with `_`) + `.json`.
- *
- * @param mediaMetadata Must include `mediaFolderPath` (POSIX or platform path; normalized like in expect).
+ * Create or replace media metadata through the metadata HTTP API.
  */
 export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<void> {
     const folderPath = mediaMetadata.mediaFolderPath
@@ -522,29 +491,22 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
         throw new Error('writeMediaMetadata: mediaMetadata.mediaFolderPath is required')
     }
 
-    const mediaFolderPosix = Path.posix(folderPath)
-    const safeFileName = mediaFolderPosix.replace(/[\/\\:?*|<>"]/g, '_')
-    const payload = JSON.stringify(mediaMetadata, null, 4)
-
-    if (TESTBED_V2) {
-        const { appDataDir } = await fetchHelloPathsViaBrowser()
-        const metadataFilePath = joinPlatformPath(
-            joinPlatformPath(appDataDir, 'metadata'),
-            `${safeFileName}.json`,
-        )
-        await writeFileViaBrowser(metadataFilePath, payload)
-        console.log(`Wrote media metadata (v2) to ${metadataFilePath}`)
-        return
+    const normalized = {
+        ...mediaMetadata,
+        mediaFolderPath: Path.posix(folderPath),
     }
-
-    const metadataDir = await getMetadataDir()
-    if (!fs.existsSync(metadataDir)) {
-        fs.mkdirSync(metadataDir, { recursive: true })
+    const existing = await getMetadataViaBrowser(normalized.mediaFolderPath)
+    if (existing === null) {
+        await createMetadataViaBrowser(normalized)
+    } else {
+        await setMetadataViaBrowser(normalized.mediaFolderPath, {
+            mediaFiles: normalized.mediaFiles,
+            type: normalized.type,
+            tvShow: normalized.tvShow,
+            movie: normalized.movie,
+        })
     }
-
-    const metadataFilePath = path.join(metadataDir, `${safeFileName}.json`)
-    fs.writeFileSync(metadataFilePath, payload, 'utf-8')
-    console.log(`Wrote media metadata to ${metadataFilePath}`)
+    console.log(`Wrote media metadata through HTTP for ${normalized.mediaFolderPath}`)
 }
 
 /**
