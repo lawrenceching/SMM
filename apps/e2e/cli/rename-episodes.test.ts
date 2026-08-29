@@ -13,6 +13,9 @@ import {
     cliOutput,
 } from './helpers'
 
+const isWindows = process.platform === 'win32'
+const SLASH = isWindows ? '\\' : '/'
+
 const SHOW_NAME = 'WATATEN an Angel Flew Down to Me'
 const EP1_NAME = 'A Funny, Squirmy Feeling'
 const PLEX_S01E01_BASENAME = `${SHOW_NAME} - S01E01 - ${EP1_NAME}.mkv`
@@ -74,7 +77,7 @@ describe('rename files', () => {
 
         const meta = await $`${bin} metadata ${folderPath}`.nothrow()
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\Season 01\\${PLEX_S01E01_BASENAME}  seasonNumber: 1  episodeNumber: 1`,
+            `absolutePath: ${folderPath}${SLASH}Season 01${SLASH}${PLEX_S01E01_BASENAME}  seasonNumber: 1  episodeNumber: 1`,
         )
     })
 
@@ -106,7 +109,7 @@ describe('rename files', () => {
 
         const meta = await $`${bin} metadata ${folderPath}`.nothrow()
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\Season 1\\${EMBY_S01E01_BASENAME}  seasonNumber: 1  episodeNumber: 1`,
+            `absolutePath: ${folderPath}${SLASH}Season 1${SLASH}${EMBY_S01E01_BASENAME}  seasonNumber: 1  episodeNumber: 1`,
         )
     })
 

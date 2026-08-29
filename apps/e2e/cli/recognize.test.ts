@@ -11,6 +11,9 @@ import {
     cliOutput,
 } from './helpers'
 
+const isWindows = process.platform === 'win32'
+const SLASH = isWindows ? '\\' : '/'
+
 describe('recognize', () => {
     beforeEach(async () => {
         await setup({
@@ -59,13 +62,13 @@ describe('recognize', () => {
         const meta = await $`${bin} metadata ${folderPath}`.nothrow()
         expect(meta.exitCode).toBe(0)
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
+            `absolutePath: ${folderPath}${SLASH}S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
         )
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E02.mkv  seasonNumber: 1  episodeNumber: 2`,
+            `absolutePath: ${folderPath}${SLASH}S01E02.mkv  seasonNumber: 1  episodeNumber: 2`,
         )
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E03.mkv  seasonNumber: 1  episodeNumber: 3`,
+            `absolutePath: ${folderPath}${SLASH}S01E03.mkv  seasonNumber: 1  episodeNumber: 3`,
         )
     })
 
@@ -98,10 +101,10 @@ describe('recognize', () => {
 
         const meta = await $`${bin} metadata ${folderPath}`.nothrow()
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
+            `absolutePath: ${folderPath}${SLASH}S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
         )
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E02.mkv  seasonNumber: 1  episodeNumber: 2`,
+            `absolutePath: ${folderPath}${SLASH}S01E02.mkv  seasonNumber: 1  episodeNumber: 2`,
         )
         expect(meta.text()).not.toContain('extra-video.mkv')
     })
@@ -160,7 +163,7 @@ describe('recognize', () => {
 
         const meta = await $`${bin} metadata ${folderPath}`.nothrow()
         expect(meta.text()).toContain(
-            `absolutePath: ${folderPath}\\S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
+            `absolutePath: ${folderPath}${SLASH}S01E01.mkv  seasonNumber: 1  episodeNumber: 1`,
         )
     })
 
