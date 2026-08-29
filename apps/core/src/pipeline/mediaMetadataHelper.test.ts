@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
+import type { MediaMetadata } from "@smm/core";
 import type { FsPort } from "../ports/FsPort";
 import { MediaMetadataHelper } from "./mediaMetadataHelper";
 import { metadataCachePath } from "./paths";
-import { validatePersistedMediaMetadata } from "./mediaMetadataValidation";
+import {
+  stripDeprecatedFiles,
+  validatePersistedMediaMetadata,
+} from "./mediaMetadataValidation";
 
 function inMemoryFs(seed: Record<string, string> = {}): FsPort {
   const files = new Map(Object.entries(seed));
@@ -98,5 +102,20 @@ describe("validatePersistedMediaMetadata", () => {
       mediaFolderPath: "/m/Show",
       type: "tvshow-folder",
     });
+  });
+});
+
+describe("stripDeprecatedFiles", () => {
+  it("omits legacy files from disk payloads", () => {
+    const stripped = stripDeprecatedFiles({
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder",
+      files: ["/m/Show/a.mkv"],
+    } as MediaMetadata & { files?: string[] });
+    expect(stripped).toEqual({
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder",
+    });
+    expect("files" in stripped).toBe(false);
   });
 });

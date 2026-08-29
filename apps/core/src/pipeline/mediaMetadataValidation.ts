@@ -81,7 +81,10 @@ export function validatePersistedMediaMetadata(value: unknown): PersistedMediaMe
   return result;
 }
 
-/** Returns metadata suitable for persistence (identity after `files` removal from type). */
+/** Drop legacy on-disk `files` (removed from MediaMetadata) so reads never leak it. */
 export function stripDeprecatedFiles(mm: MediaMetadata): PersistedMediaMetadata {
-  return mm;
+  const { files: _legacyFiles, ...rest } = mm as MediaMetadata & {
+    files?: unknown
+  }
+  return rest
 }

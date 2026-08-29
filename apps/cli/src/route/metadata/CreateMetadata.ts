@@ -8,7 +8,7 @@ import { metadataProblemJson } from './problemDetails'
 const createMetadataDataSchema = z.object({
   mediaFolderPath: z.string().min(1),
   ...metadataPatchFieldSchemas,
-}).passthrough()
+}).strict()
 
 const createMetadataRequestSchema: z.ZodType<CreateMetadataRequestBody> = z.object({
   data: createMetadataDataSchema,
