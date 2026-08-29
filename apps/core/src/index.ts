@@ -82,6 +82,11 @@ export {
   type RecognizeFolderDeps,
 } from "./pipeline/recognizeFolder";
 export { tryToRenameFolderPipeline, type TryToRenameFolderDeps } from "./pipeline/tryToRenameFolder";
+export {
+  createRenameEpisodePlanPipeline,
+  type CreateRenameEpisodePlanDeps,
+  type CreateRenameEpisodePlanOptions,
+} from "./pipeline/createRenameEpisodePlan";
 export type { RenameRuleName } from "./pipeline/renameRules";
 export type { Plan } from "./pipeline/plans";
 export {
