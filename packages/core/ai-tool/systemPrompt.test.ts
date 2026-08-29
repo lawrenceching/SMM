@@ -4,11 +4,7 @@ import { GET_APPLICATION_CONTEXT } from '../types/ai-tools/getApplicationContext
 import { GET_MEDIA_METADATA } from '../types/ai-tools/getMediaMetadata'
 import { GET_EPISODES } from '../types/ai-tools/getEpisodes'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from '../types/ai-tools/renameFilesTask'
+import { CREATE_RENAME_EPISODE_PLAN } from '../types/ai-tools/createRenameEpisodePlan'
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -39,9 +35,7 @@ describe('systemPrompt', () => {
       GET_MEDIA_METADATA,
       GET_EPISODES,
       LIST_FILES_IN_MEDIA_FOLDER,
-      BEGIN_RENAME_FILES_TASK,
-      ADD_RENAME_FILE_TO_TASK,
-      END_RENAME_FILES_TASK,
+      CREATE_RENAME_EPISODE_PLAN,
       BEGIN_RECOGNIZE_TASK,
       ADD_RECOGNIZED_MEDIA_FILE,
       END_RECOGNIZE_TASK,
@@ -57,6 +51,12 @@ describe('systemPrompt', () => {
         `System prompt does not reference tool "${name}"`,
       ).toBe(true)
     }
+  })
+
+  it('does not reference deprecated begin/add/end rename task tools', () => {
+    expect(SYSTEM_PROMPT).not.toContain('begin-rename-files-task')
+    expect(SYSTEM_PROMPT).not.toContain('add-rename-file-to-task')
+    expect(SYSTEM_PROMPT).not.toContain('end-rename-files-task')
   })
 
   it('does not reference any kebab-case token that is not a known tool', () => {

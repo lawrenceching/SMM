@@ -1,8 +1,4 @@
-import {
-  ADD_RENAME_FILE_TO_TASK,
-  BEGIN_RENAME_FILES_TASK,
-  END_RENAME_FILES_TASK,
-} from '../types/ai-tools/renameFilesTask'
+import { CREATE_RENAME_EPISODE_PLAN } from '../types/ai-tools/createRenameEpisodePlan'
 import {
   ADD_RECOGNIZED_MEDIA_FILE,
   BEGIN_RECOGNIZE_TASK,
@@ -73,9 +69,7 @@ You ONLY need to rename the video file. For image files, subtitle files, nfo fil
 
 Steps
 [ ] Call "${GET_MEDIA_METADATA}" to get the video files needs to rename
-[ ] Call "${BEGIN_RENAME_FILES_TASK}" to notify AI Agent to start a rename files task
-[ ] Call "${ADD_RENAME_FILE_TO_TASK}" to add a file to rename task, call multiple times to add multiple files
-[ ] Call "${END_RENAME_FILES_TASK}" to notify AI Agent to end the rename files task
+[ ] Call "${CREATE_RENAME_EPISODE_PLAN}" once with mediaFolderPath and a files array of from/to pairs for every video to rename
 
 ### Scrape Media Artwork and NFO
 

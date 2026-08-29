@@ -6,7 +6,7 @@ export const RENAME_EPISODE_FILE_DESCRIPTION =
   'Rename a linked TV episode video file (and same-stem associates such as subtitles) in a managed TV show folder. ' +
   'Use ONLY for a single episode file that already has seasonNumber and episodeNumber in media metadata. ' +
   'Do NOT use for folders (use rename-folder), movies, orphan files, or bulk renames ' +
-  '(use begin/add/end-rename-files-task for multi-file plans).\n\n' +
+  '(use create-rename-episode-plan for multi-file plans).\n\n' +
   'Example: Rename episode file in folder "/path/to/show" from ".../S01E01.mp4" to ".../S01E01_renamed.mp4".'
 
 export const renameEpisodeFileInputSchema = z.object({

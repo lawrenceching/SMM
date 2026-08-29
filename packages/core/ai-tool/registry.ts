@@ -55,11 +55,7 @@ import { TVDB_SEARCH } from '../types/ai-tools/tvdbSearch'
 import { TVDB_GET_MOVIE } from '../types/ai-tools/tvdbGetMovie'
 import { TVDB_GET_TV_SHOW } from '../types/ai-tools/tvdbGetTvShow'
 import { TVDB_GET_LANGUAGES } from '../types/ai-tools/tvdbGetLanguages'
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from '../types/ai-tools/renameFilesTask'
+import { CREATE_RENAME_EPISODE_PLAN } from '../types/ai-tools/createRenameEpisodePlan'
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -80,7 +76,7 @@ export interface AiToolDescriptor {
    * Whether the tool is available on the in-browser
    * `ReverseProxyChatTransport` path (HarmonyOS / feature flag).
    *
-   * Task tools (`begin-rename-files-task`, etc.) are listed on both
+   * Plan tools (`create-rename-episode-plan`, etc.) are listed on both
    * paths but **execute on only one**: backend fs/plan APIs on
    * `AssistantChatTransport`, browser HTTP plan APIs on
    * `ReverseProxyChatTransport`. See `Assistant.tsx` conditional mount.
@@ -124,10 +120,8 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   { name: TVDB_GET_TV_SHOW, backend: true, frontend: false },
   { name: TVDB_GET_LANGUAGES, backend: true, frontend: false },
 
-  // Rename files task
-  { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },
-  { name: ADD_RENAME_FILE_TO_TASK, backend: true, frontend: true },
-  { name: END_RENAME_FILES_TASK, backend: true, frontend: true },
+  // Rename episode plan
+  { name: CREATE_RENAME_EPISODE_PLAN, backend: true, frontend: true },
 
   // Recognize media file task
   { name: BEGIN_RECOGNIZE_TASK, backend: true, frontend: true },
