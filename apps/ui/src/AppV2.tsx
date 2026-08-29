@@ -8,7 +8,7 @@ import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
-import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
+import { deleteMetadata } from "@/api/metadata"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
 import { AppWarningBanner } from "./components/AppWarningBanner"
@@ -276,7 +276,7 @@ function AppV2Content() {
 
       // 2. Async delete; rollback on failure
       try {
-        await Promise.all(paths.map((path) => mediaMetadataRepository.delete(path, { traceId })))
+        await Promise.all(paths.map((path) => deleteMetadata(path)))
       } catch (error) {
         console.error("[onDeleteSelected] Failed to delete some media metadata:", error)
         removedMetadata.forEach((metadata) => {

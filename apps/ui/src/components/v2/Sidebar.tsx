@@ -18,7 +18,7 @@ import { useDialogs } from "@/providers/dialog-provider"
 import { useConfig } from "@/hooks/userConfig"
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import { nextTraceId } from "@/lib/utils"
-import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
+import { deleteMetadata } from "@/api/metadata"
 import { useTranslation } from "@/lib/i18n"
 import { isSmmV3Enabled } from "@/lib/localStorages"
 import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
@@ -124,7 +124,7 @@ export function Sidebar({ onDeleteSelected }: SidebarProps) {
       const traceId = `Sidebar-onDeleteSelected-${nextTraceId()}`
       const deletedSet = new Set(paths.map((p) => Path.posix(p)))
 
-      await Promise.all(paths.map((path) => mediaMetadataRepository.delete(path, { traceId })))
+      await Promise.all(paths.map((path) => deleteMetadata(path)))
 
       setAndSaveUserConfig(traceId, {
         ...userConfig,

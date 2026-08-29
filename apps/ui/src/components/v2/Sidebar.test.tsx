@@ -60,10 +60,8 @@ vi.mock("@/lib/utils", () => ({
   nextTraceId: vi.fn(() => "trace-id"),
 }))
 
-vi.mock("@/api/mediaMetadataRepository", () => ({
-  mediaMetadataRepository: {
-    delete: vi.fn(),
-  },
+vi.mock("@/api/metadata", () => ({
+  deleteMetadata: vi.fn(),
 }))
 
 vi.mock("@/lib/i18n", () => ({
