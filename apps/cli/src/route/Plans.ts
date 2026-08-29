@@ -8,7 +8,7 @@ import {
 } from '@smm/core-routes';
 import { logger } from '../../lib/logger';
 import { buildAllowlist } from '@/utils/buildAllowlist';
-import { getAppDataDir } from '@/utils/config';
+import { getUserDataDir } from '@/utils/config';
 
 const coreRoutesLogger = {
   debug: (obj: Record<string, unknown>, msg?: string) => logger.debug(obj, msg),
@@ -21,7 +21,7 @@ async function buildConfig(): Promise<CoreRoutesConfig> {
   const allowlist = await buildAllowlist();
   return {
     allowlist,
-    appDataDir: getAppDataDir(),
+    appDataDir: getUserDataDir(),
     logger: coreRoutesLogger,
   };
 }

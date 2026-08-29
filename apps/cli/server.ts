@@ -9,7 +9,7 @@ import { setSocketIOManager, acknowledge, broadcast } from './src/utils/socketIO
 import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
 import { handleReadFile } from './src/route/ReadFile';
 import { createAIProvider } from './lib/ai-provider.ts';
-import { getAppDataDir, getUserConfig } from './src/utils/config.ts';
+import { getUserConfig, getUserDataDir } from './src/utils/config.ts';
 import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
@@ -252,7 +252,7 @@ export class Server {
     // the Hono shell here is a thin adapter that wires the cli-specific
     // AI provider factory, user-config reader, and Socket.IO helpers.
     handleChatRequestCoreRoutes(this.app, {
-      appDataDir: getAppDataDir(),
+      appDataDir: getUserDataDir(),
       logger: createSocketIOLogger(),
       createAIProvider: (userConfig) => createAIProvider(userConfig),
       getUserConfig: () => getUserConfig(),
