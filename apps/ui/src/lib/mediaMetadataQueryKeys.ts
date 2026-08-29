@@ -1,8 +1,8 @@
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
-import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
+import { getMetadata } from "@/api/metadata"
 
-/** TanStack Query keys for per-folder persisted metadata (cache / disk via repository). */
+/** TanStack Query keys for per-folder persisted metadata. */
 export function mediaMetadataQueryKey(folderPathPosix: string) {
   return ["mediaMetadata", folderPathPosix] as const
 }
@@ -13,11 +13,11 @@ export function normalizeMediaFolderPathForQuery(path: string): string {
 }
 
 /** Shared options for `useQuery` / `queryClient.fetchQuery` so cache identity matches. */
-export function mediaMetadataReadQueryOptions(path: string, opts?: { traceId?: string; defaultType?: import("@core/types").MediaMetadata["type"] }) {
+export function mediaMetadataReadQueryOptions(path: string) {
   const folderPathPosix = normalizeMediaFolderPathForQuery(path)
   return {
     queryKey: mediaMetadataQueryKey(folderPathPosix),
-    queryFn: (): Promise<MediaMetadata> =>
-      mediaMetadataRepository.read(folderPathPosix, opts ?? {}),
+    queryFn: ({ signal }: { signal?: AbortSignal } = {}): Promise<MediaMetadata> =>
+      getMetadata(folderPathPosix, signal),
   }
 }
