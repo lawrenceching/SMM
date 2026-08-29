@@ -1,5 +1,6 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { $ } from 'bun'
 import { Path } from '@smm/core'
@@ -56,19 +57,6 @@ export async function planFilePath(binary: string, planId: string): Promise<stri
     return join(dataDir, 'plans', filename)
 }
 
-export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: string): string {
-    const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
-    return join(appDataDir, 'metadata', `${filename}.json`)
-}
-
-export async function resolveMetadataCachePath(
-    binary: string,
-    folderPathInPosix: string,
-): Promise<string> {
-    const dataDir = await resolveCoreDataDir(binary)
-    return metadataCacheFilePath(dataDir, folderPathInPosix)
-}
-
 /** CLI `metadata` output line for a linked media file (platform path separators). */
 export function metadataMediaFileLine(
     folderPath: string,
@@ -106,7 +94,7 @@ export type CreateAndImportInitializedFolderOptions = {
     updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata
 }
 
-/** Create fixture on disk, `add --skip-init`, seed metadata cache (POSIX paths, Core-aligned). */
+/** Create fixture on disk, `add --skip-init`, seed metadata via `smm metadata --set`. */
 export async function createAndImportInitializedFolder(
     binary: string,
     folder: TestFolder,
@@ -129,7 +117,6 @@ export async function createAndImportInitializedFolder(
     } else {
         const templateFileName = options.templateFileName ?? '天使降临到我身边.metadata.json'
         mediaMetadata = rewritePathsForFolder(loadTemplate(templateFileName), folderPath)
-        mediaMetadata.files = created.files.map((file) => Path.posix(join(folderPath, file)))
     }
 
     if (options.updateMediaMetadata) {
@@ -137,13 +124,40 @@ export async function createAndImportInitializedFolder(
     }
     mediaMetadata.mediaFolderPath = Path.posix(folderPath)
 
-    const dataDir = await resolveCoreDataDir(binary)
-    const cachePath = metadataCacheFilePath(dataDir, Path.posix(folderPath))
-    mkdirSync(dirname(cachePath), { recursive: true })
-    const { files: _files, ...toPersist } = mediaMetadata
-    writeFileSync(cachePath, JSON.stringify(toPersist, null, 2))
+    await seedMetadataViaCli(binary, folderPath, mediaMetadata)
 
     return created
+}
+
+async function seedMetadataViaCli(
+    binary: string,
+    folderPath: string,
+    mediaMetadata: MediaMetadata,
+): Promise<void> {
+    const tmpDir = mkdtempSync(join(tmpdir(), 'smm-meta-seed-'))
+    const jsonFile = join(tmpDir, 'metadata.json')
+    try {
+        writeFileSync(
+            jsonFile,
+            JSON.stringify(
+                {
+                    type: mediaMetadata.type,
+                    mediaFiles: mediaMetadata.mediaFiles,
+                    tvShow: mediaMetadata.tvShow,
+                    movie: mediaMetadata.movie,
+                },
+                null,
+                2,
+            ),
+            'utf-8',
+        )
+        const setResult = await $`${binary} metadata ${folderPath} --set ${jsonFile}`.nothrow()
+        if (setResult.exitCode !== 0) {
+            throw new Error(setResult.text())
+        }
+    } finally {
+        rmSync(tmpDir, { recursive: true, force: true })
+    }
 }
 
 export async function recognizeAndApply(binary: string, path: string): Promise<void> {

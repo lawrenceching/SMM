@@ -23,8 +23,6 @@ import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
 import { handleListDrives } from './src/route/ListDrives';
 import { handleDownloadImage } from './src/route/DownloadImage';
-import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
-import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/downloadImageAsFileBridge';
@@ -278,8 +276,6 @@ export class Server {
     handleDownloadImage(this.app);
     handleListFiles(this.app);
     handleListDrives(this.app);
-    handleReadMediaMetadata(this.app);
-    handleWriteMediaMetadata(this.app);
     handleRenameFilesInMediaMetadata(this.app);
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
