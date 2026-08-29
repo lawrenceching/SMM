@@ -29,9 +29,7 @@ import { AI_TOOL_REGISTRY } from '@core/ai-tool/registry'
 const ASSISTANT_PATH = join(__dirname, 'Assistant.tsx')
 
 const FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS = new Set([
-  'BeginRenameFilesTaskTool',
-  'AddRenameFileToTaskTool',
-  'EndRenameFilesTaskTool',
+  'CreateRenameEpisodePlanTool',
   'BeginRecognizeTaskTool',
   'AddRecognizedMediaFileTool',
   'EndRecognizeTaskTool',

@@ -28,9 +28,7 @@ import {
     BeginRecognizeTaskTool,
     AddRecognizedMediaFileTool,
     EndRecognizeTaskTool,
-    BeginRenameFilesTaskTool,
-    AddRenameFileToTaskTool,
-    EndRenameFilesTaskTool,
+    CreateRenameEpisodePlanTool,
 } from "./tools";
 import { AIBasedConfirmationBridge } from "./AIBasedConfirmationBridge";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
@@ -335,9 +333,7 @@ function AssistantImpl() {
                 <BeginRecognizeTaskTool />
                 <AddRecognizedMediaFileTool />
                 <EndRecognizeTaskTool />
-                <BeginRenameFilesTaskTool />
-                <AddRenameFileToTaskTool />
-                <EndRenameFilesTaskTool />
+                <CreateRenameEpisodePlanTool />
             </>
         )}
         <GetMediaMetadataTool />

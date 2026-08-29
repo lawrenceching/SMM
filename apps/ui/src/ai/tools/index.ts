@@ -14,6 +14,4 @@ export { TmdbGetTvShowTool } from './TmdbGetTvShow';
 export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
 export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
 export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';
-export { BeginRenameFilesTaskTool } from './BeginRenameFilesTask';
-export { AddRenameFileToTaskTool } from './AddRenameFileToTask';
-export { EndRenameFilesTaskTool, cleanupRenamePlan } from './EndRenameFilesTask';
+export { CreateRenameEpisodePlanTool } from './CreateRenameEpisodePlan';
