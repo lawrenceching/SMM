@@ -4,8 +4,8 @@ import type { MediaMetadata } from "@smm/core";
 import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { FsPort } from "../ports/FsPort";
 import { buildTvShowRenamePlanFileEntries } from "./buildTvShowRenamePlanFileEntries";
+import { createRenameEpisodePlanPipeline } from "./createRenameEpisodePlan";
 import { metadataCachePath } from "./paths";
-import { writePlan } from "./plans";
 import type { RenameRuleName } from "./renameRules";
 import type { UserConfigHelper } from "./userConfigHelper";
 
@@ -74,15 +74,20 @@ export async function tryToRenameFolderPipeline(
 
   const files = buildTvShowRenamePlanFileEntries(mediaMetadata, effectiveRule);
 
-  const plan: RenameFilesPlan = {
-    id: createId(),
-    task: "rename-files",
-    status: "pending",
-    creator: "app",
-    mediaFolderPath: posixPath,
+  return createRenameEpisodePlanPipeline(
+    posixPath,
     files,
-  };
-
-  await writePlan(deps.fs, deps.appDataDir, plan);
-  return plan;
+    {
+      creator: "app",
+      allowEmptyFiles: true,
+      id: createId(),
+    },
+    {
+      fs: deps.fs,
+      appDataDir: deps.appDataDir,
+      normalizePosix: deps.normalizePosix,
+      getMediaMetadata: async () => mediaMetadata,
+      createId,
+    },
+  );
 }

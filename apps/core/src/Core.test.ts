@@ -842,6 +842,7 @@ describe("tryToRenameFolder", () => {
     return inMemoryFs({
       [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
       [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      "/m/Show/S01E01.mkv": "",
     });
   }
 
@@ -881,6 +882,38 @@ describe("tryToRenameFolder", () => {
     const fs = seed();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
     await expect(core.tryToRenameFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+});
+
+describe("createRenameEpisodePlan", () => {
+  it("persists ai plan", async () => {
+    const appDataDir = "/data";
+    const folder = "/m/Show";
+    const fs = inMemoryFs({
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        tvShow: {
+          id: "1",
+          name: "Show",
+          seasons: [{ season: 1, episodes: [{ season: 1, episode: 1, name: "Ep1" }] }],
+        },
+        mediaFiles: [
+          { absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
+        ],
+      }),
+      "/m/Show/S01E01.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+
+    const plan = await core.createRenameEpisodePlan(
+      folder,
+      [{ from: "/m/Show/S01E01.mkv", to: "/m/Show/[1].mkv" }],
+      { creator: "ai" },
+    );
+
+    expect(plan.creator).toBe("ai");
+    expect(await fs.exists(planFilePath(appDataDir, plan.id))).toBe(true);
   });
 });
 

@@ -73,6 +73,10 @@ import {
   type RecognizeFolderCandidate,
   type RecognizeFolderDb,
 } from "./pipeline/recognizeFolder";
+import {
+  createRenameEpisodePlanPipeline,
+  type CreateRenameEpisodePlanOptions,
+} from "./pipeline/createRenameEpisodePlan";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
   prepareScrapeFolder,
@@ -497,6 +501,19 @@ export class Core {
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (p) => this.normalizePosix(p),
+    });
+  }
+
+  async createRenameEpisodePlan(
+    mediaFolderPath: string,
+    files: Array<{ from: string; to: string }>,
+    options?: CreateRenameEpisodePlanOptions,
+  ): Promise<RenameFilesPlan> {
+    return createRenameEpisodePlanPipeline(mediaFolderPath, files, options, {
+      fs: this.fs,
+      appDataDir: this.appDataDir,
+      normalizePosix: (path) => this.normalizePosix(path),
+      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
     });
   }
 
