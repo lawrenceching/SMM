@@ -99,7 +99,7 @@ export async function createAndImportInitializedFolder(
   }
   mediaMetadata.mediaFolderPath = Path.posix(folderPath)
 
-  await getCore().setMetadata(mediaMetadata)
+  await getCore().createMetadata(mediaMetadata)
 
   return created
 }

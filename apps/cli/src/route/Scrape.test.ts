@@ -87,7 +87,6 @@ describe('POST /api/scrape', () => {
     const metadata: MediaMetadata = {
       type: 'tvshow-folder',
       mediaFolderPath: posixPath,
-      files: [],
       mediaFiles: [],
       tvShow: {
         database: 'TMDB',
@@ -96,7 +95,11 @@ describe('POST /api/scrape', () => {
         seasons: [],
       },
     }
-    await getCore().setMetadata(metadata)
+    await getCore().setMetadata(posixPath, {
+      type: metadata.type,
+      mediaFiles: metadata.mediaFiles,
+      tvShow: metadata.tvShow,
+    })
 
     const res = await postScrape({ path: folderPath })
     expect(res.status).toBe(200)

@@ -16,6 +16,9 @@ export interface ImportFolderPipelineOptions {
   fs: FsPort;
   network: NetworkPort;
   logger: LoggerPort;
+  /** Root directory holding smm.json. Defaults to appDataDir for compatibility. */
+  userDataDir?: string;
+  /** Root directory holding metadata caches. */
   appDataDir: string;
   /** Discover config for TMDB/TVDB host failover (UI-aligned). */
   discover?: DiscoverPort;
@@ -55,12 +58,12 @@ export class ImportFolderPipeline {
     cb: ImportFolderPipelineCallbacks = {},
     runOptions: ImportFolderPipelineRunOptions = {},
   ): Promise<MediaMetadata> {
-    const { fs, logger, appDataDir, network, discover, reverseProxyUrl } = this.options;
+    const { fs, logger, appDataDir, userDataDir, network, discover, reverseProxyUrl } = this.options;
     const posixPath = Path.posix(folderPath);
     const stages: JobStage[] = [];
     const skipRegistration = runOptions.skipRegistration === true;
 
-    const userConfigStore = new UserConfigHelper(fs, appDataDir);
+    const userConfigStore = new UserConfigHelper(fs, userDataDir ?? appDataDir);
     let userConfig;
     if (skipRegistration) {
       userConfig = await userConfigStore.read();

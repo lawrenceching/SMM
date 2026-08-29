@@ -174,7 +174,7 @@ describe("Core", () => {
     expect(savedConfig.folders).toContain("/m/Deferred");
     expect(fs.listFiles).not.toHaveBeenCalled();
     expect(await fs.exists(metadataCachePath("/data/smm", Path.posix("/m/Deferred")))).toBe(true);
-    expect(await core.getMediaMetadata("/m/Deferred")).toEqual({
+    expect(await core.getMetadata("/m/Deferred")).toEqual({
       mediaFolderPath: "/m/Deferred",
       type: "tvshow-folder",
       mediaFiles: [],
@@ -491,10 +491,10 @@ describe("getFolders", () => {
   });
 });
 
-describe("setMetadata", () => {
+describe("createMetadata", () => {
   const cache = metadataCachePath("/data/smm", "/m/Show");
 
-  it("persists metadata so getMediaMetadata round-trips", async () => {
+  it("persists metadata so getMetadata round-trips", async () => {
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
     const mm = {
@@ -503,42 +503,21 @@ describe("setMetadata", () => {
       mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
     };
 
-    await core.setMetadata(mm);
+    await core.createMetadata(mm);
 
     const written = JSON.parse(await fs.readTextFile(cache)) as Record<string, unknown>;
-    expect(written).toEqual({
-      mediaFolderPath: "/m/Show",
-      type: "tvshow-folder",
-      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
-    });
+    expect(written).toEqual(mm);
     expect(written).not.toHaveProperty("files");
-    expect(await core.getMediaMetadata("/m/Show")).toEqual(written);
-  });
-
-  it("fully replaces an existing cache file", async () => {
-    const fs = inMemoryFs({
-      [cache]: JSON.stringify({ mediaFolderPath: "/m/Show", type: "tvshow-folder", tvShow: { name: "Old" } }),
-    });
-    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
-
-    await core.setMetadata({
-      mediaFolderPath: "/m/Show",
-      type: "movie-folder",
-      movie: { id: "1", name: "New", database: "TMDB" },
-    });
-
-    expect(await core.getMediaMetadata("/m/Show")).toEqual({
-      mediaFolderPath: "/m/Show",
-      type: "movie-folder",
-      movie: { id: "1", name: "New", database: "TMDB" },
-    });
+    expect(await core.getMetadata("/m/Show")).toEqual(written);
   });
 
   it("rejects missing mediaFolderPath without writing", async () => {
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
 
-    await expect(core.setMetadata({ type: "tvshow-folder" })).rejects.toThrow("mediaFolderPath is required");
+    await expect(core.createMetadata({ type: "tvshow-folder" })).rejects.toThrow(
+      "mediaFolderPath is required",
+    );
     expect(fs.writeTextFile).not.toHaveBeenCalled();
   });
 
@@ -546,47 +525,42 @@ describe("setMetadata", () => {
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
 
-    await expect(core.setMetadata({ mediaFolderPath: "", type: "tvshow-folder" })).rejects.toThrow(
+    await expect(core.createMetadata({ mediaFolderPath: "", type: "tvshow-folder" })).rejects.toThrow(
       "mediaFolderPath is required",
     );
     expect(fs.writeTextFile).not.toHaveBeenCalled();
   });
 
-  it("uses the same cache key as getMediaMetadata for a Windows path", async () => {
+  it("uses the same cache key as getMetadata for a Windows path", async () => {
     const stored = "C:\\Movies\\Show";
     const winCache = metadataCachePath("/data/smm", Path.posix(stored));
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
 
-    await core.setMetadata({ mediaFolderPath: stored, type: "tvshow-folder" });
+    await core.createMetadata({ mediaFolderPath: stored, type: "tvshow-folder" });
 
     expect(await fs.exists(winCache)).toBe(true);
-    expect(await core.getMediaMetadata(stored)).toEqual({
+    expect(await core.getMetadata(stored)).toEqual({
       mediaFolderPath: stored,
       type: "tvshow-folder",
     });
   });
 });
 
-describe("getMediaMetadata", () => {
+describe("getMetadata", () => {
   const cache = metadataCachePath("/data/smm", "/m/Show");
 
   it("returns the cached metadata for a folder", async () => {
     const mm = { mediaFolderPath: "/m/Show", type: "tvshow-folder" };
     const fs = inMemoryFs({ [cache]: JSON.stringify(mm) });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
-    expect(await core.getMediaMetadata("/m/Show")).toEqual(mm);
+    expect(await core.getMetadata("/m/Show")).toEqual(mm);
   });
 
-  it("returns null when there is no cache", async () => {
-    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
-    expect(await core.getMediaMetadata("/m/Show")).toBeNull();
-  });
-
-  it("returns null when the cache JSON is corrupt", async () => {
+  it("throws when the cache JSON is corrupt", async () => {
     const fs = inMemoryFs({ [cache]: "{ not json" });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
-    expect(await core.getMediaMetadata("/m/Show")).toBeNull();
+    await expect(core.getMetadata("/m/Show")).rejects.toThrow("Metadata not found: /m/Show");
   });
 });
 
@@ -952,7 +926,7 @@ describe("applyPlan", () => {
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
     const plan = await core.tryToRecognizeEpisodes("/m/Show");
     await core.applyPlan(plan);
-    const mm = await core.getMediaMetadata("/m/Show");
+    const mm = await core.getMetadata("/m/Show");
     expect(mm?.mediaFiles).toEqual([
       { absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
       { absolutePath: "/m/Show/S01E02.mkv", seasonNumber: 1, episodeNumber: 2 },
@@ -963,11 +937,11 @@ describe("applyPlan", () => {
   it("applies empty files plan as no-op on mediaFiles but deletes plan", async () => {
     const fs = seed({ "/m/Show/random.mkv": "" });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    const before = await core.getMediaMetadata("/m/Show");
+    const before = await core.getMetadata("/m/Show");
     const plan = await core.tryToRecognizeEpisodes("/m/Show");
     expect(plan.files).toEqual([]);
     await core.applyPlan(plan);
-    const after = await core.getMediaMetadata("/m/Show");
+    const after = await core.getMetadata("/m/Show");
     expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
     expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
   });
@@ -1009,7 +983,7 @@ describe("applyPlan", () => {
     expect(await fs.exists("/m/Show/S01E01.mkv")).toBe(false);
     expect(await fs.exists("/m/Show/S01E01.ass")).toBe(false);
 
-    const mm = await core.getMediaMetadata("/m/Show");
+    const mm = await core.getMetadata("/m/Show");
     expect(mm?.mediaFiles).toEqual([
       { absolutePath: targetVideo, seasonNumber: 1, episodeNumber: 1 },
     ]);
@@ -1038,11 +1012,11 @@ describe("applyPlan", () => {
       [matching]: "",
     });
     const core = new Core({ fs, network: emptyNetwork(), appDataDir });
-    const before = await core.getMediaMetadata("/m/Show");
+    const before = await core.getMetadata("/m/Show");
     const plan = await core.tryToRenameFolder("/m/Show");
     expect(plan.files).toEqual([]);
     await core.applyPlan(plan);
-    const after = await core.getMediaMetadata("/m/Show");
+    const after = await core.getMetadata("/m/Show");
     expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
     expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
   });
@@ -1709,7 +1683,7 @@ describe("tryToRecognizeFolder / recognizeFolder", () => {
       appDataDir: "/data/smm",
     });
     await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
-    const mm = await core.getMediaMetadata(folder);
+    const mm = await core.getMetadata(folder);
     expect(mm?.tvShow?.id).toBe("84666");
     expect(mm?.mediaFiles).toEqual([]);
   });

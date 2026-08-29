@@ -76,12 +76,17 @@ export async function resolveShowFolder(folder: string): Promise<
     }
   }
 
-  const mm = await getCore().getMediaMetadata(folder)
-  if (mm === null) {
-    return {
-      ok: true,
-      result: { path: folder, status: 'error_loading_metadata' },
+  let mm: MediaMetadata
+  try {
+    mm = await getCore().getMetadata(folder)
+  } catch (error) {
+    if (error instanceof Error && error.name === 'MetadataNotFoundError') {
+      return {
+        ok: true,
+        result: { path: folder, status: 'error_loading_metadata' },
+      }
     }
+    throw error
   }
 
   const title = titleFromMetadata(mm)

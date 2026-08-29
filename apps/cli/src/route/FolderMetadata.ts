@@ -32,12 +32,17 @@ export function handleFolderMetadata(app: Hono): void {
         }
         return c.json(err, 200)
       }
-      const mm = await getCore().getMediaMetadata(path)
-      if (mm === null) {
-        const err: FolderMetadataResponseBody = {
-          error: `Error Reason: No metadata cache for folder: ${path}`,
+      let mm: MediaMetadata
+      try {
+        mm = await getCore().getMetadata(path)
+      } catch (error) {
+        if (error instanceof Error && error.name === 'MetadataNotFoundError') {
+          const err: FolderMetadataResponseBody = {
+            error: `Error Reason: No metadata cache for folder: ${path}`,
+          }
+          return c.json(err, 200)
         }
-        return c.json(err, 200)
+        throw error
       }
       const ok: FolderMetadataResponseBody = { data: mm }
       return c.json(ok, 200)

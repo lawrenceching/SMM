@@ -90,6 +90,8 @@ import type { RenameRuleName } from "./pipeline/renameRules";
 import { isUserConfigKey, UserConfigHelper } from "./pipeline/userConfigHelper";
 import { MediaMetadataHelper } from "./pipeline/mediaMetadataHelper";
 import type { PersistedMediaMetadata } from "./pipeline/mediaMetadataValidation";
+import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/metadataErrors";
+import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobStore } from "./jobs/jobStore";
 import { initialScrapeTasks, type ImportJob, type ImportLibraryJob, type Job } from "./jobs/types";
 
@@ -143,7 +145,7 @@ export interface CoreOptions {
   fs: FsPort;
   network: NetworkPort;
   logger?: LoggerPort;
-  /** Root directory holding smm.json and metadata/. */
+  /** Root directory holding application data such as metadata and plans. */
   appDataDir: string;
   /** App version string (e.g. "1.3.8"); getAppConfig() falls back to "". */
   version?: string;
@@ -227,8 +229,9 @@ export class Core {
     this.logDir = options.logDir;
     this.platform = options.platform;
     this.osLocale = options.osLocale;
-    this.userConfig = new UserConfigHelper(this.fs, this.appDataDir);
-    this.mediaMetadata = new MediaMetadataHelper(this.fs, this.appDataDir);
+    this.userConfig = new UserConfigHelper(this.fs, this.userDataDir);
+    const metadataRoot = this.reportedAppDataDir ?? this.appDataDir;
+    this.mediaMetadata = new MediaMetadataHelper(this.fs, metadataRoot);
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
@@ -400,14 +403,40 @@ export class Core {
     return this.userConfig.getFolders();
   }
 
-  /** Reads the persisted metadata cache for a folder; null when absent or corrupt. */
-  async getMediaMetadata(folder: string): Promise<PersistedMediaMetadata | null> {
-    return this.mediaMetadata.read(this.normalizePosix(folder));
+  /** Reads persisted metadata or throws when the cache is absent or corrupt. */
+  async getMetadata(folderPath: string): Promise<PersistedMediaMetadata> {
+    const normalizedPath = this.normalizePosix(folderPath);
+    const metadata = await this.mediaMetadata.read(normalizedPath);
+    if (!metadata) throw new MetadataNotFoundError(normalizedPath);
+    return metadata;
   }
 
-  /** Writes the metadata cache for `mm.mediaFolderPath`. Full replace. */
-  async setMetadata(mm: MediaMetadata): Promise<void> {
+  /** Creates persisted metadata and rejects an existing cache. */
+  async createMetadata(mm: MediaMetadata): Promise<PersistedMediaMetadata> {
+    const folderPath = this.normalizePosix(mm.mediaFolderPath ?? "");
+    if (await this.mediaMetadata.read(folderPath)) {
+      throw new MetadataAlreadyExistsError(folderPath);
+    }
     await this.mediaMetadata.write(mm);
+    return this.getMetadata(folderPath);
+  }
+
+  /** Applies an allow-listed partial update to existing metadata. */
+  async setMetadata(
+    folderPath: string,
+    patch: MetadataPatch,
+  ): Promise<PersistedMediaMetadata> {
+    const normalizedPath = this.normalizePosix(folderPath);
+    const current = await this.mediaMetadata.read(normalizedPath);
+    if (!current) throw new MetadataNotFoundError(normalizedPath);
+    const next = applyMetadataPatch(current, patch);
+    await this.mediaMetadata.write(next);
+    return this.getMetadata(normalizedPath);
+  }
+
+  /** Deletes persisted metadata. Idempotent. */
+  async deleteMetadata(folderPath: string): Promise<void> {
+    await this.mediaMetadata.delete(this.normalizePosix(folderPath));
   }
 
   /** Removes a folder from the user config and deletes its metadata cache. Idempotent. */
@@ -441,8 +470,8 @@ export class Core {
       appDataDir: this.appDataDir,
       userConfig: this.userConfig,
       normalizePosix: (path) => this.normalizePosix(path),
-      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
-      setMetadata: (mm) => this.setMetadata(mm),
+      getMediaMetadata: (folder) => this.readMetadata(folder),
+      setMetadata: (mm) => this.writeMetadata(mm),
     });
   }
 
@@ -512,7 +541,7 @@ export class Core {
       fs: this.fs,
       appDataDir: this.appDataDir,
       normalizePosix: (path) => this.normalizePosix(path),
-      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
+      getMediaMetadata: (folder) => this.readMetadata(folder),
     });
   }
 
@@ -535,8 +564,8 @@ export class Core {
       fs: this.fs,
       appDataDir: this.appDataDir,
       normalizePosix: (p) => this.normalizePosix(p),
-      setMetadata: (mm) => this.setMetadata(mm),
-      getMediaMetadata: (folder) => this.getMediaMetadata(folder),
+      setMetadata: (mm) => this.writeMetadata(mm),
+      getMediaMetadata: (folder) => this.readMetadata(folder),
     });
   }
 
@@ -741,6 +770,14 @@ export class Core {
     }
   }
 
+  private readMetadata(folderPath: string): Promise<PersistedMediaMetadata | null> {
+    return this.mediaMetadata.read(this.normalizePosix(folderPath));
+  }
+
+  private async writeMetadata(mm: MediaMetadata): Promise<void> {
+    await this.mediaMetadata.write(mm);
+  }
+
   private createScrapeDeps(): ScrapeFolderDeps {
     return {
       fs: this.fs,
@@ -798,7 +835,7 @@ export class Core {
     try {
       await this.userConfig.addFolder(folderPath);
       const blankMetadata = createBlankMediaMetadata(folderPath, job.type);
-      await this.setMetadata(blankMetadata);
+      await this.writeMetadata(blankMetadata);
       this.jobs.update(job.id, { status: "succeeded", stage: "metadata", progress: 100 });
     } catch (error) {
       this.jobs.update(job.id, {
@@ -819,7 +856,8 @@ export class Core {
         fs: this.fs,
         network: this.network,
         logger: this.logger,
-        appDataDir: this.appDataDir,
+        appDataDir: this.reportedAppDataDir ?? this.appDataDir,
+        userDataDir: this.userDataDir,
         discover: this.discover,
         reverseProxyUrl: this.reverseProxyUrl,
       });

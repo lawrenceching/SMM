@@ -18,18 +18,18 @@ export interface GetCoreOptions {
   logger?: LoggerPort
 }
 
-/** Lazy singleton. appDataDir = userDataDir so getFolders reads production smm.json. */
+/** Lazy singleton with separate application-data and user-config roots. */
 export function getCore(options?: GetCoreOptions): Core {
   if (!instance) {
-    const userDataDir = getUserDataDir()
+    const appDataDir = getAppDataDir()
     instance = new Core({
       fs: new NodejsFsAdapter(),
       network: new NodejsNetworkPort(),
       logger: options?.logger ?? new NoopLoggerAdapter(),
-      appDataDir: userDataDir,
-      userDataDir,
+      appDataDir,
+      userDataDir: getUserDataDir(),
       version: APP_VERSION,
-      reportedAppDataDir: getAppDataDir(),
+      reportedAppDataDir: appDataDir,
       tmpDir: getTmpDir(),
       logDir: getLogDir(),
       platform: process.platform,

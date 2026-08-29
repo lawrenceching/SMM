@@ -240,16 +240,16 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         if (opts.set !== undefined) {
           const raw = await readFile(opts.set, 'utf-8')
           const mm = JSON.parse(raw) as MediaMetadata
-          await getCore().setMetadata({ ...mm, mediaFolderPath: folder })
+          await getCore().setMetadata(folder, {
+            type: mm.type,
+            mediaFiles: mm.mediaFiles,
+            tvShow: mm.tvShow,
+            movie: mm.movie,
+          })
           console.log(`updated metadata for ${folder}`)
           return
         }
-        const mm = await getCore().getMediaMetadata(folder)
-        if (mm === null) {
-          console.error(`No metadata cache for folder: ${folder}`)
-          exitCode = 1
-          return
-        }
+        const mm = await getCore().getMetadata(folder)
         for (const line of formatMediaMetadata(folder, mm)) {
           console.log(line)
         }
