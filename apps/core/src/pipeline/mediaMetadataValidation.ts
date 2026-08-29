@@ -2,8 +2,8 @@ import type { MediaFileMetadata, MediaMetadata } from "@smm/core";
 
 const MEDIA_FOLDER_TYPES = ["music-folder", "tvshow-folder", "movie-folder"] as const;
 
-/** Media metadata persisted on disk; {@link MediaMetadata.files} is never stored. */
-export type PersistedMediaMetadata = Omit<MediaMetadata, "files">;
+/** Media metadata persisted on disk. */
+export type PersistedMediaMetadata = MediaMetadata;
 
 function assertObject(value: unknown, field: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
@@ -33,7 +33,7 @@ function validateMediaFileMetadata(value: unknown, index: number): MediaFileMeta
   return entry;
 }
 
-/** Validates metadata before persist; strips deprecated `files` when present. */
+/** Validates metadata before persist. */
 export function validatePersistedMediaMetadata(value: unknown): PersistedMediaMetadata {
   const obj = assertObject(value, "MediaMetadata");
 
@@ -81,8 +81,7 @@ export function validatePersistedMediaMetadata(value: unknown): PersistedMediaMe
   return result;
 }
 
-/** Removes deprecated `files` from loaded metadata. */
+/** Returns metadata suitable for persistence (identity after `files` removal from type). */
 export function stripDeprecatedFiles(mm: MediaMetadata): PersistedMediaMetadata {
-  const { files: _files, ...rest } = mm;
-  return rest;
+  return mm;
 }

@@ -1,3 +1,4 @@
+import { Path } from "@core/path";
 import type {
   MediaMetadata,
   MovieMediaMetadata,
@@ -94,9 +95,10 @@ async function recognizeByNfo(
   result: RecognitionResult,
   isTvShow: boolean,
   tvdbLang: string,
+  filePaths: string[],
 ): Promise<void> {
   const nfoName = isTvShow ? "tvshow.nfo" : "movie.nfo";
-  const nfoPath = (mm.files ?? []).find((f) => f.endsWith(`/${nfoName}`));
+  const nfoPath = filePaths.find((f) => f.endsWith(`/${nfoName}`));
   if (nfoPath === undefined) return;
 
   let xml: string;
@@ -223,13 +225,22 @@ async function searchInTvdb(
  * NFO → tmdbid in folder name → tvdbid in folder name → search by folder name
  * (ordered by primaryDatabase). Only reached for tvshow / movie folders.
  */
-export async function recognizeMediaFolder(mm: MediaMetadata, deps: RecognitionDeps): Promise<RecognitionResult> {
+export async function recognizeMediaFolder(
+  mm: MediaMetadata,
+  deps: RecognitionDeps,
+  filePaths?: string[],
+): Promise<RecognitionResult> {
   const result: RecognitionResult = {};
   const folderName = folderNameOf(mm);
   const isTvShow = mm.type === "tvshow-folder";
   const tvdbLang = mapToTvdbLangCode(deps.language as PreferMediaLanguage);
+  const paths =
+    filePaths ??
+    (mm.mediaFolderPath
+      ? (await deps.fs.listFiles(mm.mediaFolderPath)).map((f) => Path.posix(f))
+      : []);
 
-  await recognizeByNfo(mm, deps, result, isTvShow, tvdbLang);
+  await recognizeByNfo(mm, deps, result, isTvShow, tvdbLang, paths);
 
   const tmdbId = getTmdbIdFromFolderName(folderName);
   if (tmdbId !== null && result.tvShow === undefined && result.movie === undefined) {

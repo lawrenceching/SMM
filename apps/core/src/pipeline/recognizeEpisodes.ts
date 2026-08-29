@@ -95,18 +95,16 @@ export function preciselyRecognizeEpisodes(
   return pattern4(episodes, videoFiles);
 }
 
-export function recognizeEpisodes(mm: MediaMetadata): RecognizedEpisode[] {
+export function recognizeEpisodes(mm: MediaMetadata, filePaths: string[]): RecognizedEpisode[] {
   if (
-    mm.files === undefined ||
-    mm.files === null ||
-    mm.files.length === 0 ||
+    filePaths.length === 0 ||
     mm.tvShow === undefined ||
     mm.tvShow.seasons === undefined ||
     mm.tvShow.seasons.length === 0
   ) {
     return [];
   }
-  let videoFiles = mm.files.filter(isVideoFile);
+  let videoFiles = filePaths.filter(isVideoFile);
   videoFiles = excludeFiles(videoFiles);
   if (videoFiles.length === 0) return [];
   const episodes = buildEpisodes(mm);

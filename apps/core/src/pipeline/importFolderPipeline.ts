@@ -42,7 +42,6 @@ export function createBlankMediaMetadata(folderPath: string, type: FolderType): 
   return {
     mediaFolderPath: posixPath,
     type: mediaMetadataType(type),
-    files: [],
     mediaFiles: [],
   };
 }
@@ -83,7 +82,7 @@ export class ImportFolderPipeline {
 
     logger.info({ folderPath: posixPath, type }, "importFolder: stage=listFiles");
     const listed = await fs.listFiles(posixPath);
-    mm.files = listed.map((f) => Path.posix(f));
+    const listedPosix = listed.map((f) => Path.posix(f));
     stages.push("listFiles");
     cb.onStage?.("listFiles", 40);
 
@@ -107,7 +106,7 @@ export class ImportFolderPipeline {
         tvdb,
         language,
         primaryDatabase: userConfig.primaryDatabase,
-      });
+      }, listedPosix);
       if (result.tvShow !== undefined) mm.tvShow = result.tvShow;
       if (result.movie !== undefined) mm.movie = result.movie;
       stages.push("recognize");
@@ -120,13 +119,13 @@ export class ImportFolderPipeline {
 
       logger.info({ folderPath: posixPath }, "importFolder: stage=episodes");
       if (type === "tvshow" && mm.tvShow !== undefined) {
-        mm.mediaFiles = recognizeEpisodes(mm).map((i) => ({
+        mm.mediaFiles = recognizeEpisodes(mm, listedPosix).map((i) => ({
           absolutePath: i.file,
           seasonNumber: i.season,
           episodeNumber: i.episode,
         }));
       } else if (type === "movie" && mm.movie !== undefined) {
-        const firstVideo = (mm.files ?? []).find(isVideoFile);
+        const firstVideo = listedPosix.find(isVideoFile);
         mm.mediaFiles = firstVideo === undefined ? [] : [{ absolutePath: firstVideo }];
       }
       stages.push("episodes");
@@ -134,9 +133,8 @@ export class ImportFolderPipeline {
     }
 
     logger.info({ folderPath: posixPath }, "importFolder: stage=persist");
-    const { files: _files, ...mmToPersist } = mm;
     const mediaMetadataStore = new MediaMetadataHelper(fs, appDataDir);
-    await mediaMetadataStore.write(mmToPersist);
+    await mediaMetadataStore.write(mm);
     stages.push("persist");
     cb.onStage?.("persist", 95);
 

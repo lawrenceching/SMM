@@ -72,7 +72,6 @@ function writeNfo(folderPath: string, fileName: string, xml: string): void {
 
 async function mediaMetadataFrom(created: TestFolder): Promise<MediaMetadata> {
   const folderPosix = Path.posix(created.path!);
-  const listed = await fs.listFiles(folderPosix);
   const type =
     created.type === "tvshow"
       ? "tvshow-folder"
@@ -82,7 +81,6 @@ async function mediaMetadataFrom(created: TestFolder): Promise<MediaMetadata> {
   return {
     mediaFolderPath: folderPosix,
     type,
-    files: listed.map((p) => Path.posix(p)),
   };
 }
 

@@ -49,8 +49,7 @@ export async function prepareLibraryFoldersForImport(
 ): Promise<void> {
   for (const folder of folders) {
     const blank = createBlankMediaMetadata(folder, type);
-    const { files: _files, ...toPersist } = blank;
-    await deps.writeBlankMetadata(toPersist);
+    await deps.writeBlankMetadata(blank);
   }
   if (folders.length > 0) {
     await deps.upsertFolders(folders);

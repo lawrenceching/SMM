@@ -4,8 +4,7 @@ import type { MediaMetadata } from "./types";
 /**
  * Rename media folder in media metadata, which means:
  * 1. Rename mediaMetadata.mediaFolderPath
- * 2. Rename folder in mediaMetadata.files
- * 3. Rename folder in mediaMetadata.mediaFiles.absolutePath
+ * 2. Rename folder in mediaMetadata.mediaFiles.absolutePath
  *
  * This method assumes the "from" and "to" path are valid.
  * Devleoper need to do validation before calling this method.
@@ -36,17 +35,7 @@ export function renameFolderInMediaMetadata(mediaMetadata: MediaMetadata, from: 
         }
     }
 
-    // 2. Rename folder in mediaMetadata.files
-    if (result.files) {
-        result.files = result.files.map(file => {
-            if (file.startsWith(fromNormalized)) {
-                return toNormalized + file.slice(fromNormalized.length);
-            }
-            return file;
-        });
-    }
-
-    // 3. Rename folder in mediaMetadata.mediaFiles.absolutePath
+    // 2. Rename folder in mediaMetadata.mediaFiles.absolutePath
     if (result.mediaFiles) {
         result.mediaFiles = result.mediaFiles.map(mediaFile => {
             if (mediaFile.absolutePath.startsWith(fromNormalized)) {
@@ -63,7 +52,7 @@ export function renameFolderInMediaMetadata(mediaMetadata: MediaMetadata, from: 
 }
 
 /**
- * Update media metadata files array and mediaFiles array after renaming files.
+ * Update media metadata mediaFiles array after renaming files.
  */
 export function updateMediaMetadataAfterRename(
   mediaMetadata: MediaMetadata,
@@ -73,11 +62,6 @@ export function updateMediaMetadataAfterRename(
   for (const { from, to } of renameMappings) {
     renameMap.set(Path.posix(from), Path.posix(to));
   }
-
-  const updatedFiles = mediaMetadata.files?.map((file) => {
-    const normalizedFile = Path.posix(file);
-    return renameMap.get(normalizedFile) ?? file;
-  });
 
   const updatedMediaFiles = mediaMetadata.mediaFiles?.map((mediaFile) => {
     const normalizedPath = Path.posix(mediaFile.absolutePath);
@@ -114,7 +98,6 @@ export function updateMediaMetadataAfterRename(
 
   return {
     ...mediaMetadata,
-    files: updatedFiles,
     mediaFiles: fullyUpdatedMediaFiles,
   };
 }

@@ -405,10 +405,9 @@ export class Core {
     return this.mediaMetadata.read(this.normalizePosix(folder));
   }
 
-  /** Writes the metadata cache for `mm.mediaFolderPath`. Strips deprecated `files`. Full replace. */
+  /** Writes the metadata cache for `mm.mediaFolderPath`. Full replace. */
   async setMetadata(mm: MediaMetadata): Promise<void> {
-    const { files: _files, ...rest } = mm;
-    await this.mediaMetadata.write(rest);
+    await this.mediaMetadata.write(mm);
   }
 
   /** Removes a folder from the user config and deletes its metadata cache. Idempotent. */

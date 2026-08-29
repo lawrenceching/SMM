@@ -63,11 +63,13 @@ export async function tryToRecognizeEpisodesPipeline(
 
   const listed = await deps.fs.listFiles(posixPath);
   const listedPosix = listed.map((file) => Path.posix(file));
-  const recognized = recognizeEpisodes({
-    ...mediaMetadata,
-    mediaFolderPath: posixPath,
-    files: listedPosix,
-  });
+  const recognized = recognizeEpisodes(
+    {
+      ...mediaMetadata,
+      mediaFolderPath: posixPath,
+    },
+    listedPosix,
+  );
 
   const files: RecognizedFile[] = recognized.map((item) => ({
     season: item.season,

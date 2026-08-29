@@ -595,20 +595,6 @@ export interface MediaMetadata {
   mediaFolderPath?: string,
 
   /**
-   * @deprecated
-   * 
-   * DO NOT USE this field anymore, it will be removed in the future.
-   * 
-   * The absolute paths of files (all files, media files, subtitle files, poster files, etc.) in media folder
-   * The path is in POSIX format
-   * string[] - the files in the folder, empyt array means there is no files in the folder.
-   * null - the folder is not existed
-   * undefined - the files was not set, does not reflect to the actual state of the folder
-   * This value should not persist in file cache, SMM will load local files everytime it loads media metadata.
-   */
-  files?: string[] | null | undefined,
-
-  /**
    * Stores the recognized media files
    * 
    * For TV Show, mediaFiles are video files for each episode
@@ -837,6 +823,27 @@ export type TmdbTvSeasonDetails = Omit<TMDBSeason, 'episodes'> & {
   episodes?: TmdbTvSeasonEpisodeDetails[]
 }
 
+
+export interface GetMetadataRequestBody {
+  path: string;
+}
+
+export interface CreateMetadataRequestBody {
+  data: MediaMetadata;
+}
+
+export interface SetMetadataRequestBody {
+  path: string;
+  patch: Pick<MediaMetadata, "type" | "mediaFiles" | "tvShow" | "movie">;
+}
+
+export interface DeleteMetadataRequestBody {
+  path: string;
+}
+
+export interface MetadataSuccessResponseBody {
+  data?: MediaMetadata | true;
+}
 
 export interface ReadMediaMetadataRequestBody {
   /**

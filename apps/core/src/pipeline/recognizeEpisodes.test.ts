@@ -70,7 +70,6 @@ describe("recognizeEpisodes", () => {
   it("matches video files to tvShow seasons via SXXEYY", () => {
     const mm: MediaMetadata = {
       mediaFolderPath: "/m/My.Show",
-      files: ["/m/My.Show/S01E01.mkv", "/m/My.Show/S01E02.mkv", "/m/My.Show/poster.jpg"],
       tvShow: {
         database: "TMDB",
         id: "1",
@@ -87,15 +86,15 @@ describe("recognizeEpisodes", () => {
         ],
       },
     };
-    expect(recognizeEpisodes(mm)).toEqual([
+    expect(recognizeEpisodes(mm, ["/m/My.Show/S01E01.mkv", "/m/My.Show/S01E02.mkv", "/m/My.Show/poster.jpg"])).toEqual([
       { season: 1, episode: 1, file: "/m/My.Show/S01E01.mkv" },
       { season: 1, episode: 2, file: "/m/My.Show/S01E02.mkv" },
     ]);
   });
 
   it("returns [] when there is no tvShow", () => {
-    const mm: MediaMetadata = { mediaFolderPath: "/m", files: ["/m/S01E01.mkv"] };
-    expect(recognizeEpisodes(mm)).toEqual([]);
+    const mm: MediaMetadata = { mediaFolderPath: "/m" };
+    expect(recognizeEpisodes(mm, ["/m/S01E01.mkv"])).toEqual([]);
   });
 });
 

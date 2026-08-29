@@ -494,13 +494,12 @@ describe("getFolders", () => {
 describe("setMetadata", () => {
   const cache = metadataCachePath("/data/smm", "/m/Show");
 
-  it("persists metadata and strips files so getMediaMetadata round-trips without files", async () => {
+  it("persists metadata so getMediaMetadata round-trips", async () => {
     const fs = inMemoryFs();
     const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
     const mm = {
       mediaFolderPath: "/m/Show",
       type: "tvshow-folder" as const,
-      files: ["/m/Show/S01E01.mkv"],
       mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
     };
 
@@ -683,7 +682,6 @@ describe("renameFolder", () => {
     const mm = {
       mediaFolderPath: from,
       type: "tvshow-folder" as const,
-      files: [`${from}/S01E01.mkv`],
       mediaFiles: [{ absolutePath: `${from}/S01E01.mkv` }],
     };
     const fs = inMemoryFs({
@@ -706,7 +704,6 @@ describe("renameFolder", () => {
     expect(await fs.exists(newCache)).toBe(true);
     const written = JSON.parse(await fs.readTextFile(newCache)) as typeof mm;
     expect(written.mediaFolderPath).toBe(to);
-    expect(written.files).toBeUndefined();
     expect(written.mediaFiles?.[0]?.absolutePath).toBe(`${to}/S01E01.mkv`);
 
     const folders = await core.getFolders();

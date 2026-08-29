@@ -71,7 +71,6 @@ describe("ImportFolderPipeline", () => {
 
     expect(mm.type).toBe("music-folder");
     expect(mm.mediaFolderPath).toBe(mediaDir);
-    expect(mm.files?.sort()).toEqual(["/m/My.Show/S01E01.mkv", "/m/My.Show/poster.jpg"]);
 
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath(appDataDir))) as string);
     expect(savedConfig.folders).toContain(mediaDir);

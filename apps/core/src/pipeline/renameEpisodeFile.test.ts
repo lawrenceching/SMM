@@ -182,12 +182,6 @@ describe("renameEpisodeFilePipeline", () => {
     const mm: MediaMetadata = {
       mediaFolderPath: movieFolder,
       type: "movie-folder",
-      files: [
-        "/m/Movie/movie.mp4",
-        "/m/Movie/movie.srt",
-        "/m/Movie/movie.en.srt",
-        "/m/Movie/movie.ass",
-      ],
       mediaFiles: [{ absolutePath: "/m/Movie/movie.mp4" }],
       movie: { database: "TMDB", id: "615453", name: "Ne Zha" },
     };
