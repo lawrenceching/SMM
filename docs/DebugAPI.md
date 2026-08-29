@@ -198,7 +198,17 @@ curl -X POST http://localhost:30000/debug/createRenameEpisodePlan \
   "success": true,
   "data": {
     "planId": "550e8400-e29b-41d4-a716-446655440000",
-    "plan": { "id": "...", "task": "rename-files", "status": "pending", "files": [] }
+    "plan": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "task": "rename-files",
+      "status": "pending",
+      "files": [
+        {
+          "from": "/path/to/media/folder/S01E01.mkv",
+          "to": "/path/to/media/folder/Show Name - S01E01 - Episode Title.mkv"
+        }
+      ]
+    }
   }
 }
 ```
