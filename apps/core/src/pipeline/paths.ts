@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/core/path";
 
 export function joinPosix(...parts: string[]): string {
   return parts.join("/");

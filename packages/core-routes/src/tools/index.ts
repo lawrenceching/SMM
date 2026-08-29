@@ -31,10 +31,8 @@ import {
   type TvdbToolRunners,
 } from "./tvdb.ts";
 import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from "@smm/core/types/ai-tools/renameFilesTask";
+  CREATE_RENAME_EPISODE_PLAN,
+} from "@smm/core/types/ai-tools/createRenameEpisodePlan";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -64,13 +62,7 @@ import {
   buildGetJobTool,
   type GetJobRunner,
 } from "./getJob.ts";
-import {
-  buildAddRenameFileToTaskTool,
-  buildBeginRenameFilesTaskTool,
-  buildEndRenameFilesTaskTool,
-  type RenameFilesTaskDeps,
-} from "./renameFilesTask.ts";
-import { defaultRenameFilesTaskDeps } from "./renameFilesTaskDefaults.ts";
+import { buildCreateRenameEpisodePlanTool } from "./createRenameEpisodePlan.ts";
 import {
   buildAddRecognizedMediaFileTool,
   buildBeginRecognizeTaskTool,
@@ -101,9 +93,9 @@ export interface ChatTools {
   [TVDB_GET_MOVIE]: ReturnType<typeof buildTvdbGetMovieTool>;
   [TVDB_GET_TV_SHOW]: ReturnType<typeof buildTvdbGetTvShowTool>;
   [TVDB_GET_LANGUAGES]: ReturnType<typeof buildTvdbGetLanguagesTool>;
-  [BEGIN_RENAME_FILES_TASK]: ReturnType<typeof buildBeginRenameFilesTaskTool>;
-  [ADD_RENAME_FILE_TO_TASK]: ReturnType<typeof buildAddRenameFileToTaskTool>;
-  [END_RENAME_FILES_TASK]: ReturnType<typeof buildEndRenameFilesTaskTool>;
+  [CREATE_RENAME_EPISODE_PLAN]: ReturnType<
+    typeof buildCreateRenameEpisodePlanTool
+  >;
   [BEGIN_RECOGNIZE_TASK]: ReturnType<typeof buildBeginRecognizeTaskTool>;
   [ADD_RECOGNIZED_MEDIA_FILE]: ReturnType<typeof buildAddRecognizedMediaFileTool>;
   [END_RECOGNIZE_TASK]: ReturnType<typeof buildEndRecognizeTaskTool>;
@@ -112,11 +104,9 @@ export interface ChatTools {
 /**
  * Extra dependencies the host (cli / ohos) injects so the chat
  * tools can run inside core-routes. Optional override for rename
- * validation/metadata lookup; defaults to
- * {@link defaultRenameFilesTaskDeps} when omitted.
+ * host-specific Core runners.
  */
 export interface ChatToolsExtraDeps {
-  renameFilesTask?: RenameFilesTaskDeps;
   /** Host Core runner for single-episode rename (Bun cli / Electron). */
   renameEpisodeFile?: RenameEpisodeFileRunner;
   /** Host Core runner for scrape job start. */
@@ -171,11 +161,6 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     logger,
   };
 
-  // Same deps as the MCP rename tools: metadata cache read +
-  // bundled rename validation. Hosts can override via `extra`.
-  const renameFilesTaskDeps =
-    extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config.appDataDir);
-
   const tmdbRunners: TmdbToolRunners | undefined = extra?.tmdb;
   const tvdbRunners: TvdbToolRunners | undefined = extra?.tvdb;
 
@@ -223,25 +208,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     [TVDB_GET_MOVIE]: buildTvdbGetMovieTool(tvdbRunners, abortSignal),
     [TVDB_GET_TV_SHOW]: buildTvdbGetTvShowTool(tvdbRunners, abortSignal),
     [TVDB_GET_LANGUAGES]: buildTvdbGetLanguagesTool(tvdbRunners, abortSignal),
-    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(
-      clientId,
-      config.appDataDir,
-      fs,
-      renameFilesTaskDeps,
-      broadcast,
-      logger,
-      abortSignal,
-    ),
-    [ADD_RENAME_FILE_TO_TASK]: buildAddRenameFileToTaskTool(
-      clientId,
-      config.appDataDir,
-      fs,
-      renameFilesTaskDeps,
-      logger,
-      abortSignal,
-    ),
-    [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(
-      clientId,
+    [CREATE_RENAME_EPISODE_PLAN]: buildCreateRenameEpisodePlanTool(
       config.appDataDir,
       fs,
       broadcast,

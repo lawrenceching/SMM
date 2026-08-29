@@ -1,15 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { defaultChatFs } from "../chatFs.ts";
-import { defaultRenameFilesTaskDeps } from "../tools/renameFilesTaskDefaults.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
-import { registerAddRenameFileTool } from "./toolHandlers/addRenameFile.ts";
 import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
-import { registerBeginRenameTaskTool } from "./toolHandlers/beginRenameTask.ts";
+import { registerCreateRenameEpisodePlanTool } from "./toolHandlers/createRenameEpisodePlan.ts";
 import { registerEndRecognizeTaskTool } from "./toolHandlers/endRecognizeTask.ts";
-import { registerEndRenameTaskTool } from "./toolHandlers/endRenameTask.ts";
 import { registerGetApplicationContextTool } from "./toolHandlers/getApplicationContext.ts";
 import { registerGetEpisodeTool } from "./toolHandlers/getEpisode.ts";
 import { registerGetEpisodesTool } from "./toolHandlers/getEpisodes.ts";
@@ -71,9 +67,6 @@ export type McpRequestHandler = (req: Request) => Promise<Response>;
 export async function createMcpStreamableHttpHandler(
   config: McpConfig,
 ): Promise<McpRequestHandler> {
-  const fs = config.fs ?? defaultChatFs();
-  const renameFilesTaskDeps = defaultRenameFilesTaskDeps(config.appDataDir);
-
   const server = new McpServer(
     {
       name: "Simple Media Manager (SMM)",
@@ -119,10 +112,8 @@ export async function createMcpStreamableHttpHandler(
     registerGetJobTool(server, config);
   }
 
-  // Episode-level rename task (begin / add / end).
-  registerBeginRenameTaskTool(server, config, renameFilesTaskDeps);
-  registerAddRenameFileTool(server, config, renameFilesTaskDeps);
-  registerEndRenameTaskTool(server, config, renameFilesTaskDeps);
+  // Episode-level rename plan.
+  registerCreateRenameEpisodePlanTool(server, config);
 
   // Episode recognition task (begin / add / end).
   registerBeginRecognizeTaskTool(server, config);

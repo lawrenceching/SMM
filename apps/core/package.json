@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./createRenameEpisodePlan": "./src/pipeline/createRenameEpisodePlan.ts",
+    "./FsPort": "./src/ports/FsPort.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -12,6 +14,7 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
+    "@smm/core": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "es-toolkit": "^1.42.0"
   },

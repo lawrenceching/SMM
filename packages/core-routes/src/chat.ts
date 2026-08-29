@@ -19,11 +19,7 @@ import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
 import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
 import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
 import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from "@smm/core/types/ai-tools/renameFilesTask";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -153,9 +149,7 @@ export async function doChat(
       [TVDB_GET_MOVIE]: tools[TVDB_GET_MOVIE],
       [TVDB_GET_TV_SHOW]: tools[TVDB_GET_TV_SHOW],
       [TVDB_GET_LANGUAGES]: tools[TVDB_GET_LANGUAGES],
-      [BEGIN_RENAME_FILES_TASK]: tools[BEGIN_RENAME_FILES_TASK],
-      [ADD_RENAME_FILE_TO_TASK]: tools[ADD_RENAME_FILE_TO_TASK],
-      [END_RENAME_FILES_TASK]: tools[END_RENAME_FILES_TASK],
+      [CREATE_RENAME_EPISODE_PLAN]: tools[CREATE_RENAME_EPISODE_PLAN],
       [BEGIN_RECOGNIZE_TASK]: tools[BEGIN_RECOGNIZE_TASK],
       [ADD_RECOGNIZED_MEDIA_FILE]: tools[ADD_RECOGNIZED_MEDIA_FILE],
       [END_RECOGNIZE_TASK]: tools[END_RECOGNIZE_TASK],

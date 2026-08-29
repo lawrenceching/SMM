@@ -163,6 +163,9 @@ importers:
 
   apps/core:
     dependencies:
+      '@smm/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
@@ -697,6 +700,9 @@ importers:
       ai:
         specifier: ^6.0.36
         version: 6.0.98(zod@4.3.6)
+      core-app:
+        specifier: workspace:*
+        version: link:../../apps/core
       http-proxy-agent:
         specifier: ^7.0.2
         version: 7.0.2

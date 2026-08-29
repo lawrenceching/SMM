@@ -1,4 +1,6 @@
-import { readFile, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
+import { dirname } from "node:path";
+import { Path } from "@smm/core/path";
 import type { ChatFs } from "./chatTypes.ts";
 
 /**
@@ -14,7 +16,7 @@ export function defaultChatFs(): ChatFs {
   return {
     async readJson<T = unknown>(filePath: string): Promise<T | null> {
       try {
-        const contents = await readFile(filePath, "utf-8");
+        const contents = await readFile(Path.toPlatformPath(filePath), "utf-8");
         return JSON.parse(contents) as T;
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -26,12 +28,14 @@ export function defaultChatFs(): ChatFs {
 
     async writeJson(filePath: string, value: unknown): Promise<void> {
       const serialized = JSON.stringify(value, null, 2);
-      await writeFile(filePath, serialized, "utf-8");
+      const platformPath = Path.toPlatformPath(filePath);
+      await mkdir(dirname(platformPath), { recursive: true });
+      await writeFile(platformPath, serialized, "utf-8");
     },
 
     async exists(filePath: string): Promise<boolean> {
       try {
-        await stat(filePath);
+        await stat(Path.toPlatformPath(filePath));
         return true;
       } catch {
         return false;

@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import { isActivePlanStatus } from "@core/types/planCommon";
+import { Path } from "@smm/core/path";
+import { isActivePlanStatus } from "@smm/core/types/planCommon";
 import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
 import type { FsPort } from "../ports/FsPort";
