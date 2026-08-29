@@ -6,7 +6,6 @@ import { getUserConfigPath } from '../utils/config';
 import { mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { unlink, rm } from 'fs/promises';
 import { existsSync } from 'fs';
-import { endRenameFilesTaskV2, readRenamePlanFile, getPlanFilePath } from '../tools/renameFilesToolV2';
 
 interface DebugApiResponseBody {
   success: boolean;
@@ -45,35 +44,6 @@ const renameFilesInBatchSchema = debugRequestBaseSchema.extend({
   clientId: z.string().optional(),
 });
 
-// Schema for beginRenameFilesTask function
-const beginRenameFilesTaskSchema = debugRequestBaseSchema.extend({
-  name: z.literal('beginRenameFilesTask'),
-  mediaFolderPath: z.string().min(1, 'Media folder path is required'),
-  clientId: z.string().optional(),
-});
-
-// Schema for addRenameFileToTask function
-const addRenameFileToTaskSchema = debugRequestBaseSchema.extend({
-  name: z.literal('addRenameFileToTask'),
-  taskId: z.string().min(1, 'Task ID is required'),
-  from: z.string().min(1, 'Source path is required'),
-  to: z.string().min(1, 'Destination path is required'),
-  clientId: z.string().optional(),
-});
-
-// Schema for endRenameFilesTask function
-const endRenameFilesTaskSchema = debugRequestBaseSchema.extend({
-  name: z.literal('endRenameFilesTask'),
-  taskId: z.string().min(1, 'Task ID is required'),
-  clientId: z.string().optional(),
-});
-
-// Schema for renameFilesPlanReady function
-const renameFilesPlanReadySchema = debugRequestBaseSchema.extend({
-  name: z.literal('renameFilesPlanReady'),
-  taskId: z.string().min(1, 'Task ID is required'),
-});
-
 // Schema for cleanUp function
 const cleanUpSchema = debugRequestBaseSchema.extend({
   name: z.literal('cleanUp'),
@@ -84,10 +54,6 @@ const debugRequestSchema = z.discriminatedUnion('name', [
   broadcastMessageSchema,
   retrieveSchema,
   renameFilesInBatchSchema,
-  beginRenameFilesTaskSchema,
-  addRenameFileToTaskSchema,
-  endRenameFilesTaskSchema,
-  renameFilesPlanReadySchema,
   cleanUpSchema,
   // Add more schemas here as new debug functions are added
 ]);
@@ -202,39 +168,6 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
           return {
             success: false,
             error: `Failed to execute renameFilesInBatch: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          };
-        }
-      }
-
-      case 'renameFilesPlanReady': {
-        try {
-          console.log(`[DebugAPI] Executing renameFilesPlanReady:`, {
-            taskId: validatedBody.taskId
-          });
-          
-          const plan = await readRenamePlanFile(validatedBody.taskId);
-          
-          if (plan) {
-            plan.status = 'pending';
-            const planFilePath = getPlanFilePath(validatedBody.taskId);
-            await Bun.write(planFilePath, JSON.stringify(plan, null, 2));
-            console.log(`[DebugAPI] Reset plan status to pending`);
-          } else {
-            console.log(`[DebugAPI] Plan not found, proceeding with endRenameFilesTaskV2`);
-          }
-          
-          await endRenameFilesTaskV2(validatedBody.taskId);
-          
-          console.log(`[DebugAPI] renameFilesPlanReady completed successfully`);
-          
-          return {
-            success: true,
-          };
-        } catch (error) {
-          console.error(`[DebugAPI] Error executing renameFilesPlanReady:`, error);
-          return {
-            success: false,
-            error: `Failed to execute renameFilesPlanReady: ${error instanceof Error ? error.message : 'Unknown error'}`,
           };
         }
       }

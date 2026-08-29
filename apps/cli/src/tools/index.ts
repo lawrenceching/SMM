@@ -11,14 +11,6 @@ import { createRenameFilesInBatchTool } from './renameFilesInBatch';
 import { createAskForConfirmationTool } from './askForConfirmation';
 import { getApplicationContextAgentTool, getApplicationContextMcpTool } from './getApplicationContext';
 import {
-  createBeginRenameFilesTaskTool,
-  createAddRenameFileToTaskTool,
-  createEndRenameFilesTaskTool,
-  createBeginRenameFilesTaskV2Tool,
-  createAddRenameFileToTaskV2Tool,
-  createEndRenameFilesTaskV2Tool,
-} from './renameFilesTaskV2';
-import {
   createBeginRecognizeTaskTool,
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,
@@ -39,12 +31,6 @@ export {
   createRenameFilesInBatchTool,
   createRenameFolderTool,
   createAskForConfirmationTool,
-  createBeginRenameFilesTaskTool,
-  createAddRenameFileToTaskTool,
-  createEndRenameFilesTaskTool,
-  createBeginRenameFilesTaskV2Tool,
-  createAddRenameFileToTaskV2Tool,
-  createEndRenameFilesTaskV2Tool,
   createBeginRecognizeTaskTool,
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,

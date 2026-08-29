@@ -19,11 +19,6 @@ import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
 import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
 import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
 import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from "@smm/core/types/ai-tools/renameFilesTask";
-import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
   END_RECOGNIZE_TASK,
@@ -57,9 +52,6 @@ const TOOL_NAME_KEYS = [
   RENAME_EPISODE_FILE,
   SCRAPE,
   GET_JOB,
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
   END_RECOGNIZE_TASK,

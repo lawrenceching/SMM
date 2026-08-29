@@ -35,7 +35,7 @@ import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleDeleteFolder } from './src/route/DeleteFolder';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
-import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
+import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
 import { handleDebugGetApplicationContextRoute } from './src/route/debug/debugGetApplicationContext';
 import { handleDebugGetMediaMetadataRoute } from './src/route/debug/debugGetMediaMetadata';
 import { handleDebugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
@@ -286,7 +286,7 @@ export class Server {
     handleDeleteFolder(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
-    handleDebugRenameFilesTaskRoutes(this.app);
+    handleDebugCreateRenameEpisodePlan(this.app);
     handleDebugGetApplicationContextRoute(this.app);
     handleDebugGetMediaMetadataRoute(this.app);
     handleDebugRenameFolderToolRoute(this.app);
