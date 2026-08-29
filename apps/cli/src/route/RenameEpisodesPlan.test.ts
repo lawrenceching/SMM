@@ -111,7 +111,7 @@ describe('POST /api/create-rename-episode-plan', () => {
     })
 
     expect(response.status).toBe(200)
-    const json = await response.json()
+    const json = (await response.json()) as { error: string }
     expect(json.error).toBe('Error Reason: No rename entries in task')
     expect(json.error.match(/Error Reason:/g)).toHaveLength(1)
   })
