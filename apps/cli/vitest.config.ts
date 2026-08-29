@@ -26,6 +26,19 @@ export default defineConfig({
         find: '@smm/test',
         replacement: resolve(__dirname, '../../packages/test/src/index.ts'),
       },
+      // core-app subpaths must win over the bare `core-app` → index alias
+      // (otherwise vitest cannot resolve package.json exports for nested deps).
+      {
+        find: 'core-app/createRenameEpisodePlan',
+        replacement: resolve(
+          __dirname,
+          '../core/src/pipeline/createRenameEpisodePlan.ts',
+        ),
+      },
+      {
+        find: 'core-app/FsPort',
+        replacement: resolve(__dirname, '../core/src/ports/FsPort.ts'),
+      },
       {
         find: 'core-app',
         replacement: resolve(__dirname, '../core/src/index.ts'),
