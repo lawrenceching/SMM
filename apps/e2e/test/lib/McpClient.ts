@@ -6,12 +6,8 @@ import {
   McpToolName,
   type AddRecognizedFileRequest,
   type AddRecognizedFileResponse,
-  type AddRenameFileToTaskRequest,
-  type AddRenameFileToTaskResponse,
-  type BeginRenameFilesTaskRequest,
-  type BeginRenameFilesTaskResponse,
-  type EndRenameFilesTaskRequest,
-  type EndRenameFilesTaskResponse,
+  type CreateRenameEpisodePlanRequest,
+  type CreateRenameEpisodePlanResponse,
   type BeginRecognizeTaskRequest,
   type BeginRecognizeTaskResponse,
   type EndRecognizeTaskRequest,
@@ -241,41 +237,15 @@ class McpClient {
     return this.execTyped(clientCwd, mcpAddress, McpToolName.getJob, toolArgs(req))
   }
 
-  async beginRenameFilesTask(
+  async createRenameEpisodePlan(
     clientCwd: string,
     mcpAddress: string,
-    req: BeginRenameFilesTaskRequest,
-  ): Promise<BeginRenameFilesTaskResponse> {
+    req: CreateRenameEpisodePlanRequest,
+  ): Promise<CreateRenameEpisodePlanResponse> {
     return this.execTyped(
       clientCwd,
       mcpAddress,
-      McpToolName.beginRenameFilesTask,
-      toolArgs(req),
-    )
-  }
-
-  async addRenameFileToTask(
-    clientCwd: string,
-    mcpAddress: string,
-    req: AddRenameFileToTaskRequest,
-  ): Promise<AddRenameFileToTaskResponse> {
-    return this.execTyped(
-      clientCwd,
-      mcpAddress,
-      McpToolName.addRenameFileToTask,
-      toolArgs(req),
-    )
-  }
-
-  async endRenameFilesTask(
-    clientCwd: string,
-    mcpAddress: string,
-    req: EndRenameFilesTaskRequest,
-  ): Promise<EndRenameFilesTaskResponse> {
-    return this.execTyped(
-      clientCwd,
-      mcpAddress,
-      McpToolName.endRenameFilesTask,
+      McpToolName.createRenameEpisodePlan,
       toolArgs(req),
     )
   }

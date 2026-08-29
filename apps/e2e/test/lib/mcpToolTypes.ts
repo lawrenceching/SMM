@@ -18,9 +18,7 @@ export const McpToolName = {
   renameFolder: 'rename-folder',
   scrape: 'scrape',
   getJob: 'get-job',
-  beginRenameFilesTask: 'begin-rename-files-task',
-  addRenameFileToTask: 'add-rename-file-to-task',
-  endRenameFilesTask: 'end-rename-files-task',
+  createRenameEpisodePlan: 'create-rename-episode-plan',
   beginRecognizeTask: 'begin-recognize-task',
   addRecognizedFile: 'add-recognized-media-file',
   endRecognizeTask: 'end-recognize-task',
@@ -195,35 +193,18 @@ export interface GetJobResponse {
   error?: string
 }
 
-// --- rename task (begin/append/end) ---
-export interface BeginRenameFilesTaskRequest {
+// --- create-rename-episode-plan ---
+export interface CreateRenameEpisodePlanRequest {
   mediaFolderPath: string
+  files: Array<{
+    from: string
+    to: string
+  }>
 }
 
-export interface BeginRenameFilesTaskResponse {
-  success: boolean
-  taskId: string
-  mediaFolderPath: string
-}
-
-export interface AddRenameFileToTaskRequest {
-  taskId: string
-  from: string
-  to: string
-}
-
-export interface AddRenameFileToTaskResponse {
-  success?: boolean
-}
-
-export interface EndRenameFilesTaskRequest {
-  taskId: string
-}
-
-export interface EndRenameFilesTaskResponse {
-  success: boolean
-  taskId: string
-  message?: string
+export interface CreateRenameEpisodePlanResponse {
+  message: string
+  planId: string
 }
 
 // --- recognize task ---

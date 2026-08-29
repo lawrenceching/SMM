@@ -218,20 +218,6 @@ curl -X POST http://localhost:30000/debug/createRenameEpisodePlan \
 - `files` must be non-empty; validation errors return `{ success: false, error: "..." }`
 - See [Rename Episodes](./dev/rename-episodes.md) for product flow and [Manage Plan](./dev/manage-plan.md) for apply/reject
 
-### Simulate Rename Plan Ready
-
-Simulate the **`RenameFilesPlanReady`** Socket.IO event after a plan file already exists (e.g. when testing UI without calling `createRenameEpisodePlan`).
-
-```bash
-curl -X POST http://localhost:30000/debug \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "renameFilesPlanReady",
-    "taskId": "8d4b0237-e2d3-4eea-a175-881426bf5e95"
-  }'
-```
-
-
 ### cleanUp
 
 The cleanUp function allows developers to clean up user configuration and media metadata cache. This is useful for testing, debugging, and resolving configuration issues. It deletes:

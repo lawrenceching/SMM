@@ -20,29 +20,14 @@
   "rename-episode-file": {
     "description": "重命名已关联的电视剧集视频文件及其同名关联文件（如字幕）。仅用于剧集文件，不可用于文件夹、电影或批量重命名计划。"
   },
+  "create-rename-episode-plan": {
+    "description": "根据非空的绝对来源/目标路径列表，为电视剧集视频文件创建待处理的重命名计划。用户将在 SMM 中审查并批准该计划。"
+  },
   "scrape": {
     "description": "为已管理的电视剧或电影文件夹启动刮削任务（海报、背景、缩略图、NFO）。立即返回任务 id；请用 get-job 查询状态。"
   },
   "get-job": {
     "description": "按 id 查询后台任务状态（刮削或导入）。轮询直到 status 为 succeeded、failed 或 aborted。"
-  },
-  "begin-rename-task": {
-    "description": "为媒体文件夹开始重命名文件任务。首先调用此工具，然后为每个文件调用 addRenameFileToTask，最后调用 endRenameFilesTask。用户将被要求确认后才会重命名文件。返回一个任务 ID，用于 addRenameFileToTask 和 endRenameFilesTask。"
-  },
-  "add-rename-file-to-task": {
-    "description": "将文件重命名（从/到）添加到现有的重命名任务。在 beginRenameFilesTask 之后为每个要重命名的文件调用此工具。您不需要添加缩略图、字幕或 nfo 文件；它们会在主视频重命名时一起重命名。"
-  },
-  "end-rename-task": {
-    "description": "结束重命名任务并执行所有排队的重命名操作。在使用 addRenameFileToTask 添加所有文件后调用此工具。任务必须至少包含一个文件。用户将被要求确认后才会重命名文件。"
-  },
-  "begin-rename-task-v2": {
-    "description": "为媒体文件夹中的剧集视频文件开始重命名任务。此工具仅适用于视频文件。此工具返回任务 ID，该 ID 是后续 add-rename-episode-video-file 和 end-rename-episode-video-file-task 调用所必需的。"
-  },
-  "add-rename-file-to-task-v2": {
-    "description": "将文件重命名（从/到）添加到现有的重命名任务 V2。在 beginRenameFilesTaskV2 之后为每个要重命名的文件调用此工具。您不需要添加缩略图、字幕或 nfo 文件；它们会在主视频重命名时一起重命名。"
-  },
-  "end-rename-task-v2": {
-    "description": "结束重命名任务 V2 并通知 UI 计划已准备好审查。计划已持久化，用户将在 UI 中看到确认/取消提示。聊天不会被阻塞。在使用 addRenameFileToTaskV2 添加所有文件后调用此工具。任务必须至少包含一个文件。"
   },
   "begin-recognize-task": {
     "description": "为媒体文件夹开始媒体文件识别任务。此工具创建一个新任务，允许您在向用户展示完整计划之前收集多个已识别的媒体文件。您应该首先调用此工具，然后使用 addRecognizedMediaFile 添加已识别的文件，最后调用 endRecognizeTask 通知 UI 计划已准备好。示例：为文件夹 \"/path/to/media/folder\" 开始识别任务。此工具返回一个任务 ID，您必须将其用于 addRecognizedMediaFile 和 endRecognizeTask。"

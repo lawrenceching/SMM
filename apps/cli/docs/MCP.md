@@ -133,28 +133,15 @@ This runs only the MCP server over stdio (stdin/stdout). Do not write to stdout 
 - **Success**: Returns JSON with `renamed: true` and the actual `from` and `to` paths used
 - **Error**: Returns JSON with `renamed: false` and error message, or tool error for system failures
 
-#### Tool: begin-rename-task
-- **Description**: Begin a batch rename task for a media folder. Returns a task ID that must be used for subsequent operations.
+#### Tool: create-rename-episode-plan
+- **Description**: Create a pending rename plan for TV episode video files. Submit every rename operation in one call; the user reviews and approves the plan in SMM.
 - **Parameters**:
-  - `mediaFolderPath` (string, required): Path to the media folder for batch rename
-- **Success**: Returns JSON with `success: true`, `taskId`, and `mediaFolderPath`
-- **Error**: Returns error if path is invalid or task creation fails
-
-#### Tool: add-rename-file
-- **Description**: Add a file rename operation to an existing task.
-- **Parameters**:
-  - `taskId` (string, required): ID of the existing rename task
-  - `from` (string, required): Current file path
-  - `to` (string, required): New file path
-- **Success**: Returns JSON with `success: true` and `taskId`
-- **Error**: Returns error if task doesn't exist, parameters are invalid, or add operation fails
-
-#### Tool: end-rename-task
-- **Description**: End a batch rename task and finalize the plan.
-- **Parameters**:
-  - `taskId` (string, required): ID of the rename task to finalize
-- **Success**: Returns JSON with `success: true`, `taskId`, and `fileCount`
-- **Error**: Returns JSON with `success: false` and error message if task not found or empty
+  - `mediaFolderPath` (string, required): Absolute path to the managed TV show folder
+  - `files` (array, required): Non-empty array of rename operations
+    - `from` (string, required): Current absolute video file path
+    - `to` (string, required): New absolute video file path
+- **Success**: Returns JSON with `message` and `planId`
+- **Error**: Returns an error if the folder, files, or rename operations are invalid
 
 ### Recognize Operations
 
@@ -182,15 +169,15 @@ This runs only the MCP server over stdio (stdin/stdout). Do not write to stdout 
 - **Success**: Returns JSON with `success: true`, `taskId`, and `fileCount`
 - **Error**: Returns error if task doesn't exist or finalization fails
 
-## Batch Operation Workflow
+## Recognize Batch Operation Workflow
 
-Both rename and recognize tools follow a three-step batch operation pattern:
+The recognize tools follow a three-step batch operation pattern:
 
 1. **Begin Task**: Create a new batch operation task and get a task ID
 2. **Add Items**: Add individual files/operations to the task using the task ID
 3. **End Task**: Finalize the task to execute the batch operation
 
-This pattern allows for building complex operations with multiple files before execution, with validation at each step.
+Rename plans instead use the one-shot `create-rename-episode-plan` tool documented above.
 
 ## Response Format
 

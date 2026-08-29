@@ -9,6 +9,7 @@ import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { GET_MEDIA_METADATA } from "@smm/core/types/ai-tools/getMediaMetadata";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
 import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
@@ -50,6 +51,7 @@ const TOOL_NAME_KEYS = [
   LIST_FILES_KEY,
   RENAME_FOLDER,
   RENAME_EPISODE_FILE,
+  CREATE_RENAME_EPISODE_PLAN,
   SCRAPE,
   GET_JOB,
   BEGIN_RECOGNIZE_TASK,

@@ -6,6 +6,7 @@ import { cleanup, setup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   clearFolderViaBrowser,
+  joinPlatformPath,
   resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
 import {
@@ -20,7 +21,7 @@ import {
  * @supports local, Electron, Docker
  * @unsupported HarmonyOS
  */
-describe('MCP Prompt - Cancel Preparing Plan', () => {
+describe('MCP Prompt - Cancel Pending Plan', () => {
   const ctx = createMcpSpecContext()
   let testFolder = ''
 
@@ -59,11 +60,17 @@ describe('MCP Prompt - Cancel Preparing Plan', () => {
     }
   })
 
-  it('should show AI rename prompt after begin and dismiss it on cancel', async () => {
+  it('should show the pending AI rename prompt and dismiss it on cancel', async () => {
     const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
-    await mcpClient.beginRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
+    await mcpClient.createRenameEpisodePlan(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,
+      files: [
+        {
+          from: joinPlatformPath(folderPath, 'S01E01.mkv'),
+          to: joinPlatformPath(folderPath, '[1].mp4'),
+        },
+      ],
     })
 
     await Prompts.aiBasedRenamePrompt.waitForDisplayed({ timeout: 15000 })
