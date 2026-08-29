@@ -73,6 +73,11 @@ export {
   stripDeprecatedFiles,
   type PersistedMediaMetadata,
 } from "./pipeline/mediaMetadataValidation";
+export {
+  MetadataAlreadyExistsError,
+  MetadataNotFoundError,
+  MetadataValidationError,
+} from "./pipeline/metadataErrors";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
 export { tryToRecognizeEpisodesPipeline, type TryToRecognizeEpisodesDeps } from "./pipeline/tryToRecognizeEpisodes";

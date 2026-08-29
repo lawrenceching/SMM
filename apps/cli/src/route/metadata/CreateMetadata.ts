@@ -5,7 +5,14 @@ import { getCore } from '../../core/getCore'
 import { metadataProblemJson } from './problemDetails'
 
 const mediaMetadataSchema = z.custom<MediaMetadata>(
-  (value) => typeof value === 'object' && value !== null,
+  (value) =>
+    typeof value === 'object' &&
+    value !== null &&
+    !Array.isArray(value),
+).and(
+  z.object({
+    mediaFolderPath: z.string(),
+  }).passthrough(),
 )
 
 const createMetadataRequestSchema: z.ZodType<CreateMetadataRequestBody> = z.object({

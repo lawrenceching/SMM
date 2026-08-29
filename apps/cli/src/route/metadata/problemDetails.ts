@@ -1,5 +1,11 @@
 import type { Context } from 'hono'
 import type { ProblemDetails } from '@core/types'
+import {
+  MetadataAlreadyExistsError,
+  MetadataNotFoundError,
+  MetadataValidationError,
+} from 'core-app'
+import { ZodError } from 'zod'
 
 export function problemJson(
   c: Context,
@@ -21,7 +27,7 @@ export function problemJson(
 }
 
 export function metadataProblemJson(c: Context, error: unknown): Response {
-  if (error instanceof Error && error.name === 'MetadataNotFoundError') {
+  if (error instanceof MetadataNotFoundError) {
     return problemJson(
       c,
       404,
@@ -30,7 +36,7 @@ export function metadataProblemJson(c: Context, error: unknown): Response {
       error.message,
     )
   }
-  if (error instanceof Error && error.name === 'MetadataAlreadyExistsError') {
+  if (error instanceof MetadataAlreadyExistsError) {
     return problemJson(
       c,
       409,
@@ -39,7 +45,11 @@ export function metadataProblemJson(c: Context, error: unknown): Response {
       error.message,
     )
   }
-  if (error instanceof Error && error.name === 'MetadataValidationError') {
+  if (
+    error instanceof MetadataValidationError ||
+    error instanceof ZodError ||
+    error instanceof SyntaxError
+  ) {
     return problemJson(
       c,
       400,

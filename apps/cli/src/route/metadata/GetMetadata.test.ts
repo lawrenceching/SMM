@@ -57,8 +57,11 @@ describe('POST /api/get-metadata', () => {
 
     expect(res.status).toBe(404)
     expect(res.headers.get('content-type')).toContain('application/problem+json')
-    const body = (await res.json()) as { type: string }
-    expect(body.type).toBe('urn:smm:problem:metadata-not-found')
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-not-found',
+      status: 404,
+      instance: '/api/get-metadata',
+    })
   })
 
   it('supports create, get, set, get, and delete roundtrip', async () => {

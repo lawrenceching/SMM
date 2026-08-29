@@ -50,6 +50,36 @@ describe('POST /api/create-metadata', () => {
     })
   }
 
+  it('returns 400 validation ProblemDetails for malformed JSON', async () => {
+    const res = await app.request('/api/create-metadata', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"data":',
+    })
+
+    expect(res.status).toBe(400)
+    expect(res.headers.get('content-type')).toContain('application/problem+json')
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-validation',
+      status: 400,
+      instance: '/api/create-metadata',
+    })
+  })
+
+  it('returns 400 validation ProblemDetails when mediaFolderPath is missing', async () => {
+    const res = await app.request('/api/create-metadata', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ data: { type: 'tvshow-folder' } }),
+    })
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-validation',
+      status: 400,
+    })
+  })
+
   it('returns 409 ProblemDetails when metadata already exists', async () => {
     expect((await create()).status).toBe(200)
 

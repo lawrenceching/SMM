@@ -58,4 +58,21 @@ describe('POST /api/set-metadata', () => {
     const body = (await res.json()) as { type: string }
     expect(body.type).toBe('urn:smm:problem:metadata-validation')
   })
+
+  it('returns 400 validation ProblemDetails when patch is an array', async () => {
+    const res = await app.request('/api/set-metadata', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        path: metadata.mediaFolderPath,
+        patch: [],
+      }),
+    })
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-validation',
+      status: 400,
+    })
+  })
 })
