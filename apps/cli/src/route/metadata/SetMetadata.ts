@@ -1,15 +1,13 @@
 import type { Hono } from 'hono'
-import type { MediaMetadata, SetMetadataRequestBody } from '@core/types'
+import type { SetMetadataRequestBody } from '@core/types'
 import { z } from 'zod'
 import { getCore } from '../../core/getCore'
+import { metadataPatchFieldSchemas } from './metadataSchemas'
 import { metadataProblemJson } from './problemDetails'
 
-const metadataPatchSchema: z.ZodType<SetMetadataRequestBody['patch']> = z.object({
-  type: z.custom<MediaMetadata['type']>().optional(),
-  mediaFiles: z.custom<MediaMetadata['mediaFiles']>().optional(),
-  tvShow: z.custom<MediaMetadata['tvShow']>().optional(),
-  movie: z.custom<MediaMetadata['movie']>().optional(),
-}).strict()
+const metadataPatchSchema: z.ZodType<SetMetadataRequestBody['patch']> = z.object(
+  metadataPatchFieldSchemas,
+).strict()
 
 const setMetadataRequestSchema: z.ZodType<SetMetadataRequestBody> = z.object({
   path: z.string(),

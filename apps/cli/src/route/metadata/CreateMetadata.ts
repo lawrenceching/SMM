@@ -1,22 +1,17 @@
 import type { Hono } from 'hono'
-import type { CreateMetadataRequestBody, MediaMetadata } from '@core/types'
+import type { CreateMetadataRequestBody } from '@core/types'
 import { z } from 'zod'
 import { getCore } from '../../core/getCore'
+import { metadataPatchFieldSchemas } from './metadataSchemas'
 import { metadataProblemJson } from './problemDetails'
 
-const mediaMetadataSchema = z.custom<MediaMetadata>(
-  (value) =>
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value),
-).and(
-  z.object({
-    mediaFolderPath: z.string(),
-  }).passthrough(),
-)
+const createMetadataDataSchema = z.object({
+  mediaFolderPath: z.string().min(1),
+  ...metadataPatchFieldSchemas,
+}).passthrough()
 
 const createMetadataRequestSchema: z.ZodType<CreateMetadataRequestBody> = z.object({
-  data: mediaMetadataSchema,
+  data: createMetadataDataSchema,
 })
 
 export function handleCreateMetadata(app: Hono): void {

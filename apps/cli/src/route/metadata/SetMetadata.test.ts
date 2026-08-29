@@ -43,6 +43,23 @@ describe('POST /api/set-metadata', () => {
     rmSync(userDataDir, { recursive: true, force: true })
   })
 
+  it('returns 400 validation ProblemDetails when type is invalid', async () => {
+    const res = await app.request('/api/set-metadata', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        path: metadata.mediaFolderPath,
+        patch: { type: 42 },
+      }),
+    })
+
+    expect(res.status).toBe(400)
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-validation',
+      status: 400,
+    })
+  })
+
   it('returns 400 ProblemDetails for an illegal patch field', async () => {
     const res = await app.request('/api/set-metadata', {
       method: 'POST',
