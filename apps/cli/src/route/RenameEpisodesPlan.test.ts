@@ -99,4 +99,20 @@ describe('POST /api/create-rename-episode-plan', () => {
     })
     expect(mocks.createRenameEpisodePlan).not.toHaveBeenCalled()
   })
+
+  it('does not double-prefix when Core throws a pre-prefixed error', async () => {
+    mocks.createRenameEpisodePlan.mockRejectedValue(
+      new Error('Error Reason: No rename entries in task'),
+    )
+
+    const response = await post({
+      mediaFolderPath: '/media/Show',
+      files: [],
+    })
+
+    expect(response.status).toBe(200)
+    const json = await response.json()
+    expect(json.error).toBe('Error Reason: No rename entries in task')
+    expect(json.error.match(/Error Reason:/g)).toHaveLength(1)
+  })
 })

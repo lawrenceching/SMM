@@ -1,5 +1,6 @@
 import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
 import type { Hono } from 'hono'
+import { formatToolError } from '@core/ai-tool/toolResult'
 import { logger } from '../../../lib/logger'
 import { createRenameEpisodePlanFromBody } from '../RenameEpisodesPlan'
 
@@ -43,7 +44,7 @@ export function handleDebugCreateRenameEpisodePlan(app: Hono): void {
       logger.error({ error }, '[POST /debug/createRenameEpisodePlan] route error')
       const response: DebugCreateRenameEpisodePlanResponseBody = {
         success: false,
-        error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        ...formatToolError(error),
       }
       return c.json(response, 200)
     }

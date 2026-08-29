@@ -78,4 +78,24 @@ describe('POST /debug/createRenameEpisodePlan', () => {
       error: 'Error Reason: No rename entries in task',
     })
   })
+
+  it('does not double-prefix when Core throws a pre-prefixed error', async () => {
+    mocks.createRenameEpisodePlan.mockRejectedValue(
+      new Error('Error Reason: No rename entries in task'),
+    )
+
+    const response = await app.request('/debug/createRenameEpisodePlan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaFolderPath: '/media/Show', files: [] }),
+    })
+
+    expect(response.status).toBe(200)
+    const json = await response.json()
+    expect(json).toEqual({
+      success: false,
+      error: 'Error Reason: No rename entries in task',
+    })
+    expect(json.error.match(/Error Reason:/g)).toHaveLength(1)
+  })
 })

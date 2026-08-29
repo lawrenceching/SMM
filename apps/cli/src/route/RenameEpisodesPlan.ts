@@ -6,6 +6,7 @@ import {
   RenameFilesPlanReady,
   type RenameFilesPlanReadyRequestData,
 } from '@core/event-types'
+import { formatToolError } from '@core/ai-tool/toolResult'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
 import { getUserDataDir } from '@/utils/config'
@@ -122,9 +123,7 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       return c.json(await createRenameEpisodePlanFromBody(body), 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/create-rename-episode-plan] route error')
-      const err: CreateRenameEpisodePlanResponseBody = {
-        error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }
+      const err: CreateRenameEpisodePlanResponseBody = formatToolError(error)
       return c.json(err, 200)
     }
   })
