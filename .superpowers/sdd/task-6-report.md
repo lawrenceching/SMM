@@ -39,54 +39,22 @@ the single tool.
 
 None. The pre-existing dirty E2E and documentation files were not included in
 this task.
-# Task 6 Report: AI tool type definitions + execution for TVDB
 
-## What I implemented
+## Review fix: defaultBroadcast fallback
 
-Created 7 new files mirroring the existing TMDB analog:
+**Issue:** `buildCreateRenameEpisodePlanTool` used `broadcast?.(...)`, so when the
+host omitted optional `config.broadcast`, the required `RenameFilesPlanReady`
+event was silently skipped.
 
-1. **`packages/core/types/ai-tools/tvdbCommon.ts`** — `tvdbLanguageSchema`, `tvdbBaseUrlSchema`, `TvdbToolHostOptions`, `toTvdbCoreOptions`, `formatTvdbToolError`.
-2. **`packages/core/types/ai-tools/tvdbSearch.ts`** — `TVDB_SEARCH`, `TVDB_SEARCH_DESCRIPTION`, `tvdbSearchInputSchema`/`tvdbSearchOutputSchema`, `TvdbSearchInput`/`TvdbSearchOutput`.
-3. **`packages/core/types/ai-tools/tvdbGetMovie.ts`** — `TVDB_GET_MOVIE`, description, input/output schemas + types.
-4. **`packages/core/types/ai-tools/tvdbGetTvShow.ts`** — `TVDB_GET_TV_SHOW`, description, input/output schemas + types.
-5. **`packages/core/types/ai-tools/tvdbGetLanguages.ts`** — `TVDB_GET_LANGUAGES`, description, input/output schemas + types.
-6. **`packages/core-routes/src/tools/tvdb.ts`** — runner types (`SearchInTvdbRunner`, `GetTvShowInTvdbRunner`, `GetMovieInTvdbRunner`, `GetTvdbLanguagesRunner`), `TvdbToolRunners`, `executeTvdbSearch`, `executeTvdbGetMovie`, `executeTvdbGetTvShow`, `executeTvdbGetLanguages`, `buildTvdbSearchTool`, `buildTvdbGetMovieTool`, `buildTvdbGetTvShowTool`, `buildTvdbGetLanguagesTool`.
-7. **`packages/core-routes/src/tools/tvdb.test.ts`** — the test suite from the brief (8 tests).
+**Fix:** Restored the sibling-tool pattern (`const emit = broadcast ??
+defaultBroadcast`) from `endRenameTask` / `endRecognizeTask`. Plan-ready events
+now always fire via injected callback or the no-op default.
 
-All code was written verbatim from the task brief. The implementation uses loose `Record<string, unknown>` runner types and does NOT import from `@smm/tvdb4`, satisfying the critical constraint.
+**Test:** Added `src/tools/createRenameEpisodePlan.test.ts` covering the
+no-injected-callback path (spies on `defaultBroadcast`) and injected-broadcast
+preference.
 
-## What I tested and results
+**Verification:** `pnpm exec vitest run src/tools/createRenameEpisodePlan.test.ts
+src/mcp/createRenameEpisodePlan.test.ts` — 2 files, 5 tests passed.
 
-### RED (Step 2)
-Before implementation, ran `pnpm vitest run src/tools/tvdb.test.ts` (from `packages/core-routes`):
-- Result: **FAIL** — `Error: Cannot find module './tvdb.ts'` (module not found).
-
-### GREEN (Step 5)
-After creating the 5 type files and `tvdb.ts`:
-- `pnpm vitest run src/tools/tvdb.test.ts` → **1 file passed, 8 tests passed**.
-- `pnpm vitest run src/tools/tmdb.test.ts` → **1 file passed, 7 tests passed** (TMDB analog unaffected).
-
-### Typecheck
-- `pnpm run typecheck` in `packages/core-routes`: only **pre-existing** errors remain in `src/tools/tmdb.ts` (TS2352 casts, present before this task). No errors reference any of my new files.
-- `pnpm run typecheck` in `packages/core`: no errors referencing any `tvdb*` file.
-
-## Files changed
-
-- `packages/core/types/ai-tools/tvdbCommon.ts` (new)
-- `packages/core/types/ai-tools/tvdbSearch.ts` (new)
-- `packages/core/types/ai-tools/tvdbGetMovie.ts` (new)
-- `packages/core/types/ai-tools/tvdbGetTvShow.ts` (new)
-- `packages/core/types/ai-tools/tvdbGetLanguages.ts` (new)
-- `packages/core-routes/src/tools/tvdb.ts` (new)
-- `packages/core-routes/src/tools/tvdb.test.ts` (new)
-
-## Self-review findings
-
-- Verified all files match the brief's code exactly (imports, schemas, runner types, builders).
-- Verified the runner-call argument shapes against the test expectations (e.g. `toTvdbCoreOptions` produces `{ language, host }`, `host` undefined when `baseURL` absent, `type` passed through for search).
-- Confirmed no `@smm/tvdb4` import anywhere in the new code.
-- Scope kept to the 7 files listed in the brief — `packages/core-routes/src/tools/index.ts` integration is not part of this task (presumably a later task wires TVDB runners/tools into `ChatTools`/`ChatToolsExtraDeps`).
-
-## Issues / concerns
-
-- None blocking. Note: `pnpm vitest` is not resolvable from the repo root (vitest not hoisted there); the task's documented command from `packages/core-routes` (`pnpm vitest run src/tools/tvdb.test.ts`) works, and `pnpm --filter @smm/core-routes exec vitest run ...` works from the root as an alternative.
+**Commit:** `fix(core-routes): always broadcast RenameFilesPlanReady from create-rename-episode-plan`

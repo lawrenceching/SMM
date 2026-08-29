@@ -15,6 +15,7 @@ import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 import type { WebSocketMessage } from "../socketIO/types.ts";
+import { defaultBroadcast } from "./broadcast.ts";
 
 function unsupportedFsOperation(name: string): never {
   throw new Error(`${name} is not supported by the rename-plan filesystem adapter`);
@@ -71,6 +72,7 @@ export function buildCreateRenameEpisodePlanTool(
   logger?: CoreRoutesLogger,
   abortSignal?: AbortSignal,
 ) {
+  const emit = broadcast ?? defaultBroadcast;
   return {
     description: CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
     inputSchema: createRenameEpisodePlanInputSchema,
@@ -102,7 +104,7 @@ export function buildCreateRenameEpisodePlanTool(
           taskId: plan.id,
           planFilePath: planPath(appDataDir, plan.id),
         };
-        broadcast?.({ event: RenameFilesPlanReady.event, data });
+        emit({ event: RenameFilesPlanReady.event, data });
         logger?.info(
           {
             planId: plan.id,
