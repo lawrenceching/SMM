@@ -1,7 +1,7 @@
 import { broadcast } from "../utils/socketIO";
 import { RecognizeMediaFilePlanReady, type RecognizeMediaFilePlanReadyRequestData } from "@core/event-types";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
-import { getAppDataDir } from "@/utils/config";
+import { getUserDataDir } from "@/utils/config";
 import path from "path";
 import { mkdir, readdir, stat } from "fs/promises";
 import { Path } from "@core/path";
@@ -13,7 +13,7 @@ const logger = pino();
  * Get the path to the plans directory
  */
 function getPlansDir(): string {
-  return path.join(getAppDataDir(), 'plans');
+  return path.join(getUserDataDir(), 'plans');
 }
 
 /**

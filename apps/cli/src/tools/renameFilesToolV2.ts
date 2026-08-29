@@ -8,7 +8,7 @@ import {
   createEmptyRenamePlan,
   prepareAppendRenameEntry,
 } from '@core/plan/renamePlan'
-import { getAppDataDir } from '@/utils/config'
+import { getUserDataDir } from '@/utils/config'
 import path from 'path'
 import { mkdir, readdir, stat } from 'fs/promises'
 import { Path } from '@core/path'
@@ -19,7 +19,7 @@ import { validateRenameOperations } from './renameFilesInBatch'
 const logger = pino()
 
 function getPlansDir(): string {
-  return path.join(getAppDataDir(), 'plans')
+  return path.join(getUserDataDir(), 'plans')
 }
 
 export function getPlanFilePath(planId: string): string {

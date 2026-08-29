@@ -5,7 +5,7 @@ import {
   type CoreRoutesLogger,
 } from "@smm/core-routes";
 import { buildAllowlist } from "@/utils/buildAllowlist";
-import { getAppDataDir } from "@/utils/config";
+import { getUserDataDir } from "@/utils/config";
 import { buildHelloHttpResponse } from "@/cli/helloHttp";
 import { logger } from "../lib/logger";
 import { broadcast } from "@/utils/socketIO";
@@ -25,7 +25,7 @@ export async function startCoreRoutesServer(
 ): Promise<http.Server> {
   const port = resolveCoreRoutesPort();
   const allowlist = await buildAllowlist();
-  const appDataDir = getAppDataDir();
+  const appDataDir = getUserDataDir();
   const handler = createCoreRoutesRequestHandler(
     {
       allowlist,

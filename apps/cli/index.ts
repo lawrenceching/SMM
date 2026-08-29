@@ -106,7 +106,7 @@ const cookiesStartupResult = await cookiesCleaner.cleanAll();
 logger.info(cookiesStartupResult, 'yt-dlp cookies temp cleanup on startup');
 
 // Clean up stale preparing plan files left over from a previous session
-const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+const preparingPlansRemoved = await cleanupStalePlans(userDataDir, undefined, logger);
 if (preparingPlansRemoved > 0) {
   logger.info(
     { count: preparingPlansRemoved },
@@ -125,7 +125,7 @@ const server = new Server({
     const result = await cookiesCleaner.cleanAll();
     logger.info(result, 'yt-dlp cookies temp cleanup on shutdown');
 
-    const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+    const preparingPlansRemoved = await cleanupStalePlans(userDataDir, undefined, logger);
     if (preparingPlansRemoved > 0) {
       logger.info(
         { count: preparingPlansRemoved },
