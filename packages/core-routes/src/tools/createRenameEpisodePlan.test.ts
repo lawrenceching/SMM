@@ -51,7 +51,9 @@ describe(`buildCreateRenameEpisodePlanTool (${CREATE_RENAME_EPISODE_PLAN})`, () 
       ],
     });
 
-    expect(result.error).toBeUndefined();
+    if (!("planId" in result)) {
+      throw new Error(result.error);
+    }
     expect(result.message).toBe(END_PLAN_TASK_SUCCESS_MESSAGE);
     expect(result.planId).toEqual(expect.any(String));
     expect(emitSpy).toHaveBeenCalledWith({
@@ -85,6 +87,9 @@ describe(`buildCreateRenameEpisodePlanTool (${CREATE_RENAME_EPISODE_PLAN})`, () 
       ],
     });
 
+    if (!("planId" in result)) {
+      throw new Error(result.error);
+    }
     expect(result.planId).toEqual(expect.any(String));
     expect(broadcast).toHaveBeenCalledWith({
       event: RenameFilesPlanReady.event,
