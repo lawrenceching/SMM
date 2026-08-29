@@ -78,6 +78,21 @@ describe("Core metadata CRUD", () => {
     await expect(core.createMetadata(metadata)).rejects.toThrow(MetadataAlreadyExistsError);
   });
 
+  it("allows only one of two concurrent creates", async () => {
+    const core = createCore(inMemoryFs());
+
+    const results = await Promise.allSettled([
+      core.createMetadata(metadata),
+      core.createMetadata(metadata),
+    ]);
+
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+    expect(results.find((result) => result.status === "rejected")).toMatchObject({
+      reason: expect.any(MetadataAlreadyExistsError),
+    });
+  });
+
   it("merges an allowed patch into existing metadata", async () => {
     const core = createCore(inMemoryFs());
     await core.createMetadata(metadata);
@@ -93,6 +108,25 @@ describe("Core metadata CRUD", () => {
       movie: { id: "2", name: "Movie", database: "TMDB" },
     });
     expect(updated.tvShow).toEqual(metadata.tvShow);
+  });
+
+  it("preserves both concurrent metadata patches", async () => {
+    const core = createCore(inMemoryFs());
+    await core.createMetadata(metadata);
+
+    await Promise.all([
+      core.setMetadata(metadata.mediaFolderPath!, {
+        movie: { id: "2", name: "Movie", database: "TMDB" },
+      }),
+      core.setMetadata(metadata.mediaFolderPath!, {
+        mediaFiles: [{ absolutePath: "/media/Show/S01E01.mkv" }],
+      }),
+    ]);
+
+    await expect(core.getMetadata(metadata.mediaFolderPath!)).resolves.toMatchObject({
+      movie: { id: "2", name: "Movie", database: "TMDB" },
+      mediaFiles: [{ absolutePath: "/media/Show/S01E01.mkv" }],
+    });
   });
 
   it("throws MetadataNotFoundError when patching missing metadata", async () => {
@@ -133,5 +167,30 @@ describe("Core metadata CRUD", () => {
     expect(await fs.exists(userConfigPath("/data/config"))).toBe(true);
     expect(await fs.exists(metadataCachePath("/data/internal", metadata.mediaFolderPath!))).toBe(false);
     expect(await fs.exists(userConfigPath("/data/internal"))).toBe(false);
+  });
+
+  it("recognizes episodes from the same metadata root used by CRUD", async () => {
+    const fs = inMemoryFs();
+    const core = createCore(fs);
+    const metadataWithEpisodes: MediaMetadata = {
+      ...metadata,
+      tvShow: {
+        ...metadata.tvShow!,
+        seasons: [
+          {
+            season: 1,
+            name: "Season 1",
+            episodes: [{ season: 1, episode: 1, name: "Pilot" }],
+          },
+        ],
+      },
+    };
+    await core.setUserConfigKey("folders", [metadata.mediaFolderPath!]);
+    await core.createMetadata(metadataWithEpisodes);
+
+    await expect(core.tryToRecognizeEpisodes(metadata.mediaFolderPath!)).resolves.toMatchObject({
+      mediaFolderPath: metadata.mediaFolderPath,
+      task: "recognize-media-file",
+    });
   });
 });

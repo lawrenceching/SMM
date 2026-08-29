@@ -68,6 +68,38 @@ export class MediaMetadataHelper {
     });
   }
 
+  /** Creates metadata only when no cache file exists. */
+  async createIfAbsent(
+    metadata: PersistedMediaMetadata,
+  ): Promise<PersistedMediaMetadata | null> {
+    const validated = validatePersistedMediaMetadata(metadata);
+    const cachePath = this.cachePath(validated.mediaFolderPath!);
+    let result: PersistedMediaMetadata | null = null;
+    await withWriteLocks([cachePath], async () => {
+      if (await this.fs.exists(cachePath)) return;
+      await this.fs.writeTextFile(cachePath, JSON.stringify(validated, null, 2));
+      result = validated;
+    });
+    return result;
+  }
+
+  /** Updates an existing valid cache atomically; null when absent or corrupt. */
+  async updateIfPresent(
+    folder: string,
+    mutator: (current: PersistedMediaMetadata) => PersistedMediaMetadata,
+  ): Promise<PersistedMediaMetadata | null> {
+    const cachePath = this.cachePath(folder);
+    let result: PersistedMediaMetadata | null = null;
+    await withWriteLocks([cachePath], async () => {
+      const current = await this.readUnlocked(folder);
+      if (!current) return;
+      const validated = validatePersistedMediaMetadata(mutator(current));
+      await this.fs.writeTextFile(cachePath, JSON.stringify(validated, null, 2));
+      result = validated;
+    });
+    return result;
+  }
+
   async update(
     folder: string,
     mutator: (current: PersistedMediaMetadata) => PersistedMediaMetadata,

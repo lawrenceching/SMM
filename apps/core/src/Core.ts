@@ -230,8 +230,7 @@ export class Core {
     this.platform = options.platform;
     this.osLocale = options.osLocale;
     this.userConfig = new UserConfigHelper(this.fs, this.userDataDir);
-    const metadataRoot = this.reportedAppDataDir ?? this.appDataDir;
-    this.mediaMetadata = new MediaMetadataHelper(this.fs, metadataRoot);
+    this.mediaMetadata = new MediaMetadataHelper(this.fs, this.getMetadataRoot());
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
@@ -414,11 +413,11 @@ export class Core {
   /** Creates persisted metadata and rejects an existing cache. */
   async createMetadata(mm: MediaMetadata): Promise<PersistedMediaMetadata> {
     const folderPath = this.normalizePosix(mm.mediaFolderPath ?? "");
-    if (await this.mediaMetadata.read(folderPath)) {
+    const created = await this.mediaMetadata.createIfAbsent(mm);
+    if (!created) {
       throw new MetadataAlreadyExistsError(folderPath);
     }
-    await this.mediaMetadata.write(mm);
-    return this.getMetadata(folderPath);
+    return created;
   }
 
   /** Applies an allow-listed partial update to existing metadata. */
@@ -427,11 +426,11 @@ export class Core {
     patch: MetadataPatch,
   ): Promise<PersistedMediaMetadata> {
     const normalizedPath = this.normalizePosix(folderPath);
-    const current = await this.mediaMetadata.read(normalizedPath);
-    if (!current) throw new MetadataNotFoundError(normalizedPath);
-    const next = applyMetadataPatch(current, patch);
-    await this.mediaMetadata.write(next);
-    return this.getMetadata(normalizedPath);
+    const updated = await this.mediaMetadata.updateIfPresent(normalizedPath, (current) =>
+      applyMetadataPatch(current, patch),
+    );
+    if (!updated) throw new MetadataNotFoundError(normalizedPath);
+    return updated;
   }
 
   /** Deletes persisted metadata. Idempotent. */
@@ -467,7 +466,7 @@ export class Core {
   async renameEpisodeFile(input: RenameEpisodeFileInput): Promise<RenameEpisodeFileResult> {
     return renameEpisodeFilePipeline(input, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       normalizePosix: (path) => this.normalizePosix(path),
       getMediaMetadata: (folder) => this.readMetadata(folder),
@@ -478,7 +477,7 @@ export class Core {
   async tryToRecognizeEpisodes(path: string): Promise<RecognizeMediaFilePlan> {
     return tryToRecognizeEpisodesPipeline(path, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       normalizePosix: (p) => this.normalizePosix(p),
     });
@@ -491,7 +490,7 @@ export class Core {
     const { client: tvdb } = await this.createTvdbClient({}, false);
     return tryToRecognizeFolderPipeline(path, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       mediaMetadata: this.mediaMetadata,
       normalizePosix: (p) => this.normalizePosix(p),
@@ -512,7 +511,7 @@ export class Core {
     const { client: tvdb } = await this.createTvdbClient({}, false);
     await recognizeFolderPipeline(path, options, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       mediaMetadata: this.mediaMetadata,
       normalizePosix: (p) => this.normalizePosix(p),
@@ -526,7 +525,7 @@ export class Core {
   async tryToRenameFolder(path: string, rule?: RenameRuleName): Promise<RenameFilesPlan> {
     return tryToRenameFolderPipeline(path, rule, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       normalizePosix: (p) => this.normalizePosix(p),
     });
@@ -539,30 +538,30 @@ export class Core {
   ): Promise<RenameFilesPlan> {
     return createRenameEpisodePlanPipeline(mediaFolderPath, files, options, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       normalizePosix: (path) => this.normalizePosix(path),
       getMediaMetadata: (folder) => this.readMetadata(folder),
     });
   }
 
   async getPlan(id: string): Promise<Plan> {
-    const plan = await readPlan(this.fs, this.appDataDir, id);
+    const plan = await readPlan(this.fs, this.getMetadataRoot(), id);
     if (!plan) throw new Error(`Plan not found: ${id}`);
     return plan;
   }
 
   async listPlans(options?: ListPlansOptions): Promise<Plan[]> {
-    return listPlans(this.fs, this.appDataDir, options);
+    return listPlans(this.fs, this.getMetadataRoot(), options);
   }
 
   async rejectPlan(id: string): Promise<Plan> {
-    return rejectPlan(this.fs, this.appDataDir, id);
+    return rejectPlan(this.fs, this.getMetadataRoot(), id);
   }
 
   async applyPlan(plan: Plan): Promise<void> {
     await applyPlanPipeline(plan, {
       fs: this.fs,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       normalizePosix: (p) => this.normalizePosix(p),
       setMetadata: (mm) => this.writeMetadata(mm),
       getMediaMetadata: (folder) => this.readMetadata(folder),
@@ -770,6 +769,10 @@ export class Core {
     }
   }
 
+  private getMetadataRoot(): string {
+    return this.reportedAppDataDir ?? this.appDataDir;
+  }
+
   private readMetadata(folderPath: string): Promise<PersistedMediaMetadata | null> {
     return this.mediaMetadata.read(this.normalizePosix(folderPath));
   }
@@ -782,7 +785,7 @@ export class Core {
     return {
       fs: this.fs,
       network: this.network,
-      appDataDir: this.appDataDir,
+      appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
       normalizePosix: (p: string) => this.normalizePosix(p),
       discover: this.discover,
@@ -856,7 +859,7 @@ export class Core {
         fs: this.fs,
         network: this.network,
         logger: this.logger,
-        appDataDir: this.reportedAppDataDir ?? this.appDataDir,
+        appDataDir: this.getMetadataRoot(),
         userDataDir: this.userDataDir,
         discover: this.discover,
         reverseProxyUrl: this.reverseProxyUrl,
