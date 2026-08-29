@@ -9,7 +9,7 @@ import env from 'test/lib/env'
 import { type MediaMetadata } from '@smm/core/types'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import { addFile, createTask, endTask, requireTaskId } from 'test/lib/debugRenameTool'
+import { createRenameEpisodePlan } from 'test/lib/debugRenameTool'
 
 import { Path } from '@smm/core'
 import Prompts from 'test/componentobjects/Prompts'
@@ -73,19 +73,13 @@ describe('AI Assistant - Rename Tool', async () => {
         })
 
         
-        // 1. Start rename plan
-        const taskId = requireTaskId(await createTask({
+        await createRenameEpisodePlan({
             mediaFolderPath: folder.path!,
-        }))
-        await addFile({
-            taskId: taskId,
-            from: path.join(folder.path!, 'S01E01.mp4'),
-            to: path.join(folder.path!, '[1].mp4'),
+            files: [{
+                from: path.join(folder.path!, 'S01E01.mp4'),
+                to: path.join(folder.path!, '[1].mp4'),
+            }],
         })
-        await endTask({
-            taskId: taskId,
-        })
-
 
         await Prompts.aiBasedRenamePrompt.waitForDisplayed()
         await Prompts.confirmButton.click()
