@@ -28,6 +28,8 @@ import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initializ
 import { recognizeEpisodes as recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import { extname } from "@/lib/path";
 import { videoFileExtensions } from "@core/utils";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 import type { MediaFileMetadata, MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
 import { withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
@@ -185,15 +187,15 @@ export function useInitializeImportedMediaFolder() {
 
     /** First video file in `mm.files` (by `videoFileExtensions`), or empty. Movie entries only set `absolutePath`. */
     const recognizeMovieEpisode = useCallback(
-        async (mm: MediaMetadata, traceId: string): Promise<MediaFileMetadata[]> => {
-            const files = mm.files;
-            if (!files || files.length === 0) {
+        async (mm: MediaMetadataWithFolderFiles, traceId: string): Promise<MediaFileMetadata[]> => {
+            const files = getMediaFolderFiles(mm);
+            if (files.length === 0) {
                 logger.warn(
                     `[${traceId}] unable to recognize movie episode after recognizing media folder`
                 );
                 return [];
             }
-            const firstVideo = files.find((path) =>
+            const firstVideo = files.find((path: string) =>
                 videoFileExtensions.includes(extname(path).toLowerCase())
             );
             if (firstVideo === undefined) {

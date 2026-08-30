@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { type MediaMetadata, type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@core/types"
+import { type MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { MediaMetadata } from "@core/types"
+import { type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@core/types"
 import { basename, extname, relative, join, dirname } from "@/lib/path"
 import { Path } from "@core/path"
 import { listFilesApi } from "@/api/listFiles"
@@ -139,7 +142,7 @@ function getRelativePath(absolutePath: string, mediaFolderPath: string | undefin
  * Build TvShowEpisodesProps from MediaMetadata
  */
 export function buildTvShowEpisodesPropsFromMediaMetadata(
-  mediaMetadata: MediaMetadata | null | undefined,
+  mediaMetadata: MediaMetadataWithFolderFiles | null | undefined,
   renameRule: RenameRule | undefined
 ): TvShowEpisodesProps {
   if (!mediaMetadata) {
@@ -183,7 +186,7 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
           tag: "VID",
           newPath: ''
         }
-        episodeProps.associatedFiles = findAssociatedFiles(mediaFolderPath!, mediaMetadata.files ?? [], videoFilePath.absolutePath);
+        episodeProps.associatedFiles = findAssociatedFiles(mediaFolderPath!, getMediaFolderFiles(mediaMetadata), videoFilePath.absolutePath);
         if(renameRule) {
           episodeProps.videoFilePath.newPath = generateNameByRenameRule(mediaMetadata, renameRule, videoFilePath)
         }

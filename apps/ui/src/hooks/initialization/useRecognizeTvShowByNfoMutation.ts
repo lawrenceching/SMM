@@ -1,9 +1,10 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type { PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
 import { Path } from "@core/path";
 import { readFile } from "@/api/readFile";
 import { parseTvShowNfo } from "@/lib/nfo";
 import { useMutation } from "@tanstack/react-query";
-import type { PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
 import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation";
 import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation";
 
@@ -15,7 +16,7 @@ export function useRecognizeTvShowByNfoMutation() {
  
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: MediaMetadata
+            mediaMetadata: MediaMetadataWithFolderFiles
             language: PreferMediaLanguage
         }): Promise<TvShowMediaMetadata | undefined> => {
 
@@ -26,7 +27,7 @@ export function useRecognizeTvShowByNfoMutation() {
                 console.warn(`[useRecognizeTvShowByNfoMutation] mediaMetadata is not a tvshow-folder: ${m.type}`)
             }
 
-            const tvShowNfoFilePathInPosix = m.files?.find(file => file.endsWith('/tvshow.nfo'))
+            const tvShowNfoFilePathInPosix = getMediaFolderFiles(m).find((file: string) => file.endsWith('/tvshow.nfo'))
             if(tvShowNfoFilePathInPosix === undefined) {
                 console.warn(`[useRecognizeTvShowByNfoMutation] tvshow.nfo not found`)
                 return undefined

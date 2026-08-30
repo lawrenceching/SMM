@@ -1,6 +1,9 @@
 import { Path } from "@core/path"
-import type { MediaMetadata } from "@core/types"
 import { getMetadata } from "@/api/metadata"
+import {
+  hydrateMediaMetadataWithFolderFiles,
+  type MediaMetadataWithFolderFiles,
+} from "@/lib/mediaFolderFiles"
 
 /** TanStack Query keys for per-folder persisted metadata. */
 export function mediaMetadataQueryKey(folderPathPosix: string) {
@@ -17,7 +20,9 @@ export function mediaMetadataReadQueryOptions(path: string) {
   const folderPathPosix = normalizeMediaFolderPathForQuery(path)
   return {
     queryKey: mediaMetadataQueryKey(folderPathPosix),
-    queryFn: ({ signal }: { signal?: AbortSignal } = {}): Promise<MediaMetadata> =>
-      getMetadata(folderPathPosix, signal),
+    queryFn: async ({ signal }: { signal?: AbortSignal } = {}): Promise<MediaMetadataWithFolderFiles> => {
+      const metadata = await getMetadata(folderPathPosix, signal)
+      return hydrateMediaMetadataWithFolderFiles(metadata, signal)
+    },
   }
 }

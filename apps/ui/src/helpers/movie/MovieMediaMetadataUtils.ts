@@ -1,7 +1,8 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 import { videoFileExtensions } from "../../lib/utils";
 import { extname } from "../../lib/path";
-export function findMediaFilesForMovieMediaMetadata(mediaMetadata: MediaMetadata): MediaMetadata {
+export function findMediaFilesForMovieMediaMetadata(mediaMetadata: MediaMetadataWithFolderFiles): MediaMetadataWithFolderFiles {
     if(!mediaMetadata.mediaFolderPath) {
 
         console.log('[findMediaFilesForMovieMediaMetadata] Media folder path is required, skipping post processing');
@@ -15,14 +16,15 @@ export function findMediaFilesForMovieMediaMetadata(mediaMetadata: MediaMetadata
         return mediaMetadata
     }
 
-    if(mediaMetadata.files === undefined || mediaMetadata.files === null || mediaMetadata.files.length === 0) {
+    const folderFiles = getMediaFolderFiles(mediaMetadata)
+    if(folderFiles.length === 0) {
         console.log('[findMediaFilesForMovieMediaMetadata] No files found in media folder, skipping post processing', {
             mediaFolderPath: mediaMetadata.mediaFolderPath,
         });
         return mediaMetadata
     }
 
-    const videoFiles = findVideoFiles(mediaMetadata.files);
+    const videoFiles = findVideoFiles(folderFiles);
     
     mediaMetadata.mediaFiles = videoFiles.map(path => ({
         absolutePath: path,

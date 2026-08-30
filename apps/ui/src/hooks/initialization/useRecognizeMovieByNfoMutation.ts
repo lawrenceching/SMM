@@ -2,7 +2,9 @@ import { Path } from "@core/path";
 import { readFile } from "@/api/readFile";
 import { parseMovieNfo } from "@/lib/nfo";
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type { MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation";
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation";
 
@@ -12,7 +14,7 @@ export function useRecognizeMovieByNfoMutation() {
 
     const mutation = useMutation({
         mutationFn: async (_variables: {
-            mediaMetadata: MediaMetadata
+            mediaMetadata: MediaMetadataWithFolderFiles
             language: PreferMediaLanguage
         }): Promise<MovieMediaMetadata | undefined> => {
             const m = _variables.mediaMetadata;
@@ -22,7 +24,7 @@ export function useRecognizeMovieByNfoMutation() {
                 console.warn(`[useRecognizeMovieByNfoMutation] mediaMetadata is not a movie-folder: ${m.type}`)
             }
 
-            const movieNfoFilePathInPosix = m.files?.find(file => file.endsWith('/movie.nfo'))
+            const movieNfoFilePathInPosix = getMediaFolderFiles(m).find((file: string) => file.endsWith('/movie.nfo'))
             if(movieNfoFilePathInPosix === undefined) {
                 console.warn(`[useRecognizeMovieByNfoMutation] movie.nfo not found`)
                 return undefined

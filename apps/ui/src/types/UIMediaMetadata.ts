@@ -2,6 +2,10 @@ import type { MediaMetadata } from "@core/types";
 
 export interface UIMediaMetadataProps {
     /**
+     * Live folder file paths from `listFiles`; UI-only, not persisted in metadata cache.
+     */
+    files?: string[],
+    /**
      * Indicates it's a media metadata created for testing purposes.
      * In some logic, test media metadata handle differently
      */

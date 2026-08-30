@@ -23,7 +23,6 @@ describe("doRenameFolder", () => {
     const metadata: MediaMetadata = {
       mediaFolderPath: Path.posix(fromDir),
       type: "tvshow-folder",
-      files: [Path.posix(join(fromDir, "S01E01.mkv"))],
       mediaFiles: [
         {
           absolutePath: Path.posix(join(fromDir, "S01E01.mkv")),

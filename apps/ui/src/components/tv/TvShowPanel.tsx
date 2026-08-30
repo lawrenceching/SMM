@@ -3,7 +3,9 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { MediaMetadata, TMDBTVShow, TMDBTVShowDetails } from "@core/types"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { TMDBTVShow, TMDBTVShowDetails } from "@core/types"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
 import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
@@ -66,7 +68,7 @@ function TvShowPanel() {
     [folders, selectedFolder],
   )
 
-  const mediaMetadata: MediaMetadata | undefined = queriedMediaMetadata
+  const mediaMetadata: MediaMetadataWithFolderFiles | undefined = queriedMediaMetadata ?? undefined
 
   const uiStatus: UIMediaFolderStatus = useMemo(() => {
     if (isMediaMetadataError) return "error_loading_metadata"
@@ -92,7 +94,7 @@ function TvShowPanel() {
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: mediaMetadata?.files ?? [],
+    files: getMediaFolderFiles(mediaMetadata),
     mode: "episode",
   })
 

@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils"
 import { computeAssociatedFileRenames } from "../episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import { isSmmV3Enabled } from "@/lib/localStorages"
 
 export interface TvShowEpisodeDividerRow {
@@ -904,7 +905,7 @@ export function TvShowEpisodeTable({
                                 to: newAbsolutePath,
                               })
                             } else {
-                              const allMediaFiles = selectedMediaMetadata.files ?? []
+                              const allMediaFiles = getMediaFolderFiles(selectedMediaMetadata)
                               const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, allMediaFiles)
                               await renameFiles({
                                 files: [

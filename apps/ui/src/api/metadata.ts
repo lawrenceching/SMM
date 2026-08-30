@@ -9,12 +9,14 @@ import { apiFetch } from "@/lib/apiFetch"
 export type MetadataPatch = SetMetadataRequestBody["patch"]
 
 export class MetadataHttpError extends Error {
-  constructor(
-    public problem: ProblemDetails,
-    public status: number,
-  ) {
+  problem: ProblemDetails
+  status: number
+
+  constructor(problem: ProblemDetails, status: number) {
     super(problem.detail || problem.title)
     this.name = "MetadataHttpError"
+    this.problem = problem
+    this.status = status
   }
 }
 
