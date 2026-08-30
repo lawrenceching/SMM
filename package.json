@@ -19,7 +19,7 @@
     "build": "pnpm run build:cli && pnpm run build:ui",
     "build:cli": "cd apps/cli && pnpm run build",
     "build:ui": "cd apps/ui && pnpm run build",
-    "build:electron": "pnpm --filter core typecheck && pnpm --filter cli build && pnpm --filter ui build && pnpm --filter electron build",
+    "build:electron": "pnpm run typecheck:types && pnpm run typecheck:utils && pnpm run typecheck:core && pnpm --filter cli build && pnpm --filter ui build && pnpm --filter electron build",
     "build:types": "cd packages/types && pnpm run typecheck",
     "build:utils": "cd packages/utils && pnpm run typecheck",
     "build:docker": "docker buildx build --progress=plain -f apps/docker/Dockerfile -t smm:latest .",
