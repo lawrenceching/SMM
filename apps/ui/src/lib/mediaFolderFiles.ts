@@ -13,6 +13,19 @@ export function getMediaFolderFiles(
   return mm?.files ?? []
 }
 
+/** Keep the UI-only live listing when replacing cache with persisted metadata. */
+export function withLiveFolderFiles(
+  persisted: MediaMetadata,
+  previous: MediaMetadataWithFolderFiles | null | undefined,
+  incoming?: MediaMetadataWithFolderFiles,
+): MediaMetadataWithFolderFiles {
+  const files = previous?.files ?? incoming?.files
+  if (files === undefined) {
+    return persisted
+  }
+  return { ...persisted, files }
+}
+
 export async function listMediaFolderFilePaths(
   folderPath: string,
   signal?: AbortSignal,

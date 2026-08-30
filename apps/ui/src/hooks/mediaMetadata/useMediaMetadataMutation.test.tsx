@@ -16,6 +16,7 @@ import {
 } from "@/lib/mediaMetadataQueryKeys"
 import { useMediaMetadataMutation } from "./useMediaMetadataMutation"
 import { useMediaMetadataQuery } from "./useMediaMetadataQuery"
+import { useUpdateMediaMetadataMutation } from "./useUpdateMediaMetadataMutation"
 
 vi.mock("@/api/metadata", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/api/metadata")>()
@@ -93,6 +94,71 @@ describe("metadata hooks", () => {
       normalizeMediaFolderPathForQuery("C:\\media\\show"),
     )
     expect(queryClient.getQueryData(windowsPathKey)).toEqual(updated)
+  })
+
+  it("preserves live folder files when setMetadata returns persisted metadata", async () => {
+    const withFiles = {
+      ...metadata,
+      files: ["/media/show/S01E01.mkv"],
+    }
+    const persisted = {
+      ...metadata,
+      mediaFiles: [
+        {
+          absolutePath: "/media/show/S01E01.mkv",
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
+    }
+    vi.mocked(setMetadata).mockResolvedValue(persisted)
+    const queryClient = new QueryClient()
+    queryClient.setQueryData(mediaMetadataQueryKey("/media/show"), withFiles)
+    const { result } = renderHook(() => useMediaMetadataMutation(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    await act(() =>
+      result.current.set("/media/show", {
+        mediaFiles: persisted.mediaFiles,
+      }),
+    )
+
+    expect(queryClient.getQueryData(mediaMetadataQueryKey("/media/show"))).toEqual({
+      ...persisted,
+      files: ["/media/show/S01E01.mkv"],
+    })
+  })
+
+  it("preserves files from the metadata being saved when the cache is empty", async () => {
+    const incoming = {
+      ...metadata,
+      files: ["/media/show/S01E01.mkv"],
+      mediaFiles: [
+        {
+          absolutePath: "/media/show/S01E01.mkv",
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
+    }
+    const persisted = {
+      mediaFolderPath: incoming.mediaFolderPath,
+      type: incoming.type,
+      mediaFiles: incoming.mediaFiles,
+    }
+    vi.mocked(setMetadata).mockResolvedValue(persisted)
+    const queryClient = new QueryClient()
+    const { result } = renderHook(() => useUpdateMediaMetadataMutation(), {
+      wrapper: createWrapper(queryClient),
+    })
+
+    await act(() => result.current.persistMediaMetadata("/media/show", incoming))
+
+    expect(queryClient.getQueryData(mediaMetadataQueryKey("/media/show"))).toEqual({
+      ...persisted,
+      files: ["/media/show/S01E01.mkv"],
+    })
   })
 
   it("remove clears the normalized metadata cache", async () => {

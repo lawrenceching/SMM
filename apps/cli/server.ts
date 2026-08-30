@@ -9,7 +9,7 @@ import { setSocketIOManager, acknowledge, broadcast } from './src/utils/socketIO
 import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
 import { handleReadFile } from './src/route/ReadFile';
 import { createAIProvider } from './lib/ai-provider.ts';
-import { getUserConfig, getAppDataDir } from './src/utils/config.ts';
+import { getUserConfig, getAppDataDir, getUserDataDir } from './src/utils/config.ts';
 import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
@@ -255,6 +255,7 @@ export class Server {
     // AI provider factory, user-config reader, and Socket.IO helpers.
     handleChatRequestCoreRoutes(this.app, {
       appDataDir: getAppDataDir(),
+      userDataDir: getUserDataDir(),
       logger: createSocketIOLogger(),
       createAIProvider: (userConfig) => createAIProvider(userConfig),
       getUserConfig: () => getUserConfig(),

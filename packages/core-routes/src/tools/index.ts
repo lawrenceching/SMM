@@ -141,15 +141,15 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
     coreRoutesConfig?.broadcast ?? config.broadcast ?? defaultBroadcast;
 
   // Build a synthetic `CoreRoutesConfig` for tools that need
-  // `appDataDir` / `allowlist` resolution (e.g. `getMediaMetadata`,
-  // `getEpisodes`, `renameFolder`). The chat config exposes
-  // `appDataDir` directly so the host can set it without providing
-  // a full `CoreRoutesConfig`.
+  // `appDataDir` / `userDataDir` resolution (e.g. `getMediaMetadata`,
+  // `getEpisodes`, `renameFolder`). On Linux these dirs differ
+  // (`smm.json` lives in userDataDir). Falls back to `appDataDir`
+  // when the host omits `userDataDir`.
   const syntheticConfig: CoreRoutesConfig = coreRoutesConfig ?? {
     allowlist: [],
     hello: {
       version: "0.0.0",
-      userDataDir: config.appDataDir,
+      userDataDir: config.userDataDir ?? config.appDataDir,
       appDataDir: config.appDataDir,
       logDir: "",
       tmpDir: "",

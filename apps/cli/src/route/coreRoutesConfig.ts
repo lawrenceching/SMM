@@ -1,6 +1,6 @@
 import type { ChatConfig, CoreRoutesConfig, CoreRoutesLogger } from '@smm/core-routes'
 import { buildAllowlist } from '@/utils/buildAllowlist'
-import { getAppDataDir } from '@/utils/config'
+import { getAppDataDir, getUserDataDir } from '@/utils/config'
 import { buildHelloOptions } from '../../tasks/HelloTask'
 import { createAIProvider } from '../../lib/ai-provider'
 import { getUserConfig } from '@/utils/config'
@@ -28,9 +28,11 @@ export async function buildCoreRoutesConfig(
 export function buildChatConfig(
   logger: CoreRoutesLogger,
   appDataDir: string,
+  userDataDir: string = getUserDataDir(),
 ): ChatConfig {
   return {
     appDataDir,
+    userDataDir,
     logger,
     createAIProvider: (userConfig) => createAIProvider(userConfig),
     getUserConfig: () => getUserConfig(),

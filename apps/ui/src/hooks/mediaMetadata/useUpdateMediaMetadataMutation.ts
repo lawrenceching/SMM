@@ -8,7 +8,7 @@ import {
   setMetadata,
   type MetadataPatch,
 } from "@/api/metadata"
-import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery, setPersistedMetadataQueryData } from "@/lib/mediaMetadataQueryKeys"
 
 function toMetadataPatch(metadata: MediaMetadata): MetadataPatch {
   return {
@@ -51,10 +51,12 @@ export function useUpdateMediaMetadataMutation() {
       }
       return { folderPathPosix: folder, metadata: persisted }
     },
-    onSuccess: ({ folderPathPosix, metadata }) => {
-      queryClient.setQueryData<MediaMetadata>(
-        mediaMetadataQueryKey(folderPathPosix),
+    onSuccess: ({ folderPathPosix, metadata }, vars) => {
+      setPersistedMetadataQueryData(
+        queryClient,
+        folderPathPosix,
         metadata,
+        vars.metadata,
       )
     },
   })

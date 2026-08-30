@@ -9,6 +9,7 @@ import {
 import {
   mediaMetadataQueryKey,
   normalizeMediaFolderPathForQuery,
+  setPersistedMetadataQueryData,
 } from "@/lib/mediaMetadataQueryKeys"
 
 function requireMetadataPath(metadata: MediaMetadata): string {
@@ -24,10 +25,12 @@ export function useMediaMetadataMutation() {
 
   const createMutation = useMutation({
     mutationFn: createMetadata,
-    onSuccess: (metadata) => {
-      queryClient.setQueryData(
-        mediaMetadataQueryKey(requireMetadataPath(metadata)),
+    onSuccess: (metadata, variables) => {
+      setPersistedMetadataQueryData(
+        queryClient,
+        requireMetadataPath(metadata),
         metadata,
+        variables,
       )
     },
   })
@@ -36,8 +39,9 @@ export function useMediaMetadataMutation() {
     mutationFn: ({ path, patch }: { path: string; patch: MetadataPatch }) =>
       setMetadata(normalizeMediaFolderPathForQuery(path), patch),
     onSuccess: (metadata, { path }) => {
-      queryClient.setQueryData(
-        mediaMetadataQueryKey(normalizeMediaFolderPathForQuery(path)),
+      setPersistedMetadataQueryData(
+        queryClient,
+        normalizeMediaFolderPathForQuery(path),
         metadata,
       )
     },

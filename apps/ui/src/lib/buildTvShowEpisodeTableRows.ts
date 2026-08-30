@@ -120,31 +120,31 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadataWithFo
       let subtitleFile: { path: string; newPath?: string } | undefined
       let nfoFile: { path: string; newPath?: string } | undefined
 
-      const folderFiles = getMediaFolderFiles(_in_mm)
-      if (mediaFile && _in_mm.mediaFolderPath && folderFiles.length > 0) {
-        // Get video file path
+      if (mediaFile) {
         videoFile = {
           path: mediaFile.absolutePath,
           newPath: undefined
         }
-        
-        // Find associated files
-        const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
-        
-        for (const file of associatedFiles) {
-          const filePath = join(_in_mm.mediaFolderPath, file.path)
-          const fileType = mapTagToFileType(file.tag)
-          
-          switch (fileType) {
-            case 'poster':
-              thumbnailFile = { path: filePath }
-              break
-            case 'subtitle':
-              subtitleFile = { path: filePath }
-              break
-            case 'nfo':
-              nfoFile = { path: filePath }
-              break
+
+        const folderFiles = getMediaFolderFiles(_in_mm)
+        if (_in_mm.mediaFolderPath && folderFiles.length > 0) {
+          const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
+
+          for (const file of associatedFiles) {
+            const filePath = join(_in_mm.mediaFolderPath, file.path)
+            const fileType = mapTagToFileType(file.tag)
+
+            switch (fileType) {
+              case 'poster':
+                thumbnailFile = { path: filePath }
+                break
+              case 'subtitle':
+                subtitleFile = { path: filePath }
+                break
+              case 'nfo':
+                nfoFile = { path: filePath }
+                break
+            }
           }
         }
       }
@@ -201,31 +201,31 @@ export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadataWithFo
       let subtitleFile: { path: string; newPath?: string } | undefined
       let nfoFile: { path: string; newPath?: string } | undefined
 
-      const folderFiles = getMediaFolderFiles(_in_mm)
-      if (mediaFile && _in_mm.mediaFolderPath && folderFiles.length > 0) {
-        // Get video file path
+      if (mediaFile) {
         videoFile = {
           path: mediaFile.absolutePath,
           newPath: undefined
         }
-        
-        // Find associated files
-        const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
-        
-        for (const file of associatedFiles) {
-          const filePath = join(_in_mm.mediaFolderPath, file.path)
-          const fileType = mapTagToFileType(file.tag)
-          
-          switch (fileType) {
-            case 'poster':
-              thumbnailFile = { path: filePath }
-              break
-            case 'subtitle':
-              subtitleFile = { path: filePath }
-              break
-            case 'nfo':
-              nfoFile = { path: filePath }
-              break
+
+        const folderFiles = getMediaFolderFiles(_in_mm)
+        if (_in_mm.mediaFolderPath && folderFiles.length > 0) {
+          const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
+
+          for (const file of associatedFiles) {
+            const filePath = join(_in_mm.mediaFolderPath, file.path)
+            const fileType = mapTagToFileType(file.tag)
+
+            switch (fileType) {
+              case 'poster':
+                thumbnailFile = { path: filePath }
+                break
+              case 'subtitle':
+                subtitleFile = { path: filePath }
+                break
+              case 'nfo':
+                nfoFile = { path: filePath }
+                break
+            }
           }
         }
       }
