@@ -23,7 +23,7 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)

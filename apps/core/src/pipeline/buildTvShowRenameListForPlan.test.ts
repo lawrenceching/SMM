@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { buildTvShowRenameListForPlan } from "./buildTvShowRenameListForPlan";
 
 describe("buildTvShowRenameListForPlan", () => {

@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@smm/core/types"
+import type { MediaMetadata } from "@smm/types"
 import { MetadataValidationError } from "./metadataErrors"
 
 export type MetadataPatch = Pick<MediaMetadata, "type" | "mediaFiles" | "tvShow" | "movie">

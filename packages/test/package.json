@@ -16,7 +16,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "@smm/core": "workspace:*",
+    "@smm/types": "workspace:*",
     "dotenv": "^17.3.1"
   }
 }

@@ -1,5 +1,5 @@
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
-import { Path } from "@core/path";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import { Path } from "@smm/utils/path";
 import type { ApplyPlanDeps } from "./applyPlan";
 import { buildTvShowRenameListForPlan } from "./buildTvShowRenameListForPlan";
 import { mediaFilePathEqual } from "./mediaFilePathEqual";

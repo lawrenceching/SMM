@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { FolderType } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { FolderType } from "@smm/types";
 import type { ImportLibraryJobTask } from "../jobs/types";
 import { createBlankMediaMetadata } from "./importFolderPipeline";
 import type { PersistedMediaMetadata } from "./mediaMetadataValidation";

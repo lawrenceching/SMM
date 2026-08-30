@@ -1,6 +1,6 @@
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
-import { Path } from "@core/path";
-import { getFullExtensionForAssociatedFile } from "@core/utils";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import { Path } from "@smm/utils/path";
+import { getFullExtensionForAssociatedFile } from "@smm/types/mediaFileExtensions";
 import { findAssociatedFiles } from "./findAssociatedFiles";
 import { extname, joinPosix } from "./paths";
 

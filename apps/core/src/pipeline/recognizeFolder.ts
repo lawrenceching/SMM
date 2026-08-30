@@ -1,11 +1,11 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type {
   MediaMetadata,
   MovieMediaMetadata,
   PreferMediaLanguage,
   PrimaryDatabase,
   TvShowMediaMetadata,
-} from "@smm/core";
+} from "@smm/types";
 import { mapToTvdbLangCode } from "../clients/TvdbClient";
 import type { FsPort } from "../ports/FsPort";
 import {

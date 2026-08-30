@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath, userConfigPath } from "./paths";
 import { renameEpisodeFilePipeline } from "./renameEpisodeFile";

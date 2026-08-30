@@ -1,9 +1,9 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import {
   extensions,
   imageFileExtensions,
   subtitleFileExtensions,
-} from "@core/utils";
+} from "@smm/types/mediaFileExtensions";
 import { basename, extname } from "./paths";
 
 export function findAssociatedFiles(

@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { MediaMetadata } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata } from "@smm/types";
 import { TmdbClient } from "../../clients/TmdbClient";
 import { TvdbClient } from "../../clients/TvdbClient";
 import type { DiscoverPort } from "../../ports/DiscoverPort";
@@ -8,7 +8,7 @@ import type { NetworkPort } from "../../ports/NetworkPort";
 import type { HostPerformanceStore } from "../../clients/hostPerformance";
 import { metadataCachePath } from "../paths";
 import type { UserConfigHelper } from "../userConfigHelper";
-import type { UserConfig as UserConfigData } from "@smm/core";
+import type { UserConfig as UserConfigData } from "@smm/types";
 import { checkScrapeCompletion } from "./checkScrapeCompletion";
 import { scrapeFanartTmdb } from "./scrapeFanartTmdb";
 import { scrapeNfoTmdb } from "./scrapeNfoTmdb";

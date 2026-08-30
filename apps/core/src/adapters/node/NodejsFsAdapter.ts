@@ -1,6 +1,6 @@
 import { promises as fsp } from "node:fs";
 import { dirname, join } from "node:path";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type { FsPort } from "../../ports/FsPort";
 
 /**

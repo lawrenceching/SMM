@@ -1,12 +1,24 @@
 {
-  "name": "core-app",
+  "name": "@smm/core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./createRenameEpisodePlan": "./src/pipeline/createRenameEpisodePlan.ts",
-    "./FsPort": "./src/ports/FsPort.ts"
+    "./FsPort": "./src/ports/FsPort.ts",
+    "./ai-tool/*": "./src/ai-tool/*",
+    "./validations/rename/*": "./src/validations/rename/*",
+    "./whitelistedCmd": "./src/whitelistedCmd/index.ts",
+    "./whitelistedCmd/*": "./src/whitelistedCmd/*",
+    "./plan/*": "./src/plan/*",
+    "./getMediaFolder": "./src/getMediaFolder.ts",
+    "./configMigration": "./src/configMigration.ts",
+    "./download-video-validators": "./src/download-video-validators.ts",
+    "./download-video-cookie-platform": "./src/download-video-cookie-platform.ts",
+    "./mediaMetadata": "./src/mediaMetadata.ts",
+    "./userConfig": "./src/userConfig.ts",
+    "./*": "./src/*"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -14,7 +26,8 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
-    "@smm/core": "workspace:*",
+    "@smm/types": "workspace:*",
+    "@smm/utils": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "es-toolkit": "^1.42.0"
   },

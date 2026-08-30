@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { MediaFileMetadata } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { MediaFileMetadata } from "@smm/types";
 
 /** Same semantics as apps/ui TvShowPanelUtils.updateMediaFileMetadatas. */
 export function updateMediaFileMetadatas(

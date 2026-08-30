@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../ports/FsPort";
-import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { planFilePath } from "./paths";
 import { deletePlan, listPlans, readPlan, rejectPlan, writePlan } from "./plans";
 

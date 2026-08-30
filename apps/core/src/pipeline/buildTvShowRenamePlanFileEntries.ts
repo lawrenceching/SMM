@@ -1,5 +1,5 @@
-import type { MediaMetadata } from "@smm/core";
-import { Path } from "@core/path";
+import type { MediaMetadata } from "@smm/types";
+import { Path } from "@smm/utils/path";
 import { generateNewFileName, type RenameRuleName } from "./renameRules";
 import { joinPosix } from "./paths";
 import { mediaFilePathEqual } from "./mediaFilePathEqual";

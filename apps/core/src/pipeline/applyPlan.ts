@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import { applyRenameFilesPlanPipeline } from "./applyRenameFilesPlan";
 import { deletePlan, type Plan } from "./plans";

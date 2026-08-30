@@ -1,8 +1,8 @@
-import { Path } from "@core/path";
-import { updateMediaMetadataAfterRename } from "@core/mediaMetadata";
-import type { MediaMetadata } from "@smm/core";
-import { validateRenameOperations } from "@core/validations/rename/validateRenameOperations";
-import type { RenameFileExistenceProbe } from "@core/validations/rename/validateRenameFileExistence";
+import { Path } from "@smm/utils/path";
+import { updateMediaMetadataAfterRename } from "../mediaMetadata";
+import type { MediaMetadata } from "@smm/types";
+import { validateRenameOperations } from "../validations/rename/validateRenameOperations";
+import type { RenameFileExistenceProbe } from "../validations/rename/validateRenameFileExistence";
 import type { FsPort } from "../ports/FsPort";
 import { expandAssociatedFileRenames } from "./expandAssociatedFileRenames";
 import { mediaFilePathEqual } from "./mediaFilePathEqual";

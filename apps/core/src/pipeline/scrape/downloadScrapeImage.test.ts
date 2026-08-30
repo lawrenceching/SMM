@@ -1,4 +1,4 @@
-import type { MediaMetadata, UserConfig } from "@smm/core";
+import type { MediaMetadata, UserConfig } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import type { DiscoverConfig, DiscoverPort } from "../../ports/DiscoverPort";
 import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";

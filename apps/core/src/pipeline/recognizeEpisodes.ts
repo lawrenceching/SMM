@@ -1,5 +1,5 @@
-import { videoFileExtensions } from "@core/utils";
-import type { MediaMetadata } from "@smm/core";
+import { videoFileExtensions } from "@smm/types/mediaFileExtensions";
+import type { MediaMetadata } from "@smm/types";
 import { basename, extname } from "./paths";
 
 export interface RecognizedEpisode {

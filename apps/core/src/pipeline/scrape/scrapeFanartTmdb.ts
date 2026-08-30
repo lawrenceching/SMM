@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import type { TVDBv4Artwork, TVDBv4ArtworkTypeRecord } from "@smm/tvdb4/types";
 import { downloadScrapeImage } from "./downloadScrapeImage";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";

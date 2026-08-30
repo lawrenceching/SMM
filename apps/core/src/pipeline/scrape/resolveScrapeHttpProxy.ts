@@ -1,5 +1,5 @@
 import { isEmpty } from "es-toolkit/compat";
-import type { MediaMetadata, UserConfig } from "@smm/core";
+import type { MediaMetadata, UserConfig } from "@smm/types";
 
 /**
  * Resolve the outbound HTTP proxy for a media database. Mirrors the rule in

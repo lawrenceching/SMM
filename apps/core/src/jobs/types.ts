@@ -1,11 +1,11 @@
-import type { FolderType } from "@smm/core";
+import type { FolderType } from "@smm/types";
 import type {
   ImportLibraryJob as ImportLibraryJobPayload,
   ImportLibraryJobTask,
-} from "@smm/core/job/ImportLibraryJob";
+} from "@smm/types/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
 
-export type { ImportLibraryJobTask } from "@smm/core/job/ImportLibraryJob";
+export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
 export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "aborted";
 export type JobStage = "config" | "metadata" | "listFiles" | "recognize" | "episodes" | "persist" | null;

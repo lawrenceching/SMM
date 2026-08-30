@@ -1,4 +1,4 @@
-import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import { buildTvShowEpisodeNfo, buildTvShowNfo } from "./buildTvShowNfoTmdb";
 

@@ -1,4 +1,4 @@
-import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import { downloadScrapeImage } from "./downloadScrapeImage";
 import { extname } from "../paths";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";

@@ -1,5 +1,5 @@
 {
-  "name": "@smm/core",
+  "name": "@smm/core-legacy",
   "version": "1.4.11",
   "type": "module",
   "main": "./path.ts",

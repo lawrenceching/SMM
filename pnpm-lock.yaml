@@ -57,6 +57,9 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.25.3
         version: 1.27.0(zod@4.3.6)
+      '@smm/core':
+        specifier: workspace:*
+        version: link:../core
       '@smm/core-routes':
         specifier: workspace:*
         version: link:../../packages/core-routes
@@ -75,9 +78,6 @@ importers:
       commander:
         specifier: ^15.0.0
         version: 15.0.0
-      core-app:
-        specifier: workspace:*
-        version: link:../core
       dotenv:
         specifier: ^17.2.3
         version: 17.3.1
@@ -163,12 +163,15 @@ importers:
 
   apps/core:
     dependencies:
-      '@smm/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
+      '@smm/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@smm/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       es-toolkit:
         specifier: ^1.42.0
         version: 1.44.0
@@ -196,7 +199,7 @@ importers:
     dependencies:
       '@smm/core':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../core
       '@smm/test':
         specifier: workspace:*
         version: link:../../packages/test
@@ -442,7 +445,7 @@ importers:
         version: 3.22.0
       '@smm/core':
         specifier: workspace:*
-        version: link:../../packages/core
+        version: link:../core
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
@@ -696,13 +699,10 @@ importers:
         version: 1.27.0(zod@4.3.6)
       '@smm/core':
         specifier: workspace:*
-        version: link:../core
+        version: link:../../apps/core
       ai:
         specifier: ^6.0.36
         version: 6.0.98(zod@4.3.6)
-      core-app:
-        specifier: workspace:*
-        version: link:../../apps/core
       http-proxy-agent:
         specifier: ^7.0.2
         version: 7.0.2
@@ -751,9 +751,9 @@ importers:
 
   packages/test:
     dependencies:
-      '@smm/core':
+      '@smm/types':
         specifier: workspace:*
-        version: link:../core
+        version: link:../types
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1

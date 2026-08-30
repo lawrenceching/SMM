@@ -1,6 +1,6 @@
-import { Path } from "@core/path";
-import { renameFolderInMediaMetadata } from "@core/mediaMetadata";
-import { renameFolderInUserConfig } from "@core/userConfig";
+import { Path } from "@smm/utils/path";
+import { renameFolderInMediaMetadata } from "../mediaMetadata";
+import { renameFolderInUserConfig } from "../userConfig";
 import type { MediaMetadataHelper } from "./mediaMetadataHelper";
 import type { FsPort } from "../ports/FsPort";
 import type { UserConfigHelper } from "./userConfigHelper";

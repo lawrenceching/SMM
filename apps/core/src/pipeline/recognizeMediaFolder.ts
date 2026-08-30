@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type {
   MediaMetadata,
   MovieMediaMetadata,
@@ -8,7 +8,7 @@ import type {
   TMDBTVShow,
   TmdbSearchResponseBody,
   TvShowMediaMetadata,
-} from "@smm/core";
+} from "@smm/types";
 import type { TVDBv4SearchResult } from "@smm/tvdb4";
 import { movieMediaMetadataFromTmdbSearch } from "../clients/TmdbClient";
 import { mapToTvdbLangCode } from "../clients/TvdbClient";

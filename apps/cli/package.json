@@ -25,7 +25,7 @@
     "@types/shelljs": "^0.10.0",
     "ai": "^6.0.36",
     "commander": "^15.0.0",
-    "core-app": "workspace:*",
+    "@smm/core": "workspace:*",
     "dotenv": "^17.2.3",
     "es-toolkit": "^1.43.0",
     "hono": "^4.10.8",

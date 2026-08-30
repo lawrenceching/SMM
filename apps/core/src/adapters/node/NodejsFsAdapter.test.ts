@@ -2,7 +2,7 @@ import { promises as fsp } from "node:fs";
 import os from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { NodejsFsAdapter } from "./NodejsFsAdapter";
 import { joinPosix } from "../../pipeline/paths";
 

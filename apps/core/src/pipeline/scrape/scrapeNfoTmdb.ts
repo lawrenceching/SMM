@@ -1,4 +1,4 @@
-import type { PreferMediaLanguage, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import type { PreferMediaLanguage, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import { mapToTvdbLangCode } from "../../clients/TvdbClient";
 import { buildMovieNfoTmdb } from "./buildMovieNfoTmdb";
 import {

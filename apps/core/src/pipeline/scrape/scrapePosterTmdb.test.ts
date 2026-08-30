@@ -1,4 +1,4 @@
-import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, UserConfig } from "@smm/core";
+import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, UserConfig } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { DiscoverPort } from "../../ports/DiscoverPort";

@@ -12,8 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@smm/core": ["../core/types.ts"],
-      "@smm/core/*": ["../core/*"]
+      "@smm/types": ["../types/types.ts"],
+      "@smm/types/*": ["../types/*"]
     }
   },
   "include": ["src"]

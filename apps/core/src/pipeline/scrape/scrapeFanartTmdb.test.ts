@@ -1,4 +1,4 @@
-import type { MediaMetadata, TmdbSeriesDetails } from "@smm/core";
+import type { MediaMetadata, TmdbSeriesDetails } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { FsPort } from "../../ports/FsPort";

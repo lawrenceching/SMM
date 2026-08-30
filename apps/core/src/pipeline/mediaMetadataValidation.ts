@@ -1,4 +1,4 @@
-import type { MediaFileMetadata, MediaMetadata } from "@smm/core";
+import type { MediaFileMetadata, MediaMetadata } from "@smm/types";
 
 const MEDIA_FOLDER_TYPES = ["music-folder", "tvshow-folder", "movie-folder"] as const;
 

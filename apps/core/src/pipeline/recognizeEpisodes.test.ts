@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import {
   excludeFiles,
   isVideoFile,

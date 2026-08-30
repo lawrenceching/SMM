@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { FolderType, MediaMetadata } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { FolderType, MediaMetadata } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import type { NetworkPort } from "../ports/NetworkPort";
 import type { LoggerPort } from "../ports/LoggerPort";

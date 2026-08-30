@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { Path } from "@core/path";
-import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import type { FsPort } from "./ports/FsPort";
 import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";

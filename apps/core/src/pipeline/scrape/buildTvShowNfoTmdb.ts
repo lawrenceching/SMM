@@ -1,4 +1,4 @@
-import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import type { EpisodeNfo, TvShowNFO } from "./nfoTypes";
 import { getTmdbImageUrl } from "./tmdbImageUrl";
 

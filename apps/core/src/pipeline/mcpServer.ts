@@ -1,4 +1,4 @@
-import type { UserConfig as UserConfigData } from "@smm/core";
+import type { UserConfig as UserConfigData } from "@smm/types";
 import type { McpServerPort, McpServerState } from "../ports/McpServerPort";
 import type { UserConfigHelper } from "./userConfigHelper";
 

@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../../ports/FsPort";
 import { checkScrapeCompletion } from "./checkScrapeCompletion";

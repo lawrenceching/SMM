@@ -23,11 +23,13 @@
 
     "baseUrl": ".",
     "paths": {
-      "@core/*": ["../../packages/core/*"],
-      "@smm/core": ["../../packages/core/types.ts"],
-      "@smm/core/*": ["../../packages/core/*"],
+      "@smm/types": ["../../packages/types/types.ts"],
+      "@smm/types/*": ["../../packages/types/*.ts"],
+      "@smm/utils": ["../../packages/utils/src/index.ts"],
+      "@smm/utils/*": ["../../packages/utils/src/*.ts"],
       "@smm/tvdb4": ["../../packages/tvdb4/src/index.ts"],
-      "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"]
+      "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"],
+      "@smm/test": ["../../packages/test/src/index.ts"]
     }
   }
 }

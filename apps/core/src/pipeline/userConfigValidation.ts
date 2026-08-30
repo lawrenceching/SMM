@@ -1,4 +1,4 @@
-import { isPreferMediaLanguage } from "@core/locale";
+import { isPreferMediaLanguage } from "@smm/utils/locale";
 import type {
   LanguageCode,
   OpenAICompatibleConfig,
@@ -7,7 +7,7 @@ import type {
   TMDBInstance,
   TVDBConfig,
   UserConfig,
-} from "@smm/core";
+} from "@smm/types";
 import { DEFAULT_USER_CONFIG, USER_CONFIG_KEYS } from "./userConfigDefaults";
 
 const LANGUAGE_CODES = ["zh-CN", "zh-HK", "zh-TW", "en"] as const satisfies readonly LanguageCode[];

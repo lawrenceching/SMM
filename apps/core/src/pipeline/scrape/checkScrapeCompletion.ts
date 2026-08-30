@@ -1,6 +1,6 @@
-import { Path } from "@core/path";
-import { imageFileExtensions } from "@core/utils";
-import type { MediaMetadata } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import { imageFileExtensions } from "@smm/types/mediaFileExtensions";
+import type { MediaMetadata } from "@smm/types";
 import type { FsPort } from "../../ports/FsPort";
 import { basename, dirname, extname } from "../paths";
 import type { ScrapeTaskId } from "./types";

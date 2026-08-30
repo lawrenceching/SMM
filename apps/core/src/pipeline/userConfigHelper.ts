@@ -1,5 +1,5 @@
 import { Mutex } from "es-toolkit"
-import type { UserConfig as UserConfigData } from "@smm/core"
+import type { UserConfig as UserConfigData } from "@smm/types"
 import type { FsPort } from "../ports/FsPort"
 import { userConfigPath } from "./paths"
 import { DEFAULT_USER_CONFIG, isUserConfigKey } from "./userConfigDefaults"

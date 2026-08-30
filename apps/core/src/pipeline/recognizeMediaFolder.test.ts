@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Path } from "@core/path";
-import type { MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@smm/core";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 import {
   createFolderInTestFolder,
   folder1,

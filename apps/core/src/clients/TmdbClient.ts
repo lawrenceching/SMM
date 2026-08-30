@@ -9,7 +9,7 @@ import type {
   TvShowEpisodeMetadata,
   TvShowMediaMetadata,
   TvShowSeasonMetadata,
-} from "@smm/core";
+} from "@smm/types";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
 import type { HostPerformanceStore } from "./hostPerformance";

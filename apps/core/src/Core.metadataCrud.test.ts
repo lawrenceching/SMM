@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import { Core } from "./Core";
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";

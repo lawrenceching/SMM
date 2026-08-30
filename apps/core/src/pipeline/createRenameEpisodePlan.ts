@@ -1,9 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { assertEpisodeVideoFile, assertMediaFolderHasMetadata } from "@smm/core/plan/renamePlan";
-import { validateRenameOperations } from "@smm/core/validations/rename/validateRenameOperations";
-import type { RenameFileExistenceProbe } from "@smm/core/validations/rename/validateRenameFileExistence";
-import type { MediaMetadata } from "@smm/core";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import { assertEpisodeVideoFile, assertMediaFolderHasMetadata } from "../plan/renamePlan";
+import { validateRenameOperations } from "../validations/rename/validateRenameOperations";
+import type { RenameFileExistenceProbe } from "../validations/rename/validateRenameFileExistence";
+import type { MediaMetadata } from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { FsPort } from "../ports/FsPort";
 import { writePlan } from "./plans";
 

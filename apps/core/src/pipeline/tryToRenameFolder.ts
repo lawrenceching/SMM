@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { Path } from "@core/path";
-import type { MediaMetadata } from "@smm/core";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata } from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { FsPort } from "../ports/FsPort";
 import { buildTvShowRenamePlanFileEntries } from "./buildTvShowRenamePlanFileEntries";
 import { createRenameEpisodePlanPipeline } from "./createRenameEpisodePlan";

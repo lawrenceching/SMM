@@ -1,4 +1,4 @@
-import type { UserConfig } from "@smm/core";
+import type { UserConfig } from "@smm/types";
 
 export const DEFAULT_USER_CONFIG: UserConfig = {
   folders: [],

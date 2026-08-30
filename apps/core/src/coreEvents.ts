@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import {
   MEDIA_METADATA_UPDATED_EVENT,
   type MediaMetadataUpdatedEventData,
-} from "@core/event-types";
+} from "@smm/types/event-types";
 
 export { MEDIA_METADATA_UPDATED_EVENT };
 

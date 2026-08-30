@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
-import { Path } from "@core/path";
-import type { MediaMetadata } from "@smm/core";
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/core/types/RecognizeMediaFilePlan";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata } from "@smm/types";
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath } from "./paths";
 import { writePlan } from "./plans";

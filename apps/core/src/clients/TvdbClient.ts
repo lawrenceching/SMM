@@ -6,7 +6,7 @@ import type {
   TVDBv4SeriesExtendedResponse,
   TVDBv4SeriesSeasonsExtendedResponse,
 } from "@smm/tvdb4/types";
-import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/core";
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 import type { DiscoverPort } from "../ports/DiscoverPort";
 import type { NetworkPort } from "../ports/NetworkPort";
 import type { HostPerformanceStore } from "./hostPerformance";

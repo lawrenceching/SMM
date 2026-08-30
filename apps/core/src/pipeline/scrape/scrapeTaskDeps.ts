@@ -1,4 +1,4 @@
-import type { MediaMetadata, UserConfig } from "@smm/core";
+import type { MediaMetadata, UserConfig } from "@smm/types";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { TvdbClient } from "../../clients/TvdbClient";
 import type { HostPerformanceStore } from "../../clients/hostPerformance";

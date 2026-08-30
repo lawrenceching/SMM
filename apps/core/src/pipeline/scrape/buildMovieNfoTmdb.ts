@@ -1,4 +1,4 @@
-import type { TmdbMovieDetails } from "@smm/core";
+import type { TmdbMovieDetails } from "@smm/types";
 import { getTmdbImageUrl } from "./tmdbImageUrl";
 import type { MovieNFO } from "./nfoTypes";
 

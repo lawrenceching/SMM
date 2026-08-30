@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MediaMetadata } from "@smm/core";
+import type { MediaMetadata } from "@smm/types";
 import { buildTvShowRenamePlanFileEntries } from "./buildTvShowRenamePlanFileEntries";
 
 function mm(partial: Partial<MediaMetadata> & Pick<MediaMetadata, "mediaFolderPath">): MediaMetadata {

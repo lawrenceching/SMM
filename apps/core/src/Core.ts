@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type {
   AppConfig,
   FolderType,
@@ -10,17 +10,17 @@ import type {
   TmdbSeriesDetails,
   TvShowMediaMetadata,
   UserConfig as UserConfigData,
-} from "@smm/core";
+} from "@smm/types";
 import {
   detectOsLocale,
   parseTmdbSearchLanguage,
   resolveMediaLanguage,
   resolveTvdbSearchLanguage,
-} from "@core/locale";
-import { parseTvdbSearchLanguage } from "@core/tvdbSupportedLanguages";
+} from "@smm/utils/locale";
+import { parseTvdbSearchLanguage } from "@smm/types/tvdbSupportedLanguages";
 import type { TVDBv4LanguageRecord, TVDBv4SearchResult } from "@smm/tvdb4";
-import type { RecognizeMediaFilePlan } from "@smm/core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { FsPort } from "./ports/FsPort";
 import type { NetworkPort } from "./ports/NetworkPort";
 import type { LoggerPort } from "./ports/LoggerPort";
