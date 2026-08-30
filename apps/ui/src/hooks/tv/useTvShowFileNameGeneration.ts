@@ -1,6 +1,6 @@
 import { useCallback } from "react"
-import type { MediaMetadata } from "@core/types"
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import type { MediaMetadata } from "@smm/types"
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan"
 import { buildTvShowRenamePlanFileEntries } from "@/lib/buildTvShowRenamePlanFileEntries"
 
 interface UseTvShowFileNameGenerationParams {

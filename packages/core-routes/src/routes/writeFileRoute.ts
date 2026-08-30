@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { WriteFileRequestBody } from "@smm/core/types";
+import type { WriteFileRequestBody } from "@smm/types";
 import { doWriteFile, isError, ExistedFileError } from "../writeFile.ts";
 import { readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

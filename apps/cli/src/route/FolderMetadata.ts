@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { MediaMetadata } from '@smm/core'
+import type { MediaMetadata } from '@smm/types'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 import { isFolderImported } from '../cli/folderDisplay'

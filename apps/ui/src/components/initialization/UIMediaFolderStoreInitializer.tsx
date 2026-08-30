@@ -5,7 +5,7 @@ import { useConfig } from "@/hooks/userConfig"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { reactivateHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
 import { useEffect, useRef } from "react"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import localStorages from "@/lib/localStorages"
 
 interface UIMediaFolderStoreInitializerProps {

@@ -10,7 +10,7 @@ import { folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
 import SearchboxCO from 'test/componentobjects/Searchbox.co'
 import env from 'test/lib/env'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 

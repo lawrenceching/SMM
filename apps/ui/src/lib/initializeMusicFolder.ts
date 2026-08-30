@@ -1,5 +1,5 @@
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { createInitialMediaMetadata } from "./mediaMetadataUtils";
 import { isNil } from "es-toolkit";
 

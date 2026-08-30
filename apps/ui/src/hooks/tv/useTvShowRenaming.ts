@@ -1,10 +1,10 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
-import type { MediaMetadata } from "@core/types"
-import { Path } from "@core/path"
+import type { MediaMetadata } from "@smm/types"
+import { Path } from "@smm/utils/path"
 import { basename, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan"
 
 interface UseTvShowRenamingParams {
   mediaMetadata: MediaMetadata | undefined

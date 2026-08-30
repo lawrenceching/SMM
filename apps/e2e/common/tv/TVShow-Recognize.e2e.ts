@@ -1,5 +1,5 @@
 import { expect, browser } from '@wdio/globals'
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 import {
     setup,
     cleanup,

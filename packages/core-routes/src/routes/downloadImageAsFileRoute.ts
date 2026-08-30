@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { DownloadImageRequestBody } from "@smm/core/types";
+import type { DownloadImageRequestBody } from "@smm/types";
 import { doDownloadImageAsFile } from "../downloadImageAsFile.ts";
 import { createProxiedFetch } from "../proxiedFetch.ts";
 import { readJsonBody, sendJson } from "../http.ts";

@@ -2,7 +2,7 @@ import type {
   MediaFileMetadata,
   MovieMediaMetadata,
   TvShowMediaMetadata,
-} from '@core/types'
+} from '@smm/types'
 import { z } from 'zod'
 
 export const metadataFolderTypeSchema = z.enum([

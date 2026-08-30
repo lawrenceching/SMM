@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import {
   createBaseGetMediaMetadataData,
   fillMediaMetadataResponseData,
@@ -15,8 +15,8 @@ import {
   getMediaMetadataInputSchema,
   getMediaMetadataToolOutputSchema,
   type GetMediaMetadataToolOutput,
-} from "@smm/core/types/ai-tools/getMediaMetadata";
-import type { UserConfig } from "@smm/core/types";
+} from "@smm/types/ai-tools/getMediaMetadata";
+import type { UserConfig } from "@smm/types";
 import { readMediaMetadataCache } from "../mediaMetadataCache.ts";
 
 /**

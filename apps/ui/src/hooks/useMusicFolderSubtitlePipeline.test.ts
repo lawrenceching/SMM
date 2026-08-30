@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import {
   getRowSubtitlePipelineState,
   buildRowSubtitleUi,

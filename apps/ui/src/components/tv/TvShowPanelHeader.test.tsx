@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { TvShowPanelHeader } from './TvShowPanelHeader'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 const mockMediaDatabaseSearchbox = vi.fn((props: any) => (

@@ -1,9 +1,9 @@
 import { rename } from "node:fs/promises";
 import { z } from "zod/v3";
 import { renameFolderInMediaMetadata } from "@smm/core/mediaMetadata";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { renameFolderInUserConfig } from "@smm/core/userConfig";
-import type { FolderRenameRequestBody, FolderRenameResponseBody } from "@smm/core/types";
+import type { FolderRenameRequestBody, FolderRenameResponseBody } from "@smm/types";
 import {
   deleteMediaMetadataCache,
   readMediaMetadataCache,

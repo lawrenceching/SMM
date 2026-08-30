@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n"
-import type { PrimaryDatabase } from "@core/types"
+import type { PrimaryDatabase } from "@smm/types"
 import type { MediaDatabasesSettingsProps } from "./useMediaDatabaseSettings"
 import { useMediaDatabaseSettings } from "./useMediaDatabaseSettings"
 

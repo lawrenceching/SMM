@@ -7,8 +7,8 @@ import { handleScrape } from './Scrape'
 import { handleGetJob } from './GetJob'
 import { handleImportFolder } from './ImportFolder'
 import { getCore, resetCoreForTests } from '../core/getCore'
-import { Path } from '@core/path'
-import type { MediaMetadata } from '@smm/core'
+import { Path } from '@smm/utils/path'
+import type { MediaMetadata } from '@smm/types'
 
 describe('POST /api/scrape', () => {
   let userDataDir: string

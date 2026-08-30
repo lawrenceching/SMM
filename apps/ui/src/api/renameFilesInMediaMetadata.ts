@@ -1,4 +1,4 @@
-import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@core/types"
+import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@smm/types"
 import { apiFetch } from '@/lib/apiFetch';
 
 /**

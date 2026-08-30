@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import type { HelloResponseBody, UserConfig } from "@core/types"
-import { resolveAppLanguage } from "@core/locale"
+import type { HelloResponseBody, UserConfig } from "@smm/types"
+import { resolveAppLanguage } from "@smm/utils/locale"
 import { writeFile } from "@/api/writeFile"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { changeLanguage } from "@/lib/i18n"

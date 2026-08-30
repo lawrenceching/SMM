@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils"
 import {
   DOWNLOAD_VIDEO_COOKIES_WIKI_URL,
   getDownloadVideoCookiePlatformDisplayName,
-} from "@core/download-video-cookie-platform"
+} from "@smm/core/download-video-cookie-platform"
 import localStorages from "@/lib/localStorages"
 
 export interface CookiesSectionProps {

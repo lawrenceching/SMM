@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch'
-import type { FolderType } from '@core/types'
+import type { FolderType } from '@smm/types'
 
 export interface ImportLibraryParams {
   path: string

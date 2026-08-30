@@ -4,7 +4,7 @@ import {
   GET_APPLICATION_CONTEXT_DESCRIPTION,
   getApplicationContextInputSchema,
   getApplicationContextOutputSchema,
-} from "@smm/core/types/ai-tools/getApplicationContext";
+} from "@smm/types/ai-tools/getApplicationContext";
 import {
   createErrorResponse,
   createSuccessResponse,
@@ -12,7 +12,7 @@ import {
 } from "../index.ts";
 import type { McpConfig } from "../types.ts";
 import { executeGetApplicationContext } from "../../tools/getApplicationContext.ts";
-import { resolveAppLanguage, detectOsLocale } from "@smm/core/locale";
+import { resolveAppLanguage, detectOsLocale } from "@smm/utils/locale";
 
 /**
  * Register the `get-application-context` MCP tool. Returns the

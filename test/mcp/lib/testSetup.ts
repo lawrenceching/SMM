@@ -3,8 +3,8 @@ import { copyFileSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import type { TestFolder } from '@smm/test'
-import { Path } from '@smm/core/path'
-import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import { Path } from '@smm/utils/path'
+import type { MediaMetadata, UserConfig } from '@smm/types'
 
 export {
   folder1,

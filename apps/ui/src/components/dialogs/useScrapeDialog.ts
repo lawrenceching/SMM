@@ -6,7 +6,7 @@ import { useScrapeThumbnailMutation } from "@/hooks/useScrapeThumbnailMutation"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useConfig } from "@/hooks/userConfig"
 import { nextTraceId } from "@/lib/utils"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import {
   areAllTasksDone,
   checkTaskCompletion,

@@ -1,4 +1,4 @@
-import type { Plan } from 'core-app'
+import type { Plan } from '@smm/core'
 
 /** One summary line for `smm plan list` (human-readable). */
 export function formatPlanListLine(plan: Plan): string {

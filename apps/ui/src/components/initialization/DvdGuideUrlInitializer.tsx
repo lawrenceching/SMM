@@ -3,7 +3,7 @@ import { speedtest } from "@/api/speedtest"
 import {
   DOWNLOAD_VIDEO_COOKIES_WIKI_URL,
   DOWNLOAD_VIDEO_COOKIES_GITCODE_URL,
-} from "@core/download-video-cookie-platform"
+} from "@smm/core/download-video-cookie-platform"
 import localStorages from "@/lib/localStorages"
 import Debug from "debug"
 

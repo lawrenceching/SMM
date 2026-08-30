@@ -2,7 +2,7 @@ import { useQuery, type UseQueryResult } from "@tanstack/react-query";
 import {
   FFMPEG_COMPRESS_ENCODER_CATALOG,
   type FfmpegEncoderInfo,
-} from "@core/whitelistedCmd/constants";
+} from "@smm/core/whitelistedCmd/constants";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import { parseFfmpegEncoders } from "./parseFfmpegEncoders";
 

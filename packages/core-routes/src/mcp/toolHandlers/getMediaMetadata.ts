@@ -4,7 +4,7 @@ import {
   GET_MEDIA_METADATA_DESCRIPTION,
   getMediaMetadataInputSchema,
   getMediaMetadataToolOutputSchema,
-} from "@smm/core/types/ai-tools/getMediaMetadata";
+} from "@smm/types/ai-tools/getMediaMetadata";
 import {
   createErrorResponse,
   createSuccessResponse,

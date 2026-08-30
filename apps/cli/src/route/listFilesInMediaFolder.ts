@@ -4,7 +4,7 @@ import {
   doListFilesInMediaFolder,
   type CoreRoutesLogger,
 } from '@smm/core-routes'
-import { createEmptyListFilesInMediaFolderData } from '@core/ai-tool/buildListFilesInMediaFolderResponse'
+import { createEmptyListFilesInMediaFolderData } from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
 import { buildCoreRoutesConfig } from './coreRoutesConfig'
 
 const coreRoutesLogger: CoreRoutesLogger = {

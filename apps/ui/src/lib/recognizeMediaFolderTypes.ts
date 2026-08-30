@@ -1,4 +1,4 @@
-import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 
 export interface RecognizeMediaFolderResult {
     success: boolean;

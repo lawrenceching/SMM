@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ReadImageRequestBody } from "@smm/core/types";
+import type { ReadImageRequestBody } from "@smm/types";
 import { doReadImage } from "../readImage.ts";
 import { readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

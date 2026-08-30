@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { HelloHttpResponseBody } from "@smm/core/types";
+import type { HelloHttpResponseBody } from "@smm/types";
 import { doHello } from "../hello.ts";
 import { sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

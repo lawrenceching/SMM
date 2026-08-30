@@ -1,4 +1,4 @@
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { buildRenameEpisodeFileConfirmationMessage } from "@smm/core/ai-tool/renameEpisodeFileConfirm";
 import {
   renameEpisodeFileCancelled,
@@ -12,7 +12,7 @@ import {
   renameEpisodeFileInputSchema,
   renameEpisodeFileOutputSchema,
   type RenameEpisodeFileOutput,
-} from "@smm/core/types/ai-tools/renameEpisodeFile";
+} from "@smm/types/ai-tools/renameEpisodeFile";
 import { defaultAcknowledge } from "./acknowledge.ts";
 
 export interface RenameEpisodeFileParams {

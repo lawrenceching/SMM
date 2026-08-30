@@ -9,7 +9,7 @@ import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import dotenv from 'dotenv'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import {
     hello as helloHttp,
     removeTestMediaTmpDir as removeTestMediaTmpDirV1,

@@ -1,9 +1,9 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import {
   buildGetEpisodesResponse,
   createEmptyGetEpisodesData,
-} from '@core/ai-tool/buildGetEpisodesResponse'
-import { requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildGetEpisodesResponse'
+import { requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   GET_EPISODES,
   GET_EPISODES_DESCRIPTION,
@@ -14,7 +14,7 @@ import {
   getEpisodesInputSchema,
   getEpisodesToolOutputSchema,
   type GetEpisodesToolOutput,
-} from '@core/types/ai-tools/getEpisodes'
+} from '@smm/types/ai-tools/getEpisodes'
 import type { ToolDefinition } from './types'
 import {
   createSuccessResponse,
@@ -29,13 +29,13 @@ export type { GetEpisodesToolOutput }
 export {
   buildGetEpisodesResponse,
   createEmptyGetEpisodesData,
-} from '@core/ai-tool/buildGetEpisodesResponse'
+} from '@smm/core/ai-tool/buildGetEpisodesResponse'
 export type {
   GetEpisodesResponseData,
   GetEpisodesEpisode,
-} from '@core/types/ai-tools/getEpisodes'
+} from '@smm/types/ai-tools/getEpisodes'
 
-/** @deprecated Use GetEpisodesInput from @core/types/ai-tools/getEpisodes */
+/** @deprecated Use GetEpisodesInput from @smm/types/ai-tools/getEpisodes */
 export interface GetEpisodesParams {
   mediaFolderPath: string
 }

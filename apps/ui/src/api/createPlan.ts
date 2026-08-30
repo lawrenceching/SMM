@@ -1,4 +1,4 @@
-import type { PlanCreator } from '@core/types/planCommon';
+import type { PlanCreator } from '@smm/types/planCommon';
 import type { Plan } from './getPlans';
 import { apiFetch } from '@/lib/apiFetch';
 

@@ -34,7 +34,7 @@ import {
   type FfmpegConvertFormat,
   type FfmpegConvertImageOptions,
   type FfmpegConvertPreset,
-} from "@core/whitelistedCmd/constants"
+} from "@smm/core/whitelistedCmd/constants"
 
 const OUTPUT_FORMATS = [
   { value: "mp4h264", ext: "mp4", labelKey: "formatConverter.formatMp4H264" },

@@ -13,7 +13,7 @@ import {
 import { given, when, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import env from 'test/lib/env'
-import type { MediaMetadata, UserConfig } from '@smm/core/types'
+import type { MediaMetadata, UserConfig } from '@smm/types'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 

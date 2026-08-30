@@ -1,6 +1,6 @@
-import type { HelloResponseBody } from '@core/types'
+import type { HelloResponseBody } from '@smm/types'
 import type { QueryClient } from '@tanstack/react-query'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { helloQueryKey } from '@/lib/appQueryKeys'
 import {
   mediaMetadataQueryKey,

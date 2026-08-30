@@ -1,6 +1,6 @@
 /**
  * Compile-time + runtime alignment test between the AI tool registry
- * (from @core/ai-tool/registry) and the frontend tool components
+ * (from @smm/core/ai-tool/registry) and the frontend tool components
  * mounted in Assistant.tsx.
  *
  * The test parses the JSX in Assistant.tsx to extract the
@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { AI_TOOL_REGISTRY } from '@core/ai-tool/registry'
+import { AI_TOOL_REGISTRY } from '@smm/core/ai-tool/registry'
 
 const ASSISTANT_PATH = join(__dirname, 'Assistant.tsx')
 

@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import {
   createMetadata,
   getMetadata,

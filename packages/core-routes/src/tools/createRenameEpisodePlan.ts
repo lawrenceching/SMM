@@ -1,16 +1,16 @@
-import { createRenameEpisodePlanPipeline } from "core-app/createRenameEpisodePlan";
-import type { FsPort } from "core-app/FsPort";
-import { Path } from "@smm/core/path";
+import { createRenameEpisodePlanPipeline } from "@smm/core/createRenameEpisodePlan";
+import type { FsPort } from "@smm/core/FsPort";
+import { Path } from "@smm/utils/path";
 import {
   CREATE_RENAME_EPISODE_PLAN,
   CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
   createRenameEpisodePlanInputSchema,
-} from "@smm/core/types/ai-tools/createRenameEpisodePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
+} from "@smm/types/ai-tools/createRenameEpisodePlan";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
 import {
   RenameFilesPlanReady,
   type RenameFilesPlanReadyRequestData,
-} from "@smm/core/event-types";
+} from "@smm/types/event-types";
 import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";

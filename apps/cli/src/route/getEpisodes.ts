@@ -4,7 +4,7 @@ import {
   doGetEpisodes,
   type CoreRoutesLogger,
 } from '@smm/core-routes'
-import { createEmptyGetEpisodesData } from '@core/ai-tool/buildGetEpisodesResponse'
+import { createEmptyGetEpisodesData } from '@smm/core/ai-tool/buildGetEpisodesResponse'
 import { buildCoreRoutesConfig } from './coreRoutesConfig'
 
 const coreRoutesLogger: CoreRoutesLogger = {

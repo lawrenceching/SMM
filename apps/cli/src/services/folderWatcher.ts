@@ -1,7 +1,7 @@
 import { existsSync, watch, type FSWatcher } from 'fs';
 import { broadcast } from '../utils/socketIO';
-import { FOLDER_CONTENT_CHANGED_EVENT } from '@core/event-types';
-import { Path } from '@core/path';
+import { FOLDER_CONTENT_CHANGED_EVENT } from '@smm/types/event-types';
+import { Path } from '@smm/utils/path';
 import pino from 'pino';
 
 const logger = pino();

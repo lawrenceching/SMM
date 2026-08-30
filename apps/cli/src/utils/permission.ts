@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { getUserConfig } from "./config";
 import { getTmpDir } from "./config";
 

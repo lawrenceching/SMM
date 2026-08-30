@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { act, renderHook, waitFor } from "@testing-library/react"
-import type { MediaMetadata, ProblemDetails } from "@core/types"
+import type { MediaMetadata, ProblemDetails } from "@smm/types"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   MetadataHttpError,

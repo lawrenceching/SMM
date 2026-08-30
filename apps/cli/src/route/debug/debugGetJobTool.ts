@@ -1,7 +1,7 @@
 import { z } from 'zod/v3'
 import type { Hono } from 'hono'
 import { executeGetJob } from '@smm/core-routes'
-import type { GetJobOutput } from '@core/types/ai-tools/getJob'
+import type { GetJobOutput } from '@smm/types/ai-tools/getJob'
 import { getCore } from '../../core/getCore'
 import { logger } from '../../../lib/logger'
 

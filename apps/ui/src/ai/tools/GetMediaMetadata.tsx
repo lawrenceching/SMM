@@ -6,13 +6,13 @@ import {
   GET_MEDIA_METADATA_NO_CACHE,
   getMediaMetadataInputSchema,
   type GetMediaMetadataToolOutput,
-} from '@core/types/ai-tools/getMediaMetadata'
+} from '@smm/types/ai-tools/getMediaMetadata'
 import {
   createBaseGetMediaMetadataData,
   fillMediaMetadataResponseData,
-} from '@core/ai-tool/getMediaMetadataResponse'
-import { toolOk } from '@core/ai-tool/toolResult'
-import { Path } from '@core/path'
+} from '@smm/core/ai-tool/getMediaMetadataResponse'
+import { toolOk } from '@smm/core/ai-tool/toolResult'
+import { Path } from '@smm/utils/path'
 import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore'
 import { useQueryClient } from '@tanstack/react-query'
 import {

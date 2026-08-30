@@ -8,7 +8,7 @@ import {
     fetchTvdbAndBuildMovieMediaMetadata,
     mapToTvdbLangCode,
 } from "./TvdbUtils"
-import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types"
+import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@smm/types"
 
 function resolveTvdbSeriesNumericId(item: Record<string, unknown>): number | undefined {
     const oid = item.objectID ?? item.objectId

@@ -12,7 +12,7 @@ import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
 import { delay } from 'es-toolkit'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
-import type { MediaMetadata } from '@smm/core/types'
+import type { MediaMetadata } from '@smm/types'
 import { env } from 'node:process'
 
 import { testbedOs } from 'test/lib/e2e-platform'

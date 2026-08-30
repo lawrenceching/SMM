@@ -1,4 +1,4 @@
-import type { TMDBMovie, TMDBTVShow, TmdbSearchResponseBody } from '@smm/core'
+import type { TMDBMovie, TMDBTVShow, TmdbSearchResponseBody } from '@smm/types'
 
 export type TmdbSearchMediaType = 'tv' | 'movie'
 

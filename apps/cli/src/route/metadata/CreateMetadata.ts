@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { CreateMetadataRequestBody } from '@core/types'
+import type { CreateMetadataRequestBody } from '@smm/types'
 import { z } from 'zod'
 import { getCore } from '../../core/getCore'
 import { metadataPatchFieldSchemas } from './metadataSchemas'

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { existsSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { $ } from 'bun'
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 import { movieFolder, tvShowFolder } from '../test/actions/import-folders'
 import { setup, cleanup, bin } from './base'
 import {

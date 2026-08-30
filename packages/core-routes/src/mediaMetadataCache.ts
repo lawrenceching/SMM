@@ -1,7 +1,7 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { Path } from "@smm/core/path";
-import type { MediaMetadata } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata } from "@smm/types";
 
 export function metadataCacheFilePath(
   appDataDir: string,

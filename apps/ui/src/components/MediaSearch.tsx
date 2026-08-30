@@ -3,7 +3,7 @@ import { Label } from './ui/label';
 import { ScrollArea } from './ui/scroll-area';
 import { getTMDBImageUrl } from '@/api/tmdb';
 import { useResolvedLanguages } from '@/hooks/useResolvedLanguages';
-import type { TMDBMovie, TMDBTVShow } from '@core/types';
+import type { TMDBMovie, TMDBTVShow } from '@smm/types';
 import { SearchBox } from './SearchBox';
 import { useTmdbQueries } from '@/hooks/useTmdbQueries';
 

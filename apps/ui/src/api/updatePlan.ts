@@ -1,6 +1,6 @@
-import type { PlanStatus } from '@core/types/planCommon';
-import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan';
-import type { RenameFileEntry } from '@core/types/RenameFilesPlan';
+import type { PlanStatus } from '@smm/types/planCommon';
+import type { RecognizedFile } from '@smm/types/RecognizeMediaFilePlan';
+import type { RenameFileEntry } from '@smm/types/RenameFilesPlan';
 import type { Plan } from './getPlans';
 import { apiFetch } from '@/lib/apiFetch';
 

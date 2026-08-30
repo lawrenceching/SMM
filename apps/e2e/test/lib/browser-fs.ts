@@ -2,7 +2,7 @@
  * Browser-protocol filesystem helpers for e2e setup/cleanup.
  * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
  */
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
 
 /** Active OS for nested helpers during setup/cleanup (default `"general"`). */

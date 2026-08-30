@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import type { HelloResponseBody, UserConfig } from "@core/types"
+import type { HelloResponseBody, UserConfig } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"

@@ -5,7 +5,7 @@ import {
   toUIMediaMetadata,
   mergeUIMetadata,
 } from './uiDomainMapper'
-import type { MediaMetadata, TvShowMediaMetadata } from '@core/types'
+import type { MediaMetadata, TvShowMediaMetadata } from '@smm/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 
 const baseTvShow = (): TvShowMediaMetadata => ({

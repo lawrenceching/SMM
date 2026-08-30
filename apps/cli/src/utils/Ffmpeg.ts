@@ -3,7 +3,7 @@ import path from "path";
 import os from "os";
 import fs from "fs";
 import { execSync, spawn } from "child_process";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { logger } from "../../lib/logger";
 
 /** Escape a string for use inside double quotes in shell (e.g. paths with " in filename). */

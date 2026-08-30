@@ -4,7 +4,7 @@ import { loadCoreRoutes } from "../core-routes-loader"
 import { nodeRequestToWebRequest, writeWebResponse } from "./webRequestAdapter"
 import { isOhosMcpEnabled } from "./ohosMcpLifecycleManager"
 import { MAIN_HTTP_ORIGIN } from "../paths"
-import type { UserConfig } from "@smm/core/types"
+import type { UserConfig } from "@smm/types"
 
 
 type McpRequestHandler = (req: Request) => Promise<Response>

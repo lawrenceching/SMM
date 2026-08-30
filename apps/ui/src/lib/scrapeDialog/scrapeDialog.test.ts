@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { areAllTasksDone, checkTaskCompletion, getScrapeTaskIdsForMedia, taskReducer } from "@/lib/scrapeDialog"
 
 const listFilesMock = vi.fn()

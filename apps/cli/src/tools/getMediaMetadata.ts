@@ -1,10 +1,10 @@
 import { stat } from 'node:fs/promises'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import {
   createBaseGetMediaMetadataData,
   fillMediaMetadataResponseData,
-} from '@core/ai-tool/getMediaMetadataResponse'
-import { requireNonEmptyString } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/getMediaMetadataResponse'
+import { requireNonEmptyString } from '@smm/core/ai-tool/toolResult'
 import {
   GET_MEDIA_METADATA,
   GET_MEDIA_METADATA_DESCRIPTION,
@@ -15,7 +15,7 @@ import {
   getMediaMetadataInputSchema,
   getMediaMetadataToolOutputSchema,
   type GetMediaMetadataToolOutput,
-} from '@core/types/ai-tools/getMediaMetadata'
+} from '@smm/types/ai-tools/getMediaMetadata'
 import type { ToolDefinition } from './types'
 import {
   createSuccessResponse,
@@ -29,10 +29,10 @@ export type { GetMediaMetadataToolOutput }
 export {
   fillMediaMetadataResponseData,
   createBaseGetMediaMetadataData,
-} from '@core/ai-tool/getMediaMetadataResponse'
-export type { GetMediaMetadataResponseData } from '@core/types/ai-tools/getMediaMetadata'
+} from '@smm/core/ai-tool/getMediaMetadataResponse'
+export type { GetMediaMetadataResponseData } from '@smm/types/ai-tools/getMediaMetadata'
 
-/** @deprecated Use GetMediaMetadataInput from @core/types/ai-tools/getMediaMetadata */
+/** @deprecated Use GetMediaMetadataInput from @smm/types/ai-tools/getMediaMetadata */
 export interface GetMediaMetadataParams {
   mediaFolderPath: string
 }

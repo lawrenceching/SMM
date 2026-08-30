@@ -4,10 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { createMcpStreamableHttpHandler } from "./createServer.ts"
 import { defaultChatFs } from "../chatFs.ts"
-import type { UserConfig } from "@smm/core/types"
-import { Path } from "@smm/core/path"
+import type { UserConfig } from "@smm/types"
+import { Path } from "@smm/utils/path"
 import { metadataCacheFilePath } from "../mediaMetadataCache.ts"
-import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder"
+import { RENAME_FOLDER } from "@smm/types/ai-tools/renameFolder"
 
 /**
  * Send a JSON-RPC request through the MCP handler and decode the

@@ -14,8 +14,8 @@ import { subtitleTranslationDialogRowsFromMediaFiles } from "@/lib/subtitleTrans
 import { synthesizeSubtitleDialogRowsFromMediaFiles } from "@/lib/synthesizeSubtitleDialogRows"
 import { transcribeDialogRowsFromMediaFiles } from "@/lib/transcribeDialogRows"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import type { MediaMetadata } from "@core/types"
-import { Path } from "@core/path"
+import type { MediaMetadata } from "@smm/types"
+import { Path } from "@smm/utils/path"
 
 export interface UseSubtitleFlowOptions {
   mediaMetadata: MediaMetadata | undefined

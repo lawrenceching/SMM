@@ -1,4 +1,4 @@
-import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@core/types';
+import type { DeleteFileRequestBody, DeleteFileResponseBody } from '@smm/types';
 import { apiFetch } from '@/lib/apiFetch';
 
 export async function deleteFile(path: string): Promise<DeleteFileResponseBody> {

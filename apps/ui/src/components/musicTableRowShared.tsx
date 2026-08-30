@@ -1,6 +1,6 @@
 import { isAbsPath, join } from "@/lib/path"
-import { Path } from "@core/path"
-import { pathToFileURL } from "@core/url"
+import { Path } from "@smm/utils/path"
+import { pathToFileURL } from "@smm/utils/url"
 import { TableCell } from "@/components/ui/table"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { Music } from "lucide-react"

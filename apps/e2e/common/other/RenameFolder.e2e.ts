@@ -14,10 +14,10 @@ import {
     type TestFolder,
 } from 'test/actions/import-folders'
 import env from 'test/lib/env'
-import type { MediaMetadata } from '@smm/core/types'
+import type { MediaMetadata } from '@smm/types'
 import Sidebar from 'test/componentobjects/Sidebar'
 import RenameDialog from 'test/componentobjects/RenameDialog'
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import {
     clearFolderViaBrowser,

@@ -13,7 +13,7 @@ import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import MusicPanelCO from 'test/componentobjects/MusicPanel.co'
 import StatusBar from 'test/componentobjects/StatusBar'
 import { isOhosE2e, testbedOs } from 'test/lib/e2e-platform'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,

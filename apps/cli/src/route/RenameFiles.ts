@@ -1,5 +1,5 @@
 import { doRenameFiles as doRenameFilesCore, type CoreRoutesLogger } from "@smm/core-routes";
-import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types";
+import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/types";
 import type { Hono } from "hono";
 import { logger } from "../../lib/logger";
 import { broadcast } from "../utils/socketIO";

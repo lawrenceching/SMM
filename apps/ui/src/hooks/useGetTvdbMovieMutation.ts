@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
-import type { MovieMediaMetadata } from "@core/types"
+import type { MovieMediaMetadata } from "@smm/types"
 
 /**
  * Fetches TVDB movie details via cached HTTP (`fetchQuery`) and maps to {@link MovieMediaMetadata}.

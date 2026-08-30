@@ -1,4 +1,4 @@
-import type { MediaMetadata, ProblemDetails } from "@core/types"
+import type { MediaMetadata, ProblemDetails } from "@smm/types"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   MetadataHttpError,

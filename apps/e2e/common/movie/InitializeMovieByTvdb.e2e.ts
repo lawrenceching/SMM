@@ -10,7 +10,7 @@ import {
 } from 'test/lib/browser-fs'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
-import type { MediaMetadata } from '@smm/core/types'
+import type { MediaMetadata } from '@smm/types'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 
 import { testbedOs } from 'test/lib/e2e-platform'

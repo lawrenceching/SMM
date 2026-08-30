@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { SCRAPE_JOB_CREATED_MESSAGE } from "@smm/core/types/ai-tools/scrape";
+import { SCRAPE_JOB_CREATED_MESSAGE } from "@smm/types/ai-tools/scrape";
 import { executeScrape } from "./scrape.ts";
 
 describe("executeScrape", () => {

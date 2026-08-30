@@ -35,7 +35,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { basename } from "@/lib/path";
 import { useTranslation } from "@/lib/i18n";
 import { useConfig } from "@/hooks/userConfig";
-import type { OpenAICompatibleConfig } from "@core/types";
+import type { OpenAICompatibleConfig } from "@smm/types";
 import { useDialogs } from "@/providers/dialog-provider";
 import { resetFolderSwitchTrackingForCurrentPath } from "@/ai/pendingFolderSwitch";
 

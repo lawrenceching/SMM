@@ -47,6 +47,8 @@
   },
   "dependencies": {
     "@smm/core": "workspace:*",
+    "@smm/types": "workspace:*",
+    "@smm/utils": "workspace:*",
     "@smm/test": "workspace:*",
     "chai": "^6.2.2",
     "dotenv": "^17.3.1",

@@ -1,1 +1,1 @@
-export { validateNoDuplicatedDestFile } from '@core/validations/rename/validateNoDuplicatedDestFile'
+export { validateNoDuplicatedDestFile } from '@smm/core/validations/rename/validateNoDuplicatedDestFile'

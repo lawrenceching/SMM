@@ -1,6 +1,6 @@
 import { registerStep } from '../lib/gherkin'
-import { Path } from '@smm/core'
-import type { RecognizeMediaFilePlan } from '@smm/core/types/RecognizeMediaFilePlan.ts'
+import { Path } from '@smm/utils/path'
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan.ts'
 import {
     fetchHelloPathsViaBrowser,
     joinPlatformPath,

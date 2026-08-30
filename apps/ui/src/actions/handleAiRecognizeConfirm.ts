@@ -1,5 +1,5 @@
-import type { MediaMetadata } from "@core/types"
-import type { RecognizeMediaFilePlan } from "@core/types/RecognizeMediaFilePlan"
+import type { MediaMetadata } from "@smm/types"
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 import type { UIPlan } from "@/types/UIPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
 import { nextTraceId } from "@/lib/utils"

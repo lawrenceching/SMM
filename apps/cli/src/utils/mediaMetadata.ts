@@ -1,5 +1,5 @@
-import type { MediaMetadata } from "@core/types"
-import { Path } from "@core/path"
+import type { MediaMetadata } from "@smm/types"
+import { Path } from "@smm/utils/path"
 import { metadataCacheFilePath } from "../route/mediaMetadata/utils"
 import { unlink } from "fs/promises"
 import { logger } from "../../lib/logger"

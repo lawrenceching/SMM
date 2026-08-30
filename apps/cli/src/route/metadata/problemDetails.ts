@@ -1,10 +1,10 @@
 import type { Context } from 'hono'
-import type { ProblemDetails } from '@core/types'
+import type { ProblemDetails } from '@smm/types'
 import {
   MetadataAlreadyExistsError,
   MetadataNotFoundError,
   MetadataValidationError,
-} from 'core-app'
+} from '@smm/core'
 import { ZodError } from 'zod'
 
 export function problemJson(

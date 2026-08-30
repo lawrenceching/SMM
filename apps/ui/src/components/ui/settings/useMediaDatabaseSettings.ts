@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { useConfig } from "@/hooks/userConfig"
 import { useSaveUserConfigMutation } from "@/hooks/userConfig"
 import { nextTraceId } from "@/lib/utils"
-import type { PrimaryDatabase } from "@core/types"
+import type { PrimaryDatabase } from "@smm/types"
 
 function isValidUrl(value: string): boolean {
   if (!value.trim()) return true

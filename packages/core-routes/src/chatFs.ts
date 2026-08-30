@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import { dirname } from "node:path";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import type { ChatFs } from "./chatTypes.ts";
 
 /**

@@ -1,6 +1,6 @@
 import { useMemo } from "react"
-import type { LanguageCode, PreferMediaLanguage, UserConfig } from "@core/types"
-import { resolveAppLanguage, resolveMediaLanguage, type ResolveAppLanguageOptions } from "@core/locale"
+import type { LanguageCode, PreferMediaLanguage, UserConfig } from "@smm/types"
+import { resolveAppLanguage, resolveMediaLanguage, type ResolveAppLanguageOptions } from "@smm/utils/locale"
 import { useConfig } from "@/hooks/userConfig"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 

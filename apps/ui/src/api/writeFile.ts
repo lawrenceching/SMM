@@ -1,4 +1,4 @@
-import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
+import type { WriteFileRequestBody, WriteFileResponseBody } from '@smm/types';
 import { apiFetch } from '@/lib/apiFetch';
 
 /**

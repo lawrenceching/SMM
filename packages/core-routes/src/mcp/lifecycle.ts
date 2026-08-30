@@ -1,4 +1,4 @@
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 import type { CoreRoutesLogger } from "../types.ts";
 import type {
   McpLifecycleManager,

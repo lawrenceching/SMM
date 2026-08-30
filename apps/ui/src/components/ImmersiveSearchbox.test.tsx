@@ -2,7 +2,7 @@ import { useState } from "react"
 import { beforeAll, describe, expect, it, vi } from "vitest"
 import { fireEvent, render, screen } from "@testing-library/react"
 import { ImmersiveSearchbox, type ImmersiveSearchResultItem, type SearchLanguageOption } from "./ImmersiveSearchbox"
-import type { PrimaryDatabase } from "@core/types"
+import type { PrimaryDatabase } from "@smm/types"
 
 vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({

@@ -3,9 +3,9 @@ import {
   CREATE_RENAME_EPISODE_PLAN,
   CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
   createRenameEpisodePlanInputSchema,
-} from '@core/types/ai-tools/createRenameEpisodePlan'
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from '@core/types/ai-tools/planTaskMessages'
-import { formatToolError, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/createRenameEpisodePlan'
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from '@smm/types/ai-tools/planTaskMessages'
+import { formatToolError, toolOk } from '@smm/core/ai-tool/toolResult'
 import { createRenameEpisodePlanApi } from '@/api/createRenameEpisodePlan'
 import { PLANS_QUERY_ROOT } from '@/hooks/plans'
 import { queryClient } from '@/lib/queryClient'

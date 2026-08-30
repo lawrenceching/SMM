@@ -4,8 +4,8 @@ import {
   TMDB_GET_MOVIE_DESCRIPTION,
   tmdbGetMovieInputSchema,
   type TmdbGetMovieOutput,
-} from '@core/types/ai-tools/tmdbGetMovie'
-import { formatToolError } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/tmdbGetMovie'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { getMovieInTmdb } from '@/api/tmdbV3'
 
 const tmdbGetMovieTool = tool({

@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from "react"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 
 interface UseTvShowPanelStateParams {
   mediaMetadata: MediaMetadata | undefined
   usePrompts: {
     openUseNfoPrompt: (params: {
-      nfoData: import("@core/types").TMDBTVShowDetails
-      onConfirm?: (tmdbTvShow: import("@core/types").TMDBTVShow) => void
+      nfoData: import("@smm/types").TMDBTVShowDetails
+      onConfirm?: (tmdbTvShow: import("@smm/types").TMDBTVShow) => void
       onCancel?: () => void
     }) => void
   }

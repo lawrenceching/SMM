@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { fireEvent, render, screen } from "@testing-library/react"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import {
     StatusBar,
     mapWebSocketStatusToConnectionStatus,

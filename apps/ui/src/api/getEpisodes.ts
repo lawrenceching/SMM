@@ -5,7 +5,7 @@
  * delegate disk reads to the CLI backend.
  */
 
-import type { GetEpisodesToolOutput } from '@core/types/ai-tools/getEpisodes'
+import type { GetEpisodesToolOutput } from '@smm/types/ai-tools/getEpisodes'
 import { apiFetch } from '@/lib/apiFetch';
 
 export type GetEpisodesResponseBody = GetEpisodesToolOutput

@@ -8,8 +8,8 @@ import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from 
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { useTheme } from "@/providers/theme-provider"
-import type { PreferMediaLanguage } from "@core/types"
-import { resolveAppLanguage } from "@core/locale"
+import type { PreferMediaLanguage } from "@smm/types"
+import { resolveAppLanguage } from "@smm/utils/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import {
   useStartMcpServerMutation,

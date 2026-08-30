@@ -43,7 +43,7 @@ function isAbortError(error: unknown): boolean {
  */
 export function handleCoreFetch(
   app: Hono,
-  options?: { network?: import('core-app').NetworkPort },
+  options?: { network?: import('@smm/core').NetworkPort },
 ): void {
   const network = options?.network ?? new NodejsNetworkPort()
 

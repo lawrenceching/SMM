@@ -1,4 +1,4 @@
-import { proxiableFetch } from "@core/proxiableFetch"
+import { proxiableFetch } from "@smm/utils/proxiableFetch"
 import { buildLocalProxyRequestHeaders, buildGeneralProxyRequestHeaders } from "./proxyRequestHeaders"
 import type { ReverseProxyCandidate } from "@/hooks/useReverseProxyBaseUrls"
 import {

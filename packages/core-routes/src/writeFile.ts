@@ -2,9 +2,9 @@ import { z } from "zod/v3";
 import path from "node:path";
 import { mkdir, appendFile, writeFile, access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import { Path } from "@smm/core/path";
-import { existedFileError, isError, ExistedFileError } from "@smm/core/errors";
-import type { WriteFileRequestBody, WriteFileResponseBody } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import { existedFileError, isError, ExistedFileError } from "@smm/utils/errors";
+import type { WriteFileRequestBody, WriteFileResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 

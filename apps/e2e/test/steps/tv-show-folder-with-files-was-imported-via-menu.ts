@@ -1,4 +1,4 @@
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 import { registerStep, requiredStepArg } from '../lib/gherkin'
 import { importFolderWithMediaMetadata } from '../lib/testbed'
 import {

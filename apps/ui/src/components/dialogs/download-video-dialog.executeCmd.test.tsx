@@ -41,7 +41,7 @@ vi.mock('@/api/discoverExecutables', () => ({
   fetchDiscoverExecutables: h.fetchDiscoverExecutables,
 }))
 
-vi.mock('@core/download-video-validators', () => ({
+vi.mock('@smm/core/download-video-validators', () => ({
   validateDownloadUrl: h.validateDownloadUrl,
 }))
 

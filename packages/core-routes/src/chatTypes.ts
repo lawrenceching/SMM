@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 import type { WebSocketMessage } from "./socketIO/types.ts";
 import type { CoreRoutesLogger } from "./types.ts";
 

@@ -2,7 +2,7 @@ import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
 import type { Hono } from 'hono';
-import type { GetApplicationContextOutput } from '@core/types/ai-tools/getApplicationContext';
+import type { GetApplicationContextOutput } from '@smm/types/ai-tools/getApplicationContext';
 
 interface DebugGetApplicationContextResponseBody {
   success: boolean;

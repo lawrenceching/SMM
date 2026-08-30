@@ -1,11 +1,11 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import type { FfmpegConvertBackgroundJob, FfmpegConvertBackgroundJobData } from '@/types/background-jobs'
 
 function newJobId(): string {
   return `job-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`
 }
 
-import type { FfmpegConvertImageOptions } from '@core/whitelistedCmd/constants'
+import type { FfmpegConvertImageOptions } from '@smm/core/whitelistedCmd/constants'
 
 export interface BuildFfmpegConvertJobInput {
   folder?: string

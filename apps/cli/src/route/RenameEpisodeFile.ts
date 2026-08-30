@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
 import { logger } from '../../lib/logger'

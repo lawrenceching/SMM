@@ -2,7 +2,7 @@ import type { Hono } from 'hono';
 import type {
   SetWatchedFolderRequestBody,
   SetWatchedFolderResponseBody,
-} from '@core/types';
+} from '@smm/types';
 import { getFolderWatcher } from '../services/folderWatcher';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
 

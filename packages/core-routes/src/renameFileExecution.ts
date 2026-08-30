@@ -1,6 +1,6 @@
 import { mkdir, rename, stat } from "node:fs/promises";
 import path from "node:path";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 
 export interface RenameExecutionResult {
   success: boolean;

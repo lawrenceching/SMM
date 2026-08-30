@@ -1,6 +1,6 @@
 import { expect, browser } from '@wdio/globals'
-import type { MediaMetadata } from '@smm/core/types'
-import { Path } from '@smm/core'
+import type { MediaMetadata } from '@smm/types'
+import { Path } from '@smm/utils/path'
 import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'

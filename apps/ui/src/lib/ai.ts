@@ -1,4 +1,4 @@
-import type { MediaFileMatchResult, MediaFileMetadata, TMDBTVShowDetails } from "@core/types"
+import type { MediaFileMatchResult, MediaFileMetadata, TMDBTVShowDetails } from "@smm/types"
 
 function toMarkdown(tvShow: TMDBTVShowDetails) {
     const lines: string[] = []

@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { generateNewFileName } from "@/lib/renameRules"
 import { join } from "@/lib/path"
 import { mediaFilePathEqual } from "@/lib/mediaFilePathEqual"

@@ -21,7 +21,7 @@ import { useTranslation } from "@/lib/i18n"
 import { toast } from "sonner"
 import { hello } from "@/api/hello"
 import { openInFileManagerApi } from "@/api/openInFileManager"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import type { FolderType, FileItem } from "@/providers/dialog-provider"
 import { nextTraceId } from "@/lib/utils"
 import {

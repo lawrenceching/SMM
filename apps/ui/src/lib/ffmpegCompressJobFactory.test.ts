@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFfmpegCompressJob, compressContainerToFormat } from "./ffmpegCompressJobFactory";
-import type { FfmpegCompressOptions } from "@core/whitelistedCmd/constants";
-import { Path } from "@core/path";
+import type { FfmpegCompressOptions } from "@smm/core/whitelistedCmd/constants";
+import { Path } from "@smm/utils/path";
 
 const baseOptions: FfmpegCompressOptions = {
   presetKey: "balanced",

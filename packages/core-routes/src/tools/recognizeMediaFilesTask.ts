@@ -1,4 +1,4 @@
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -9,14 +9,14 @@ import {
   beginRecognizeTaskInputSchema,
   addRecognizedMediaFileInputSchema,
   endRecognizeTaskInputSchema,
-} from "@smm/core/types/ai-tools/recognizeMediaFileTask";
-import { END_PLAN_TASK_SUCCESS_MESSAGE, PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
+} from "@smm/types/ai-tools/recognizeMediaFileTask";
+import { END_PLAN_TASK_SUCCESS_MESSAGE, PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
 import { formatToolError, toolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
   RecognizeMediaFilePlanReady,
   type RecognizeMediaFilePlanReadyRequestData,
-} from "@smm/core/event-types";
-import type { RecognizedFile } from "@smm/core/types/RecognizeMediaFilePlan";
+} from "@smm/types/event-types";
+import type { RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
 import type { CoreRoutesLogger } from "../types.ts";
 import { defaultBroadcast } from "./broadcast.ts";
 import type { WebSocketMessage } from "../socketIO/types.ts";

@@ -1,6 +1,6 @@
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
 import type { Hono } from 'hono'
-import { formatToolError } from '@core/ai-tool/toolResult'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { logger } from '../../../lib/logger'
 import { createRenameEpisodePlanFromBody } from '../RenameEpisodesPlan'
 

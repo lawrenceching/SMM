@@ -1,4 +1,4 @@
-import type { ScrapeRequestBody, ScrapeResponseBody } from "@core/types";
+import type { ScrapeRequestBody, ScrapeResponseBody } from "@smm/types";
 import { apiFetch } from '@/lib/apiFetch';
 
 /**

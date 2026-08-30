@@ -1,4 +1,4 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 
 /**
  * Resolve CLI `--from` / `--to` against the media folder.

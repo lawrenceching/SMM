@@ -6,7 +6,7 @@ import {
   scrapeInputSchema,
   scrapeOutputSchema,
   type ScrapeOutput,
-} from "@smm/core/types/ai-tools/scrape";
+} from "@smm/types/ai-tools/scrape";
 
 export interface ScrapeParams {
   path: string;

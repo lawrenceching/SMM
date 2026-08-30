@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types";
+import { MEDIA_METADATA_UPDATED_EVENT } from "@smm/types/event-types";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useConfig } from "@/hooks/userConfig";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";

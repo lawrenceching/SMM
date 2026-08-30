@@ -2,8 +2,8 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Path } from "@smm/core/path";
-import type { MediaMetadata } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import type { MediaMetadata } from "@smm/types";
 import { metadataCacheFilePath } from "./mediaMetadataCache.ts";
 import { doRenameFolder } from "./renameFolder.ts";
 import type { CoreRoutesConfig } from "./types.ts";

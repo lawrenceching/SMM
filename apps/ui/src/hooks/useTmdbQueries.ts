@@ -13,7 +13,7 @@ import type {
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
   TmdbSeasonDetails,
-} from "@core/types"
+} from "@smm/types"
 import { delay } from "es-toolkit"
 
 const TMDB_TV_SHOW_BY_ID_STALE_MS = 5 * 60 * 1000

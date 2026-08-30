@@ -1,4 +1,4 @@
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import { getPlanById } from '@/api/getPlanById'
 import { getPlanDraft, setPlanDraft } from './aiPlanDrafts'
 

@@ -1,8 +1,8 @@
 import { z } from "zod/v3";
 import type {
   RecognizeMediaFilePlan,
-} from "@smm/core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+} from "@smm/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { defaultChatFs } from "./chatFs.ts";
 import type { ChatFs } from "./chatTypes.ts";
 import type { CoreRoutesConfig } from "./types.ts";

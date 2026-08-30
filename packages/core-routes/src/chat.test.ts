@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { doChat } from "./chat.ts";
 import type { ChatConfig, ChatRequestBody } from "./chatTypes.ts";
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 
 function makeUserConfig(
   overrides: Partial<UserConfig> = {},

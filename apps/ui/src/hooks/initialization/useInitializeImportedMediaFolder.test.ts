@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { Path } from "@core/path";
-import { createMediaMetadata } from "@core/mediaMetadata";
+import { Path } from "@smm/utils/path";
+import { createMediaMetadata } from "@smm/core/mediaMetadata";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 import type { OnMediaFolderImportedEventData } from "@/types/eventTypes";
-import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 
 const h = vi.hoisted(() => {
     const getMediaMetadata = vi.fn();

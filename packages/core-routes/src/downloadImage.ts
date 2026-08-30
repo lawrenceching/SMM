@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { extname } from "node:path";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 

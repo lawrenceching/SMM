@@ -1,4 +1,4 @@
-import type { ListFilesRequestBody, ListFilesResponseBody } from "@core/types";
+import type { ListFilesRequestBody, ListFilesResponseBody } from "@smm/types";
 import { apiFetch } from '@/lib/apiFetch';
 
 export async function listFiles(req: ListFilesRequestBody, signal?: AbortSignal): Promise<ListFilesResponseBody> {

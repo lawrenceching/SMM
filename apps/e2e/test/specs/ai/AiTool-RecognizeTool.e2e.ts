@@ -6,12 +6,12 @@ import Menu from '../../componentobjects/Menu'
 import { createBeforeHook, expectMediaMetadataToBe } from '../../lib/testbed'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
-import { type MediaMetadata } from '@smm/core/types'
+import { type MediaMetadata } from '@smm/types'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { addFile, createTask, endTask, requireTaskId } from 'test/lib/debugRecognizeTool'
 import Prompts from 'test/componentobjects/Prompts'
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')

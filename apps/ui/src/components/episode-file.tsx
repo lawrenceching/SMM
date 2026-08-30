@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { relative, join, basename, dirname, extname } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
 import { toast } from "sonner"

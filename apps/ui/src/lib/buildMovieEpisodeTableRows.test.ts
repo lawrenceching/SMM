@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { buildMovieEpisodeTableRows } from "./buildMovieEpisodeTableRows";
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 import type { TvShowEpisodeDataRow } from "@/components/tv/TvShowEpisodeTable";
 
 const t = (key: string) => key;

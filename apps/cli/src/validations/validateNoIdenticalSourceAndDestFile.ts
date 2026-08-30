@@ -1,3 +1,3 @@
 export {
   validateNoIdenticalSourceAndDestFile,
-} from '@core/validations/rename/validateNoIdenticalSourceAndDestFile'
+} from '@smm/core/validations/rename/validateNoIdenticalSourceAndDestFile'

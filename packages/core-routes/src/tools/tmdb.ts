@@ -1,10 +1,10 @@
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
-import type { TmdbMovieDetails, TmdbSearchResponseBody, TmdbSeriesDetails } from "@smm/core/types";
+import type { TmdbMovieDetails, TmdbSearchResponseBody, TmdbSeriesDetails } from "@smm/types";
 import {
   formatTmdbToolError,
   toTmdbCoreOptions,
   type TmdbToolHostOptions,
-} from "@smm/core/types/ai-tools/tmdbCommon";
+} from "@smm/types/ai-tools/tmdbCommon";
 import {
   TMDB_SEARCH,
   TMDB_SEARCH_DESCRIPTION,
@@ -12,7 +12,7 @@ import {
   tmdbSearchOutputSchema,
   type TmdbSearchInput,
   type TmdbSearchOutput,
-} from "@smm/core/types/ai-tools/tmdbSearch";
+} from "@smm/types/ai-tools/tmdbSearch";
 import {
   TMDB_GET_MOVIE,
   TMDB_GET_MOVIE_DESCRIPTION,
@@ -20,7 +20,7 @@ import {
   tmdbGetMovieOutputSchema,
   type TmdbGetMovieInput,
   type TmdbGetMovieOutput,
-} from "@smm/core/types/ai-tools/tmdbGetMovie";
+} from "@smm/types/ai-tools/tmdbGetMovie";
 import {
   TMDB_GET_TV_SHOW,
   TMDB_GET_TV_SHOW_DESCRIPTION,
@@ -28,7 +28,7 @@ import {
   tmdbGetTvShowOutputSchema,
   type TmdbGetTvShowInput,
   type TmdbGetTvShowOutput,
-} from "@smm/core/types/ai-tools/tmdbGetTvShow";
+} from "@smm/types/ai-tools/tmdbGetTvShow";
 
 export type SearchInTmdbRunner = (
   keyword: string,

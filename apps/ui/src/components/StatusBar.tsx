@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
-import { Path } from "@core/path"
-import { isVersionGreater } from "@core/versionCompare"
+import { Path } from "@smm/utils/path"
+import { isVersionGreater } from "@smm/utils/versionCompare"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"

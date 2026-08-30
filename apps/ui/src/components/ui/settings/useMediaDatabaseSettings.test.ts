@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useMediaDatabaseSettings } from "./useMediaDatabaseSettings";
-import type { UserConfig } from "@core/types";
+import type { UserConfig } from "@smm/types";
 
 const defaultUserConfig: UserConfig = {
   tmdb: {},

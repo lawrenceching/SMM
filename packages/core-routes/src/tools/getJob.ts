@@ -7,7 +7,7 @@ import {
   getJobOutputSchema,
   type GetJobOutput,
   type JobToolPayload,
-} from "@smm/core/types/ai-tools/getJob";
+} from "@smm/types/ai-tools/getJob";
 
 export type GetJobRunner = (id: string) => unknown;
 

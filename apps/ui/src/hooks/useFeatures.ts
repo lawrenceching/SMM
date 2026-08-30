@@ -238,7 +238,7 @@ function writeUseMediaFileTableEnabled(enabled: boolean): void {
 
 /**
  * Best-effort runtime OS detection for renderer (Electron + browser dev).
- * Mirrors patterns used in `@core/path` for Electron vs UA fallback.
+ * Mirrors patterns used in `@smm/utils/path` for Electron vs UA fallback.
  */
 function getRuntimePlatform(): string | undefined {
   const proc =

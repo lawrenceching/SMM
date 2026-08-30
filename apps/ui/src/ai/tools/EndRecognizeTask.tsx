@@ -1,7 +1,7 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react"
 import { z } from 'zod'
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@core/types/ai-tools/planTaskMessages"
-import { toolOk } from "@core/ai-tool/toolResult"
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages"
+import { toolOk } from "@smm/core/ai-tool/toolResult"
 import { updatePlan } from "@/api/updatePlan"
 import { queryClient } from "@/lib/queryClient"
 import { PLANS_QUERY_ROOT } from "@/hooks/plans"

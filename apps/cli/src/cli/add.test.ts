@@ -65,7 +65,7 @@ describe('smm add', () => {
   })
 
   it('treats --type anime as tvshow', async () => {
-    const { Core } = await import('core-app')
+    const { Core } = await import('@smm/core')
     const importFolder = vi.spyOn(Core.prototype, 'importFolder').mockReturnValue({ id: 'job-1' })
     vi.spyOn(Core.prototype, 'getJob').mockReturnValue({
       kind: 'import',

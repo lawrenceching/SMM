@@ -2,7 +2,7 @@ import { z } from "zod/v3";
 import os from "node:os";
 import { readdir, stat } from "node:fs/promises";
 import path from "node:path";
-import type { ListFilesRequestBody, ListFilesResponseBody } from "@smm/core/types";
+import type { ListFilesRequestBody, ListFilesResponseBody } from "@smm/types";
 import {
   joinListFilesChildPath,
   normalizeListFilesInputPath,

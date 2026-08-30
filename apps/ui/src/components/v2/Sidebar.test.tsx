@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
-import type { MediaMetadata } from "@core/types"
-import { Path } from "@core/path"
+import type { MediaMetadata } from "@smm/types"
+import { Path } from "@smm/utils/path"
 import { basename } from "@/lib/path"
 import { Sidebar } from "./Sidebar"
 

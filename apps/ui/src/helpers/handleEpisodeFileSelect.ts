@@ -1,6 +1,6 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { updateMediaFileMetadatas } from "@/components/tv/TvShowPanelUtils";
 
 /**

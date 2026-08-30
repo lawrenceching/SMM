@@ -4,8 +4,8 @@ import {
   getApplicationContextInputSchema,
   getApplicationContextOutputSchema,
   type GetApplicationContextOutput,
-} from "@smm/core/types/ai-tools/getApplicationContext";
-import type { UserConfig } from "@smm/core/types";
+} from "@smm/types/ai-tools/getApplicationContext";
+import type { UserConfig } from "@smm/types";
 import { defaultAcknowledge } from "./acknowledge.ts";
 
 /**

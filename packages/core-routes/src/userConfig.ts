@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { Path } from "@smm/core/path";
-import type { UserConfig } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import type { UserConfig } from "@smm/types";
 import type { CoreRoutesConfig } from "./types.ts";
 
 const DEFAULT_USER_CONFIG: UserConfig = {

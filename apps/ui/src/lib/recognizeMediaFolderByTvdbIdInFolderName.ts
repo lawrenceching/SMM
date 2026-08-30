@@ -1,5 +1,5 @@
 import { basename } from "./path";
-import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
+import type { MovieMediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@smm/types";
 import { fetchTvdbAndBuildMovieMediaMetadata } from "./TvdbUtils";
 import Debug from "debug";
 

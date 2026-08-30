@@ -1,7 +1,7 @@
 import {
   parseYtdlpCookiesFileArg,
   isManagedYtdlpCookiesPath,
-} from '@core/whitelistedCmd/ytdlpCookies';
+} from '@smm/core/whitelistedCmd/ytdlpCookies';
 import {
   executeCmdToCompletion,
   executeCmdToCompletionWithHeaders,

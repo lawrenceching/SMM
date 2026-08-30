@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 import { resetCoreForTests } from '../../core/getCore'
 import { handleCreateMetadata } from './CreateMetadata'
 

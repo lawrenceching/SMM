@@ -75,7 +75,7 @@ interface DialogContextValue {
     closeRenameFolder: () => void
   ]
   scrapeDialog: [
-    openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => void,
+    openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }) => void,
     closeScrape: () => void
   ]
   mediaFilePropertyDialog: [
@@ -169,7 +169,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
 
   // Scrape dialog state
   const [isScrapeOpen, setIsScrapeOpen] = useState(false)
-  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }>({})
+  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }>({})
 
   // Media file property dialog state
   const [isMediaFilePropertyOpen, setIsMediaFilePropertyOpen] = useState(false)
@@ -374,7 +374,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
     [renameFileOnConfirm, closeRenameFile]
   )
 
-  const openScrape = useCallback((options?: { title?: string; description?: string; mediaMetadata?: import("@core/types").MediaMetadata }) => {
+  const openScrape = useCallback((options?: { title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }) => {
     setScrapeOptions(options || {})
     setIsScrapeOpen(true)
   }, [])

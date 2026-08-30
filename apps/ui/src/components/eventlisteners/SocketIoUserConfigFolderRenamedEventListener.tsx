@@ -1,10 +1,10 @@
-import { USER_CONFIG_FOLDER_RENAMED_EVENT } from "@core/event-types"
+import { USER_CONFIG_FOLDER_RENAMED_EVENT } from "@smm/types/event-types"
 import { useRef } from "react";
 import { useLatest, useMount, useUnmount } from "react-use"
 import { useQueryClient } from "@tanstack/react-query"
 import { useConfig } from "@/hooks/userConfig";
 import { invalidateFoldersQueryIfV3 } from "@/hooks/folders";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 import { nextTraceId } from "@/lib/utils";

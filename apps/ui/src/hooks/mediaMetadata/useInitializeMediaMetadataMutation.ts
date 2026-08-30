@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query"
-import { Path } from "@core/path"
-import { createMediaMetadata } from "@core/mediaMetadata"
+import { Path } from "@smm/utils/path"
+import { createMediaMetadata } from "@smm/core/mediaMetadata"
 import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
 import { logger } from "@/lib/log"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"

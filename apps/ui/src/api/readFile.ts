@@ -1,4 +1,4 @@
-import type { ReadFileRequestBody, ReadFileResponseBody, UserConfig } from '@core/types';
+import type { ReadFileRequestBody, ReadFileResponseBody, UserConfig } from '@smm/types';
 import { apiFetch } from '@/lib/apiFetch';
 
 

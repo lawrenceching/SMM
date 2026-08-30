@@ -5,8 +5,8 @@ import {
   GET_EPISODES_DESCRIPTION,
   getEpisodesInputSchema,
   type GetEpisodesToolOutput,
-} from '@core/types/ai-tools/getEpisodes'
-import { createEmptyGetEpisodesData } from '@core/ai-tool/buildGetEpisodesResponse'
+} from '@smm/types/ai-tools/getEpisodes'
+import { createEmptyGetEpisodesData } from '@smm/core/ai-tool/buildGetEpisodesResponse'
 
 const getEpisodesTool = tool({
   description: GET_EPISODES_DESCRIPTION,

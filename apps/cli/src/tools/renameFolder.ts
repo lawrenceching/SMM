@@ -1,20 +1,20 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import {
   buildRenameFolderConfirmationMessage,
-} from '@core/ai-tool/renameFolderConfirm'
+} from '@smm/core/ai-tool/renameFolderConfirm'
 import {
   renameFolderCancelled,
   renameFolderFailed,
   renameFolderSucceeded,
-} from '@core/ai-tool/renameFolderResult'
-import { requireNonEmptyString } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/renameFolderResult'
+import { requireNonEmptyString } from '@smm/core/ai-tool/toolResult'
 import {
   RENAME_FOLDER,
   RENAME_FOLDER_DESCRIPTION,
   renameFolderInputSchema,
   renameFolderOutputSchema,
   type RenameFolderOutput,
-} from '@core/types/ai-tools/renameFolder'
+} from '@smm/types/ai-tools/renameFolder'
 import type { ToolDefinition } from './types'
 import {
   createSuccessResponse,

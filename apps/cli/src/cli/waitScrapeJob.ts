@@ -1,4 +1,4 @@
-import type { Core, ScrapeJob } from 'core-app'
+import type { Core, ScrapeJob } from '@smm/core'
 
 const DEFAULT_POLL_MS = 20
 

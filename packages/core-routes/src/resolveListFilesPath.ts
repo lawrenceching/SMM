@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 
 /**
  * Join a child name to a directory path used by list-files.

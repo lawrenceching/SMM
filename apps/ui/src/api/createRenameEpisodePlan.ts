@@ -1,5 +1,5 @@
-import type { PlanCreator } from '@core/types/planCommon'
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
+import type { PlanCreator } from '@smm/types/planCommon'
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
 import { apiFetch } from '@/lib/apiFetch'
 
 export interface CreateRenameEpisodePlanRequest {

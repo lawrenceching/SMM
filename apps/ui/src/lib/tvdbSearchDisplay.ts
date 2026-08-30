@@ -1,4 +1,4 @@
-import type { PreferMediaLanguage } from "@core/types"
+import type { PreferMediaLanguage } from "@smm/types"
 import type { SupportedLanguage } from "@/lib/i18n"
 import type { TvdbSearchLanguage } from "@/lib/searchLanguage"
 

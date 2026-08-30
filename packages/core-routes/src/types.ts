@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { FetchLike } from "./fetchInput.ts";
-import type { HelloHttpResponseBody } from "@smm/core/types";
+import type { HelloHttpResponseBody } from "@smm/types";
 import type { HelloOptions } from "./hello.ts";
 import type { ChatConfig } from "./chatTypes.ts";
 import type { McpLifecycleManager } from "./mcp/lifecycleTypes.ts";

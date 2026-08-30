@@ -1,8 +1,8 @@
 import { Command, CommanderError, Option } from 'commander'
 import { mkdir, readFile } from 'node:fs/promises'
-import type { FolderType, RenameRuleName } from 'core-app'
-import type { MediaMetadata } from '@smm/core'
-import { isUserConfigKey, NoopLoggerAdapter } from 'core-app'
+import type { FolderType, RenameRuleName } from '@smm/core'
+import type { MediaMetadata } from '@smm/types'
+import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { formatHelloLines } from './helloFormat'
 import { waitUntilImportSettled } from './addProgress'
@@ -29,7 +29,7 @@ import {
   formatPlanListLine,
   planFileCount,
 } from './planFormat'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { confirmRecognizeCandidate } from './recognizeConfirm'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
@@ -898,7 +898,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .action(async (opts: { host?: string; port?: string }) => {
       // Lazy imports: pulling in the MCP lifecycle manager (and thus
       // `@smm/core-routes`) at module load breaks vitest's CLI unit tests
-      // which don't alias `@smm/core/path`.
+      // which don't alias `@smm/utils/path`.
       const { getAppDataDir, getLogDir, getUserDataDir } = await import('@/utils/config')
 
       await mkdir(getUserDataDir(), { recursive: true })

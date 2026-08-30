@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, act } from "@testing-library/react"
 import { useEffect } from "react"
-import { MEDIA_METADATA_UPDATED_EVENT } from "@core/event-types"
+import { MEDIA_METADATA_UPDATED_EVENT } from "@smm/types/event-types"
 import { MediaMetadataUpdatedEventListener } from "./MediaMetadataUpdatedEventListener"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 

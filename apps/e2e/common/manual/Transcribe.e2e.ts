@@ -1,6 +1,6 @@
 import * as fs from 'node:fs'
 import path from 'node:path'
-import { Path } from '@smm/core'
+import { Path } from '@smm/utils/path'
 import { expect, browser } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { setup, cleanup, importFolderWithMediaMetadata } from 'test/lib/testbed'

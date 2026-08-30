@@ -1,1 +1,1 @@
-export { validateChainingConflicts } from '@core/validations/rename/validateChainingConflicts'
+export { validateChainingConflicts } from '@smm/core/validations/rename/validateChainingConflicts'

@@ -9,7 +9,7 @@ import {
 } from "@/lib/musicEvents"
 import { openFile } from "@/api/openFile"
 import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { LocalFileTableRow } from "./LocalFileTableRow"
 import type { LocalFileTableRowFileMenu, MusicTableSelection } from "@/types/music-table"
 import { TableRowDownloadVideoJob } from "./TableRowDownloadVideoJob"

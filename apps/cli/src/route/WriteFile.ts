@@ -1,6 +1,6 @@
 import { buildAllowlist } from '@/utils/buildAllowlist';
-import { isError, ExistedFileError } from '@core/errors';
-import type { WriteFileRequestBody, WriteFileResponseBody } from '@core/types';
+import { isError, ExistedFileError } from '@smm/utils/errors';
+import type { WriteFileRequestBody, WriteFileResponseBody } from '@smm/types';
 import { doWriteFile as doWriteFileCore } from '@smm/core-routes';
 import type { Hono } from 'hono';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';

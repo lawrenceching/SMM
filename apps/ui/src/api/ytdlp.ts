@@ -1,11 +1,11 @@
 
-import { validateDownloadUrl } from "@core/download-video-validators";
+import { validateDownloadUrl } from "@smm/core/download-video-validators";
 import {
   buildYtdlpDownloadArgs,
   buildYtdlpInspectArgs,
   parseYtdlpDownloadStdout,
   validateYtdlpDownloadExtraArgs,
-} from "@core/whitelistedCmd/ytdlp";
+} from "@smm/core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeYtdlp } from "@/lib/ytdlp/executeYtdlp";
 

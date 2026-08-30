@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { mergeRefreshedMetadata } from './mediaMetadataRefreshUtils'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
-import type { MediaMetadata, TvShowMediaMetadata } from '@core/types'
+import type { MediaMetadata, TvShowMediaMetadata } from '@smm/types'
 
 const defaultTvShow = (name: string): TvShowMediaMetadata => ({
   id: '1',

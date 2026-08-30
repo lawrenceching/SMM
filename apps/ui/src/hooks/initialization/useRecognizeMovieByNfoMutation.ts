@@ -1,10 +1,10 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { readFile } from "@/api/readFile";
 import { parseMovieNfo } from "@/lib/nfo";
 import { useMutation } from "@tanstack/react-query";
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MovieMediaMetadata, PreferMediaLanguage } from "@smm/types";
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation";
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation";
 

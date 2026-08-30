@@ -11,7 +11,7 @@ import { moveFileToTrash } from '@/api/moveFileToTrash'
 import { getMediaTags } from '@/api/ffmpeg'
 import { discoverVideoCaptioner } from '@/api/videocaptioner'
 import { toast } from 'sonner'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import type { DownloadVideoBackgroundJob } from '@/types/background-jobs'
 
 const h = vi.hoisted(() => ({

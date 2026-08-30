@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import type { HelloResponseBody, UserConfig } from "@core/types"
+import type { HelloResponseBody, UserConfig } from "@smm/types"
 import { hello } from "@/api/hello"
 import { writeFile } from "@/api/writeFile"
 import { defaultUserConfig } from "@/api/readUserConfig"

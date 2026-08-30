@@ -1,4 +1,4 @@
-import type { Core, FolderType, ImportJob, JobStage } from 'core-app'
+import type { Core, FolderType, ImportJob, JobStage } from '@smm/core'
 
 export type AddProgressKind = 'tvshow' | 'movie'
 

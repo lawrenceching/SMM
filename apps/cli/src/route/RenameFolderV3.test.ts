@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { handleRenameFolderV3 } from './RenameFolderV3'
 import { metadataCachePath } from '../../test/helpers/testFolders'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'

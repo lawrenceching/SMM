@@ -1,10 +1,10 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
+import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@smm/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { extname, join } from "@/lib/path";
-import { Path } from "@core/path";
-import { getFullExtensionForAssociatedFile } from "@core/utils";
+import { Path } from "@smm/utils/path";
+import { getFullExtensionForAssociatedFile } from "@smm/types/mediaFileExtensions";
 import { findAssociatedFiles, requireFieldsNonUndefined, nextTraceId } from "@/lib/utils";
 
 /**
@@ -24,8 +24,8 @@ import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { renameFiles as renameFilesApi } from "@/api/renameFiles";
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { toast } from "sonner";
 import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";

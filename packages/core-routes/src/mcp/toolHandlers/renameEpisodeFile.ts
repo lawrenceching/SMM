@@ -1,11 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import {
   RENAME_EPISODE_FILE,
   RENAME_EPISODE_FILE_DESCRIPTION,
   renameEpisodeFileInputSchema,
   renameEpisodeFileOutputSchema,
-} from "@smm/core/types/ai-tools/renameEpisodeFile";
+} from "@smm/types/ai-tools/renameEpisodeFile";
 import { buildRenameEpisodeFileConfirmationMessage } from "@smm/core/ai-tool/renameEpisodeFileConfirm";
 import { renameEpisodeFileCancelled } from "@smm/core/ai-tool/renameEpisodeFileResult";
 import {

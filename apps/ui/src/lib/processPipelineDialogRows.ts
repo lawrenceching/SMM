@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import type { ProcessPipelineDialogRow } from "@/components/dialogs/types"
 import { transcribeDialogRowsFromMediaFiles, transcribeDialogRowsFromMusicFileRows } from "@/lib/transcribeDialogRows"

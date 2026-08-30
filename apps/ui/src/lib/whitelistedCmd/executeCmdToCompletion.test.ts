@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseYtdlpDownloadStdout } from "@core/whitelistedCmd/ytdlp";
+import { parseYtdlpDownloadStdout } from "@smm/core/whitelistedCmd/ytdlp";
 import { formatExecuteCmdFailure, truncateStderr } from "./executeCmdToCompletion";
 
 describe("parseYtdlpDownloadStdout", () => {

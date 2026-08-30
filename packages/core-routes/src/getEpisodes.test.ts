@@ -5,10 +5,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   GET_EPISODES_NOT_MANAGED,
   GET_EPISODES_NOT_TV_SHOW,
-} from "@smm/core/types/ai-tools/getEpisodes";
-import { LIST_FILES_IN_MEDIA_FOLDER_NOT_MANAGED } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
-import type { MediaMetadata } from "@smm/core/types";
-import { Path } from "@smm/core/path";
+} from "@smm/types/ai-tools/getEpisodes";
+import { LIST_FILES_IN_MEDIA_FOLDER_NOT_MANAGED } from "@smm/types/ai-tools/listFilesInMediaFolder";
+import type { MediaMetadata } from "@smm/types";
+import { Path } from "@smm/utils/path";
 import { metadataCacheFilePath } from "./mediaMetadataCache.ts";
 import { doGetEpisodes } from "./getEpisodes.ts";
 import { doListFilesInMediaFolder } from "./listFilesInMediaFolder.ts";

@@ -209,6 +209,12 @@ importers:
       '@smm/test':
         specifier: workspace:*
         version: link:../../packages/test
+      '@smm/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@smm/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       chai:
         specifier: ^6.2.2
         version: 6.2.2

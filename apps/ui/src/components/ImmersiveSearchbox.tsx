@@ -8,7 +8,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useTranslation } from "@/lib/i18n"
-import type { PrimaryDatabase } from "@core/types"
+import type { PrimaryDatabase } from "@smm/types"
 
 export interface SearchLanguageOption {
   code: string

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
-import type { MediaMetadata, MediaFileMetadata } from '@core/types'
+import type { MediaMetadata, MediaFileMetadata } from '@smm/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'

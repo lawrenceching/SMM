@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { defaultChatFs } from "../../chatFs.ts";
 import {
   createErrorResponse,
@@ -9,7 +9,7 @@ import {
 } from "../index.ts";
 import type { McpConfig } from "../types.ts";
 import { buildBeginRecognizeTaskTool } from "../../tools/recognizeMediaFilesTask.ts";
-import { BEGIN_RECOGNIZE_TASK } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
+import { BEGIN_RECOGNIZE_TASK } from "@smm/types/ai-tools/recognizeMediaFileTask";
 
 /**
  * Register the `begin-recognize-task` MCP tool. Creates a new

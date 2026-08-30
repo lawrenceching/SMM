@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { ListFilesRequestBody } from "@smm/core/types";
+import type { ListFilesRequestBody } from "@smm/types";
 import { doListFiles } from "../listFiles.ts";
 import { parseBooleanQuery, readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

@@ -1,4 +1,4 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 
 export function mediaFilePathEqual(a: string | undefined, b: string | undefined): boolean {
   if (a == null || b == null) {

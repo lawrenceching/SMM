@@ -1,7 +1,7 @@
 import { generateObject } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { z } from 'zod/v3';
-import type { OpenAIGenerateObjectRequestBody, OpenAIGenerateObjectResponseBody, OpenAICompatibleConfig, TMDBTVShowDetails } from '@core/types';
+import type { OpenAIGenerateObjectRequestBody, OpenAIGenerateObjectResponseBody, OpenAICompatibleConfig, TMDBTVShowDetails } from '@smm/types';
 import type { Hono } from "hono";
 
 interface MatchMediaFilesToEpisodeResponse {

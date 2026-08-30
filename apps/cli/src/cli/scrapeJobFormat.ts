@@ -1,4 +1,4 @@
-import type { ScrapeJob, ScrapeTaskRuntimeStatus } from 'core-app'
+import type { ScrapeJob, ScrapeTaskRuntimeStatus } from '@smm/core'
 
 /** CLI display order; Core task id `thumbnails` is shown as `thumbnail`. */
 export const SCRAPE_TASK_LINES = [

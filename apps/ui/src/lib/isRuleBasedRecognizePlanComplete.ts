@@ -1,5 +1,5 @@
-import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan'
-import type { MediaMetadata } from '@core/types'
+import type { RecognizedFile } from '@smm/types/RecognizeMediaFilePlan'
+import type { MediaMetadata } from '@smm/types'
 import { mediaFilePathEqual } from './mediaFilePathEqual'
 
 function episodeKey(season: number, episode: number): string {

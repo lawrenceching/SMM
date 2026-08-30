@@ -4,14 +4,14 @@ import {
   RENAME_FOLDER_CONFIRMATION_TITLE,
   RENAME_FOLDER_DESCRIPTION,
   renameFolderInputSchema,
-} from '@core/types/ai-tools/renameFolder'
-import { buildRenameFolderConfirmationMessage } from '@core/ai-tool/renameFolderConfirm'
+} from '@smm/types/ai-tools/renameFolder'
+import { buildRenameFolderConfirmationMessage } from '@smm/core/ai-tool/renameFolderConfirm'
 import {
   renameFolderCancelled,
   renameFolderFailed,
   renameFolderSucceeded,
-} from '@core/ai-tool/renameFolderResult'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/renameFolderResult'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import { postRenameFolder } from '@/api/renameFolder'
 import { requestConfirmation } from '../confirmationBridge'
 

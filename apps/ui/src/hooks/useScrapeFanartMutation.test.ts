@@ -3,7 +3,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest"
 import { renderHook } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import React from "react"
-import type { MediaMetadata, UserConfig } from "@core/types"
+import type { MediaMetadata, UserConfig } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import {
   resolveFanartUrl,

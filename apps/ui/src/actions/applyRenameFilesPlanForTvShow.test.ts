@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Path } from '@core/path'
-import type { RenameFilesRequestBody, RenameFilesResponseBody } from '@core/types'
+import { Path } from '@smm/utils/path'
+import type { RenameFilesRequestBody, RenameFilesResponseBody } from '@smm/types'
 import { applyRenameFilesPlanForTvShow } from './applyRenameFilesPlanForTvShow'
 import type { UIRenameFilesPlan } from '@/types/UIRenameFilesPlan'
 

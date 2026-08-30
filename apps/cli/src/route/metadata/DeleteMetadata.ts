@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { DeleteMetadataRequestBody } from '@core/types'
+import type { DeleteMetadataRequestBody } from '@smm/types'
 import { z } from 'zod'
 import { getCore } from '../../core/getCore'
 import { metadataProblemJson } from './problemDetails'

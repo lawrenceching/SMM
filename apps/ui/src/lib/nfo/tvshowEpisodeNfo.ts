@@ -1,4 +1,4 @@
-import type { TMDBEpisode } from "@core/types"
+import type { TMDBEpisode } from "@smm/types"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import type { TvShowNFOActor, TvShowNFORating, TvShowNFOUniqueId } from "./tvshowNfo"
 

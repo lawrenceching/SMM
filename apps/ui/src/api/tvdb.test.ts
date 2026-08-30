@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { UserConfig } from '@core/types'
+import type { UserConfig } from '@smm/types'
 import { fetchDiscoverConfig, type DiscoverConfig } from './discover'
 import localStorages from '@/lib/localStorages'
 import { HttpFailoverExhaustedError } from '@/lib/http'

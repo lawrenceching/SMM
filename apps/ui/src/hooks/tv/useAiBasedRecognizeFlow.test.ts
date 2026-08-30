@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest"
 import { renderHook } from "@testing-library/react"
 import { useAiBasedRecognizeFlow } from "./useAiBasedRecognizeFlow"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 
 vi.mock("@/hooks/plans", () => ({
   useUpdatePlanMutation: () => ({ mutateAsync: vi.fn() }),

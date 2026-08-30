@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback } from "react"
-import type { MediaMetadata, TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import type { MediaMetadata, TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types"
 import { type EpisodeNfo, type MovieNFO, type TvShowNFO } from "@/lib/nfo"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import type {

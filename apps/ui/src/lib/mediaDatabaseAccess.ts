@@ -1,5 +1,5 @@
 import { isEmpty } from "es-toolkit/compat"
-import type { MediaMetadata, UserConfig } from "@core/types"
+import type { MediaMetadata, UserConfig } from "@smm/types"
 import type { ReverseProxyCandidate } from "@/hooks/useReverseProxyBaseUrls"
 import localStorages from "@/lib/localStorages"
 

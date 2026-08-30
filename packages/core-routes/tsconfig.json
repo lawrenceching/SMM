@@ -14,8 +14,16 @@
     "noUncheckedIndexedAccess": true,
     "baseUrl": ".",
     "paths": {
-      "@smm/core": ["../core/types.ts"],
-      "@smm/core/*": ["../core/*"]
+      "@smm/types": ["../types/types.ts"],
+      "@smm/types/*": ["../types/*"],
+      "@smm/utils": ["../utils/src/index.ts"],
+      "@smm/utils/*": ["../utils/src/*.ts"],
+      "@smm/core": ["../../apps/core/src/index.ts"],
+      "@smm/core/createRenameEpisodePlan": [
+        "../../apps/core/src/pipeline/createRenameEpisodePlan.ts"
+      ],
+      "@smm/core/FsPort": ["../../apps/core/src/ports/FsPort.ts"],
+      "@smm/core/*": ["../../apps/core/src/*"]
     }
   },
   "include": ["./src/**/*.ts"],

@@ -4,7 +4,7 @@ import {
   transcribeDialogRowsFromMusicFileRows,
   absolutePosixMusicFilePath,
 } from "./transcribeDialogRows"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 
 const MEDIA_FOLDER_POSIX = "/path/to/music"

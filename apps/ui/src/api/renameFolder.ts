@@ -1,4 +1,4 @@
-import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types'
+import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@smm/types'
 import { apiFetch } from '@/lib/apiFetch';
 
 export interface RenameFolderParams {

@@ -4,14 +4,14 @@ import {
   RENAME_EPISODE_FILE_CONFIRMATION_TITLE,
   RENAME_EPISODE_FILE_DESCRIPTION,
   renameEpisodeFileInputSchema,
-} from '@core/types/ai-tools/renameEpisodeFile'
-import { buildRenameEpisodeFileConfirmationMessage } from '@core/ai-tool/renameEpisodeFileConfirm'
+} from '@smm/types/ai-tools/renameEpisodeFile'
+import { buildRenameEpisodeFileConfirmationMessage } from '@smm/core/ai-tool/renameEpisodeFileConfirm'
 import {
   renameEpisodeFileCancelled,
   renameEpisodeFileFailed,
   renameEpisodeFileSucceeded,
-} from '@core/ai-tool/renameEpisodeFileResult'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/renameEpisodeFileResult'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import { renameEpisodeFile } from '@/api/renameEpisodeFile'
 import { requestConfirmation } from '../confirmationBridge'
 

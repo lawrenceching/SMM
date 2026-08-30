@@ -10,12 +10,12 @@ import {
 } from "./plans.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatFs } from "../chatTypes.ts";
-import type { RenameFilesPlan } from "@smm/core/types/RenameFilesPlan";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { AnyPlan } from "./plans.ts";
 import type {
   RecognizeMediaFilePlan,
   RecognizedFile,
-} from "@smm/core/types/RecognizeMediaFilePlan";
+} from "@smm/types/RecognizeMediaFilePlan";
 
 /**
  * Tests for the recognise-media-file plan pipeline. They focus on the
@@ -25,7 +25,7 @@ import type {
  * `defaultValidateRecognizedFiles` is exercised twice:
  *
  * - Through a real filesystem (only on Linux/CI, where
- *   `@smm/core/path`'s POSIX→Windows conversion does not mutate the
+ *   `@smm/utils/path`'s POSIX→Windows conversion does not mutate the
  *   path) to prove the validator correctly accepts an existing file
  *   and rejects a missing one.
  * - Through an in-memory {@link ChatFs} that records plans in a Map
@@ -164,7 +164,7 @@ describe("appendRecognizedFile with a real filesystem (Linux/CI)", () => {
   });
 
   // `Path.toPlatformPath` is broken for POSIX inputs on Windows
-  // (`@smm/core/path` incorrectly routes through the UNC branch). Skip
+  // (`@smm/utils/path` incorrectly routes through the UNC branch). Skip
   // the real-fs round-trip there and let CI on Linux exercise it.
   it.skipIf(process.platform === "win32")(
     "adds the file when it exists on disk",
@@ -225,7 +225,7 @@ describe("plan cancellation (rejected status)", () => {
       readRenamePlan,
     } = await import("./plans.ts");
     const { PLAN_CANCELLED_BY_USER_MESSAGE } = await import(
-      "@smm/core/types/ai-tools/planTaskMessages"
+      "@smm/types/ai-tools/planTaskMessages"
     );
     const taskId = await beginRenamePlan(appDataDir, "/media/show", fs);
     const existing = fs.plans.get(taskId) as RenameFilesPlan | undefined;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ImportJob } from 'core-app'
+import type { ImportJob } from '@smm/core'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 
 function job(partial: Partial<ImportJob>): ImportJob {

@@ -4,7 +4,7 @@ import type {
   TmdbSeriesDetails,
   TmdbSeasonDetails,
   TmdbTvSeasonEpisodeDetails,
-} from "@core/types"
+} from "@smm/types"
 
 function createMockSeriesDetails(overrides: Partial<TmdbSeriesDetails> = {}): TmdbSeriesDetails {
   return {

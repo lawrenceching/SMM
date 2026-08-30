@@ -4,13 +4,13 @@ import {
   getMediaFoldersInputSchema,
   getMediaFoldersOutputSchema,
   type GetMediaFoldersToolOutput,
-} from "@smm/core/types/ai-tools/getMediaFolders";
+} from "@smm/types/ai-tools/getMediaFolders";
 import {
   buildGetMediaFoldersResponse,
   createEmptyGetMediaFoldersData,
 } from "@smm/core/ai-tool/buildGetMediaFoldersResponse";
 import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 
 /**
  * Core `getMediaFolders` execution. Pure of HTTP / framework — takes

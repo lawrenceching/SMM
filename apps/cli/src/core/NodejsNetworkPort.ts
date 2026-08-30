@@ -4,7 +4,7 @@ import type { Agent } from 'node:http'
 import { HttpProxyAgent } from 'http-proxy-agent'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { SocksProxyAgent } from 'socks-proxy-agent'
-import type { FetchInit, HttpResponse, NetworkPort } from 'core-app'
+import type { FetchInit, HttpResponse, NetworkPort } from '@smm/core'
 
 const SUPPORTED_PROXY_PROTOCOLS = new Set(['http:', 'https:', 'socks5:', 'socks5h:'])
 

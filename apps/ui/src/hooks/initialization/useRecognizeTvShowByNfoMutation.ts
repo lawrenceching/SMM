@@ -1,7 +1,7 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
-import { Path } from "@core/path";
+import type { PreferMediaLanguage, TvShowMediaMetadata } from "@smm/types";
+import { Path } from "@smm/utils/path";
 import { readFile } from "@/api/readFile";
 import { parseTvShowNfo } from "@/lib/nfo";
 import { useMutation } from "@tanstack/react-query";

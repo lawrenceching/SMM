@@ -1,4 +1,4 @@
-export * from "@core/whitelistedCmd";
+export * from "@smm/core/whitelistedCmd";
 export {
   executeCmdToCompletion,
   executeCmdToCompletionWithHeaders,

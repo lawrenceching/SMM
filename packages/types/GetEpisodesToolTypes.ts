@@ -1,5 +1,5 @@
 /**
- * @deprecated Import from `@core/types/ai-tools/getEpisodes` instead.
+ * @deprecated Import from `@smm/types/ai-tools/getEpisodes` instead.
  */
 export type {
   GetEpisodesInput as GetEpisodesToolRequest,

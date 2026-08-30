@@ -1,7 +1,7 @@
 import { stat } from "node:fs/promises";
 import { z } from "zod/v3";
-import { Path } from "@smm/core/path";
-import type { IsFolderExistOutput } from "@smm/core/types/ai-tools/isFolderExist";
+import { Path } from "@smm/utils/path";
+import type { IsFolderExistOutput } from "@smm/types/ai-tools/isFolderExist";
 import {
   isFolderExistInvalidPath,
   isFolderExistNotDirectory,

@@ -5,7 +5,7 @@ import type {
   TmdbMovieDetails,
   TmdbSeriesDetails,
   TvShowMediaMetadata,
-} from "@core/types";
+} from "@smm/types";
 
 function movieMediaMetadataFromTmdbMovie(movie: TmdbMovieDetails): MovieMediaMetadata {
   const name = movie.title?.trim() || movie.original_title?.trim() || "";

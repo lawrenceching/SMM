@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { isTerminalPlanStatus } from "@core/types/planCommon"
+import { isTerminalPlanStatus } from "@smm/types/planCommon"
 import { updatePlan, type UpdatePlanPatch } from "@/api/updatePlan"
 import type { Plan } from "@/api/getPlans"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"

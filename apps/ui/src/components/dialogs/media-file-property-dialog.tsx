@@ -31,9 +31,9 @@ import {
   Save,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { extensions } from "@core/utils"
+import { extensions } from "@smm/types/mediaFileExtensions"
 import { getMediaTags, generateFfmpegScreenshots } from "@/api/ffmpeg"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { toast } from "sonner"
 import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore"
 import { useJobManager } from "@/hooks/useJobManager"

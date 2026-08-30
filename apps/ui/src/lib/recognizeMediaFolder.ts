@@ -5,7 +5,7 @@ import {
 } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTMDB";
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
 import { tryToRecognizeMediaFolderByTvdbIdInFolderName } from "./recognizeMediaFolderByTvdbIdInFolderName";
-import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@smm/types";
 import { searchTvdb } from "@/api/tvdbSearch";
 import { isSmmV3Enabled } from "@/lib/localStorages";
 import { getTVDBv4Client } from "./TvdbUtils";

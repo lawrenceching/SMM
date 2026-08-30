@@ -5,13 +5,13 @@ vi.mock('@/api/listFiles', () => ({
   listFiles: vi.fn(),
 }))
 
-vi.mock('@core/mediaMetadata', () => ({
+vi.mock('@smm/core/mediaMetadata', () => ({
   createMediaMetadata: vi.fn(),
 }))
 
 import { listFiles } from '@/api/listFiles'
-import { createMediaMetadata } from '@core/mediaMetadata'
-import type { MediaMetadata } from '@core/types'
+import { createMediaMetadata } from '@smm/core/mediaMetadata'
+import type { MediaMetadata } from '@smm/types'
 
 describe('initializeMusicFolder', () => {
   const mockAddMediaFolderInUserConfig = vi.fn()

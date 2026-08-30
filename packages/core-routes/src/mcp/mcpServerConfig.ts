@@ -1,4 +1,4 @@
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 import type { CoreRoutesConfig } from "../types.ts";
 import { readUserConfig, writeUserConfigToDisk } from "../userConfig.ts";
 import type { McpLifecycleManager, McpServerState, StartMcpOptions } from "./lifecycleTypes.ts";

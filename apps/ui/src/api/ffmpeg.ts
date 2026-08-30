@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import {
   buildFfmpegConvertArgs,
   buildFfmpegWriteTagsArgs,
@@ -19,7 +19,7 @@ import { writeFile } from "@/api/writeFile";
 import { hello } from "@/api/hello";
 import { helloQueryKey } from "@/lib/appQueryKeys";
 import { queryClient } from "@/lib/queryClient";
-import type { HelloResponseBody } from "@core/types";
+import type { HelloResponseBody } from "@smm/types";
 
 export interface FfmpegScreenshotsResponse {
   screenshots?: string[];
@@ -175,7 +175,7 @@ export interface FfmpegConvertRequest {
   outputPath: string;
   outputFormat: FfmpegConvertFormat;
   preset: FfmpegConvertPreset;
-  imageOptions?: import('@core/whitelistedCmd/constants').FfmpegConvertImageOptions;
+  imageOptions?: import('@smm/core/whitelistedCmd/constants').FfmpegConvertImageOptions;
 }
 
 export interface FfmpegConvertResponse {

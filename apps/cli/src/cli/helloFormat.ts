@@ -1,4 +1,4 @@
-import type { HelloCliBody } from '@core/types'
+import type { HelloCliBody } from '@smm/types'
 
 export function formatHelloLines(body: HelloCliBody): string[] {
   return [

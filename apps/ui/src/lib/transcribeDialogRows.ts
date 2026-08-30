@@ -1,8 +1,8 @@
-import type { MediaFileMetadata, MediaMetadata } from "@core/types"
+import type { MediaFileMetadata, MediaMetadata } from "@smm/types"
 import type { TranscribeDialogRow } from "@/components/dialogs/types"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { basename, isAbsPath, join, relative } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 
 export function labelForMediaFile(
   mediaMetadata: MediaMetadata,

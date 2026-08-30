@@ -5,9 +5,9 @@ import {
   getJobInputSchema,
   type GetJobOutput,
   type JobToolPayload,
-} from '@core/types/ai-tools/getJob'
-import { getJobFailed, getJobSucceeded } from '@core/ai-tool/getJobResult'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/getJob'
+import { getJobFailed, getJobSucceeded } from '@smm/core/ai-tool/getJobResult'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import { getJob } from '@/api/getJob'
 
 const getJobTool = tool({

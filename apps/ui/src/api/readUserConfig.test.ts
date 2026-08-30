@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { UserConfig } from '@core/types'
+import type { UserConfig } from '@smm/types'
 import { defaultUserConfig, normalizeUserConfig, readUserConfigFromUserDataDir } from './readUserConfig'
 import { readFile } from './readFile'
 

@@ -3,8 +3,8 @@ import {
   BEGIN_RECOGNIZE_TASK,
   BEGIN_RECOGNIZE_TASK_DESCRIPTION,
   beginRecognizeTaskInputSchema,
-} from "@core/types/ai-tools/recognizeMediaFileTask"
-import { formatToolError, requireNonEmptyString, toolOk } from "@core/ai-tool/toolResult"
+} from "@smm/types/ai-tools/recognizeMediaFileTask"
+import { formatToolError, requireNonEmptyString, toolOk } from "@smm/core/ai-tool/toolResult"
 import { createPlan } from "@/api/createPlan"
 import { PLANS_QUERY_ROOT } from "@/hooks/plans"
 import { queryClient } from "@/lib/queryClient"

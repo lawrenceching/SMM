@@ -2,7 +2,7 @@ import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
 import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { extname, newFilePathWithExt } from "@/lib/path"
-import type { MediaFileMetadata } from "@core/types"
+import type { MediaFileMetadata } from "@smm/types"
 import Debug from 'debug'
 
 const debug = Debug('useDownloadThumbnailFromTVDB')

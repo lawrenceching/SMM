@@ -6,7 +6,7 @@ import { useConfig } from "@/hooks/userConfig";
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery";
 import { getBrowserLocale, getResolvedLanguages } from "@/hooks/useResolvedLanguages";
 import { nextTraceId } from "@/lib/utils";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type { OnMediaFolderImportedEventData } from "@/types/eventTypes";
 import { toast } from "sonner";
 import {
@@ -27,14 +27,14 @@ import { useRecognizeMovieByTmdbIdInFolderNameMutation } from "@/hooks/initializ
 import { useRecognizeMovieByTvdbIdInFolderNameMutation } from "@/hooks/initialization/useRecognizeMovieByTvdbIdInFolderNameMutation";
 import { recognizeEpisodes as recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
 import { extname } from "@/lib/path";
-import { videoFileExtensions } from "@core/utils";
+import { videoFileExtensions } from "@smm/types/mediaFileExtensions";
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MediaFileMetadata, MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types";
+import type { MediaFileMetadata, MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 import { withTimeout } from "es-toolkit";
 import { logger } from "@/lib/log";
 import { useCallback, useEffect, useRef } from "react";
-import type { FolderType } from "@core/types";
+import type { FolderType } from "@smm/types";
 import { useInitializeMediaMetadataMutation, useUpdateMediaMetadataMutation } from "../mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
 import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess";

@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   IS_FOLDER_EXIST_NOT_DIRECTORY,
   IS_FOLDER_EXIST_NOT_FOUND,
-} from "@smm/core/types/ai-tools/isFolderExist";
+} from "@smm/types/ai-tools/isFolderExist";
 import {
   checkFolderPathAvailable,
   doIsFolderAvailable,

@@ -1,7 +1,7 @@
 import { z } from 'zod/v3';
 import { stat } from 'node:fs/promises';
-import { Path } from '@core/path';
-import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@core/types';
+import { Path } from '@smm/utils/path';
+import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@smm/types';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import { moveFileToTrashOrDelete } from '../utils/files';

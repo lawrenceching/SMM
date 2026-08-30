@@ -1,4 +1,4 @@
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import React from "react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { render, waitFor } from "@testing-library/react"

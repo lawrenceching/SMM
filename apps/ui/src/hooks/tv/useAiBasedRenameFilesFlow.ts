@@ -4,7 +4,7 @@ import { cleanupRenamePlan } from "@/ai/plan/cleanupRenamePlan"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 

@@ -1,7 +1,7 @@
 import { listFiles } from "@/api/listFiles"
 import { basename, dirname, extname } from "@/lib/path"
-import { Path } from "@core/path"
-import type { MediaMetadata } from "@core/types"
+import { Path } from "@smm/utils/path"
+import type { MediaMetadata } from "@smm/types"
 import { imageFileExtensions } from "@/lib/utils"
 import type { ScrapeTaskId } from "./types"
 

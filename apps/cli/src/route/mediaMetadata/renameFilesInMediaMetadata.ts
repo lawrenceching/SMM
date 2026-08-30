@@ -1,5 +1,5 @@
 import type { Hono } from "hono";
-import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@core/types";
+import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@smm/types";
 import { updateMediaMetadataAndBroadcast } from "../../utils/renameFileUtils";
 
 /**

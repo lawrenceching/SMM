@@ -1,4 +1,4 @@
-import type { RenameValidationResult } from '@core/types'
+import type { RenameValidationResult } from '@smm/types'
 import { apiFetch } from '@/lib/apiFetch';
 
 export interface ValidateRenameOperationsRequestBody {

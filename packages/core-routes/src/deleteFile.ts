@@ -1,8 +1,8 @@
 import path from "node:path";
 import { stat, unlink } from "node:fs/promises";
 import { z } from "zod/v3";
-import { Path } from "@smm/core/path";
-import type { DeleteFileRequestBody, DeleteFileResponseBody } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import type { DeleteFileRequestBody, DeleteFileResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 

@@ -46,9 +46,9 @@ import {
   type FfmpegCompressDenoise,
   type FfmpegCompressMetadata,
   type FfmpegEncoderInfo,
-} from "@core/whitelistedCmd/constants"
-import { computeTargetBitrateKbpsFromSize } from "@core/whitelistedCmd/constants"
-import { estimateCompressSizeMb } from "@core/whitelistedCmd/compressEstimation"
+} from "@smm/core/whitelistedCmd/constants"
+import { computeTargetBitrateKbpsFromSize } from "@smm/core/whitelistedCmd/constants"
+import { estimateCompressSizeMb } from "@smm/core/whitelistedCmd/compressEstimation"
 import type { VideoCompressionDialogProps } from "./types"
 
 const CONTAINERS: FfmpegCompressContainer[] = ["mp4", "mkv", "webm", "mov"]

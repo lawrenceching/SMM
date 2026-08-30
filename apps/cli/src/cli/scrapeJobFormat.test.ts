@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ScrapeJob } from 'core-app'
+import type { ScrapeJob } from '@smm/core'
 import { formatScrapeJobTaskLines, scrapeStatusIcon } from './scrapeJobFormat'
 
 function scrapeJob(tasks: ScrapeJob['tasks']): ScrapeJob {

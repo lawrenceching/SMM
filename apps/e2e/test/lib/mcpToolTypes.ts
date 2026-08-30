@@ -3,7 +3,7 @@
  * Keep in sync with packages/core-routes MCP handlers and apps/cli/src/mcp/mcp.ts registrations.
  */
 
-import type { TmdbMovieDetails, TmdbSeriesDetails } from '@smm/core/types'
+import type { TmdbMovieDetails, TmdbSeriesDetails } from '@smm/types'
 
 /** Kebab-case names passed to `mcp-test-client --tool`. */
 export const McpToolName = {

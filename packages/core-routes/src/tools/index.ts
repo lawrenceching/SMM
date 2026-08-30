@@ -1,28 +1,28 @@
-import type { UserConfig } from "@smm/core/types";
-import { resolveAppLanguage, detectOsLocale } from "@smm/core/locale";
-import { GET_APPLICATION_CONTEXT } from "@smm/core/types/ai-tools/getApplicationContext";
-import { IS_FOLDER_EXIST } from "@smm/core/types/ai-tools/isFolderExist";
-import { GET_MEDIA_METADATA } from "@smm/core/types/ai-tools/getMediaMetadata";
-import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
-import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
-import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
-import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
-import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
-import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
-import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
-import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
-import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
-import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
+import type { UserConfig } from "@smm/types";
+import { resolveAppLanguage, detectOsLocale } from "@smm/utils/locale";
+import { GET_APPLICATION_CONTEXT } from "@smm/types/ai-tools/getApplicationContext";
+import { IS_FOLDER_EXIST } from "@smm/types/ai-tools/isFolderExist";
+import { GET_MEDIA_METADATA } from "@smm/types/ai-tools/getMediaMetadata";
+import { GET_EPISODES } from "@smm/types/ai-tools/getEpisodes";
+import { GET_MEDIA_FOLDERS } from "@smm/types/ai-tools/getMediaFolders";
+import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/types/ai-tools/listFilesInMediaFolder";
+import { RENAME_FOLDER } from "@smm/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/types/ai-tools/tmdbGetTvShow";
 import {
   buildTmdbGetMovieTool,
   buildTmdbGetTvShowTool,
   buildTmdbSearchTool,
   type TmdbToolRunners,
 } from "./tmdb.ts";
-import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
-import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
-import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
-import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
+import { TVDB_SEARCH } from "@smm/types/ai-tools/tvdbSearch";
+import { TVDB_GET_MOVIE } from "@smm/types/ai-tools/tvdbGetMovie";
+import { TVDB_GET_TV_SHOW } from "@smm/types/ai-tools/tvdbGetTvShow";
+import { TVDB_GET_LANGUAGES } from "@smm/types/ai-tools/tvdbGetLanguages";
 import {
   buildTvdbGetLanguagesTool,
   buildTvdbGetMovieTool,
@@ -32,12 +32,12 @@ import {
 } from "./tvdb.ts";
 import {
   CREATE_RENAME_EPISODE_PLAN,
-} from "@smm/core/types/ai-tools/createRenameEpisodePlan";
+} from "@smm/types/ai-tools/createRenameEpisodePlan";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
   END_RECOGNIZE_TASK,
-} from "@smm/core/types/ai-tools/recognizeMediaFileTask";
+} from "@smm/types/ai-tools/recognizeMediaFileTask";
 import type { CoreRoutesConfig } from "../types.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatConfig, ChatFs } from "../chatTypes.ts";

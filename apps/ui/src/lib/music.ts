@@ -2,9 +2,9 @@ import type { MusicFileProps, MusicMediaMetadata } from "@/types/MusicMediaMetad
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { Track } from "@/components/MediaPlayer";
-import { Path } from "@core/path";
-import { extensions } from "@core/utils";
-import { pathToFileURL } from "@core/url";
+import { Path } from "@smm/utils/path";
+import { extensions } from "@smm/types/mediaFileExtensions";
+import { pathToFileURL } from "@smm/utils/url";
 
 export function newMusicMediaMetadata(mm: MediaMetadataWithFolderFiles): MusicMediaMetadata {
     return {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { buildMovieMediaMetadata } from "./useGetTmdbMovieMutation"
-import type { TmdbMovieDetails } from "@core/types"
+import type { TmdbMovieDetails } from "@smm/types"
 
 function createMockMovieDetails(overrides: Partial<TmdbMovieDetails> = {}): TmdbMovieDetails {
   return {

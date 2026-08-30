@@ -1,14 +1,14 @@
 export {
   validateNoDuplicatedSourceFile,
-} from '@core/validations/rename/validateNoDuplicatedSourceFile'
+} from '@smm/core/validations/rename/validateNoDuplicatedSourceFile'
 export {
   validateNoDuplicatedDestFile,
-} from '@core/validations/rename/validateNoDuplicatedDestFile'
+} from '@smm/core/validations/rename/validateNoDuplicatedDestFile'
 export {
   validateNoIdenticalSourceAndDestFile,
-} from '@core/validations/rename/validateNoIdenticalSourceAndDestFile'
-export { validateChainingConflicts } from '@core/validations/rename/validateChainingConflicts'
+} from '@smm/core/validations/rename/validateNoIdenticalSourceAndDestFile'
+export { validateChainingConflicts } from '@smm/core/validations/rename/validateChainingConflicts'
 export {
   validatePathWithinMediaFolder,
-} from '@core/validations/rename/validatePathWithinMediaFolder'
-export { validateNoAbnormalPaths } from '@core/validations/rename/validateNoAbnormalPaths'
+} from '@smm/core/validations/rename/validatePathWithinMediaFolder'
+export { validateNoAbnormalPaths } from '@smm/core/validations/rename/validateNoAbnormalPaths'

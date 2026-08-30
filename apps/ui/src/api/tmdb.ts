@@ -3,7 +3,7 @@ import type {
   TmdbMovieDetails,
   TmdbSeriesDetails,
   TmdbSeasonDetails,
-} from '@core/types'
+} from '@smm/types'
 import localStorages from '@/lib/localStorages'
 import { fetchDiscoverConfig, type DiscoverConfig, type ReverseProxyEndpoint } from './discover'
 import { isEmpty } from 'es-toolkit/compat'
@@ -22,7 +22,7 @@ export type {
   TmdbSeriesDetails,
   TmdbSeasonDetails,
   TmdbMovieDetails,
-} from '@core/types'
+} from '@smm/types'
 
 /**
  * Optional overrides for a single TMDB request.

@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { ToolDefinition } from "./types";
 import { createSuccessResponse, createErrorResponse } from "@/mcp/tools/mcpToolBase";
 import { findMediaMetadata } from "@/utils/mediaMetadata";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import logger from "../../lib/logger";
 import { getLocalizedToolDescription } from '@/i18n/helpers';
 

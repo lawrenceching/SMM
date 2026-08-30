@@ -1,4 +1,4 @@
-import type { ListFilesRequestBody, ListFilesResponseBody } from '@core/types';
+import type { ListFilesRequestBody, ListFilesResponseBody } from '@smm/types';
 import type { Hono } from 'hono';
 import { doListFiles as doListFilesCore } from '@smm/core-routes';
 import { logger } from '../../lib/logger';

@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 
 export interface MusicFileProps {
     type: "audio" | "video"

@@ -4,7 +4,7 @@ import type {
     TMDBTVShow,
     TMDBTVShowDetails,
     TvShowMediaMetadata,
-} from "@core/types";
+} from "@smm/types";
 import { searchTmdb } from "@/api/tmdb";
 import { basename } from "./path";
 import { tvShowMediaMetadataFromTmdbDetails } from "./tvShowMediaMetadataFromTmdbDetails";

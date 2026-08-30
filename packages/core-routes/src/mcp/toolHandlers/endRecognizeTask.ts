@@ -8,8 +8,8 @@ import {
 } from "../index.ts";
 import type { McpConfig } from "../types.ts";
 import { buildEndRecognizeTaskTool } from "../../tools/recognizeMediaFilesTask.ts";
-import { END_RECOGNIZE_TASK } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
+import { END_RECOGNIZE_TASK } from "@smm/types/ai-tools/recognizeMediaFileTask";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
 
 /**
  * Register the `end-recognize-task` MCP tool. Finalises a recognise

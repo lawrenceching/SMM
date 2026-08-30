@@ -3,12 +3,12 @@ import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
-import type { MediaMetadata } from "@core/types"
-import { type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
+import { type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@smm/types"
 import { basename, extname, relative, join, dirname } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { listFilesApi } from "@/api/listFiles"
-import { extensions, videoFileExtensions, imageFileExtensions } from "@core/utils"
+import { extensions, videoFileExtensions, imageFileExtensions } from "@smm/types/mediaFileExtensions"
 
 export { extensions, videoFileExtensions, imageFileExtensions }
 
@@ -41,7 +41,7 @@ interface TvShowEpisodesProps {
 import { getTMDBImageUrl } from "@/api/tmdb"
 import filenamify from 'filenamify';
 import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
-import { isError, ExistedFileError } from "@core/errors"
+import { isError, ExistedFileError } from "@smm/utils/errors"
 
 
 export function cn(...inputs: ClassValue[]) {

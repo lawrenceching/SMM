@@ -2,7 +2,7 @@ import { useGetTmdbTvShowMutation } from "../useGetTmdbTvShowMutation";
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import { basename } from "@/lib/path";
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@core/types";
+import type { MediaMetadata, PreferMediaLanguage, TvShowMediaMetadata } from "@smm/types";
 import type { TmdbRequestOptions } from "@/api/tmdb";
 
 export function useRecognizeTvShowByTmdbIdInFolderNameMutation() {

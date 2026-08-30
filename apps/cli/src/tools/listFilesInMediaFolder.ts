@@ -1,9 +1,9 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import {
   buildListFilesInMediaFolderResponse,
   createEmptyListFilesInMediaFolderData,
-} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,
   LIST_FILES_IN_MEDIA_FOLDER_INVALID_PATH,
@@ -11,7 +11,7 @@ import {
   listFilesInMediaFolderInputSchema,
   listFilesInMediaFolderOutputSchema,
   type ListFilesInMediaFolderToolOutput,
-} from '@core/types/ai-tools/listFilesInMediaFolder'
+} from '@smm/types/ai-tools/listFilesInMediaFolder'
 import { doListFiles } from '@/route/ListFiles'
 import { getUserConfig } from '@/utils/config'
 
@@ -19,7 +19,7 @@ export type { ListFilesInMediaFolderToolOutput }
 export {
   buildListFilesInMediaFolderResponse,
   createEmptyListFilesInMediaFolderData,
-} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
+} from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
 
 async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   const userConfig = await getUserConfig()

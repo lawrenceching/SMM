@@ -1,6 +1,6 @@
 /**
  * Compile-time + runtime alignment test between the AI tool registry
- * (`@core/ai-tool/registry`) and the actual tool registrations in
+ * (`@smm/core/ai-tool/registry`) and the actual tool registrations in
  * `packages/core-routes/src/chat.ts`.
  *
  * The chat pipeline (including the `tools: { ... }` map exposed to
@@ -24,7 +24,7 @@
 import { describe, expect, it } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { AI_TOOL_REGISTRY } from '@core/ai-tool/registry'
+import { AI_TOOL_REGISTRY } from '@smm/core/ai-tool/registry'
 
 const CHAT_TASK_PATH = join(
   __dirname,
@@ -39,7 +39,7 @@ const CHAT_TASK_PATH = join(
 )
 
 /**
- * Tool name constants imported from `@core/types/ai-tools/*` are
+ * Tool name constants imported from `@smm/types/ai-tools/*` are
  * kebab-case string literals (e.g. `GET_APPLICATION_CONTEXT = 'get-app-context'`).
  * The mapping from SCREAMING_SNAKE_CASE constant name to kebab-case
  * tool name is just a `.toLowerCase()` operation in every file we

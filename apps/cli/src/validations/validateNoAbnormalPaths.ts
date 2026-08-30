@@ -1,1 +1,1 @@
-export { validateNoAbnormalPaths } from '@core/validations/rename/validateNoAbnormalPaths'
+export { validateNoAbnormalPaths } from '@smm/core/validations/rename/validateNoAbnormalPaths'

@@ -1,8 +1,8 @@
 import { z } from 'zod/v3'
 import type { Hono } from 'hono'
-import { Path } from '@core/path'
-import type { RenameValidationResult } from '@core/types'
-import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync'
+import { Path } from '@smm/utils/path'
+import type { RenameValidationResult } from '@smm/types'
+import { validateRenameOperationsSync } from '@smm/core/validations/rename/validateRenameOperationsSync'
 import { validateRenameOperations } from '../tools/renameFilesInBatch'
 import { logger } from '../../lib/logger'
 

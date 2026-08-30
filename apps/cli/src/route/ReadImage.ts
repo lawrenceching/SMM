@@ -1,6 +1,6 @@
 import type { Hono } from "hono";
 import { doReadImage as doReadImageCore } from "@smm/core-routes";
-import type { ReadImageRequestBody, ReadImageResponseBody } from "@core/types";
+import type { ReadImageRequestBody, ReadImageResponseBody } from "@smm/types";
 import { buildAllowlist } from "@/utils/buildAllowlist";
 import { logger } from "../../lib/logger";
 

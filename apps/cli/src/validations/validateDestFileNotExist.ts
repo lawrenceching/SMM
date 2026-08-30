@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { Path } from '@core/path';
+import { Path } from '@smm/utils/path';
 
 /**
  * Wrapper for stat with timeout to prevent hanging on invalid paths

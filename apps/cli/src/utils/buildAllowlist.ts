@@ -1,5 +1,5 @@
 import { getUserConfig, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
-import { Path } from '@core/path';
+import { Path } from '@smm/utils/path';
 
 /**
  * Builds the POSIX-format allowlist used by writeFile path validation.

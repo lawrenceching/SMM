@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import type { UserConfig } from '@core/types';
+import type { UserConfig } from '@smm/types';
 
 export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
 

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { McpServerState } from "core-app";
+import type { McpServerState } from "@smm/core";
 import { doMcpGetStatus, doMcpStart, doMcpStop } from "@smm/core-routes";
 import { getCore } from "@/core/getCore";
 import { getBunMcpLifecycleManager } from "@/mcp/bunMcpLifecycleManager";

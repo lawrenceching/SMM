@@ -1,4 +1,4 @@
-import type { UserConfig } from "@smm/core/types";
+import type { UserConfig } from "@smm/types";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 import type { WebSocketMessage } from "../socketIO/types.ts";
@@ -75,7 +75,7 @@ export interface McpConfig {
    * affected tool names here so the MCP `tools/list` response never
    * advertises them. Defaults to registering every tool.
    *
-   * Use the constants from `@smm/core/types/ai-tools/*`
+   * Use the constants from `@smm/types/ai-tools/*`
    * (e.g. `RENAME_FOLDER`).
    */
   disabledTools?: readonly string[];
@@ -119,7 +119,7 @@ export interface McpConfig {
       password?: string;
       proxy?: string;
     },
-  ) => Promise<import("@smm/core/types").TmdbSearchResponseBody>;
+  ) => Promise<import("@smm/types").TmdbSearchResponseBody>;
 
   /** Optional runner for `tmdb-get-movie` → `Core.getMovieInTmdb`. */
   getMovieInTmdb?: (
@@ -130,7 +130,7 @@ export interface McpConfig {
       password?: string;
       proxy?: string;
     },
-  ) => Promise<import("@smm/core/types").TmdbMovieDetails>;
+  ) => Promise<import("@smm/types").TmdbMovieDetails>;
 
   /** Optional runner for `tmdb-get-tv-show` → `Core.getTvShowInTmdb`. */
   getTvShowInTmdb?: (
@@ -141,7 +141,7 @@ export interface McpConfig {
       password?: string;
       proxy?: string;
     },
-  ) => Promise<import("@smm/core/types").TmdbSeriesDetails>;
+  ) => Promise<import("@smm/types").TmdbSeriesDetails>;
 
   /** Optional runner for `tvdb-search` → `Core.searchInTvdb`. */
   searchInTvdb?: (
@@ -190,7 +190,7 @@ export interface McpConfig {
   /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
-   * omitted, English defaults from `@smm/core/types/ai-tools/*`
+   * omitted, English defaults from `@smm/types/ai-tools/*`
    * are used. `apps/cli` injects the user's preferred language
    * here via its i18next setup.
    */

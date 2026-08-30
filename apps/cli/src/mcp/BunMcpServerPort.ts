@@ -7,7 +7,7 @@ import type {
   McpServerPort,
   McpServerStartOptions,
   McpServerState,
-} from "core-app";
+} from "@smm/core";
 import {
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,

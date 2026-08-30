@@ -3,7 +3,7 @@ import type {
   MetadataSuccessResponseBody,
   ProblemDetails,
   SetMetadataRequestBody,
-} from "@core/types"
+} from "@smm/types"
 import { apiFetch } from "@/lib/apiFetch"
 
 export type MetadataPatch = SetMetadataRequestBody["patch"]

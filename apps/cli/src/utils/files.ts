@@ -1,4 +1,4 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { readdir, stat, unlink, access, constants, mkdir, cp } from "node:fs/promises";
 import path from "path";
 import { isDesktopEnv } from "./os";

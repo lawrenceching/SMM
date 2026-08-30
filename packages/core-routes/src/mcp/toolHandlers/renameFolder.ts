@@ -4,11 +4,11 @@ import {
   RENAME_FOLDER_DESCRIPTION,
   renameFolderInputSchema,
   renameFolderOutputSchema,
-} from "@smm/core/types/ai-tools/renameFolder";
+} from "@smm/types/ai-tools/renameFolder";
 import {
   USER_CONFIG_FOLDER_RENAMED_EVENT,
   USER_CONFIG_UPDATED_EVENT,
-} from "@smm/core/event-types";
+} from "@smm/types/event-types";
 import {
   createErrorResponse,
   createSuccessResponse,

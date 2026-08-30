@@ -28,11 +28,32 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-      '@core': path.resolve(__dirname, '../../packages/core'),
-      '@smm/tvdb4': path.resolve(__dirname, '../../packages/tvdb4/src/index.ts'),
-      '@smm/tvdb4/': `${path.resolve(__dirname, '../../packages/tvdb4/src')}/`,
-    },
+    alias: [
+      {
+        find: /^@smm\/types\/(.+)$/,
+        replacement: `${path.resolve(__dirname, '../../packages/types')}/$1`,
+      },
+      {
+        find: '@smm/types',
+        replacement: path.resolve(__dirname, '../../packages/types/types.ts'),
+      },
+      {
+        find: /^@smm\/utils\/(.+)$/,
+        replacement: `${path.resolve(__dirname, '../../packages/utils/src')}/$1`,
+      },
+      {
+        find: '@smm/utils',
+        replacement: path.resolve(__dirname, '../../packages/utils/src/index.ts'),
+      },
+      {
+        find: '@smm/tvdb4/',
+        replacement: `${path.resolve(__dirname, '../../packages/tvdb4/src')}/`,
+      },
+      {
+        find: '@smm/tvdb4',
+        replacement: path.resolve(__dirname, '../../packages/tvdb4/src/index.ts'),
+      },
+      { find: '@', replacement: path.resolve(__dirname, './src') },
+    ],
   },
 })

@@ -1,5 +1,5 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
-import type { MediaMetadata, TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import type { MediaMetadata, TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types"
 import {
   convertMovieNfoToXml,
   convertTvShowEpisodeNfoToXml,
@@ -10,7 +10,7 @@ import {
 } from "@/lib/nfo"
 import { writeFile } from "@/api/writeFile"
 import { join, newFilePathWithExt } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { useTmdbQueries } from "./useTmdbQueries"
 import { useTvdbQueries } from "./useTvdbQueries"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"

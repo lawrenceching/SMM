@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { MediaMetadata, UserConfig } from "@core/types"
+import type { MediaMetadata, UserConfig } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { resolveMediaDatabaseHttpProxy, resolveScrapeHttpProxy } from "./mediaDatabaseAccess"
 

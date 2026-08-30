@@ -1,6 +1,6 @@
 import { useMutation, type UseMutationOptions } from "@tanstack/react-query"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
-import type { MovieMediaMetadata, TmdbMovieDetails } from "@core/types"
+import type { MovieMediaMetadata, TmdbMovieDetails } from "@smm/types"
 import type { TmdbRequestOptions } from "@/api/tmdb"
 
 /**

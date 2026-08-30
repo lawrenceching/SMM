@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import type { HelloResponseBody } from "@core/types"
+import type { HelloResponseBody } from "@smm/types"
 import { hello } from "@/api/hello"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 

@@ -22,7 +22,7 @@ import { readFile } from "@/api/readFile"
 import { useConfig } from "@/hooks/userConfig/useConfig"
 import { summarizeVideo } from "@/lib/summarizeVideo"
 import { findAndWriteSummaryFile } from "@/lib/summarizeFilename"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { toast } from "sonner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 

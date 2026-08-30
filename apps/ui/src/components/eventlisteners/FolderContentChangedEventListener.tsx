@@ -1,13 +1,13 @@
 import { useRef } from "react";
 import { useLatest, useMount, useUnmount } from "react-use";
 import { useQueryClient } from "@tanstack/react-query";
-import { FOLDER_CONTENT_CHANGED_EVENT, type FolderContentChangedEventData } from "@core/event-types";
+import { FOLDER_CONTENT_CHANGED_EVENT, type FolderContentChangedEventData } from "@smm/types/event-types";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { associatedFilesQueryKey } from "@/lib/associatedFilesQueryKeys";
 import { normalizeMediaFolderPathForQuery } from "@/hooks/mediaMetadata";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import Debug from 'debug';
 
 const debug = Debug('FolderContentChangedEventListener');

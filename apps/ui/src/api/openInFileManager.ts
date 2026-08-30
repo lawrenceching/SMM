@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from "@core/types";
+import { Path } from "@smm/utils/path";
+import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from "@smm/types";
 import { apiFetch } from '@/lib/apiFetch';
 
 const OPEN_IN_FILE_MANAGER_CHANNEL = "open-in-file-manager";

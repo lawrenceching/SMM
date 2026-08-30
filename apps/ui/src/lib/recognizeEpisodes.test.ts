@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { pattern4, recognizeEpisodes } from './recognizeEpisodes'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 
 describe('pattern4', () => {
   it('returns empty array when there are multiple seasons', () => {

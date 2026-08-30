@@ -4,7 +4,7 @@ import {
   isFolderExistInputSchema,
   isFolderExistOutputSchema,
   type IsFolderExistOutput,
-} from "@smm/core/types/ai-tools/isFolderExist";
+} from "@smm/types/ai-tools/isFolderExist";
 import { isFolderExistCheckFailed } from "@smm/core/ai-tool/isFolderExistResult";
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import { resolveFolderExistence } from "../isFolderAvailable.ts";

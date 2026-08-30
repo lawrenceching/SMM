@@ -3,7 +3,7 @@ import {
   CREATE_RENAME_EPISODE_PLAN,
   CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
   createRenameEpisodePlanInputSchema,
-} from "@smm/core/types/ai-tools/createRenameEpisodePlan";
+} from "@smm/types/ai-tools/createRenameEpisodePlan";
 import { defaultChatFs } from "../../chatFs.ts";
 import { buildCreateRenameEpisodePlanTool } from "../../tools/createRenameEpisodePlan.ts";
 import {

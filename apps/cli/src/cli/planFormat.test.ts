@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Plan } from 'core-app'
+import type { Plan } from '@smm/core'
 import { formatPlanDetailLines, formatPlanListLine, planFileCount } from './planFormat'
 
 const recognize: Plan = {

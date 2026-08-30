@@ -1,4 +1,4 @@
-import type { HelloResponseBody } from "@smm/core/types";
+import type { HelloResponseBody } from "@smm/types";
 
 export interface HelloOptions {
   /** CLI/ohos app version, e.g. "1.3.8". */

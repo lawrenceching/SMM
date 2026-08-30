@@ -6,7 +6,7 @@ import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { useTvdbQueries } from "@/hooks/useTvdbQueries"
 import { useConfig } from "./userConfig"
 import { downloadScrapeImage } from "@/lib/downloadScrapeImage"
-import type { MediaMetadata, TmdbMovieDetails, TmdbSeriesDetails } from "@core/types"
+import type { MediaMetadata, TmdbMovieDetails, TmdbSeriesDetails } from "@smm/types"
 import type {
   TVDBv4Artwork,
   TVDBv4ArtworkTypeRecord,

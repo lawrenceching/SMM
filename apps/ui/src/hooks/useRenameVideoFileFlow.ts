@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { useTranslation } from "@/lib/i18n"
 import { join, relative } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"

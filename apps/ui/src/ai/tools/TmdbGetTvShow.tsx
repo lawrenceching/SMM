@@ -4,8 +4,8 @@ import {
   TMDB_GET_TV_SHOW_DESCRIPTION,
   tmdbGetTvShowInputSchema,
   type TmdbGetTvShowOutput,
-} from '@core/types/ai-tools/tmdbGetTvShow'
-import { formatToolError } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/tmdbGetTvShow'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { getTvShowInTmdb } from '@/api/tmdbV3'
 
 const tmdbGetTvShowTool = tool({

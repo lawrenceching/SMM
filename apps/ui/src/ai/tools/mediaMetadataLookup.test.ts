@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { findMediaMetadataForPath } from "./mediaMetadataLookup"
 
 describe("findMediaMetadataForPath", () => {

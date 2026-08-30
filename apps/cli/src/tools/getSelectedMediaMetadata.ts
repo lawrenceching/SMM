@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
-import type { MediaMetadata } from '@core/types';
+import type { MediaMetadata } from '@smm/types';
 
 export const createGetSelectedMediaMetadataTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Get the user selected folder(media) in SMM.

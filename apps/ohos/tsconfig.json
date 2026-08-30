@@ -15,8 +15,16 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "@smm/core": ["../../packages/core/types.ts"],
-      "@smm/core/*": ["../../packages/core/*"],
+      "@smm/types": ["../../packages/types/types.ts"],
+      "@smm/types/*": ["../../packages/types/*"],
+      "@smm/utils": ["../../packages/utils/src/index.ts"],
+      "@smm/utils/*": ["../../packages/utils/src/*.ts"],
+      "@smm/core": ["../core/src/index.ts"],
+      "@smm/core/createRenameEpisodePlan": [
+        "../core/src/pipeline/createRenameEpisodePlan.ts"
+      ],
+      "@smm/core/FsPort": ["../core/src/ports/FsPort.ts"],
+      "@smm/core/*": ["../core/src/*"],
       "@smm/core-routes": ["../../packages/core-routes/src/index.ts"],
       "@smm/core-routes/*": ["../../packages/core-routes/src/*"]
     }

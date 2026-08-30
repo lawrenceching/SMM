@@ -1,5 +1,5 @@
 import { broadcast } from "../utils/socketIO";
-import { USER_CONFIG_FOLDER_RENAMED_EVENT, USER_CONFIG_UPDATED_EVENT, type UserConfigFolderRenamedEventData, type UserConfigUpdatedEventData } from "@core/event-types";
+import { USER_CONFIG_FOLDER_RENAMED_EVENT, USER_CONFIG_UPDATED_EVENT, type UserConfigFolderRenamedEventData, type UserConfigUpdatedEventData } from "@smm/types/event-types";
 
 export function broadcastUserConfigUpdatedEvent(data: UserConfigUpdatedEventData) {
     broadcast({

@@ -4,8 +4,8 @@ import {
   NoopLoggerAdapter,
   StaticDiscoverAdapter,
   type LoggerPort,
-} from 'core-app'
-import { detectOsLocale } from '@core/locale'
+} from '@smm/core'
+import { detectOsLocale } from '@smm/utils/locale'
 import { getUserDataDir, getAppDataDir, getTmpDir, getLogDir } from '@/utils/config'
 import { APP_VERSION } from '@/version'
 import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'

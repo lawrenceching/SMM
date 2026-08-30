@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { handleAiRecognizeConfirm, type SetPlanByIdFn } from './handleAiRecognizeConfirm'
 import type { PersistUIMediaMetadataFn } from '@/types/persistUIMediaMetadata'
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan'
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
 import { applyRecognizeMediaFilePlan } from '@/components/tv/TvShowPanelUtils'
 

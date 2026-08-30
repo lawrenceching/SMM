@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/core/types/ai-tools/scrape'
+import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/types/ai-tools/scrape'
 import { callTool } from './lib/mcpInspectorClient'
 import { useMcpServer } from './lib/useMcpServer'
 import {

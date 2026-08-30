@@ -4,8 +4,8 @@ import {
   TMDB_SEARCH_DESCRIPTION,
   tmdbSearchInputSchema,
   type TmdbSearchOutput,
-} from '@core/types/ai-tools/tmdbSearch'
-import { formatToolError, requireNonEmptyString } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/tmdbSearch'
+import { formatToolError, requireNonEmptyString } from '@smm/core/ai-tool/toolResult'
 import { searchInTmdb } from '@/api/tmdbV3'
 
 const tmdbSearchTool = tool({

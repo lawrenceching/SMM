@@ -1,5 +1,5 @@
-import { Path } from "@core/path";
-import type { DownloadImageRequestBody, DownloadImageResponseBody } from "@core/types";
+import { Path } from "@smm/utils/path";
+import type { DownloadImageRequestBody, DownloadImageResponseBody } from "@smm/types";
 import { apiFetch } from '@/lib/apiFetch';
 
 export async function downloadImageApi(url: string, pathInPosix: string, httpProxy?: string): Promise<DownloadImageResponseBody> {

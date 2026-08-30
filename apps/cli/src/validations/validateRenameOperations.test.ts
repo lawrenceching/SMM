@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { getMediaFolder } from '../utils/getMediaFolder'
 
 vi.mock('node:fs/promises', () => ({

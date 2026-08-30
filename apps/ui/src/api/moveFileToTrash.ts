@@ -1,4 +1,4 @@
-import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@core/types';
+import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@smm/types';
 import { apiFetch } from '@/lib/apiFetch';
 
 export async function moveFileToTrash(path: string): Promise<MoveFileToTrashResponseBody> {

@@ -1,8 +1,8 @@
-import { type UserConfig, RenameRules, type HelloResponseBody } from "@core/types";
+import { type UserConfig, RenameRules, type HelloResponseBody } from "@smm/types";
 import { hello } from "@/api/hello";
 import { readFile } from "@/api/readFile";
 import { join } from "@/lib/path";
-import { migrateAIConfig } from "@core/configMigration";
+import { migrateAIConfig } from "@smm/core/configMigration";
 
 export const defaultUserConfig: UserConfig = {
   tmdb: {

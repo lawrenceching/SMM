@@ -6,7 +6,7 @@
  * payload. These types provide a stronger shape for compression jobs to
  * make call sites in the dialog / factory self-documenting.
  */
-import type { FfmpegCompressOptions } from '@core/whitelistedCmd/constants'
+import type { FfmpegCompressOptions } from '@smm/core/whitelistedCmd/constants'
 import type {
   FfmpegConvertBackgroundJob,
   FfmpegConvertBackgroundJobData,

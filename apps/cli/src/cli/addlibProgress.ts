@@ -1,4 +1,4 @@
-import type { Core, FolderType, ImportLibraryJob } from 'core-app'
+import type { Core, FolderType, ImportLibraryJob } from '@smm/core'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 
 export async function waitUntilLibraryImportSettled(

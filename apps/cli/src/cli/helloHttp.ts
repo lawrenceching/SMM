@@ -1,4 +1,4 @@
-import type { HelloHttpResponseBody } from '@core/types'
+import type { HelloHttpResponseBody } from '@smm/types'
 import { getCore } from '../core/getCore'
 
 export function buildHelloHttpResponse(

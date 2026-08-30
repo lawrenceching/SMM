@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { create } from "zustand"
 import { useShallow } from "zustand/shallow"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { installUIMediaFolderStoreBridge } from "./uiMediaFolderStoreBridge"
 

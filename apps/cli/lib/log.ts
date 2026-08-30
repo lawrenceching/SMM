@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 
 export function mediaMetadataToString(mediaMetadata: MediaMetadata): string {
     const obj: Record<string, unknown> = structuredClone(mediaMetadata) as Record<string, unknown>;

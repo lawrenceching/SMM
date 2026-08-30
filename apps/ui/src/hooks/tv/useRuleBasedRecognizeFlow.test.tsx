@@ -6,7 +6,7 @@ import { useRuleBasedRecognizeFlow } from "./useRuleBasedRecognizeFlow"
 import { buildTemporaryRecognitionPlanAsync } from "@/components/tv/TvShowPanelUtils"
 import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 
 const { toastErrorMock, createPlanOptimisticMock, updatePlanMutateAsyncMock } = vi.hoisted(() => ({
   toastErrorMock: vi.fn(),

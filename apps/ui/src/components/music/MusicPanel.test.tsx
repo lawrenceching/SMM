@@ -10,7 +10,7 @@ import { toast } from 'sonner';
 import { openFile } from '@/api/openFile';
 import { moveFileToTrash } from '@/api/moveFileToTrash';
 import type { Track } from '../MediaPlayer';
-import { Path } from '@core/path';
+import { Path } from '@smm/utils/path';
 import { getMediaTags } from '@/api/ffmpeg';
 import { useVideoCaptionerStatus } from '@/hooks/useVideoCaptionerStatus';
 import { useFeatures } from '@/hooks/useFeatures';

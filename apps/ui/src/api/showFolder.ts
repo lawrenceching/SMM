@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolderStatus } from '@/types/UIMediaFolder'
 
 export type ShowFolderStatus = Extract<

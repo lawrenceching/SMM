@@ -1,4 +1,4 @@
-import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan"
 import { toast } from "sonner"
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"

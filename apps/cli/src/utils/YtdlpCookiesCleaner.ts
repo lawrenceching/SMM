@@ -1,6 +1,6 @@
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { isManagedYtdlpCookiesBasename } from '@core/whitelistedCmd/ytdlpCookies';
+import { isManagedYtdlpCookiesBasename } from '@smm/core/whitelistedCmd/ytdlpCookies';
 import { logger } from '../../lib/logger';
 import { permanentlyDeleteFile } from './files';
 

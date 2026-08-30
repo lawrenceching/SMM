@@ -1,6 +1,6 @@
 import { browser } from '@wdio/globals'
 import { setup, cleanup, isOfficialTmdbHostAccessible, isReverseProxyAccessible } from 'test/lib/testbed'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'

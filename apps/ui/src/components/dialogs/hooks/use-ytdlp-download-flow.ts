@@ -18,7 +18,7 @@ import {
 } from "@/lib/ytdlpFormatPresets"
 import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
 import { setCachedCookies, extractHostname } from "@/lib/ytdlpCookiesCache"
-import { validateDownloadUrl } from "@core/download-video-validators"
+import { validateDownloadUrl } from "@smm/core/download-video-validators"
 
 export interface VideoListItem {
   title: string

@@ -1,7 +1,7 @@
 import type { McpLifecycleManager } from "@smm/core-routes";
 import { getBunMcpServerPort, setBunMcpServerError } from "./BunMcpServerPort";
 
-export type { McpServerState } from "core-app";
+export type { McpServerState } from "@smm/core";
 export type McpServerStatus = "running" | "stopped" | "error";
 
 export { getBunMcpServerPort, setBunMcpServerError };

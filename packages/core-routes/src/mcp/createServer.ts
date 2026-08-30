@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
-import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { RENAME_FOLDER } from "@smm/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/types/ai-tools/renameEpisodeFile";
 import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
 import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
 import { registerCreateRenameEpisodePlanTool } from "./toolHandlers/createRenameEpisodePlan.ts";
@@ -21,8 +21,8 @@ import { registerTmdbTools } from "./toolHandlers/tmdbTools.ts";
 import { registerTvdbTools } from "./toolHandlers/tvdbTools.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
-import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
-import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { SCRAPE } from "@smm/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/types/ai-tools/getJob";
 
 /**
  * HTTP request handler for the MCP server. Created by

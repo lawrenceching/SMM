@@ -4,7 +4,7 @@ import type { TVDBv4LanguageRecord } from "@smm/tvdb4/types"
 import { getTvdbLanguages, SMM_TVDB_DEFAULT_UPSTREAM, type GetTVDBv4ClientOverrides } from "@/lib/TvdbUtils"
 import { useConfig } from "@/hooks/userConfig"
 import { helloQueryKey } from "@/lib/appQueryKeys"
-import type { HelloResponseBody } from "@core/types"
+import type { HelloResponseBody } from "@smm/types"
 import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 
 const STALE_MS = 24 * 60 * 60 * 1000

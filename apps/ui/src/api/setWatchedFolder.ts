@@ -1,7 +1,7 @@
 import type {
   SetWatchedFolderRequestBody,
   SetWatchedFolderResponseBody,
-} from "@core/types"
+} from "@smm/types"
 import { apiFetch } from "@/lib/apiFetch"
 
 export async function setWatchedFolder(

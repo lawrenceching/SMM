@@ -1,5 +1,5 @@
 import { useEffect } from "react"
-import { resolveAppLanguage } from "@core/locale"
+import { resolveAppLanguage } from "@smm/utils/locale"
 import { changeLanguage } from "@/lib/i18n"
 import { redactUserConfig } from "@/lib/redactUserConfig"
 import { useHelloQuery } from "./useHelloQuery"

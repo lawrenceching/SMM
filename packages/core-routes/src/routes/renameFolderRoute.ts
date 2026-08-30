@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FolderRenameRequestBody } from "@smm/core/types";
+import type { FolderRenameRequestBody } from "@smm/types";
 import { doRenameFolder } from "../renameFolder.ts";
 import { readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

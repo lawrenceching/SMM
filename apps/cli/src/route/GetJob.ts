@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { Job } from 'core-app'
+import type { Job } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 

@@ -1,8 +1,8 @@
 import { makeAssistantTool, tool } from "@assistant-ui/react"
 import { z } from "zod"
 import { useEffect } from "react"
-import { resolveAppLanguage } from "@core/locale"
-import type { LanguageCode } from "@core/types"
+import { resolveAppLanguage } from "@smm/utils/locale"
+import type { LanguageCode } from "@smm/types"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useConfig } from "@/hooks/userConfig/useConfig"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
@@ -11,7 +11,7 @@ import {
   GET_APPLICATION_CONTEXT,
   GET_APPLICATION_CONTEXT_DESCRIPTION,
   type GetApplicationContextOutput,
-} from "@core/types/ai-tools/getApplicationContext"
+} from "@smm/types/ai-tools/getApplicationContext"
 
 export type ApplicationContextData = GetApplicationContextOutput
 

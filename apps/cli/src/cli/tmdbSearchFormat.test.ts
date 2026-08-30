@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
-import type { TmdbSearchResponseBody } from '@smm/core'
+import type { TmdbSearchResponseBody } from '@smm/types'
 
 describe('formatTmdbSearchResults', () => {
   it('formats tv results as index id name (date) then overview', () => {

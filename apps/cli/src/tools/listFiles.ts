@@ -9,8 +9,8 @@ import { doListFiles } from '@/route/ListFiles'
 import {
   buildListFilesInMediaFolderResponse,
   createEmptyListFilesInMediaFolderData,
-} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
-import { formatToolError } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 
 export interface ListFilesMcpParams {
   folderPath: string

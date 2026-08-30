@@ -1,4 +1,4 @@
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan';
 
 /**
  * @deprecated Use {@link RecognizeMediaFilePlan} directly. The UI no

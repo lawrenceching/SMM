@@ -1,10 +1,10 @@
 import { broadcast } from "../utils/socketIO";
-import { RecognizeMediaFilePlanReady, type RecognizeMediaFilePlanReadyRequestData } from "@core/event-types";
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@core/types/RecognizeMediaFilePlan";
+import { RecognizeMediaFilePlanReady, type RecognizeMediaFilePlanReadyRequestData } from "@smm/types/event-types";
+import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
 import { getAppDataDir } from "@/utils/config";
 import path from "path";
 import { mkdir, readdir, stat } from "fs/promises";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import pino from "pino";
 
 const logger = pino();

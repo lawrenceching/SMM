@@ -1,6 +1,6 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { listFiles } from "@/api/listFiles"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 
 /** Live folder listing from `listFiles`; not persisted in metadata cache. */
 export type MediaMetadataWithFolderFiles = MediaMetadata & {

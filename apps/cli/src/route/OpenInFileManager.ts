@@ -2,7 +2,7 @@ import { spawn } from 'child_process';
 import os from 'os';
 import path from 'path';
 import { existsSync } from 'fs';
-import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from '@core/types';
+import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from '@smm/types';
 import type { Hono } from 'hono';
 
 /**

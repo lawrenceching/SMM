@@ -9,7 +9,7 @@ import { recognizeTvShowMediaFiles } from './lib/recognizeMediaFiles'
 import { recognizeEpisodesAsync } from './lib/recognizeEpisodes'
 import { getTvShowById } from './api/tmdb'
 import type { UIMediaMetadata } from './types/UIMediaMetadata'
-import type { PreferMediaLanguage, TMDBTVShowDetails, TvShowMediaMetadata } from '@core/types'
+import type { PreferMediaLanguage, TMDBTVShowDetails, TvShowMediaMetadata } from '@smm/types'
 import { tvShowMediaMetadataFromTmdbDetails } from './lib/tvShowMediaMetadataFromTmdbDetails'
 
 vi.mock('./lib/recognizeMediaFolder')

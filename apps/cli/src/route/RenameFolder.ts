@@ -1,5 +1,5 @@
-import { Path } from '@core/path';
-import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@core/types';
+import { Path } from '@smm/utils/path';
+import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@smm/types';
 import {
   doRenameFolder as doRenameFolderCore,
   type CoreRoutesLogger,

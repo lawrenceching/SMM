@@ -1,4 +1,4 @@
-import type { PreferMediaLanguage } from "@core/types"
+import type { PreferMediaLanguage } from "@smm/types"
 
 /**
  * TMDB search language: an IETF BCP 47 tag, e.g. "zh-CN", "en-US", "fr-FR".

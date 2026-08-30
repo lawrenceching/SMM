@@ -1,8 +1,8 @@
 import { z } from "zod/v3";
 import { getMediaFolder } from "@smm/core/getMediaFolder";
 import { updateMediaMetadataAfterRename } from "@smm/core/mediaMetadata";
-import { Path } from "@smm/core/path";
-import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import {
   readMediaMetadataCache,

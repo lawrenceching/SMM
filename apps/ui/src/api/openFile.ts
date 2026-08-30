@@ -1,4 +1,4 @@
-import type { OpenFileRequestBody, OpenFileResponseBody } from '@core/types';
+import type { OpenFileRequestBody, OpenFileResponseBody } from '@smm/types';
 import { apiFetch } from '@/lib/apiFetch';
 
 const OPEN_FILE_CHANNEL = 'open-file';

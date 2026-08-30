@@ -1,4 +1,4 @@
-import type { MediaMetadata, UserConfig } from "@core/types"
+import type { MediaMetadata, UserConfig } from "@smm/types"
 import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { resolveScrapeHttpProxy } from "@/lib/mediaDatabaseAccess"
 

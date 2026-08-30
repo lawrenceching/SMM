@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { TMDBTVShow, TMDBTVShowDetails } from '@core/types'
+import type { TMDBTVShow, TMDBTVShowDetails } from '@smm/types'
 import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
 
 interface ToolbarOption {

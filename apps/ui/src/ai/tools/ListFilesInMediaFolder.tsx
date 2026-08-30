@@ -2,14 +2,14 @@ import { makeAssistantTool, tool } from '@assistant-ui/react'
 import { listFilesInMediaFolder } from '@/api/listFilesInMediaFolder'
 import {
   createEmptyListFilesInMediaFolderData,
-} from '@core/ai-tool/buildListFilesInMediaFolderResponse'
-import { formatToolError } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import {
   LIST_FILES_IN_MEDIA_FOLDER,
   LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,
   listFilesInMediaFolderInputSchema,
   type ListFilesInMediaFolderToolOutput,
-} from '@core/types/ai-tools/listFilesInMediaFolder'
+} from '@smm/types/ai-tools/listFilesInMediaFolder'
 
 const listFilesInMediaFolderTool = tool({
   description: LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,

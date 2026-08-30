@@ -1,7 +1,7 @@
-import type { UserConfig } from "@core/types";
-import { RenameRules } from "@core/types";
-import { migrateAIConfig } from "@core/configMigration";
-import { renameFolderInUserConfig } from "@core/userConfig";
+import type { UserConfig } from "@smm/types";
+import { RenameRules } from "@smm/types";
+import { migrateAIConfig } from "@smm/core/configMigration";
+import { renameFolderInUserConfig } from "@smm/core/userConfig";
 import path from "path";
 import os from "os";
 import { Mutex } from 'es-toolkit';

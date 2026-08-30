@@ -3,12 +3,12 @@ import { writeFile, access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { z } from "zod/v3";
-import { Path } from "@smm/core/path";
-import { existedFileError } from "@smm/core/errors";
+import { Path } from "@smm/utils/path";
+import { existedFileError } from "@smm/utils/errors";
 import type {
   DownloadImageRequestBody,
   DownloadImageResponseBody,
-} from "@smm/core/types";
+} from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import { describeFetchError } from "./downloadImage.ts";
 import type { CoreRoutesConfig } from "./types.ts";

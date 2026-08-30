@@ -2,17 +2,17 @@ import { acknowledge, getFirstAvailableSocket } from '@/utils/socketIO'
 import { z } from 'zod'
 import type { ToolDefinition } from './types'
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase'
-import { resolveAppLanguage, detectOsLocale } from '@core/locale'
+import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale'
 import { getUserConfig } from '@/utils/config'
 import { getLocalizedToolDescription } from '@/i18n/helpers'
-import { toolOk } from '@core/ai-tool/toolResult'
+import { toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   GET_APPLICATION_CONTEXT,
   GET_APPLICATION_CONTEXT_DESCRIPTION,
   getApplicationContextInputSchema,
   getApplicationContextOutputSchema,
   type GetApplicationContextOutput,
-} from '@core/types/ai-tools/getApplicationContext'
+} from '@smm/types/ai-tools/getApplicationContext'
 
 // ─── Private helpers ────────────────────────────────────────────
 

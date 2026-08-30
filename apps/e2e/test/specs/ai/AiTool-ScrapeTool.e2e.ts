@@ -1,6 +1,6 @@
 import { expect, browser } from '@wdio/globals'
-import { Path } from '@smm/core'
-import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/core/types/ai-tools/scrape'
+import { Path } from '@smm/utils/path'
+import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/types/ai-tools/scrape'
 import { createBeforeHook, importFolderWithMediaMetadata } from '../../lib/testbed'
 import env from 'test/lib/env'
 import { createFolderInTestFolder, folder2 } from 'test/actions/import-folders'

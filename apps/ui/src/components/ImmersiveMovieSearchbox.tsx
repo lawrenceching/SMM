@@ -6,7 +6,7 @@ import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card"
 import { getTMDBImageUrl } from "@/api/tmdb"
-import type { TMDBMovie } from "@core/types"
+import type { TMDBMovie } from "@smm/types"
 
 // Helper function to format date
 function formatDate(dateString: string): string {

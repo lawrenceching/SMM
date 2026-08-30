@@ -1,6 +1,6 @@
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
-import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types";
+import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/types";
 import { buildTvShowRenameListForPlan } from "@/lib/buildTvShowRenameListForPlan";
 
 export async function applyRenameFilesPlanForTvShow(

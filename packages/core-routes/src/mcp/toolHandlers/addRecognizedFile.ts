@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { defaultChatFs } from "../../chatFs.ts";
 import {
   createErrorResponse,
@@ -13,7 +13,7 @@ import {
   defaultRecognizeFilesTaskDeps,
 } from "../../tools/recognizeMediaFilesTask.ts";
 import { defaultValidateRecognizedFiles } from "../../tools/plans.ts";
-import { ADD_RECOGNIZED_MEDIA_FILE } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
+import { ADD_RECOGNIZED_MEDIA_FILE } from "@smm/types/ai-tools/recognizeMediaFileTask";
 
 /**
  * Register the `add-recognized-file` MCP tool. Adds a single

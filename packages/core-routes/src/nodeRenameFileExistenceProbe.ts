@@ -1,5 +1,5 @@
 import { stat } from "node:fs/promises";
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import type { RenameFileExistenceProbe } from "@smm/core/validations/rename/validateRenameFileExistence";
 
 function statWithTimeout(

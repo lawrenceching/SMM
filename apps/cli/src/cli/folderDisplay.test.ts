@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { Path } from '@core/path'
-import type { MediaMetadata } from '@smm/core'
+import { Path } from '@smm/utils/path'
+import type { MediaMetadata } from '@smm/types'
 import {
   formatMediaFilesTree,
   formatShowFolder,

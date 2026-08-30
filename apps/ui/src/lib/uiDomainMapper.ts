@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 
 /**

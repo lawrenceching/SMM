@@ -7,8 +7,8 @@ import { openNativeOpenDialog } from "@/lib/nativeFolderDialog"
 import { nextTraceId } from "@/lib/utils"
 import { castTranslationFn, useTranslation } from "@/lib/i18n"
 import { useDialogs } from "@/providers/dialog-provider"
-import { Path } from "@core/path"
-import type { MediaMetadata } from "@core/types"
+import { Path } from "@smm/utils/path"
+import type { MediaMetadata } from "@smm/types"
 
 export interface UseSelectAndUnselectFileFlowOptions {
   mediaMetadata: MediaMetadata | undefined

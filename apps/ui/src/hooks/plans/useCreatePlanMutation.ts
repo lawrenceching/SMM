@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { createPlan, type CreatePlanRequest } from "@/api/createPlan"
 import type { Plan } from "@/api/getPlans"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"

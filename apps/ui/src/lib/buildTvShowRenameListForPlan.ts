@@ -1,8 +1,8 @@
 import { basename, extname, join } from "@/lib/path";
 import { findAssociatedFiles } from "@/lib/utils";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
-import { ext } from "@core/path";
-import { subtitleFileExtensions } from "@core/utils";
+import { ext } from "@smm/utils/path";
+import { subtitleFileExtensions } from "@smm/types/mediaFileExtensions";
 import Debug from "debug";
 
 const debug = Debug("buildTvShowRenameListForPlan");

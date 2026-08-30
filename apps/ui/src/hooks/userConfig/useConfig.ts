@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import type { AppConfig, UserConfig } from "@core/types"
+import type { AppConfig, UserConfig } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { useAddMediaFolderMutation } from "./useAddMediaFolderMutation"
 import { useHelloQuery } from "./useHelloQuery"

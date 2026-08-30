@@ -4,25 +4,25 @@ import {
   TVDB_SEARCH_DESCRIPTION,
   tvdbSearchInputSchema,
   tvdbSearchOutputSchema,
-} from "@smm/core/types/ai-tools/tvdbSearch";
+} from "@smm/types/ai-tools/tvdbSearch";
 import {
   TVDB_GET_MOVIE,
   TVDB_GET_MOVIE_DESCRIPTION,
   tvdbGetMovieInputSchema,
   tvdbGetMovieOutputSchema,
-} from "@smm/core/types/ai-tools/tvdbGetMovie";
+} from "@smm/types/ai-tools/tvdbGetMovie";
 import {
   TVDB_GET_TV_SHOW,
   TVDB_GET_TV_SHOW_DESCRIPTION,
   tvdbGetTvShowInputSchema,
   tvdbGetTvShowOutputSchema,
-} from "@smm/core/types/ai-tools/tvdbGetTvShow";
+} from "@smm/types/ai-tools/tvdbGetTvShow";
 import {
   TVDB_GET_LANGUAGES,
   TVDB_GET_LANGUAGES_DESCRIPTION,
   tvdbGetLanguagesInputSchema,
   tvdbGetLanguagesOutputSchema,
-} from "@smm/core/types/ai-tools/tvdbGetLanguages";
+} from "@smm/types/ai-tools/tvdbGetLanguages";
 import {
   createErrorResponse,
   createSuccessResponse,

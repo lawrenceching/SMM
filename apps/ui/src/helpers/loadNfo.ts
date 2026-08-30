@@ -2,7 +2,7 @@ import { readFile } from "@/api/readFile"
 import NFO from "@/lib/nfo"
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
-import type { TMDBTVShowDetails } from "@core/types"
+import type { TMDBTVShowDetails } from "@smm/types"
 
 /**
  * Extracts the path portion from a TMDB image URL.

@@ -1,4 +1,4 @@
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import { buildRenameFolderConfirmationMessage } from "@smm/core/ai-tool/renameFolderConfirm";
 import {
   renameFolderCancelled,
@@ -12,7 +12,7 @@ import {
   renameFolderInputSchema,
   renameFolderOutputSchema,
   type RenameFolderOutput,
-} from "@smm/core/types/ai-tools/renameFolder";
+} from "@smm/types/ai-tools/renameFolder";
 import { doRenameFolder } from "../renameFolder.ts";
 import type { CoreRoutesConfig } from "../types.ts";
 import { defaultAcknowledge } from "./acknowledge.ts";

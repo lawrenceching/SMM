@@ -56,7 +56,7 @@ import {
 import {
   buildYtdlpDownloadArgs,
   parseYtdlpDownloadStdout,
-} from '@core/whitelistedCmd/ytdlp'
+} from '@smm/core/whitelistedCmd/ytdlp'
 import {
   resolveYtdlpError,
 } from '@/lib/ytdlpErrorDetection'

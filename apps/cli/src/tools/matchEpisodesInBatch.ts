@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
-import { Path } from '@core/path';
-import type { MediaFileMetadata, MediaMetadata, TvShowMediaMetadata } from '@core/types';
+import { Path } from '@smm/utils/path';
+import type { MediaFileMetadata, MediaMetadata, TvShowMediaMetadata } from '@smm/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { mkdir } from 'fs/promises';
 import { acknowledge, broadcast } from '../utils/socketIO';

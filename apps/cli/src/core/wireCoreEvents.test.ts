@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { MEDIA_METADATA_UPDATED_EVENT } from 'core-app'
+import { MEDIA_METADATA_UPDATED_EVENT } from '@smm/core'
 
 const { broadcastMock } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),

@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import { listTools } from './lib/mcpInspectorClient'
 import { findFreePort, repoRoot } from './lib/mcpServer'
 

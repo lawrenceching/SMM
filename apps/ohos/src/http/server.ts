@@ -125,7 +125,7 @@ export async function startMainHttpServer(): Promise<void> {
   } = coreRoutesModule as typeof coreRoutesModule & {
     applyMcpLifecycleFromConfig?: (
       manager: unknown,
-      getUserConfig: () => Promise<import("@smm/core/types").UserConfig>,
+      getUserConfig: () => Promise<import("@smm/types").UserConfig>,
       logger?: CoreRoutesLogger,
     ) => Promise<void>
   }
@@ -166,10 +166,10 @@ export async function startMainHttpServer(): Promise<void> {
         | ((raw_: Record<string, unknown>) => boolean)
         | undefined
       if (migrate) migrate(raw)
-      return raw as import("@smm/core/types").UserConfig
+      return raw as import("@smm/types").UserConfig
     } catch {
       // File doesn't exist or is malformed — return empty config.
-      return { folders: [] } as unknown as import("@smm/core/types").UserConfig
+      return { folders: [] } as unknown as import("@smm/types").UserConfig
     }
   }
 

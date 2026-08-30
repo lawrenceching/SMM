@@ -1,5 +1,5 @@
-import { Path } from "@core/path"
-import type { MediaMetadata } from "@core/types"
+import { Path } from "@smm/utils/path"
+import type { MediaMetadata } from "@smm/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { getMetadata } from "@/api/metadata"
 import {

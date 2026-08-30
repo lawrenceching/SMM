@@ -3,7 +3,7 @@ import { deleteFile } from '@/api/deleteFile';
 import {
   buildYtdlpCookiesFilePath,
   isManagedYtdlpCookiesPath,
-} from '@core/whitelistedCmd/ytdlpCookies';
+} from '@smm/core/whitelistedCmd/ytdlpCookies';
 
 /** Normalize cookie file text to LF per yt-dlp FAQ. */
 export function normalizeYtdlpCookieText(text: string): string {

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import type { UserConfig } from "@core/types"
+import type { UserConfig } from "@smm/types"
 import { redactUserConfig } from "@/lib/redactUserConfig"
 import { hello } from "@/api/hello"
 import { readUserConfigFromUserDataDir } from "@/api/readUserConfig"

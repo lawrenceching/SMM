@@ -4,9 +4,9 @@ import {
   IS_FOLDER_EXIST_DESCRIPTION,
   isFolderExistInputSchema,
   type IsFolderExistOutput,
-} from '@core/types/ai-tools/isFolderExist'
-import { isFolderExistSucceeded } from '@core/ai-tool/isFolderExistResult'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/isFolderExist'
+import { isFolderExistSucceeded } from '@smm/core/ai-tool/isFolderExistResult'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import { postIsFolderAvailable } from '@/api/isFolderAvailable'
 
 const isFolderExistTool = tool({

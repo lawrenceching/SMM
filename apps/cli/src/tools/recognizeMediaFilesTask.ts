@@ -1,4 +1,4 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { logger } from '../../lib/logger'
 import {
   BEGIN_RECOGNIZE_TASK,
@@ -10,15 +10,15 @@ import {
   beginRecognizeTaskInputSchema,
   addRecognizedMediaFileInputSchema,
   endRecognizeTaskInputSchema,
-} from '@core/types/ai-tools/recognizeMediaFileTask'
-import { formatToolError, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/recognizeMediaFileTask'
+import { formatToolError, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   beginRecognizeTask,
   addRecognizedMediaFile,
   endRecognizeTask as endRecognizeTaskCore,
   getTask,
 } from './recognizeMediaFilesTool'
-import type { RecognizedFile } from '@core/types/RecognizeMediaFilePlan'
+import type { RecognizedFile } from '@smm/types/RecognizeMediaFilePlan'
 
 export const createBeginRecognizeTaskTool = (
   clientId: string,

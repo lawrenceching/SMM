@@ -3,7 +3,7 @@ import {
   GET_EPISODES_DESCRIPTION,
   getEpisodesInputSchema,
   getEpisodesToolOutputSchema,
-} from "@smm/core/types/ai-tools/getEpisodes";
+} from "@smm/types/ai-tools/getEpisodes";
 import { doGetEpisodes } from "../getEpisodes.ts";
 import type { CoreRoutesConfig } from "../types.ts";
 

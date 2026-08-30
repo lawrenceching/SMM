@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { DeleteFileRequestBody } from "@smm/core/types";
+import type { DeleteFileRequestBody } from "@smm/types";
 import { doDeleteFile } from "../deleteFile.ts";
 import { readJsonBody, sendJson } from "../http.ts";
 import type { RouteContext } from "../types.ts";

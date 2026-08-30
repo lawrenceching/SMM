@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/apiFetch'
-import { mediaLanguageToTvdbCode } from '@core/locale'
-import type { PreferMediaLanguage } from '@core/types'
+import { mediaLanguageToTvdbCode } from '@smm/utils/locale'
+import type { PreferMediaLanguage } from '@smm/types'
 import type { TVDBv4SearchResult } from '@smm/tvdb4/types'
 
 const PREFER_MEDIA_LANGUAGES = new Set<string>(['zh-CN', 'en-US', 'ja-JP'])

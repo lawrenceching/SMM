@@ -1,5 +1,5 @@
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
-import type { TMDBTVShowDetails } from "@core/types"
+import type { TMDBTVShowDetails } from "@smm/types"
 import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { FileProps } from "@/lib/types"

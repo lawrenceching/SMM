@@ -3,7 +3,7 @@
  * Receives MediaMetadata via postMessage, runs recognizeEpisodes in this thread, posts back result.
  */
 import { recognizeEpisodes } from './recognizeEpisodes';
-import type { MediaMetadata } from '@core/types';
+import type { MediaMetadata } from '@smm/types';
 import type { RecognizedEpisode } from './recognizeEpisodes';
 export type WorkerRequest = { type: 'recognize'; id: number; payload: MediaMetadata };
 export type WorkerResult = { type: 'result'; id: number; payload: RecognizedEpisode[] };

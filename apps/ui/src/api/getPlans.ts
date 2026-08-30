@@ -1,5 +1,5 @@
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan';
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan';
 import { apiFetch } from '@/lib/apiFetch';
 
 export type Plan = RecognizeMediaFilePlan | RenameFilesPlan;

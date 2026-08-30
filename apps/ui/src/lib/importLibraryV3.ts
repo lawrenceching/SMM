@@ -1,9 +1,9 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { getFolders } from '@/api/getFolders'
 import { getJobViaCore, type ImportLibraryJob, type ImportLibraryJobTask } from '@/api/getJob'
 import { showFolderViaCore } from '@/api/showFolder'
 import type { UIMediaFolder, UIMediaFolderStatus } from '@/types/UIMediaFolder'
-import type { FolderType } from '@core/types'
+import type { FolderType } from '@smm/types'
 import { importLibraryLog, type ImportLibraryTrace } from '@/lib/importLibraryLog'
 
 const POLL_INTERVAL_MS = 1000

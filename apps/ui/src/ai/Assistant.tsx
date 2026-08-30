@@ -44,7 +44,7 @@ function ModelContext() {
 
     useEffect(() => {
         // The system prompt is a compile-time constant from
-        // `@core/ai-tool/systemPrompt` and never depends on
+        // `@smm/core/ai-tool/systemPrompt` and never depends on
         // runtime state, so we register the context provider once
         // and let it remain stable for the lifetime of the
         // assistant-ui runtime.

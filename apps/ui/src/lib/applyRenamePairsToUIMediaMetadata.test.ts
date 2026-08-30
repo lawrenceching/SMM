@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyRenamePairsToUIMediaMetadata } from "./applyRenamePairsToUIMediaMetadata";
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 
 describe("applyRenamePairsToUIMediaMetadata", () => {
   it("remaps mediaFiles and files paths", () => {

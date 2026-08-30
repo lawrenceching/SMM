@@ -1,5 +1,5 @@
 import { extractUIMediaMetadataProps, type UIMediaMetadata } from '@/types/UIMediaMetadata'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 
 export function mergeRefreshedMetadata(
   response: MediaMetadata,

@@ -1,4 +1,4 @@
-import type { PreferMediaLanguage } from '@smm/core/types'
+import type { PreferMediaLanguage } from '@smm/types'
 import { registerStep, requiredStepArg } from '../lib/gherkin'
 import { updateUserConfig } from '../lib/testbed'
 

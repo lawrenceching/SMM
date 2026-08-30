@@ -3,7 +3,7 @@ import type {
   TvShowEpisodeMetadata,
   TvShowMediaMetadata,
   TvShowSeasonMetadata,
-} from "@core/types";
+} from "@smm/types";
 
 /** TMDB details → unified `tvShow` shape (same as TVDB-backed metadata). */
 export function tvShowMediaMetadataFromTmdbDetails(

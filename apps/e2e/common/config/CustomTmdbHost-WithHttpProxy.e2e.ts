@@ -14,7 +14,7 @@ import {
     clearFolderViaBrowser,
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import env from 'test/lib/env'
 import { given, when, then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'

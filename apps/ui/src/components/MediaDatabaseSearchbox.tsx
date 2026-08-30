@@ -16,7 +16,7 @@ import type {
   TMDBMovie,
   PrimaryDatabase,
   PreferMediaLanguage,
-} from "@core/types"
+} from "@smm/types"
 import { TVDBv4Error } from "@smm/tvdb4"
 import { searchTvdb } from "@/api/tvdbSearch"
 import {

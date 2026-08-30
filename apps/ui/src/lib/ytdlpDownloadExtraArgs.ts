@@ -1,4 +1,4 @@
-import { YTDLP_DOWNLOAD_ALLOWED_ARGS } from "@core/whitelistedCmd/constants";
+import { YTDLP_DOWNLOAD_ALLOWED_ARGS } from "@smm/core/whitelistedCmd/constants";
 
 export const YTDLP_DOWNLOAD_EXTRA_ARG_IDS = [
   ...YTDLP_DOWNLOAD_ALLOWED_ARGS,

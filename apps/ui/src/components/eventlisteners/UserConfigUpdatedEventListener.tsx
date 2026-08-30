@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { USER_CONFIG_UPDATED_EVENT } from "@core/event-types";
+import { USER_CONFIG_UPDATED_EVENT } from "@smm/types/event-types";
 import { useConfig } from "@/hooks/userConfig";
 
 export function UserConfigUpdatedEventListener() {

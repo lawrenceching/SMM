@@ -1,1 +1,1 @@
-export { getMediaFolder } from '@core/getMediaFolder';
+export { getMediaFolder } from '@smm/core/getMediaFolder';

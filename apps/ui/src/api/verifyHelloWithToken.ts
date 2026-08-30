@@ -1,4 +1,4 @@
-import type { HelloResponseBody } from '@core/types';
+import type { HelloResponseBody } from '@smm/types';
 import { buildAuthorizationHeader } from '@/lib/authToken';
 import { with401Suppressed } from '@/lib/authSession';
 import { syncPathServerPlatformFromHello } from '@/lib/syncPathServerPlatform';

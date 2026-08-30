@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { basename } from "@/lib/path"
 import type { MediaFolderListItemV2Props } from "@/components/sidebar/MediaFolderListItemV2"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"

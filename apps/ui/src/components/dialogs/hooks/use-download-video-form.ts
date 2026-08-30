@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from "react"
-import { validateDownloadUrl } from "@core/download-video-validators"
+import { validateDownloadUrl } from "@smm/core/download-video-validators"
 import { useListFormatsMutation } from "./useListFormatsMutation"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useDialogs } from "@/providers/dialog-provider"
@@ -40,7 +40,7 @@ import {
 } from "@/lib/ytdlpFormatCodes"
 import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
 import type { VideoMetadata } from "@/api/ytdlp/types"
-import { isYoutubeDownloadUrl } from "@core/download-video-cookie-platform"
+import { isYoutubeDownloadUrl } from "@smm/core/download-video-cookie-platform"
 
 const LOCAL_STORAGE_KEY = "DownloadVideoDialog.userAgreed"
 

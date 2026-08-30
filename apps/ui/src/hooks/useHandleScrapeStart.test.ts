@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { resolve } from "node:path"
-import type { TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@core/types"
+import type { TmdbMovieDetails, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types"
 import type { TVDBv4MovieBaseRecord, TVDBv4SeriesExtendedResponse, TVDBv4SeriesSeasonsExtendedResponse } from "@smm/tvdb4/types"
 import {
     buildMovieNfo,

@@ -19,7 +19,7 @@ describe('smm recognize', () => {
   })
 
   it('manual mode calls recognizeFolder with db+id', async () => {
-    const { Core } = await import('core-app')
+    const { Core } = await import('@smm/core')
     const recognizeFolder = vi.spyOn(Core.prototype, 'recognizeFolder').mockResolvedValue()
     const { runCli } = await import('./runCli')
     const code = await runCli([
@@ -38,7 +38,7 @@ describe('smm recognize', () => {
   })
 
   it('--yes accepts tryToRecognizeFolder candidate', async () => {
-    const { Core } = await import('core-app')
+    const { Core } = await import('@smm/core')
     vi.spyOn(Core.prototype, 'tryToRecognizeFolder').mockResolvedValue({
       db: 'tmdb',
       id: '84666',

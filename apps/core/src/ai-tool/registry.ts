@@ -12,7 +12,7 @@
  *   2. `apps/ui/src/ai/Assistant.tsx` — frontend tool React components
  *      mounted inside `<AssistantRuntimeProvider>` and collected by
  *      `useAssistantTools()`.
- *   3. The system prompt in `packages/core/ai-tool/systemPrompt.ts`
+ *   3. The system prompt in `apps/core/src/ai-tool/systemPrompt.ts`
  *      that tells the LLM which tool names to call.
  *
  * Without a registry, a typo in any one of the three silently

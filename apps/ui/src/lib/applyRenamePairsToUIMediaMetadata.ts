@@ -1,6 +1,6 @@
-import type { MediaFileMetadata } from "@core/types"
+import type { MediaFileMetadata } from "@smm/types"
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 
 function pathKey(p: string): string {
   try {

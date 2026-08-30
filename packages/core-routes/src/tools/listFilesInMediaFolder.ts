@@ -1,4 +1,4 @@
-import { Path } from "@smm/core/path";
+import { Path } from "@smm/utils/path";
 import {
   buildListFilesInMediaFolderResponse,
   createEmptyListFilesInMediaFolderData,
@@ -12,8 +12,8 @@ import {
   listFilesInMediaFolderInputSchema,
   listFilesInMediaFolderOutputSchema,
   type ListFilesInMediaFolderToolOutput,
-} from "@smm/core/types/ai-tools/listFilesInMediaFolder";
-import type { UserConfig } from "@smm/core/types";
+} from "@smm/types/ai-tools/listFilesInMediaFolder";
+import type { UserConfig } from "@smm/types";
 import { doListFiles } from "../listFiles.ts";
 import { isMediaFolderManaged } from "../userConfig.ts";
 

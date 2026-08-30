@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import type { UserConfig } from "@smm/core/types";
-import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
-import { RenameFilesPlanReady } from "@smm/core/event-types";
+import type { UserConfig } from "@smm/types";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpisodePlan";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
+import { RenameFilesPlanReady } from "@smm/types/event-types";
 import type { ChatFs } from "../chatTypes.ts";
 import { createMcpStreamableHttpHandler } from "./createServer.ts";
 

@@ -1,6 +1,6 @@
 import { useWebSocketEvent } from "@/hooks/useWebSocket"
-import { AskForRenameFilesConfirmation } from "@core/event-types"
-import type { AskForRenameFilesConfirmationBeginRequestData } from "@core/event-types"
+import { AskForRenameFilesConfirmation } from "@smm/types/event-types"
+import type { AskForRenameFilesConfirmationBeginRequestData } from "@smm/types/event-types"
 import { queryClient } from "@/lib/queryClient"
 import { PLANS_QUERY_ROOT } from "@/hooks/plans"
 

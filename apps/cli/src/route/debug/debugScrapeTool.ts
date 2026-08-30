@@ -1,7 +1,7 @@
 import { z } from 'zod/v3'
 import type { Hono } from 'hono'
 import { executeScrape } from '@smm/core-routes'
-import type { ScrapeOutput } from '@core/types/ai-tools/scrape'
+import type { ScrapeOutput } from '@smm/types/ai-tools/scrape'
 import { getCore } from '../../core/getCore'
 import { logger } from '../../../lib/logger'
 

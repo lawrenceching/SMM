@@ -1,4 +1,4 @@
-import type { ListFilesInMediaFolderToolOutput } from '@core/types/ai-tools/listFilesInMediaFolder'
+import type { ListFilesInMediaFolderToolOutput } from '@smm/types/ai-tools/listFilesInMediaFolder'
 import { apiFetch } from '@/lib/apiFetch';
 
 export interface ListFilesInMediaFolderRequest {

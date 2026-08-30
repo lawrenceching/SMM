@@ -1,4 +1,4 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import type { TFunction } from 'i18next'
 
 type ComponentsTFunction = TFunction<'components'>

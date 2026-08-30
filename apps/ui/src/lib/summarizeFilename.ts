@@ -1,6 +1,6 @@
 import { dirname, basename, extname, join } from "@/lib/path"
 import { writeFile } from "@/api/writeFile"
-import { ExistedFileError } from "@core/errors"
+import { ExistedFileError } from "@smm/utils/errors"
 
 /**
  * Finds an available summary file path for the given video file.

@@ -3,12 +3,12 @@ import { access, readFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { z } from "zod/v3";
-import { Path } from "@smm/core/path";
-import { fileNotFoundError } from "@smm/core/errors";
+import { Path } from "@smm/utils/path";
+import { fileNotFoundError } from "@smm/utils/errors";
 import type {
   ReadImageRequestBody,
   ReadImageResponseBody,
-} from "@smm/core/types";
+} from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 

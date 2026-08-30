@@ -89,7 +89,7 @@ describe('smm addlib', () => {
   })
 
   it('treats --type anime as tvshow', async () => {
-    const { Core } = await import('core-app')
+    const { Core } = await import('@smm/core')
     const importLibrary = vi
       .spyOn(Core.prototype, 'importLibrary')
       .mockReturnValue({ id: 'lib-job-1' })

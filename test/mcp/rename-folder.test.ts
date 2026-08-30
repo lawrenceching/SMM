@@ -12,8 +12,8 @@ import {
   writeUserConfig,
   type TestFolder,
 } from './lib/testSetup'
-import type { MediaMetadata } from '@smm/core/types'
-import { Path } from '@smm/core/path'
+import type { MediaMetadata } from '@smm/types'
+import { Path } from '@smm/utils/path'
 
 const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
 

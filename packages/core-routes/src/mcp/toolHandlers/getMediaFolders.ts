@@ -4,7 +4,7 @@ import {
   GET_MEDIA_FOLDERS_DESCRIPTION,
   getMediaFoldersInputSchema,
   getMediaFoldersOutputSchema,
-} from "@smm/core/types/ai-tools/getMediaFolders";
+} from "@smm/types/ai-tools/getMediaFolders";
 import {
   createErrorResponse,
   createSuccessResponse,

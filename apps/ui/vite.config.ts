@@ -73,7 +73,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@/": `${path.resolve(__dirname, "./src")}/`,
-      "@core": path.resolve(__dirname, "../../packages/core"),
       "@smm/tvdb4": path.resolve(__dirname, "../../packages/tvdb4/src/index.ts"),
       // Force a single React instance for app code and @base-ui/react (avoids invalid hook call).
       react: path.resolve(__dirname, "node_modules/react"),

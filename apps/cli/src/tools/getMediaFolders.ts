@@ -8,8 +8,8 @@ import { getUserConfig } from '@/utils/config'
 import {
   buildGetMediaFoldersResponse,
   createEmptyGetMediaFoldersData,
-} from '@core/ai-tool/buildGetMediaFoldersResponse'
-import { formatToolError, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildGetMediaFoldersResponse'
+import { formatToolError, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   GET_MEDIA_FOLDERS,
   GET_MEDIA_FOLDERS_DESCRIPTION,
@@ -17,13 +17,13 @@ import {
   getMediaFoldersInputSchema,
   getMediaFoldersOutputSchema,
   type GetMediaFoldersToolOutput,
-} from '@core/types/ai-tools/getMediaFolders'
+} from '@smm/types/ai-tools/getMediaFolders'
 
 export type { GetMediaFoldersToolOutput }
 export {
   buildGetMediaFoldersResponse,
   createEmptyGetMediaFoldersData,
-} from '@core/ai-tool/buildGetMediaFoldersResponse'
+} from '@smm/core/ai-tool/buildGetMediaFoldersResponse'
 
 export async function executeGetMediaFolders(
   abortSignal?: AbortSignal,

@@ -4,7 +4,7 @@ import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMed
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import { normalizeMediaFolderPathForQuery, mediaMetadataQueryKey } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
-import type { MediaMetadata, MovieMediaMetadata, TMDBMovie, TMDBTVShow } from "@core/types"
+import type { MediaMetadata, MovieMediaMetadata, TMDBMovie, TMDBTVShow } from "@smm/types"
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation"
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation"
 import { recognizeFolderViaCore } from "@/api/recognizeFolder"

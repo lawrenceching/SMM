@@ -3,7 +3,7 @@ import { useQuery, skipToken } from "@tanstack/react-query"
 import { listFiles } from "@/api/listFiles"
 import { associatedFilesQueryKey } from "@/lib/associatedFilesQueryKeys"
 import { basename, extname } from "@/lib/path"
-import { extensions } from "@core/utils"
+import { extensions } from "@smm/types/mediaFileExtensions"
 import type { AssociatedFile } from "@/types/associated-files"
 
 function filterAssociatedFiles(allFilePaths: string[], videoFilePath: string): AssociatedFile[] {

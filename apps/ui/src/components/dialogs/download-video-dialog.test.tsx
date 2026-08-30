@@ -287,7 +287,7 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
 })
 
 // Mock validateDownloadUrl to avoid depending on implementation details
-vi.mock('@core/download-video-validators', () => ({
+vi.mock('@smm/core/download-video-validators', () => ({
   validateDownloadUrl: h.validateDownloadUrl,
 }))
 

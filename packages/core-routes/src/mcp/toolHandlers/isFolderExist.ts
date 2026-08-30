@@ -4,7 +4,7 @@ import {
   IS_FOLDER_EXIST_DESCRIPTION,
   isFolderExistInputSchema,
   isFolderExistOutputSchema,
-} from "@smm/core/types/ai-tools/isFolderExist";
+} from "@smm/types/ai-tools/isFolderExist";
 import {
   createErrorResponse,
   createSuccessResponse,

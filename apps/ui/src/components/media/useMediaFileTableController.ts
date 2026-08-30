@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { isAbsPath, join } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { openFile as openFileApi } from "@/api/openFile"
 import { useDialogs } from "@/providers/dialog-provider"
 import type {

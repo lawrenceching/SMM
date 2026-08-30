@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/core/types/ai-tools/planTaskMessages";
-import { RenameFilesPlanReady } from "@smm/core/event-types";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpisodePlan";
+import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
+import { RenameFilesPlanReady } from "@smm/types/event-types";
 import type { ChatFs } from "../chatTypes.ts";
 import * as broadcastModule from "./broadcast.ts";
 import { buildCreateRenameEpisodePlanTool } from "./createRenameEpisodePlan.ts";

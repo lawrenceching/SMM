@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import type { FolderType } from 'core-app'
+import type { FolderType } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 

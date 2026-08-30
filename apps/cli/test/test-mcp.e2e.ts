@@ -2,11 +2,11 @@ import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { setupTestMediaFolders, resetUserConfig, prepareMediaMetadata } from '@smm/test';
 import { join } from 'node:path';
-import { Path } from '@core/path';
+import { Path } from '@smm/utils/path';
 import { afterEach } from 'node:test';
 import type { GetPlansResponseBody } from '@smm/core-routes';
-import type { RecognizeMediaFilePlan } from '@core/types/RecognizeMediaFilePlan';
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan';
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan';
 
 /**
  * Delay in ms

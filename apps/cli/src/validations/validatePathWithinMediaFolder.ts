@@ -1,1 +1,1 @@
-export { validatePathWithinMediaFolder } from '@core/validations/rename/validatePathWithinMediaFolder'
+export { validatePathWithinMediaFolder } from '@smm/core/validations/rename/validatePathWithinMediaFolder'

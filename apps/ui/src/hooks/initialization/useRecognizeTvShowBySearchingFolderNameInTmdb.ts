@@ -1,7 +1,7 @@
 import { useTmdbQueries } from "../useTmdbQueries";
 import { useGetTmdbTvShowMutation } from "../useGetTmdbTvShowMutation";
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, PreferMediaLanguage, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import type { MediaMetadata, PreferMediaLanguage, TmdbSearchResponseBody, TvShowMediaMetadata } from "@smm/types";
 import { basename } from "@/lib/path";
 import type { TmdbRequestOptions } from "@/api/tmdb";
 

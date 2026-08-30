@@ -4,9 +4,9 @@ import {
   SCRAPE_DESCRIPTION,
   scrapeInputSchema,
   type ScrapeOutput,
-} from '@core/types/ai-tools/scrape'
-import { scrapeFailed, scrapeSucceeded } from '@core/ai-tool/scrapeResult'
-import { formatToolError, requireNonEmptyString, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/types/ai-tools/scrape'
+import { scrapeFailed, scrapeSucceeded } from '@smm/core/ai-tool/scrapeResult'
+import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import { scrapeFolderV3 } from '@/api/scrapeV3'
 
 const scrapeTool = tool({

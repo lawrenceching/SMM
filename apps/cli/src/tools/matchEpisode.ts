@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
-import { Path } from '@core/path';
-import type { MediaFileMetadata, MediaMetadata } from '@core/types';
+import { Path } from '@smm/utils/path';
+import type { MediaFileMetadata, MediaMetadata } from '@smm/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { doListFiles } from '../route/ListFiles';
 import { mkdir } from 'fs/promises';

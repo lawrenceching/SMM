@@ -10,7 +10,7 @@ import {
   GET_EPISODES_NOT_MANAGED,
   GET_EPISODES_NOT_TV_SHOW,
   type GetEpisodesToolOutput,
-} from "@smm/core/types/ai-tools/getEpisodes";
+} from "@smm/types/ai-tools/getEpisodes";
 import { readMediaMetadataCache } from "./mediaMetadataCache.ts";
 import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import { isMediaFolderManaged, resolveAppDataDir } from "./userConfig.ts";

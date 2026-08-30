@@ -1,5 +1,5 @@
 import { validateRenameOperations as validateRenameOperationsShared } from "@smm/core/validations/rename/validateRenameOperations";
-import type { RenameValidationResult } from "@smm/core/types";
+import type { RenameValidationResult } from "@smm/types";
 import { createNodeRenameFileExistenceProbe } from "./nodeRenameFileExistenceProbe.ts";
 
 /**

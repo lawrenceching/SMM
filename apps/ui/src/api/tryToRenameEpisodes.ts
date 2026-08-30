@@ -1,4 +1,4 @@
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
 import { apiFetch } from '@/lib/apiFetch'
 
 export type RenameRuleName = 'plex' | 'emby'

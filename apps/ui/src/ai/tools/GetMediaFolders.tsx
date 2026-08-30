@@ -3,14 +3,14 @@ import { readUserConfig } from '@/api/readUserConfig'
 import {
   buildGetMediaFoldersResponse,
   createEmptyGetMediaFoldersData,
-} from '@core/ai-tool/buildGetMediaFoldersResponse'
-import { formatToolError, toolOk } from '@core/ai-tool/toolResult'
+} from '@smm/core/ai-tool/buildGetMediaFoldersResponse'
+import { formatToolError, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   GET_MEDIA_FOLDERS,
   GET_MEDIA_FOLDERS_DESCRIPTION,
   getMediaFoldersInputSchema,
   type GetMediaFoldersToolOutput,
-} from '@core/types/ai-tools/getMediaFolders'
+} from '@smm/types/ai-tools/getMediaFolders'
 
 const getMediaFolders = tool({
   description: GET_MEDIA_FOLDERS_DESCRIPTION,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { mergeFolderPathsWithUiStatus } from './mergeFolderPathsWithUiStatus'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 

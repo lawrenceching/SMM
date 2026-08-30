@@ -4,7 +4,7 @@
 import type {
   FfmpegCompressOptions,
   FfmpegConvertImageOptions,
-} from '@core/whitelistedCmd/constants'
+} from '@smm/core/whitelistedCmd/constants'
 
 export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted' | 'stopped';
 

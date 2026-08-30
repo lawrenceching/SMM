@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { normalizeMediaFolderPathForQuery } from "@/hooks/mediaMetadata"
 
 /** Match a tool input path (Windows or POSIX) to cached {@link MediaMetadata}. */

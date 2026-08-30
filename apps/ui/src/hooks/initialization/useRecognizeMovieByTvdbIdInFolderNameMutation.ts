@@ -1,6 +1,6 @@
 import { basename } from "@/lib/path";
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@smm/types";
 import { getTvdbIdFromFolderName } from "@/lib/recognizeMediaFolderByTvdbIdInFolderName";
 import { useGetTvdbMovieMutation } from "../useGetTvdbMovieMutation";
 

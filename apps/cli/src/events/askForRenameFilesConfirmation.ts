@@ -3,7 +3,7 @@ import {
   AskForRenameFilesConfirmation,
   type AskForRenameFilesConfirmationRequestData,
   type AskForRenameFilesConfirmationResponseData,
-} from "@core/event-types";
+} from "@smm/types/event-types";
 
 export async function askForRenameFilesConfirmation(
   clientId: string,

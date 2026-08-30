@@ -1,7 +1,7 @@
 import { getTmdbIdFromFolderName } from "@/AppV2Utils";
 import { basename } from "@/lib/path";
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@smm/types";
 import { useGetTmdbMovieMutation } from "../useGetTmdbMovieMutation";
 import type { TmdbRequestOptions } from "@/api/tmdb";
 

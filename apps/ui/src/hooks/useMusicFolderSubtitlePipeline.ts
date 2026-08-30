@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { useFileStatuses } from "@/hooks/useJobOrchestrator"
 import { useJobManager } from "@/hooks/useJobManager"

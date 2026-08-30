@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import type { ComponentProps } from "react"
 import { RenameFolderDialog } from "./rename-folder-dialog"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 
 const mutation = vi.hoisted(() => ({
   isPending: false,

@@ -18,8 +18,16 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "paths": {
-      "@smm/core": ["../../packages/core/path.ts"],
-      "@smm/core/*": ["../../packages/core/*"],
+      "@smm/types": ["../../packages/types/types.ts"],
+      "@smm/types/*": ["../../packages/types/*"],
+      "@smm/utils": ["../../packages/utils/src/index.ts"],
+      "@smm/utils/*": ["../../packages/utils/src/*.ts"],
+      "@smm/core": ["../../apps/core/src/index.ts"],
+      "@smm/core/createRenameEpisodePlan": [
+        "../../apps/core/src/pipeline/createRenameEpisodePlan.ts"
+      ],
+      "@smm/core/FsPort": ["../../apps/core/src/ports/FsPort.ts"],
+      "@smm/core/*": ["../../apps/core/src/*"],
       "@smm/test": ["../../packages/test/src/index.ts"],
       "@smm/test/*": ["../../packages/test/*"]
     }

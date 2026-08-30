@@ -4,7 +4,7 @@ import {
   SCRAPE_DESCRIPTION,
   scrapeInputSchema,
   scrapeOutputSchema,
-} from "@smm/core/types/ai-tools/scrape";
+} from "@smm/types/ai-tools/scrape";
 import {
   createErrorResponse,
   createSuccessResponse,

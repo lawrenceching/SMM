@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { RenameFilesPlanReady } from "@core/event-types";
+import { RenameFilesPlanReady } from "@smm/types/event-types";
 import { queryClient } from "@/lib/queryClient";
 import { PLANS_QUERY_ROOT } from "@/hooks/plans";
 

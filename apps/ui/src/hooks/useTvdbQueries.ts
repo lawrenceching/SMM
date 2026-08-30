@@ -12,7 +12,7 @@ import {
   tvdbSeasonExtendedQueryKey,
   tvdbTvShowMediaMetadataQueryKey,
 } from "@/lib/tvdbQueryKeys"
-import type { HelloResponseBody, MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
+import type { HelloResponseBody, MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types"
 import type { TVDBv4SearchParams } from "@smm/tvdb4"
 import type {
   TVDBv4ArtworkTypeRecord,

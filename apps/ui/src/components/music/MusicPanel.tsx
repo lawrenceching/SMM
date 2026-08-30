@@ -5,7 +5,7 @@ import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateM
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadata } from "@smm/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import {
   MusicFileTable,
@@ -33,7 +33,7 @@ import {
 } from "@/lib/musicEvents";
 import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/helpers/music/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "../MediaPlayer";

@@ -31,11 +31,11 @@ export interface AgentToolContext {
 
 /**
  * Registry entry for a single agent tool. `inputSchema` and
- * `outputSchema` come from `@core/types/ai-tools/*` and are reused by
+ * `outputSchema` come from `@smm/types/ai-tools/*` and are reused by
  * MCP tools, agent tools, and tests.
  */
 export interface ToolDescriptor {
-  /** AI tool name constant from `@core/types/ai-tools/*`. */
+  /** AI tool name constant from `@smm/types/ai-tools/*`. */
   toolName: string;
   description: string;
   inputSchema: unknown;

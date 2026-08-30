@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { downloadScrapeImage } from "./downloadScrapeImage"
 

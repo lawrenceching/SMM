@@ -1,4 +1,4 @@
-import type { TMDBMovie } from "@core/types"
+import type { TMDBMovie } from "@smm/types"
 import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, FileEdit, Download } from "lucide-react"
 import { cn, nextTraceId } from "@/lib/utils"

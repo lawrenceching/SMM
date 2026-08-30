@@ -4,19 +4,19 @@ import {
   TMDB_SEARCH_DESCRIPTION,
   tmdbSearchInputSchema,
   tmdbSearchOutputSchema,
-} from "@smm/core/types/ai-tools/tmdbSearch";
+} from "@smm/types/ai-tools/tmdbSearch";
 import {
   TMDB_GET_MOVIE,
   TMDB_GET_MOVIE_DESCRIPTION,
   tmdbGetMovieInputSchema,
   tmdbGetMovieOutputSchema,
-} from "@smm/core/types/ai-tools/tmdbGetMovie";
+} from "@smm/types/ai-tools/tmdbGetMovie";
 import {
   TMDB_GET_TV_SHOW,
   TMDB_GET_TV_SHOW_DESCRIPTION,
   tmdbGetTvShowInputSchema,
   tmdbGetTvShowOutputSchema,
-} from "@smm/core/types/ai-tools/tmdbGetTvShow";
+} from "@smm/types/ai-tools/tmdbGetTvShow";
 import {
   createErrorResponse,
   createSuccessResponse,

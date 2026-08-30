@@ -1,4 +1,4 @@
-import type { OpenFileRequestBody, OpenFileResponseBody } from '@core/types';
+import type { OpenFileRequestBody, OpenFileResponseBody } from '@smm/types';
 import type { Hono } from 'hono';
 import { isDesktopEnv, openFile } from '../utils/os';
 

@@ -1,10 +1,10 @@
 import { z } from 'zod/v3';
 import { stat } from 'node:fs/promises';
-import { Path } from '@core/path';
-import type { MediaMetadata, RenameValidationResult } from '@core/types';
-import { updateMediaMetadataAfterRename } from '@core/mediaMetadata';
-import { validateRenameOperations as validateRenameOperationsShared } from '@core/validations/rename/validateRenameOperations';
-import type { RenameFileExistenceProbe } from '@core/validations/rename/validateRenameFileExistence';
+import { Path } from '@smm/utils/path';
+import type { MediaMetadata, RenameValidationResult } from '@smm/types';
+import { updateMediaMetadataAfterRename } from '@smm/core/mediaMetadata';
+import { validateRenameOperations as validateRenameOperationsShared } from '@smm/core/validations/rename/validateRenameOperations';
+import type { RenameFileExistenceProbe } from '@smm/core/validations/rename/validateRenameFileExistence';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import pino from 'pino';
@@ -17,7 +17,7 @@ interface RenameFile {
   to: string;
 }
 
-/** @deprecated Use RenameValidationResult from @core/types instead */
+/** @deprecated Use RenameValidationResult from @smm/types instead */
 export interface ValidationResult {
   validationErrors: string[];
   validatedRenames: RenameFile[];

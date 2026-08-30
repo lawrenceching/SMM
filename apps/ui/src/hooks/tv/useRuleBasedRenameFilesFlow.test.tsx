@@ -5,7 +5,7 @@ import type { ReactNode } from "react"
 import { useRuleBasedRenameFilesFlow } from "./useRuleBasedRenameFilesFlow"
 import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 
 const {
   toastErrorMock,

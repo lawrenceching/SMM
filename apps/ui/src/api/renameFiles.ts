@@ -1,4 +1,4 @@
-import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@core/types"
+import type { RenameFilesRequestBody, RenameFilesResponseBody } from "@smm/types"
 import { apiFetch } from '@/lib/apiFetch';
 
 export async function renameFiles(params: RenameFilesRequestBody): Promise<RenameFilesResponseBody> {

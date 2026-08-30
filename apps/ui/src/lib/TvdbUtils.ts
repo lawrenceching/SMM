@@ -1,4 +1,4 @@
-import type { MovieMediaMetadata, TvShowMediaMetadata } from "@core/types"
+import type { MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types"
 import { TVDBv4 } from "@smm/tvdb4"
 import type { TVDBv4LanguageRecord, TVDBv4Season } from "@smm/tvdb4/types"
 import Debug from "debug"

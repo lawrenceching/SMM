@@ -1,4 +1,4 @@
-import type { PrimaryDatabase } from '@core/types'
+import type { PrimaryDatabase } from '@smm/types'
 
 export interface RecognitionStep<T> {
     logLabel: string

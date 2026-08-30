@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test'
-import type { UserConfig } from '@smm/core/types'
+import type { UserConfig } from '@smm/types'
 import { callTool, type McpCallResult } from './lib/mcpInspectorClient'
 import { useMcpServer } from './lib/useMcpServer'
 import { writeUserConfig } from './lib/testSetup'

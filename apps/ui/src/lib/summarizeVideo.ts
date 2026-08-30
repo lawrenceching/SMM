@@ -1,6 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { generateText } from 'ai'
-import type { OpenAICompatibleConfig } from '@core/types'
+import type { OpenAICompatibleConfig } from '@smm/types'
 
 export interface SummarizeVideoInput {
   subtitleContent: string

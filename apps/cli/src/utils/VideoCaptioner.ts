@@ -24,8 +24,8 @@ export const PROCESS_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 import {
   buildVideoCaptionerProcessArgs,
   type VideoCaptionerProcessCliOptions as CoreVideoCaptionerProcessCliOptions,
-} from "@core/whitelistedCmd/videocaptioner";
-import { VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "@core/whitelistedCmd/constants";
+} from "@smm/core/whitelistedCmd/videocaptioner";
+import { VIDEOCAPTIONER_CLI_DUMMY_API_KEY } from "@smm/core/whitelistedCmd/constants";
 
 export { VIDEOCAPTIONER_CLI_DUMMY_API_KEY };
 

@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { useEffect, useMemo } from "react"
-import { RenameRules } from "@core/types"
+import { RenameRules } from "@smm/types"
 
 interface RenameRuleComboboxProps {
   className?: string

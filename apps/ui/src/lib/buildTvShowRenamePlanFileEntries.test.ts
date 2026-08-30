@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 import { buildTvShowRenamePlanFileEntries } from "./buildTvShowRenamePlanFileEntries"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 
 vi.mock("@/lib/renameRules", () => ({
   generateNewFileName: vi.fn((_rule: string, ctx: { seasonNumber: number; episodeNumber: number }) => {

@@ -1,4 +1,4 @@
-import type { YtdlpVideo } from "@core/types/YtdlpTypes";
+import type { YtdlpVideo } from "@smm/types/YtdlpTypes";
 
 export type ParseYtdlpPlaylistStdoutResult =
   | { videos: YtdlpVideo[] }

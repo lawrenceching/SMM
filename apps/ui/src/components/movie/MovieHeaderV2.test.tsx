@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MovieHeaderV2 } from './MovieHeaderV2'
-import type { MediaMetadata } from '@core/types'
+import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 function renderWithQueryClient(ui: React.ReactElement) {

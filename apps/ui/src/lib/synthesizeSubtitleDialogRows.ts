@@ -1,8 +1,8 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { SynthesizeSubtitleDialogRow } from "@/components/dialogs/types"
 import type { LocalFileTableRowData } from "@/components/MusicFileTable"
 import { basename, relative } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { absolutePosixMusicFilePath, labelForMediaFile } from "@/lib/transcribeDialogRows"
 
 const VIDEO_SYNTHESIZE_EXTENSIONS = new Set([

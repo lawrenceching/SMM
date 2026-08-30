@@ -1,10 +1,10 @@
 import { apiFetch } from '@/lib/apiFetch'
 import type {
   ImportLibraryJob as ImportLibraryJobBody,
-} from '@smm/core/job/ImportLibraryJob'
+} from '@smm/types/job/ImportLibraryJob'
 import type { ScrapeTaskId } from '@/lib/scrapeDialog'
 
-export type { ImportLibraryJobTask } from '@smm/core/job/ImportLibraryJob'
+export type { ImportLibraryJobTask } from '@smm/types/job/ImportLibraryJob'
 
 export type JobStatus = 'pending' | 'running' | 'succeeded' | 'failed' | 'aborted'
 

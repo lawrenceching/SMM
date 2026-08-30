@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@core/types";
+import type { MediaMetadata, MovieMediaMetadata, PreferMediaLanguage } from "@smm/types";
 import { basename } from "@/lib/path";
 import { useTvdbQueries } from "../useTvdbQueries";
 import type { TVDBv4SearchResult } from "@smm/tvdb4";

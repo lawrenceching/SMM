@@ -1,12 +1,12 @@
 import type { Hono } from 'hono'
-import { Path } from '@core/path'
-import type { Plan } from 'core-app'
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
+import { Path } from '@smm/utils/path'
+import type { Plan } from '@smm/core'
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
 import {
   RenameFilesPlanReady,
   type RenameFilesPlanReadyRequestData,
-} from '@core/event-types'
-import { formatToolError } from '@core/ai-tool/toolResult'
+} from '@smm/types/event-types'
+import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
 import { getAppDataDir } from '@/utils/config'

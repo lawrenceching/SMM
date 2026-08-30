@@ -5,7 +5,7 @@ import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/component
 import { MediaFolderListItemV2 } from "../sidebar/MediaFolderListItemV2"
 import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
 import { basename } from "@/lib/path"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import {
   useUIMediaFolderStoreState,
   useUIMediaFolderStoreActions,

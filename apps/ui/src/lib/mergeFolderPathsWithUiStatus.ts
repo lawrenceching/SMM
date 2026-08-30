@@ -1,4 +1,4 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
 export function mergeFolderPathsWithUiStatus(

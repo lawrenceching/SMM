@@ -3,7 +3,7 @@ import type {
   TmdbMovieDetails,
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
-} from '@core/types'
+} from '@smm/types'
 
 export interface TmdbCoreRequestOptions {
   language?: string

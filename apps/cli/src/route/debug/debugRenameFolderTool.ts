@@ -1,7 +1,7 @@
 import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { executeRenameFolder } from '../../tools/renameFolder';
-import type { RenameFolderOutput } from '@core/types/ai-tools/renameFolder';
+import type { RenameFolderOutput } from '@smm/types/ai-tools/renameFolder';
 import type { Hono } from 'hono';
 
 type RenameFolderToolData = RenameFolderOutput;

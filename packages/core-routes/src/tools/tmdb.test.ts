@@ -4,7 +4,7 @@ import type {
   TmdbSearchResponseBody,
   TmdbSeriesDetails,
   TMDBTVShow,
-} from "@smm/core/types";
+} from "@smm/types";
 import {
   executeTmdbGetMovie,
   executeTmdbGetTvShow,

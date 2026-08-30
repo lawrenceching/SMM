@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useMount, useUnmount } from "react-use";
-import { RecognizeMediaFilePlanReady } from "@core/event-types";
+import { RecognizeMediaFilePlanReady } from "@smm/types/event-types";
 import { queryClient } from "@/lib/queryClient";
 import { PLANS_QUERY_ROOT } from "@/hooks/plans";
 

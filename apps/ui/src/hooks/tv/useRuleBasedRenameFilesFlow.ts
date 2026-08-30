@@ -15,7 +15,7 @@ import { useTranslation } from "@/lib/i18n"
 import type { RenameToolbarOption } from "@/components/tv/plans/TvShowAppPlanPromptContext"
 import type { Plan } from "@/api/getPlans"
 import type { UIPlan } from "@/types/UIPlan"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 

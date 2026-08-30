@@ -1,4 +1,4 @@
-import type { LoggerPort } from 'core-app'
+import type { LoggerPort } from '@smm/core'
 
 /** CLI logger: necessary messages by default; structured payload only when verbose. */
 export class CliLoggerAdapter implements LoggerPort {

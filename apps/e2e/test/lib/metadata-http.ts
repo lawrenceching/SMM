@@ -2,7 +2,7 @@ import type {
     MediaMetadata,
     MetadataSuccessResponseBody,
     SetMetadataRequestBody,
-} from '@smm/core/types'
+} from '@smm/types'
 import { browser } from '@wdio/globals'
 import { ensureBrowserOnUiPage } from './browser-fs'
 

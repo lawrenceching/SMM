@@ -1,8 +1,8 @@
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import type {
   FfmpegCompressOptions,
   FfmpegCompressContainer,
-} from '@core/whitelistedCmd/constants'
+} from '@smm/core/whitelistedCmd/constants'
 import type {
   FfmpegCompressBackgroundJob,
   FfmpegCompressBackgroundJobData,

@@ -1,5 +1,5 @@
 import { $ } from 'bun'
-import type { HelloCliBody } from '@smm/core/types'
+import type { HelloCliBody } from '@smm/types'
 
 /**
  * Run `smm hello -f json` and parse {@link HelloCliBody}.

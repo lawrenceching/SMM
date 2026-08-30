@@ -1,4 +1,4 @@
-import type { HelloResponseBody } from "@core/types";
+import type { HelloResponseBody } from "@smm/types";
 import { apiFetch } from '@/lib/apiFetch';
 import { syncPathServerPlatformFromHello } from '@/lib/syncPathServerPlatform';
 

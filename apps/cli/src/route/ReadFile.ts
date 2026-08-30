@@ -1,6 +1,6 @@
 import { buildAllowlist } from '@/utils/buildAllowlist';
 import { doReadFile as doReadFileCore } from '@smm/core-routes';
-import type { ReadFileRequestBody, ReadFileResponseBody } from '@core/types';
+import type { ReadFileRequestBody, ReadFileResponseBody } from '@smm/types';
 import type { Hono } from 'hono';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
 

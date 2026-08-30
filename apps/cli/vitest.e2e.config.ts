@@ -1,7 +1,8 @@
 import { defineConfig } from 'vitest/config'
 import { resolve } from 'path'
 
-const coreRoot = resolve(__dirname, '../../packages/core')
+const typesRoot = resolve(__dirname, '../../packages/types')
+const utilsSrc = resolve(__dirname, '../../packages/utils/src')
 
 /** Network/integration CLI tests — not part of default `pnpm test`. */
 export default defineConfig({
@@ -14,22 +15,25 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@', replacement: resolve(__dirname, './src') },
-      { find: '@core', replacement: coreRoot },
       {
-        find: /^@smm\/core\/(.+)$/,
-        replacement: `${coreRoot}/$1`,
+        find: /^@smm\/types\/(.+)$/,
+        replacement: `${typesRoot}/$1`,
       },
       {
-        find: '@smm/core',
-        replacement: resolve(coreRoot, 'types.ts'),
+        find: '@smm/types',
+        replacement: resolve(typesRoot, 'types.ts'),
+      },
+      {
+        find: /^@smm\/utils\/(.+)$/,
+        replacement: `${utilsSrc}/$1`,
+      },
+      {
+        find: '@smm/utils',
+        replacement: resolve(utilsSrc, 'index.ts'),
       },
       {
         find: '@smm/test',
         replacement: resolve(__dirname, '../../packages/test/src/index.ts'),
-      },
-      {
-        find: 'core-app',
-        replacement: resolve(__dirname, '../core/src/index.ts'),
       },
     ],
   },

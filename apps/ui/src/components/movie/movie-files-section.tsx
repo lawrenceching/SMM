@@ -1,4 +1,4 @@
-import type { TMDBMovie } from "@core/types"
+import type { TMDBMovie } from "@smm/types"
 import { FileVideo, FileText, Music, Image as ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Skeleton } from "@/components/ui/skeleton"

@@ -1,11 +1,11 @@
 import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
-import { Path } from "@core/path";
+import { Path } from "@smm/utils/path";
 import { basename } from "./lib/path"
 import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
 import type { UIMediaMetadata } from "./types/UIMediaMetadata";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
-import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@smm/types";
 import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4";
 
 /**

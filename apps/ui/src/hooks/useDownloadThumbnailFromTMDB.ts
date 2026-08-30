@@ -3,7 +3,7 @@ import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 import { getTMDBImageUrl } from "@/api/tmdb"
 import { downloadImageWithFailover } from "@/api/downloadImageWithFailover"
 import { extname, newFilePathWithExt } from "@/lib/path"
-import type { MediaFileMetadata } from "@core/types"
+import type { MediaFileMetadata } from "@smm/types"
 
 export interface DownloadThumbnailFromTMDBVariables {
   seriesId: number

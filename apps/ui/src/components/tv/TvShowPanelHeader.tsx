@@ -1,4 +1,4 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadata } from "@smm/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"
 import { FileEdit, Download, Scan, MoreVertical, ExternalLink, List, LayoutGrid, PanelTop, Captions, ChevronDown, FileVideo, Sparkles } from "lucide-react"
 import { MediaDatabaseSearchbox } from "../MediaDatabaseSearchbox"

@@ -8,7 +8,7 @@ import {
   LIST_FILES_IN_MEDIA_FOLDER_INVALID_PATH,
   LIST_FILES_IN_MEDIA_FOLDER_NOT_MANAGED,
   type ListFilesInMediaFolderToolOutput,
-} from "@smm/core/types/ai-tools/listFilesInMediaFolder";
+} from "@smm/types/ai-tools/listFilesInMediaFolder";
 import { doListFiles } from "./listFiles.ts";
 import { EMPTY_CORE_ROUTES_CONFIG, type CoreRoutesConfig } from "./types.ts";
 import { isMediaFolderManaged } from "./userConfig.ts";

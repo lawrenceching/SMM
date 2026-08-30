@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { Path } from "@core/path"
+import { Path } from "@smm/utils/path"
 import { buildTranscribeJob } from "./transcribeJobFactory"
 
 const MEDIA_FOLDER_PLATFORM = "C:\\path\\to\\music"

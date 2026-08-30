@@ -1,4 +1,4 @@
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan';
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan';
 
 /**
  * @deprecated Use {@link RenameFilesPlan} directly. The UI no longer

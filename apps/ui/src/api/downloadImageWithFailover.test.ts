@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
-import { ExistedFileError, existedFileError } from "@core/errors"
+import { ExistedFileError, existedFileError } from "@smm/utils/errors"
 import type { DiscoverConfig } from "./discover"
-import type { DownloadImageResponseBody } from "@core/types"
+import type { DownloadImageResponseBody } from "@smm/types"
 
 const config: DiscoverConfig = {
   mediaDatabases: [

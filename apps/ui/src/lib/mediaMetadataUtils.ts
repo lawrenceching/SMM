@@ -1,6 +1,6 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
-import { createMediaMetadata } from "@core/mediaMetadata"
+import { createMediaMetadata } from "@smm/core/mediaMetadata"
 import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
 
 export async function createInitialMediaMetadata(

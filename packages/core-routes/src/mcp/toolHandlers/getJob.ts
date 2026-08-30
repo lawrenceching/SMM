@@ -4,7 +4,7 @@ import {
   GET_JOB_DESCRIPTION,
   getJobInputSchema,
   getJobOutputSchema,
-} from "@smm/core/types/ai-tools/getJob";
+} from "@smm/types/ai-tools/getJob";
 import {
   createErrorResponse,
   createSuccessResponse,

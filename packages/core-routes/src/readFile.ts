@@ -2,9 +2,9 @@ import { z } from "zod/v3";
 import path from "node:path";
 import { access, readFile } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
-import { Path } from "@smm/core/path";
-import { fileNotFoundError } from "@smm/core/errors";
-import type { ReadFileRequestBody, ReadFileResponseBody } from "@smm/core/types";
+import { Path } from "@smm/utils/path";
+import { fileNotFoundError } from "@smm/utils/errors";
+import type { ReadFileRequestBody, ReadFileResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 

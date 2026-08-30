@@ -1,5 +1,5 @@
 import { describe, expect, it, afterEach } from 'vitest'
-import { Path } from '@core/path'
+import { Path } from '@smm/utils/path'
 import { syncPathServerPlatformFromHello } from './syncPathServerPlatform'
 
 describe('syncPathServerPlatformFromHello', () => {

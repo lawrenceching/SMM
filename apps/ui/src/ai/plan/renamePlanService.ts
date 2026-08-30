@@ -1,10 +1,10 @@
-import type { RenameFilesPlan } from '@core/types/RenameFilesPlan'
-import type { RenameValidationResult } from '@core/types'
+import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
+import type { RenameValidationResult } from '@smm/types'
 import {
   assertMediaFolderHasMetadata,
   prepareAppendRenameEntry,
-} from '@core/plan/renamePlan'
-import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync'
+} from '@smm/core/plan/renamePlan'
+import { validateRenameOperationsSync } from '@smm/core/validations/rename/validateRenameOperationsSync'
 import { validateRenameOperationsApi } from '@/api/validateRenameOperations'
 import { resolveMediaMetadataForFolderPath } from '@/ai/mediaMetadataToolBridge'
 import { getPlanById } from '@/api/getPlanById'
