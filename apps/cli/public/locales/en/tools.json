@@ -44,6 +44,9 @@
   "get-episodes": {
     "description": "Get all episodes for a TV show with their video file paths. Combines cached TMDB or TVDB episode data with local media file paths. For each episode, returns season, episode number, and video file path (which may be undefined if the episode hasn't been recognized yet)."
   },
+  "get-episode": {
+    "description": "Get the absolute video file path for a single episode in a media folder. Returns the resolved video file path plus a status message."
+  },
   "readme": {
     "description": "MUST call this tool to get SMM MCP tools document before calling other SMM MCP tools"
   },
@@ -58,5 +61,17 @@
   },
   "tmdb-get-tv-show": {
     "description": "Retrieve detailed TV show information from TMDB by TMDB ID, including all seasons and episodes with their titles, overviews, air dates, and more."
+  },
+  "tvdb-search": {
+    "description": "Search TVDB (TheTVDB) for TV series or movies by keyword. Returns matching results with title, overview, and TVDB ID.\n\nExample: Search series matching \"naruto\"."
+  },
+  "tvdb-get-movie": {
+    "description": "Retrieve movie metadata from TVDB by TVDB ID, including the localized title.\n\nExample: Get movie metadata for TVDB id 7."
+  },
+  "tvdb-get-tv-show": {
+    "description": "Retrieve TV series metadata from TVDB by TVDB ID, including seasons and episodes with localized titles.\n\nExample: Get TV series metadata for TVDB id 42."
+  },
+  "tvdb-get-languages": {
+    "description": "Retrieve the list of TVDB supported languages (ISO 639-3 codes). Useful for picking a search language."
   }
 }

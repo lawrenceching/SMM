@@ -65,11 +65,18 @@ export async function getLocalizedToolDescription(
   // Change i18next language to match user preference
   i18n.changeLanguage(language);
 
-  // Get localized description using translation key
+  const translationKey = `${toolName}.description`;
+
   // Falls back to 'en' if key is missing in the requested language
-  const description = i18n.t(`${toolName}.description`, {
+  const description = i18n.t(translationKey, {
     ns: 'tools',
   });
+
+  // i18next returns the key itself when no translation exists (even after
+  // fallback). Return toolName so callers can skip and use English defaults.
+  if (description === translationKey || description === toolName) {
+    return toolName;
+  }
 
   return description;
 }

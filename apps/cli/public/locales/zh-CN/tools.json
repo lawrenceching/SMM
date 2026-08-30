@@ -52,5 +52,26 @@
   },
   "tmdb-get-tv-show": {
     "description": "通过 TMDB ID 从 TMDB 检索详细的电视剧信息，包括所有季和集的标题、概述、播出日期等。"
+  },
+  "get-episodes": {
+    "description": "获取电视剧的所有剧集及其视频文件路径。结合缓存的 TMDB 或 TVDB 剧集数据与本地媒体文件路径。对于每个剧集，返回季、集数和视频文件路径（若尚未识别，路径可能为空）。"
+  },
+  "get-episode": {
+    "description": "获取媒体文件夹中单个剧集的绝对视频文件路径。返回解析后的视频文件路径及状态消息。"
+  },
+  "how-to-rename-episode-video-files": {
+    "description": "重命名季集视频文件的说明。当用户要求重命名文件或季集时，调用此工具。"
+  },
+  "tvdb-search": {
+    "description": "在 TVDB（TheTVDB）中按关键字搜索电视剧或电影。返回匹配结果，包括标题、概述和 TVDB ID。\n\n示例：搜索匹配 \"naruto\" 的电视剧。"
+  },
+  "tvdb-get-movie": {
+    "description": "通过 TVDB ID 从 TVDB 检索电影元数据，包括本地化标题。\n\n示例：获取 TVDB id 7 的电影元数据。"
+  },
+  "tvdb-get-tv-show": {
+    "description": "通过 TVDB ID 从 TVDB 检索电视剧元数据，包括季和集及其本地化标题。\n\n示例：获取 TVDB id 42 的电视剧元数据。"
+  },
+  "tvdb-get-languages": {
+    "description": "获取 TVDB 支持的语言列表（ISO 639-3 代码）。可用于选择搜索语言。"
   }
 }

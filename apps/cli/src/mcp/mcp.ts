@@ -106,8 +106,8 @@ async function loadLocalizedToolDescriptions(): Promise<Record<string, string>> 
   for (const toolName of TOOL_NAME_KEYS) {
     try {
       const description = await getLocalizedToolDescription(toolName);
-      // `getLocalizedToolDescription` returns the key itself when
-      // missing — skip those so the English default takes over.
+      // `getLocalizedToolDescription` returns the tool name when the
+      // translation is missing — skip those so the English default takes over.
       if (description && description !== toolName) {
         descriptions[toolName] = description;
       }
