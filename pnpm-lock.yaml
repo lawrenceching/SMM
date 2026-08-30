@@ -69,6 +69,12 @@ importers:
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
+      '@smm/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@smm/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@types/shelljs':
         specifier: ^0.10.0
         version: 0.10.0
@@ -449,6 +455,12 @@ importers:
       '@smm/tvdb4':
         specifier: workspace:*
         version: link:../../packages/tvdb4
+      '@smm/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@smm/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@tailwindcss/vite':
         specifier: ^4.1.17
         version: 4.2.1(vite@7.3.1(@types/node@24.10.13)(jiti@2.6.1)(lightningcss@1.33.0)(tsx@4.21.0)(yaml@2.9.0))
@@ -700,6 +712,12 @@ importers:
       '@smm/core':
         specifier: workspace:*
         version: link:../../apps/core
+      '@smm/types':
+        specifier: workspace:*
+        version: link:../types
+      '@smm/utils':
+        specifier: workspace:*
+        version: link:../utils
       ai:
         specifier: ^6.0.36
         version: 6.0.98(zod@4.3.6)
