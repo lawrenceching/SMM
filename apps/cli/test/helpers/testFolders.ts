@@ -29,9 +29,9 @@ const repoRoot = join(helpersDir, '../../../..')
 const MEDIA_METADATA_TEMPLATES_DIR = join(repoRoot, 'test', 'templates', 'mediaMetadatas')
 
 /** Same sanitization as Core `metadataCachePath` / core-routes cache. */
-export function metadataCachePath(userDataDir: string, folderPathInPosix: string): string {
+export function metadataCachePath(appDataDir: string, folderPathInPosix: string): string {
   const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
-  return join(userDataDir, 'metadata', `${filename}.json`)
+  return join(appDataDir, 'metadata', `${filename}.json`)
 }
 
 /** Sibling path with " - Renamed" suffix (same naming as e2e RenameFolder). */
@@ -91,7 +91,6 @@ export async function createAndImportInitializedFolder(
   } else {
     const templateFileName = options.templateFileName ?? '天使降临到我身边.metadata.json'
     mediaMetadata = rewritePathsForFolder(loadTemplate(templateFileName), folderPath)
-    mediaMetadata.files = created.files.map((file) => Path.posix(join(folderPath, file)))
   }
 
   if (options.updateMediaMetadata) {
@@ -99,7 +98,12 @@ export async function createAndImportInitializedFolder(
   }
   mediaMetadata.mediaFolderPath = Path.posix(folderPath)
 
-  await getCore().createMetadata(mediaMetadata)
+  await getCore().setMetadata(folderPath, {
+    type: mediaMetadata.type,
+    mediaFiles: mediaMetadata.mediaFiles,
+    tvShow: mediaMetadata.tvShow,
+    movie: mediaMetadata.movie,
+  })
 
   return created
 }

@@ -6,7 +6,7 @@ const CONTEXT_MENU_CONTENT_SELECTOR = '[data-slot="context-menu-content"], [role
  * Right-click an element reliably on Windows/Linux (Radix context menus).
  * WebdriverIO's `click({ button: 'right' })` often fails to open Radix menus on Windows.
  */
-export async function rightClickElement(element: WebdriverIO.Element): Promise<void> {
+export async function rightClickElement(element: ChainablePromiseElement): Promise<void> {
     await element.scrollIntoView()
     await element.waitForDisplayed({ timeout: 10_000 })
 

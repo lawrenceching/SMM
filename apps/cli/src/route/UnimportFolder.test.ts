@@ -4,27 +4,22 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { handleUnimportFolder } from './UnimportFolder'
+import { metadataCachePath } from '../../test/helpers/testFolders'
+import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/unimport-folder', () => {
-  let userDataDir: string
-  let prevUserDataDir: string | undefined
+  let env: CliTestEnv
   let app: Hono
 
   beforeEach(() => {
-    prevUserDataDir = process.env.USER_DATA_DIR
-    userDataDir = mkdtempSync(join(tmpdir(), 'smm-unimport-folder-'))
-    process.env.USER_DATA_DIR = userDataDir
-    resetCoreForTests()
+    env = installCliTestEnv('smm-unimport-folder')
     app = new Hono()
     handleUnimportFolder(app)
   })
 
   afterEach(() => {
-    resetCoreForTests()
-    if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
-    else process.env.USER_DATA_DIR = prevUserDataDir
-    rmSync(userDataDir, { recursive: true, force: true })
+    restoreCliTestEnv(env)
   })
 
   async function post(body: unknown) {
@@ -37,13 +32,12 @@ describe('POST /api/unimport-folder', () => {
 
   it('removes the folder from smm.json and deletes metadata cache', async () => {
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({ folders: ['/media/A', '/media/B'] }),
       'utf-8',
     )
-    const cacheDir = join(userDataDir, 'metadata')
-    mkdirSync(cacheDir, { recursive: true })
-    const cacheFile = join(cacheDir, '_media_A.json')
+    mkdirSync(join(env.appDataDir, 'metadata'), { recursive: true })
+    const cacheFile = metadataCachePath(env.appDataDir, '/media/A')
     writeFileSync(cacheFile, JSON.stringify({ mediaFolderPath: '/media/A' }), 'utf-8')
     resetCoreForTests()
 
@@ -51,14 +45,14 @@ describe('POST /api/unimport-folder', () => {
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ data: { path: '/media/A' } })
 
-    const saved = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as { folders: string[] }
+    const saved = JSON.parse(readFileSync(join(env.userDataDir, 'smm.json'), 'utf-8')) as { folders: string[] }
     expect(saved.folders).toEqual(['/media/B'])
     expect(existsSync(cacheFile)).toBe(false)
   })
 
   it('succeeds when the folder is not imported', async () => {
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({ folders: ['/media/Keep'] }),
       'utf-8',
     )
@@ -68,7 +62,7 @@ describe('POST /api/unimport-folder', () => {
     expect(res.status).toBe(200)
     await expect(res.json()).resolves.toEqual({ data: { path: '/media/Missing' } })
 
-    const saved = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as { folders: string[] }
+    const saved = JSON.parse(readFileSync(join(env.userDataDir, 'smm.json'), 'utf-8')) as { folders: string[] }
     expect(saved.folders).toEqual(['/media/Keep'])
   })
 

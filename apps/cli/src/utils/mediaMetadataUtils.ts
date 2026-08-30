@@ -7,9 +7,8 @@ const logger = pino();
 
 /**
  * Rename media folder in media metadata, which means:
- * 1. Rename folder in mediaMetadata.files
- * 2. Rename folder in mediaMetadata.mediaFiles.absolutePath
- * 
+ * 1. Rename folder in mediaMetadata.mediaFiles.absolutePath
+ *
  * This method assumes the "from" and "to" path are valid.
  * Devleoper need to do validation before calling this method.
  * 
@@ -45,13 +44,6 @@ export function renameMediaFolderInMediaMetadata(mediaMetadata: MediaMetadata, f
         if (normalizedMediaFolderPath === from) {
             clone.mediaFolderPath = to;
         }
-    }
-    
-    // Update files array
-    if (clone.files === null) {
-        clone.files = null;
-    } else if (clone.files !== undefined) {
-        clone.files = clone.files.map(file => replaceFolderPrefix(file));
     }
     
     // Update mediaFiles array

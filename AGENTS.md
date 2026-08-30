@@ -116,6 +116,12 @@ Electron 桌面应用, 主要目录结构:
 - WebdriverIO 9
 - Mocha
 
+## 代码改动
+
+**Post Change** run build and typecheck script after code change
+**Pre Commit** run build, typecheck, and unit tests before commit
+
+
 ## 常用命令
 
 ```bash

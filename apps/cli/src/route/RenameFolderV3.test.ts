@@ -12,6 +12,8 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { Path } from '@core/path'
 import { handleRenameFolderV3 } from './RenameFolderV3'
+import { metadataCachePath } from '../../test/helpers/testFolders'
+import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
 vi.mock('@/events/userConfigUpdatedEvent', () => ({
@@ -22,27 +24,20 @@ vi.mock('@/utils/socketIO', () => ({
 }))
 
 describe('POST /api/rename-folder', () => {
-  let userDataDir: string
+  let env: CliTestEnv
   let mediaDir: string
-  let prevUserDataDir: string | undefined
   let app: Hono
 
   beforeEach(() => {
-    prevUserDataDir = process.env.USER_DATA_DIR
-    userDataDir = mkdtempSync(join(tmpdir(), 'smm-rename-folder-v3-ud-'))
+    env = installCliTestEnv('smm-rename-folder-v3')
     mediaDir = mkdtempSync(join(tmpdir(), 'smm-rename-folder-v3-media-'))
-    process.env.USER_DATA_DIR = userDataDir
-    resetCoreForTests()
     app = new Hono()
     handleRenameFolderV3(app)
   })
 
   afterEach(() => {
-    resetCoreForTests()
-    if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
-    else process.env.USER_DATA_DIR = prevUserDataDir
-    rmSync(userDataDir, { recursive: true, force: true })
     rmSync(mediaDir, { recursive: true, force: true })
+    restoreCliTestEnv(env)
   })
 
   async function post(body: unknown) {
@@ -61,7 +56,7 @@ describe('POST /api/rename-folder', () => {
 
     const fromPosix = Path.posix(from)
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({
         folders: [from],
         tmdb: {},
@@ -72,15 +67,12 @@ describe('POST /api/rename-folder', () => {
       }),
       'utf-8',
     )
-    const cacheName = fromPosix.replace(/[/\\:?*|<>"]/g, '_')
-    const cacheDir = join(userDataDir, 'metadata')
-    mkdirSync(cacheDir, { recursive: true })
+    mkdirSync(join(env.appDataDir, 'metadata'), { recursive: true })
     writeFileSync(
-      join(cacheDir, `${cacheName}.json`),
+      metadataCachePath(env.appDataDir, fromPosix),
       JSON.stringify({
         mediaFolderPath: fromPosix,
         type: 'tvshow-folder',
-        files: [Path.posix(join(from, 'S01E01.mkv'))],
         mediaFiles: [{ absolutePath: Path.posix(join(from, 'S01E01.mkv')) }],
       }),
       'utf-8',
@@ -95,7 +87,7 @@ describe('POST /api/rename-folder', () => {
     expect(existsSync(to)).toBe(true)
     expect(existsSync(join(to, 'S01E01.mkv'))).toBe(true)
 
-    const saved = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as {
+    const saved = JSON.parse(readFileSync(join(env.userDataDir, 'smm.json'), 'utf-8')) as {
       folders: string[]
     }
     expect(saved.folders.map((f) => Path.posix(f))).toEqual([Path.posix(to)])
@@ -110,7 +102,7 @@ describe('POST /api/rename-folder', () => {
 
   it('returns Error Reason when folder is not managed', async () => {
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({
         folders: [],
         tmdb: {},

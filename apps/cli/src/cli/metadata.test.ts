@@ -3,21 +3,18 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('smm metadata', () => {
-  let userDataDir: string
+  let env: CliTestEnv
   let mediaFolder: string
-  let prevUserDataDir: string | undefined
   let logSpy: MockInstance<(...args: any[]) => void>
   let errorSpy: MockInstance<(...args: any[]) => void>
 
   beforeEach(() => {
-    prevUserDataDir = process.env.USER_DATA_DIR
-    userDataDir = mkdtempSync(join(tmpdir(), 'smm-meta-cli-'))
+    env = installCliTestEnv('smm-meta-cli')
     mediaFolder = mkdtempSync(join(tmpdir(), 'smm-meta-media-'))
-    process.env.USER_DATA_DIR = userDataDir
-    resetCoreForTests()
     logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
   })
@@ -26,11 +23,8 @@ describe('smm metadata', () => {
     logSpy.mockRestore()
     errorSpy.mockRestore()
     vi.restoreAllMocks()
-    resetCoreForTests()
-    if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
-    else process.env.USER_DATA_DIR = prevUserDataDir
-    rmSync(userDataDir, { recursive: true, force: true })
     rmSync(mediaFolder, { recursive: true, force: true })
+    restoreCliTestEnv(env)
   })
 
   function output(): string {
@@ -47,7 +41,7 @@ describe('smm metadata', () => {
 
   it('exits 1 when metadata cache is missing', async () => {
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({ folders: [mediaFolder] }),
       'utf-8',
     )
@@ -58,7 +52,7 @@ describe('smm metadata', () => {
 
     expect(code).toBe(1)
     expect(errorSpy.mock.calls.map((c) => String(c[0])).join('\n')).toMatch(
-      /No metadata cache/i,
+      /Metadata not found/i,
     )
   })
 
@@ -69,7 +63,7 @@ describe('smm metadata', () => {
     logSpy.mockClear()
     errorSpy.mockClear()
 
-    const jsonFile = join(userDataDir, 'mm.json')
+    const jsonFile = join(env.userDataDir, 'mm.json')
     writeFileSync(
       jsonFile,
       JSON.stringify({

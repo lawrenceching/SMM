@@ -2,28 +2,22 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resetCoreForTests, smm } from './smm'
+import { smm } from './smm'
 import { createAndImportInitializedFolder, musicFolder } from './testFolders'
+import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from './cliTestEnv'
 
 describe('createAndImportInitializedFolder', () => {
-  let userDataDir: string
+  let env: CliTestEnv
   let mediaDir: string
-  let prevUserDataDir: string | undefined
 
   beforeEach(() => {
-    prevUserDataDir = process.env.USER_DATA_DIR
-    userDataDir = mkdtempSync(join(tmpdir(), 'smm-init-folder-ud-'))
+    env = installCliTestEnv('smm-init-folder')
     mediaDir = mkdtempSync(join(tmpdir(), 'smm-init-folder-media-'))
-    process.env.USER_DATA_DIR = userDataDir
-    resetCoreForTests()
   })
 
   afterEach(() => {
-    resetCoreForTests()
-    if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
-    else process.env.USER_DATA_DIR = prevUserDataDir
-    rmSync(userDataDir, { recursive: true, force: true })
     rmSync(mediaDir, { recursive: true, force: true })
+    restoreCliTestEnv(env)
   })
 
   it('skip-init imports then writes metadata that smm metadata can read', async () => {

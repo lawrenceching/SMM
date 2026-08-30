@@ -2,6 +2,7 @@ import { z } from 'zod/v3';
 import { Path } from '@core/path';
 import type { MediaFileMetadata, MediaMetadata } from '@core/types';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
+import { doListFiles } from '../route/ListFiles';
 import { mkdir } from 'fs/promises';
 import { broadcast } from '../utils/socketIO';
 
@@ -88,10 +89,18 @@ Please **ensure** you call "ask-for-confirmation" to get user confirmation befor
       return { error: `Error Reason: folderPath "${folderPathInPosix}" does not match metadata folder path "${mediaMetadata.mediaFolderPath}"` };
     }
 
-    // 3. Check if path is valid
+    // 3. Check if path is valid (live folder listing, not persisted metadata)
     const pathInPosix = Path.posix(path);
-    const files = mediaMetadata.files;
-    if (!files || !files.includes(pathInPosix)) {
+    const listResult = await doListFiles({
+      path: folderPathInPosix,
+      recursively: true,
+      onlyFiles: true,
+    });
+    if (listResult.error) {
+      return { error: `Error Reason: Failed to list files in media folder: ${listResult.error}` };
+    }
+    const files = listResult.data?.items.map((item) => Path.posix(item.path)) ?? [];
+    if (!files.includes(pathInPosix)) {
       return { error: `Error Reason: path "${pathInPosix}" is not a file in the media folder` };
     }
 

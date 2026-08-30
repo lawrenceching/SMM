@@ -12,6 +12,8 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { Path } from '@core/path'
 import { handleRenameEpisodeFile } from './RenameEpisodeFile'
+import { metadataCachePath } from '../../test/helpers/testFolders'
+import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
 vi.mock('@/utils/socketIO', () => ({
@@ -19,30 +21,23 @@ vi.mock('@/utils/socketIO', () => ({
 }))
 
 describe('POST /api/rename-episode-file', () => {
-  let userDataDir: string
+  let env: CliTestEnv
   let mediaDir: string
   let mediaFolder: string
-  let prevUserDataDir: string | undefined
   let app: Hono
 
   beforeEach(() => {
-    prevUserDataDir = process.env.USER_DATA_DIR
-    userDataDir = mkdtempSync(join(tmpdir(), 'smm-rename-episode-ud-'))
+    env = installCliTestEnv('smm-rename-episode')
     mediaDir = mkdtempSync(join(tmpdir(), 'smm-rename-episode-media-'))
     mediaFolder = join(mediaDir, 'Show')
     mkdirSync(mediaFolder)
-    process.env.USER_DATA_DIR = userDataDir
-    resetCoreForTests()
     app = new Hono()
     handleRenameEpisodeFile(app)
   })
 
   afterEach(() => {
-    resetCoreForTests()
-    if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
-    else process.env.USER_DATA_DIR = prevUserDataDir
-    rmSync(userDataDir, { recursive: true, force: true })
     rmSync(mediaDir, { recursive: true, force: true })
+    restoreCliTestEnv(env)
   })
 
   async function post(body: unknown) {
@@ -61,7 +56,7 @@ describe('POST /api/rename-episode-file', () => {
 
     const folderPosix = Path.posix(mediaFolder)
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({
         folders: [mediaFolder],
         tmdb: {},
@@ -72,10 +67,9 @@ describe('POST /api/rename-episode-file', () => {
       }),
       'utf-8',
     )
-    const cacheName = folderPosix.replace(/[/\\:?*|<>"]/g, '_')
-    mkdirSync(join(userDataDir, 'metadata'), { recursive: true })
+    mkdirSync(join(env.appDataDir, 'metadata'), { recursive: true })
     writeFileSync(
-      join(userDataDir, 'metadata', `${cacheName}.json`),
+      metadataCachePath(env.appDataDir, folderPosix),
       JSON.stringify({
         mediaFolderPath: folderPosix,
         type: 'tvshow-folder',
@@ -131,9 +125,8 @@ describe('POST /api/rename-episode-file', () => {
     expect(existsSync(srt)).toBe(false)
 
     const folderPosix = Path.posix(mediaFolder)
-    const cacheName = folderPosix.replace(/[/\\:?*|<>"]/g, '_')
     const mm = JSON.parse(
-      readFileSync(join(userDataDir, 'metadata', `${cacheName}.json`), 'utf-8'),
+      readFileSync(metadataCachePath(env.appDataDir, folderPosix), 'utf-8'),
     ) as { mediaFiles: Array<{ absolutePath: string }> }
     expect(mm.mediaFiles[0]?.absolutePath).toBe(Path.posix(to))
   })
@@ -165,7 +158,7 @@ describe('POST /api/rename-episode-file', () => {
 
     const folderPosix = Path.posix(movieDir)
     writeFileSync(
-      join(userDataDir, 'smm.json'),
+      join(env.userDataDir, 'smm.json'),
       JSON.stringify({
         folders: [movieDir],
         tmdb: {},
@@ -176,14 +169,12 @@ describe('POST /api/rename-episode-file', () => {
       }),
       'utf-8',
     )
-    const cacheName = folderPosix.replace(/[/\\:?*|<>"]/g, '_')
-    mkdirSync(join(userDataDir, 'metadata'), { recursive: true })
+    mkdirSync(join(env.appDataDir, 'metadata'), { recursive: true })
     writeFileSync(
-      join(userDataDir, 'metadata', `${cacheName}.json`),
+      metadataCachePath(env.appDataDir, folderPosix),
       JSON.stringify({
         mediaFolderPath: folderPosix,
         type: 'movie-folder',
-        files: [Path.posix(video), Path.posix(srt), Path.posix(enSrt)],
         mediaFiles: [{ absolutePath: Path.posix(video) }],
         movie: { database: 'TMDB', id: '615453', name: 'Ne Zha' },
       }),
@@ -209,7 +200,7 @@ describe('POST /api/rename-episode-file', () => {
     expect(existsSync(enSrt)).toBe(false)
 
     const mm = JSON.parse(
-      readFileSync(join(userDataDir, 'metadata', `${cacheName}.json`), 'utf-8'),
+      readFileSync(metadataCachePath(env.appDataDir, folderPosix), 'utf-8'),
     ) as { mediaFiles: Array<{ absolutePath: string }> }
     expect(mm.mediaFiles[0]?.absolutePath).toBe(Path.posix(to))
   })
