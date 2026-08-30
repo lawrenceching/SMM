@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { cleanupRenamePlan } from "@/ai/tools/EndRenameFilesTask"
+import { cleanupRenamePlan } from "@/ai/plan/cleanupRenamePlan"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
 import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"

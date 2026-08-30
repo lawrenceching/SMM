@@ -436,6 +436,26 @@ describe('buildTvShowEpisodeTableRows', () => {
 })
 
 describe('buildTvShowEpisodeTableRows with tmdb/tvdb branches', () => {
+  it('shows the episode video from mediaFiles when live folder files are missing', () => {
+    const mm = {
+      mediaFolderPath: '/media/show',
+      mediaFiles: [
+        {
+          absolutePath: '/media/show/S01E01.mkv',
+          seasonNumber: 1,
+          episodeNumber: 1,
+        },
+      ],
+      tvShow: tvShowForPlanTests(),
+    } as MediaMetadata
+
+    const rows = buildTvShowEpisodeTableRows(mm, 'ok', (key) => key)
+    const ep = rows.find((row) => row.type === 'episode' && row.season === 1 && row.episode === 1) as TvShowEpisodeDataRow
+
+    expect(ep.videoFile).toBe('/media/show/S01E01.mkv')
+    expect(ep.checked).toBe(true)
+  })
+
   it('includes fanart row when tmdbTvShow branch is used', () => {
     const mm = {
       mediaFolderPath: '/media/show',

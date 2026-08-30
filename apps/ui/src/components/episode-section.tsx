@@ -1,3 +1,4 @@
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { TMDBTVShowDetails } from "@core/types"
 import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -158,13 +159,14 @@ export function EpisodeSection({
 
         // TODO: unable to calculate in preview match episode mode
 
-        if(selectedMediaMetadata === undefined 
-            // || selectedMediaMetadata.mediaFiles === undefined 
-            || selectedMediaMetadata.files === undefined) {
+        if(selectedMediaMetadata === undefined || selectedMediaMetadata === null) {
             return [];
         }
 
-        const localFiles = selectedMediaMetadata.files;
+        const localFiles = getMediaFolderFiles(selectedMediaMetadata);
+        if (localFiles.length === 0) {
+            return [];
+        }
         
         // Create a Set for fast lookup of existing files
         const localFilesSet = new Set(localFiles);

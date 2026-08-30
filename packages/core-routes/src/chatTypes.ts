@@ -108,4 +108,11 @@ export interface ChatConfig {
    * tools. Required when those tools are used.
    */
   appDataDir: string;
+  /**
+   * User data dir used to locate `smm.json`. On Linux (XDG) this
+   * differs from `appDataDir`. Chat tools that check managed folders
+   * (`get-episodes`, `rename-folder`) must read config from here.
+   * Defaults to `appDataDir` when omitted.
+   */
+  userDataDir?: string;
 }

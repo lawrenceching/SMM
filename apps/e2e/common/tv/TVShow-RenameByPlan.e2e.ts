@@ -15,9 +15,9 @@ import { testbedOs } from 'test/lib/e2e-platform'
 const RENAMED_EPISODE_TABLE = `Specials
 S00E01 - - - -
 Season 1
-S01E01 Season 01/WATATEN!: an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv V V V
-S01E02 Season 01/WATATEN!: an Angel Flew Down to Me - S01E02 - Incontestably Cute.mkv V V V
-S01E03 Season 01/WATATEN!: an Angel Flew Down to Me - S01E03 - Imprinting.mkv V V V
+S01E01 Season 01/WATATEN an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv V V V
+S01E02 Season 01/WATATEN an Angel Flew Down to Me - S01E02 - Incontestably Cute.mkv V V V
+S01E03 Season 01/WATATEN an Angel Flew Down to Me - S01E03 - Imprinting.mkv V V V
 S01E04 - - - -
 S01E05 - - - -
 S01E06 - - - -
@@ -79,7 +79,7 @@ describe('TVShow - Rename By Plan', () => {
             await browser.waitUntil(
                 async () =>
                     (await TvShowPanelCO.toString()).includes(
-                        'Season 01/WATATEN!: an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
+                        'Season 01/WATATEN an Angel Flew Down to Me - S01E01 - A Funny, Squirmy Feeling.mkv',
                     ),
                 { timeout: 15000, interval: 500 },
             )

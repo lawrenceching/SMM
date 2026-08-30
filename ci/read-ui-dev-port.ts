@@ -15,6 +15,7 @@ export const DEFAULT_UI_VITE_CONFIG = path.join(ROOT, 'apps', 'ui', 'vite.config
 
 /**
  * Parse `server.port` from a Vite config source string.
+ * Also accepts `DEFAULT_UI_DEV_PORT = 8000` when `port` is computed from env.
  */
 export function parseViteDevServerPort(
   source: string,
@@ -23,16 +24,37 @@ export function parseViteDevServerPort(
   const serverBlock = source.match(/server\s*:\s*\{([\s\S]*?)\}(?:\s*,|\s*\n)/);
   const block = serverBlock?.[1] ?? source;
   const portMatch = block.match(/\bport\s*:\s*(\d+)\b/);
-  if (!portMatch) {
+  const defaultMatch = source.match(/\bDEFAULT_UI_DEV_PORT\s*=\s*(\d+)\b/);
+  const raw = portMatch?.[1] ?? defaultMatch?.[1];
+  if (!raw) {
     return fallback;
   }
-  const port = Number(portMatch[1]);
+  const port = Number(raw);
   return Number.isFinite(port) && port > 0 ? port : fallback;
+}
+
+function parseEnvPort(raw: string | undefined): number | undefined {
+  if (raw === undefined) {
+    return undefined;
+  }
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return undefined;
+  }
+  const port = Number.parseInt(trimmed, 10);
+  if (!Number.isFinite(port) || port <= 0) {
+    return undefined;
+  }
+  return port;
 }
 
 export function readUiDevServerPort(
   viteConfigPath: string = DEFAULT_UI_VITE_CONFIG,
 ): number {
+  const fromEnv = parseEnvPort(process.env.UI_PORT);
+  if (fromEnv !== undefined) {
+    return fromEnv;
+  }
   const resolved = path.resolve(viteConfigPath);
   const source = fs.readFileSync(resolved, 'utf8');
   return parseViteDevServerPort(source);

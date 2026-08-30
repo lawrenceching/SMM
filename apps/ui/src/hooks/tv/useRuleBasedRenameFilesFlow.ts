@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { handleRenamePromptConfirmForTvShow } from "@/actions/handleRenamePromptConfirmForTvShow"
-import { renameFiles } from "@/api/renameFiles"
+import { applyPlan } from "@/api/applyPlan"
+import { rejectPlan } from "@/api/rejectPlan"
+import { tryToRenameEpisodes, type RenameRuleName } from "@/api/tryToRenameEpisodes"
 import { selectActiveAppPlan } from "@/components/tv/plans/selectActiveAppPlan"
-import { useTvShowFileNameGeneration } from "./useTvShowFileNameGeneration"
-import { useCreatePlanMutation, toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
 import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
-import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
-import { useOnFirstOpen } from "@/hooks/useOnFirstOpen"
-import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import {
+  mediaMetadataQueryKey,
+  normalizeMediaFolderPathForQuery,
+} from "@/lib/mediaMetadataQueryKeys"
 import { useTranslation } from "@/lib/i18n"
 import type { RenameToolbarOption } from "@/components/tv/plans/TvShowAppPlanPromptContext"
 import type { Plan } from "@/api/getPlans"
@@ -32,28 +33,26 @@ function fileBaseName(path: string): string {
   return i >= 0 ? path.slice(i + 1) : path
 }
 
+/**
+ * Rule-based rename flow aligned with docs/dev/rename-episodes.md:
+ * try-to-rename-episodes → (reject-plan + try-to-rename-episodes on rule switch) → apply-plan.
+ */
 export function useRuleBasedRenameFilesFlow({
   plans,
   mediaMetadata,
-  uiStatus,
+  uiStatus: _uiStatus,
   beforeConfirm,
   onFlowStart,
 }: UseRuleBasedRenameFilesFlowOptions) {
   const { t } = useTranslation(["components"])
   const queryClient = useQueryClient()
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
-  const createPlanMutation = useCreatePlanMutation()
-  const updatePlanMutation = useUpdatePlanMutation()
-  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
-  const generationRef = useRef(new Set<string>())
-  /** Ensures preview generation waits until createPlan API persists the plan file. */
-  const pendingCreateRef = useRef<Promise<unknown> | null>(null)
+  const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const [loading, setLoading] = useState(false)
+  const inFlightRef = useRef(false)
 
   const renameFailedMessage = t("toast.renameFailed", {
     defaultValue: "Rename failed. Please try again.",
-  })
-  const noRenameFilesMessage = t("toast.noRenameFiles", {
-    defaultValue: "Unable to generate a rename plan. Check that episodes have video files.",
   })
 
   const namingRuleOptions = useMemo(
@@ -64,7 +63,7 @@ export function useRuleBasedRenameFilesFlow({
     [t],
   )
 
-  const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(
+  const [selectedNamingRule, setSelectedNamingRule] = useState<RenameRuleName>(
     namingRuleOptions[0]?.value ?? "plex",
   )
 
@@ -79,165 +78,146 @@ export function useRuleBasedRenameFilesFlow({
   )
 
   const open = plan !== undefined
-  const loading = plan?.status === "preparing"
 
-  const { generateNewFileNames } = useTvShowFileNameGeneration({
-    mediaMetadata,
-    selectedNamingRule,
-  })
+  const plansKey = useMemo(
+    () =>
+      mediaFolderPath
+        ? plansQueryKey(normalizeMediaFolderPathForQuery(mediaFolderPath))
+        : null,
+    [mediaFolderPath],
+  )
+
+  const upsertPlanInCache = useCallback(
+    (next: UIRenameFilesPlan, removeId?: string) => {
+      if (!plansKey) return
+      queryClient.setQueryData<Plan[]>(plansKey, (prev) => {
+        const list = (prev ?? []).filter(
+          (p) => p.id !== next.id && (removeId === undefined || p.id !== removeId),
+        )
+        return [...list, next]
+      })
+    },
+    [plansKey, queryClient],
+  )
 
   const removePlanFromCache = useCallback(
     (planId: string) => {
-      if (!mediaFolderPath) return
-      console.log("[rename] removed stuck rename plan from UI cache", { planId, mediaFolderPath })
-      const key = plansQueryKey(normalizeMediaFolderPathForQuery(mediaFolderPath))
-      queryClient.setQueryData<Plan[]>(key, (prev) =>
+      if (!plansKey) return
+      console.log("[rename] removed rename plan from UI cache", { planId, mediaFolderPath })
+      queryClient.setQueryData<Plan[]>(plansKey, (prev) =>
         (prev ?? []).filter((p) => p.id !== planId),
       )
     },
-    [mediaFolderPath, queryClient],
+    [plansKey, mediaFolderPath, queryClient],
   )
 
-  const failRenamePlan = useCallback(
-    async (planId: string, message: string, reason: string) => {
-      console.warn("[rename] rename flow failed — closing prompt", { planId, reason, message })
-      toast.error(message)
+  const requestTryToRename = useCallback(
+    async (rule: RenameRuleName, removePlanId?: string): Promise<UIRenameFilesPlan> => {
       if (!mediaFolderPath) {
-        removePlanFromCache(planId)
-        return
+        throw new Error("No media folder path available")
       }
-      try {
-        await updatePlanMutation.mutateAsync({
-          id: planId,
-          mediaFolderPath,
-          patch: toUpdatePlanPatch({ status: "rejected" }),
-        })
-        console.log("[rename] rename plan marked rejected", { planId })
-      } catch (error) {
-        console.error("[rename] could not reject rename plan on server, cleared from cache", {
-          planId,
-          error,
-        })
-        removePlanFromCache(planId)
+      console.log("[rename] POST /api/try-to-rename-episodes", {
+        mediaFolderPath,
+        namingRule: rule,
+      })
+      const resp = await tryToRenameEpisodes({ mediaFolderPath, rule })
+      if (resp.error || !resp.data?.plan) {
+        throw new Error(resp.error ?? "try-to-rename-episodes: empty response")
       }
+      const next = resp.data.plan as UIRenameFilesPlan
+      upsertPlanInCache(next, removePlanId)
+      console.log("[rename] rename preview ready — user can review and confirm", {
+        planId: next.id,
+        namingRule: rule,
+        fileCount: next.files.length,
+        preview: next.files.map((f) => ({
+          from: fileBaseName(f.from),
+          to: fileBaseName(f.to),
+        })),
+      })
+      return next
     },
-    [mediaFolderPath, updatePlanMutation, removePlanFromCache],
+    [mediaFolderPath, upsertPlanInCache],
   )
 
-  const applyGeneratedRenamePlan = useCallback(
-    async (planId: string, rule: "plex" | "emby") => {
-      const renamePlan = generateNewFileNames(rule)
-      if (renamePlan && renamePlan.files.length > 0) {
-        await updatePlanMutation.mutateAsync({
-          id: planId,
-          mediaFolderPath: mediaFolderPath!,
-          patch: toUpdatePlanPatch({ status: "pending", files: renamePlan.files }),
-        })
-        console.log("[rename] rename preview ready — user can review and confirm", {
-          planId,
-          namingRule: rule,
-          tvShow: mediaMetadata?.tvShow?.name,
-          fileCount: renamePlan.files.length,
-          preview: renamePlan.files.map((f) => ({
-            from: fileBaseName(f.from),
-            to: fileBaseName(f.to),
-          })),
-        })
-        return
+  const requestRejectPlan = useCallback(
+    async (planId: string): Promise<void> => {
+      console.log("[rename] POST /api/reject-plan", { planId })
+      const resp = await rejectPlan({ id: planId })
+      if (resp.error) {
+        throw new Error(resp.error)
       }
-
-      // The candidate list is empty. Two cases:
-      //   1. No media files at all → genuine failure (existing behavior).
-      //   2. Media files exist but all already match this naming rule → keep
-      //      the prompt open so the user can switch to a different rule.
-      const mediaFileCount = mediaMetadata?.mediaFiles?.length ?? 0
-      if (mediaFileCount > 0) {
-        // All files already match this naming rule — update plan to pending with 0 files
-        // so the prompt can show appropriate UI (confirm disabled, info message).
-        await updatePlanMutation.mutateAsync({
-          id: planId,
-          mediaFolderPath: mediaFolderPath!,
-          patch: toUpdatePlanPatch({ status: "pending", files: [] }),
-        })
-        console.log(
-          "[rename] all files already match naming rule — prompt open, confirm disabled",
-          { planId, namingRule: rule, mediaFileCount, tvShow: mediaMetadata?.tvShow?.name },
-        )
-        return
-      }
-
-      await failRenamePlan(planId, noRenameFilesMessage, "no rename candidates")
+      removePlanFromCache(planId)
+      console.log("[rename] rename plan rejected", { planId })
     },
-    [
-      generateNewFileNames,
-      mediaMetadata?.mediaFiles?.length,
-      mediaMetadata?.tvShow?.name,
-      mediaFolderPath,
-      updatePlanMutation,
-      failRenamePlan,
-      noRenameFilesMessage,
-    ],
+    [removePlanFromCache],
   )
 
   /**
-   * Generate or refresh the rename preview for the active plan.
-   * Triggered only from:
-   * 1. First open of RuleBasedRenameFilePrompt (default naming rule via useOnFirstOpen)
-   * 2. User changing the naming rule dropdown in the prompt
+   * Generate or refresh the rename preview.
+   * Triggered from:
+   * 1. Click Rename (default naming rule)
+   * 2. User changing the naming rule dropdown (reject + try-to-rename)
    */
   const onNamingRuleSelected = useCallback(
-    async (rule: "plex" | "emby") => {
-      if (!plan || !mediaFolderPath || !mediaMetadata) {
-        console.warn("[rename] cannot generate preview — plan or metadata missing", { rule })
+    async (rule: RenameRuleName) => {
+      if (!mediaFolderPath) {
+        console.warn("[rename] cannot generate preview — media folder path missing", { rule })
         toast.error(renameFailedMessage)
         return
       }
 
-      if (generationRef.current.has(plan.id)) {
+      if (inFlightRef.current) {
         return
       }
-      generationRef.current.add(plan.id)
+      inFlightRef.current = true
+      setLoading(true)
 
-      const isInitialGeneration = plan.status === "preparing" && plan.files.length === 0
+      const previousPlanId = plan?.id
+      const isSwitch = previousPlanId !== undefined
+
       console.log(
-        isInitialGeneration
-          ? "[rename] rename prompt opened — generating preview with default naming rule"
-          : "[rename] user selected naming rule — regenerating preview",
+        isSwitch
+          ? "[rename] user selected naming rule — regenerating preview"
+          : "[rename] rename prompt opened — generating preview with default naming rule",
         {
-          planId: plan.id,
+          planId: previousPlanId,
           namingRule: rule,
-          planStatus: plan.status,
-          tvShow: mediaMetadata.tvShow?.name,
+          planStatus: plan?.status,
+          tvShow: mediaMetadata?.tvShow?.name,
           mediaFolderPath,
         },
       )
 
-      console.log("[rename] computing episode file names for rename preview", {
-        planId: plan.id,
-        namingRule: rule,
-      })
-
       try {
-        await applyGeneratedRenamePlan(plan.id, rule)
+        if (previousPlanId) {
+          await requestRejectPlan(previousPlanId)
+        }
+        await requestTryToRename(rule, previousPlanId)
       } catch (error) {
         console.error("[rename] failed to build rename preview", {
-          planId: plan.id,
+          planId: previousPlanId,
           namingRule: rule,
           error,
         })
         const message =
           error instanceof Error && error.message ? error.message : renameFailedMessage
-        await failRenamePlan(plan.id, message, "preview generation error")
+        toast.error(message)
+        if (previousPlanId) {
+          removePlanFromCache(previousPlanId)
+        }
       } finally {
-        generationRef.current.delete(plan.id)
+        inFlightRef.current = false
+        setLoading(false)
       }
     },
     [
       plan,
       mediaFolderPath,
-      mediaMetadata,
-      applyGeneratedRenamePlan,
-      failRenamePlan,
+      mediaMetadata?.tvShow?.name,
+      requestRejectPlan,
+      requestTryToRename,
+      removePlanFromCache,
       renameFailedMessage,
     ],
   )
@@ -252,14 +232,16 @@ export function useRuleBasedRenameFilesFlow({
         return
       }
 
-      if (!mediaMetadata) {
+      if (!mediaMetadata || !mediaFolderPath) {
         console.warn("[rename] user confirmed but media metadata missing", { planId })
         toast.error("No media metadata available")
         return
       }
 
+      // Selection filtering is applied client-side for UX; server apply uses the stored plan.
+      // Checkbox-limited applies still go through apply-plan (sequence diagram).
       const preparedPlan = beforeConfirm(targetPlan)
-      console.log("[rename] user confirmed — renaming files on disk", {
+      console.log("[rename] user confirmed — applying plan", {
         planId,
         fileCount: preparedPlan.files.length,
         files: preparedPlan.files.map((f) => ({
@@ -269,28 +251,15 @@ export function useRuleBasedRenameFilesFlow({
       })
 
       try {
-        await handleRenamePromptConfirmForTvShow(
-          {
-            planId,
-            plan: preparedPlan,
-            mediaMetadata,
-            selectedEpisodePaths: preparedPlan.files.map((f) => f.from),
-            renameFailedLabel: t("episodeFile.renameFailed"),
-            noMediaPathErrorLabel: t("movie.noMediaPathError"),
-          },
-          {
-            setPlanById: async (id, patch) => {
-              if (!mediaFolderPath) return
-              await updatePlanMutation.mutateAsync({
-                id,
-                mediaFolderPath,
-                patch: toUpdatePlanPatch(patch),
-              })
-            },
-            persistUiMediaMetadata: persistMediaMetadata,
-            renameFilesApi: renameFiles,
-          },
-        )
+        console.log("[rename] POST /api/apply-plan", { planId })
+        const resp = await applyPlan({ id: planId })
+        if (resp.error) {
+          throw new Error(resp.error)
+        }
+        removePlanFromCache(planId)
+        const pathPosix = normalizeMediaFolderPathForQuery(mediaFolderPath)
+        await queryClient.invalidateQueries({ queryKey: mediaMetadataQueryKey(pathPosix) })
+        await fetchMediaMetadata({ path: mediaFolderPath })
         console.log("[rename] rename completed successfully", { planId })
       } catch (error) {
         console.error("[rename] unexpected error while applying rename", { planId, error })
@@ -302,9 +271,9 @@ export function useRuleBasedRenameFilesFlow({
       mediaMetadata,
       mediaFolderPath,
       beforeConfirm,
-      updatePlanMutation,
-      persistMediaMetadata,
-      t,
+      removePlanFromCache,
+      queryClient,
+      fetchMediaMetadata,
       renameFailedMessage,
     ],
   )
@@ -312,15 +281,8 @@ export function useRuleBasedRenameFilesFlow({
   const onCancel = useCallback(
     async (planId: string) => {
       console.log("[rename] user cancelled rename preview", { planId })
-      if (!mediaFolderPath) {
-        return
-      }
       try {
-        await updatePlanMutation.mutateAsync({
-          id: planId,
-          mediaFolderPath,
-          patch: toUpdatePlanPatch({ status: "rejected" }),
-        })
+        await requestRejectPlan(planId)
         console.log("[rename] rename plan cancelled", { planId })
       } catch (error) {
         console.error("[rename] failed to cancel rename plan, cleared from cache", { planId, error })
@@ -328,10 +290,10 @@ export function useRuleBasedRenameFilesFlow({
         toast.error(renameFailedMessage)
       }
     },
-    [mediaFolderPath, updatePlanMutation, removePlanFromCache, renameFailedMessage],
+    [requestRejectPlan, removePlanFromCache, renameFailedMessage],
   )
 
-  /** Opens RuleBasedRenameFilePrompt by creating an empty preparing plan. Preview generation is deferred to prompt open / naming rule selection. */
+  /** Opens RuleBasedRenameFilePrompt by calling try-to-rename-episodes with the default rule. */
   const startRenameFlow = useCallback(() => {
     if (!mediaFolderPath) {
       console.warn("[rename] cannot start — media folder path missing")
@@ -341,75 +303,20 @@ export function useRuleBasedRenameFilesFlow({
 
     onFlowStart?.()
 
-    const planId = crypto.randomUUID()
     console.log("[rename] user clicked rename — opening rename prompt", {
-      planId,
       mediaFolderPath,
       defaultNamingRule: selectedNamingRule,
       tvShow: mediaMetadata?.tvShow?.name,
     })
 
-    const createPromise = createPlanMutation.createPlanOptimistic({
-        id: planId,
-        task: "rename-files",
-        mediaFolderPath,
-        creator: "app",
-      })
-    pendingCreateRef.current = createPromise
-    void createPromise
-      .then(() => {
-        console.log("[rename] empty rename plan created, waiting for prompt to generate preview", {
-          planId,
-        })
-      })
-      .catch((err) => {
-        console.error("[rename] failed to create rename plan", { planId, error: err })
-        const message =
-          err instanceof Error && err.message ? err.message : renameFailedMessage
-        toast.error(message)
-        removePlanFromCache(planId)
-      })
-      .finally(() => {
-        if (pendingCreateRef.current === createPromise) {
-          pendingCreateRef.current = null
-        }
-      })
+    void onNamingRuleSelected(selectedNamingRule)
   }, [
     mediaFolderPath,
     mediaMetadata?.tvShow?.name,
     onFlowStart,
-    createPlanMutation,
     selectedNamingRule,
-    renameFailedMessage,
-    removePlanFromCache,
+    onNamingRuleSelected,
   ])
-
-  useOnFirstOpen(
-    () => {
-      void (async () => {
-        const pending = pendingCreateRef.current
-        if (pending) {
-          await pending.catch(() => undefined)
-        }
-        await onNamingRuleSelected(selectedNamingRule)
-      })()
-    },
-    open &&
-      plan?.status === "preparing" &&
-      plan.files.length === 0 &&
-      !!mediaMetadata &&
-      uiStatus === "ok",
-    [plan?.id, selectedNamingRule, onNamingRuleSelected, mediaMetadata, uiStatus],
-  )
-
-  useEffect(() => {
-    if (plan?.status === "preparing" && uiStatus === "error_loading_metadata") {
-      console.warn("[rename] metadata failed to load while preparing rename preview", {
-        planId: plan.id,
-      })
-      void failRenamePlan(plan.id, renameFailedMessage, "metadata load error")
-    }
-  }, [plan?.id, plan?.status, uiStatus, failRenamePlan, renameFailedMessage])
 
   useEffect(() => {
     if (plan) {

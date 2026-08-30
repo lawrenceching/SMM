@@ -1,8 +1,4 @@
-import {
-  ADD_RENAME_FILE_TO_TASK,
-  BEGIN_RENAME_FILES_TASK,
-  END_RENAME_FILES_TASK,
-} from '../types/ai-tools/renameFilesTask'
+import { CREATE_RENAME_EPISODE_PLAN } from '../types/ai-tools/createRenameEpisodePlan'
 import {
   ADD_RECOGNIZED_MEDIA_FILE,
   BEGIN_RECOGNIZE_TASK,
@@ -12,6 +8,15 @@ import { GET_APPLICATION_CONTEXT } from '../types/ai-tools/getApplicationContext
 import { GET_MEDIA_METADATA } from '../types/ai-tools/getMediaMetadata'
 import { GET_EPISODES } from '../types/ai-tools/getEpisodes'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
+import { SCRAPE } from '../types/ai-tools/scrape'
+import { GET_JOB } from '../types/ai-tools/getJob'
+import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
+import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
+import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
+import { TVDB_SEARCH } from '../types/ai-tools/tvdbSearch'
+import { TVDB_GET_MOVIE } from '../types/ai-tools/tvdbGetMovie'
+import { TVDB_GET_TV_SHOW } from '../types/ai-tools/tvdbGetTvShow'
+import { TVDB_GET_LANGUAGES } from '../types/ai-tools/tvdbGetLanguages'
 
 /**
  * The system prompt for the AI Assistant, shared between the
@@ -64,9 +69,32 @@ You ONLY need to rename the video file. For image files, subtitle files, nfo fil
 
 Steps
 [ ] Call "${GET_MEDIA_METADATA}" to get the video files needs to rename
-[ ] Call "${BEGIN_RENAME_FILES_TASK}" to notify AI Agent to start a rename files task
-[ ] Call "${ADD_RENAME_FILE_TO_TASK}" to add a file to rename task, call multiple times to add multiple files
-[ ] Call "${END_RENAME_FILES_TASK}" to notify AI Agent to end the rename files task
+[ ] Call "${CREATE_RENAME_EPISODE_PLAN}" once with mediaFolderPath and a files array of from/to pairs for every video to rename
+
+### Scrape Media Artwork and NFO
+
+When user asks to scrape, download poster/fanart/thumbnails, or write NFO files for a media folder,
+use the scrape job tools:
+
+1. Resolve which media folder (ask user or call "${GET_APPLICATION_CONTEXT}").
+2. Call "${SCRAPE}" with the folder path (optional language). It returns a job id immediately.
+3. Call "${GET_JOB}" with that id to check progress. Poll until status is succeeded, failed, or aborted.
+4. Report per-task results (poster, fanart, thumbnails, nfo) from the scrape job.
+
+### TMDB Search and Details
+
+When user asks to search TMDB, find a TV show or movie on TMDB, or look up TMDB metadata by id:
+
+1. Call "${TMDB_SEARCH}" with keyword and type (\`tv\` or \`movie\`) to find candidates.
+2. Call "${TMDB_GET_TV_SHOW}" or "${TMDB_GET_MOVIE}" with the chosen TMDB id for full details (seasons/episodes for TV).
+
+### TVDB Search and Details
+
+When user asks to search TVDB, find a TV show or movie on TVDB, or look up TVDB metadata by id:
+
+1. Call "${TVDB_SEARCH}" with keyword and type (\`series\` or \`movie\`) to find candidates.
+2. Call "${TVDB_GET_TV_SHOW}" or "${TVDB_GET_MOVIE}" with the chosen TVDB id for full metadata (seasons/episodes for TV).
+3. Use "${TVDB_GET_LANGUAGES}" to discover supported ISO 639-3 language codes when needed.
 
 ## User Preferences
 

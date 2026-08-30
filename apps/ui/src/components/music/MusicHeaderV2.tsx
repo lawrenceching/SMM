@@ -7,10 +7,11 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
-import type { MediaMetadata } from "@core/types"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 
 export interface MusicHeaderV2Props {
-  selectedMediaMetadata?: MediaMetadata
+  selectedMediaMetadata?: MediaMetadataWithFolderFiles
   onDownloadClick?: () => void
   onTranscribeClick?: () => void
   onTranslateClick?: () => void
@@ -56,7 +57,7 @@ export function MusicHeaderV2({
   const { t } = useTranslation(["components", "common"])
 
   const folderName = selectedMediaMetadata?.mediaFolderPath?.split("/").pop() || "Music"
-  const trackCount = selectedMediaMetadata?.files?.length ?? 0
+  const trackCount = getMediaFolderFiles(selectedMediaMetadata).length
   const folderReady = !!selectedMediaMetadata?.mediaFolderPath
 
   const transcribeDisabled =

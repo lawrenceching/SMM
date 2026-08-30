@@ -17,7 +17,8 @@ import {
   type MovieFileModel,
 } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/buildMovieEpisodeTableRows"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
@@ -110,12 +111,12 @@ function MoviePanel() {
   /**
    * Frontend-processed media metadata. Adjustments here should not persist to backend.
    */
-  const mediaMetadata: MediaMetadata | undefined = useMemo(() => {
+  const mediaMetadata: MediaMetadataWithFolderFiles | undefined = useMemo(() => {
     if (!queriedMediaMetadata) {
       return undefined
     }
 
-    const clone: MediaMetadata = structuredClone(queriedMediaMetadata)
+    const clone: MediaMetadataWithFolderFiles = structuredClone(queriedMediaMetadata)
 
     // move this step to Media Folder Initialization process
     return findMediaFilesForMovieMediaMetadata(clone)
@@ -130,7 +131,7 @@ function MoviePanel() {
   })
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: mediaMetadata?.files ?? [],
+    files: getMediaFolderFiles(mediaMetadata),
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
@@ -257,8 +258,8 @@ function MoviePanel() {
     (args: SearchResultSelectedArgs) => {
       debug(`[MoviePanel] handleSelectResult() called`, { args })
 
-      if (queriedMediaMetadata === undefined) {
-        console.error(`[MoviePanel] handleSelectResult() queriedMediaMetadata is undefined, skip`)
+      if (!queriedMediaMetadata) {
+        console.error(`[MoviePanel] handleSelectResult() queriedMediaMetadata is missing, skip`)
         return
       }
 

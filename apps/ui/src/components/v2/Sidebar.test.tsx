@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
 import type { MediaMetadata } from "@core/types"
+import { Path } from "@core/path"
 import { basename } from "@/lib/path"
 import { Sidebar } from "./Sidebar"
 
@@ -8,12 +9,16 @@ vi.mock("@tanstack/react-query", () => ({
   useQueries: vi.fn(),
 }))
 
+vi.mock("@/hooks/folders", () => ({
+  useFoldersQuery: vi.fn(() => ({ data: undefined, isFetching: false })),
+  useUnimportFolderMutation: vi.fn(() => ({ mutateAsync: vi.fn() })),
+}))
+
 vi.mock("@/components/search-form", () => ({
   SearchForm: ({ placeholder }: { placeholder?: string }) => (
     <div data-testid="search-form">{placeholder}</div>
   ),
 }))
-
 vi.mock("@/components/shared/MediaFolderToolbar", () => ({
   MediaFolderToolbar: () => <div data-testid="media-folder-toolbar" />,
 }))
@@ -55,10 +60,8 @@ vi.mock("@/lib/utils", () => ({
   nextTraceId: vi.fn(() => "trace-id"),
 }))
 
-vi.mock("@/api/mediaMetadataRepository", () => ({
-  mediaMetadataRepository: {
-    delete: vi.fn(),
-  },
+vi.mock("@/api/metadata", () => ({
+  deleteMetadata: vi.fn(),
 }))
 
 vi.mock("@/lib/i18n", () => ({
@@ -94,6 +97,7 @@ import {
   useUIMediaFolderSelection,
 } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
+import { useUnimportFolderMutation, useFoldersQuery } from "@/hooks/folders"
 
 const mockUseQueries = useQueries as ReturnType<typeof vi.fn>
 const mockUseSidebarStore = useSidebarStore as ReturnType<typeof vi.fn>
@@ -140,16 +144,28 @@ describe("Sidebar delete behavior", () => {
     })
     mockUseMediaMetadataQuery.mockReturnValue({ data: { mediaFolderPath: pathA } })
     mockUseQueries.mockReturnValue([{ data: null }, { data: null }])
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [pathA, pathB],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useUnimportFolderMutation>)
   })
 
   it("deletes full selected set when deleting a selected item", () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync,
+    } as ReturnType<typeof useUnimportFolderMutation>)
     const onDeleteSelected = vi.fn()
     render(<Sidebar onDeleteSelected={onDeleteSelected} />)
 
-    fireEvent.click(screen.getByTestId(`delete-${pathA}`))
+    fireEvent.click(screen.getByTestId(`delete-${Path.toPlatformPath(pathA)}`))
 
-    expect(onDeleteSelected).toHaveBeenCalledTimes(1)
-    expect(onDeleteSelected).toHaveBeenCalledWith(expect.arrayContaining([pathA, pathB]))
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(mutateAsync).toHaveBeenCalledWith(expect.arrayContaining([pathA, pathB]))
+    expect(onDeleteSelected).not.toHaveBeenCalled()
   })
 
   it("deletes single item when clicked item is not in selected set", () => {
@@ -158,13 +174,18 @@ describe("Sidebar delete behavior", () => {
       selectedFolders: [pathA],
       selectedFolderPathsSet: new Set([pathA]),
     })
+    const mutateAsync = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync,
+    } as ReturnType<typeof useUnimportFolderMutation>)
     const onDeleteSelected = vi.fn()
     render(<Sidebar onDeleteSelected={onDeleteSelected} />)
 
-    fireEvent.click(screen.getByTestId(`delete-${pathB}`))
+    fireEvent.click(screen.getByTestId(`delete-${Path.toPlatformPath(pathB)}`))
 
-    expect(onDeleteSelected).toHaveBeenCalledTimes(1)
-    expect(onDeleteSelected).toHaveBeenCalledWith([pathB])
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(mutateAsync).toHaveBeenCalledWith([Path.toPlatformPath(pathB)])
+    expect(onDeleteSelected).not.toHaveBeenCalled()
   })
 })
 
@@ -172,6 +193,10 @@ describe("Sidebar i18n", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     baseSidebarMocks()
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
     mockUseUIMediaFolderStoreState.mockReturnValue({
       folders: [],
       selectedFolder: null,
@@ -203,6 +228,10 @@ describe("Sidebar mediaName", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     baseSidebarMocks()
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [folderPath],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
     mockUseUIMediaFolderStoreState.mockReturnValue({
       folders: [{ path: folderPath, status: "ok", test: false }],
       selectedFolder: folderPath,

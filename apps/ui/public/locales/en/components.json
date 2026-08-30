@@ -589,6 +589,12 @@
     "recognizeFailed": "Recognition failed. Please try again.",
     "renameFailed": "Rename failed. Please try again.",
     "noRenameFiles": "Unable to generate a rename plan. Check that episodes have video files."
+  },
+  "anonymousTelemetryConsent": {
+    "title": "Help improve SMM",
+    "description": "We would like to collect anonymous usage information such as app version, operating system, and crash or usage statistics. This does not include personal identity or the contents of your media files.",
+    "agree": "Agree",
+    "disagree": "Disagree"
   }
 }
 

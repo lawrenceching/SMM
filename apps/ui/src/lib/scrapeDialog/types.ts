@@ -21,6 +21,10 @@ export type ScrapeTaskAction =
   | { type: "MARK_RUNNING"; id: ScrapeTaskId }
   | { type: "MARK_COMPLETED"; id: ScrapeTaskId }
   | { type: "MARK_FAILED"; id: ScrapeTaskId; reason?: string }
+  | {
+      type: "APPLY_JOB_TASKS"
+      tasks: Partial<Record<ScrapeTaskId, { status: ScrapeTaskStatus; failedReason?: string }>>
+    }
   | { type: "START_RUN" }
   | { type: "FINISH_RUN" }
 

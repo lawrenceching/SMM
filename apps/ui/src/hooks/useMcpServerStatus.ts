@@ -1,6 +1,7 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getMcpServerStatus, startMcpServer, stopMcpServer } from "@/api/mcp";
 import type { McpServerState } from "@/api/mcp";
+import { useRefreshUserConfig } from "@/hooks/userConfig/useRefreshUserConfig";
 
 export const mcpServerStatusQueryKey = ["mcp", "serverStatus"] as const;
 
@@ -8,7 +9,7 @@ export const mcpServerStatusQueryKey = ["mcp", "serverStatus"] as const;
  * Fetches the MCP server runtime state from the backend.
  * Used on initial load to reconcile the UI toggle with real server state.
  */
-export function useMcpServerStatus() {
+export function useMcpServerStatusQuery() {
   return useQuery<McpServerState>({
     queryKey: mcpServerStatusQueryKey,
     queryFn: getMcpServerStatus,
@@ -17,21 +18,47 @@ export function useMcpServerStatus() {
   });
 }
 
-/**
- * Starts the MCP server and updates the query cache with the result.
- * Returns the new state. Throws on failure so callers can handle errors.
- */
-export async function doStartMcpServer(client: ReturnType<typeof useQueryClient>, options?: { host?: string; port?: number }): Promise<McpServerState> {
-  const state = await startMcpServer(options);
-  client.setQueryData(mcpServerStatusQueryKey, state);
-  return state;
+/** @deprecated Use {@link useMcpServerStatusQuery} */
+export const useMcpServerStatus = useMcpServerStatusQuery;
+
+function useInvalidateMcpCaches() {
+  const queryClient = useQueryClient();
+  const refreshUserConfig = useRefreshUserConfig();
+
+  return async (state: McpServerState) => {
+    queryClient.setQueryData(mcpServerStatusQueryKey, state);
+    await refreshUserConfig();
+  };
 }
 
 /**
- * Stops the MCP server and updates the query cache with "stopped".
+ * Starts the MCP server. Core persists MCP fields in smm.json.
  */
-export async function doStopMcpServer(client: ReturnType<typeof useQueryClient>): Promise<McpServerState> {
-  const state = await stopMcpServer();
-  client.setQueryData(mcpServerStatusQueryKey, state);
-  return state;
+export function useStartMcpServerMutation() {
+  const invalidateMcpCaches = useInvalidateMcpCaches();
+
+  return useMutation({
+    mutationFn: startMcpServer,
+    onSuccess: (state) => {
+      void invalidateMcpCaches(state);
+    },
+  });
+}
+
+/**
+ * Stops the MCP server. Core persists enableMcpServer: false in smm.json.
+ */
+export function useStopMcpServerMutation() {
+  const invalidateMcpCaches = useInvalidateMcpCaches();
+  const refreshUserConfig = useRefreshUserConfig();
+
+  return useMutation({
+    mutationFn: stopMcpServer,
+    onSuccess: (state) => {
+      void invalidateMcpCaches(state);
+    },
+    onError: () => {
+      void refreshUserConfig();
+    },
+  });
 }

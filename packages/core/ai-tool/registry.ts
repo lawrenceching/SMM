@@ -45,11 +45,17 @@ import { GET_EPISODES } from '../types/ai-tools/getEpisodes'
 import { GET_MEDIA_FOLDERS } from '../types/ai-tools/getMediaFolders'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '../types/ai-tools/listFilesInMediaFolder'
 import { RENAME_FOLDER } from '../types/ai-tools/renameFolder'
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from '../types/ai-tools/renameFilesTask'
+import { RENAME_EPISODE_FILE } from '../types/ai-tools/renameEpisodeFile'
+import { SCRAPE } from '../types/ai-tools/scrape'
+import { GET_JOB } from '../types/ai-tools/getJob'
+import { TMDB_SEARCH } from '../types/ai-tools/tmdbSearch'
+import { TMDB_GET_MOVIE } from '../types/ai-tools/tmdbGetMovie'
+import { TMDB_GET_TV_SHOW } from '../types/ai-tools/tmdbGetTvShow'
+import { TVDB_SEARCH } from '../types/ai-tools/tvdbSearch'
+import { TVDB_GET_MOVIE } from '../types/ai-tools/tvdbGetMovie'
+import { TVDB_GET_TV_SHOW } from '../types/ai-tools/tvdbGetTvShow'
+import { TVDB_GET_LANGUAGES } from '../types/ai-tools/tvdbGetLanguages'
+import { CREATE_RENAME_EPISODE_PLAN } from '../types/ai-tools/createRenameEpisodePlan'
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -70,7 +76,7 @@ export interface AiToolDescriptor {
    * Whether the tool is available on the in-browser
    * `ReverseProxyChatTransport` path (HarmonyOS / feature flag).
    *
-   * Task tools (`begin-rename-files-task`, etc.) are listed on both
+   * Plan tools (`create-rename-episode-plan`, etc.) are listed on both
    * paths but **execute on only one**: backend fs/plan APIs on
    * `AssistantChatTransport`, browser HTTP plan APIs on
    * `ReverseProxyChatTransport`. See `Assistant.tsx` conditional mount.
@@ -96,11 +102,26 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
 
   // Mutating tools (require user confirmation via Socket.IO / bridge)
   { name: RENAME_FOLDER, backend: true, frontend: true },
+  { name: RENAME_EPISODE_FILE, backend: true, frontend: true },
 
-  // Rename files task
-  { name: BEGIN_RENAME_FILES_TASK, backend: true, frontend: true },
-  { name: ADD_RENAME_FILE_TO_TASK, backend: true, frontend: true },
-  { name: END_RENAME_FILES_TASK, backend: true, frontend: true },
+  // Scrape job (no confirmation; poll with get-job)
+  { name: SCRAPE, backend: true, frontend: true },
+  { name: GET_JOB, backend: true, frontend: true },
+
+  // TMDB query (Internal HTTP for Web UI / in-app AI; MCP and server chat inject Core runners)
+  { name: TMDB_SEARCH, backend: true, frontend: true },
+  { name: TMDB_GET_MOVIE, backend: true, frontend: true },
+  { name: TMDB_GET_TV_SHOW, backend: true, frontend: true },
+
+  // TVDB query (backend-only for now; Web UI v3 migration pending).
+  // MCP and server chat inject Core runners; in-app AI via Internal HTTP.
+  { name: TVDB_SEARCH, backend: true, frontend: false },
+  { name: TVDB_GET_MOVIE, backend: true, frontend: false },
+  { name: TVDB_GET_TV_SHOW, backend: true, frontend: false },
+  { name: TVDB_GET_LANGUAGES, backend: true, frontend: false },
+
+  // Rename episode plan
+  { name: CREATE_RENAME_EPISODE_PLAN, backend: true, frontend: true },
 
   // Recognize media file task
   { name: BEGIN_RECOGNIZE_TASK, backend: true, frontend: true },

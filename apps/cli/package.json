@@ -8,6 +8,7 @@
     "@ai-sdk/mcp": "latest",
     "@types/bun": "latest",
     "@vitest/coverage-v8": "^4.0.18",
+    "proxy-chain": "^3.0.0",
     "socket.io-client": "^4.8.3",
     "typescript": "^5",
     "vitest": "^4.0.18"
@@ -19,12 +20,17 @@
     "@hono/node-server": "^1.19.0",
     "@modelcontextprotocol/sdk": "^1.25.3",
     "@smm/core-routes": "workspace:*",
+    "@smm/test": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "@types/shelljs": "^0.10.0",
     "ai": "^6.0.36",
+    "commander": "^15.0.0",
+    "core-app": "workspace:*",
     "dotenv": "^17.2.3",
     "es-toolkit": "^1.43.0",
     "hono": "^4.10.8",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6",
     "i18next": "^25.8.4",
     "i18next-fs-backend": "^2.6.1",
     "node-pty": "^1.1.0",
@@ -34,6 +40,7 @@
     "sanitize-filename": "^1.6.3",
     "shelljs": "^0.10.0",
     "socket.io": "^4.8.3",
+    "socks-proxy-agent": "^8.0.5",
     "strip-ansi": "^7.2.0",
     "xmlbuilder2": "^4.0.3",
     "zod": "^4.1.8"
@@ -42,12 +49,13 @@
     "dev": "bun run index.ts | pino-pretty",
     "dev:prd-ui": "bun run index.ts --staticDir \"C:\\Users\\lawrence\\AppData\\Local\\Programs\\SMM\\resources\\public\" --port 30000",
     "start": "bun run index.ts",
-    "mcp": "bun run src/mcp/server.ts",
+    "mcp": "bun run index.ts mcp start",
     "build": "bun run scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "test:mcp": "bun test ./test/test-mcp.test.ts"
+    "test:mcp": "bun test ./test/test-mcp.e2e.ts"
   }
 }

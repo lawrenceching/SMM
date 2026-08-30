@@ -1,11 +1,25 @@
 import { useCallback } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { MediaMetadata } from "@core/types"
-import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
-import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import {
+  createMetadata,
+  getMetadata,
+  MetadataHttpError,
+  setMetadata,
+  type MetadataPatch,
+} from "@/api/metadata"
+import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery, setPersistedMetadataQueryData } from "@/lib/mediaMetadataQueryKeys"
 
-/** Thin persist + cache update. Full `hasDomainChanged` parity with legacy actions is deferred to migration. */
+function toMetadataPatch(metadata: MediaMetadata): MetadataPatch {
+  return {
+    type: metadata.type,
+    mediaFiles: metadata.mediaFiles,
+    tvShow: metadata.tvShow,
+    movie: metadata.movie,
+  }
+}
+
+/** Compatibility wrapper around the metadata HTTP RPC hooks. */
 export function useUpdateMediaMetadataMutation() {
   const queryClient = useQueryClient()
   const mutation = useMutation({
@@ -22,13 +36,27 @@ export function useUpdateMediaMetadataMutation() {
       if (!folder) {
         throw new Error("useUpdateMediaMetadataMutation: missing folder path")
       }
-      await mediaMetadataRepository.write(vars.metadata as UIMediaMetadata, vars.traceId ? { traceId: vars.traceId } : {})
-      return { folderPathPosix: folder, metadata: vars.metadata }
+      let persisted: MediaMetadata
+      try {
+        persisted = await setMetadata(folder, toMetadataPatch(vars.metadata))
+      } catch (error) {
+        if (!(error instanceof MetadataHttpError) || error.status !== 404) {
+          throw error
+        }
+        // Only persisted fields — UI-only keys like status/files must not be sent.
+        persisted = await createMetadata({
+          mediaFolderPath: folder,
+          ...toMetadataPatch(vars.metadata),
+        })
+      }
+      return { folderPathPosix: folder, metadata: persisted }
     },
-    onSuccess: ({ folderPathPosix, metadata }) => {
-      queryClient.setQueryData<MediaMetadata>(
-        mediaMetadataQueryKey(folderPathPosix),
+    onSuccess: ({ folderPathPosix, metadata }, vars) => {
+      setPersistedMetadataQueryData(
+        queryClient,
+        folderPathPosix,
         metadata,
+        vars.metadata,
       )
     },
   })
@@ -45,14 +73,9 @@ export function useUpdateMediaMetadataMutation() {
 
     const key = mediaMetadataQueryKey(pathPosix)
     const cached = queryClient.getQueryData<MediaMetadata>(key)
-    const currentFromCacheOrRepo = cached ?? (await mediaMetadataRepository.read(pathPosix))
-    const prev: MediaMetadata = {
-      ...(currentFromCacheOrRepo as MediaMetadata),
-    }
-
     const next =
       typeof nextOrUpdater === "function"
-        ? nextOrUpdater(prev)
+        ? nextOrUpdater({ ...(cached ?? (await getMetadata(pathPosix))) })
         : nextOrUpdater
 
     await mutation.mutateAsync({

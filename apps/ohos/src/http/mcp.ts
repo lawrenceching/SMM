@@ -78,7 +78,10 @@ export function getMcpHandler(
     // `apps/ohos/node_modules`). The constant is added by the
     // `MCP_TOOL_NAMES` export from `@smm/core-routes/mcp/index.ts`.
     const mcpToolNames = coreRoutesModule.MCP_TOOL_NAMES as
-      | { readonly RENAME_FOLDER: string }
+      | {
+          readonly RENAME_FOLDER: string
+          readonly RENAME_EPISODE_FILE?: string
+        }
       | undefined
     if (!mcpToolNames) {
       throw new Error(
@@ -86,15 +89,19 @@ export function getMcpHandler(
       )
     }
 
+    const disabledTools = [mcpToolNames.RENAME_FOLDER]
+    if (mcpToolNames.RENAME_EPISODE_FILE) {
+      disabledTools.push(mcpToolNames.RENAME_EPISODE_FILE)
+    }
+
     return createMcpStreamableHttpHandler({
       getUserConfig: options.getUserConfig,
       appDataDir: options.appDataDir,
       userDataDir: options.userDataDir,
       activatePersistedFileAccess: options.activatePersistedFileAccess,
-      // HarmonyOS cannot rename folders — the sandbox denies the
-      // operation regardless of `user_config.selectedFolder`, so
-      // the MCP `tools/list` response must not advertise the tool.
-      disabledTools: [mcpToolNames.RENAME_FOLDER],
+      // HarmonyOS sandbox cannot rename folders/files via MCP — omit
+      // destructive rename tools from tools/list.
+      disabledTools,
       acknowledge: async (
         message: unknown,
         timeoutMs?: number,

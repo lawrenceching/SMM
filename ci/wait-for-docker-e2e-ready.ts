@@ -59,7 +59,7 @@ async function main(): Promise<void> {
   const readyUrl = resolveReadyUrl();
   console.log('[wait-for-docker-e2e-ready] waiting for', readyUrl);
   await waitForHttp(readyUrl, {
-    method: 'POST',
+    method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
   console.log('[wait-for-docker-e2e-ready] ready');

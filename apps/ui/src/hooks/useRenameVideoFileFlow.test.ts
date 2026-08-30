@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 
+vi.mock("@/lib/localStorages", () => ({
+  isSmmV3Enabled: vi.fn().mockReturnValue(false),
+}))
+
 vi.mock("@/api/renameFiles", () => ({
   renameFiles: vi.fn().mockResolvedValue({}),
 }))

@@ -12,6 +12,23 @@ const pkg = JSON.parse(
   readFileSync(path.resolve(__dirname, "package.json"), "utf8"),
 ) as { version: string }
 
+const DEFAULT_UI_DEV_PORT = 8000
+
+function resolveUiDevPort(raw: string | undefined = process.env.UI_PORT): number {
+  if (raw === undefined) {
+    return DEFAULT_UI_DEV_PORT
+  }
+  const trimmed = raw.trim()
+  if (trimmed === "") {
+    return DEFAULT_UI_DEV_PORT
+  }
+  const port = Number.parseInt(trimmed, 10)
+  if (!Number.isFinite(port) || port <= 0) {
+    return DEFAULT_UI_DEV_PORT
+  }
+  return port
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
@@ -28,7 +45,7 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    port: 8000,
+    port: resolveUiDevPort(),
     proxy: {
       '/api': {
         target: 'http://localhost:30000',

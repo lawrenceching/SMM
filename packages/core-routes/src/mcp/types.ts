@@ -81,6 +81,113 @@ export interface McpConfig {
   disabledTools?: readonly string[];
 
   /**
+   * Optional runner for `rename-episode-file`. Hosts that expose Core
+   * (e.g. Bun cli) inject `Core.renameEpisodeFile`. When omitted, the
+   * tool reports that it is unavailable on this host.
+   */
+  renameEpisodeFile?: (input: {
+    mediaFolderPath: string;
+    from: string;
+    to: string;
+  }) => Promise<{
+    succeeded: Array<{ from: string; to: string }>;
+    failed: Array<{ path: string; error: string }>;
+  }>;
+
+  /**
+   * Optional runner for `scrape`. Hosts that expose Core inject
+   * `Core.scrapeFolder`. When omitted, the tool reports unavailable.
+   */
+  scrapeFolder?: (
+    path: string,
+    options?: { language?: string },
+  ) => Promise<{ id: string }>;
+
+  /**
+   * Optional runner for `get-job`. Hosts that expose Core inject
+   * `Core.getJob`. When omitted, the tool reports unavailable.
+   */
+  getJob?: (id: string) => unknown;
+
+  /** Optional runner for `tmdb-search` → `Core.searchInTmdb`. */
+  searchInTmdb?: (
+    keyword: string,
+    options: {
+      type: "tv" | "movie";
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<import("@smm/core/types").TmdbSearchResponseBody>;
+
+  /** Optional runner for `tmdb-get-movie` → `Core.getMovieInTmdb`. */
+  getMovieInTmdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<import("@smm/core/types").TmdbMovieDetails>;
+
+  /** Optional runner for `tmdb-get-tv-show` → `Core.getTvShowInTmdb`. */
+  getTvShowInTmdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<import("@smm/core/types").TmdbSeriesDetails>;
+
+  /** Optional runner for `tvdb-search` → `Core.searchInTvdb`. */
+  searchInTvdb?: (
+    keyword: string,
+    options: {
+      type: "series" | "movie";
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown[]>;
+
+  /** Optional runner for `tvdb-get-movie` → `Core.getMovieInTvdb`. */
+  getMovieInTvdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown>;
+
+  /** Optional runner for `tvdb-get-tv-show` → `Core.getTvShowInTvdb`. */
+  getTvShowInTvdb?: (
+    id: number,
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown>;
+
+  /** Optional runner for `tvdb-get-languages` → `Core.getTvdbLanguages`. */
+  getTvdbLanguages?: (
+    options?: {
+      language?: string;
+      host?: string;
+      password?: string;
+      proxy?: string;
+    },
+  ) => Promise<unknown[]>;
+
+  /**
    * Optional localized tool descriptions, keyed by tool name
    * (e.g. `"get-media-folders"`, `"is-folder-exist"`). When
    * omitted, English defaults from `@smm/core/types/ai-tools/*`

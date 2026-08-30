@@ -1,12 +1,15 @@
 import { useCallback, useMemo } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
-import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { normalizeMediaFolderPathForQuery, mediaMetadataQueryKey } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { Path } from "@core/path"
 import type { MediaMetadata, TMDBMovie, TMDBTVShow, TvShowMediaMetadata } from "@core/types"
 import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation"
 import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation"
+import { recognizeFolderViaCore } from "@/api/recognizeFolder"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import type { SearchLanguage } from "@/components/MediaDatabaseSearchbox"
@@ -41,7 +44,22 @@ export type SelectTvShowForFolderVariables =
       searchLanguage: SearchLanguage
     }
 
+function recognizeDb(database: "TMDB" | "TVDB"): "tmdb" | "tvdb" {
+  return database === "TVDB" ? "tvdb" : "tmdb"
+}
+
+function recognizeId(
+  database: "TMDB" | "TVDB",
+  result: TMDBTVShow | TMDBMovie | TVDBSearchItem,
+): string {
+  if (database === "TVDB") {
+    return String((result as TVDBv4SearchResult).tvdb_id)
+  }
+  return String((result as TMDBTVShow | TMDBMovie).id)
+}
+
 export function useSelectTvShowForFolderMutation() {
+  const queryClient = useQueryClient()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const updateMediaMetadataMutation = useUpdateMediaMetadataMutation()
 
@@ -69,7 +87,7 @@ export function useSelectTvShowForFolderMutation() {
 
   const setFolderStatus = useUIMediaFolderStore.getState().updateFolderStatus
 
-  const onMutate = useCallback(
+  const onMutateLegacy = useCallback(
     (variables: { mediaFolderPath: string }) => {
       setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "loading")
       void updateMediaMetadata(variables.mediaFolderPath, (prev) => ({
@@ -80,7 +98,7 @@ export function useSelectTvShowForFolderMutation() {
     [setFolderStatus, updateMediaMetadata],
   )
 
-  const onSuccess = useCallback(
+  const onSuccessLegacy = useCallback(
     (tvShow: TvShowMediaMetadata, variables: { mediaFolderPath: string }) => {
       void updateMediaMetadata(variables.mediaFolderPath, (prev) => ({
         ...prev,
@@ -91,24 +109,48 @@ export function useSelectTvShowForFolderMutation() {
     [setFolderStatus, updateMediaMetadata],
   )
 
-  const onError = useCallback((error: Error, variables: { mediaFolderPath: string }) => {
+  const onErrorLegacy = useCallback((error: Error, variables: { mediaFolderPath: string }) => {
     toast.error(error instanceof Error ? error.message : "Failed to get TV show details")
     setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "ok")
   }, [setFolderStatus])
 
   const applyTmdbTvShowSelectionMutation = useGetTmdbTvShowMutation<ApplyTmdbTvShowSelectionVars>({
-    onMutate,
-    onSuccess,
-    onError,
+    onMutate: onMutateLegacy,
+    onSuccess: onSuccessLegacy,
+    onError: onErrorLegacy,
   })
 
   const applyTvdbTvShowSelectionMutation = useGetTvdbTvShowMutation<ApplyTvdbTvShowSelectionVars>({
-    onMutate,
-    onSuccess,
-    onError,
+    onMutate: onMutateLegacy,
+    onSuccess: onSuccessLegacy,
+    onError: onErrorLegacy,
   })
 
-  const mutate = useCallback(
+  const recognizeFolderMutation = useMutation({
+    mutationFn: async (variables: SelectTvShowForFolderVariables) => {
+      await recognizeFolderViaCore({
+        path: variables.mediaFolderPath,
+        db: recognizeDb(variables.database),
+        id: recognizeId(variables.database, variables.result),
+      })
+    },
+    onMutate: (variables) => {
+      setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "loading")
+    },
+    onSuccess: (_data, variables) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(variables.mediaFolderPath)
+      if (pathPosix) {
+        void queryClient.invalidateQueries({ queryKey: mediaMetadataQueryKey(pathPosix) })
+      }
+      setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "ok")
+    },
+    onError: (error, variables) => {
+      toast.error(error instanceof Error ? error.message : "Failed to recognize folder")
+      setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "ok")
+    },
+  })
+
+  const mutateLegacy = useCallback(
     (variables: SelectTvShowForFolderVariables) => {
       const { database, result, searchLanguage, mediaFolderPath } = variables
       const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
@@ -133,7 +175,7 @@ export function useSelectTvShowForFolderMutation() {
     [applyTmdbTvShowSelectionMutation, applyTvdbTvShowSelectionMutation],
   )
 
-  const mutateAsync = useCallback(
+  const mutateAsyncLegacy = useCallback(
     async (variables: SelectTvShowForFolderVariables) => {
       const { database, result, searchLanguage, mediaFolderPath } = variables
       const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
@@ -157,13 +199,37 @@ export function useSelectTvShowForFolderMutation() {
     [applyTmdbTvShowSelectionMutation, applyTvdbTvShowSelectionMutation],
   )
 
+  const mutate = useCallback(
+    (variables: SelectTvShowForFolderVariables) => {
+      if (isSmmV3Enabled()) {
+        recognizeFolderMutation.mutate(variables)
+        return
+      }
+      mutateLegacy(variables)
+    },
+    [mutateLegacy, recognizeFolderMutation],
+  )
+
+  const mutateAsync = useCallback(
+    async (variables: SelectTvShowForFolderVariables) => {
+      if (isSmmV3Enabled()) {
+        await recognizeFolderMutation.mutateAsync(variables)
+        return
+      }
+      return mutateAsyncLegacy(variables)
+    },
+    [mutateAsyncLegacy, recognizeFolderMutation],
+  )
+
   const selectTvShowForFolderMutation = useMemo(
     () => ({ mutate, mutateAsync }),
     [mutate, mutateAsync],
   )
 
   const isSelectTvShowForFolderPending =
-    applyTmdbTvShowSelectionMutation.isPending || applyTvdbTvShowSelectionMutation.isPending
+    recognizeFolderMutation.isPending ||
+    applyTmdbTvShowSelectionMutation.isPending ||
+    applyTvdbTvShowSelectionMutation.isPending
 
   return {
     selectTvShowForFolderMutation,

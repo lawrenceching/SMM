@@ -125,15 +125,6 @@ describe('createMediaMetadata', () => {
       expect(result.type).toBe('movie-folder');
     });
 
-    it('should merge files property', () => {
-      const files = ['/media/tvshows/Show/episode1.mkv', '/media/tvshows/Show/episode2.mkv'];
-      const result = createMediaMetadata('/media/tvshows/Show', 'tvshow-folder', {
-        files,
-      });
-
-      expect(result.files).toEqual(files);
-    });
-
     it('should merge mediaFiles property', () => {
       const mediaFiles = [
         {
@@ -233,14 +224,14 @@ describe('createMediaMetadata', () => {
 
     it('should create independent objects when props differ', () => {
       const result1 = createMediaMetadata('/media/music', 'music-folder', {
-        files: ['/a/1.mp3'],
+        mediaFiles: [{ absolutePath: '/a/1.mp3' }],
       });
       const result2 = createMediaMetadata('/media/music', 'music-folder', {
-        files: ['/a/2.mp3'],
+        mediaFiles: [{ absolutePath: '/a/2.mp3' }],
       });
 
-      expect(result1.files).toEqual(['/a/1.mp3']);
-      expect(result2.files).toEqual(['/a/2.mp3']);
+      expect(result1.mediaFiles).toEqual([{ absolutePath: '/a/1.mp3' }]);
+      expect(result2.mediaFiles).toEqual([{ absolutePath: '/a/2.mp3' }]);
     });
   });
 });

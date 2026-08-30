@@ -200,37 +200,21 @@ The backend emits **RecognizeMediaFilePlanReady** when a plan is ready. The UI d
 
 ---
 
-## 10. AI-Driven Rename File V2
+## 10. AI-Driven Rename Episodes
 
-Rename-file V2 follows the same plan-on-disk and confirm/reject pattern as recognition. The legacy rename tools (`beginRenameFilesTask`, `addRenameFileToTask`, `endRenameFilesTask`) remain unchanged and use in-memory state and blocking confirmation.
+AI/MCP rename now uses a **single tool**, **`create-rename-episode-plan`**, backed by `Core.createRenameEpisodePlan`. The agent submits all `{ from, to }` pairs in one call; Core validates, writes `{appDataDir}/plans/{id}.plan.json`, and the tool broadcasts **`RenameFilesPlanReady`**. The user reviews in SMM and applies via the same plan flow as rule-based rename.
 
-### Tools and flow
+The former begin/add/end rename tools (`beginRenameFilesTaskV2`, `addRenameFileToTaskV2`, `endRenameFilesTaskV2`) were removed.
 
-- **`beginRenameFilesTaskV2(mediaFolderPath)`** – Creates a plan file in `${userDataDir}/plans/` with `task: "rename-files"`, `status: "pending"`, and empty `files`. Returns `taskId`.
-- **`addRenameFileToTaskV2(taskId, from, to)`** – Appends `{ from, to }` (POSIX paths) to the plan’s `files` array.
-- **`endRenameFilesTaskV2(taskId)`** – Persists the plan and broadcasts **`RenameFilesPlanReady`** so the UI can show the review prompt.
+Product and API details: [docs/dev/rename-episodes.md](./dev/rename-episodes.md). Plan lifecycle: [docs/dev/manage-plan.md](./dev/manage-plan.md).
 
-Plans use the same `plans/` directory as recognition; they are distinguished by `plan.task === "rename-files"`.
+### Key files
 
-### Data and APIs
-
-- **`RenameFilesPlan`** – `core/types/RenameFilesPlan.ts`: `id`, `task: "rename-files"`, `status`, `mediaFolderPath`, `files: { from, to }[]`.
-- **`RenameFilesPlanReady`** – `core/event-types.ts`: event and `{ taskId, planFilePath }`.
-- **Get pending plans** – `POST /api/getPendingPlans` response includes a `renamePlans` array of pending `RenameFilesPlan`.
-- **Update plan** – `POST /api/updatePlan` with `{ planId, status }` supports rename plans (backend tries recognition first, then rename by `planId`).
-
-### UI
-
-- **State** – `pendingRenamePlans` in the global states provider, populated from `getPendingPlans().renamePlans`.
-- **Review** – When a pending rename plan matches the current media folder, the TV Show panel builds `seasonsForPreview` via `buildSeasonsByRenameFilesPlan`, opens **openAiBasedRenameFilePrompt** with `status: "wait-for-ack"`, and shows the preview.
-- **Confirm** – Frontend builds season models from the plan, calls `startToRenameFiles(seasonsFromPlan)` (same as rule-based rename; uses `renameFile` API per file), then on success calls `updatePlan(plan.id, 'completed')` and `fetchPendingPlans()`.
-- **Cancel** – Frontend calls `updatePlan(planId, 'rejected')`.
-
-### Key files (V2 rename)
-
-| Layer / role        | Path |
-|---------------------|------|
-| Plan types          | `core/types/RenameFilesPlan.ts` |
-| Plan-ready event    | `core/event-types.ts` (`RenameFilesPlanReady`) |
-| Plan I/O + broadcast| `cli/src/tools/renameFilesToolV2.ts` |
-| AI tool wrappers    | `cli/src/tools/renameFilesTaskV2.ts` |
+| Layer / role | Path |
+|--------------|------|
+| Core API | `apps/core/src/pipeline/createRenameEpisodePlan.ts`, `Core.createRenameEpisodePlan` |
+| Tool types | `packages/core/types/ai-tools/createRenameEpisodePlan.ts` |
+| MCP / AI tool | `packages/core-routes/src/tools/createRenameEpisodePlan.ts` |
+| HTTP + broadcast | `apps/cli/src/route/RenameEpisodesPlan.ts` |
+| Debug e2e helper | `POST /debug/createRenameEpisodePlan` |
+| Plan types / event | `packages/core/types/RenameFilesPlan.ts`, `RenameFilesPlanReady` in `packages/core/event-types.ts` |

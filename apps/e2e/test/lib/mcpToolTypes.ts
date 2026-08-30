@@ -1,9 +1,9 @@
 /**
  * MCP tool request/response shapes for e2e `McpClient`.
- * Keep in sync with apps/cli/src/tools and apps/cli/src/mcp/tools (see mcp.ts registrations).
+ * Keep in sync with packages/core-routes MCP handlers and apps/cli/src/mcp/mcp.ts registrations.
  */
 
-import type { TmdbMovieDetails, TmdbTvShowResponseBody } from '@smm/core/types'
+import type { TmdbMovieDetails, TmdbSeriesDetails } from '@smm/core/types'
 
 /** Kebab-case names passed to `mcp-test-client --tool`. */
 export const McpToolName = {
@@ -16,9 +16,9 @@ export const McpToolName = {
   howToRenameEpisodeVideoFiles: 'how-to-rename-episode-video-files',
   howToRecognizeEpisodeVideoFiles: 'how-to-recognize-episode-video-files',
   renameFolder: 'rename-folder',
-  beginRenameFilesTask: 'begin-rename-files-task',
-  addRenameFileToTask: 'add-rename-file-to-task',
-  endRenameFilesTask: 'end-rename-files-task',
+  scrape: 'scrape',
+  getJob: 'get-job',
+  createRenameEpisodePlan: 'create-rename-episode-plan',
   beginRecognizeTask: 'begin-recognize-task',
   addRecognizedFile: 'add-recognized-media-file',
   endRecognizeTask: 'end-recognize-task',
@@ -136,35 +136,75 @@ export interface RenameFolderResponse {
   error?: string
 }
 
-// --- rename task (begin/append/end) ---
-export interface BeginRenameFilesTaskRequest {
+// --- scrape ---
+export interface ScrapeRequest {
+  path: string
+  language?: string
+}
+
+export interface ScrapeResponse {
+  id: string
+  message: string
+  error?: string
+}
+
+// --- get-job ---
+export interface GetJobRequest {
+  id: string
+}
+
+export interface GetJobScrapeTask {
+  status: string
+  error?: string
+}
+
+export interface GetJobScrapeJob {
+  kind: 'scrape'
+  id: string
+  folderPath: string
+  status: string
+  tasks: {
+    poster: GetJobScrapeTask
+    fanart: GetJobScrapeTask
+    thumbnails: GetJobScrapeTask
+    nfo: GetJobScrapeTask
+  }
+  error?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface GetJobImportJob {
+  kind: 'import'
+  id: string
+  folderPath: string
+  type: string
+  status: string
+  stage: string | null
+  progress: number
+  recognizedTitle?: string
+  error?: string
+  createdAt: number
+  updatedAt: number
+}
+
+export interface GetJobResponse {
+  job?: GetJobScrapeJob | GetJobImportJob
+  error?: string
+}
+
+// --- create-rename-episode-plan ---
+export interface CreateRenameEpisodePlanRequest {
   mediaFolderPath: string
+  files: Array<{
+    from: string
+    to: string
+  }>
 }
 
-export interface BeginRenameFilesTaskResponse {
-  success: boolean
-  taskId: string
-  mediaFolderPath: string
-}
-
-export interface AddRenameFileToTaskRequest {
-  taskId: string
-  from: string
-  to: string
-}
-
-export interface AddRenameFileToTaskResponse {
-  success?: boolean
-}
-
-export interface EndRenameFilesTaskRequest {
-  taskId: string
-}
-
-export interface EndRenameFilesTaskResponse {
-  success: boolean
-  taskId: string
-  message?: string
+export interface CreateRenameEpisodePlanResponse {
+  message: string
+  planId: string
 }
 
 // --- recognize task ---
@@ -240,8 +280,13 @@ export interface TmdbSearchRequest {
   baseURL?: string
 }
 
+export interface TmdbSearchTvResult {
+  id: number
+  name?: string
+}
+
 export interface TmdbSearchResponse {
-  results: unknown[]
+  results: TmdbSearchTvResult[]
   page: number
   total_pages: number
   total_results: number
@@ -266,6 +311,6 @@ export interface TmdbGetTvShowRequest {
 export type TmdbMovieDetailsResponse = TmdbMovieDetails
 
 /**
- * Same for `tmdb-get-tv-show` and {@link TmdbTvShowResponseBody}.
+ * MCP `tmdb-get-tv-show` returns {@link TmdbSeriesDetails} from Core (flat TMDB TV details).
  */
-export type TmdbTvShowDetailsResponse = TmdbTvShowResponseBody
+export type TmdbTvShowDetailsResponse = TmdbSeriesDetails

@@ -38,6 +38,7 @@ import {
   getTmdbLanguages,
 } from './tmdb'
 import { _resetInternalReverseProxyCacheForTesting } from './fetchByInternalReverseProxy'
+import * as localStoragesModule from '@/lib/localStorages'
 
 const REVERSE_PROXY_URL = 'http://127.0.0.1:30005'
 const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
@@ -478,6 +479,10 @@ describe('tmdb routing through reverse proxy', () => {
       .mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }))
   }
 
+  beforeEach(() => {
+    vi.spyOn(localStoragesModule, 'isSmmV3Enabled').mockReturnValue(false)
+  })
+
   it('searches via discovered reverse proxy when TMDB host is empty', async () => {
     mockReadUserConfig.mockResolvedValue(userConfigWithTmdb())
     const fetchSpy = mockOkJson({ results: [], page: 1, total_pages: 1, total_results: 0 })
@@ -692,5 +697,57 @@ describe('getTmdbLanguages', () => {
     await expect(getTmdbLanguages()).rejects.toThrow(
       /Reverse proxy URL is not available/,
     )
+  })
+})
+
+describe('v3 Core Internal HTTP', () => {
+  it('searchTmdb POSTs to /api/search-in-tmdb', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: {
+            results: [{ id: 1, name: 'Naruto' }],
+            page: 1,
+            total_pages: 1,
+            total_results: 1,
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    )
+
+    const result = await searchTmdb('naruto', 'tv', 'en-US')
+
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/search-in-tmdb')
+    expect(fetchSpy.mock.calls[0]?.[1]).toMatchObject({ method: 'POST' })
+    expect(result.results).toEqual([{ id: 1, name: 'Naruto' }])
+    expect(result.total_results).toBe(1)
+  })
+
+  it('getMovieById POSTs to /api/get-movie-in-tmdb', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: { id: 550, title: 'Fight Club' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await getMovieById(550, 'en-US')
+    expect(result.title).toBe('Fight Club')
+    const fetchSpy = vi.mocked(globalThis.fetch)
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/get-movie-in-tmdb')
+  })
+
+  it('getTvShowById POSTs to /api/get-tvshow-in-tmdb', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ data: { id: 1396, name: 'Breaking Bad' } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    )
+
+    const result = await getTvShowById(1396)
+    expect(result.name).toBe('Breaking Bad')
+    expect(vi.mocked(globalThis.fetch).mock.calls[0]?.[0]).toBe('/api/get-tvshow-in-tmdb')
   })
 })

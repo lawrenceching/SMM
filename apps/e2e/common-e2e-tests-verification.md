@@ -152,9 +152,11 @@ Columns: **L** local · **E** electron · **O** ohos · **D** docker
 | RenameFolder | ✓ | ✓ | — | ✓ | local, Electron, Docker / unsupported HarmonyOS |
 | Subtitle | ✓ | ✓ | — | ✓ | local, Electron, Docker / unsupported HarmonyOS |
 
-### mcp (14) — `@supports local, Electron, Docker` · `@unsupported HarmonyOS`
+### mcp (15) — `@supports local, Electron, Docker` · `@unsupported HarmonyOS`
 
 Non-init MCP specs seed recognized folders via `seedRecognizedTvShowFolder` / `seedRecognizedMovieFolder` in `test/lib/mcpSpecShared.ts` (no TMDB init). Docker: MCP CLI uses `resolveMcpAddressForE2eRunner()` → `host.docker.internal:30001`; container publishes `-p 30001:30001`.
+
+`McpOther-TmdbTools` hits live TMDB via Core (`tmdb-search`, `tmdb-get-movie`, `tmdb-get-tv-show`); configure `TMDB_HOST` / `TMDB_API_KEY` / `TMDB_HTTP_PROXY` in `apps/e2e/.env.local` when the default host is blocked.
 
 | Spec | L | E | O | D |
 | --- | --- | --- | --- | --- |
@@ -168,6 +170,7 @@ Non-init MCP specs seed recognized folders via `seedRecognizedTvShowFolder` / `s
 | McpOther-RecognizeTaskFlow | ✓ | ✓ | — | ✓ |
 | McpOther-RenameFolderTool | ✓ | ✓ | — | ✓ |
 | McpOther-RenameTaskFlow | ✓ | ✓ | — | ✓ |
+| McpOther-TmdbTools | ✓ | ✓ | — | ✓ |
 | McpPrompt-CancelPreparingPlan | ✓ | ✓ | — | ✓ |
 | McpPrompts-HowToRecognizeEpisodeVideoFilesTool | ✓ | ✓ | — | ✓ |
 | McpPrompts-HowToRenameEpisodeVideoFilesTool | ✓ | ✓ | — | ✓ |

@@ -2,9 +2,13 @@ name: CI
 
 # Merged from build.yml + e2e-test.yml + e2e-docker.yml + e2e-http-proxy.yml.
 # E2E groups run only after the build pipeline (test / lint / typecheck / build) succeeds.
+#
+# CLI bun:test e2e: reusable _e2e-cli.yml (also callable via "E2E Tests for CLI" workflow).
+#
 # Required check names (RELEASE_REQUIRED_CHECKS) must stay stable:
 #   Run Unit Tests, Lint UI, Typecheck, Build UI, Build CLI,
 #   host-e2e / gate, docker-e2e / gate, http-proxy-e2e / gate
+#   (cli-e2e / gate is optional for release until added to RELEASE_REQUIRED_CHECKS)
 on:
   push:
     branches: [ main, develop ]
@@ -15,6 +19,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/_e2e-cli.yml'
+      - '.github/workflows/e2e-cli.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
@@ -24,6 +30,8 @@ on:
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
       - '.github/workflows/ci.yml'
+      - '.github/workflows/_e2e-cli.yml'
+      - '.github/workflows/e2e-cli.yml'
   workflow_dispatch:
 
 permissions:
@@ -169,7 +177,9 @@ jobs:
             spec: "./test/specs/ai/*.e2e.ts"
             artifact_prefix: ai
           - name: Run Config and HTTP Proxy Tests
-            spec: "./common/config/*.e2e.ts ./common/httpproxy/*.e2e.ts"
+            # Proxy-through-custom-host specs live under common/config (*WithHttpProxy).
+            # common/httpproxy/* was removed in 78ad8f00.
+            spec: "./common/config/*.e2e.ts"
             artifact_prefix: config-httpproxy
           - name: Run MCP Tests
             spec: "./common/mcp/*.e2e.ts"
@@ -319,7 +329,7 @@ jobs:
 
   e2e-docker:
     name: ${{ matrix.name }}
-    needs: build-image
+    needs: [build-image]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -341,11 +351,9 @@ jobs:
       matrix:
         include:
           - name: Docker E2E (config)
+            # Includes *WithHttpProxy specs (former common/httpproxy suite).
             spec: "./common/config/*.e2e.ts"
             artifact_prefix: docker-config
-          - name: Docker E2E (httpproxy)
-            spec: "./common/httpproxy/*.e2e.ts"
-            artifact_prefix: docker-httpproxy
           - name: Docker E2E (mcp)
             spec: "./common/mcp/*.e2e.ts"
             artifact_prefix: docker-mcp
@@ -411,7 +419,7 @@ jobs:
         run: gunzip -c smm-latest.tar.gz | docker load
 
       - name: Require API key secrets for suites that need them
-        if: matrix.artifact_prefix == 'docker-httpproxy' || matrix.artifact_prefix == 'docker-media-init'
+        if: matrix.artifact_prefix == 'docker-config' || matrix.artifact_prefix == 'docker-media-init'
         run: |
           missing=0
           if [ -z "${TMDB_API_KEY:-}" ]; then
@@ -556,3 +564,11 @@ jobs:
             exit 1
           fi
           echo "All HTTP Proxy E2E jobs passed."
+
+  # ------------------------------------------------------------------
+  # CLI E2E (bun:test under apps/e2e/cli) — reusable _e2e-cli.yml
+  # ------------------------------------------------------------------
+  e2e-cli:
+    needs: [build-cli]
+    uses: ./.github/workflows/_e2e-cli.yml
+    secrets: inherit

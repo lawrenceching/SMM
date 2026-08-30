@@ -14,9 +14,13 @@ import {
   INITIAL_SCRAPE_TASK_STATE,
   taskReducer,
   type ScrapeTaskId,
+  type ScrapeTaskStatus,
   type ScrapeTaskView,
 } from "@/lib/scrapeDialog"
 import { normalizeScrapeTaskError } from "@/lib/scrapeError"
+import { isSmmV3Enabled } from "@/lib/localStorages"
+import { scrapeFolderViaCore } from "@/api/scrapeV3"
+import { getJobViaCore, type ScrapeJob, type ScrapeTaskRuntimeStatus } from "@/api/getJob"
 
 export interface UseScrapeDialogInput {
   isOpen: boolean
@@ -33,6 +37,36 @@ export interface UseScrapeDialogResult {
   canDismissIncidentally: boolean
   handleCancel: () => void
   handleStart: () => Promise<void>
+}
+
+const POLL_INTERVAL_MS = 1000
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function mapCoreTaskStatus(status: ScrapeTaskRuntimeStatus): ScrapeTaskStatus {
+  if (status === "skipped") return "completed"
+  if (status === "pending" || status === "running" || status === "completed" || status === "failed") {
+    return status
+  }
+  return "pending"
+}
+
+function jobTasksToAction(
+  job: ScrapeJob,
+): Partial<Record<ScrapeTaskId, { status: ScrapeTaskStatus; failedReason?: string }>> {
+  const result: Partial<Record<ScrapeTaskId, { status: ScrapeTaskStatus; failedReason?: string }>> =
+    {}
+  for (const id of Object.keys(job.tasks) as ScrapeTaskId[]) {
+    const task = job.tasks[id]
+    if (!task) continue
+    result[id] = {
+      status: mapCoreTaskStatus(task.status),
+      failedReason: task.error,
+    }
+  }
+  return result
 }
 
 export function useScrapeDialog({
@@ -103,7 +137,7 @@ export function useScrapeDialog({
     onClose()
   }, [cancelDisabled, onClose])
 
-  const handleStart = useCallback(async () => {
+  const handleStartLegacy = useCallback(async () => {
     if (!mediaMetadata) return
     if (allTasksDone) {
       onClose()
@@ -150,6 +184,77 @@ export function useScrapeDialog({
     refreshMediaMetadata,
     onClose,
   ])
+
+  const handleStartV3 = useCallback(async () => {
+    if (!mediaMetadata?.mediaFolderPath) return
+    if (allTasksDone) {
+      onClose()
+      return
+    }
+    if (state.isRunning) return
+
+    dispatch({ type: "START_RUN" })
+    const traceId = `ScrapeDialog-handleStartV3-${nextTraceId()}`
+    try {
+      const jobId = await scrapeFolderViaCore({
+        path: mediaMetadata.mediaFolderPath,
+        language: userConfig.preferMediaLanguage,
+      })
+
+      for (;;) {
+        const job = await getJobViaCore(jobId)
+        if (job.kind !== "scrape") {
+          throw new Error(`Error Reason: unexpected job kind: ${job.kind}`)
+        }
+        dispatch({ type: "APPLY_JOB_TASKS", tasks: jobTasksToAction(job) })
+        if (
+          job.status === "succeeded" ||
+          job.status === "failed" ||
+          job.status === "aborted"
+        ) {
+          break
+        }
+        await sleep(POLL_INTERVAL_MS)
+      }
+
+      await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
+    } catch (error) {
+      const { messageKey, debugDetail } = normalizeScrapeTaskError(error)
+      console.error("[ScrapeDialog] v3 run failed:", debugDetail, error)
+      dispatch({
+        type: "APPLY_JOB_TASKS",
+        tasks: Object.fromEntries(
+          state.tasks
+            .filter((task) => task.status === "pending" || task.status === "running")
+            .map((task) => [
+              task.id,
+              {
+                status: "failed" as const,
+                failedReason: debugDetail.trim() ? messageKey : undefined,
+              },
+            ]),
+        ),
+      })
+    } finally {
+      dispatch({ type: "FINISH_RUN" })
+    }
+  }, [
+    mediaMetadata,
+    allTasksDone,
+    state.isRunning,
+    state.tasks,
+    userConfig.preferMediaLanguage,
+    refreshMediaMetadata,
+    onClose,
+  ])
+
+  const handleStart = useCallback(async () => {
+    if (isSmmV3Enabled()) {
+      await handleStartV3()
+      return
+    }
+    await handleStartLegacy()
+  }, [handleStartV3, handleStartLegacy])
 
   return {
     tasks: state.tasks,

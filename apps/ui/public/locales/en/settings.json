@@ -21,7 +21,9 @@
     "mcpHost": "MCP host",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP port",
-    "mcpPortPlaceholder": "30001"
+    "mcpPortPlaceholder": "30001",
+    "anonymousTelemetryConsent": "Allow anonymous usage information",
+    "anonymousTelemetryConsentDescription": "Share anonymous app version, OS, and usage/crash statistics. Never includes personal identity or media file contents."
   },
   "mediaDatabases": {
     "title": "Media Databases",

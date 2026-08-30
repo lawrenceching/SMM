@@ -29,7 +29,6 @@ describe("doRenameFiles", () => {
     const metadata: MediaMetadata = {
       mediaFolderPath: Path.posix(mediaDir),
       type: "tvshow-folder",
-      files: [Path.posix(fromFile)],
       mediaFiles: [
         {
           absolutePath: Path.posix(fromFile),
@@ -85,7 +84,6 @@ describe("doRenameFiles", () => {
       "utf-8",
     );
     const metadata = JSON.parse(metadataRaw) as MediaMetadata;
-    expect(metadata.files).toEqual([Path.posix(toFile)]);
     expect(metadata.mediaFiles?.[0]?.absolutePath).toBe(Path.posix(toFile));
     expect(broadcast).toHaveBeenCalledWith(
       expect.objectContaining({

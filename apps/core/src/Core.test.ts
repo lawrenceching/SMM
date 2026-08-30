@@ -1,0 +1,1691 @@
+import { describe, expect, it, vi } from "vitest";
+import { Path } from "@core/path";
+import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/core";
+import type { FsPort } from "./ports/FsPort";
+import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
+import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
+import { Core } from "./Core";
+import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
+
+function inMemoryFs(seed: Record<string, string> = {}): FsPort {
+  const files = new Map(Object.entries(seed));
+  return {
+    readTextFile: vi.fn(async (path: string) => {
+      const v = files.get(path);
+      if (v === undefined) throw new Error("ENOENT: " + path);
+      return v;
+    }),
+    writeTextFile: vi.fn(async (path: string, content: string) => {
+      files.set(path, content);
+    }),
+    writeBinaryFile: vi.fn(async () => {}),
+    exists: vi.fn(async (path: string) => {
+      if (files.has(path)) return true;
+      const prefix = path.endsWith("/") ? path : path + "/";
+      for (const key of files.keys()) {
+        if (key.startsWith(prefix)) return true;
+      }
+      return false;
+    }),
+    listFiles: vi.fn(async (dir: string) => {
+      const out: string[] = [];
+      for (const key of files.keys()) {
+        if (key.startsWith(dir + "/") && !key.endsWith("/")) out.push(key);
+      }
+      return out;
+    }),
+    listSubdirectories: vi.fn(async (dir: string) => {
+      const prefix = dir.endsWith("/") ? dir : dir + "/";
+      const subdirs = new Set<string>();
+      for (const key of files.keys()) {
+        if (!key.startsWith(prefix)) continue;
+        const rest = key.slice(prefix.length);
+        const slash = rest.indexOf("/");
+        if (slash >= 0) subdirs.add(prefix + rest.slice(0, slash));
+      }
+      return [...subdirs];
+    }),
+    deleteFile: vi.fn(async (path: string) => {
+      files.delete(path);
+    }),
+    rename: vi.fn(async (from: string, to: string) => {
+      if (!files.has(from) && ![...files.keys()].some((k) => k === from || k.startsWith(from + "/"))) {
+        throw new Error("ENOENT: " + from);
+      }
+      const entries = [...files.entries()];
+      for (const [key, value] of entries) {
+        if (key === from || key.startsWith(from + "/")) {
+          files.delete(key);
+          files.set(to + key.slice(from.length), value);
+        }
+      }
+      // Ensure destination directory marker if only empty dirs matter — file keys alone are enough for these tests.
+    }),
+    mkdir: vi.fn(async () => {}),
+  };
+}
+
+function jsonResponse(body: unknown): HttpResponse {
+  return {
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    headers: {},
+    text: () => Promise.resolve(JSON.stringify(body)),
+    json: <T>() => Promise.resolve(body as T),
+    arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
+  };
+}
+
+/** Network that satisfies the empty-seed recognition path (returns no results). */
+function emptyNetwork(): NetworkPort {
+  return {
+    fetch: vi.fn(async (url: string) => {
+      const body =
+        url.includes("/api/tmdb/") || url.includes("tmdb")
+          ? { results: [], page: 1, total_pages: 1, total_results: 0 }
+          : { status: "success", data: [] };
+      return jsonResponse(body);
+    }) as never,
+  };
+}
+
+async function waitForStatus(core: Core, id: string, status: string): Promise<void> {
+  const started = Date.now();
+  for (;;) {
+    const job = core.getJob(id);
+    if (job?.status === status || job?.status === "failed" || job?.status === "aborted") return;
+    if (Date.now() - started > 5000) throw new Error(`timeout waiting for ${status}`);
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+describe("Core", () => {
+  it("importFolder runs the pipeline and succeeds", async () => {
+    const fs = inMemoryFs({ "/m/My.Music/a.mp3": "" });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importFolder("/m/My.Music", "music");
+    expect(core.getJob(id)).toBeDefined();
+
+    await waitForStatus(core, id, "succeeded");
+
+    const job = core.getJob(id);
+    expect(job?.status).toBe("succeeded");
+    expect(job?.kind === "import" && job.progress).toBe(100);
+
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toContain("/m/My.Music");
+  });
+
+  it("marks the job failed when the pipeline throws", async () => {
+    const fs = inMemoryFs();
+    const failingFs: FsPort = {
+      ...fs,
+      listFiles: vi.fn(async () => {
+        throw new Error("boom");
+      }),
+    };
+    const core = new Core({
+      fs: failingFs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importFolder("/m/Broken", "tvshow");
+    await waitForStatus(core, id, "failed");
+
+    const job = core.getJob(id);
+    expect(job?.status).toBe("failed");
+    expect(job?.error).toContain("boom");
+  });
+
+  it("invalid path produces a failed job, not a synchronous throw", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    const { id } = core.importFolder("relative/path", "music");
+    expect(id).toBeDefined();
+    await waitForStatus(core, id, "failed");
+    const job = core.getJob(id);
+    expect(job?.status).toBe("failed");
+  });
+
+  it("skipInit writes the folder to UserConfig and persists blank metadata", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+
+    expect(core.getJob(id)?.status).toBe("succeeded");
+    const job = core.getJob(id);
+    expect(job?.kind === "import" ? job.stage : undefined).toBe("metadata");
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toContain("/m/Deferred");
+    expect(fs.listFiles).not.toHaveBeenCalled();
+    expect(await fs.exists(metadataCachePath("/data/smm", Path.posix("/m/Deferred")))).toBe(true);
+    expect(await core.getMetadata("/m/Deferred")).toEqual({
+      mediaFolderPath: "/m/Deferred",
+      type: "tvshow-folder",
+      mediaFiles: [],
+    });
+  });
+
+  it("getJob returns undefined for unknown id", () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    expect(core.getJob("nope")).toBeUndefined();
+  });
+
+  it("importLibrary imports each subdirectory via importFolder", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const job = core.getJob(id);
+    expect(job?.kind).toBe("import-library");
+    if (job?.kind !== "import-library") return;
+    expect(job.status).toBe("succeeded");
+    expect(job.tasks).toHaveLength(2);
+    expect(job.tasks.every((task) => task.status === "succeeded")).toBe(true);
+
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
+  });
+
+  it("importLibrary registers blank metadata before UserConfig upsert", async () => {
+    const writeOrder: string[] = [];
+    const baseFs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const fs: FsPort = {
+      ...baseFs,
+      writeTextFile: vi.fn(async (path: string, content: string) => {
+        if (path === userConfigPath("/data/smm")) {
+          writeOrder.push("config");
+        } else if (path.includes("/metadata/")) {
+          writeOrder.push(`metadata:${path}`);
+        }
+        await baseFs.writeTextFile(path, content);
+      }),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const configIndex = writeOrder.indexOf("config");
+    expect(configIndex).toBeGreaterThan(-1);
+    expect(writeOrder.slice(0, configIndex).every((entry) => entry.startsWith("metadata:"))).toBe(true);
+    expect(writeOrder.slice(0, configIndex).length).toBe(2);
+  });
+
+  it("importLibrary with skipInit only registers folders without running importFolder init", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+
+    const jobs = [core.getJob(id)];
+    expect(jobs.filter((job) => job?.kind === "import")).toHaveLength(0);
+
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show1"))).toBe(true);
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show2"))).toBe(true);
+    const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
+    expect(savedConfig.folders).toEqual(expect.arrayContaining(["/lib/Show1", "/lib/Show2"]));
+  });
+
+  it("importLibrary skips folders already in user config", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: ["/lib/Show1"], tmdb: {}, tvdb: {} }),
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    const job = core.getJob(id);
+    if (job?.kind !== "import-library") throw new Error("expected import-library job");
+    expect(job.tasks).toHaveLength(1);
+    expect(job.tasks[0]?.path).toBe("/lib/Show2");
+  });
+
+  it("importLibrary marks the job failed when the library path is missing", async () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/missing/lib", "music");
+    await waitForStatus(core, id, "failed");
+
+    const job = core.getJob(id);
+    expect(job?.status).toBe("failed");
+    expect(job?.error).toContain("Library path not found");
+  });
+
+  it("importFolder emits mediaMetadataUpdated after persist (not on skipInit blank metadata)", async () => {
+    const fs = inMemoryFs({ "/m/Show/ep.mkv": "" });
+    const updated: string[] = [];
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    core.on("mediaMetadataUpdated", (data) => {
+      if (data.folderPath) updated.push(data.folderPath);
+    });
+
+    const { id: fullId } = core.importFolder("/m/Show", "music");
+    await waitForStatus(core, fullId, "succeeded");
+    expect(updated).toEqual(["/m/Show"]);
+
+    updated.length = 0;
+    const { id: skipId } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, skipId, "succeeded");
+    expect(updated).toEqual([]);
+  });
+
+  it("importLibrary emits mediaMetadataUpdated once per folder after importFolder persist", async () => {
+    const fs = inMemoryFs({
+      "/lib/Show1/a.mp3": "",
+      "/lib/Show2/a.mp3": "",
+    });
+    const updated: string[] = [];
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    core.on("mediaMetadataUpdated", (data) => {
+      if (data.folderPath) updated.push(data.folderPath);
+    });
+
+    const { id } = core.importLibrary("/lib", "music");
+    await waitForStatus(core, id, "succeeded");
+
+    expect(updated.sort()).toEqual(["/lib/Show1", "/lib/Show2"].sort());
+  });
+});
+
+describe("getAppConfig", () => {
+  it("returns the injected app config values", () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+      version: "1.3.8",
+      reverseProxyUrl: "http://127.0.0.1:30005",
+      userDataDir: "/data/ud",
+    });
+    expect(core.getAppConfig()).toEqual({
+      version: "1.3.8",
+      userDataDir: "/data/ud",
+      reverseProxyUrl: "http://127.0.0.1:30005",
+    });
+  });
+
+  it("falls back to defaults when version/reverseProxyUrl/userDataDir are omitted", () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(core.getAppConfig()).toEqual({
+      version: "",
+      userDataDir: "/data/smm",
+      reverseProxyUrl: null,
+    });
+  });
+});
+
+describe("hello", () => {
+  it("returns injected bootstrap fields and uptime >= 0", () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+      userDataDir: "/data/ud",
+      reportedAppDataDir: "/data/ad",
+      version: "1.3.8",
+      tmpDir: "/tmp/smm",
+      logDir: "/data/ad/logs",
+      platform: "linux",
+      osLocale: "zh-CN",
+    });
+    const result = core.hello();
+    expect(result.uptime).toBeGreaterThanOrEqual(0);
+    expect(result).toMatchObject({
+      version: "1.3.8",
+      platform: "linux",
+      userDataDir: "/data/ud",
+      appDataDir: "/data/ad",
+      tmpDir: "/tmp/smm",
+      logDir: "/data/ad/logs",
+      osLocale: "zh-CN",
+    });
+  });
+
+  it("falls back appDataDir to appDataDir and empty tmp/log when omitted", () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    const result = core.hello();
+    expect(result.appDataDir).toBe("/data/smm");
+    expect(result.tmpDir).toBe("");
+    expect(result.logDir).toBe("");
+    expect(result.platform).toBe(process.platform);
+  });
+});
+
+describe("getUserConfig", () => {
+  it("returns the default config when no smm.json exists", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    const config = await core.getUserConfig();
+    expect(config.folders).toEqual([]);
+    expect(config.tmdb).toEqual({});
+    expect(config.selectedRenameRule).toBe("plex");
+  });
+
+  it("returns the persisted config when smm.json exists", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: ["/m/Show"],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect((await core.getUserConfig()).folders).toEqual(["/m/Show"]);
+  });
+});
+
+describe("setUserConfigKey", () => {
+  it("persists a known key and returns the updated config", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    const updated = await core.setUserConfigKey("dryRun", true);
+
+    expect(updated.dryRun).toBe(true);
+    expect((await core.getUserConfig()).dryRun).toBe(true);
+    const written = JSON.parse(await fs.readTextFile(userConfigPath("/data/smm"))) as {
+      dryRun: boolean;
+    };
+    expect(written.dryRun).toBe(true);
+  });
+
+  it("rejects an unknown key without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.setUserConfigKey("notAKey", 1)).rejects.toThrow("Unknown config key: notAKey");
+    expect(await fs.exists(userConfigPath("/data/smm"))).toBe(false);
+  });
+});
+
+describe("getFolders", () => {
+  it("returns the folders from the user config", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: ["/m/A", "/m/B"],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(await core.getFolders()).toEqual(["/m/A", "/m/B"]);
+  });
+
+  it("returns an empty list when no config exists", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(await core.getFolders()).toEqual([]);
+  });
+});
+
+describe("createMetadata", () => {
+  const cache = metadataCachePath("/data/smm", "/m/Show");
+
+  it("persists metadata so getMetadata round-trips", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    const mm = {
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder" as const,
+      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv" }],
+    };
+
+    await core.createMetadata(mm);
+
+    const written = JSON.parse(await fs.readTextFile(cache)) as Record<string, unknown>;
+    expect(written).toEqual(mm);
+    expect(written).not.toHaveProperty("files");
+    expect(await core.getMetadata("/m/Show")).toEqual(written);
+  });
+
+  it("rejects missing mediaFolderPath without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.createMetadata({ type: "tvshow-folder" })).rejects.toThrow(
+      "mediaFolderPath is required",
+    );
+    expect(fs.writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it("rejects an empty mediaFolderPath without writing", async () => {
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.createMetadata({ mediaFolderPath: "", type: "tvshow-folder" })).rejects.toThrow(
+      "mediaFolderPath is required",
+    );
+    expect(fs.writeTextFile).not.toHaveBeenCalled();
+  });
+
+  it("uses the same cache key as getMetadata for a Windows path", async () => {
+    const stored = "C:\\Movies\\Show";
+    const winCache = metadataCachePath("/data/smm", Path.posix(stored));
+    const fs = inMemoryFs();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.createMetadata({ mediaFolderPath: stored, type: "tvshow-folder" });
+
+    expect(await fs.exists(winCache)).toBe(true);
+    expect(await core.getMetadata(stored)).toEqual({
+      mediaFolderPath: stored,
+      type: "tvshow-folder",
+    });
+  });
+});
+
+describe("getMetadata", () => {
+  const cache = metadataCachePath("/data/smm", "/m/Show");
+
+  it("returns the cached metadata for a folder", async () => {
+    const mm = { mediaFolderPath: "/m/Show", type: "tvshow-folder" };
+    const fs = inMemoryFs({ [cache]: JSON.stringify(mm) });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(await core.getMetadata("/m/Show")).toEqual(mm);
+  });
+
+  it("throws when the cache JSON is corrupt", async () => {
+    const fs = inMemoryFs({ [cache]: "{ not json" });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+    await expect(core.getMetadata("/m/Show")).rejects.toThrow("Metadata not found: /m/Show");
+  });
+});
+
+describe("unimportFolder", () => {
+  const cache = metadataCachePath("/data/smm", "/m/Show");
+
+  function configWith(folders: string[]): string {
+    return JSON.stringify({ folders, tmdb: {}, tvdb: {}, renameRules: [], dryRun: false, selectedRenameRule: "plex" });
+  }
+
+  it("removes the folder from config and deletes its metadata cache", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: configWith(["/m/Show", "/m/Keep"]),
+      [cache]: JSON.stringify({ mediaFolderPath: "/m/Show" }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.unimportFolder("/m/Show");
+
+    expect(JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string).folders).toEqual(["/m/Keep"]);
+    expect(await fs.exists(cache)).toBe(false);
+  });
+
+  it("is a no-op and keeps the cache when the folder is not imported", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: configWith(["/m/Keep"]),
+      [cache]: JSON.stringify({ mediaFolderPath: "/m/Show" }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.unimportFolder("/m/Show");
+
+    expect(JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string).folders).toEqual(["/m/Keep"]);
+    expect(await fs.exists(cache)).toBe(true);
+  });
+
+  it("unimports a folder stored in Windows backslash form (same format as import)", async () => {
+    const stored = "C:\\Movies\\Show";
+    const cache = metadataCachePath("/data/smm", Path.posix(stored));
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: configWith([stored]),
+      [cache]: JSON.stringify({ mediaFolderPath: stored }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.unimportFolder(stored);
+
+    expect(JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string).folders).toEqual([]);
+    expect(await fs.exists(cache)).toBe(false);
+  });
+
+  it("removes every folder when unimportFolder runs concurrently", async () => {
+    const appDataDir = "/data/smm-concurrent-unimport";
+    const folders = ["/m/A", "/m/B", "/m/C", "/m/D", "/m/E"];
+    const pause = () => new Promise((r) => setTimeout(r, 15));
+    const files = new Map<string, string>([[userConfigPath(appDataDir), configWith(folders)]]);
+    const fs: FsPort = {
+      readTextFile: async (path: string) => {
+        await pause();
+        const v = files.get(path);
+        if (v === undefined) throw new Error("ENOENT: " + path);
+        return v;
+      },
+      writeTextFile: async (path: string, content: string) => {
+        await pause();
+        files.set(path, content);
+      },
+      writeBinaryFile: async () => {},
+      exists: async (path: string) => files.has(path),
+      listFiles: async () => [],
+      deleteFile: async (path: string) => {
+        files.delete(path);
+      },
+      rename: async () => {},
+      mkdir: async () => {},
+      listSubdirectories: async () => [],
+    };
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+
+    await Promise.all(folders.map((path) => core.unimportFolder(path)));
+
+    const saved = JSON.parse(await fs.readTextFile(userConfigPath(appDataDir))) as { folders: string[] };
+    expect(saved.folders).toEqual([]);
+  });
+});
+
+describe("renameFolder", () => {
+  it("updates metadata cache, user config, and renames on disk", async () => {
+    const from = "/m/Show";
+    const to = "/m/Show Renamed";
+    const oldCache = metadataCachePath("/data/smm", from);
+    const newCache = metadataCachePath("/data/smm", to);
+    const mm = {
+      mediaFolderPath: from,
+      type: "tvshow-folder" as const,
+      mediaFiles: [{ absolutePath: `${from}/S01E01.mkv` }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: [from],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+      [oldCache]: JSON.stringify(mm),
+      [`${from}/S01E01.mkv`]: "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await core.renameFolder({ from, to });
+
+    expect(await fs.exists(oldCache)).toBe(false);
+    expect(await fs.exists(newCache)).toBe(true);
+    const written = JSON.parse(await fs.readTextFile(newCache)) as typeof mm;
+    expect(written.mediaFolderPath).toBe(to);
+    expect(written.mediaFiles?.[0]?.absolutePath).toBe(`${to}/S01E01.mkv`);
+
+    const folders = await core.getFolders();
+    // renameFolderInUserConfig stores Path.toPlatformPath(to)
+    expect(folders.map((f) => Path.posix(f))).toEqual([Path.posix(to)]);
+
+    expect(fs.rename).toHaveBeenCalledWith(from, to);
+    expect(await fs.exists(`${to}/S01E01.mkv`)).toBe(true);
+  });
+
+  it("rejects when the folder is not managed", async () => {
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: ["/m/Other"],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.renameFolder({ from: "/m/Show", to: "/m/X" })).rejects.toThrow(
+      "/m/Show is not managed by SMM",
+    );
+    expect(fs.rename).not.toHaveBeenCalled();
+  });
+
+  it("rejects when media metadata cache is missing", async () => {
+    const from = "/m/Show";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: [from],
+        tmdb: {},
+        tvdb: {},
+        renameRules: [],
+        dryRun: false,
+        selectedRenameRule: "plex",
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir: "/data/smm" });
+
+    await expect(core.renameFolder({ from, to: "/m/X" })).rejects.toThrow(
+      `Media metadata not found: ${from}`,
+    );
+    expect(fs.rename).not.toHaveBeenCalled();
+  });
+});
+
+describe("tryToRecognizeEpisodes", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [
+            { season: 1, episode: 1 },
+            { season: 1, episode: 2 },
+          ],
+        },
+      ],
+    },
+    mediaFiles: [],
+  };
+
+  function seed(disk: Record<string, string> = {}) {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  it("creates a pending plan with matched files", async () => {
+    const fs = seed({
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E02.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
+    expect(plan.task).toBe("recognize-media-file");
+    expect(plan.status).toBe("pending");
+    expect(plan.creator).toBe("app");
+    expect(plan.files).toEqual([
+      { season: 1, episode: 1, path: "/m/Show/S01E01.mkv" },
+      { season: 1, episode: 2, path: "/m/Show/S01E02.mkv" },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(true);
+  });
+
+  it("returns pending plan with empty files when nothing matches", async () => {
+    const fs = seed({ "/m/Show/random.mkv": "" });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
+    expect(plan.files).toEqual([]);
+    expect(plan.status).toBe("pending");
+  });
+
+  it("rejects unmanaged folders", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    await expect(core.tryToRecognizeEpisodes("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+});
+
+describe("tryToRenameFolder", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+        },
+      ],
+    },
+    mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 }],
+  };
+
+  function seed() {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      "/m/Show/S01E01.mkv": "",
+    });
+  }
+
+  it("creates a pending rename-files plan with plex targets", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.task).toBe("rename-files");
+    expect(plan.status).toBe("pending");
+    expect(plan.creator).toBe("app");
+    expect(plan.mediaFolderPath).toBe("/m/Show");
+    expect(plan.files).toEqual([
+      {
+        from: "/m/Show/S01E01.mkv",
+        to: "/m/Show/Season 01/Show - S01E01 - Ep1.mkv",
+      },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(true);
+  });
+
+  it("returns pending plan with empty files when paths already match", async () => {
+    const matching = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        ...tvMetadata,
+        mediaFiles: [{ absolutePath: matching, seasonNumber: 1, episodeNumber: 1 }],
+      }),
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    expect(plan.status).toBe("pending");
+  });
+
+  it("rejects unmanaged folders", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    await expect(core.tryToRenameFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+});
+
+describe("createRenameEpisodePlan", () => {
+  it("persists ai plan", async () => {
+    const appDataDir = "/data";
+    const folder = "/m/Show";
+    const fs = inMemoryFs({
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        tvShow: {
+          id: "1",
+          name: "Show",
+          seasons: [{ season: 1, episodes: [{ season: 1, episode: 1, name: "Ep1" }] }],
+        },
+        mediaFiles: [
+          { absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
+        ],
+      }),
+      "/m/Show/S01E01.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+
+    const plan = await core.createRenameEpisodePlan(
+      folder,
+      [{ from: "/m/Show/S01E01.mkv", to: "/m/Show/[1].mkv" }],
+      { creator: "ai" },
+    );
+
+    expect(plan.creator).toBe("ai");
+    expect(await fs.exists(planFilePath(appDataDir, plan.id))).toBe(true);
+  });
+});
+
+describe("applyPlan", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: {
+      id: "1",
+      name: "Show",
+      seasons: [
+        {
+          season: 1,
+          episodes: [
+            { season: 1, episode: 1 },
+            { season: 1, episode: 2 },
+          ],
+        },
+      ],
+    },
+    mediaFiles: [] as { absolutePath: string; seasonNumber?: number; episodeNumber?: number }[],
+  };
+
+  function seed(disk: Record<string, string> = {}) {
+    return inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  it("merges mediaFiles and deletes the plan file", async () => {
+    const fs = seed({
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E02.mkv": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
+    await core.applyPlan(plan);
+    const mm = await core.getMetadata("/m/Show");
+    expect(mm?.mediaFiles).toEqual([
+      { absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
+      { absolutePath: "/m/Show/S01E02.mkv", seasonNumber: 1, episodeNumber: 2 },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("applies empty files plan as no-op on mediaFiles but deletes plan", async () => {
+    const fs = seed({ "/m/Show/random.mkv": "" });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const before = await core.getMetadata("/m/Show");
+    const plan = await core.tryToRecognizeEpisodes("/m/Show");
+    expect(plan.files).toEqual([]);
+    await core.applyPlan(plan);
+    const after = await core.getMetadata("/m/Show");
+    expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("getPlan throws when missing", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir });
+    await expect(core.getPlan("nope")).rejects.toThrow("Plan not found: nope");
+  });
+
+  it("renames video and subtitle and updates mediaFiles", async () => {
+    const renameMetadata = {
+      ...tvMetadata,
+      tvShow: {
+        id: "1",
+        name: "Show",
+        seasons: [
+          {
+            season: 1,
+            episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+          },
+        ],
+      },
+      mediaFiles: [{ absolutePath: "/m/Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(renameMetadata),
+      "/m/Show/S01E01.mkv": "",
+      "/m/Show/S01E01.ass": "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const plan = await core.tryToRenameFolder("/m/Show");
+    await core.applyPlan(plan);
+
+    const targetVideo = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const targetSubtitle = "/m/Show/Season 01/Show - S01E01 - Ep1.ass";
+    expect(await fs.exists(targetVideo)).toBe(true);
+    expect(await fs.exists(targetSubtitle)).toBe(true);
+    expect(await fs.exists("/m/Show/S01E01.mkv")).toBe(false);
+    expect(await fs.exists("/m/Show/S01E01.ass")).toBe(false);
+
+    const mm = await core.getMetadata("/m/Show");
+    expect(mm?.mediaFiles).toEqual([
+      { absolutePath: targetVideo, seasonNumber: 1, episodeNumber: 1 },
+    ]);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("applies empty rename-files plan as delete only", async () => {
+    const matching = "/m/Show/Season 01/Show - S01E01 - Ep1.mkv";
+    const renameMetadata = {
+      ...tvMetadata,
+      tvShow: {
+        id: "1",
+        name: "Show",
+        seasons: [
+          {
+            season: 1,
+            episodes: [{ season: 1, episode: 1, name: "Ep1" }],
+          },
+        ],
+      },
+      mediaFiles: [{ absolutePath: matching, seasonNumber: 1, episodeNumber: 1 }],
+    };
+    const fs = inMemoryFs({
+      [userConfigPath(appDataDir)]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(renameMetadata),
+      [matching]: "",
+    });
+    const core = new Core({ fs, network: emptyNetwork(), appDataDir });
+    const before = await core.getMetadata("/m/Show");
+    const plan = await core.tryToRenameFolder("/m/Show");
+    expect(plan.files).toEqual([]);
+    await core.applyPlan(plan);
+    const after = await core.getMetadata("/m/Show");
+    expect(after?.mediaFiles).toEqual(before?.mediaFiles ?? []);
+    expect(await fs.exists(planFilePath("/data", plan.id))).toBe(false);
+  });
+
+  it("rejects unsupported tasks", async () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir });
+    await expect(
+      core.applyPlan({
+        id: "x1",
+        task: "unknown-task" as "recognize-media-file",
+        status: "pending",
+        creator: "app",
+        mediaFolderPath: "/m/Show",
+        files: [],
+      }),
+    ).rejects.toThrow(/Unsupported plan task/);
+  });
+});
+
+describe("scrapeFolder", () => {
+  const appDataDir = "/data";
+  const folder = "/m/Show";
+
+  const seriesDetails: TmdbSeriesDetails = {
+    id: 123876,
+    name: "Show",
+    original_name: "Show",
+    overview: "Overview",
+    poster_path: "/poster.jpg",
+    backdrop_path: "/fanart.jpg",
+    first_air_date: "2021-01-15",
+    vote_average: 8,
+    vote_count: 100,
+    popularity: 50,
+    genre_ids: [16],
+    origin_country: ["US"],
+    number_of_seasons: 1,
+    number_of_episodes: 1,
+    seasons: [{ id: 1, name: "Season 1", season_number: 1, episode_count: 1, poster_path: null }],
+    status: "Ended",
+    type: "Scripted",
+    in_production: false,
+    last_air_date: "2021-03-26",
+    networks: [],
+    production_companies: [],
+  } as unknown as TmdbSeriesDetails;
+
+  const seasonDetails: TmdbSeasonDetails = {
+    id: 1,
+    name: "Season 1",
+    overview: "Season overview",
+    poster_path: null,
+    season_number: 1,
+    air_date: "2021-01-15",
+    episode_count: 1,
+    episodes: [
+      {
+        id: 1,
+        name: "Ep1",
+        overview: "Episode overview",
+        still_path: "/still.jpg",
+        air_date: "2021-01-15",
+        episode_number: 1,
+        season_number: 1,
+        runtime: 24,
+        vote_average: 7,
+        vote_count: 10,
+        crew: [],
+        guest_stars: [],
+      },
+    ],
+  };
+
+  const tvMetadata = {
+    mediaFolderPath: folder,
+    type: "tvshow-folder" as const,
+    tvShow: { id: "123876", database: "TMDB" as const, name: "Show", seasons: [] },
+    mediaFiles: [] as { absolutePath: string; seasonNumber?: number; episodeNumber?: number }[],
+  };
+
+  function configWith(folders: string[]): string {
+    return JSON.stringify({ folders, tmdb: {}, tvdb: {}, renameRules: [], dryRun: false, selectedRenameRule: "plex" });
+  }
+
+  function scrapeInMemoryFs(seed: Record<string, string | Uint8Array> = {}): FsPort & {
+    binaryFiles: Map<string, Uint8Array>;
+    textFiles: Map<string, string>;
+  } {
+    const binaryFiles = new Map<string, Uint8Array>();
+    const textFiles = new Map<string, string>();
+    for (const [path, content] of Object.entries(seed)) {
+      if (typeof content === "string") textFiles.set(path, content);
+      else binaryFiles.set(path, content);
+    }
+    return {
+      binaryFiles,
+      textFiles,
+      readTextFile: vi.fn(async (path: string) => {
+        const v = textFiles.get(path);
+        if (v === undefined) throw new Error("ENOENT: " + path);
+        return v;
+      }),
+      writeTextFile: vi.fn(async (path: string, content: string) => {
+        textFiles.set(path, content);
+      }),
+      writeBinaryFile: vi.fn(async (path: string, data: Uint8Array) => {
+        binaryFiles.set(path, data);
+      }),
+      exists: vi.fn(async (path: string) => binaryFiles.has(path) || textFiles.has(path)),
+      listFiles: vi.fn(async (dir: string) => {
+        const out: string[] = [];
+        for (const key of [...binaryFiles.keys(), ...textFiles.keys()]) {
+          if (key.startsWith(dir + "/") && !key.endsWith("/")) out.push(key);
+        }
+        return out;
+      }),
+      deleteFile: vi.fn(async (path: string) => {
+        binaryFiles.delete(path);
+        textFiles.delete(path);
+      }),
+      rename: vi.fn(async () => {}),
+      mkdir: vi.fn(async () => {}),
+      listSubdirectories: vi.fn(async () => []),
+    };
+  }
+
+  function fakeImageResponse(bytes: Uint8Array): HttpResponse {
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: { "content-type": "image/jpeg" },
+      text: () => Promise.resolve(""),
+      json: <T>() => Promise.resolve({} as T),
+      arrayBuffer: () =>
+        Promise.resolve(
+          bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+        ),
+    };
+  }
+
+  function scrapeNetwork(fakeBytes: Uint8Array): NetworkPort {
+    return {
+      fetch: vi.fn(async (url: string) => {
+        if (url.includes("image.tmdb.org")) {
+          return fakeImageResponse(fakeBytes);
+        }
+        if (url.includes("/tv/123876/season/1")) {
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            text: () => Promise.resolve(JSON.stringify(seasonDetails)),
+            json: <T>() => Promise.resolve(seasonDetails as T),
+          };
+        }
+        if (url.includes("/tv/123876")) {
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            headers: {},
+            text: () => Promise.resolve(JSON.stringify(seriesDetails)),
+            json: <T>() => Promise.resolve(seriesDetails as T),
+          };
+        }
+        return {
+          ok: false,
+          status: 404,
+          statusText: "Not Found",
+          headers: {},
+          text: () => Promise.resolve(""),
+          json: <T>() => Promise.resolve({} as T),
+        };
+      }) as never,
+    };
+  }
+
+  function seed(disk: Record<string, string | Uint8Array> = {}) {
+    return scrapeInMemoryFs({
+      [userConfigPath(appDataDir)]: configWith([folder]),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(tvMetadata),
+      ...disk,
+    });
+  }
+
+  async function waitForScrapeJob(core: Core, id: string, timeoutMs = 5_000) {
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const job = core.getJob(id);
+      if (job && job.kind === "scrape" && job.status !== "pending" && job.status !== "running") {
+        return job;
+      }
+      if (Date.now() > deadline) throw new Error(`Timed out waiting for scrape job ${id}`);
+      await new Promise((r) => setTimeout(r, 10));
+    }
+  }
+
+  it("returns a scrape job id and completes poster when artifacts are missing", async () => {
+    const fakeBytes = new Uint8Array([0xff, 0xd8, 0xff]);
+    const fs = seed();
+    const network = scrapeNetwork(fakeBytes);
+    const core = new Core({ fs, network, appDataDir });
+
+    const { id } = await core.scrapeFolder("/m/Show");
+    expect(id).toBeTruthy();
+
+    const job = await waitForScrapeJob(core, id);
+    expect(job.kind).toBe("scrape");
+    expect(job.folderPath).toBe("/m/Show");
+    expect(job.status).toBe("succeeded");
+    expect(job.tasks.poster).toEqual({ status: "completed" });
+    expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(fakeBytes);
+    expect(network.fetch).toHaveBeenCalled();
+  });
+
+  it("skips poster when completion is already true", async () => {
+    const existingPoster = new Uint8Array([1, 2, 3]);
+    const fs = seed({ "/m/Show/poster.jpg": existingPoster });
+    const network = scrapeNetwork(new Uint8Array([0xff]));
+    const core = new Core({ fs, network, appDataDir });
+
+    const { id } = await core.scrapeFolder("/m/Show");
+    const job = await waitForScrapeJob(core, id);
+
+    expect(job.tasks.poster).toEqual({ status: "skipped" });
+    expect(fs.binaryFiles.get("/m/Show/poster.jpg")).toEqual(existingPoster);
+    const imageFetches = vi.mocked(network.fetch).mock.calls.filter(([url]) =>
+      String(url).includes("poster.jpg"),
+    );
+    expect(imageFetches).toHaveLength(0);
+  });
+
+  it("rejects unmanaged folders before creating a job", async () => {
+    const fs = seed();
+    const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
+    await expect(core.scrapeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+  });
+
+  it("rejects non-TMDB/TVDB metadata before creating a job", async () => {
+    const fs = scrapeInMemoryFs({
+      [userConfigPath(appDataDir)]: configWith([folder]),
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify({
+        ...tvMetadata,
+        tvShow: { id: "1", database: "OTHER", name: "Show", seasons: [] },
+      }),
+    });
+    const core = new Core({ fs, network: scrapeNetwork(new Uint8Array([1])), appDataDir });
+    await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/Unsupported media database/);
+  });
+});
+
+describe("Core.searchInTmdb", () => {
+  it("searches via NetworkPort with host, password and proxy", async () => {
+    const calls: Array<{ url: string; proxy?: string; auth?: string }> = [];
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        calls.push({
+          url,
+          proxy: init?.proxy,
+          auth: init?.headers?.Authorization,
+        });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          text: async () =>
+            JSON.stringify({
+              results: [{ id: 42, name: "My Show", first_air_date: "2020-01-01", overview: "A show" }],
+              page: 1,
+              total_pages: 1,
+              total_results: 1,
+            }),
+          json: async <T>() =>
+            ({
+              results: [{ id: 42, name: "My Show", first_air_date: "2020-01-01", overview: "A show" }],
+              page: 1,
+              total_pages: 1,
+              total_results: 1,
+            }) as T,
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({
+          folders: [],
+          preferMediaLanguage: "zh-CN",
+          tmdb: {},
+          tvdb: {},
+        }),
+      }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    const body = await core.searchInTmdb("keyword", {
+      type: "tv",
+      host: "https://tmdb.example.com/v3",
+      password: "secret",
+      proxy: "socks5://127.0.0.1:1080",
+    });
+
+    expect(body.results[0]?.id).toBe(42);
+    expect(calls[0]?.url).toContain("https://tmdb.example.com/v3/search/tv");
+    expect(calls[0]?.url).toContain("query=keyword");
+    expect(calls[0]?.url).toContain("language=zh-CN");
+    expect(calls[0]?.proxy).toBe("socks5://127.0.0.1:1080");
+    expect(calls[0]?.auth).toBe("Bearer secret");
+  });
+
+  it("validates options.language offline against static primary_translations", async () => {
+    const calls: string[] = [];
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        calls.push(url);
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          headers: {},
+          text: async () => JSON.stringify({ results: [], page: 1, total_pages: 0, total_results: 0 }),
+          json: async <T>() =>
+            ({ results: [], page: 1, total_pages: 0, total_results: 0 }) as T,
+          arrayBuffer: async () => new ArrayBuffer(0),
+        };
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({
+          folders: [],
+          preferMediaLanguage: "zh-CN",
+          tmdb: {},
+          tvdb: {},
+        }),
+      }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    await core.searchInTmdb("keyword", {
+      type: "movie",
+      language: "ja-JP",
+      host: "https://tmdb.example.com/v3",
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("language=ja-JP");
+    expect(calls[0]).not.toContain("primary_translations");
+  });
+
+  it('rejects language not in static TMDB primary_translations such as "cn"', async () => {
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }),
+      }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTmdb("keyword", { type: "tv", language: "cn" })).rejects.toThrow(
+      /Unsupported language "cn"/,
+    );
+    await expect(core.searchInTmdb("keyword", { type: "tv", language: "cn" })).rejects.toThrow(
+      /--lang zh-CN/,
+    );
+  });
+
+  it("rejects empty keyword", async () => {
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }),
+      }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTmdb("  ", { type: "movie" })).rejects.toThrow(/keyword/i);
+  });
+});
+
+function tvdbResponse(url: string): HttpResponse {
+  if (url.endsWith("/login")) {
+    return jsonResponse({ status: "success", data: { token: "jwt-123" } });
+  }
+  if (url.includes("/search")) {
+    const type = url.includes("type=series") ? "series" : "movie";
+    return jsonResponse({
+      status: "success",
+      data: type === "series"
+        ? [{ id: "series-1", objectID: "series-1", name: "My Show", tvdb_id: "1", type: "series" }]
+        : [{ id: "movie-2", objectID: "movie-2", name: "My Film", tvdb_id: "2", type: "movie" }],
+    });
+  }
+  if (url.includes("/series/1/translations/eng")) return jsonResponse({ status: "success", data: { name: "My Show" } });
+  if (url.includes("/series/1/extended")) {
+    return jsonResponse({ status: "success", data: { id: 1, name: "My Show", firstAired: "2020-01-01", seasons: [{ id: 11, number: 1, type: { name: "Aired Order" } }] } });
+  }
+  if (url.includes("/seasons/11/extended")) {
+    return jsonResponse({ status: "success", data: { id: 11, episodes: [{ id: 1, number: 1, seasonNumber: 1, name: "Pilot" }] } });
+  }
+  if (url.includes("/movies/2/translations/eng")) return jsonResponse({ status: "success", data: { name: "My Film" } });
+  if (url.includes("/movies/2/extended")) return jsonResponse({ status: "success", data: { id: 2, name: "My Film", first_release: { first: "2019-05-01" } } });
+  if (url.includes("/languages")) return jsonResponse({ status: "success", data: [{ id: "zho", name: "Chinese" }] });
+  throw new Error("unexpected url: " + url);
+}
+
+describe("Core.searchInTvdb", () => {
+  it("searches via NetworkPort with host, password and proxy", async () => {
+    const calls: Array<{ url: string; proxy?: string; auth?: string }> = [];
+    const network: NetworkPort = {
+      fetch: async (url, init) => {
+        calls.push({ url, proxy: init?.proxy, auth: init?.headers?.Authorization });
+        return tvdbResponse(url);
+      },
+    };
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network,
+      appDataDir: "/data/smm",
+    });
+
+    const results = await core.searchInTvdb("keyword", {
+      type: "series",
+      host: "https://tvdb.example.com/v4",
+      password: "secret",
+      proxy: "socks5://127.0.0.1:1080",
+    });
+
+    expect(results[0]?.tvdb_id).toBe("1");
+    // First call is the JWT login exchange.
+    expect(calls[0]?.url).toContain("https://tvdb.example.com/v4/login");
+    expect(calls[0]?.auth).toBeUndefined();
+    // The search request uses the JWT obtained from login.
+    expect(calls[1]?.url).toContain("https://tvdb.example.com/v4/search");
+    expect(calls[1]?.url).toContain("query=keyword");
+    expect(calls[1]?.url).toContain("language=eng");
+    expect(calls[1]?.proxy).toBe("socks5://127.0.0.1:1080");
+    expect(calls[1]?.auth).toBe("Bearer jwt-123");
+  });
+
+  it("maps explicit ISO 639-3 language through", async () => {
+    const calls: string[] = [];
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => { calls.push(url); return tvdbResponse(url); } },
+      appDataDir: "/data/smm",
+    });
+    await core.searchInTvdb("keyword", { type: "movie", language: "zho" });
+    expect(calls[0]).toContain("language=zho");
+  });
+
+  it("rejects language not in the static TVDB supported list", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTvdb("keyword", { type: "series", language: "zh-CN" })).rejects.toThrow(/ISO 639-3/);
+    await expect(core.searchInTvdb("keyword", { type: "series", language: "zzz" })).rejects.toThrow(/ISO 639-3/);
+  });
+
+  it("rejects empty keyword", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.searchInTvdb("  ", { type: "movie" })).rejects.toThrow(/keyword/i);
+  });
+
+  it("resolves preferMediaLanguage zh-CN to zho when language omitted", async () => {
+    const calls: string[] = [];
+    const core = new Core({
+      fs: inMemoryFs({
+        [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], preferMediaLanguage: "zh-CN", tmdb: {}, tvdb: {} }),
+      }),
+      network: { fetch: async (url) => { calls.push(url); return tvdbResponse(url); } },
+      appDataDir: "/data/smm",
+    });
+    await core.searchInTvdb("keyword", { type: "series" });
+    expect(calls[0]).toContain("language=zho");
+  });
+});
+
+describe("Core.getTvShowInTvdb / getMovieInTvdb / getTvdbLanguages", () => {
+  it("getTvShowInTvdb builds TvShowMediaMetadata", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const tvShow = await core.getTvShowInTvdb(1, { language: "eng" });
+    expect(tvShow).toEqual({
+      id: "1",
+      name: "My Show",
+      database: "TVDB",
+      airDate: "2020-01-01",
+      seasons: [{ season: 1, name: "", episodes: [{ season: 1, episode: 1, name: "Pilot" }] }],
+    });
+  });
+
+  it("getMovieInTvdb builds MovieMediaMetadata", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const movie = await core.getMovieInTvdb(2, { language: "eng" });
+    expect(movie).toEqual({ id: "2", name: "My Film", airDate: "2019-05-01", database: "TVDB" });
+  });
+
+  it("getTvdbLanguages returns language records", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const langs = await core.getTvdbLanguages();
+    expect(langs[0]?.id).toBe("zho");
+  });
+
+  it("validates id as a positive integer", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvShowInTvdb(0)).rejects.toThrow(/positive integer/);
+    await expect(core.getMovieInTvdb(-1)).rejects.toThrow(/positive integer/);
+  });
+});
+
+describe("Core.getTvdbSeriesById / getTvdbMovieById", () => {
+  it("returns raw extended + translation for series", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbSeriesById(1, { language: "eng" });
+    expect(result.extended).toMatchObject({ id: 1, name: "My Show" });
+    expect(result.translation).toEqual({ name: "My Show" });
+    expect(result).not.toHaveProperty("database");
+  });
+
+  it("returns raw extended + translation for movie", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: { fetch: async (url) => tvdbResponse(url) },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbMovieById(2, { language: "eng" });
+    expect(result.extended).toMatchObject({ id: 2, name: "My Film" });
+    expect(result.translation).toEqual({ name: "My Film" });
+  });
+
+  it("rejects IETF language tags (ISO 639-3 only)", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvdbSeriesById(1, { language: "zh-CN" })).rejects.toThrow(/ISO 639-3/);
+  });
+
+  it("validates id as a positive integer", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: emptyNetwork(),
+      appDataDir: "/data/smm",
+    });
+    await expect(core.getTvdbSeriesById(0)).rejects.toThrow(/positive integer/);
+    await expect(core.getTvdbMovieById(-1)).rejects.toThrow(/positive integer/);
+  });
+
+  it("sets translation null when translation endpoint has no data", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ [userConfigPath("/data/smm")]: JSON.stringify({ folders: [], tmdb: {}, tvdb: {} }) }),
+      network: {
+        fetch: async (url) => {
+          if (url.includes("/translations/zho")) {
+            return jsonResponse({ status: "success", data: null });
+          }
+          return tvdbResponse(url);
+        },
+      },
+      appDataDir: "/data/smm",
+    });
+    const result = await core.getTvdbSeriesById(1, { language: "zho" });
+    expect(result.extended).toMatchObject({ id: 1 });
+    expect(result.translation).toBeNull();
+  });
+});
+
+describe("tryToRecognizeFolder / recognizeFolder", () => {
+  const series84666 = {
+    id: 84666,
+    name: "WATATEN",
+    first_air_date: "2019-01-08",
+    seasons: [{ id: 1, name: "S1", season_number: 1, air_date: "2019-01-08", episode_count: 1 }],
+  };
+  const season84666 = {
+    id: 1,
+    name: "S1",
+    season_number: 1,
+    air_date: "2019-01-08",
+    episode_count: 1,
+    episodes: [],
+  };
+
+  function tmdbTvShowNetwork(): NetworkPort {
+    return {
+      fetch: vi.fn(async (url: string) => {
+        if (url.includes("/tv/84666/season/")) {
+          return jsonResponse(season84666);
+        }
+        if (url.includes("/tv/84666")) {
+          return jsonResponse(series84666);
+        }
+        return jsonResponse({ results: [], page: 1, total_pages: 0, total_results: 0 });
+      }) as never,
+    };
+  }
+
+  it("tryToRecognizeFolder returns candidate from folder tmdbid", async () => {
+    const folder = "/m/Show {tmdbid=84666}";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath("/data/smm", folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        mediaFiles: [],
+      }),
+    });
+    const core = new Core({
+      fs,
+      network: tmdbTvShowNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const candidate = await core.tryToRecognizeFolder(folder);
+    expect(candidate.db).toBe("tmdb");
+    expect(candidate.id).toBe("84666");
+    expect(candidate.title).toContain("WATATEN");
+  });
+
+  it("recognizeFolder clears mediaFiles", async () => {
+    const folder = "/m/Show";
+    const fs = inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({ folders: [folder] }),
+      [metadataCachePath("/data/smm", folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        mediaFiles: [{ absolutePath: "/m/Show/a.mkv", seasonNumber: 1, episodeNumber: 1 }],
+      }),
+    });
+    const core = new Core({
+      fs,
+      network: tmdbTvShowNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
+    const mm = await core.getMetadata(folder);
+    expect(mm?.tvShow?.id).toBe("84666");
+    expect(mm?.mediaFiles).toEqual([]);
+  });
+});
+

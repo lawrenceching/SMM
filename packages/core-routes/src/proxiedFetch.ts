@@ -177,9 +177,10 @@ function httpProxyAgentRequest(request: Request, proxyUrl: string): Promise<Resp
   const isHttps = url.protocol === "https:";
   // HttpsProxyAgent: CONNECT tunnel for https:// targets.
   // HttpProxyAgent: absolute-URL forward for http:// targets.
-  const agent = isHttps
+  // Cast: agent packages type `http` vs `node:http` Agent incompatibly under strict TS.
+  const agent = (isHttps
     ? new HttpsProxyAgent(proxyUrl)
-    : new HttpProxyAgent(proxyUrl);
+    : new HttpProxyAgent(proxyUrl)) as unknown as Agent;
   return requestViaAgent(
     request,
     agent,
@@ -190,7 +191,7 @@ function httpProxyAgentRequest(request: Request, proxyUrl: string): Promise<Resp
 function socksProxyRequest(request: Request, proxyUrl: string): Promise<Response> {
   return requestViaAgent(
     request,
-    new SocksProxyAgent(proxyUrl),
+    new SocksProxyAgent(proxyUrl) as unknown as Agent,
     "SOCKS5 proxy request timeout",
   );
 }

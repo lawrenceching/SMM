@@ -12,6 +12,7 @@ import type { FileProps } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 
 interface EpisodeFileProps {
     file: FileProps
@@ -211,7 +212,7 @@ export function EpisodeFile({
                                         const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
 
                                         // All files in the media folder (absolute POSIX paths from metadata)
-                                        const allMediaFiles = selectedMediaMetadata.files ?? []
+                                        const allMediaFiles = getMediaFolderFiles(selectedMediaMetadata)
 
                                         // Compute renames for every file sharing the same stem as the video
                                         const assocRenames = computeAssociatedFileRenames(file.path, newAbsolutePath, allMediaFiles)

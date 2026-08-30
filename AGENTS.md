@@ -116,6 +116,12 @@ Electron 桌面应用, 主要目录结构:
 - WebdriverIO 9
 - Mocha
 
+## 代码改动
+
+**Post Change** run build and typecheck script after code change
+**Pre Commit** run build, typecheck, and unit tests before commit
+
+
 ## 常用命令
 
 ```bash
@@ -147,22 +153,6 @@ pnpm ci               # 构建 + 测试 + 类型检查
 
 维护者发布 **Electron 桌面版** 与 **Docker 镜像** 的流程见 [docs/dev/release.md](./docs/dev/release.md)（共用 Git tag、单 GitHub Release 多产物、Docker 发版前 E2E gate 校验）。
 
-## 开发原则
-
-### UI 乐观更新策略
-
-为了提供最佳的 UX, 本应用假设后台操作总是会成功. 开发者应该:
-1. 先更新UI状态
-2. 执行后台操作(异步计算, API 调用, 等待回调等)
-3. 如果后台操作失败, 回滚UI状态, 并弹出合适的错误提示
-
-### 开发阶段
-
-本项目定义了如下开发阶段
-
-**功能探索** 该阶段开发者对新功能没有完整的技术图景, 开发时专注于快速实现功能, 并交付测试. 不需要写单元测试, 不需要 typecheck.
-**功能交付** 该阶段开发者对新功能有确定的需求, 开发时需要考虑代码质量, 并编写单元测试.
-
 ### 核心术语
 
 **媒体文件夹(Media Folder)** 保存了电视剧, 动画, 电影或音乐的本地文件夹
@@ -171,8 +161,12 @@ pnpm ci               # 构建 + 测试 + 类型检查
 **识别季集视频文件(Recognize Episode Video File)**: 该操作用于指定电视剧每一集对应的本地视频文件
 **元数据(Media Metadata)**: 元数据, 保存了文件夹对应的电视剧或电影的信息，以及本地视频文件和季集的对应关系
 **视频文件和关联文件(Video File and Associated Files)** 视频文件通常还对应着字幕文件, 音频文件, 封面文件和 NFO 文件等, 这类文件被称为关联文件
+**DVD** UI组件 Download Video Dialog, 其代码位于 `apps/ui/src/components/dialogs/UIDownloadVideoDialogContent.tsx`
+
 
 ## 技术架构
+
+见 [架构总览](./docs/dev/overview.md)
 
 ### 前后端通信
 - **HTTP API**: 使用 Hono 框架提供 RESTful API
@@ -219,13 +213,6 @@ pnpm ci               # 构建 + 测试 + 类型检查
 
 ### 执行测试
 
-
-**手动测试**
-进入 `apps/e2e` 目录, 并执行
-```
-pnpm run wdio --spec ./test/specs/[test file].e2e.ts
-```
-
 **自动化测试/AI Agent测试**
 在项目根目录执行
 ```
@@ -251,9 +238,6 @@ bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
 ## apps/cli API 列表
 API列表可查阅文件: `docs/api/index.md`.
 
-## 术语
-
-**DVD** Download Video Dialog
 
 ## 注意事项
 

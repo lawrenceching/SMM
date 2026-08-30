@@ -210,7 +210,6 @@ S01E12 - - - -`)
                 expect(m).toEqual({
                     mediaFolderPath: expect.any(String),
                     type: 'tvshow-folder',
-                    files: [],
                     mediaFiles: [
                         {
                             absolutePath: expect.stringContaining('S01E01.mkv'),

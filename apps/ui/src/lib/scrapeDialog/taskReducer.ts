@@ -35,6 +35,19 @@ export function taskReducer(state: ScrapeTaskState, action: ScrapeTaskAction): S
             : task,
         ),
       }
+    case "APPLY_JOB_TASKS":
+      return {
+        ...state,
+        tasks: state.tasks.map((task) => {
+          const next = action.tasks[task.id]
+          if (!next) return task
+          return {
+            ...task,
+            status: next.status,
+            failedReason: next.failedReason,
+          }
+        }),
+      }
     case "START_RUN":
       return { ...state, isRunning: true }
     case "FINISH_RUN":

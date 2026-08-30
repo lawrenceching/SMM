@@ -9,11 +9,17 @@ import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
 import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { LIST_FILES_IN_MEDIA_FOLDER } from "@smm/core/types/ai-tools/listFilesInMediaFolder";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from "@smm/core/types/ai-tools/renameFilesTask";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
+import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
+import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
+import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
+import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -133,9 +139,17 @@ export async function doChat(
       [GET_MEDIA_FOLDERS]: tools[GET_MEDIA_FOLDERS],
       [LIST_FILES_IN_MEDIA_FOLDER]: tools[LIST_FILES_IN_MEDIA_FOLDER],
       [RENAME_FOLDER]: tools[RENAME_FOLDER],
-      [BEGIN_RENAME_FILES_TASK]: tools[BEGIN_RENAME_FILES_TASK],
-      [ADD_RENAME_FILE_TO_TASK]: tools[ADD_RENAME_FILE_TO_TASK],
-      [END_RENAME_FILES_TASK]: tools[END_RENAME_FILES_TASK],
+      [RENAME_EPISODE_FILE]: tools[RENAME_EPISODE_FILE],
+      [SCRAPE]: tools[SCRAPE],
+      [GET_JOB]: tools[GET_JOB],
+      [TMDB_SEARCH]: tools[TMDB_SEARCH],
+      [TMDB_GET_MOVIE]: tools[TMDB_GET_MOVIE],
+      [TMDB_GET_TV_SHOW]: tools[TMDB_GET_TV_SHOW],
+      [TVDB_SEARCH]: tools[TVDB_SEARCH],
+      [TVDB_GET_MOVIE]: tools[TVDB_GET_MOVIE],
+      [TVDB_GET_TV_SHOW]: tools[TVDB_GET_TV_SHOW],
+      [TVDB_GET_LANGUAGES]: tools[TVDB_GET_LANGUAGES],
+      [CREATE_RENAME_EPISODE_PLAN]: tools[CREATE_RENAME_EPISODE_PLAN],
       [BEGIN_RECOGNIZE_TASK]: tools[BEGIN_RECOGNIZE_TASK],
       [ADD_RECOGNIZED_MEDIA_FILE]: tools[ADD_RECOGNIZED_MEDIA_FILE],
       [END_RECOGNIZE_TASK]: tools[END_RECOGNIZE_TASK],

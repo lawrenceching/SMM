@@ -28,6 +28,23 @@ class Prompts {
         return browser.$('[data-testid="rule-based-recognize-hint-tooltip"]')
     }
 
+    get renameNamingRuleSelect() {
+        return browser.$('[data-testid="rename-naming-rule-select"]')
+    }
+
+    namingRuleOption(rule: 'plex' | 'emby') {
+        return browser.$(`[data-testid="rename-naming-rule-option-${rule}"]`)
+    }
+
+    async selectNamingRule(rule: 'plex' | 'emby'): Promise<void> {
+        const trigger = await this.renameNamingRuleSelect
+        await trigger.waitForClickable({ timeout: 5000 })
+        await trigger.click()
+        const option = await this.namingRuleOption(rule)
+        await option.waitForClickable({ timeout: 5000 })
+        await option.click()
+    }
+
 }
 
 export default new Prompts()

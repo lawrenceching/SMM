@@ -13,6 +13,7 @@ export {
   rejectUnauthorized,
 } from "./auth.ts";
 export { validatePathIsInAllowlist } from "./allowlist.ts";
+export { createNodeRenameFileExistenceProbe } from "./nodeRenameFileExistenceProbe.ts";
 export {
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,
@@ -27,6 +28,17 @@ export { migrateAIConfig } from "@smm/core/configMigration";
 export type { AIProviderFactory, ChatConfig, ChatFs, ChatRequestBody } from "./chatTypes.ts";
 export { defaultChatFs } from "./chatFs.ts";
 export { createChatTools, type ChatTools, type ChatToolsExtraDeps } from "./tools/index.ts";
+export {
+  executeScrape,
+  buildScrapeTool,
+  type ScrapeFolderRunner,
+  type ScrapeParams,
+} from "./tools/scrape.ts";
+export {
+  executeGetJob,
+  buildGetJobTool,
+  type GetJobRunner,
+} from "./tools/getJob.ts";
 export {
   buildUpstreamUrl,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
@@ -137,6 +149,7 @@ export {
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
+  handleHelloGet,
   handleHelloPost,
   handleIsFolderAvailablePost,
   handleGetEpisodesPost,
@@ -182,11 +195,26 @@ export {
   doMcpGetStatus,
   doMcpStart,
   doMcpStop,
+  parseStartOptionsFromBody,
   type McpLifecycleResult,
   type McpStartRequestBody,
 } from "./mcp/index.ts";
+export {
+  getMcpServerStatusWithUserConfig,
+  startMcpServerWithUserConfig,
+  stopMcpServerWithUserConfig,
+  type McpServerStateResponse,
+  type McpServerOperationOptions,
+  DEFAULT_MCP_HOST,
+  DEFAULT_MCP_PORT,
+} from "./mcp/mcpServerConfig.ts";
 export {
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,
 } from "./routes/mcpLifecycleRoute.ts";
+export {
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
+} from "./routes/mcpServerRpcRoute.ts";

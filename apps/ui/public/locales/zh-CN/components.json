@@ -587,5 +587,11 @@
     "recognizeFailed": "识别失败，请重试。",
     "renameFailed": "重命名失败，请重试。",
     "noRenameFiles": "无法生成重命名计划，请确认剧集已关联视频文件。"
+  },
+  "anonymousTelemetryConsent": {
+    "title": "帮助改进 SMM",
+    "description": "我们希望收集匿名使用信息，例如应用版本、操作系统，以及崩溃与使用统计。不会包含个人身份信息，也不会包含您的媒体文件内容。",
+    "agree": "同意",
+    "disagree": "不同意"
   }
 }

@@ -1,4 +1,5 @@
-import type { MediaMetadata } from "@core/types";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import { Path } from "@core/path";
 import { updateMediaFileMetadatas } from "@/components/tv/TvShowPanelUtils";
 
@@ -17,14 +18,15 @@ import { updateMediaFileMetadatas } from "@/components/tv/TvShowPanelUtils";
  * @param filePath
  */
 export function handleEpisodeFileSelect(
-  mm: MediaMetadata,
+  mm: MediaMetadataWithFolderFiles,
   seasonNumber: number,
   episodeNumber: number,
   filePath: string,
   onError: (error: string) => void
-): MediaMetadata {
+): MediaMetadataWithFolderFiles {
 
-  if (!mm.files) {
+  const files = getMediaFolderFiles(mm)
+  if (files.length === 0) {
     onError("Files list is not available");
     return mm;
   }
@@ -44,15 +46,15 @@ export function handleEpisodeFileSelect(
   const isWindows = Path.isWindows();
 
   const normalizedSelectedPath = isWindows ? filePathInPosix.toLowerCase() : filePathInPosix;
-  const normalizedFiles = mm.files.map(f => isWindows ? f.toLowerCase() : f);
+  const normalizedFiles = files.map((f: string) => isWindows ? f.toLowerCase() : f);
 
   let fileFound = false;
   let matchedFile = "";
-  for (let i = 0; i < mm.files.length; i++) {
+  for (let i = 0; i < files.length; i++) {
     const normalizedFile = normalizedFiles[i];
     if (normalizedFile === normalizedSelectedPath) {
       fileFound = true;
-      matchedFile = mm.files[i];
+      matchedFile = files[i];
       break;
     }
   }

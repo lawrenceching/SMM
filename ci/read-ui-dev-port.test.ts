@@ -22,15 +22,43 @@ describe('parseViteDevServerPort', () => {
   test('falls back when port is omitted', () => {
     expect(parseViteDevServerPort(`export default defineConfig({})`)).toBe(5173);
   });
+
+  test('extracts DEFAULT_UI_DEV_PORT when port is computed', () => {
+    expect(
+      parseViteDevServerPort(
+        `const DEFAULT_UI_DEV_PORT = 8000\nexport default defineConfig({ server: { port: resolveUiDevPort() } })`,
+      ),
+    ).toBe(8000);
+  });
 });
 
 describe('readUiDevServerPort', () => {
+  test('prefers UI_PORT env over vite.config.ts', () => {
+    const prev = process.env.UI_PORT;
+    process.env.UI_PORT = '9001';
+    try {
+      expect(readUiDevServerPort(path.join(ROOT, 'apps/ui/vite.config.ts'))).toBe(9001);
+    } finally {
+      if (prev === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prev;
+    }
+  });
+
   test('reads server.port from apps/ui/vite.config.ts', () => {
-    const port = readUiDevServerPort(path.join(ROOT, 'apps/ui/vite.config.ts'));
-    expect(port).toBe(8000);
+    const prev = process.env.UI_PORT;
+    delete process.env.UI_PORT;
+    try {
+      const port = readUiDevServerPort(path.join(ROOT, 'apps/ui/vite.config.ts'));
+      expect(port).toBe(8000);
+    } finally {
+      if (prev === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prev;
+    }
   });
 
   test('reads server.port from a temporary vite config', () => {
+    const prev = process.env.UI_PORT;
+    delete process.env.UI_PORT;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vite-port-'));
     const configPath = path.join(dir, 'vite.config.ts');
     fs.writeFileSync(
@@ -38,10 +66,17 @@ describe('readUiDevServerPort', () => {
       `import { defineConfig } from 'vite'\nexport default defineConfig({ server: { port: 4321 } })\n`,
     );
 
-    expect(readUiDevServerPort(configPath)).toBe(4321);
+    try {
+      expect(readUiDevServerPort(configPath)).toBe(4321);
+    } finally {
+      if (prev === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prev;
+    }
   });
 
   test('falls back to Vite default 5173 when port is omitted', () => {
+    const prev = process.env.UI_PORT;
+    delete process.env.UI_PORT;
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vite-port-'));
     const configPath = path.join(dir, 'vite.config.ts');
     fs.writeFileSync(
@@ -49,6 +84,11 @@ describe('readUiDevServerPort', () => {
       `import { defineConfig } from 'vite'\nexport default defineConfig({})\n`,
     );
 
-    expect(readUiDevServerPort(configPath)).toBe(5173);
+    try {
+      expect(readUiDevServerPort(configPath)).toBe(5173);
+    } finally {
+      if (prev === undefined) delete process.env.UI_PORT;
+      else process.env.UI_PORT = prev;
+    }
   });
 });

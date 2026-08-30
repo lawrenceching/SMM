@@ -17,6 +17,16 @@ import { logger } from './lib/logger';
 
 applyTmdbTlsDevBypassToProcessIfEnabled();
 
+// CLI subcommands talk to Core in-process; do not start the HTTP server.
+const cliCommands = new Set(['list', 'add', 'addlib', 'show', 'metadata', 'rm', 'config', 'recognize', 'try-to-recognize', 'try-to-rename', 'apply', 'reject', 'plan', 'scrape', 'job', 'rename', 'rename-episode-file', 'hello', 'tmdb', 'tvdb', 'mcp'])
+const firstArg = process.argv[2]
+const isCliHelp = firstArg === '--help' || firstArg === '-h'
+if (firstArg !== undefined && (cliCommands.has(firstArg) || isCliHelp)) {
+  const { runCli } = await import('./src/cli/runCli');
+  const code = await runCli(process.argv);
+  process.exit(code);
+}
+
 interface CommandLineArguments {
   staticDir?: string;
   port?: number;
@@ -96,7 +106,7 @@ const cookiesStartupResult = await cookiesCleaner.cleanAll();
 logger.info(cookiesStartupResult, 'yt-dlp cookies temp cleanup on startup');
 
 // Clean up stale preparing plan files left over from a previous session
-const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+const preparingPlansRemoved = await cleanupStalePlans(userDataDir, undefined, logger);
 if (preparingPlansRemoved > 0) {
   logger.info(
     { count: preparingPlansRemoved },
@@ -115,7 +125,7 @@ const server = new Server({
     const result = await cookiesCleaner.cleanAll();
     logger.info(result, 'yt-dlp cookies temp cleanup on shutdown');
 
-    const preparingPlansRemoved = await cleanupStalePlans(appDataDir, undefined, logger);
+    const preparingPlansRemoved = await cleanupStalePlans(userDataDir, undefined, logger);
     if (preparingPlansRemoved > 0) {
       logger.info(
         { count: preparingPlansRemoved },

@@ -1,11 +1,14 @@
 import { useCallback, useMemo } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
-import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { normalizeMediaFolderPathForQuery, mediaMetadataQueryKey } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import type { MediaMetadata, MovieMediaMetadata, TMDBMovie, TMDBTVShow } from "@core/types"
 import { useGetTmdbMovieMutation } from "@/hooks/useGetTmdbMovieMutation"
 import { useGetTvdbMovieMutation } from "@/hooks/useGetTvdbMovieMutation"
+import { recognizeFolderViaCore } from "@/api/recognizeFolder"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import type { SearchLanguage } from "@/components/MediaDatabaseSearchbox"
@@ -43,7 +46,22 @@ export type SelectMovieForFolderVariables =
       searchLanguage: SearchLanguage
     }
 
+function recognizeDb(database: "TMDB" | "TVDB"): "tmdb" | "tvdb" {
+  return database === "TVDB" ? "tvdb" : "tmdb"
+}
+
+function recognizeId(
+  database: "TMDB" | "TVDB",
+  result: TMDBTVShow | TMDBMovie | TVDBSearchItem,
+): string {
+  if (database === "TVDB") {
+    return String((result as TVDBSearchItem).tvdb_id)
+  }
+  return String((result as TMDBTVShow | TMDBMovie).id)
+}
+
 export function useSelectMovieForFolderMutation() {
+  const queryClient = useQueryClient()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const updateMediaMetadataMutation = useUpdateMediaMetadataMutation()
 
@@ -69,7 +87,7 @@ export function useSelectMovieForFolderMutation() {
     [fetchMediaMetadata, updateMediaMetadataMutation],
   )
 
-  const onMutate = useCallback(
+  const onMutateLegacy = useCallback(
     (variables: ApplyMovieSelectionShared) => {
       useUIMediaFolderStore.getState().updateFolderStatus(variables.mediaFolderPath, "loading")
       void updateMediaMetadata(variables.mediaFolderPath, { ...variables.baseMetadata }, {
@@ -79,7 +97,7 @@ export function useSelectMovieForFolderMutation() {
     [updateMediaMetadata],
   )
 
-  const onSuccess = useCallback(
+  const onSuccessLegacy = useCallback(
     (movie: MovieMediaMetadata, variables: ApplyMovieSelectionShared) => {
       void updateMediaMetadata(
         variables.mediaFolderPath,
@@ -104,18 +122,42 @@ export function useSelectMovieForFolderMutation() {
   }, [])
 
   const applyTmdbMovieSelectionMutation = useGetTmdbMovieMutation<ApplyTmdbMovieSelectionVars>({
-    onMutate,
-    onSuccess,
+    onMutate: onMutateLegacy,
+    onSuccess: onSuccessLegacy,
     onError: onTmdbError,
   })
 
   const applyTvdbMovieSelectionMutation = useGetTvdbMovieMutation<ApplyTvdbMovieSelectionVars>({
-    onMutate,
-    onSuccess,
+    onMutate: onMutateLegacy,
+    onSuccess: onSuccessLegacy,
     onError: onTvdbError,
   })
 
-  const mutate = useCallback(
+  const recognizeFolderMutation = useMutation({
+    mutationFn: async (variables: SelectMovieForFolderVariables) => {
+      await recognizeFolderViaCore({
+        path: variables.mediaFolderPath,
+        db: recognizeDb(variables.database),
+        id: recognizeId(variables.database, variables.result),
+      })
+    },
+    onMutate: (variables) => {
+      useUIMediaFolderStore.getState().updateFolderStatus(variables.mediaFolderPath, "loading")
+    },
+    onSuccess: (_data, variables) => {
+      const pathPosix = normalizeMediaFolderPathForQuery(variables.mediaFolderPath)
+      if (pathPosix) {
+        void queryClient.invalidateQueries({ queryKey: mediaMetadataQueryKey(pathPosix) })
+      }
+      useUIMediaFolderStore.getState().updateFolderStatus(variables.mediaFolderPath, "ok")
+    },
+    onError: (error, variables) => {
+      toast.error(error instanceof Error ? error.message : "Failed to recognize folder")
+      useUIMediaFolderStore.getState().updateFolderStatus(variables.mediaFolderPath, "ok")
+    },
+  })
+
+  const mutateLegacy = useCallback(
     (variables: SelectMovieForFolderVariables) => {
       const { database, result, searchLanguage, mediaFolderPath, baseMetadata } = variables
       const traceId = `MovieSearchResultSelected-${nextTraceId()}`
@@ -141,7 +183,7 @@ export function useSelectMovieForFolderMutation() {
     [applyTmdbMovieSelectionMutation, applyTvdbMovieSelectionMutation],
   )
 
-  const mutateAsync = useCallback(
+  const mutateAsyncLegacy = useCallback(
     async (variables: SelectMovieForFolderVariables) => {
       const { database, result, searchLanguage, mediaFolderPath, baseMetadata } = variables
       const traceId = `MovieSearchResultSelected-${nextTraceId()}`
@@ -166,13 +208,37 @@ export function useSelectMovieForFolderMutation() {
     [applyTmdbMovieSelectionMutation, applyTvdbMovieSelectionMutation],
   )
 
+  const mutate = useCallback(
+    (variables: SelectMovieForFolderVariables) => {
+      if (isSmmV3Enabled()) {
+        recognizeFolderMutation.mutate(variables)
+        return
+      }
+      mutateLegacy(variables)
+    },
+    [mutateLegacy, recognizeFolderMutation],
+  )
+
+  const mutateAsync = useCallback(
+    async (variables: SelectMovieForFolderVariables) => {
+      if (isSmmV3Enabled()) {
+        await recognizeFolderMutation.mutateAsync(variables)
+        return
+      }
+      return mutateAsyncLegacy(variables)
+    },
+    [mutateAsyncLegacy, recognizeFolderMutation],
+  )
+
   const selectMovieForFolderMutation = useMemo(
     () => ({ mutate, mutateAsync }),
     [mutate, mutateAsync],
   )
 
   const isSelectMovieForFolderPending =
-    applyTmdbMovieSelectionMutation.isPending || applyTvdbMovieSelectionMutation.isPending
+    recognizeFolderMutation.isPending ||
+    applyTmdbMovieSelectionMutation.isPending ||
+    applyTvdbMovieSelectionMutation.isPending
 
   return {
     selectMovieForFolderMutation,

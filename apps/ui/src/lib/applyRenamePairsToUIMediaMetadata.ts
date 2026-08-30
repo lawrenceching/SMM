@@ -1,4 +1,5 @@
-import type { MediaFileMetadata, MediaMetadata } from "@core/types"
+import type { MediaFileMetadata } from "@core/types"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { Path } from "@core/path"
 
 function pathKey(p: string): string {
@@ -10,20 +11,20 @@ function pathKey(p: string): string {
 }
 
 /**
- * Apply completed on-disk renames to in-memory MediaMetadata (mediaFiles, files list).
+ * Apply completed on-disk renames to in-memory metadata (mediaFiles, UI folder file list).
  * Pairs must match what was passed to `/api/renameFiles` (POSIX paths as stored in metadata).
  */
 export function applyRenamePairsToUIMediaMetadata(
-  metadata: MediaMetadata,
-  pairs: Array<{ from: string; to: string }>
-): MediaMetadata {
+  metadata: MediaMetadataWithFolderFiles,
+  pairs: Array<{ from: string; to: string }>,
+): MediaMetadataWithFolderFiles {
   const map = new Map<string, string>()
   for (const { from, to } of pairs) {
     map.set(pathKey(from), to)
   }
   const remap = (p: string) => map.get(pathKey(p)) ?? p
 
-  const next: MediaMetadata = { ...metadata }
+  const next: MediaMetadataWithFolderFiles = { ...metadata }
   if (Array.isArray(next.files)) {
     next.files = next.files.map(remap)
   }
@@ -35,7 +36,7 @@ export function applyRenamePairsToUIMediaMetadata(
         absolutePath: remap(mf.absolutePath),
         subtitleFilePaths: mf.subtitleFilePaths?.map(remap),
         audioFilePaths: mf.audioFilePaths?.map(remap),
-      })
+      }),
     )
   }
   return next

@@ -3,6 +3,8 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import type { MediaMetadata } from "@core/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import {
@@ -89,7 +91,7 @@ export function MusicPanel() {
     uiFolderRow,
   ]);
 
-  const mediaMetadata = queriedMediaMetadata;
+  const mediaMetadata = queriedMediaMetadata ?? undefined;
 
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
   const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation();
@@ -419,7 +421,7 @@ export function MusicPanel() {
         return;
       }
 
-      const currentFiles = mediaMetadata.files ?? [];
+      const currentFiles = getMediaFolderFiles(mediaMetadata);
       const trackPathPosix = Path.posix(trackPath);
       const fileIndex = currentFiles.findIndex((file) => file === trackPathPosix);
 
@@ -589,7 +591,7 @@ export function MusicPanel() {
       <LocalFileSubtitleScope
         platformFolder={platformFolder ?? ""}
         mediaFolderPath={mediaMetadata?.mediaFolderPath}
-        folderFiles={mediaMetadata?.files}
+        folderFiles={getMediaFolderFiles(mediaMetadata)}
         localRows={musicFileRowsForDialogs}
         selectedLocalRows={selectedLocalRows}
         onClearSelection={clearSelection}
@@ -632,7 +634,7 @@ export function MusicPanel() {
 }
 
 interface MusicPanelSubtitleHeaderProps {
-  mediaMetadata?: MediaMetadata
+  mediaMetadata?: MediaMetadataWithFolderFiles
   onDownloadClick?: () => void
   showSubtitleMenu?: boolean
   showDownloadButton?: boolean

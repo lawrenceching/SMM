@@ -8,6 +8,7 @@ const STORAGE_KEY_PREFER_REVERSE_PROXY_BASE_URL = 'preferReverseProxyBaseUrl';
 const STORAGE_KEY_LAST_SELECTED_TMDB_LANGUAGE = 'lastSelectedTmdbLanguage';
 const STORAGE_KEY_LAST_SELECTED_TVDB_LANGUAGE = 'lastSelectedTvdbLanguage';
 const STORAGE_KEY_DISABLED_DOMAINS = 'disabledDomains';
+const STORAGE_KEY_SMM_V3_ENABLED = 'smm.v3.enabled';
 
 function readDisabledDomainsSet(): Set<string> {
     try {
@@ -195,6 +196,19 @@ const localStorages = {
     set disabledDomains(domains: Set<string>) {
         writeDisabledDomainsSet(domains);
     },
+    get isSmmV3Enabled(): boolean {
+        try {
+            const stored = localStorage.getItem(STORAGE_KEY_SMM_V3_ENABLED)
+            if (stored === 'false') return false
+            return true
+        } catch {
+            return true
+        }
+    },
+}
+
+export function isSmmV3Enabled(): boolean {
+    return localStorages.isSmmV3Enabled
 }
 
 export default localStorages;

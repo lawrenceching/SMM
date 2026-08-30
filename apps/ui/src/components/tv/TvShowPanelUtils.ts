@@ -1,3 +1,5 @@
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@core/types";
 import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { extname, join } from "@/lib/path";
@@ -935,18 +937,19 @@ export async function executeRenamePlan(
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
 export async function buildTemporaryRecognitionPlanAsync(
-  mediaMetadata: MediaMetadata,
+  mediaMetadata: MediaMetadataWithFolderFiles,
 ): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
+  const folderFiles = getMediaFolderFiles(mediaMetadata)
   console.log("[recognize] build temporary plan started", {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
-    fileCount: mediaMetadata.files?.length ?? 0,
+    fileCount: folderFiles.length,
     tvShowId: mediaMetadata.tvShow?.id,
   })
 
-  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files || !mediaMetadata.tvShow) {
+  if (!mediaMetadata.mediaFolderPath || folderFiles.length === 0 || !mediaMetadata.tvShow) {
     console.warn("[recognize] build temporary plan aborted: missing prerequisites", {
       hasMediaFolderPath: !!mediaMetadata.mediaFolderPath,
-      hasFiles: !!mediaMetadata.files,
+      hasFiles: folderFiles.length > 0,
       hasTvShow: !!mediaMetadata.tvShow,
     })
     return null

@@ -2,7 +2,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type http from "node:http";
 import { createRequestUrl, sendJson } from "./http.ts";
 import { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
-import { handleHelloPost } from "./routes/helloRoute.ts";
+import { handleHelloGet } from "./routes/helloRoute.ts";
 import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 import { handleReadFilePost } from "./routes/readFileRoute.ts";
 import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
@@ -23,6 +23,11 @@ import {
   handleMcpStopPut,
 } from "./routes/mcpLifecycleRoute.ts";
 import {
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
+} from "./routes/mcpServerRpcRoute.ts";
+import {
   handleCreatePlanPost,
   handleGetPlanByIdPost,
   handleGetPlansPost,
@@ -35,7 +40,7 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
-  handleHelloPost,
+  handleHelloGet,
   handleIsFolderAvailablePost,
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,
@@ -49,6 +54,9 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleReadImagePost,
   handleDiscoverGet,
   handleChatPost,
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,
@@ -102,7 +110,7 @@ export function registerCoreRoutes(server: http.Server, config: CoreRoutesConfig
 
 export { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
 export { handleWriteFilePost } from "./routes/writeFileRoute.ts";
-export { handleHelloPost } from "./routes/helloRoute.ts";
+export { handleHelloGet, handleHelloPost } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 export { handleReadFilePost } from "./routes/readFileRoute.ts";
 export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";

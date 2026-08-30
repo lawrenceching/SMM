@@ -10,6 +10,8 @@
  *
  * Config: artifacts/e2e/config.json
  * Logs and run summary: apps/cicd/run.ts
+ *
+ * Loads repo `.env.local` (including `UI_PORT` / `CLI_PORT`) before starting services.
  */
 import { $ } from 'bun';
 import * as fs from 'node:fs';
@@ -17,6 +19,7 @@ import * as path from 'node:path';
 import {
   CONFIG_PATH,
   CONFIG_REL_PATH,
+  E2E_PORT_ENV_KEYS,
   ROOT,
   assertSpecsMatchPlatform,
   buildConfig,
@@ -26,8 +29,20 @@ import {
   specFiles,
 } from './run-e2e-test-lib.ts';
 import { stopDockerE2eContainer } from './e2e-docker-container.ts';
+import { loadEnvLocal } from './load-env-local.ts';
+
+function logLoadedE2ePorts(): void {
+  const parts = E2E_PORT_ENV_KEYS.map((key) => {
+    const value = process.env[key]?.trim();
+    return `${key}=${value ?? '(default)'}`;
+  });
+  console.log(`[run-e2e-test] ports from .env.local / shell: ${parts.join(', ')}`);
+}
 
 async function main(): Promise<number> {
+  loadEnvLocal(ROOT);
+  logLoadedE2ePorts();
+
   const argv = process.argv.slice(2);
   const { platform, patterns } = parseArgv(argv);
   requireSpecsForPlatform(platform, patterns);

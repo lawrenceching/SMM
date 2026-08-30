@@ -602,6 +602,12 @@ interface ComponentsResources {
     releaseToAdd: string
     readyToReceive: string
   }
+  anonymousTelemetryConsent: {
+    title: string
+    description: string
+    agree: string
+    disagree: string
+  }
 }
 
 interface DialogsResources {
@@ -1058,6 +1064,8 @@ interface SettingsResources {
     mcpHostPlaceholder: string
     mcpPort: string
     mcpPortPlaceholder: string
+    anonymousTelemetryConsent: string
+    anonymousTelemetryConsentDescription: string
     externalTools: string
     externalToolsDescription: string
     ytdlpExecutablePath: string

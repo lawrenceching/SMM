@@ -1,14 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { defaultChatFs } from "../chatFs.ts";
-import { defaultRenameFilesTaskDeps } from "../tools/renameFilesTaskDefaults.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
 import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
-import { registerAddRenameFileTool } from "./toolHandlers/addRenameFile.ts";
 import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
-import { registerBeginRenameTaskTool } from "./toolHandlers/beginRenameTask.ts";
+import { registerCreateRenameEpisodePlanTool } from "./toolHandlers/createRenameEpisodePlan.ts";
 import { registerEndRecognizeTaskTool } from "./toolHandlers/endRecognizeTask.ts";
-import { registerEndRenameTaskTool } from "./toolHandlers/endRenameTask.ts";
 import { registerGetApplicationContextTool } from "./toolHandlers/getApplicationContext.ts";
 import { registerGetEpisodeTool } from "./toolHandlers/getEpisode.ts";
 import { registerGetEpisodesTool } from "./toolHandlers/getEpisodes.ts";
@@ -17,8 +14,15 @@ import { registerGetMediaMetadataTool } from "./toolHandlers/getMediaMetadata.ts
 import { registerIsFolderExistTool } from "./toolHandlers/isFolderExist.ts";
 import { registerListFilesTool } from "./toolHandlers/listFiles.ts";
 import { registerRenameFolderTool } from "./toolHandlers/renameFolder.ts";
+import { registerRenameEpisodeFileTool } from "./toolHandlers/renameEpisodeFile.ts";
+import { registerScrapeTool } from "./toolHandlers/scrape.ts";
+import { registerGetJobTool } from "./toolHandlers/getJob.ts";
+import { registerTmdbTools } from "./toolHandlers/tmdbTools.ts";
+import { registerTvdbTools } from "./toolHandlers/tvdbTools.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
 
 /**
  * HTTP request handler for the MCP server. Created by
@@ -63,9 +67,6 @@ export type McpRequestHandler = (req: Request) => Promise<Response>;
 export async function createMcpStreamableHttpHandler(
   config: McpConfig,
 ): Promise<McpRequestHandler> {
-  const fs = config.fs ?? defaultChatFs();
-  const renameFilesTaskDeps = defaultRenameFilesTaskDeps(config.appDataDir);
-
   const server = new McpServer(
     {
       name: "Simple Media Manager (SMM)",
@@ -86,6 +87,8 @@ export async function createMcpStreamableHttpHandler(
   registerIsFolderExistTool(server, config);
   registerListFilesTool(server, config);
   registerGetMediaMetadataTool(server, config);
+  registerTmdbTools(server, config);
+  registerTvdbTools(server, config);
 
   // Read-only documentation tools.
   registerStaticTextTools(server, config);
@@ -97,10 +100,20 @@ export async function createMcpStreamableHttpHandler(
     registerRenameFolderTool(server, config);
   }
 
-  // Episode-level rename task (begin / add / end).
-  registerBeginRenameTaskTool(server, config, renameFilesTaskDeps);
-  registerAddRenameFileTool(server, config, renameFilesTaskDeps);
-  registerEndRenameTaskTool(server, config, renameFilesTaskDeps);
+  if (!config.disabledTools?.includes(RENAME_EPISODE_FILE)) {
+    registerRenameEpisodeFileTool(server, config);
+  }
+
+  if (!config.disabledTools?.includes(SCRAPE)) {
+    registerScrapeTool(server, config);
+  }
+
+  if (!config.disabledTools?.includes(GET_JOB)) {
+    registerGetJobTool(server, config);
+  }
+
+  // Episode-level rename plan.
+  registerCreateRenameEpisodePlanTool(server, config);
 
   // Episode recognition task (begin / add / end).
   registerBeginRecognizeTaskTool(server, config);

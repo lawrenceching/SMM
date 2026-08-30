@@ -3,6 +3,21 @@
  *
  * This package provides shared testing utilities for SMM tests.
  */
+export {
+  type LangCode,
+  type TestFolder,
+  folder1,
+  folder2,
+  folder3,
+  folder4,
+  folder5,
+  folder6,
+  musicFolder,
+  tvShowFolder,
+  movieFolder,
+  createFolderInTestFolder,
+} from './testFolders'
+
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
@@ -180,12 +195,15 @@ export async function resetUserConfig(userConfigPath?: string, initConfig?: Part
         enableMcpServer: false,
         mcpHost: '127.0.0.1',
         mcpPort: 30001,
+        // Avoid first-run AnonymousTelemetryConsentDialog blocking StatusBar clicks in e2e.
+        anonymousTelemetryConsent: false,
     }
 
     if(initConfig) {
         userConfig = { ...userConfig, ...initConfig }
     }
-    
+
+    fs.mkdirSync(path.dirname(userConfigPath), { recursive: true })
     fs.writeFileSync(userConfigPath, JSON.stringify(userConfig, null, 2), 'utf-8')
     console.log(`Reset user config at: ${userConfigPath}`)
     console.log(`[DIAG] resetUserConfig: wrote folders=[] to ${userConfigPath}`)
@@ -234,7 +252,7 @@ export async function hello(): Promise<HelloResponse> {
         headers['Authorization'] = `Bearer ${token}`
     }
     const response = await fetch('http://localhost:30000/api/hello', {
-        method: 'POST',
+        method: 'GET',
         headers,
     })
     const data = await response.json() as HelloResponse

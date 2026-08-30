@@ -44,6 +44,17 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }));
 
+vi.mock("@/hooks/useMcpServerStatus", () => ({
+  useStartMcpServerMutation: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+  useStopMcpServerMutation: () => ({
+    mutateAsync: vi.fn(),
+    isPending: false,
+  }),
+}));
+
 describe("GeneralSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,5 +87,34 @@ describe("GeneralSettings", () => {
     expect(screen.getByTestId("setting-language-trigger")).toHaveTextContent(
       "general.applicationLanguageUnset",
     );
+  });
+
+  it("renders anonymous telemetry consent checkbox", () => {
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).toBeInTheDocument();
+  });
+
+  it("checkbox is unchecked when consent is undefined", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: undefined },
+      setAndSaveUserConfig: vi.fn(),
+    });
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).not.toBeChecked();
+  });
+
+  it("checkbox is checked when consent is true", () => {
+    mockUseConfig.mockReturnValue({
+      userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: true },
+      setAndSaveUserConfig: vi.fn(),
+    });
+    render(<GeneralSettings />);
+    expect(
+      screen.getByTestId("setting-anonymous-telemetry-consent"),
+    ).toBeChecked();
   });
 });

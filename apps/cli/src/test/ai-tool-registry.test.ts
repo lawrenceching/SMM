@@ -57,9 +57,17 @@ const CONSTANT_NAME_TO_TOOL_NAME: Record<string, string> = {
   GET_MEDIA_FOLDERS: 'get-media-folders',
   LIST_FILES_IN_MEDIA_FOLDER: 'list-files-in-media-folder',
   RENAME_FOLDER: 'rename-folder',
-  BEGIN_RENAME_FILES_TASK: 'begin-rename-files-task',
-  ADD_RENAME_FILE_TO_TASK: 'add-rename-file-to-task',
-  END_RENAME_FILES_TASK: 'end-rename-files-task',
+  RENAME_EPISODE_FILE: 'rename-episode-file',
+  SCRAPE: 'scrape',
+  GET_JOB: 'get-job',
+  TMDB_SEARCH: 'tmdb-search',
+  TMDB_GET_MOVIE: 'tmdb-get-movie',
+  TMDB_GET_TV_SHOW: 'tmdb-get-tv-show',
+  TVDB_SEARCH: 'tvdb-search',
+  TVDB_GET_MOVIE: 'tvdb-get-movie',
+  TVDB_GET_TV_SHOW: 'tvdb-get-tv-show',
+  TVDB_GET_LANGUAGES: 'tvdb-get-languages',
+  CREATE_RENAME_EPISODE_PLAN: 'create-rename-episode-plan',
   BEGIN_RECOGNIZE_TASK: 'begin-recognize-task',
   ADD_RECOGNIZED_MEDIA_FILE: 'add-recognized-media-file',
   END_RECOGNIZE_TASK: 'end-recognize-task',
@@ -112,16 +120,18 @@ describe('AI tool registry alignment — chat.ts (core-routes)', () => {
     }
   })
 
-  it('does not register any tool that the registry marks as backend-only', () => {
+  it('registers backend-only tools on the chat backend path', () => {
     const backendOnly = new Set(
       AI_TOOL_REGISTRY.filter((t) => t.backend && !t.frontend).map(
         (t) => t.name,
       ),
     )
-    // (none today; the check is forward-compatible — if a tool
-    // is added that is backend-only, the registry will reflect
-    // it, and this test will continue to pass as a no-op.)
-    expect(backendOnly.size).toBe(0)
+    for (const name of backendOnly) {
+      expect(
+        registeredKeys.has(name),
+        `Backend-only tool "${name}" is in the registry but missing from chat.ts`,
+      ).toBe(true)
+    }
   })
 
   it('contains no unknown tool keys (typo guard)', () => {

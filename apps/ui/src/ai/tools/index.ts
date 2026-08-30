@@ -5,9 +5,13 @@ export { GetApplicationContextTool, type ApplicationContextData } from './GetApp
 export { IsFolderExistTool } from './IsFolderExist';
 export { GetEpisodesTool } from './GetEpisodes';
 export { RenameFolderTool } from './RenameFolder';
+export { RenameEpisodeFileTool } from './RenameEpisodeFile';
+export { ScrapeTool } from './Scrape';
+export { GetJobTool } from './GetJob';
+export { TmdbSearchTool } from './TmdbSearch';
+export { TmdbGetMovieTool } from './TmdbGetMovie';
+export { TmdbGetTvShowTool } from './TmdbGetTvShow';
 export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
 export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
 export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';
-export { BeginRenameFilesTaskTool } from './BeginRenameFilesTask';
-export { AddRenameFileToTaskTool } from './AddRenameFileToTask';
-export { EndRenameFilesTaskTool, cleanupRenamePlan } from './EndRenameFilesTask';
+export { CreateRenameEpisodePlanTool } from './CreateRenameEpisodePlan';

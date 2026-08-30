@@ -1,7 +1,9 @@
 import { USER_CONFIG_FOLDER_RENAMED_EVENT } from "@core/event-types"
 import { useRef } from "react";
 import { useLatest, useMount, useUnmount } from "react-use"
+import { useQueryClient } from "@tanstack/react-query"
 import { useConfig } from "@/hooks/userConfig";
+import { invalidateFoldersQueryIfV3 } from "@/hooks/folders";
 import { Path } from "@core/path";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
@@ -20,6 +22,7 @@ export function SocketIoUserConfigFolderRenamedEventListener() {
     const setSelectedFolder = useUIMediaFolderStore((s) => s.setSelectedFolder);
     const latestFolders = useLatest(folders);
     const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
+    const queryClient = useQueryClient();
 
     useMount(() => {
 
@@ -42,6 +45,7 @@ export function SocketIoUserConfigFolderRenamedEventListener() {
               } : folder))
 
             setSelectedFolder(to)
+            invalidateFoldersQueryIfV3(queryClient)
             fetchMediaMetadata({ path: Path.posix(to), traceId })
         };
 

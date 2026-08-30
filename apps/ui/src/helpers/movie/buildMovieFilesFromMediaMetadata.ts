@@ -1,4 +1,5 @@
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { FileProps } from "@/lib/types"
 import { basename, join } from "@/lib/path"
 import { findAssociatedFiles, imageFileExtensions } from "@/lib/utils"
@@ -66,7 +67,7 @@ function findMovieFolderAssociatedFiles(allFiles: string[]): Array<{
 }
 
 export function buildMovieFilesFromMediaMetadata(
-  mediaMetadata: MediaMetadata | undefined,
+  mediaMetadata: MediaMetadataWithFolderFiles | undefined,
 ): MovieFileModel | undefined {
   if (!mediaMetadata?.mediaFolderPath) {
     return undefined
@@ -75,7 +76,7 @@ export function buildMovieFilesFromMediaMetadata(
   const mediaFolderPath = mediaMetadata.mediaFolderPath
   const files: FileProps[] = []
   const addedPaths = new Set<string>()
-  const allFilePaths = mediaMetadata.files ?? []
+  const allFilePaths = getMediaFolderFiles(mediaMetadata)
 
   for (const file of mediaMetadata.mediaFiles ?? []) {
     const videoPath = file.absolutePath

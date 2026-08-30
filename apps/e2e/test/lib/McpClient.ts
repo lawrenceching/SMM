@@ -6,12 +6,8 @@ import {
   McpToolName,
   type AddRecognizedFileRequest,
   type AddRecognizedFileResponse,
-  type AddRenameFileToTaskRequest,
-  type AddRenameFileToTaskResponse,
-  type BeginRenameFilesTaskRequest,
-  type BeginRenameFilesTaskResponse,
-  type EndRenameFilesTaskRequest,
-  type EndRenameFilesTaskResponse,
+  type CreateRenameEpisodePlanRequest,
+  type CreateRenameEpisodePlanResponse,
   type BeginRecognizeTaskRequest,
   type BeginRecognizeTaskResponse,
   type EndRecognizeTaskRequest,
@@ -31,6 +27,10 @@ import {
   type MarkdownTextResponse,
   type RenameFolderRequest,
   type RenameFolderResponse,
+  type ScrapeRequest,
+  type ScrapeResponse,
+  type GetJobRequest,
+  type GetJobResponse,
   type TmdbGetMovieRequest,
   type TmdbGetTvShowRequest,
   type TmdbMovieDetailsResponse,
@@ -40,15 +40,21 @@ import {
 } from './mcpToolTypes'
 
 const EXEC_TIMEOUT_MS = 30_000
+/** TMDB upstream calls can exceed the default MCP client timeout. */
+const TMDB_EXEC_TIMEOUT_MS = 90_000
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 1000
+
+export type McpRunToolOptions = {
+  timeoutMs?: number
+}
 
 const execFileAsync = promisify(execFile)
 const BUN_EXECUTABLE = 'bun'
 
 function execShellAsync(
   command: string,
-  opts: { cwd?: string; env?: NodeJS.ProcessEnv },
+  opts: { cwd?: string; env?: NodeJS.ProcessEnv; timeoutMs?: number },
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
     shell.exec(
@@ -56,7 +62,7 @@ function execShellAsync(
       {
         silent: true,
         async: true,
-        timeout: EXEC_TIMEOUT_MS,
+        timeout: opts.timeoutMs ?? EXEC_TIMEOUT_MS,
         windowsHide: true,
         cwd: opts.cwd,
         env: opts.env,
@@ -83,6 +89,7 @@ async function execMcpTestClientOnce(
   env: NodeJS.ProcessEnv,
   toolName: string,
   args?: Record<string, unknown>,
+  timeoutMs: number = EXEC_TIMEOUT_MS,
 ): Promise<{ stdout: string; stderr: string }> {
   if (process.platform === 'win32') {
     const bunArgs = ['index.ts', '--tool', toolName]
@@ -92,14 +99,14 @@ async function execMcpTestClientOnce(
     return await execFileAsync(BUN_EXECUTABLE, bunArgs, {
       cwd: clientCwd,
       env,
-      timeout: EXEC_TIMEOUT_MS,
+      timeout: timeoutMs,
       windowsHide: true,
     })
   }
 
   const argsFlag = args ? ` --args '${JSON.stringify(args)}'` : ''
   const bashLcCommand = `cd "${clientCwd}" && bun index.ts --tool ${toolName}${argsFlag}`
-  return execShellAsync(`/bin/bash -lc ${JSON.stringify(bashLcCommand)}`, { env })
+  return execShellAsync(`/bin/bash -lc ${JSON.stringify(bashLcCommand)}`, { env, timeoutMs })
 }
 
 function parseJsonObjectFromStdout<T>(stdout: string): T {
@@ -125,7 +132,9 @@ class McpClient {
     mcpAddress: string,
     toolName: string,
     args?: Record<string, unknown>,
+    options?: McpRunToolOptions,
   ): Promise<{ stdout: string; stderr: string }> {
+    const timeoutMs = options?.timeoutMs ?? EXEC_TIMEOUT_MS
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       SMM_MCP_URL: mcpAddress,
@@ -133,7 +142,7 @@ class McpClient {
     let lastErr: unknown
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        return await execMcpTestClientOnce(clientCwd, env, toolName, args)
+        return await execMcpTestClientOnce(clientCwd, env, toolName, args, timeoutMs)
       } catch (err) {
         lastErr = err
         await delay(RETRY_DELAY_MS)
@@ -147,8 +156,9 @@ class McpClient {
     mcpAddress: string,
     toolName: string,
     args?: Record<string, unknown>,
+    options?: McpRunToolOptions,
   ): Promise<T> {
-    const { stdout } = await this.runTool(clientCwd, mcpAddress, toolName, args)
+    const { stdout } = await this.runTool(clientCwd, mcpAddress, toolName, args, options)
     console.log(`MCP tool ${toolName} response: ${stdout}`)
     return parseJsonObjectFromStdout<T>(stdout)
   }
@@ -211,41 +221,31 @@ class McpClient {
     return this.execTyped(clientCwd, mcpAddress, McpToolName.renameFolder, toolArgs(req))
   }
 
-  async beginRenameFilesTask(
+  async scrape(
     clientCwd: string,
     mcpAddress: string,
-    req: BeginRenameFilesTaskRequest,
-  ): Promise<BeginRenameFilesTaskResponse> {
-    return this.execTyped(
-      clientCwd,
-      mcpAddress,
-      McpToolName.beginRenameFilesTask,
-      toolArgs(req),
-    )
+    req: ScrapeRequest,
+  ): Promise<ScrapeResponse> {
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.scrape, toolArgs(req))
   }
 
-  async addRenameFileToTask(
+  async getJob(
     clientCwd: string,
     mcpAddress: string,
-    req: AddRenameFileToTaskRequest,
-  ): Promise<AddRenameFileToTaskResponse> {
-    return this.execTyped(
-      clientCwd,
-      mcpAddress,
-      McpToolName.addRenameFileToTask,
-      toolArgs(req),
-    )
+    req: GetJobRequest,
+  ): Promise<GetJobResponse> {
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.getJob, toolArgs(req))
   }
 
-  async endRenameFilesTask(
+  async createRenameEpisodePlan(
     clientCwd: string,
     mcpAddress: string,
-    req: EndRenameFilesTaskRequest,
-  ): Promise<EndRenameFilesTaskResponse> {
+    req: CreateRenameEpisodePlanRequest,
+  ): Promise<CreateRenameEpisodePlanResponse> {
     return this.execTyped(
       clientCwd,
       mcpAddress,
-      McpToolName.endRenameFilesTask,
+      McpToolName.createRenameEpisodePlan,
       toolArgs(req),
     )
   }
@@ -295,7 +295,9 @@ class McpClient {
     mcpAddress: string,
     req: TmdbSearchRequest,
   ): Promise<TmdbSearchResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbSearch, toolArgs(req))
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbSearch, toolArgs(req), {
+      timeoutMs: TMDB_EXEC_TIMEOUT_MS,
+    })
   }
 
   async tmdbGetMovie(
@@ -303,7 +305,9 @@ class McpClient {
     mcpAddress: string,
     req: TmdbGetMovieRequest,
   ): Promise<TmdbMovieDetailsResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbGetMovie, toolArgs(req))
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbGetMovie, toolArgs(req), {
+      timeoutMs: TMDB_EXEC_TIMEOUT_MS,
+    })
   }
 
   async tmdbGetTvShow(
@@ -311,7 +315,9 @@ class McpClient {
     mcpAddress: string,
     req: TmdbGetTvShowRequest,
   ): Promise<TmdbTvShowDetailsResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbGetTvShow, toolArgs(req))
+    return this.execTyped(clientCwd, mcpAddress, McpToolName.tmdbGetTvShow, toolArgs(req), {
+      timeoutMs: TMDB_EXEC_TIMEOUT_MS,
+    })
   }
 }
 

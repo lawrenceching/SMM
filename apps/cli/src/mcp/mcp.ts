@@ -8,11 +8,17 @@ import { IS_FOLDER_EXIST } from "@smm/core/types/ai-tools/isFolderExist";
 import { GET_MEDIA_FOLDERS } from "@smm/core/types/ai-tools/getMediaFolders";
 import { GET_MEDIA_METADATA } from "@smm/core/types/ai-tools/getMediaMetadata";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
-import {
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
-} from "@smm/core/types/ai-tools/renameFilesTask";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { CREATE_RENAME_EPISODE_PLAN } from "@smm/core/types/ai-tools/createRenameEpisodePlan";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
+import { TVDB_SEARCH } from "@smm/core/types/ai-tools/tvdbSearch";
+import { TVDB_GET_MOVIE } from "@smm/core/types/ai-tools/tvdbGetMovie";
+import { TVDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tvdbGetTvShow";
+import { TVDB_GET_LANGUAGES } from "@smm/core/types/ai-tools/tvdbGetLanguages";
 import {
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
@@ -44,9 +50,10 @@ const TOOL_NAME_KEYS = [
   GET_MEDIA_METADATA,
   LIST_FILES_KEY,
   RENAME_FOLDER,
-  BEGIN_RENAME_FILES_TASK,
-  ADD_RENAME_FILE_TO_TASK,
-  END_RENAME_FILES_TASK,
+  RENAME_EPISODE_FILE,
+  CREATE_RENAME_EPISODE_PLAN,
+  SCRAPE,
+  GET_JOB,
   BEGIN_RECOGNIZE_TASK,
   ADD_RECOGNIZED_MEDIA_FILE,
   END_RECOGNIZE_TASK,
@@ -55,6 +62,13 @@ const TOOL_NAME_KEYS = [
   HOW_TO_RENAME_KEY,
   HOW_TO_RECOGNIZE_KEY,
   README_KEY,
+  TMDB_SEARCH,
+  TMDB_GET_MOVIE,
+  TMDB_GET_TV_SHOW,
+  TVDB_SEARCH,
+  TVDB_GET_MOVIE,
+  TVDB_GET_TV_SHOW,
+  TVDB_GET_LANGUAGES,
 ] as const;
 
 let handlerPromise: Promise<McpRequestHandler> | null = null;
@@ -123,6 +137,7 @@ async function loadLocalizedToolDescriptions(): Promise<Record<string, string>> 
  */
 async function buildMcpConfig(): Promise<McpConfig> {
   const { getUserConfig } = await import("@/utils/config");
+  const { getCore } = await import("@/core/getCore");
   return {
     getUserConfig,
     appDataDir: getAppDataDir(),
@@ -132,6 +147,16 @@ async function buildMcpConfig(): Promise<McpConfig> {
     broadcast: (message) =>
       broadcast(message as Parameters<typeof broadcast>[0]),
     toolDescriptions: await loadLocalizedToolDescriptions(),
+    renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
+    scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
+    getJob: (id) => getCore().getJob(id),
+    searchInTmdb: (keyword, options) => getCore().searchInTmdb(keyword, options),
+    getMovieInTmdb: (id, options) => getCore().getMovieInTmdb(id, options),
+    getTvShowInTmdb: (id, options) => getCore().getTvShowInTmdb(id, options),
+    searchInTvdb: (keyword, options) => getCore().searchInTvdb(keyword, options),
+    getMovieInTvdb: (id, options) => getCore().getMovieInTvdb(id, options),
+    getTvShowInTvdb: (id, options) => getCore().getTvShowInTvdb(id, options),
+    getTvdbLanguages: (options) => getCore().getTvdbLanguages(options),
     logger: {
       debug: (obj, msg) => logger.debug(obj, msg),
       info: (obj, msg) => logger.info(obj, msg),

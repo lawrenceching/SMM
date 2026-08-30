@@ -3,6 +3,12 @@ export {
   type McpRequestHandler,
 } from "./createServer.ts";
 import { RENAME_FOLDER } from "@smm/core/types/ai-tools/renameFolder";
+import { RENAME_EPISODE_FILE } from "@smm/core/types/ai-tools/renameEpisodeFile";
+import { SCRAPE } from "@smm/core/types/ai-tools/scrape";
+import { GET_JOB } from "@smm/core/types/ai-tools/getJob";
+import { TMDB_SEARCH } from "@smm/core/types/ai-tools/tmdbSearch";
+import { TMDB_GET_MOVIE } from "@smm/core/types/ai-tools/tmdbGetMovie";
+import { TMDB_GET_TV_SHOW } from "@smm/core/types/ai-tools/tmdbGetTvShow";
 export {
   createErrorResponse,
   createSuccessResponse,
@@ -19,9 +25,19 @@ export {
   doMcpGetStatus,
   doMcpStart,
   doMcpStop,
+  parseStartOptionsFromBody,
   type McpLifecycleResult,
   type McpStartRequestBody,
 } from "./lifecycle.ts";
+export {
+  getMcpServerStatusWithUserConfig,
+  startMcpServerWithUserConfig,
+  stopMcpServerWithUserConfig,
+  type McpServerStateResponse,
+  type McpServerOperationOptions,
+  DEFAULT_MCP_HOST,
+  DEFAULT_MCP_PORT,
+} from "./mcpServerConfig.ts";
 
 /**
  * Re-exported tool-name constants so consumers that already depend
@@ -29,6 +45,10 @@ export {
  * without resolving `@smm/core` directly.
  */
 export { RENAME_FOLDER };
+export { RENAME_EPISODE_FILE };
+export { SCRAPE };
+export { GET_JOB };
+export { TMDB_SEARCH, TMDB_GET_MOVIE, TMDB_GET_TV_SHOW };
 
 /**
  * Constants exposed to hosts that load `core-routes.js` as a
@@ -36,4 +56,12 @@ export { RENAME_FOLDER };
  * `@smm/core` directly at build time. Keep in sync with the
  * tool-name constants under `@smm/core/types/ai-tools/*`.
  */
-export const MCP_TOOL_NAMES = { RENAME_FOLDER } as const;
+export const MCP_TOOL_NAMES = {
+  RENAME_FOLDER,
+  RENAME_EPISODE_FILE,
+  SCRAPE,
+  GET_JOB,
+  TMDB_SEARCH,
+  TMDB_GET_MOVIE,
+  TMDB_GET_TV_SHOW,
+} as const;

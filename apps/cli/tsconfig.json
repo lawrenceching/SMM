@@ -35,7 +35,13 @@
       "@smm/tvdb4": ["../../packages/tvdb4/src/index.ts"],
       "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"],
       "@smm/test": ["../../packages/test/src/index.ts"],
-      "@smm/test/*": ["../../packages/test/*"]
+      "@smm/test/*": ["../../packages/test/*"],
+      "core-app": ["../core/src/index.ts"],
+      "core-app/createRenameEpisodePlan": [
+        "../core/src/pipeline/createRenameEpisodePlan.ts"
+      ],
+      "core-app/FsPort": ["../core/src/ports/FsPort.ts"],
+      "core-app/*": ["../core/src/*"]
     }
   }
 }

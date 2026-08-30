@@ -78,6 +78,34 @@ describe("ScrapeDialog state reducer", () => {
     const finished = taskReducer(failed, { type: "FINISH_RUN" })
     expect(finished.isRunning).toBe(false)
   })
+
+  it("applies job task statuses from Core poll", () => {
+    const base = {
+      tasks: [
+        { id: "poster" as const, status: "pending" as const },
+        { id: "fanart" as const, status: "pending" as const },
+        { id: "thumbnails" as const, status: "pending" as const },
+        { id: "nfo" as const, status: "pending" as const },
+      ],
+      isRunning: true,
+    }
+    const applied = taskReducer(base, {
+      type: "APPLY_JOB_TASKS",
+      tasks: {
+        poster: { status: "completed" },
+        fanart: { status: "running" },
+        thumbnails: { status: "completed" },
+        nfo: { status: "failed", failedReason: "scrape.errors.tmdbUnavailable" },
+      },
+    })
+    expect(applied.tasks.find((t) => t.id === "poster")?.status).toBe("completed")
+    expect(applied.tasks.find((t) => t.id === "fanart")?.status).toBe("running")
+    expect(applied.tasks.find((t) => t.id === "thumbnails")?.status).toBe("completed")
+    expect(applied.tasks.find((t) => t.id === "nfo")?.status).toBe("failed")
+    expect(applied.tasks.find((t) => t.id === "nfo")?.failedReason).toBe(
+      "scrape.errors.tmdbUnavailable",
+    )
+  })
 })
 
 describe("ScrapeDialog selectors", () => {

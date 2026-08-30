@@ -1,7 +1,106 @@
 import type { LanguageCode, PreferMediaLanguage } from './types'
+import { TMDB_PRIMARY_TRANSLATIONS } from './tmdbPrimaryTranslations'
 
 const APP_LANGUAGE_FALLBACK: LanguageCode = 'en'
 const MEDIA_LANGUAGE_FALLBACK: PreferMediaLanguage = 'en-US'
+
+/** App-config media languages (`userConfig.preferMediaLanguage`). */
+export const PREFER_MEDIA_LANGUAGES = ['zh-CN', 'en-US', 'ja-JP'] as const satisfies readonly PreferMediaLanguage[]
+
+export function isPreferMediaLanguage(value: string): value is PreferMediaLanguage {
+  return (PREFER_MEDIA_LANGUAGES as readonly string[]).includes(value)
+}
+
+/**
+ * Validate an explicit TMDB search language against the static snapshot of
+ * {@link https://developer.themoviedb.org/reference/configuration-primary-translations GET /3/configuration/primary_translations}
+ * ({@link TMDB_PRIMARY_TRANSLATIONS}). Offline — no network.
+ * Returns the canonical tag from the list (preserves TMDB casing).
+ */
+export function parseTmdbSearchLanguage(
+  raw: string,
+  primaryTranslations: readonly string[] = TMDB_PRIMARY_TRANSLATIONS,
+): string {
+  const trimmed = raw.trim()
+  if (!trimmed) {
+    throw new Error(
+      'Missing --lang value. Use a TMDB language tag such as zh-CN, en-US, or ja-JP (example: --lang zh-CN).',
+    )
+  }
+
+  const lower = trimmed.toLowerCase()
+  const found = primaryTranslations.find((tag) => tag.toLowerCase() === lower)
+  if (found) {
+    return found
+  }
+
+  const suggested = suggestTmdbSearchLanguage(lower, primaryTranslations)
+  if (suggested) {
+    throw new Error(
+      `Unsupported language "${trimmed}". Use a TMDB language tag such as zh-CN, en-US, or ja-JP.\nDid you mean: --lang ${suggested}`,
+    )
+  }
+
+  throw new Error(
+    `Unsupported language "${trimmed}". Use a TMDB language tag such as zh-CN, en-US, or ja-JP (example: --lang zh-CN).`,
+  )
+}
+
+/**
+ * Common short / mistaken inputs → preferred TMDB primary translation.
+ * Note: TMDB also has `cn-CN` (Cantonese); bare `cn` almost always means Simplified Chinese.
+ */
+const TMDB_LANG_ALIASES: Record<string, string> = {
+  cn: 'zh-CN',
+  zh: 'zh-CN',
+  'zh-hans': 'zh-CN',
+  'zh-hant': 'zh-TW',
+  en: 'en-US',
+  eng: 'en-US',
+  ja: 'ja-JP',
+  jp: 'ja-JP',
+  jpn: 'ja-JP',
+  ko: 'ko-KR',
+  kr: 'ko-KR',
+  kor: 'ko-KR',
+  fr: 'fr-FR',
+  de: 'de-DE',
+  es: 'es-ES',
+  pt: 'pt-BR',
+  ru: 'ru-RU',
+}
+
+function suggestTmdbSearchLanguage(
+  lower: string,
+  primaryTranslations: readonly string[],
+): string | undefined {
+  const alias = TMDB_LANG_ALIASES[lower]
+  if (alias && primaryTranslations.some((tag) => tag.toLowerCase() === alias.toLowerCase())) {
+    return alias
+  }
+
+  // Only suggest when the input looks like a language subtag of an existing tag
+  // (e.g. "fr" → "fr-FR"), not accidental prefixes of unrelated codes.
+  const regionMatches = primaryTranslations.filter((tag) => {
+    const [lang] = tag.toLowerCase().split('-')
+    return lang === lower
+  })
+  if (regionMatches.length === 1) {
+    return regionMatches[0]
+  }
+  if (regionMatches.length > 1) {
+    // Prefer *-US / *-CN style commons when multiple regions exist
+    const preferred =
+      regionMatches.find((t) => t.endsWith('-US') || t.endsWith('-CN') || t.endsWith('-JP')) ??
+      regionMatches[0]
+    return preferred
+  }
+
+  return undefined
+}
+
+/** @deprecated Use {@link parseTmdbSearchLanguage} */
+export const matchTmdbPrimaryTranslation = parseTmdbSearchLanguage
 
 /**
  * Maps an arbitrary locale tag to a supported app language code.
@@ -120,4 +219,30 @@ export function detectOsLocale(): string {
   }
 
   return ''
+}
+
+/** IETF BCP 47 media language → TVDB ISO 639-3 code (kept in @smm/core for offline resolution). */
+export function mediaLanguageToTvdbCode(lang: PreferMediaLanguage): string {
+  switch (lang) {
+    case 'zh-CN':
+      return 'zho'
+    case 'ja-JP':
+      return 'jpn'
+    default:
+      return 'eng'
+  }
+}
+
+/**
+ * Resolve the TVDB search/metadata language (ISO 639-3) with priority:
+ * 1. preferMediaLanguage (explicit smm.json config) → mapped to ISO 639-3
+ * 2. Resolved media language chain (applicationLanguage → OS → en)
+ * 3. eng
+ */
+export function resolveTvdbSearchLanguage(opts: ResolveMediaLanguageOptions): string {
+  if (opts.preferMediaLanguage) {
+    return mediaLanguageToTvdbCode(opts.preferMediaLanguage)
+  }
+  const mediaLang = resolveMediaLanguage(opts)
+  return mediaLanguageToTvdbCode(mediaLang)
 }

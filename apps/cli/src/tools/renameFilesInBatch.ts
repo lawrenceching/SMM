@@ -1,12 +1,12 @@
 import { z } from 'zod/v3';
+import { stat } from 'node:fs/promises';
 import { Path } from '@core/path';
 import type { MediaMetadata, RenameValidationResult } from '@core/types';
 import { updateMediaMetadataAfterRename } from '@core/mediaMetadata';
-import { validateRenameOperationsSync } from '@core/validations/rename/validateRenameOperationsSync';
+import { validateRenameOperations as validateRenameOperationsShared } from '@core/validations/rename/validateRenameOperations';
+import type { RenameFileExistenceProbe } from '@core/validations/rename/validateRenameFileExistence';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
-import { validateSourceFileExist } from '../validations/validateSourceFileExist';
-import { validateDestFileNotExist } from '../validations/validateDestFileNotExist';
 import pino from 'pino';
 import { askForRenameFilesConfirmation } from '@/events/askForRenameFilesConfirmation';
 
@@ -23,13 +23,23 @@ export interface ValidationResult {
   validatedRenames: RenameFile[];
 }
 
-
+function createCliRenameFileExistenceProbe(): RenameFileExistenceProbe {
+  return {
+    async isFile(posixPath: string): Promise<boolean> {
+      try {
+        const stats = await stat(Path.toPlatformPath(posixPath));
+        return stats.isFile();
+      } catch {
+        return false;
+      }
+    },
+  };
+}
 
 /**
- * Validate rename operations using validation functions from validations folder
+ * Validate rename operations using shared path rules + FS existence probe.
  * @param files Array of rename operations to validate
  * @param folderPathInPosix The media folder path in POSIX format
- * @param filesystemFiles Array of files currently in the filesystem (unused, kept for compatibility)
  * @returns RenameValidationResult with isValid flag, errors array, and validated renames
  */
 export async function validateRenameOperations(
@@ -51,42 +61,23 @@ export async function validateRenameOperations(
     });
   }
 
-  if (normalizedTasks.length === 0) {
-    return {
-      isValid: true,
-      errors: [],
-      validatedRenames: [],
-    };
-  }
+  const result = await validateRenameOperationsShared(
+    normalizedTasks,
+    folderPathInPosix,
+    createCliRenameFileExistenceProbe(),
+  );
 
-  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
-  const errors = [...syncResult.errors];
-
-  const sourceExistResult = await validateSourceFileExist(normalizedTasks);
-  if (!sourceExistResult.isValid) {
-    for (const missingFile of sourceExistResult.missingFiles) {
-      logger.warn({ from: missingFile }, '[tool][renameFilesInBatch] Source file not found');
-      errors.push(`Source file "${missingFile}" does not exist in the media folder`);
+  if (!result.isValid) {
+    for (const error of result.errors) {
+      if (error.includes('does not exist')) {
+        logger.warn({ error }, '[tool][renameFilesInBatch] Source file not found');
+      } else if (error.includes('already exists')) {
+        logger.warn({ error }, '[tool][renameFilesInBatch] Target file already exists in filesystem');
+      }
     }
   }
 
-  const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
-  if (!destNotExistResult.isValid) {
-    for (const existingFile of destNotExistResult.existingFiles) {
-      logger.warn({ to: existingFile }, '[tool][renameFilesInBatch] Target file already exists in filesystem');
-      errors.push(`Target file "${existingFile}" already exists in the filesystem`);
-    }
-  }
-
-  if (errors.length > 0) {
-    return {
-      isValid: false,
-      errors,
-      validatedRenames: [],
-    };
-  }
-
-  return syncResult;
+  return result;
 }
 
 export { updateMediaMetadataAfterRename };

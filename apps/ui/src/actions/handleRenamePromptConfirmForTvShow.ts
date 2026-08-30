@@ -1,6 +1,7 @@
 import type { RenameFilesPlan } from "@core/types/RenameFilesPlan"
 import { toast } from "sonner"
-import type { MediaMetadata } from "@core/types"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata"
@@ -15,7 +16,7 @@ export async function handleRenamePromptConfirmForTvShow(
   options: {
     planId: string
     plan: UIRenameFilesPlan
-    mediaMetadata: MediaMetadata
+    mediaMetadata: MediaMetadataWithFolderFiles
     selectedEpisodePaths: string[]
     renameFailedLabel: string
     noMediaPathErrorLabel: string
@@ -36,7 +37,8 @@ export async function handleRenamePromptConfirmForTvShow(
   } = options
   const { setPlanById, persistUiMediaMetadata, renameFilesApi } = deps
 
-  if (!mediaMetadata.mediaFolderPath || !mediaMetadata.files) {
+  const folderFiles = getMediaFolderFiles(mediaMetadata)
+  if (!mediaMetadata.mediaFolderPath || folderFiles.length === 0) {
     console.warn("[rename] cannot apply rename — folder path or file list missing", { planId })
     toast.error(noMediaPathErrorLabel)
     return
@@ -53,7 +55,7 @@ export async function handleRenamePromptConfirmForTvShow(
     const { renameList } = await applyRenameFilesPlanForTvShow(
       {
         mediaFolderPath: mediaMetadata.mediaFolderPath,
-        localFiles: mediaMetadata.files,
+        localFiles: folderFiles,
         plan: actualPlan,
         traceId: renameTraceId,
       },

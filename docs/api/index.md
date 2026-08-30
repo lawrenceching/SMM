@@ -46,6 +46,74 @@ HTTP: `POST /api/shutdown` — localhost-only graceful shutdown used by the Elec
 
 CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback when the prior run was hard-killed).
 
+## GetFolders
+Source Code: apps/cli/src/route/GetFolders.ts
+HTTP: `POST /api/get-folders` — returns imported media folder paths via Layer 2 `Core.getFolders()` (reads `userDataDir/smm.json`). Request body: `{}` (optional). Response: `{ data: { folders: string[] } }` or `{ error }`. Used by UI `useFoldersQuery` when `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm list`.
+
+## ImportFolder
+Source Code: apps/cli/src/route/ImportFolder.ts
+HTTP: `POST /api/import-folder` — starts Layer 2 `Core.importFolder(path, type, { skipInit? })`. Request body: `{ path: string, type: "tvshow" | "movie" | "music" | "anime", skipInit?: boolean }` (`anime` aliases `tvshow`). Response: `{ data: { id } }` (job id) or `{ error }`. Does not wait for the pipeline; poll `POST /api/get-job`. CLI equivalent: `smm add`.
+
+## GetJob
+Source Code: apps/cli/src/route/GetJob.ts
+HTTP: `POST /api/get-job` — returns an in-memory import job from `Core.getJob(id)`. Request body: `{ id: string }`. Response: `{ data: ImportJob }` or `{ error }` (`Job not found`). CLI `smm add` polls this internally until the job settles.
+
+## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
+Source Code: apps/cli/src/route/Tmdb.ts
+
+1:1 Internal HTTP for Core TMDB methods. Response `{ data }` or `{ error }` (HTTP 200). Optional `language` / `host` / `password` / `proxy` override `userConfig.tmdb`. Used by Web UI when `localStorage["smm.v3.enabled"] === "true"` and by in-app AI tools. MCP / server-side chat inject the same Core methods in-process.
+
+- `POST /api/search-in-tmdb` → `Core.searchInTmdb`. Body: `{ keyword: string, type: "tv" | "movie", language?, host?, password?, proxy? }`.
+- `POST /api/get-movie-in-tmdb` → `Core.getMovieInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvshow-in-tmdb` → `Core.getTvShowInTmdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+
+## RecognizeFolder
+Source Code: apps/cli/src/route/RecognizeFolder.ts
+
+1:1 Internal HTTP for `Core.recognizeFolder`. Assigns TMDB/TVDB TV show or movie metadata to an imported folder; sets `mediaFiles: []`. Response `{ data: { path } }` or `{ error }` (HTTP 200). Used by Web UI when the user selects a search result (`useSelectTvShowForFolderMutation` / `useSelectMovieForFolderMutation`) and `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm recognize <folder> --db tmdb|tvdb --id <id>`.
+
+- `POST /api/recognize-folder` → `Core.recognizeFolder`. Body: `{ path: string, db: "tmdb" | "tvdb", id: string }`.
+
+## SearchInTvdb / GetMovieInTvdb / GetTvShowInTvdb / GetTvdbLanguages
+Source Code: apps/cli/src/route/Tvdb.ts
+
+1:1 Internal HTTP for Core TVDB methods. Response `{ data }` or `{ error }` (HTTP 200). Optional `language` (ISO 639-3) / `host` / `password` / `proxy` override `userConfig.tvdb`. TVDB custom hosts authenticate via an in-process JWT login exchange (`POST /login`). Used by Web UI when `localStorage["smm.v3.enabled"] === "true"` and by in-app AI tools. MCP / server-side chat inject the same Core methods in-process.
+
+- `POST /api/search-in-tvdb` → `Core.searchInTvdb`. Body: `{ keyword: string, type: "series" | "movie", language?, host?, password?, proxy? }`.
+- `POST /api/get-movie-in-tvdb` → `Core.getMovieInTvdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvshow-in-tvdb` → `Core.getTvShowInTvdb`. Body: `{ id: number, language?, host?, password?, proxy? }`.
+- `POST /api/get-tvdb-languages` → `Core.getTvdbLanguages`. Body: `{}`.
+
+## ShowFolder
+Source Code: apps/cli/src/route/ShowFolder.ts
+HTTP: `POST /api/show-folder` — UI-aligned folder snapshot via the same helper as `smm show`. Request body: `{ path: string }`. Response: `{ data: { path, status, type?, title? } }` (`status`: `ok` | `folder_not_found` | `error_loading_metadata`) or `{ error }` (not imported / path missing).
+
+## FolderMetadata
+Source Code: apps/cli/src/route/FolderMetadata.ts
+HTTP: `POST /api/folder-metadata` — MediaMetadata for an imported folder via `Core.getMediaMetadata`, with `files` omitted (same fields as `smm metadata`). Request body: `{ path: string }`. Response: `{ data: MediaMetadata }` or `{ error }` (not imported / no cache).
+
+## UnimportFolder
+Source Code: apps/cli/src/route/UnimportFolder.ts
+HTTP: `POST /api/unimport-folder` — removes an imported media folder from `userDataDir/smm.json` and deletes its metadata cache via Layer 2 `Core.unimportFolder(path)`. Request body: `{ path: string }`. Response: `{ data: { path } }` or `{ error }`. Idempotent when the path is not in the config. Used by UI delete (context menu, Delete key, multi-select) when `localStorage["smm.v3.enabled"] === "true"`. CLI equivalent: `smm rm`.
+
+## RenameFolder (v3)
+Source Code: apps/cli/src/route/RenameFolderV3.ts
+HTTP: `POST /api/rename-folder` — renames a managed media folder via Layer 2 `Core.renameFolder({ from, to })` (metadata cache + `UserConfig.folders` + on-disk rename). Request body: `{ from: string, to: string }`. Response: `{ data: { from, to } }` or `{ error }`. Broadcasts the same folder-renamed / userConfigUpdated socket events as legacy `POST /api/renameFolder`. Used by UI Sidebar rename when `localStorage["smm.v3.enabled"] === "true"`.
+
+## CLI: recognize
+Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.tryToRecognizeFolder / Core.recognizeFolder
+`smm recognize <folder> [--db tmdb|tvdb --id <id>] [--yes]` — assign TMDB/TVDB TV show or movie metadata to an imported folder. Manual mode requires both `--db` and `--id`; auto mode runs import recognition rules and prompts for confirmation (or pass `--yes` / `-y` to accept). Sets `mediaFiles: []`. Distinct from episode recognition (`smm try-to-recognize`). Product doc: [docs/dev/recognize-folder.md](../dev/recognize-folder.md).
+
+## CLI: try-to-recognize / try-to-rename / apply
+Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.tryToRecognizeEpisodes / Core.tryToRenameFolder / applyPlan
+`smm try-to-recognize <folder>` — rule-based episode recognition → pending plan under `{userDataDir}/plans/`.
+`smm try-to-rename <folder> [--rule plex|emby]` — build a pending rename-files plan (default rule: plex).
+`smm apply <plan-id>` — apply a pending recognize-media-file or rename-files plan (updates metadata cache, deletes plan file).
+
+## CLI: scrape
+Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.scrapeFolder
+`smm scrape <folder> [--language <code>]` — scrape TMDB TV poster, fanart, episode thumbnails, and NFO files for a managed TV show folder. Prints each task as `poster|fanart|thumbnails|nfo: completed|skipped|failed`. Requires TMDB metadata and linked episodes (for thumbnails / episode NFO).
+
 ## SetWatchedFolder
 Source Code: apps/cli/src/route/SetWatchedFolder.ts
 HTTP: `POST /api/setWatchedFolder` — sets the single media folder the CLI `FolderWatcher` listens to (UI primary `selectedFolder`). Request body: `{ folderPath: string | null }` (platform absolute path, or null/empty to stop watching). Response: `{ data: { watchedFolder: string | null }, error?: string }`. Startup no longer watches all imported folders.

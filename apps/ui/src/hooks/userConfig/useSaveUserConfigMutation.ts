@@ -7,6 +7,7 @@ import { changeLanguage } from "@/lib/i18n"
 import { join } from "@/lib/path"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
+import { invalidateFoldersQueryIfV3 } from "@/hooks/folders"
 
 export function useSaveUserConfigMutation() {
   const queryClient = useQueryClient()
@@ -29,12 +30,18 @@ export function useSaveUserConfigMutation() {
       }
       const filePath = join(dir, "smm.json")
       await writeFile(filePath, JSON.stringify(config), 'overwrite', traceId)
-      return config
+      return { config, prevFolders: prev.folders }
     },
-    onSuccess: (config) => {
+    onSuccess: ({ config, prevFolders }) => {
       const dir = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.userDataDir
       if (dir) {
         queryClient.setQueryData(userConfigQueryKey(dir), config)
+      }
+      const foldersChanged =
+        prevFolders.length !== config.folders.length ||
+        prevFolders.some((p, i) => p !== config.folders[i])
+      if (foldersChanged) {
+        invalidateFoldersQueryIfV3(queryClient)
       }
     },
   })

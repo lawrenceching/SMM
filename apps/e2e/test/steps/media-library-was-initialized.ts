@@ -4,8 +4,8 @@ import {
     joinPlatformPath,
     writeFileViaBrowser,
 } from '../lib/browser-fs'
-import { folder1, folder2 } from 'test/actions/import-folders'
-import { importMediaLibrary } from 'test/actions/events'
+import { folder1, folder2, musicFolder } from 'test/actions/import-folders'
+import { importMediaLibraryAndWait } from 'test/actions/import-library'
 
 interface InitializedFolder {
     folderName: string
@@ -63,11 +63,11 @@ registerStep('Media library was imported with TV show folders', async (ctx) => {
     await writeFileViaBrowser(joinPlatformPath(byNfoPath, 'tvshow.nfo'), nfoXml)
     folders.push({ folderName: 'FolderContainsTvShowNfo', path: byNfoPath, type: 'tvshow-folder' })
 
-    await importMediaLibrary({
+    await importMediaLibraryAndWait({
         libraryPathInPlatformFormat: base,
         type: 'tvshow',
         traceId: 'e2e:Import Media Library:Import TV Show Library',
-    })
+    }, { timeoutMs: 5 * 60 * 1000 })
 
     ctx._folders = folders
 })
@@ -104,11 +104,27 @@ registerStep('Media library was imported with movie folders', async (ctx) => {
     await writeFileViaBrowser(joinPlatformPath(byNfoPath, 'movie.nfo'), nfoXml)
     folders.push({ folderName: 'FolderContainsMovieNfo', path: byNfoPath, type: 'movie-folder' })
 
-    await importMediaLibrary({
+    await importMediaLibraryAndWait({
         libraryPathInPlatformFormat: base,
         type: 'movie',
         traceId: 'e2e:Import Media Library:Import Movie Library',
-    })
+    }, { timeoutMs: 5 * 60 * 1000 })
+
+    ctx._folders = folders
+})
+
+registerStep('Media library was imported with music folders', async (ctx) => {
+    const base = requireLibraryBase(ctx)
+    const folders: InitializedFolder[] = []
+
+    const musicPath = await createTestFolderViaBrowser(base, musicFolder)
+    folders.push({ folderName: musicFolder.folderName, path: musicPath, type: 'music-folder' })
+
+    await importMediaLibraryAndWait({
+        libraryPathInPlatformFormat: base,
+        type: 'music',
+        traceId: 'e2e:ImportLibrary:music',
+    }, { timeoutMs: 2 * 60 * 1000 })
 
     ctx._folders = folders
 })

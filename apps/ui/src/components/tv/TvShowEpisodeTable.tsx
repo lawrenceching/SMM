@@ -29,6 +29,7 @@ import { generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { renameFiles } from "@/api/renameFiles"
+import { renameEpisodeFileViaCore } from "@/api/renameEpisodeFile"
 import { openFile } from "@/api/openFile"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
@@ -36,6 +37,8 @@ import { cn } from "@/lib/utils"
 import { computeAssociatedFileRenames } from "../episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
+import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import { isSmmV3Enabled } from "@/lib/localStorages"
 
 export interface TvShowEpisodeDividerRow {
   id: string
@@ -895,15 +898,23 @@ export function TvShowEpisodeTable({
                           if (!selectedMediaMetadata?.mediaFolderPath || !row.videoFile) return
                           try {
                             const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
-                            const allMediaFiles = selectedMediaMetadata.files ?? []
-                            const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, allMediaFiles)
-                            await renameFiles({
-                              files: [
-                                { from: row.videoFile, to: newAbsolutePath },
-                                ...assocRenames,
-                              ],
-                              mediaFolder: Path.posix(selectedMediaMetadata.mediaFolderPath),
-                            })
+                            if (isSmmV3Enabled()) {
+                              await renameEpisodeFileViaCore({
+                                mediaFolder: Path.posix(selectedMediaMetadata.mediaFolderPath),
+                                from: row.videoFile,
+                                to: newAbsolutePath,
+                              })
+                            } else {
+                              const allMediaFiles = getMediaFolderFiles(selectedMediaMetadata)
+                              const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, allMediaFiles)
+                              await renameFiles({
+                                files: [
+                                  { from: row.videoFile, to: newAbsolutePath },
+                                  ...assocRenames,
+                                ],
+                                mediaFolder: Path.posix(selectedMediaMetadata.mediaFolderPath),
+                              })
+                            }
                             fetchMediaMetadata({ path: selectedMediaMetadata.mediaFolderPath })
                             toast.success(t('episodeFile.renameSuccess', { ns: 'components' }))
                           } catch (error) {

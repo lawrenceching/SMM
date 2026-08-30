@@ -1,8 +1,14 @@
 import { Path } from "@core/path"
 import type { MediaMetadata } from "@core/types"
-import { mediaMetadataRepository } from "@/api/mediaMetadataRepository"
+import type { QueryClient } from "@tanstack/react-query"
+import { getMetadata } from "@/api/metadata"
+import {
+  hydrateMediaMetadataWithFolderFiles,
+  withLiveFolderFiles,
+  type MediaMetadataWithFolderFiles,
+} from "@/lib/mediaFolderFiles"
 
-/** TanStack Query keys for per-folder persisted metadata (cache / disk via repository). */
+/** TanStack Query keys for per-folder persisted metadata. */
 export function mediaMetadataQueryKey(folderPathPosix: string) {
   return ["mediaMetadata", folderPathPosix] as const
 }
@@ -12,12 +18,30 @@ export function normalizeMediaFolderPathForQuery(path: string): string {
   return Path.posix(path)
 }
 
+/**
+ * Write persisted metadata into the query cache without dropping the
+ * UI-only live folder listing (`files`).
+ */
+export function setPersistedMetadataQueryData(
+  queryClient: QueryClient,
+  folderPathPosix: string,
+  persisted: MediaMetadata,
+  incoming?: MediaMetadata,
+): void {
+  const key = mediaMetadataQueryKey(folderPathPosix)
+  queryClient.setQueryData<MediaMetadataWithFolderFiles>(key, (prev) =>
+    withLiveFolderFiles(persisted, prev, incoming),
+  )
+}
+
 /** Shared options for `useQuery` / `queryClient.fetchQuery` so cache identity matches. */
-export function mediaMetadataReadQueryOptions(path: string, opts?: { traceId?: string; defaultType?: import("@core/types").MediaMetadata["type"] }) {
+export function mediaMetadataReadQueryOptions(path: string) {
   const folderPathPosix = normalizeMediaFolderPathForQuery(path)
   return {
     queryKey: mediaMetadataQueryKey(folderPathPosix),
-    queryFn: (): Promise<MediaMetadata> =>
-      mediaMetadataRepository.read(folderPathPosix, opts ?? {}),
+    queryFn: async ({ signal }: { signal?: AbortSignal } = {}): Promise<MediaMetadataWithFolderFiles> => {
+      const metadata = await getMetadata(folderPathPosix, signal)
+      return hydrateMediaMetadataWithFolderFiles(metadata, signal)
+    },
   }
 }

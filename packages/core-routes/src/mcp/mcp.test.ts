@@ -241,6 +241,94 @@ describe("createMcpStreamableHttpHandler", () => {
     }
   })
 
+  it("registers rename-episode-file when not disabled", async () => {
+    const { appDataDir, userDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        userDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+        renameEpisodeFile: async () => ({ succeeded: [], failed: [] }),
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).toContain("rename-episode-file")
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it("registers scrape and get-job when runners are provided", async () => {
+    const { appDataDir, userDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        userDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+        scrapeFolder: async () => ({ id: "job-1" }),
+        getJob: () => undefined,
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).toContain("scrape")
+      expect(names).toContain("get-job")
+    } finally {
+      await cleanup()
+    }
+  })
+
   it("registers rename-folder when disabledTools is empty", async () => {
     const { appDataDir, userDataDir, userConfig, cleanup } = await makeTempConfig()
     try {
@@ -490,6 +578,55 @@ describe("createMcpStreamableHttpHandler", () => {
       expect(result.structuredContent?.renamed).toBe(true)
       expect(result.structuredContent?.from).toBe(sourceFolder)
       expect(result.structuredContent?.to).toBe(targetFolder)
+    } finally {
+      await cleanup()
+    }
+  })
+
+  it("registers TVDB query tools when runners are provided", async () => {
+    const { appDataDir, userDataDir, userConfig, cleanup } = await makeTempConfig()
+    try {
+      const handler = await createMcpStreamableHttpHandler({
+        getUserConfig: async () => userConfig,
+        appDataDir,
+        userDataDir,
+        fs: defaultChatFs(),
+        logger: {
+          debug() {},
+          info() {},
+          warn() {},
+          error() {},
+        },
+        searchInTvdb: async () => [],
+        getMovieInTvdb: async () => ({}),
+        getTvShowInTvdb: async () => ({}),
+        getTvdbLanguages: async () => [],
+      })
+
+      await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "test", version: "0.0.1" },
+        },
+      })
+
+      const listResponse = await callMcp(handler, {
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/list",
+        params: {},
+      })
+      const tools = (listResponse.result as { tools: Array<{ name: string }> })
+        .tools
+      const names = tools.map((t) => t.name)
+      expect(names).toContain("tvdb-search")
+      expect(names).toContain("tvdb-get-movie")
+      expect(names).toContain("tvdb-get-tv-show")
+      expect(names).toContain("tvdb-get-languages")
     } finally {
       await cleanup()
     }

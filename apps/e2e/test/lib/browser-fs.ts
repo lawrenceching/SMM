@@ -98,7 +98,7 @@ export async function fetchHelloPathsViaBrowser(): Promise<HelloPaths> {
         if (token) {
             headers['Authorization'] = `Bearer ${token}`
         }
-        const helloRes = await fetch('/api/hello', { method: 'POST', headers })
+        const helloRes = await fetch('/api/hello', { method: 'GET', headers })
         const helloBody = await helloRes.json() as {
             appDataDir?: string
             userDataDir?: string
@@ -440,12 +440,12 @@ export async function getFileSizeViaBrowser(filePath: string): Promise<number> {
 }
 
 /**
- * `{tmpDir}/smm-test-folder` from `POST /api/hello` — shared fixture root for common specs.
+ * `{tmpDir}/smm-test-folder` from `GET /api/hello` — shared fixture root for common specs.
  */
 export async function resolveSmmTestFolderViaBrowser(): Promise<string> {
     const { tmpDir } = await fetchHelloPathsViaBrowser()
     if (!tmpDir) {
-        throw new Error('POST /api/hello did not return tmpDir')
+        throw new Error('GET /api/hello did not return tmpDir')
     }
     return joinPlatformPath(tmpDir, 'smm-test-folder')
 }
@@ -566,6 +566,8 @@ export function buildDefaultUserConfig(initConfig?: Partial<UserConfig>): UserCo
         enableMcpServer: false,
         mcpHost: '127.0.0.1',
         mcpPort: 30001,
+        // Avoid first-run AnonymousTelemetryConsentDialog blocking StatusBar clicks in e2e.
+        anonymousTelemetryConsent: false,
     }
 
     return initConfig ? { ...userConfig, ...initConfig } : userConfig

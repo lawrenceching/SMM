@@ -12,6 +12,7 @@ import { DialogProvider, useDialogs } from './providers/dialog-provider'
 import { useWebSocket, useWebSocketEvent, sendAcknowledgement } from './hooks/useWebSocket'
 import { Button } from './components/ui/button'
 import { AppInitializer } from './AppInitializer'
+import { AnonymousTelemetryConsentGate } from '@/components/initialization/AnonymousTelemetryConsentGate'
 import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
 import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
 import { MediaFolderImportedEventHandler } from './components/eventlisteners/MediaFolderImportedEventHandler.tsx'
@@ -220,6 +221,7 @@ async function bootstrap() {
               <DialogProvider>
                 <AppLanguageSync />
                 <AppInitializer />
+                <AnonymousTelemetryConsentGate />
                 <DragDropReceiver>
                   <AuthGate>
                     <AppSwitcher />

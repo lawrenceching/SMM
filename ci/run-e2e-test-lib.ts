@@ -36,6 +36,31 @@ export const USAGE =
 
 const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker']);
 
+/** Port env keys from repo `.env.local` (see `# --- Ports ---` section). */
+export const E2E_PORT_ENV_KEYS = ['UI_PORT', 'CLI_PORT', 'PORT'] as const;
+
+export type E2ePortEnvKey = (typeof E2E_PORT_ENV_KEYS)[number];
+
+/**
+ * Forward dev-server port overrides into cicd task/background env.
+ * Values come from `loadEnvLocal()` in run-e2e-test.ts (or the caller's shell).
+ */
+export function assignE2eLocalPortEnv(env: Record<string, string>): void {
+  for (const key of E2E_PORT_ENV_KEYS) {
+    const value = process.env[key]?.trim();
+    if (value) {
+      env[key] = value;
+    }
+  }
+}
+
+/** Opt-in UI v3 for e2e (`localStorage smm.v3.enabled`). Production default is on; e2e still injects when E2E_SMM_V3=true. */
+function assignE2eSmmV3Env(env: Record<string, string>): void {
+  if (process.env.E2E_SMM_V3 === 'true') {
+    env.E2E_SMM_V3 = 'true';
+  }
+}
+
 function parsePlatform(value: string): Platform {
   if (!PLATFORMS.has(value as Platform)) {
     throw new Error(
@@ -186,6 +211,8 @@ export function buildDesktopConfig(specs: string[]): CicdConfig {
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
+  assignE2eSmmV3Env(env);
+  assignE2eLocalPortEnv(env);
 
   return {
     name: 'smm-e2e',
@@ -233,6 +260,7 @@ export function buildOhosConfig(specs: string[]): CicdConfig {
   if (process.env.HDC_PORT_FORWARD_ENABLED) {
     env.HDC_PORT_FORWARD_ENABLED = process.env.HDC_PORT_FORWARD_ENABLED;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-ohos',
@@ -272,6 +300,7 @@ export function buildElectronConfig(specs: string[]): CicdConfig {
   if (process.env.EXTERNAL_CONFIG_FILE_URL) {
     env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-electron',
@@ -347,6 +376,7 @@ export function buildDockerConfig(specs: string[]): CicdConfig {
   if (tvdbHttpProxy) {
     env.TVDB_HTTP_PROXY = tvdbHttpProxy;
   }
+  assignE2eSmmV3Env(env);
 
   return {
     name: 'smm-e2e-docker',

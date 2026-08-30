@@ -11,7 +11,10 @@ import { useTheme } from "@/providers/theme-provider"
 import type { PreferMediaLanguage } from "@core/types"
 import { resolveAppLanguage } from "@core/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
-import { startMcpServer, stopMcpServer } from "@/api/mcp"
+import {
+  useStartMcpServerMutation,
+  useStopMcpServerMutation,
+} from "@/hooks/useMcpServerStatus"
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const THEME_OPTIONS = ["light", "dark", "system"] as const
@@ -49,6 +52,8 @@ export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const helloQuery = useHelloQuery()
+  const startMcpServerMutation = useStartMcpServerMutation()
+  const stopMcpServerMutation = useStopMcpServerMutation()
   const { t } = useTranslation(['settings', 'common'])
 
   // Track initial values
@@ -56,6 +61,7 @@ export function GeneralSettings() {
     applicationLanguage: (userConfig.applicationLanguage ??
       APPLICATION_LANGUAGE_UNSET) as ApplicationLanguageFormValue,
     preferMediaLanguage: userConfig.preferMediaLanguage || PREFER_MEDIA_LANGUAGE_UNSET,
+    anonymousTelemetryConsent: userConfig.anonymousTelemetryConsent ?? false,
     enableMcpServer: userConfig.enableMcpServer ?? false,
     mcpHost: userConfig.mcpHost ?? '127.0.0.1',
     mcpPort: userConfig.mcpPort ?? 30001,
@@ -66,6 +72,7 @@ export function GeneralSettings() {
     initialValues.applicationLanguage,
   )
   const [preferMediaLanguage, setPreferMediaLanguage] = useState<PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET>(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
+  const [anonymousTelemetryConsent, setAnonymousTelemetryConsent] = useState(initialValues.anonymousTelemetryConsent)
   const [enableMcpServer, setEnableMcpServer] = useState(initialValues.enableMcpServer)
   const [mcpHost, setMcpHost] = useState(initialValues.mcpHost)
   const [mcpPort, setMcpPort] = useState(String(initialValues.mcpPort))
@@ -75,6 +82,7 @@ export function GeneralSettings() {
     /* eslint-disable react-hooks/set-state-in-effect */
     setApplicationLanguage(initialValues.applicationLanguage)
     setPreferMediaLanguage(initialValues.preferMediaLanguage as PreferMediaLanguage | typeof PREFER_MEDIA_LANGUAGE_UNSET)
+    setAnonymousTelemetryConsent(initialValues.anonymousTelemetryConsent)
     setEnableMcpServer(initialValues.enableMcpServer)
     setMcpHost(initialValues.mcpHost)
     setMcpPort(String(initialValues.mcpPort))
@@ -86,6 +94,7 @@ export function GeneralSettings() {
     return (
       applicationLanguage !== initialValues.applicationLanguage ||
       preferMediaLanguage !== initialValues.preferMediaLanguage ||
+      anonymousTelemetryConsent !== initialValues.anonymousTelemetryConsent ||
       enableMcpServer !== initialValues.enableMcpServer ||
       mcpHost !== initialValues.mcpHost ||
       mcpPort !== String(initialValues.mcpPort)
@@ -93,6 +102,7 @@ export function GeneralSettings() {
   }, [
     applicationLanguage,
     preferMediaLanguage,
+    anonymousTelemetryConsent,
     enableMcpServer,
     mcpHost,
     mcpPort,
@@ -119,17 +129,18 @@ export function GeneralSettings() {
     }
 
     const parsedMcpPort = Number(mcpPort)
-    const updatedConfig = {
+    const resolvedMcpPort =
+      Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort
+
+    const nonMcpConfig = {
       ...userConfig,
       applicationLanguage: savedApplicationLanguage,
       preferMediaLanguage: preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
-      enableMcpServer,
-      mcpHost: mcpHost || undefined,
-      mcpPort: Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort,
+      anonymousTelemetryConsent,
     }
-    await setAndSaveUserConfig(traceId, updatedConfig)
+    await setAndSaveUserConfig(traceId, nonMcpConfig)
 
-    // ── Sync MCP server after config save ──────────────────
+    // MCP changes go through Core APIs; Core persists MCP fields in smm.json.
     const mcpToggledOn = enableMcpServer && !initialValues.enableMcpServer
     const mcpToggledOff = !enableMcpServer && initialValues.enableMcpServer
     const mcpHostOrPortChanged =
@@ -138,18 +149,16 @@ export function GeneralSettings() {
 
     try {
       if (mcpToggledOff) {
-        await stopMcpServer()
+        await stopMcpServerMutation.mutateAsync()
       } else if (mcpToggledOn) {
-        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+        await startMcpServerMutation.mutateAsync({ host: mcpHost, port: resolvedMcpPort })
       } else if (enableMcpServer && mcpHostOrPortChanged) {
-        // Restart with new host/port
-        await stopMcpServer()
-        await startMcpServer({ host: mcpHost, port: parsedMcpPort })
+        await stopMcpServerMutation.mutateAsync()
+        await startMcpServerMutation.mutateAsync({ host: mcpHost, port: resolvedMcpPort })
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.error(`[${traceId}] MCP server sync failed:`, msg)
-      // Toggle stays ON per design — user can view error in McpIndicator popover
     }
   }
 
@@ -235,6 +244,27 @@ export function GeneralSettings() {
             </SelectContent>
           </Select>
           <p className="text-sm text-muted-foreground">{t('general.preferMediaLanguageDescription')}</p>
+        </div>
+
+        <div className="space-y-4 pt-4 border-t">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <input
+                id="anonymous-telemetry-consent"
+                type="checkbox"
+                checked={anonymousTelemetryConsent}
+                onChange={(e) => setAnonymousTelemetryConsent(e.target.checked)}
+                className="h-4 w-4 rounded border-input"
+                data-testid="setting-anonymous-telemetry-consent"
+              />
+              <Label htmlFor="anonymous-telemetry-consent">
+                {t("general.anonymousTelemetryConsent")}
+              </Label>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {t("general.anonymousTelemetryConsentDescription")}
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4 pt-4 border-t">

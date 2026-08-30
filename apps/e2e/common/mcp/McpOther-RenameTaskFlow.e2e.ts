@@ -67,23 +67,19 @@ describe('MCP Other - RenameTaskFlow', () => {
     }
   })
 
-  it('MCP rename task tools should rename episode video file via begin/add/end flow', async () => {
+  it('MCP create rename episode plan tool should rename an episode video file', async () => {
     const folderPath = await seedRecognizedTvShowFolder({ ...folder1 }, testFolder)
 
     expect(await TVShowPanel.toString()).toContain('S01E01 S01E01.mkv V V V')
 
-    const r = await mcpClient.beginRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
+    await mcpClient.createRenameEpisodePlan(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,
-    })
-
-    await mcpClient.addRenameFileToTask(ctx.clientCwd, ctx.mcpAddress, {
-      taskId: r.taskId,
-      from: joinPlatformPath(folderPath, 'S01E01.mkv'),
-      to: joinPlatformPath(folderPath, '[1].mp4'),
-    })
-
-    await mcpClient.endRenameFilesTask(ctx.clientCwd, ctx.mcpAddress, {
-      taskId: r.taskId,
+      files: [
+        {
+          from: joinPlatformPath(folderPath, 'S01E01.mkv'),
+          to: joinPlatformPath(folderPath, '[1].mp4'),
+        },
+      ],
     })
 
     await Prompts.aiBasedRenamePrompt.waitForDisplayed()

@@ -19,12 +19,16 @@ import {
     GetEpisodesTool,
     GetMediaMetadataTool,
     RenameFolderTool,
+    RenameEpisodeFileTool,
+    ScrapeTool,
+    GetJobTool,
+    TmdbSearchTool,
+    TmdbGetMovieTool,
+    TmdbGetTvShowTool,
     BeginRecognizeTaskTool,
     AddRecognizedMediaFileTool,
     EndRecognizeTaskTool,
-    BeginRenameFilesTaskTool,
-    AddRenameFileToTaskTool,
-    EndRenameFilesTaskTool,
+    CreateRenameEpisodePlanTool,
 } from "./tools";
 import { AIBasedConfirmationBridge } from "./AIBasedConfirmationBridge";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
@@ -314,6 +318,12 @@ function AssistantImpl() {
         <IsFolderExistTool />
         <GetEpisodesTool />
         <RenameFolderTool />
+        <RenameEpisodeFileTool />
+        <ScrapeTool />
+        <GetJobTool />
+        <TmdbSearchTool />
+        <TmdbGetMovieTool />
+        <TmdbGetTvShowTool />
         {/* Rename/recognize task tools run HTTP plan APIs in the renderer.
             On desktop `AssistantChatTransport`, the same tools are executed
             server-side in `doChat` — mounting them here would duplicate
@@ -323,9 +333,7 @@ function AssistantImpl() {
                 <BeginRecognizeTaskTool />
                 <AddRecognizedMediaFileTool />
                 <EndRecognizeTaskTool />
-                <BeginRenameFilesTaskTool />
-                <AddRenameFileToTaskTool />
-                <EndRenameFilesTaskTool />
+                <CreateRenameEpisodePlanTool />
             </>
         )}
         <GetMediaMetadataTool />

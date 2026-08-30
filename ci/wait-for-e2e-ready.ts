@@ -4,10 +4,23 @@
  *
  * UI port is read from apps/ui/vite.config.ts (not hard-coded).
  */
+import { loadEnvLocal } from './load-env-local.ts';
 import { readUiDevServerPort } from './read-ui-dev-port.ts';
+import { fileURLToPath } from 'node:url';
+import * as path from 'node:path';
 
-const CLI_READY_URL = 'http://localhost:30000/api/hello';
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const DEFAULT_CLI_PORT = 30000;
 const CLI_AUTH_TOKEN = 'ChangeMe123';
+
+function resolveMainCliPort(): number {
+  const raw = process.env.PORT?.trim();
+  if (!raw) {
+    return DEFAULT_CLI_PORT;
+  }
+  const port = Number.parseInt(raw, 10);
+  return Number.isFinite(port) && port > 0 ? port : DEFAULT_CLI_PORT;
+}
 
 async function waitForHttp(
   url: string,
@@ -52,9 +65,13 @@ async function waitForHttp(
 }
 
 async function main(): Promise<void> {
-  console.log('[wait-for-e2e-ready] waiting for CLI (http://localhost:30000)');
-  await waitForHttp(CLI_READY_URL, {
-    method: 'POST',
+  loadEnvLocal(ROOT);
+
+  const cliPort = resolveMainCliPort();
+  const cliReadyUrl = `http://localhost:${cliPort}/api/hello`;
+  console.log(`[wait-for-e2e-ready] waiting for CLI (${cliReadyUrl})`);
+  await waitForHttp(cliReadyUrl, {
+    method: 'GET',
     headers: { Authorization: `Bearer ${CLI_AUTH_TOKEN}` },
   });
 

@@ -21,7 +21,9 @@
     "mcpHost": "MCP 主机",
     "mcpHostPlaceholder": "127.0.0.1",
     "mcpPort": "MCP 端口",
-    "mcpPortPlaceholder": "30001"
+    "mcpPortPlaceholder": "30001",
+    "anonymousTelemetryConsent": "允许收集匿名使用信息",
+    "anonymousTelemetryConsentDescription": "分享匿名的应用版本、操作系统以及使用/崩溃统计。不会包含个人身份或媒体文件内容。"
   },
   "mediaDatabases": {
     "title": "媒体数据库",

@@ -1,3 +1,4 @@
+export { AnonymousTelemetryConsentDialog } from "./AnonymousTelemetryConsentDialog"
 export { ConfirmationDialog } from "./confirmation-dialog"
 export { SpinnerDialog } from "./spinner-dialog"
 export { ConfigDialog } from "./config-dialog"
@@ -29,6 +30,7 @@ export { AddTestBackgroundJobDialog } from "./AddTestBackgroundJobDialog"
 export { FunctionCheckDialog } from "./FunctionCheckDialog"
 export { LogDialog } from "./LogDialog"
 
+export type { AnonymousTelemetryConsentDialogProps } from "./AnonymousTelemetryConsentDialog"
 export type {
   DialogConfig,
   FolderType,

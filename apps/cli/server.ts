@@ -9,11 +9,13 @@ import { setSocketIOManager, acknowledge, broadcast } from './src/utils/socketIO
 import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
 import { handleReadFile } from './src/route/ReadFile';
 import { createAIProvider } from './lib/ai-provider.ts';
-import { getAppDataDir, getUserConfig } from './src/utils/config.ts';
+import { getUserConfig, getAppDataDir, getUserDataDir } from './src/utils/config.ts';
 import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
+import { handleRenameFolderV3 } from './src/route/RenameFolderV3';
+import { handleRenameEpisodeFile } from './src/route/RenameEpisodeFile';
 import { handleGetEpisodesRoute } from './src/route/getEpisodes';
 import { handleListFilesInMediaFolderRoute } from './src/route/listFilesInMediaFolder';
 import { handleValidateRenameOperationsRoute } from './src/route/validateRenameOperations';
@@ -21,8 +23,6 @@ import { handleReadImage } from './src/route/ReadImage';
 import { handleListFiles } from './src/route/ListFiles';
 import { handleListDrives } from './src/route/ListDrives';
 import { handleDownloadImage } from './src/route/DownloadImage';
-import { handleReadMediaMetadata } from '@/route/mediaMetadata/read';
-import { handleWriteMediaMetadata } from '@/route/mediaMetadata/write';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
 import { handleDownloadImageAsFileRequest } from './src/route/downloadImageAsFileBridge';
@@ -33,15 +33,34 @@ import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleDeleteFolder } from './src/route/DeleteFolder';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
-import { handleDebugRenameFilesTaskRoutes } from './src/route/debug/debugRenameFilesTask';
+import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
 import { handleDebugGetApplicationContextRoute } from './src/route/debug/debugGetApplicationContext';
 import { handleDebugGetMediaMetadataRoute } from './src/route/debug/debugGetMediaMetadata';
 import { handleDebugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
+import { handleDebugScrapeToolRoute } from './src/route/debug/debugScrapeTool';
+import { handleDebugGetJobToolRoute } from './src/route/debug/debugGetJobTool';
 import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesTool';
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handlePlans } from './src/route/Plans';
+import { handleRenameEpisodesPlan } from './src/route/RenameEpisodesPlan';
+import { handleGetFolders } from './src/route/GetFolders';
+import { handleUnimportFolder } from './src/route/UnimportFolder';
+import { handleImportFolder } from './src/route/ImportFolder';
+import { handleImportLibrary } from './src/route/ImportLibrary';
+import { handleGetJob } from './src/route/GetJob';
+import { handleScrape } from './src/route/Scrape';
+import { handleTmdb } from './src/route/Tmdb';
+import { handleRecognizeFolder } from './src/route/RecognizeFolder';
+import { handleTvdb } from './src/route/Tvdb';
+import { handleCoreFetch } from './src/route/CoreFetch';
+import { handleShowFolder } from './src/route/ShowFolder';
+import { handleFolderMetadata } from './src/route/FolderMetadata';
+import { handleGetMetadata } from './src/route/metadata/GetMetadata';
+import { handleCreateMetadata } from './src/route/metadata/CreateMetadata';
+import { handleSetMetadata } from './src/route/metadata/SetMetadata';
+import { handleDeleteMetadata } from './src/route/metadata/DeleteMetadata';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -54,6 +73,7 @@ import { handleSpeedtest } from './src/route/speedtest';
 import { handleDiscover } from './src/route/discover';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
+import { getCore } from '@/core/getCore';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
@@ -235,6 +255,7 @@ export class Server {
     // AI provider factory, user-config reader, and Socket.IO helpers.
     handleChatRequestCoreRoutes(this.app, {
       appDataDir: getAppDataDir(),
+      userDataDir: getUserDataDir(),
       logger: createSocketIOLogger(),
       createAIProvider: (userConfig) => createAIProvider(userConfig),
       getUserConfig: () => getUserConfig(),
@@ -247,6 +268,8 @@ export class Server {
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);
+    handleRenameFolderV3(this.app);
+    handleRenameEpisodeFile(this.app);
     handleGetEpisodesRoute(this.app);
     handleListFilesInMediaFolderRoute(this.app);
     handleValidateRenameOperationsRoute(this.app);
@@ -254,8 +277,6 @@ export class Server {
     handleDownloadImage(this.app);
     handleListFiles(this.app);
     handleListDrives(this.app);
-    handleReadMediaMetadata(this.app);
-    handleWriteMediaMetadata(this.app);
     handleRenameFilesInMediaMetadata(this.app);
     handleMatchMediaFilesToEpisodeRequest(this.app);
     handleDownloadImageAsFileRequest(this.app);
@@ -266,15 +287,34 @@ export class Server {
     handleDeleteFolder(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
-    handleDebugRenameFilesTaskRoutes(this.app);
+    handleDebugCreateRenameEpisodePlan(this.app);
     handleDebugGetApplicationContextRoute(this.app);
     handleDebugGetMediaMetadataRoute(this.app);
     handleDebugRenameFolderToolRoute(this.app);
+    handleDebugScrapeToolRoute(this.app);
+    handleDebugGetJobToolRoute(this.app);
     handleDebugListFilesToolRoute(this.app);
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
     handlePlans(this.app);
+    handleRenameEpisodesPlan(this.app);
+    handleGetFolders(this.app);
+    handleUnimportFolder(this.app);
+    handleImportFolder(this.app);
+    handleImportLibrary(this.app);
+    handleGetJob(this.app);
+    handleScrape(this.app);
+    handleTmdb(this.app);
+    handleRecognizeFolder(this.app);
+    handleTvdb(this.app);
+    handleCoreFetch(this.app);
+    handleShowFolder(this.app);
+    handleFolderMetadata(this.app);
+    handleGetMetadata(this.app);
+    handleCreateMetadata(this.app);
+    handleSetMetadata(this.app);
+    handleDeleteMetadata(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
@@ -383,6 +423,10 @@ export class Server {
     );
 
     applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
+
+    getCore().runHostSpeedTests().catch((err) =>
+      logger.error({ err }, "Failed to run TMDB/TVDB host speed tests"),
+    );
   }
 
   async stop(): Promise<void> {

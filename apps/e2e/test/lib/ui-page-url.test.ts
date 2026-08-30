@@ -14,6 +14,7 @@ function withEnv(
     E2E_PLATFORM?: string | undefined;
     E2E_DOCKER_UI_ORIGIN?: string | undefined;
     E2E_HTTP_PROXY_PROBE_URL?: string | undefined;
+    UI_PORT?: string | undefined;
   },
   fn: () => void,
 ): void {
@@ -21,6 +22,7 @@ function withEnv(
   const prevPlatform = process.env.E2E_PLATFORM;
   const prevOrigin = process.env.E2E_DOCKER_UI_ORIGIN;
   const prevProbe = process.env.E2E_HTTP_PROXY_PROBE_URL;
+  const prevUiPort = process.env.UI_PORT;
 
   if ('SMM_AUTH_TOKEN' in overrides) {
     if (overrides.SMM_AUTH_TOKEN === undefined) delete process.env.SMM_AUTH_TOKEN;
@@ -41,6 +43,10 @@ function withEnv(
       process.env.E2E_HTTP_PROXY_PROBE_URL = overrides.E2E_HTTP_PROXY_PROBE_URL;
     }
   }
+  if ('UI_PORT' in overrides) {
+    if (overrides.UI_PORT === undefined) delete process.env.UI_PORT;
+    else process.env.UI_PORT = overrides.UI_PORT;
+  }
 
   try {
     fn();
@@ -53,15 +59,26 @@ function withEnv(
     else process.env.E2E_DOCKER_UI_ORIGIN = prevOrigin;
     if (prevProbe === undefined) delete process.env.E2E_HTTP_PROXY_PROBE_URL;
     else process.env.E2E_HTTP_PROXY_PROBE_URL = prevProbe;
+    if (prevUiPort === undefined) delete process.env.UI_PORT;
+    else process.env.UI_PORT = prevUiPort;
   }
 }
 
 describe('resolveUiPageUrl', () => {
   test('defaults to localhost with port from apps/ui/vite.config.ts', () => {
-    withEnv({ SMM_AUTH_TOKEN: undefined, E2E_PLATFORM: undefined }, () => {
+    withEnv({ SMM_AUTH_TOKEN: undefined, E2E_PLATFORM: undefined, UI_PORT: undefined }, () => {
       expect(resolveUiPageUrl()).toBe('http://localhost:8000');
       expect(resolveUiPageUrl(undefined, 'general')).toBe('http://localhost:8000');
     });
+  });
+
+  test('honors UI_PORT env', () => {
+    withEnv(
+      { SMM_AUTH_TOKEN: undefined, E2E_PLATFORM: undefined, UI_PORT: '9001' },
+      () => {
+        expect(resolveUiPageUrl()).toBe('http://localhost:9001');
+      },
+    );
   });
 
   test('HarmonyOS uses device-local MAIN_HTTP_ORIGIN', () => {
@@ -104,7 +121,7 @@ describe('resolveUiPageUrl', () => {
   });
 
   test('appends SMM_AUTH_TOKEN as query param', () => {
-    withEnv({ SMM_AUTH_TOKEN: 'ChangeMe123', E2E_PLATFORM: undefined }, () => {
+    withEnv({ SMM_AUTH_TOKEN: 'ChangeMe123', E2E_PLATFORM: undefined, UI_PORT: undefined }, () => {
       expect(resolveUiPageUrl()).toBe('http://localhost:8000?token=ChangeMe123');
       expect(resolveUiPageUrl(undefined, 'HarmonyOS')).toBe(
         `${HARMONYOS_UI_ORIGIN}?token=ChangeMe123`,

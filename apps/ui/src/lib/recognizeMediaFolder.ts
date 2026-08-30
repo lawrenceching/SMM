@@ -6,6 +6,8 @@ import {
 import { tryToRecognizeMediaFolderByTmdbIdInFolderName } from "./recognizeMediaFolderByTmdbIdInFolderName";
 import { tryToRecognizeMediaFolderByTvdbIdInFolderName } from "./recognizeMediaFolderByTvdbIdInFolderName";
 import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@core/types";
+import { searchTvdb } from "@/api/tvdbSearch";
+import { isSmmV3Enabled } from "@/lib/localStorages";
 import { getTVDBv4Client } from "./TvdbUtils";
 import {
     tryToRecognizeMovieFolderBySearchingFolderNameInTVDB,
@@ -64,6 +66,11 @@ export async function recognizeMediaFolder(
     const resolveSearchInTvdb =
         searchInTvdbFn ??
         (async (params: TVDBv4SearchParams) => {
+            if (isSmmV3Enabled()) {
+                const body = await searchTvdb(params.query, params.type, params.language)
+                if (body.error) return undefined
+                return body.results
+            }
             const tvdb = getTVDBv4Client()
             const resp = await tvdb.search(params)
             return resp.status === "success" ? resp.data : undefined

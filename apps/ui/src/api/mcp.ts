@@ -1,7 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch';
-/**
- * Mirrors the McpServerState from apps/cli/src/mcp/mcpServerManager.ts
- */
+
 export interface McpServerState {
   status: "running" | "stopped" | "error";
   host?: string;
@@ -11,43 +9,60 @@ export interface McpServerState {
   error?: string;
 }
 
+interface McpServerStateResponse {
+  data?: McpServerState;
+  error?: string | null;
+}
+
+async function parseMcpResponse(resp: Response): Promise<McpServerState> {
+  if (!resp.ok) {
+    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`);
+  }
+
+  const body = (await resp.json()) as McpServerStateResponse;
+  if (body.error) {
+    throw new Error(body.error);
+  }
+  if (!body.data) {
+    throw new Error("Error Reason: MCP server response missing data");
+  }
+  if (body.data.status === "error") {
+    throw new Error(body.data.error ?? body.error ?? "Error Reason: MCP server error");
+  }
+  return body.data;
+}
+
 /**
  * Starts the MCP server on the backend.
- * Optionally overrides host/port (falls back to user config values otherwise).
- * The promise resolves when the server is fully started or rejects on failure.
+ * Core persists enableMcpServer / mcpHost / mcpPort in smm.json on success.
  */
 export async function startMcpServer(options?: {
   host?: string;
   port?: number;
 }): Promise<McpServerState> {
-  const resp = await apiFetch("/api/mcp/start", {
-    method: "PUT",
+  const resp = await apiFetch("/api/start-mcp-server", {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(options ?? {}),
   });
-  const data: McpServerState = await resp.json();
-  if (!resp.ok) {
-    throw new Error(data.error || "Failed to start MCP server");
-  }
-  return data;
+  return parseMcpResponse(resp);
 }
 
 /**
  * Stops the MCP server on the backend.
+ * Core persists enableMcpServer: false in smm.json.
  */
 export async function stopMcpServer(): Promise<McpServerState> {
-  const resp = await apiFetch("/api/mcp/stop", { method: "PUT" });
-  const data: McpServerState = await resp.json();
-  if (!resp.ok) {
-    throw new Error(data.error || "Failed to stop MCP server");
-  }
-  return data;
+  const resp = await apiFetch("/api/stop-mcp-server", {
+    method: "POST",
+  });
+  return parseMcpResponse(resp);
 }
 
 /**
- * Returns the current MCP server runtime state as tracked by the backend.
+ * Returns MCP runtime state. Core may reconcile smm.json when config disagrees with runtime.
  */
 export async function getMcpServerStatus(): Promise<McpServerState> {
-  const resp = await apiFetch("/api/mcp/status");
-  return resp.json() as Promise<McpServerState>;
+  const resp = await apiFetch("/api/get-mcp-server-status");
+  return parseMcpResponse(resp);
 }
