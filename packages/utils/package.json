@@ -4,14 +4,29 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./path": "./src/path.ts",
+    "./uri": "./src/uri.ts",
+    "./url": "./src/url.ts",
+    "./locale": "./src/locale.ts",
+    "./versionCompare": "./src/versionCompare.ts",
+    "./proxiableFetch": "./src/proxiableFetch.ts",
+    "./errors": "./src/errors.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "echo \"No tests yet\""
+    "test": "vitest run",
+    "test:watch": "vitest --watch"
+  },
+  "dependencies": {
+    "@smm/types": "workspace:*",
+    "es-toolkit": "^1.42.0",
+    "filenamify": "^7.0.1",
+    "slash": "^5.1.0"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^4.0.18"
   }
 }
