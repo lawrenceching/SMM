@@ -1,0 +1,1214 @@
+/**
+ * Represent the application configuration, which not editable to the user.
+ */
+export interface AppConfig {
+    version: string;
+    userDataDir?: string;
+    reverseProxyUrl: string | null;
+}
+
+
+export type LanguageCode = 'zh-CN' | 'zh-HK' | 'zh-TW' | 'en'
+
+export interface TMDBConfig {
+  host?: string
+  apiKey?: string
+  httpProxy?: string
+}
+
+export interface TVDBConfig {
+  host?: string
+  apiKey?: string,
+  httpProxy?: string
+}
+
+export type PrimaryDatabase = 'TMDB' | 'TVDB'
+export type PreferMediaLanguage = 'zh-CN' | 'en-US' | 'ja-JP'
+
+export interface OpenAICompatibleConfig {
+  name?: string
+  baseURL?: string
+  apiKey?: string
+  model?: string
+}
+
+/**
+ * Default AI provider configurations shipped with the app.
+ */
+export const DEFAULT_AI_PROVIDERS: OpenAICompatibleConfig[] = [
+  { name: 'DeepSeek', baseURL: 'https://api.deepseek.com', apiKey: '', model: 'deepseek-v4-flash' },
+  { name: 'OpenAI', baseURL: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o' },
+  { name: 'OpenRouter', baseURL: 'https://openrouter.ai/api/v1', apiKey: '', model: 'deepseek/deepseek-v4-flash' },
+  { name: 'GLM', baseURL: 'https://open.bigmodel.cn/api/paas/v4', apiKey: '', model: 'GLM-4.5' },
+  { name: 'Other', baseURL: '', apiKey: '', model: '' },
+]
+
+export const DEFAULT_SELECTED_AI_PROVIDER = 'DeepSeek'
+
+/**
+ * Represent the user configuration, which is editable to the user.
+ */
+export interface UserConfig {
+  /**
+   * UI display language. Undefined means not explicitly configured;
+   * the app resolves language via browser → OS → English.
+   */
+  applicationLanguage?: LanguageCode;
+  tmdb: TMDBConfig;
+  /**
+   * TVDB (TheTVDB) API configuration for search and metadata.
+   */
+  tvdb: TVDBConfig;
+  /**
+   * Which database to use as primary for media search (TMDB or TVDB).
+   */
+  primaryDatabase?: PrimaryDatabase;
+  /**
+   * Preferred language for media metadata/search requests.
+   * Undefined means no explicit preference.
+   */
+  preferMediaLanguage?: PreferMediaLanguage;
+  /**
+   * The opened media folder paths in SMM. Path is in Platform-specific format.
+   */
+  folders: string[]
+  /**
+   * Persisted primary selection in sidebar, stored in POSIX format for stable comparison.
+   */
+  selectedFolder?: string
+  /**
+   * Rename rules for media files
+   */
+  renameRules: string[]
+  /**
+   * Whether dry run mode is enabled
+   */
+  dryRun: boolean
+  ai?: Record<string, OpenAICompatibleConfig>
+  /** @deprecated Use selectedAIProvider instead. */
+  selectedAI?: string
+  /**
+   * Array of AI provider configurations.
+   * Replaces the old object-based 'ai' field.
+   */
+  aiProviders?: OpenAICompatibleConfig[]
+  /**
+   * Name of the currently selected AI provider.
+   * Must match the name field of an entry in aiProviders.
+   */
+  selectedAIProvider?: string
+  selectedTMDBIntance?: TMDBInstance
+  /**
+   * The name of rename rule
+   */
+  selectedRenameRule: string
+  /**
+   * Whether to run the MCP (Model Context Protocol) server on its own port.
+   */
+  enableMcpServer?: boolean
+  /**
+   * Host to bind the MCP server to (default "127.0.0.1").
+   */
+  mcpHost?: string
+  /**
+   * Port for the MCP server (default 30001).
+   */
+  mcpPort?: number
+
+  /**
+   * Whether the user consented to anonymous telemetry / usage information.
+   * - `undefined`: never asked — UI should show the consent dialog once
+   * - `true`: agreed
+   * - `false`: declined (including dismiss)
+   *
+   * Must remain unset in default configs so first launch and upgrades prompt.
+   */
+  anonymousTelemetryConsent?: boolean
+
+  /**
+   * Path to the yt-dlp executable file.
+   */
+  ytdlpExecutablePath?: string
+
+  /**
+   * Proxy URL for yt-dlp (`--proxy`). Supports http, https, socks5 protocols.
+   * Example: `socks5://127.0.0.1:1080/`
+   */
+  ytdlpProxy?: string
+
+  /**
+   * Path to the ffmpeg executable file.
+   */
+  ffmpegExecutablePath?: string
+  /**
+   * Path to the videocaptioner executable file.
+   */
+  videoCaptionerExecutablePath?: string
+  /**
+   * Whether to prefer the bundled ffmpeg when running videocaptioner (Transcribe feature).
+   */
+  useBundledFfmpegForVideoCaptioner?: boolean
+
+  /**
+   * Path to the QuickJS executable file.
+   */
+  quickjsExecutablePath?: string
+}
+
+/**
+ * Request body for POST /api/execute endpoint.
+ *
+ * Note: the bootstrap application handshake is exposed separately at
+ * GET /api/hello (returns `HelloHttpResponseBody`).
+ */
+export interface ApiExecutePostRequestBody {
+  name: string;
+  data: any;
+}
+
+export interface ReadFileRequestBody {
+  /**
+   * Absolute path of file, it could be POSIX path or Windows path
+   */
+  path: string;
+  /**
+   * Default is true
+   */
+  requireValidPath?: boolean;
+}
+
+export interface ReadFileResponseBody {
+  data?: string;
+  error?: string;
+}
+
+export interface WriteFileRequestBody {
+  /**
+   * The absolute path in platform-specific format
+   */
+  path: string;
+  mode: 'overwrite' | 'append' | 'create';
+  /**
+   * The content to write to the file
+   */
+  data: string;
+}
+
+export interface WriteFileResponseBody {
+  error?: string;
+}
+
+export interface ListFilesRequestBody {
+  /**
+   * Absolute path of folder, it could be POSIX path or Windows path
+   */
+  path: string;
+
+  /**
+   * List only file. If onlyFiles and onlyFolders are set to true, ignore the onlyFolders.
+   */
+  onlyFiles?: boolean;
+
+  /**
+   * List only folder. If onlyFiles and onlyFolders are set to true, ignore the onlyFolders.
+   */
+  onlyFolders?: boolean;
+
+  /**
+   * List hidden files. Default is false
+   */
+  includeHiddenFiles?: boolean;
+
+  /**
+   * List all files and folders recursively. Default is false
+   */
+  recursively?: boolean;
+}
+
+export interface ListFilesResponseBody {
+  data?: {
+    /**
+     * The resolved path of path parameter in ListFilesRequestBody
+     * For example, if user request files in path "~"
+     * This field will be "C:\Users\<username>"
+     */
+    path: string;
+    /**
+     * List of files and folders in the folder with metadata
+     */
+    items: Array<{
+      path: string;
+      size: number;
+      mtime: number;
+      isDirectory: boolean;
+    }>;
+
+    /**
+     * The total number of files and folders in the folder
+     * This number is different from the length of items
+     * Because the items got filtered by onlyFiles and onlyFolders.
+     * For example, the size is 10 and the length of items is 0
+     * because onlyFolders is true, and all files are filtered out.
+     * 
+     * The hidden files and directories are not counted.
+     */
+    size: number;
+  };
+  error?: string;
+}
+
+export interface ReadImageRequestBody {
+  path: string;
+}
+
+export interface ReadImageResponseBody {
+  /**
+   * In a format "data:image:xxxx"
+   */
+  data?: string;
+  error?: string;
+}
+
+export type TMDBInstance = "public" | "customized"
+
+export interface RenameRuleVariable {
+  type: "buildin" | "javascript"
+  name: string,
+  description: string,
+  example: string,
+  fn?: (mediaMetadata: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => string,
+  code?: string
+}
+
+export const EpisodeNumberVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'EPISODE',
+  description: 'The number of episode',
+  example: '1, 2, 3, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.episodeNumber?.toString() || '0';
+  }
+}
+
+export const EpisodeNumberPadded2Variable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'EPISODE_P2',
+  description: 'The number of episode, padded to 2 digits',
+  example: '01, 02, 03, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.episodeNumber?.toString().padStart(2, '0') || '00';
+  }
+}
+
+export const SeasonNumberVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'SEASON',
+  description: 'The number of season',
+  example: '1, 2, 3, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.seasonNumber?.toString() || '0';
+  }
+}
+
+export const SeasonNumberPadded2Variable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'SEASON_P2',
+  description: 'The number of season, padded to 2 digits',
+  example: '01, 02, 03, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.seasonNumber?.toString().padStart(2, '0') || '';
+  }
+}
+
+export const SeasonFolderVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'SEASON_FOLDER',
+  description: 'The folder name of season',
+  example: 'Specials, Season 1, Season 2, Season 3, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.seasonNumber === 0 ? 'Specials' : `Season ${mediaFileMetadata?.seasonNumber?.toString().padStart(2, '0')}`;
+  }
+}
+
+export const SeasonFolderPadded2Variable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'SEASON_FOLDER_P2',
+  description: 'The folder name of season, padded to 2 digits',
+  example: 'Specials, Season 01, Season 02, Season 03, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    return mediaFileMetadata?.seasonNumber === 0 ? 'Specials' : `Season ${mediaFileMetadata?.seasonNumber?.toString().padStart(2, '0')}`;
+  }
+}
+
+export const TmdbIdVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'TMDB_ID',
+  description: 'The TMDB ID of the media',
+  example: '123456, 123457, 123458, ...',
+  fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
+    if (mediaMetadata.type === 'movie-folder') {
+      return mediaMetadata.movie?.id ?? '0';
+    }
+    if (mediaMetadata.type === 'tvshow-folder') {
+      return mediaMetadata.tvShow?.id ?? '0';
+    }
+    return '0';
+  }
+}
+
+export const ExtensionVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'EXTENSION',
+  description: 'The extension of the media file',
+  example: 'mp4, mkv, avi, ...',
+  fn: (_: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    if(mediaFileMetadata?.absolutePath.includes('.')) {
+      return mediaFileMetadata?.absolutePath.split('.').pop() || '';
+    }
+    return '';
+  }
+}
+
+export const NameVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'NAME',
+  description: 'The name of episode',
+  example: 'The Long Episode, The Long Season, ...',
+  fn: (mediaMetadata: MediaMetadata, mediaFileMetadata?: MediaFileMetadata) => {
+    if (mediaFileMetadata?.seasonNumber !== undefined && mediaFileMetadata?.episodeNumber !== undefined) {
+      const seasonUnified = mediaMetadata.tvShow?.seasons?.find(s => s.season === mediaFileMetadata.seasonNumber)
+      const episodeUnified = seasonUnified?.episodes?.find(e => e.episode === mediaFileMetadata.episodeNumber)
+      if (episodeUnified?.name) {
+        return episodeUnified.name
+      }
+      const season = mediaMetadata.tvShow?.seasons?.find(s => s.season === mediaFileMetadata.seasonNumber)
+      const episode = season?.episodes?.find(e => e.episode === mediaFileMetadata.episodeNumber)
+      if (episode?.name) {
+        return episode.name
+      }
+    }
+    // Fallback to movie title if it's a movie
+    return mediaMetadata.movie?.name || '';
+  }
+}
+
+export const TvShowNameVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'TV_SHOW_NAME',
+  description: 'The name of TV show',
+  example: 'The Long TV Show, The Long Season, ...',
+  fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
+    return mediaMetadata.tvShow?.name ?? '';
+  }
+}
+
+export const ReleaseYearVariable: RenameRuleVariable = {
+  type: "buildin",
+  name: 'RELEASE_YEAR',
+  description: 'The name of TV show',
+  example: 'The Long TV Show, The Long Season, ...',
+  fn: (mediaMetadata: MediaMetadata, _?: MediaFileMetadata) => {
+    return mediaMetadata.tvShow?.airDate?.split('-')[0] || mediaMetadata.movie?.airDate?.split('-')[0] || '';
+  }
+}
+
+export const TmmSeasonFolderNameVariable: RenameRuleVariable = {
+  type: "javascript",
+  name: 'SEASON_FOLDER_SHORT',
+  description: '第0季(特别季) -> se0, 第1季 -> se1, 第2季 -> se2, ...',
+  example: '第0季(特别季) -> se0, 第1季 -> se1, 第2季 -> se2, ...',
+  code: `\`se\${episode.seasonNumber}\``
+}
+
+export const RenameRuleVariables: RenameRuleVariable[] = [
+  EpisodeNumberVariable,
+  EpisodeNumberPadded2Variable,
+  SeasonNumberVariable,
+  SeasonNumberPadded2Variable,
+  SeasonFolderVariable,
+  SeasonFolderPadded2Variable,
+  TmdbIdVariable,
+  ExtensionVariable,
+  NameVariable,
+  TvShowNameVariable,
+  ReleaseYearVariable,
+  TmmSeasonFolderNameVariable
+]
+
+export type RenameRuleAuthor = 'system' | 'user'
+export type RenameRuleType = 'tv' | 'movie' | 'music' | 'folder'
+/**
+ * The name uses as ID of RenameRule
+ */
+export interface RenameRule {
+  type: RenameRuleType,
+  author: RenameRuleAuthor,
+  name: string,
+  description: string,
+  template: string,
+}
+
+
+export const PlexRenameRule: RenameRule = {
+  type: 'tv',
+  name: 'Plex(TvShow/Anime)',
+  author: 'system',
+  description: `例子:
+
+Season 01/天使降临到我身边！ - S01E01 - 心里痒痒的感觉.mkv
+Specials/天使降临到我身边！ - S00E01 - OVA 我是姐姐哦.mkv
+https://support.plex.tv/articles/naming-and-organizing-your-tv-show-files/`,
+  template: '{SEASON_FOLDER}/{TV_SHOW_NAME} - S{SEASON_P2}E{EPISODE_P2} - {NAME}.{EXTENSION}',
+};
+
+export const PlexMovieRenameRule: RenameRule = {
+  type: 'movie',
+  name: 'Plex(Movie)',
+  author: 'system',
+  description: `例子:
+蝙蝠侠：黑暗骑士 (2018).mkv
+https://support.plex.tv/articles/naming-and-organizing-your-movie-media-files/`,
+  template: '{NAME} ({RELEASE_YEAR}).{EXTENSION}',
+};
+
+export const TvShowShortSeasonFolderRenameRule: RenameRule = {
+  type: 'tv',
+  name: 'TMM(TvShow/Anime)',
+  author: 'system',
+  description: `例子:
+se0/天使降临到我身边！ - S00E01 - OVA 我是姐姐哦.mkv
+se1/天使降临到我身边！ - S01E01 - 心里痒痒的感觉.mkv
+`,
+  template: '{SEASON_FOLDER_SHORT}/{TV_SHOW_NAME} - S{SEASON_P2}E{EPISODE_P2} - {NAME}.{EXTENSION}',
+}
+
+export const EmbyFolderRenameRule: RenameRule = {
+  type: 'folder',
+  name: 'Emby(TMDB ID 后缀)',
+  author: 'system',
+  description: `
+https://emby.media/support/articles/TV-Naming.html`,
+  template: '{TV_SHOW_NAME} ({RELEASE_YEAR}) [tmdbid={TMDB_ID}]',
+};
+
+export const RenameRules = {
+  Plex: PlexRenameRule,
+  PlexMovie: PlexMovieRenameRule,
+  EmbyFolder: EmbyFolderRenameRule,
+  TvShowShortSeasonFolder: TvShowShortSeasonFolderRenameRule,
+}
+
+
+export interface TvShowEpisodeMetadata {
+  season: number,
+  episode: number,
+  name: string,
+}
+
+export interface TvShowSeasonMetadata {
+    season: number,
+    name: string,
+    episodes: TvShowEpisodeMetadata[]
+}
+
+/**
+  * Stores the recognised media file that it is for what season and what episode
+  */
+export interface MediaFileMetadata {
+  /**
+   * POSIX format path for video file of TV Show episode or Movie
+   */
+  absolutePath: string,
+  /**
+   * Only available for TV Show media files
+   */
+  seasonNumber?: number,
+
+  /**
+   * Only available for TV Show media files
+   */
+  episodeNumber?: number,
+
+  /**
+   * Paths to subtitle files associated with this media file
+   */
+  subtitleFilePaths?: string[],
+
+  /**
+   * Paths to audio track files associated with this media file
+   */
+  audioFilePaths?: string[],
+}
+
+export type TMDBMediaType = 'movie' | 'tv'
+
+
+export interface TvShowMediaMetadata {
+  database: "TMDB" | "TVDB",
+
+  /**
+   * TMDB ID or TVDB ID
+   */
+  id: string,
+  name: string,
+  /**
+   * yyyy-MM-dd format
+   */
+  airDate?: string,
+  seasons: TvShowSeasonMetadata[]
+}
+
+export interface MovieMediaMetadata {
+  /**
+   * TMDB ID or TVDB ID
+   */
+  id: string,
+  name: string,
+  /**
+   * yyyy-MM-dd format
+   */
+  airDate?: string,
+  database: "TMDB" | "TVDB",
+}
+
+/**
+ * TVDB (TheTVDB) v4 raw payload stored for persistence.
+ * We intentionally keep it loosely typed because the exact response shape can vary
+ * across endpoints and response options (e.g. "extended").
+ */
+export interface TVDBSeries {
+  [key: string]: unknown
+}
+
+/**
+ * TVDB (TheTVDB) v4 raw payload stored for persistence.
+ */
+export interface TVDBMovie {
+  [key: string]: unknown
+}
+
+export interface MediaMetadata {
+
+  /**
+   * The absolute path of media folder, in POSIX format
+   */
+  mediaFolderPath?: string,
+
+  /**
+   * Stores the recognized media files
+   * 
+   * For TV Show, mediaFiles are video files for each episode
+   * 
+   * For Movie, mediaFiles contains only one item, which is the video file. 
+   *   seasonNumber and episodeNumber properties should be ignored no matter what values they are.
+   */
+  mediaFiles?: MediaFileMetadata[],
+  type?: "music-folder" | "tvshow-folder" | "movie-folder"
+  tvShow?: TvShowMediaMetadata,
+  movie?: MovieMediaMetadata,
+}
+
+// TMDB Search Types
+export type TMDBSearchType = 'movie' | 'tv' 
+
+// TMDB API Response Models
+export interface TMDBMovie {
+  id: number
+  title: string
+  original_title: string
+  overview: string
+  poster_path: string | null
+  backdrop_path: string | null
+  release_date: string
+  vote_average: number
+  vote_count: number
+  popularity: number
+  genre_ids: number[]
+  adult: boolean
+  video: boolean
+  media_type?: 'movie'
+}
+
+export interface TMDBTVShow {
+  id: number
+  name: string
+  original_name: string
+  overview: string
+  poster_path: string | null
+  backdrop_path: string | null
+  first_air_date: string
+  vote_average: number
+  vote_count: number
+  popularity: number
+  genre_ids: number[]
+  origin_country: string[]
+  media_type?: 'tv'
+}
+
+export interface TmdbMovieDetails extends TMDBMovie {
+  belongs_to_collection: {
+    id: number
+    name: string
+    poster_path: string | null
+    backdrop_path: string | null
+  } | null
+  budget: number
+  genres: Array<{
+    id: number
+    name: string
+  }>
+  homepage: string | null
+  imdb_id: string | null
+  original_language: string
+  production_companies: Array<{
+    id: number
+    name: string
+    logo_path: string | null
+    origin_country: string
+  }>
+  production_countries: Array<{
+    iso_3166_1: string
+    name: string
+  }>
+  revenue: number
+  runtime: number | null
+  spoken_languages: Array<{
+    english_name: string
+    iso_639_1: string
+    name: string
+  }>
+  status: string
+  tagline: string | null
+}
+
+export interface TMBDPerson {
+  id: number
+  name: string
+  profile_path: string | null
+  adult: boolean
+  popularity: number
+  known_for_department: string
+  gender: number
+  known_for: Array<TMDBMovie | TMDBTVShow>
+  media_type?: 'person'
+}
+
+export interface TMDBCompany {
+  id: number
+  name: string
+  logo_path: string | null
+  origin_country: string
+  media_type?: 'company'
+}
+
+export interface TMDBCollection {
+  id: number
+  name: string
+  poster_path: string | null
+  backdrop_path: string | null
+  media_type?: 'collection'
+}
+
+export interface TMDBKeyword {
+  id: number
+  name: string
+  media_type?: 'keyword'
+}
+
+// TV Show Details Interfaces
+export interface TMDBTVShowDetails extends TMDBTVShow {
+  number_of_seasons: number
+  number_of_episodes: number
+  seasons: TMDBSeason[]
+  status: string
+  type: string
+  in_production: boolean
+  last_air_date: string
+  networks: Array<{
+    id: number
+    name: string
+    logo_path: string | null
+  }>
+  production_companies: Array<{
+    id: number
+    name: string
+    logo_path: string | null
+  }>
+}
+
+export interface TMDBSeason {
+  id: number
+  name: string
+  overview: string
+  poster_path: string | null
+  season_number: number
+  air_date: string
+  episode_count: number
+  episodes?: TMDBEpisode[]
+}
+
+export interface TMDBEpisode {
+  id: number
+  name: string
+  overview: string
+  still_path: string | null
+  air_date: string
+  episode_number: number
+  season_number: number
+  vote_average: number
+  vote_count: number
+  runtime: number
+}
+
+/**
+ * Crew member on an episode in GET /3/tv/{series_id}/season/{season_number}
+ * https://developer.themoviedb.org/reference/tv-season-details
+ */
+export interface TmdbTvSeasonDetailsCrewMember {
+  department: string
+  job: string
+  credit_id: string
+  adult: boolean
+  gender: number
+  id: number
+  known_for_department: string
+  name: string
+  original_name: string
+  popularity: number
+  profile_path: string | null
+}
+
+/**
+ * Guest star on an episode in TV season details
+ */
+export interface TmdbTvSeasonDetailsGuestStar {
+  character: string
+  credit_id: string
+  order: number
+  adult: boolean
+  gender: number
+  id: number
+  known_for_department: string
+  name: string
+  original_name: string
+  popularity: number
+  profile_path: string | null
+}
+
+/**
+ * Episode row returned on TV season details (extends our base episode with API-only fields)
+ */
+export interface TmdbTvSeasonEpisodeDetails extends TMDBEpisode {
+  episode_type?: string
+  production_code?: string
+  show_id?: number
+  crew?: TmdbTvSeasonDetailsCrewMember[]
+  guest_stars?: TmdbTvSeasonDetailsGuestStar[]
+}
+
+export interface TmdbTvSeasonDetailsNetwork {
+  id: number
+  name: string
+  logo_path: string | null
+  origin_country: string
+}
+
+/**
+ * Response shape for GET /3/tv/{series_id}/season/{season_number}
+ */
+export type TmdbTvSeasonDetails = Omit<TMDBSeason, 'episodes'> & {
+  _id?: string
+  vote_average?: number
+  networks?: TmdbTvSeasonDetailsNetwork[]
+  episodes?: TmdbTvSeasonEpisodeDetails[]
+}
+
+
+export interface GetMetadataRequestBody {
+  path: string;
+}
+
+export interface CreateMetadataRequestBody {
+  data: MediaMetadata;
+}
+
+export interface SetMetadataRequestBody {
+  path: string;
+  patch: Pick<MediaMetadata, "type" | "mediaFiles" | "tvShow" | "movie">;
+}
+
+export interface DeleteMetadataRequestBody {
+  path: string;
+}
+
+export interface MetadataSuccessResponseBody {
+  data?: MediaMetadata | true;
+}
+
+export interface ReadMediaMetadataRequestBody {
+  /**
+   * Absolute path of media folder in platform-specific format
+   */
+  path: string;
+}
+
+export interface ReadMediaMetadataResponseBody {
+  data?: MediaMetadata;
+  error?: string;
+}
+
+export interface WriteMediaMetadataRequestBody {
+  data: MediaMetadata;
+}
+
+export interface WriteMediaMetadataResponseBody {
+  data: MediaMetadata;
+  error?: string;
+}
+
+export interface DeleteMediaMetadataResponseBody {
+  error?: string;
+}
+
+export interface DeleteMediaMetadataRequestBody {
+  /**
+   * Absolute path of media folder in platform-specific format
+   */
+  path: string;
+}
+
+/**
+ * RFC 9457 Problem Details for HTTP APIs
+ *   https://www.rfc-editor.org/rfc/rfc9457.html
+ */
+export interface ProblemDetails {
+  type: string;
+  title: string;
+  status: number;
+  detail: string;
+  instance: string;
+}
+
+export interface TmdbSearchRequestBody {
+  keyword: string, 
+  type: "movie" | "tv", 
+  language: 'zh-CN' | 'en-US' | 'ja-JP',
+  baseURL?: string
+}
+
+export interface TmdbSearchResponseBody {
+  results: Array<TMDBMovie | TMDBTVShow>
+  page: number
+  total_pages: number
+  total_results: number
+  error?: string
+}
+
+export type TmdbSeriesDetails = TMDBTVShowDetails
+
+export type TmdbSeasonDetails = TmdbTvSeasonDetails
+
+export interface TmdbTvShowResponseBody {
+  data?: TMDBTVShowDetails
+  error?: string
+}
+
+/**
+ * Logical request for TV season details (path + query sent via CLI proxy to TMDB).
+ * TMDB: GET https://api.themoviedb.org/3/tv/{series_id}/season/{season_number}
+ */
+export interface TmdbSeasonDetailsRequestBody {
+  seriesId: number
+  seasonNumber: number
+  language?: 'zh-CN' | 'en-US' | 'ja-JP'
+  baseURL?: string
+  appendToResponse?: string
+}
+
+export interface OpenAIGenerateObjectRequestBody {
+  baseURL: string
+  apiKey: string
+  model: string
+  prompt: string
+}
+
+export interface OpenAIGenerateObjectResponseBody {
+  data: any
+  error?: string
+}
+
+/**
+ * Record the result of local media file matching to corresponding seasons and episodes
+ */
+export interface MediaFileMatchResult {
+  path: string
+  seasonNumber: string
+  episodeNumber: string
+}
+
+export interface DownloadImageRequestBody {
+  url: string
+  /**
+   * The absolute path in platform format
+   */
+  path: string
+  /**
+   * Optional outbound HTTP proxy (e.g. http://127.0.0.1:8081). Set by the UI
+   * only for user-configured custom TMDB/TVDB hosts.
+   */
+  httpProxy?: string
+}
+
+export interface DownloadImageResponseBody {
+  data: {
+    url: string
+    path: string
+  }
+  error?: string
+}
+
+export interface OpenInFileManagerRequestBody {
+  /**
+   * The absolute path to the folder to open
+   */
+  path: string
+}
+
+export interface OpenInFileManagerResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}
+
+export interface OpenFileRequestBody {
+  /**
+   * The absolute path to the file to open in platform-specific format
+   */
+  path: string
+}
+
+export interface OpenFileResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}
+
+export interface ScrapeRequestBody {
+  /**
+   * The absolute path to the media folder (in POSIX format)
+   */
+  mediaFolderPath: string;
+}
+
+export interface ScrapeResponseBody {
+  error?: string;
+}
+
+/** Shared bootstrap payload — CLI and HTTP base. */
+export interface HelloCliBody {
+  /** Application uptime in seconds. */
+  uptime: number;
+  version: string;
+  /**
+   * CLI process platform (`process.platform`), e.g. `win32`, `linux`, `darwin`.
+   * The UI uses this (not the browser OS) when converting paths to the server's platform format.
+   */
+  platform: string;
+  /** Path in platform-specific format. */
+  userDataDir: string;
+  /** Path in platform-specific format. */
+  appDataDir: string;
+  /** Path in platform-specific format — cached / transient files (e.g. screenshots). */
+  tmpDir: string;
+  /** Path in platform-specific format. */
+  logDir: string;
+  /**
+   * OS locale detected by the CLI process (e.g. en-US, zh-CN).
+   * Used by the UI when applicationLanguage is not explicitly configured.
+   */
+  osLocale: string;
+}
+
+/** HTTP-only extensions for browser / embedded UI. */
+export interface HelloHttpResponseBody extends HelloCliBody {
+  /**
+   * The base URL of the CLI reverse proxy (e.g. http://127.0.0.1:30001).
+   * Used by the UI to route external metadata API requests through a CORS-safe local proxy.
+   * This field is null when the reverse proxy fails to start.
+   */
+  reverseProxyUrl: string | null;
+  /**
+   * Port that the core-routes Node `http` server is listening on.
+   * The UI uses this to call endpoints that live on core-routes
+   * (e.g. `POST /api/isFolderAvailable`) when the UI's origin is
+   * the Hono Bun server (cli port 30000) instead of the core-routes
+   * Node server.
+   */
+  coreRoutesPort: number;
+  /** Error message when the hello task fails (e.g. validation, server error). */
+  error?: string;
+}
+
+/** @deprecated Use HelloHttpResponseBody */
+export type HelloResponseBody = HelloHttpResponseBody;
+
+/**
+ * Standard result type for rename validation operations.
+ * All rename validation functions should return this type.
+ */
+export interface RenameValidationResult {
+  isValid: boolean;
+  errors: string[];
+  validatedRenames: Array<{ from: string; to: string }>;
+}
+
+export interface RenameFilesRequestBody {
+  /**
+   * Batch of file renames. Paths are in platform-specific format (POSIX on Linux/macOS, Windows on Windows).
+   */
+  files: Array<{ from: string; to: string }>;
+  /**
+   * Optional trace id for logging/correlation.
+   */
+  traceId?: string;
+  /**
+   * When true (default), mediaFolder is required.
+   * When false, mediaFolder may be omitted and resolved from smm.json folders.
+   */
+  strict?: boolean;
+  /**
+   * Media folder path in POSIX format. Required when strict is true (default).
+   * When provided, the backend will automatically update media metadata and
+   * broadcast the change after renaming.
+   */
+  mediaFolder?: string;
+  /**
+   * Optional client ID for broadcasting updates. Used together with mediaFolder.
+   */
+  clientId?: string;
+}
+
+export interface RenameFilesResponseBody {
+  data?: {
+    succeeded: string[];
+    failed: Array<{ path: string; error: string }>;
+  };
+  error?: string;
+}
+
+export interface RenameFilesInMediaMetadataRequestBody {
+  /**
+   * The media folder path in POSIX format
+   */
+  mediaFolder: string;
+  /**
+   * Array of file rename operations. Paths are in POSIX format.
+   */
+  files: Array<{ from: string; to: string }>;
+  /**
+   * Optional trace id for logging/correlation.
+   */
+  traceId?: string;
+  /**
+   * Optional client ID for broadcasting updates.
+   */
+  clientId?: string;
+}
+
+export interface RenameFilesInMediaMetadataResponseBody {
+  data?: {
+    successfulRenames: Array<{ from: string; to: string }>;
+  };
+  error?: string;
+}
+
+export interface FolderRenameRequestBody {
+  /**
+   * Absolute path of source folder
+   */
+  from: string;
+  /**
+   * Absolute path of destination folder
+   */
+  to: string;
+}
+
+export interface FolderRenameResponseBody {
+  error?: string
+}
+
+export interface NewFileNameRequestBody {
+  ruleName: "plex" | "emby",
+  type: "tv" | "movie";
+  seasonNumber: number;
+  episodeNumber: number;
+  episodeName: string;
+  tvshowName: string;
+  file: string;
+  tmdbId: string;
+  releaseYear: string; 
+  movieName?: string;
+}
+
+export interface GetFileNameResponseBody {
+  /**
+   * The new file name, generally it's a relative path
+   */
+  data: string
+  error?: string
+}
+
+export interface MoveFileToTrashRequestBody {
+  /**
+   * The absolute path to the file to move to trash (in platform-specific format)
+   */
+  path: string
+}
+
+export interface MoveFileToTrashResponseBody {
+  data: {
+    path: string
+  }
+  error?: string
+}
+
+export interface DeleteFileRequestBody {
+  /** Platform absolute path to a managed yt-dlp cookies temp file. */
+  path: string
+}
+
+export interface DeleteFileResponseBody {
+  data?: {
+    path: string
+  }
+  error?: string
+}
+
+export interface DeleteFolderRequestBody {
+  /** Platform absolute path to a managed directory (must be under the allowlist). */
+  path: string
+}
+
+export interface DeleteFolderResponseBody {
+  data?: {
+    path: string
+  }
+  error?: string
+}
+
+export interface SetWatchedFolderRequestBody {
+  /** Platform absolute path, or null/empty to stop watching. */
+  folderPath: string | null
+}
+
+export interface SetWatchedFolderResponseBody {
+  data?: {
+    /** Requested watch target (null when cleared). Not a guarantee fs.watch is active. */
+    watchedFolder: string | null
+  }
+  error?: string
+}
+
+export type FolderType = "tvshow" | "movie" | "music"
