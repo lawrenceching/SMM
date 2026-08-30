@@ -177,7 +177,9 @@ jobs:
             spec: "./test/specs/ai/*.e2e.ts"
             artifact_prefix: ai
           - name: Run Config and HTTP Proxy Tests
-            spec: "./common/config/*.e2e.ts ./common/httpproxy/*.e2e.ts"
+            # Proxy-through-custom-host specs live under common/config (*WithHttpProxy).
+            # common/httpproxy/* was removed in 78ad8f00.
+            spec: "./common/config/*.e2e.ts"
             artifact_prefix: config-httpproxy
           - name: Run MCP Tests
             spec: "./common/mcp/*.e2e.ts"
@@ -349,11 +351,9 @@ jobs:
       matrix:
         include:
           - name: Docker E2E (config)
+            # Includes *WithHttpProxy specs (former common/httpproxy suite).
             spec: "./common/config/*.e2e.ts"
             artifact_prefix: docker-config
-          - name: Docker E2E (httpproxy)
-            spec: "./common/httpproxy/*.e2e.ts"
-            artifact_prefix: docker-httpproxy
           - name: Docker E2E (mcp)
             spec: "./common/mcp/*.e2e.ts"
             artifact_prefix: docker-mcp
@@ -419,7 +419,7 @@ jobs:
         run: gunzip -c smm-latest.tar.gz | docker load
 
       - name: Require API key secrets for suites that need them
-        if: matrix.artifact_prefix == 'docker-httpproxy' || matrix.artifact_prefix == 'docker-media-init'
+        if: matrix.artifact_prefix == 'docker-config' || matrix.artifact_prefix == 'docker-media-init'
         run: |
           missing=0
           if [ -z "${TMDB_API_KEY:-}" ]; then
