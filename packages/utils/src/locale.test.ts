@@ -6,6 +6,7 @@ import {
   appLanguageToMediaLanguage,
   detectOsLocale,
   parseTmdbSearchLanguage,
+  resolveTvdbSearchLanguage,
 } from './locale'
 import { TMDB_PRIMARY_TRANSLATIONS } from '@smm/types/tmdbPrimaryTranslations'
 
@@ -144,5 +145,17 @@ describe('detectOsLocale', () => {
   it('returns a non-empty string in test environment', () => {
     const locale = detectOsLocale()
     expect(typeof locale).toBe('string')
+  })
+})
+
+describe('resolveTvdbSearchLanguage', () => {
+  it('maps preferMediaLanguage IETF to ISO 639-3', () => {
+    expect(resolveTvdbSearchLanguage({ preferMediaLanguage: 'zh-CN' })).toBe('zho')
+    expect(resolveTvdbSearchLanguage({ preferMediaLanguage: 'en-US' })).toBe('eng')
+    expect(resolveTvdbSearchLanguage({ preferMediaLanguage: 'ja-JP' })).toBe('jpn')
+  })
+
+  it('falls back to eng when nothing is configured', () => {
+    expect(resolveTvdbSearchLanguage({})).toBe('eng')
   })
 })

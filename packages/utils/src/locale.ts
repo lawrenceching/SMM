@@ -221,7 +221,7 @@ export function detectOsLocale(): string {
   return ''
 }
 
-/** IETF BCP 47 media language → TVDB ISO 639-3 code (kept in @smm/core for offline resolution). */
+/** IETF BCP 47 media language → TVDB ISO 639-3 code. */
 export function mediaLanguageToTvdbCode(lang: PreferMediaLanguage): string {
   switch (lang) {
     case 'zh-CN':
