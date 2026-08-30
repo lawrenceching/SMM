@@ -83,7 +83,7 @@ The HTTP API follows specific design principles:
 
 ## Path Handling
 
-Always use the `Path` class from `core/path.ts` for path operations:
+Always use the `Path` class from `@smm/utils/path` (`packages/utils/src/path.ts`) for path operations:
 - Handles both Windows and POSIX paths
 - Platform-agnostic path construction
 - Validates paths are within allowed directories
@@ -92,6 +92,6 @@ Always use the `Path` class from `core/path.ts` for path operations:
 ## Type Safety
 
 - All API responses use Zod for validation
-- Request/response types are defined in `core/types.ts`
+- Request/response types are defined in `@smm/types` (`packages/types/types.ts`)
 - Media metadata structure is comprehensive with TMDB integration
 

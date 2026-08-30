@@ -14,9 +14,10 @@ WORKDIR /build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy source packages needed for ui build
-COPY packages/core packages/core
+COPY packages/types packages/types
+COPY packages/utils packages/utils
 COPY packages/tvdb4 packages/tvdb4
-# BrowserNetworkPort imports NetworkPort types from apps/core (core-app)
+# BrowserNetworkPort imports NetworkPort types from @smm/core (apps/core)
 COPY apps/core apps/core
 COPY apps/ui apps/ui
 

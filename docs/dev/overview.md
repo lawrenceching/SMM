@@ -19,7 +19,7 @@ graph TD
         D[Electron]
     end
 
-    subgraph L3[Core 层]
+    subgraph L3[Core 层 — apps/core @smm/core]
         E[业务逻辑抽象接口]
     end
 
@@ -53,7 +53,7 @@ flowchart TB
   ohos["ohos"]
   AI["AI Tool"]
   MCP["MCP Tool"]
-  CORE["core"]
+  CORE["apps/core (@smm/core)"]
   N["Node.js Server"]
   NET["NetworkPort"]
   FS["FsPort"]
@@ -71,6 +71,8 @@ flowchart TB
   CORE --> FS
   CORE --> LOG
 ```
+
+**Core 层** 对应 monorepo 中的 `apps/core`，npm 包名 `@smm/core`。共享类型与纯工具分别位于 `packages/types`（`@smm/types`）与 `packages/utils`（`@smm/utils`）。
 
 ## References
 [Supported Platform](./supported-platform.md)

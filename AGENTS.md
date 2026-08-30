@@ -9,16 +9,17 @@
 
 | 包名 | 描述 |
 |------|------|
-| **packages/core** | 浏览器和 Node.js 端通用的核心代码, 包含类型定义、路径处理、媒体元数据、用户配置等 |
+| **packages/types** | 跨端共享类型、interface、Zod schema |
+| **packages/utils** | 无业务语义纯工具（Path、locale、uri/url 等） |
 | **packages/test** | 测试工具包, 提供测试相关的工具函数 |
-| **packages/utils** | 通用工具包, 提供通用工具函数 |
-| **packages/core-routes**** | 实现通用 HTTP 接口, `apps/cli`, `apps/electron`, `apps/ohos` 都会复用这些接口 | 
+| **packages/core-routes** | 实现通用 HTTP 接口, `apps/cli`, `apps/electron`, `apps/ohos` 都会复用这些接口 | 
 
 ### Apps (应用)
 
 | 应用 | 描述 |
 |------|------|
 | **apps/ui** | 前端应用, 基于 React 19 + Tailwind CSS 4 + Shadcn UI + Vite 7 |
+| **apps/core** | 业务 Core（`@smm/core`），headless 业务逻辑与 Ports 抽象 |
 | **apps/cli** | 后端服务, 基于 Bun + Hono + Socket.IO |
 | **apps/electron** | Electron 桌面应用, 将 ui 和 cli 打包成桌面应用 |
 | **apps/e2e** | 端到端测试, 基于 WebdriverIO |
@@ -27,19 +28,17 @@
 
 ## 核心模块详解
 
-### packages/core
-- `path.ts` - 路径处理工具函数
-- `uri.ts` - URI 处理工具函数
-- `url.ts` - URL 处理工具函数
-- `mediaMetadata.ts` - 媒体元数据类型和工具
-- `userConfig.ts` - 用户配置管理
-- `errors.ts` - 错误类型定义
-- `event-types.ts` - 事件类型定义
-- `types/` - 类型定义文件
-  - `plan.ts` - 计划类型
-  - `RenameFilesPlan.ts` - 重命名计划
-  - `RecognizeMediaFilePlan.ts` - 识别媒体文件计划
-  - `GetEpisodesToolTypes.ts` - 获取剧集工具类型
+### packages/types
+- 共享 DTO、事件类型、AI tool schema、Job 类型等（`@smm/types`）
+
+### packages/utils
+- `path.ts` - 路径处理（`@smm/utils/path`）
+- `uri.ts` / `url.ts` - URI/URL 工具
+- `locale.ts` / `proxiableFetch.ts` / `errors.ts` 等无业务语义工具
+
+### apps/core（`@smm/core`）
+- 业务 Core：媒体元数据、用户配置、AI tool 实现、rename 校验、whitelistedCmd 等
+- Ports 定义（FsPort、NetworkPort、LoggingPort 等）与 use-case 编排
 
 ### apps/ui
 前端应用, 主要目录结构:

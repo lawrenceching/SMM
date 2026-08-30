@@ -18,10 +18,11 @@ WORKDIR /build
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copy source packages needed for cli build
-COPY packages/core packages/core
+COPY packages/types packages/types
+COPY packages/utils packages/utils
 COPY packages/core-routes packages/core-routes
 COPY packages/tvdb4 packages/tvdb4
-# core-app (apps/core) is a runtime dependency of apps/cli (Core singleton)
+# @smm/core (apps/core) is a runtime dependency of apps/cli (Core singleton)
 COPY apps/core apps/core
 COPY apps/cli apps/cli
 
