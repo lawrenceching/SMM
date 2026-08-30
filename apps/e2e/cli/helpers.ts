@@ -46,13 +46,14 @@ export function parsePlanId(stdout: string): string {
     return planId
 }
 
-async function resolveCoreDataDir(binary: string): Promise<string> {
-    const { userDataDir } = await runCliHello(binary)
-    return userDataDir
+/** App data root where Core persists metadata cache and plans. */
+async function resolveAppDataDir(binary: string): Promise<string> {
+    const { appDataDir } = await runCliHello(binary)
+    return appDataDir
 }
 
 export async function planFilePath(binary: string, planId: string): Promise<string> {
-    const dataDir = await resolveCoreDataDir(binary)
+    const dataDir = await resolveAppDataDir(binary)
     const filename = `${planId}.plan.json`
     return join(dataDir, 'plans', filename)
 }

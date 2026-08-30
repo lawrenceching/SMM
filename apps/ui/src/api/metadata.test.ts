@@ -100,4 +100,30 @@ describe("metadata HTTP API", () => {
       expect.objectContaining({ body: JSON.stringify({ path: "/media/show" }) }),
     )
   })
+
+  it("strips UI-only keys before create-metadata", async () => {
+    vi.mocked(fetch).mockResolvedValue(Response.json({ data: metadata }))
+
+    await createMetadata({
+      ...metadata,
+      // UIMediaMetadata fields must not reach the strict Zod create schema
+      status: "ok",
+      files: ["/media/show/a.mkv"],
+    } as MediaMetadata & { status: string; files: string[] })
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/create-metadata",
+      expect.objectContaining({
+        body: JSON.stringify({
+          data: {
+            mediaFolderPath: metadata.mediaFolderPath,
+            type: metadata.type,
+            mediaFiles: metadata.mediaFiles,
+            tvShow: undefined,
+            movie: undefined,
+          },
+        }),
+      }),
+    )
+  })
 })

@@ -93,7 +93,15 @@ export async function getMetadataViaBrowser(folderPath: string): Promise<MediaMe
 export async function createMetadataViaBrowser(
     metadata: MediaMetadata,
 ): Promise<MediaMetadata> {
-    const { response } = await postMetadataViaBrowser('/api/create-metadata', { data: metadata })
+    // Strict create schema rejects UI-only keys (files, status, …).
+    const payload: MediaMetadata = {
+        mediaFolderPath: metadata.mediaFolderPath,
+        type: metadata.type,
+        mediaFiles: metadata.mediaFiles,
+        tvShow: metadata.tvShow,
+        movie: metadata.movie,
+    }
+    const { response } = await postMetadataViaBrowser('/api/create-metadata', { data: payload })
     return requireMetadata('/api/create-metadata', response)
 }
 

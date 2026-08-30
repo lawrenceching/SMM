@@ -32,9 +32,9 @@ export type CliTestBedSetupOptions = Omit<TestBedCoreSetupOptions, 'resolveHello
 function cliHelloResolver(binary: string): HelloPathsResolver {
     return async () => {
         const body = await runCliHello(binary)
-        // CLI Core stores config, metadata, and plans under userDataDir (see getCore.ts).
-        // hello.appDataDir is the reported XDG data dir and may differ on Linux.
-        return { userDataDir: body.userDataDir, appDataDir: body.userDataDir }
+        // Config (smm.json) → userDataDir; metadata cache + plans → appDataDir.
+        // On Linux these differ (~/.config/smm vs ~/.local/share/smm).
+        return { userDataDir: body.userDataDir, appDataDir: body.appDataDir }
     }
 }
 

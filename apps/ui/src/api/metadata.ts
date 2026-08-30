@@ -63,8 +63,16 @@ export async function getMetadata(
 export async function createMetadata(
   data: MediaMetadata,
 ): Promise<MediaMetadata> {
+  // Strict create schema rejects UI-only keys (files, status, …).
+  const payload: MediaMetadata = {
+    mediaFolderPath: data.mediaFolderPath,
+    type: data.type,
+    mediaFiles: data.mediaFiles,
+    tvShow: data.tvShow,
+    movie: data.movie,
+  }
   return requireMetadata(
-    await postMetadataRpc("/api/create-metadata", { data }),
+    await postMetadataRpc("/api/create-metadata", { data: payload }),
     "/api/create-metadata",
   )
 }

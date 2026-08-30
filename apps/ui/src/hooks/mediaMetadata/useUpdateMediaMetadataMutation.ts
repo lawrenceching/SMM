@@ -43,9 +43,10 @@ export function useUpdateMediaMetadataMutation() {
         if (!(error instanceof MetadataHttpError) || error.status !== 404) {
           throw error
         }
+        // Only persisted fields — UI-only keys like status/files must not be sent.
         persisted = await createMetadata({
-          ...vars.metadata,
           mediaFolderPath: folder,
+          ...toMetadataPatch(vars.metadata),
         })
       }
       return { folderPathPosix: folder, metadata: persisted }
