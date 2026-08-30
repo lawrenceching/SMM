@@ -110,7 +110,10 @@ class Sidebar {
         await folderRow.waitForExist({ timeout: 5000 })
         await folderRow.scrollIntoView()
         // Radix ContextMenuTrigger often fails WebdriverIO "clickable" checks; JS click is reliable.
-        await folderRow.click({ js: true })
+        const row = await folderRow
+        await browser.execute((node) => {
+            ;(node as HTMLElement).click()
+        }, row)
     }
 
     /**

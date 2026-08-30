@@ -6,11 +6,14 @@ const CONTEXT_MENU_CONTENT_SELECTOR = '[data-slot="context-menu-content"], [role
  * Right-click an element reliably on Windows/Linux (Radix context menus).
  * WebdriverIO's `click({ button: 'right' })` often fails to open Radix menus on Windows.
  */
-export async function rightClickElement(element: WebdriverIO.Element): Promise<void> {
-    await element.scrollIntoView()
-    await element.waitForDisplayed({ timeout: 10_000 })
+export async function rightClickElement(
+    element: WebdriverIO.Element | ChainablePromiseElement,
+): Promise<void> {
+    const el = (await element) as WebdriverIO.Element
+    await el.scrollIntoView()
+    await el.waitForDisplayed({ timeout: 10_000 })
 
-    await element.click({ button: 'right' })
+    await el.click({ button: 'right' })
     await browser.pause(200)
     const menuAfterClick = await $(CONTEXT_MENU_CONTENT_SELECTOR)
     if (await menuAfterClick.isDisplayed().catch(() => false)) {
@@ -23,7 +26,7 @@ export async function rightClickElement(element: WebdriverIO.Element): Promise<v
             id: 'pointer1',
             parameters: { pointerType: 'mouse' },
             actions: [
-                { type: 'pointerMove', origin: element, x: 0, y: 0, duration: 0 },
+                { type: 'pointerMove', origin: el, x: 0, y: 0, duration: 0 },
                 { type: 'pointerDown', button: 2 },
                 { type: 'pointerUp', button: 2 },
             ],
@@ -37,8 +40,8 @@ export async function rightClickElement(element: WebdriverIO.Element): Promise<v
         return
     }
 
-    await browser.execute((el) => {
-        el.dispatchEvent(
+    await browser.execute((node) => {
+        node.dispatchEvent(
             new MouseEvent('contextmenu', {
                 bubbles: true,
                 cancelable: true,
@@ -47,7 +50,7 @@ export async function rightClickElement(element: WebdriverIO.Element): Promise<v
                 buttons: 2,
             }),
         )
-    }, element)
+    }, el)
     await browser.pause(200)
 }
 
