@@ -49,10 +49,9 @@ export function findFreePort(): Promise<number> {
  */
 export async function startMcpServer(): Promise<McpServerHandle> {
   const baseDir = await mkdtemp(join(tmpdir(), 'smm-mcp-'))
-  // The real app keeps app data (metadata/plans) alongside user config on
-  // Windows/macOS. Core routes metadata writes to `appDataDir`, while
-  // `getCore()` resolves `appDataDir = getUserDataDir()` — so point both at
-  // the same dir to mirror production and keep scrape/metadata consistent.
+  // Isolate USER_DATA_DIR (smm.json) from APP_DATA_DIR (metadata/plans).
+  // Production Linux uses distinct XDG paths; keep them equal here so the
+  // MCP integration tests don't depend on host XDG layout.
   const userDataDir = join(baseDir, 'user-data')
   const appDataDir = userDataDir
   const logDir = join(baseDir, 'logs')

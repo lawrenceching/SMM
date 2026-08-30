@@ -25,7 +25,7 @@ import {
   END_RECOGNIZE_TASK,
 } from "@smm/core/types/ai-tools/recognizeMediaFileTask";
 import { GET_EPISODES } from "@smm/core/types/ai-tools/getEpisodes";
-import { getUserDataDir } from "@/utils/config";
+import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import { acknowledge, broadcast } from "@/utils/socketIO";
 import { logger } from "../../lib/logger";
 import { getLocalizedToolDescription } from "@/i18n/helpers";
@@ -140,7 +140,7 @@ async function buildMcpConfig(): Promise<McpConfig> {
   const { getCore } = await import("@/core/getCore");
   return {
     getUserConfig,
-    appDataDir: getUserDataDir(),
+    appDataDir: getAppDataDir(),
     userDataDir: getUserDataDir(),
     acknowledge: (message, timeoutMs) =>
       acknowledge(message as Parameters<typeof acknowledge>[0], timeoutMs),

@@ -9,7 +9,7 @@ import {
 import { formatToolError } from '@core/ai-tool/toolResult'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
-import { getUserDataDir } from '@/utils/config'
+import { getAppDataDir } from '@/utils/config'
 import { logger } from '../../lib/logger'
 
 export interface TryToRenameEpisodesRequestBody {
@@ -94,7 +94,7 @@ export async function createRenameEpisodePlanFromBody(
   const plan = await getCore().createRenameEpisodePlan(mediaFolderPath, files, { creator })
 
   if (creator === 'ai') {
-    const planFilePath = Path.posix(`${getUserDataDir()}/plans/${plan.id}.plan.json`)
+    const planFilePath = Path.posix(`${getAppDataDir()}/plans/${plan.id}.plan.json`)
     const data: RenameFilesPlanReadyRequestData = {
       taskId: plan.id,
       planFilePath,

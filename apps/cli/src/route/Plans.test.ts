@@ -36,7 +36,7 @@ describe('POST /api/createPlan', () => {
     rmSync(appDataDir, { recursive: true, force: true })
   })
 
-  it('stores plans in the Core userDataDir when appDataDir differs', async () => {
+  it('stores plans in appDataDir when it differs from userDataDir', async () => {
     const id = '00000000-0000-4000-8000-000000000003'
     const response = await app.request('/api/createPlan', {
       method: 'POST',
@@ -51,7 +51,7 @@ describe('POST /api/createPlan', () => {
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toMatchObject({ data: { plan: { id } } })
-    expect(existsSync(join(userDataDir, 'plans', `${id}.plan.json`))).toBe(true)
-    expect(existsSync(join(appDataDir, 'plans', `${id}.plan.json`))).toBe(false)
+    expect(existsSync(join(appDataDir, 'plans', `${id}.plan.json`))).toBe(true)
+    expect(existsSync(join(userDataDir, 'plans', `${id}.plan.json`))).toBe(false)
   })
 })

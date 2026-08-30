@@ -59,14 +59,14 @@ describe("startCoreRoutesServer", () => {
     vi.clearAllMocks();
   });
 
-  it("passes Core's userDataDir to the shared plan routes", async () => {
+  it("passes Core's appDataDir to the shared plan routes", async () => {
     const server = await startCoreRoutesServer();
 
     try {
       const config = createCoreRoutesRequestHandler.mock.calls[0]?.[0] as {
         appDataDir: string;
       };
-      expect(config.appDataDir).toBe("/core/user-data");
+      expect(config.appDataDir).toBe("/metadata/app-data");
     } finally {
       await stopCoreRoutesServer(server);
     }
