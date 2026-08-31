@@ -14,6 +14,12 @@ export interface NewFileNameContext {
   releaseYear: string;
 }
 
+function generateMovieFileName(context: NewFileNameContext, ext: string): string {
+  const year = context.releaseYear || "";
+  const name = context.movieName ?? "";
+  return `${name}${year ? ` (${year})` : ""}${ext}`;
+}
+
 function generatePlexTvFileName(context: NewFileNameContext, ext: string): string {
   const season = context.seasonNumber.toString().padStart(2, "0");
   const episode = context.episodeNumber.toString().padStart(2, "0");
@@ -32,11 +38,11 @@ export function generateNewFileName(
   ruleName: RenameRuleName,
   context: NewFileNameContext,
 ): string {
-  if (context.type !== "tv") {
-    throw new Error("Only TV rename is supported");
-  }
-
   const ext = extname(context.file);
+
+  if (context.type === "movie") {
+    return generateMovieFileName(context, ext);
+  }
 
   if (ruleName === "plex") {
     return generatePlexTvFileName(context, ext);

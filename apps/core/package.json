@@ -8,6 +8,7 @@
     "./createRenameEpisodePlan": "./src/pipeline/createRenameEpisodePlan.ts",
     "./FsPort": "./src/ports/FsPort.ts",
     "./ai-tool/*": "./src/ai-tool/*",
+    "./pipeline/*": "./src/pipeline/*",
     "./validations/rename/*": "./src/validations/rename/*",
     "./whitelistedCmd": "./src/whitelistedCmd/index.ts",
     "./whitelistedCmd/*": "./src/whitelistedCmd/*",

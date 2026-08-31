@@ -1,6 +1,6 @@
 import { isError, ExistedFileError } from "@smm/utils/errors"
 import type { DownloadImageResponseBody } from "@smm/types"
-import { buildAssetUrlCandidates } from "@/lib/assetImageUrls"
+import { buildAssetUrlCandidates } from "@/lib/assetImageUrlsUi"
 import { fetchDiscoverConfig, type DiscoverConfig } from "./discover"
 import { downloadImageApi as defaultDownloadImageApi } from "./downloadImage"
 

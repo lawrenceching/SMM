@@ -58,26 +58,27 @@
 
 在初始化结果不完整（`tvShow` 和 `movie` 都为空）时进入：
 
-- `doPreprocessMediaFolder(initializedMetadata, options)`
-  - 文件：`apps/ui/src/AppV2Utils.ts`
+- UI：`useInitializeImportedMediaFolder` → `runRecognitionSteps`（`mediaFolderRecognitionPipeline`）+ 各 `useRecognize*Mutation`
+- Core（v3 / CLI）：`ImportFolderPipeline` → `recognizeMediaFolder`（`apps/core/src/pipeline/recognizeMediaFolder.ts`）
 
-内部流程：
+内部流程（两条路径语义一致）：
 
-1. `recognizeMediaFolder(...)` 识别媒体身份（TMDB / TVDB）
+1. 识别媒体身份（TMDB / TVDB）
 2. 按媒体类型识别媒体文件：
-   - 电视剧：`recognizeEpisodesAsync(mm)`，写回 `mediaFiles`（season/episode）
-   - 电影：`recognizeMovieMediaFiles(mm)`，写回 `mediaFiles`
-3. 回调 `onSuccess(mm)`，最终 `updateMediaMetadata(..., { status: 'ok' })`
+   - 电视剧：`recognizeEpisodes` / `recognizeEpisodesAsync`，写回 `mediaFiles`（season/episode）
+   - 电影：按视频扩展名写入 `mediaFiles`
+3. 最终 `updateMediaMetadata(..., { status: 'ok' })`
 
-### 1.4 recognizeMediaFolder 的识别顺序（核心）
+### 1.4 媒体夹识别顺序（核心）
 
-文件：`apps/ui/src/lib/recognizeMediaFolder.ts`
+权威实现：`apps/core/src/pipeline/recognizeMediaFolder.ts`  
+UI legacy 编排：`apps/ui/src/lib/mediaFolderRecognitionPipeline.ts` + initialization mutations
 
 固定顺序：
 
-1. NFO 识别：`tryToRecognizeMediaFolderByNFO`
-2. 文件夹名中的 `tmdbid=`：`tryToRecognizeMediaFolderByTmdbIdInFolderName`
-3. 文件夹名中的 `tvdbid=`：`tryToRecognizeMediaFolderByTvdbIdInFolderName`
+1. NFO 识别
+2. 文件夹名中的 `tmdbid=`
+3. 文件夹名中的 `tvdbid=`
 4. 文件夹名搜索（TMDB/TVDB 顺序由 `primaryDatabase` 决定）
    - `primaryDatabase === "TVDB"`：TVDB -> TMDB
    - 其他情况（含未配置）：TMDB -> TVDB
@@ -208,13 +209,10 @@
 
 ### 导入初始化
 
-`MediaFolderImportedEventHandler.doInitializeMediaFolder`
--> `initializeMediaMetadata`
--> `mediaMetadataRepository.initialize`
--> `doPreprocessMediaFolder`
--> `recognizeMediaFolder`
--> (NFO -> tmdbid -> tvdbid -> folder name search)
--> 电视剧 `recognizeEpisodesAsync` / 电影 `recognizeMovieMediaFiles`
+`useInitializeImportedMediaFolder`（或 Core `ImportFolderPipeline`）
+-> `initializeMediaMetadata` / `mediaMetadataRepository.initialize`
+-> recognition steps（NFO -> tmdbid -> tvdbid -> folder name search）
+-> 电视剧 `recognizeEpisodesAsync` / 电影按视频扩展名
 -> `updateMediaMetadata(status: ok)`
 
 ### 手动选择（电视剧）

@@ -25,7 +25,7 @@ import { useFeatures } from "@/hooks/useFeatures"
 import { isHarmonyOS } from "@/lib/isHarmonyOS"
 import type { LocalFileTableRowData } from "./MusicFileTable"
 import type { RowSubtitleUi } from "@/hooks/useMusicFolderSubtitlePipeline"
-import { isVideoFile } from "@/lib/recognizeEpisodes"
+import { isVideoFile } from "@/lib/recognizeEpisodesUi"
 import { MusicRowMediaCells } from "./musicTableRowShared"
 import { SubtitleContextMenuItems } from "./SubtitleContextMenuItems"
 import type {

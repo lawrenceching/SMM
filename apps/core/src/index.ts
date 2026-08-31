@@ -93,6 +93,15 @@ export {
   type CreateRenameEpisodePlanOptions,
 } from "./pipeline/createRenameEpisodePlan";
 export type { RenameRuleName } from "./pipeline/renameRules";
+export { mediaFilePathEqual } from "./pipeline/mediaFilePathEqual";
+export { generateNewFileName } from "./pipeline/renameRules";
+export { findAssociatedFiles } from "./pipeline/findAssociatedFiles";
+export { buildTvShowRenamePlanFileEntries } from "./pipeline/buildTvShowRenamePlanFileEntries";
+export { buildTvShowRenameListForPlan } from "./pipeline/buildTvShowRenameListForPlan";
+export {
+  buildAssetUrlCandidates,
+  type BuildAssetUrlCandidatesOptions,
+} from "./pipeline/scrape/assetImageUrls";
 export type { Plan } from "./pipeline/plans";
 export {
   scrapeFolderPipeline,

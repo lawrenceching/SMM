@@ -15,7 +15,6 @@ import { AppInitializer } from './AppInitializer'
 import { AnonymousTelemetryConsentGate } from '@/components/initialization/AnonymousTelemetryConsentGate'
 import { SocketIoUserConfigFolderRenamedEventListener } from './components/eventlisteners/SocketIoUserConfigFolderRenamedEventListener.tsx'
 import { PingEventListener } from './components/eventlisteners/PingEventListener.tsx'
-import { MediaFolderImportedEventHandler } from './components/eventlisteners/MediaFolderImportedEventHandler.tsx'
 import { MediaLibraryImportedEventHandler } from './components/eventlisteners/MediaLibraryImportedEventHandler.tsx'
 import { FixedDelayBackgroundJobHandler } from './components/eventlisteners/FixedDelayBackgroundJobHandler.tsx'
 import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/RenameFilesPlanReadyEventListener.tsx'
@@ -150,7 +149,7 @@ function EventListeners() {
       <RecognizeMediaFilePlanReadyEventListener />
       <UserConfigUpdatedEventListener />
       <MediaMetadataUpdatedEventListener />
-      <MediaFolderImportedEventHandler />
+      {/* <MediaFolderImportedEventHandler /> */}
       <MediaLibraryImportedEventHandler />
       <FixedDelayBackgroundJobHandler />
       <FolderContentChangedEventListener />

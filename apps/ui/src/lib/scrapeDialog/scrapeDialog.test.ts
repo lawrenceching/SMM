@@ -1,6 +1,12 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 import type { MediaMetadata } from "@smm/types"
-import { areAllTasksDone, checkTaskCompletion, getScrapeTaskIdsForMedia, taskReducer } from "@/lib/scrapeDialog"
+import type { ScrapeJob } from "@/api/getJob"
+import {
+  areAllTasksDone,
+  checkTaskCompletion,
+  deriveScrapeTasks,
+  getScrapeTaskIdsForMedia,
+} from "@/lib/scrapeDialog"
 
 const listFilesMock = vi.fn()
 
@@ -10,101 +16,102 @@ vi.mock("@/api/listFiles", () => ({
 
 describe("ScrapeDialog task list by media type", () => {
   it("excludes thumbnails for movie folders", () => {
-    expect(
-      getScrapeTaskIdsForMedia({ type: "movie-folder" } as MediaMetadata),
-    ).toEqual(["poster", "fanart", "nfo"])
+    expect(getScrapeTaskIdsForMedia({ type: "movie-folder" } as MediaMetadata)).toEqual([
+      "poster",
+      "fanart",
+      "nfo",
+    ])
   })
 
   it("includes thumbnails for tv show folders", () => {
-    expect(
-      getScrapeTaskIdsForMedia({ type: "tvshow-folder" } as MediaMetadata),
-    ).toEqual(["poster", "fanart", "thumbnails", "nfo"])
+    expect(getScrapeTaskIdsForMedia({ type: "tvshow-folder" } as MediaMetadata)).toEqual([
+      "poster",
+      "fanart",
+      "thumbnails",
+      "nfo",
+    ])
   })
 })
 
-describe("ScrapeDialog state reducer", () => {
-  it("initializes tasks and applies completion map", () => {
-    const initState = taskReducer(
-      { tasks: [], isRunning: false },
-      {
-        type: "INIT",
-        tasks: [
-          { id: "poster", status: "pending" },
-          { id: "fanart", status: "pending" },
-          { id: "thumbnails", status: "pending" },
-          { id: "nfo", status: "pending" },
-        ],
-      },
-    )
+describe("deriveScrapeTasks", () => {
+  const movieMeta = { type: "movie-folder" as const }
 
-    const completed = taskReducer(initState, {
-      type: "SET_COMPLETION",
+  it("applies completion map onto the baseline task list", () => {
+    const tasks = deriveScrapeTasks({
+      mediaMetadata: movieMeta,
       completion: { poster: true, fanart: false, thumbnails: true, nfo: false },
     })
 
-    expect(completed.tasks.find((t) => t.id === "poster")?.status).toBe("completed")
-    expect(completed.tasks.find((t) => t.id === "fanart")?.status).toBe("pending")
-    expect(completed.tasks.find((t) => t.id === "thumbnails")?.status).toBe("completed")
-    expect(completed.tasks.find((t) => t.id === "nfo")?.status).toBe("pending")
+    expect(tasks.find((t) => t.id === "poster")?.status).toBe("completed")
+    expect(tasks.find((t) => t.id === "fanart")?.status).toBe("pending")
+    expect(tasks.find((t) => t.id === "nfo")?.status).toBe("pending")
+    expect(tasks.find((t) => t.id === "thumbnails")).toBeUndefined()
   })
 
-  it("tracks running and finish states", () => {
-    const started = taskReducer({ tasks: [], isRunning: false }, { type: "START_RUN" })
-    expect(started.isRunning).toBe(true)
-
-    const running = taskReducer(
-      {
-        tasks: [{ id: "poster", status: "pending" }],
-        isRunning: true,
-      },
-      { type: "MARK_RUNNING", id: "poster" },
-    )
-    expect(running.tasks[0]?.status).toBe("running")
-
-    const failed = taskReducer(running, { type: "MARK_FAILED", id: "poster" })
-    expect(failed.tasks[0]?.status).toBe("failed")
-    expect(failed.tasks[0]?.failedReason).toBeUndefined()
-
-    const failedWithReason = taskReducer(running, {
-      type: "MARK_FAILED",
-      id: "poster",
-      reason: "fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
-    })
-    expect(failedWithReason.tasks[0]?.status).toBe("failed")
-    expect(failedWithReason.tasks[0]?.failedReason).toBe(
-      "fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
-    )
-
-    const finished = taskReducer(failed, { type: "FINISH_RUN" })
-    expect(finished.isRunning).toBe(false)
-  })
-
-  it("applies job task statuses from Core poll", () => {
-    const base = {
-      tasks: [
-        { id: "poster" as const, status: "pending" as const },
-        { id: "fanart" as const, status: "pending" as const },
-        { id: "thumbnails" as const, status: "pending" as const },
-        { id: "nfo" as const, status: "pending" as const },
-      ],
-      isRunning: true,
-    }
-    const applied = taskReducer(base, {
-      type: "APPLY_JOB_TASKS",
+  it("lets scrape job statuses override completion", () => {
+    const scrapeJob: ScrapeJob = {
+      kind: "scrape",
+      id: "job-1",
+      folderPath: "/media/Movie",
+      status: "running",
       tasks: {
         poster: { status: "completed" },
         fanart: { status: "running" },
-        thumbnails: { status: "completed" },
-        nfo: { status: "failed", failedReason: "scrape.errors.tmdbUnavailable" },
+        thumbnails: { status: "skipped" },
+        nfo: { status: "failed", error: "scrape.errors.tmdbUnavailable" },
       },
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const tasks = deriveScrapeTasks({
+      mediaMetadata: movieMeta,
+      completion: { poster: false, fanart: false, nfo: false },
+      scrapeJob,
     })
-    expect(applied.tasks.find((t) => t.id === "poster")?.status).toBe("completed")
-    expect(applied.tasks.find((t) => t.id === "fanart")?.status).toBe("running")
-    expect(applied.tasks.find((t) => t.id === "thumbnails")?.status).toBe("completed")
-    expect(applied.tasks.find((t) => t.id === "nfo")?.status).toBe("failed")
-    expect(applied.tasks.find((t) => t.id === "nfo")?.failedReason).toBe(
-      "scrape.errors.tmdbUnavailable",
-    )
+
+    expect(tasks.find((t) => t.id === "poster")?.status).toBe("completed")
+    expect(tasks.find((t) => t.id === "fanart")?.status).toBe("running")
+    expect(tasks.find((t) => t.id === "nfo")?.status).toBe("failed")
+    expect(tasks.find((t) => t.id === "nfo")?.failedReason).toBe("scrape.errors.tmdbUnavailable")
+  })
+
+  it("marks pending rows failed from startError without clearing completed ones", () => {
+    const tasks = deriveScrapeTasks({
+      mediaMetadata: movieMeta,
+      completion: { poster: true, fanart: false, nfo: false },
+      startError: new TypeError("Cannot read properties of undefined (reading 'status')"),
+    })
+
+    expect(tasks.find((t) => t.id === "poster")?.status).toBe("completed")
+    expect(tasks.find((t) => t.id === "fanart")?.status).toBe("failed")
+    expect(tasks.find((t) => t.id === "fanart")?.failedReason).toBe("scrape.errors.internal")
+    expect(tasks.find((t) => t.id === "nfo")?.status).toBe("failed")
+  })
+
+  it("ignores startError when a scrape job is present", () => {
+    const scrapeJob: ScrapeJob = {
+      kind: "scrape",
+      id: "job-1",
+      folderPath: "/media/Movie",
+      status: "succeeded",
+      tasks: {
+        poster: { status: "completed" },
+        fanart: { status: "completed" },
+        thumbnails: { status: "skipped" },
+        nfo: { status: "completed" },
+      },
+      createdAt: 0,
+      updatedAt: 0,
+    }
+
+    const tasks = deriveScrapeTasks({
+      mediaMetadata: movieMeta,
+      scrapeJob,
+      startError: new Error("should be ignored"),
+    })
+
+    expect(tasks.every((t) => t.status === "completed")).toBe(true)
   })
 })
 

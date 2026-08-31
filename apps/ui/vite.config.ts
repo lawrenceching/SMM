@@ -71,13 +71,24 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@/": `${path.resolve(__dirname, "./src")}/`,
-      "@smm/tvdb4": path.resolve(__dirname, "../../packages/tvdb4/src/index.ts"),
+    alias: [
+      {
+        find: /^@smm\/core\/(.+)$/,
+        replacement: `${path.resolve(__dirname, "../core/src")}/$1`,
+      },
+      {
+        find: "@smm/core",
+        replacement: path.resolve(__dirname, "../core/src/index.ts"),
+      },
+      { find: "@/", replacement: `${path.resolve(__dirname, "./src")}/` },
+      {
+        find: "@smm/tvdb4",
+        replacement: path.resolve(__dirname, "../../packages/tvdb4/src/index.ts"),
+      },
       // Force a single React instance for app code and @base-ui/react (avoids invalid hook call).
-      react: path.resolve(__dirname, "node_modules/react"),
-      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
-    },
+      { find: "react", replacement: path.resolve(__dirname, "node_modules/react") },
+      { find: "react-dom", replacement: path.resolve(__dirname, "node_modules/react-dom") },
+    ],
     dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {

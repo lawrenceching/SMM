@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { generateNewFileName } from "./renameRules"
+import { generateNewFileName } from "@smm/core/pipeline/renameRules"
 
 describe("generateNewFileName", () => {
   describe("Plex rename rules", () => {

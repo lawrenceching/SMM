@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { pattern4, recognizeEpisodes } from './recognizeEpisodes'
+import { pattern4, recognizeEpisodes } from './recognizeEpisodesUi'
 import type { MediaMetadata } from '@smm/types'
 
 describe('pattern4', () => {

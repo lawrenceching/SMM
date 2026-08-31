@@ -1,12 +1,6 @@
-import { describe, it, expect, vi } from "vitest"
-import { buildTvShowRenamePlanFileEntries } from "./buildTvShowRenamePlanFileEntries"
+import { describe, it, expect } from "vitest"
+import { buildTvShowRenamePlanFileEntries } from "@smm/core/pipeline/buildTvShowRenamePlanFileEntries"
 import type { MediaMetadata } from "@smm/types"
-
-vi.mock("@/lib/renameRules", () => ({
-  generateNewFileName: vi.fn((_rule: string, ctx: { seasonNumber: number; episodeNumber: number }) => {
-    return `Season ${String(ctx.seasonNumber).padStart(2, "0")}/Show - S${String(ctx.seasonNumber).padStart(2, "0")}E${String(ctx.episodeNumber).padStart(2, "0")}.mkv`
-  }),
-}))
 
 function makeMediaMetadata(
   mediaFiles: Array<{ seasonNumber: number; episodeNumber: number; absolutePath: string }>,
@@ -43,7 +37,7 @@ describe("buildTvShowRenamePlanFileEntries", () => {
       {
         seasonNumber: 1,
         episodeNumber: 2,
-        absolutePath: "/media/show/Season 01/Show - S01E02.mkv",
+        absolutePath: "/media/show/Season 01/Show - S01E02 - Ep 2.mkv",
       },
     ])
 
@@ -51,7 +45,7 @@ describe("buildTvShowRenamePlanFileEntries", () => {
 
     expect(entries).toHaveLength(1)
     expect(entries[0]?.from).toBe("/media/show/Season 01/S01E01.mkv")
-    expect(entries[0]?.to).toBe("/media/show/Season 01/Show - S01E01.mkv")
+    expect(entries[0]?.to).toBe("/media/show/Season 01/Show - S01E01 - Pilot.mkv")
   })
 
   it("returns empty array when all generated paths match current paths", () => {
@@ -59,12 +53,12 @@ describe("buildTvShowRenamePlanFileEntries", () => {
       {
         seasonNumber: 1,
         episodeNumber: 1,
-        absolutePath: "/media/show/Season 01/Show - S01E01.mkv",
+        absolutePath: "/media/show/Season 01/Show - S01E01 - Pilot.mkv",
       },
       {
         seasonNumber: 1,
         episodeNumber: 2,
-        absolutePath: "/media/show/Season 01/Show - S01E02.mkv",
+        absolutePath: "/media/show/Season 01/Show - S01E02 - Ep 2.mkv",
       },
     ])
 

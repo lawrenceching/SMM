@@ -1,29 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import React from "react"
 import "@testing-library/jest-dom/vitest"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { UIScrapeDialog } from "./UIScrapeDialog"
 import { useScrapeDialog, type UseScrapeDialogInput } from "./useScrapeDialog"
+import type { ScrapeJob } from "@/api/getJob"
 
-const scrapePosterMock = vi.fn()
-const scrapeFanartMock = vi.fn()
-const scrapeThumbnailMock = vi.fn()
-const scrapeNfoMock = vi.fn()
+const scrapeFolderViaCoreMock = vi.fn()
+const getJobViaCoreMock = vi.fn()
 const refreshMediaMetadataMock = vi.fn().mockResolvedValue(undefined)
 const listFilesMock = vi.fn().mockResolvedValue({ data: { items: [] } })
 const userConfigMock = { preferMediaLanguage: "zh-CN" }
 
-vi.mock("@/hooks/useScrapeNfoMutation", () => ({
-  useScrapeNfoMutation: () => ({ mutateAsync: scrapeNfoMock }),
+vi.mock("@/api/scrapeV3", () => ({
+  scrapeFolderViaCore: (...args: unknown[]) => scrapeFolderViaCoreMock(...args),
 }))
-vi.mock("@/hooks/useScrapePosterMutation", () => ({
-  useScrapePosterMutation: () => ({ mutateAsync: scrapePosterMock }),
-}))
-vi.mock("@/hooks/useScrapeFanartMutation", () => ({
-  useScrapeFanartMutation: () => ({ mutateAsync: scrapeFanartMock }),
-}))
-vi.mock("@/hooks/useScrapeThumbnailMutation", () => ({
-  useScrapeThumbnailMutation: () => ({ mutateAsync: scrapeThumbnailMock }),
+vi.mock("@/api/getJob", () => ({
+  getJobViaCore: (...args: unknown[]) => getJobViaCoreMock(...args),
 }))
 vi.mock(
   "@/hooks/mediaMetadata/useFetchMediaMetadataMutation",
@@ -39,16 +34,6 @@ vi.mock("@/api/listFiles", () => ({
 vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => ({ userConfig: userConfigMock }),
 }))
-
-vi.mock("@/lib/localStorages", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/localStorages")>()
-  return {
-    ...actual,
-    isSmmV3Enabled: vi.fn().mockReturnValue(false),
-  }
-})
-
-import { isSmmV3Enabled } from "@/lib/localStorages"
 
 const I18N_KEYS: Record<string, string> = {
   "scrape.tasks.poster": "海报",
@@ -104,22 +89,53 @@ function Harness(props: UseScrapeDialogInput) {
   )
 }
 
-describe("useScrapeDialog — movie folder tasks", () => {
-  const mediaMetadata = {
+function renderDialog(ui: React.ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+  )
+}
+
+function movieMetadata() {
+  return {
     type: "movie-folder",
     mediaFolderPath: "/media/Movie",
     mediaFiles: [{ absolutePath: "/media/Movie/movie.mkv" }],
     movie: { id: "1", name: "Movie", database: "TMDB" },
   } as any
+}
 
+function scrapeJob(overrides: Partial<ScrapeJob> = {}): ScrapeJob {
+  return {
+    kind: "scrape",
+    id: "job-1",
+    folderPath: "/media/Movie",
+    status: "succeeded",
+    tasks: {
+      poster: { status: "completed" },
+      fanart: { status: "completed" },
+      thumbnails: { status: "skipped" },
+      nfo: { status: "completed" },
+    },
+    createdAt: 0,
+    updatedAt: 0,
+    ...overrides,
+  }
+}
+
+describe("useScrapeDialog — movie folder tasks", () => {
   beforeEach(() => {
     listFilesMock.mockReset()
     listFilesMock.mockResolvedValue({ data: { items: [] } })
-    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
   })
 
   it("does not show the thumbnails row for movie folders", async () => {
-    render(<Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />)
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
 
     await waitFor(() => {
       expect(screen.getByTestId("scrape-dialog-task-row-poster")).toBeInTheDocument()
@@ -131,39 +147,48 @@ describe("useScrapeDialog — movie folder tasks", () => {
 })
 
 describe("useScrapeDialog — error propagation", () => {
-  const mediaMetadata = {
-    type: "movie-folder",
-    mediaFolderPath: "/media/Movie",
-    mediaFiles: [{ absolutePath: "/media/Movie/movie.mkv" }],
-    movie: { id: "1", name: "Movie", database: "TMDB" },
-  } as any
-
   beforeEach(() => {
-    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
-    scrapePosterMock.mockReset()
-    scrapeFanartMock.mockReset()
-    scrapeThumbnailMock.mockReset()
-    scrapeNfoMock.mockReset()
+    scrapeFolderViaCoreMock.mockReset()
+    getJobViaCoreMock.mockReset()
     refreshMediaMetadataMock.mockClear()
     listFilesMock.mockClear()
     listFilesMock.mockResolvedValue({ data: { items: [] } })
+    scrapeFolderViaCoreMock.mockResolvedValue("job-1")
+  })
+
+  it("starts scrape via Core job API instead of per-task mutations", async () => {
+    getJobViaCoreMock.mockResolvedValue(scrapeJob())
+
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
+    fireEvent.click(screen.getByRole("button", { name: "开始" }))
+
+    await waitFor(() => {
+      expect(scrapeFolderViaCoreMock).toHaveBeenCalledWith({
+        path: "/media/Movie",
+        language: "zh-CN",
+      })
+    })
+    expect(getJobViaCoreMock).toHaveBeenCalledWith("job-1", expect.any(AbortSignal))
   })
 
   it("captures the server's raw error message and shows the localized error in the status column", async () => {
-    scrapePosterMock.mockRejectedValue(
-      new Error(
-        "Image URL fetch failed: Unable to connect. Is the computer able to access the url? (ConnectionRefused)",
-      ),
+    getJobViaCoreMock.mockResolvedValue(
+      scrapeJob({
+        status: "failed",
+        tasks: {
+          poster: {
+            status: "failed",
+            error:
+              "Image URL fetch failed: Unable to connect. Is the computer able to access the url? (ConnectionRefused)",
+          },
+          fanart: { status: "completed" },
+          thumbnails: { status: "skipped" },
+          nfo: { status: "completed" },
+        },
+      }),
     )
-    scrapeFanartMock.mockResolvedValue(undefined)
-    scrapeThumbnailMock.mockResolvedValue(undefined)
-    scrapeNfoMock.mockResolvedValue(undefined)
 
-    const onClose = vi.fn()
-    render(
-      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
-    )
-
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
 
     await waitFor(() => {
@@ -176,16 +201,19 @@ describe("useScrapeDialog — error propagation", () => {
   })
 
   it("shows 'Failed' (no localized reason) when the error message is empty", async () => {
-    scrapePosterMock.mockRejectedValue(new Error(""))
-    scrapeFanartMock.mockResolvedValue(undefined)
-    scrapeThumbnailMock.mockResolvedValue(undefined)
-    scrapeNfoMock.mockResolvedValue(undefined)
-
-    const onClose = vi.fn()
-    render(
-      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
+    getJobViaCoreMock.mockResolvedValue(
+      scrapeJob({
+        status: "failed",
+        tasks: {
+          poster: { status: "failed", error: "" },
+          fanart: { status: "completed" },
+          thumbnails: { status: "skipped" },
+          nfo: { status: "completed" },
+        },
+      }),
     )
 
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
 
     await waitFor(() => {
@@ -195,40 +223,43 @@ describe("useScrapeDialog — error propagation", () => {
   })
 
   it("localizes internal TypeError as a user-friendly internal error", async () => {
-    scrapePosterMock.mockResolvedValue(undefined)
-    scrapeFanartMock.mockRejectedValue(
+    scrapeFolderViaCoreMock.mockRejectedValue(
       new TypeError("Cannot read properties of undefined (reading 'status')"),
     )
-    scrapeThumbnailMock.mockResolvedValue(undefined)
-    scrapeNfoMock.mockResolvedValue(undefined)
 
-    render(
-      <Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
-    )
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
+
+    await waitFor(() => {
+      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
+        "未下载",
+      )
+    })
 
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
 
     await waitFor(() => {
-      const fanartStatus = screen.getByTestId("scrape-dialog-task-status-fanart")
-      expect(fanartStatus.textContent).toContain("发生内部错误，请稍后重试")
+      const posterStatus = screen.getByTestId("scrape-dialog-task-status-poster")
+      expect(posterStatus.textContent).toContain("发生内部错误，请稍后重试")
     })
   })
 
   it("captures ETIMEDOUT and localizes it as '图片链接访问超时'", async () => {
-    scrapePosterMock.mockRejectedValue(
-      new Error(
-        "Failed to download image: fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
-      ),
+    getJobViaCoreMock.mockResolvedValue(
+      scrapeJob({
+        status: "failed",
+        tasks: {
+          poster: {
+            status: "failed",
+            error: "Failed to download image: fetch failed (ETIMEDOUT: connect ETIMEDOUT)",
+          },
+          fanart: { status: "completed" },
+          thumbnails: { status: "skipped" },
+          nfo: { status: "completed" },
+        },
+      }),
     )
-    scrapeFanartMock.mockResolvedValue(undefined)
-    scrapeThumbnailMock.mockResolvedValue(undefined)
-    scrapeNfoMock.mockResolvedValue(undefined)
 
-    const onClose = vi.fn()
-    render(
-      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
-    )
-
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
     fireEvent.click(screen.getByRole("button", { name: "开始" }))
 
     await waitFor(() => {
@@ -239,33 +270,19 @@ describe("useScrapeDialog — error propagation", () => {
 })
 
 describe("useScrapeDialog — cancel button", () => {
-  const mediaMetadata = {
-    type: "movie-folder",
-    mediaFolderPath: "/media/Movie",
-    mediaFiles: [{ absolutePath: "/media/Movie/movie.mkv" }],
-    movie: { id: "1", name: "Movie", database: "TMDB" },
-  } as any
-
   beforeEach(() => {
-    vi.mocked(isSmmV3Enabled).mockReturnValue(false)
-    scrapePosterMock.mockReset()
-    scrapeFanartMock.mockReset()
-    scrapeThumbnailMock.mockReset()
-    scrapeNfoMock.mockReset()
+    scrapeFolderViaCoreMock.mockReset()
+    getJobViaCoreMock.mockReset()
     refreshMediaMetadataMock.mockClear()
     listFilesMock.mockClear()
     listFilesMock.mockResolvedValue({ data: { items: [] } })
-    scrapePosterMock.mockResolvedValue(undefined)
-    scrapeFanartMock.mockResolvedValue(undefined)
-    scrapeThumbnailMock.mockResolvedValue(undefined)
-    scrapeNfoMock.mockResolvedValue(undefined)
+    scrapeFolderViaCoreMock.mockResolvedValue("job-1")
+    getJobViaCoreMock.mockResolvedValue(scrapeJob())
   })
 
   it("keeps cancel enabled with pending tasks and closes on cancel click", async () => {
     const onClose = vi.fn()
-    render(
-      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
-    )
+    renderDialog(<Harness isOpen onClose={onClose} mediaMetadata={movieMetadata()} />)
 
     await waitFor(() => {
       expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
@@ -285,9 +302,7 @@ describe("useScrapeDialog — cancel button", () => {
     })
 
     const onClose = vi.fn()
-    render(
-      <Harness isOpen onClose={onClose} mediaMetadata={mediaMetadata} />,
-    )
+    renderDialog(<Harness isOpen onClose={onClose} mediaMetadata={movieMetadata()} />)
 
     await waitFor(() => {
       expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
@@ -304,17 +319,21 @@ describe("useScrapeDialog — cancel button", () => {
   })
 
   it("disables cancel while scrape is running", async () => {
-    let resolvePoster!: () => void
-    scrapePosterMock.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          resolvePoster = resolve
+    getJobViaCoreMock
+      .mockResolvedValueOnce(
+        scrapeJob({
+          status: "running",
+          tasks: {
+            poster: { status: "running" },
+            fanart: { status: "pending" },
+            thumbnails: { status: "skipped" },
+            nfo: { status: "pending" },
+          },
         }),
-    )
+      )
+      .mockImplementation(() => new Promise(() => {}))
 
-    render(
-      <Harness isOpen onClose={vi.fn()} mediaMetadata={mediaMetadata} />,
-    )
+    renderDialog(<Harness isOpen onClose={vi.fn()} mediaMetadata={movieMetadata()} />)
 
     await waitFor(() => {
       expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
@@ -328,14 +347,6 @@ describe("useScrapeDialog — cancel button", () => {
       expect(screen.getByTestId("scrape-dialog-cancel")).toBeDisabled()
       expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
         "运行中",
-      )
-    })
-
-    resolvePoster()
-
-    await waitFor(() => {
-      expect(screen.getByTestId("scrape-dialog-task-status-poster").textContent).toContain(
-        "已完成",
       )
     })
   })

@@ -46,6 +46,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../packages/utils/src/index.ts'),
       },
       {
+        find: /^@smm\/core\/(.+)$/,
+        replacement: `${path.resolve(__dirname, '../core/src')}/$1`,
+      },
+      {
+        find: '@smm/core',
+        replacement: path.resolve(__dirname, '../core/src/index.ts'),
+      },
+      {
         find: '@smm/tvdb4/',
         replacement: `${path.resolve(__dirname, '../../packages/tvdb4/src')}/`,
       },

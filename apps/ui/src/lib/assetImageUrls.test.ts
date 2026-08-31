@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { buildAssetUrlCandidates } from "./assetImageUrls"
+import { buildAssetUrlCandidates } from "./assetImageUrlsUi"
 import type { DiscoverConfig } from "@/api/discover"
 
 const emptyConfig: DiscoverConfig = { mediaDatabases: [], reverseProxies: [] }

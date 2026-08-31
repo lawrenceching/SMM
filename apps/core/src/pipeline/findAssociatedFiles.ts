@@ -6,8 +6,12 @@ import {
 } from "@smm/types/mediaFileExtensions";
 import { basename, extname } from "./paths";
 
+/**
+ * Find associated files (subtitle, audio, nfo, image) for a video file.
+ * Returns absolute POSIX paths.
+ */
 export function findAssociatedFiles(
-  mediaFolderPath: string,
+  _mediaFolderPath: string,
   filePaths: string[],
   videoFilePath: string,
 ): string[] {

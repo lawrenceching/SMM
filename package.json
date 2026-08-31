@@ -34,6 +34,7 @@
     "test:types": "cd packages/types && pnpm test",
     "test:utils": "cd packages/utils && pnpm test",
     "test:core": "cd apps/core && pnpm test",
+    "check:ui-core-dup": "bun scripts/check-ui-core-duplicate-basenames.ts",
     "test:core-routes": "cd packages/core-routes && pnpm test",
     "test:electron-common": "cd packages/electron-common && pnpm test",
     "test:cli": "cd apps/cli && pnpm test",

@@ -27,7 +27,7 @@ import { renameFiles as renameFilesApi } from "@/api/renameFiles";
 import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { toast } from "sonner";
-import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodes";
+import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodesUi";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {

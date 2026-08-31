@@ -10,7 +10,7 @@ export interface ScrapeFolderV3ResponseBody {
   error?: string
 }
 
-/** Layer-2 scrape via Core (`POST /api/scrape`). Used when SMM v3 is enabled. */
+/** Layer-2 scrape via Core (`POST /api/scrape`). */
 export async function scrapeFolderV3(
   params: ScrapeFolderV3Params,
   signal?: AbortSignal,

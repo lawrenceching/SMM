@@ -221,9 +221,9 @@ async function searchInTvdb(
 }
 
 /**
- * Mirrors `recognizeMediaFolder` in `apps/ui/src/lib/recognizeMediaFolder.ts`:
  * NFO → tmdbid in folder name → tvdbid in folder name → search by folder name
  * (ordered by primaryDatabase). Only reached for tvshow / movie folders.
+ * UI legacy path uses the same order via `mediaFolderRecognitionPipeline` + mutations.
  */
 export async function recognizeMediaFolder(
   mm: MediaMetadata,

@@ -1,26 +1,12 @@
-import { useCallback, useEffect, useMemo, useReducer } from "react"
-import { useScrapeNfoMutation } from "@/hooks/useScrapeNfoMutation"
-import { useScrapePosterMutation } from "@/hooks/useScrapePosterMutation"
-import { useScrapeFanartMutation } from "@/hooks/useScrapeFanartMutation"
-import { useScrapeThumbnailMutation } from "@/hooks/useScrapeThumbnailMutation"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
+import { useScrapeMutation } from "@/hooks/useScrapeMutation"
+import { isJobTerminalStatus, useJobQuery } from "@/hooks/useJobQuery"
+import { useScrapeTaskCompletionQuery } from "@/hooks/useScrapeTaskCompletionQuery"
 import { useConfig } from "@/hooks/userConfig"
 import { nextTraceId } from "@/lib/utils"
 import type { MediaMetadata } from "@smm/types"
-import {
-  areAllTasksDone,
-  checkTaskCompletion,
-  createInitialScrapeTasksForMedia,
-  INITIAL_SCRAPE_TASK_STATE,
-  taskReducer,
-  type ScrapeTaskId,
-  type ScrapeTaskStatus,
-  type ScrapeTaskView,
-} from "@/lib/scrapeDialog"
-import { normalizeScrapeTaskError } from "@/lib/scrapeError"
-import { isSmmV3Enabled } from "@/lib/localStorages"
-import { scrapeFolderViaCore } from "@/api/scrapeV3"
-import { getJobViaCore, type ScrapeJob, type ScrapeTaskRuntimeStatus } from "@/api/getJob"
+import { areAllTasksDone, deriveScrapeTasks, type ScrapeTaskView } from "@/lib/scrapeDialog"
 
 export interface UseScrapeDialogInput {
   isOpen: boolean
@@ -39,226 +25,137 @@ export interface UseScrapeDialogResult {
   handleStart: () => Promise<void>
 }
 
-const POLL_INTERVAL_MS = 1000
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function mapCoreTaskStatus(status: ScrapeTaskRuntimeStatus): ScrapeTaskStatus {
-  if (status === "skipped") return "completed"
-  if (status === "pending" || status === "running" || status === "completed" || status === "failed") {
-    return status
-  }
-  return "pending"
-}
-
-function jobTasksToAction(
-  job: ScrapeJob,
-): Partial<Record<ScrapeTaskId, { status: ScrapeTaskStatus; failedReason?: string }>> {
-  const result: Partial<Record<ScrapeTaskId, { status: ScrapeTaskStatus; failedReason?: string }>> =
-    {}
-  for (const id of Object.keys(job.tasks) as ScrapeTaskId[]) {
-    const task = job.tasks[id]
-    if (!task) continue
-    result[id] = {
-      status: mapCoreTaskStatus(task.status),
-      failedReason: task.error,
-    }
-  }
-  return result
-}
-
 export function useScrapeDialog({
   isOpen,
   onClose,
   mediaMetadata,
 }: UseScrapeDialogInput): UseScrapeDialogResult {
-  const { mutateAsync: scrapePoster } = useScrapePosterMutation()
-  const { mutateAsync: scrapeFanart } = useScrapeFanartMutation()
-  const { mutateAsync: scrapeThumbnail } = useScrapeThumbnailMutation()
-  const { mutateAsync: scrapeNfo } = useScrapeNfoMutation()
   const { userConfig } = useConfig()
-  const { mutateAsync: refreshMediaMetadata } = useFetchMediaMetadataMutation()
-  const [state, dispatch] = useReducer(taskReducer, INITIAL_SCRAPE_TASK_STATE)
+  const {
+    mutateAsync: refreshMediaMetadata,
+    isPending: isRefreshingMetadata,
+  } = useFetchMediaMetadataMutation()
+  const {
+    mutateAsync: scrapeFolder,
+    isPending: isStartingScrape,
+    error: scrapeMutationError,
+    reset: resetScrapeMutation,
+  } = useScrapeMutation()
 
-  const executeTask = useCallback(
-    async (id: ScrapeTaskId, currentMediaMetadata: MediaMetadata) => {
-      if (id === "poster") {
-        await scrapePoster({
-          mediaMetadata: currentMediaMetadata,
-          language: userConfig.preferMediaLanguage,
-        })
-        return
-      }
-      if (id === "fanart") {
-        await scrapeFanart({
-          mediaMetadata: currentMediaMetadata,
-          language: userConfig.preferMediaLanguage,
-        })
-        return
-      }
-      if (id === "thumbnails") {
-        await scrapeThumbnail({ mediaMetadata: currentMediaMetadata })
-        return
-      }
-      await scrapeNfo({ mediaMetadata: currentMediaMetadata })
-    },
-    [scrapePoster, scrapeFanart, userConfig.preferMediaLanguage, scrapeThumbnail, scrapeNfo],
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [overlayError, setOverlayError] = useState<unknown>(null)
+  const runTraceIdRef = useRef<string | null>(null)
+  const refreshedJobIdRef = useRef<string | null>(null)
+
+  const { data: completion } = useScrapeTaskCompletionQuery(mediaMetadata, isOpen)
+  const { data: job } = useJobQuery({
+    jobId,
+    enabled: !!jobId,
+  })
+
+  const scrapeJob = job?.kind === "scrape" ? job : null
+  const startError = overlayError ?? scrapeMutationError
+
+  const tasks = useMemo(
+    () =>
+      deriveScrapeTasks({
+        mediaMetadata,
+        completion,
+        scrapeJob,
+        startError: scrapeJob ? null : startError,
+      }),
+    [mediaMetadata, completion, scrapeJob, startError],
   )
 
-  useEffect(() => {
-    if (!isOpen || !mediaMetadata) return
+  const jobInFlight =
+    !!jobId &&
+    (!job || (job.kind === "scrape" && !isJobTerminalStatus(job.status)))
 
-    dispatch({ type: "INIT", tasks: createInitialScrapeTasksForMedia(mediaMetadata) })
-
-    let cancelled = false
-    checkTaskCompletion(mediaMetadata)
-      .then((completion) => {
-        if (cancelled) return
-        dispatch({ type: "SET_COMPLETION", completion })
-      })
-      .catch((error) => {
-        console.error("[ScrapeDialog] initialize completion failed:", error)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [isOpen, mediaMetadata])
-
-  const allTasksDone = useMemo(() => areAllTasksDone(state.tasks), [state.tasks])
-  const canDismissIncidentally = allTasksDone && !state.isRunning
-  const cancelDisabled = state.isRunning
+  const isRunning = isStartingScrape || jobInFlight || isRefreshingMetadata
+  const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
+  const canDismissIncidentally = allTasksDone && !isRunning
+  const cancelDisabled = isRunning
   const showButtons = mediaMetadata !== undefined
+
+  useEffect(() => {
+    if (!isOpen) return
+    setJobId(null)
+    setOverlayError(null)
+    resetScrapeMutation()
+    runTraceIdRef.current = null
+    refreshedJobIdRef.current = null
+  }, [isOpen, mediaMetadata?.mediaFolderPath, resetScrapeMutation])
+
+  useEffect(() => {
+    if (!jobId || !job) return
+    if (job.kind === "scrape") return
+    setOverlayError(new Error(`Error Reason: unexpected job kind: ${job.kind}`))
+    setJobId(null)
+  }, [job, jobId])
+
+  useEffect(() => {
+    if (!jobId || !scrapeJob) return
+    if (!isJobTerminalStatus(scrapeJob.status)) return
+    if (refreshedJobIdRef.current === jobId) return
+    refreshedJobIdRef.current = jobId
+
+    const path = mediaMetadata?.mediaFolderPath
+    const traceId = runTraceIdRef.current ?? `ScrapeDialog-handleStart-${nextTraceId()}`
+
+    void (async () => {
+      try {
+        if (path) {
+          await refreshMediaMetadata({ path, traceId })
+        }
+      } catch (error) {
+        console.error("[ScrapeDialog] refresh media metadata failed:", error)
+      } finally {
+        runTraceIdRef.current = null
+      }
+    })()
+  }, [jobId, scrapeJob, mediaMetadata?.mediaFolderPath, refreshMediaMetadata])
 
   const handleCancel = useCallback(() => {
     if (cancelDisabled) return
     onClose()
   }, [cancelDisabled, onClose])
 
-  const handleStartLegacy = useCallback(async () => {
-    if (!mediaMetadata) return
-    if (allTasksDone) {
-      onClose()
-      return
-    }
-    if (state.isRunning) return
-
-    dispatch({ type: "START_RUN" })
-    const traceId = `ScrapeDialog-handleStart-${nextTraceId()}`
-    try {
-      const taskStatusMap = new Map(state.tasks.map((task) => [task.id, task.status]))
-      for (const task of state.tasks) {
-        const id = task.id
-        const status = taskStatusMap.get(id)
-        if (status === "completed" || status === "failed") continue
-        dispatch({ type: "MARK_RUNNING", id })
-        try {
-          await executeTask(id, mediaMetadata)
-          dispatch({ type: "MARK_COMPLETED", id })
-        } catch (error) {
-          const { messageKey, debugDetail } = normalizeScrapeTaskError(error)
-          dispatch({
-            type: "MARK_FAILED",
-            id,
-            reason: debugDetail.trim() ? messageKey : undefined,
-          })
-          console.error(`[ScrapeDialog] task ${id} failed:`, debugDetail, error)
-        }
-      }
-      if (mediaMetadata.mediaFolderPath) {
-        await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
-      }
-    } catch (error) {
-      console.error("[ScrapeDialog] run failed:", error)
-    } finally {
-      dispatch({ type: "FINISH_RUN" })
-    }
-  }, [
-    mediaMetadata,
-    allTasksDone,
-    state.isRunning,
-    state.tasks,
-    executeTask,
-    refreshMediaMetadata,
-    onClose,
-  ])
-
-  const handleStartV3 = useCallback(async () => {
+  const handleStart = useCallback(async () => {
     if (!mediaMetadata?.mediaFolderPath) return
     if (allTasksDone) {
       onClose()
       return
     }
-    if (state.isRunning) return
+    if (isRunning) return
 
-    dispatch({ type: "START_RUN" })
-    const traceId = `ScrapeDialog-handleStartV3-${nextTraceId()}`
+    setOverlayError(null)
+    resetScrapeMutation()
+    refreshedJobIdRef.current = null
+    const traceId = `ScrapeDialog-handleStart-${nextTraceId()}`
+    runTraceIdRef.current = traceId
     try {
-      const jobId = await scrapeFolderViaCore({
+      const id = await scrapeFolder({
         path: mediaMetadata.mediaFolderPath,
         language: userConfig.preferMediaLanguage,
       })
-
-      for (;;) {
-        const job = await getJobViaCore(jobId)
-        if (job.kind !== "scrape") {
-          throw new Error(`Error Reason: unexpected job kind: ${job.kind}`)
-        }
-        dispatch({ type: "APPLY_JOB_TASKS", tasks: jobTasksToAction(job) })
-        if (
-          job.status === "succeeded" ||
-          job.status === "failed" ||
-          job.status === "aborted"
-        ) {
-          break
-        }
-        await sleep(POLL_INTERVAL_MS)
-      }
-
-      await refreshMediaMetadata({ path: mediaMetadata.mediaFolderPath, traceId })
+      setJobId(id)
     } catch (error) {
-      const { messageKey, debugDetail } = normalizeScrapeTaskError(error)
-      console.error("[ScrapeDialog] v3 run failed:", debugDetail, error)
-      dispatch({
-        type: "APPLY_JOB_TASKS",
-        tasks: Object.fromEntries(
-          state.tasks
-            .filter((task) => task.status === "pending" || task.status === "running")
-            .map((task) => [
-              task.id,
-              {
-                status: "failed" as const,
-                failedReason: debugDetail.trim() ? messageKey : undefined,
-              },
-            ]),
-        ),
-      })
-    } finally {
-      dispatch({ type: "FINISH_RUN" })
+      console.error("[ScrapeDialog] run failed:", error)
+      runTraceIdRef.current = null
     }
   }, [
     mediaMetadata,
     allTasksDone,
-    state.isRunning,
-    state.tasks,
+    isRunning,
     userConfig.preferMediaLanguage,
-    refreshMediaMetadata,
+    scrapeFolder,
+    resetScrapeMutation,
     onClose,
   ])
 
-  const handleStart = useCallback(async () => {
-    if (isSmmV3Enabled()) {
-      await handleStartV3()
-      return
-    }
-    await handleStartLegacy()
-  }, [handleStartV3, handleStartLegacy])
-
   return {
-    tasks: state.tasks,
-    isRunning: state.isRunning,
+    tasks,
+    isRunning,
     allTasksDone,
     showButtons,
     cancelDisabled,

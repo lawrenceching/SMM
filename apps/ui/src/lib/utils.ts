@@ -5,19 +5,19 @@ import { type MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { MediaMetadata } from "@smm/types"
 import { type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@smm/types"
-import { basename, extname, relative, join, dirname } from "@/lib/path"
+import { basename, relative, join, dirname } from "@/lib/path"
 import { Path } from "@smm/utils/path"
 import { listFilesApi } from "@/api/listFiles"
 import { extensions, videoFileExtensions, imageFileExtensions } from "@smm/types/mediaFileExtensions"
 
 export { extensions, videoFileExtensions, imageFileExtensions }
 
+import { findAssociatedFiles, type TaggedAssociatedFile } from "@/lib/associatedFilesUi"
+
+export { findAssociatedFiles }
+
 // Local type definitions for buildTvShowEpisodesPropsFromMediaMetadata
-interface File {
-  path: string
-  tag: "SUB" | "AUD" | "NFO" | "POSTER" | "VID"
-  newPath: string
-}
+type File = TaggedAssociatedFile
 
 interface Episode {
   name: string
@@ -75,51 +75,6 @@ export function nextTraceId(): number {
 
 
 
-
-/**
- * Find the associated files (subtitle, audio, nfo etc) of the video file
- * @param filePaths 
- * @param videoFilePath 
- */
-export function findAssociatedFiles(mediaFolderPath: string, filePaths: string[], videoFilePath: string): File[] {
-
-  const filename = basename(videoFilePath)!;
-  const extension = extname(filename);
-  const filenameWithoutExtension = filename.replace(extension, '');
-
-  const findFiles = (extensions: string[], tag: "SUB" | "AUD" | "NFO" | "POSTER") => {
-    const possibleFileNames = extensions.map(extension => `${filenameWithoutExtension}${extension}`);
-    return filePaths.filter(filePath => {
-      return extensions.some(extension => filePath.endsWith(extension));
-    })
-    .filter(paths => {
-      const filename = basename(paths)!;
-      // Exact match: e.g. "S01E01.srt"
-      if (possibleFileNames.includes(filename)) return true;
-      // Language-tagged match: e.g. "S01E01.en.srt", "S01E01.zh-CN.ass"
-      // The filename must start with "{stem}." and end with a known extension.
-      if (filename.startsWith(filenameWithoutExtension + '.')) {
-        return extensions.some(ext => filename.endsWith(ext));
-      }
-      return false;
-    })
-    .map(paths => {
-      const file: File = {
-        path: getRelativePath(paths, mediaFolderPath),
-        tag: tag,
-        newPath: 'N/A'
-      }
-      return file;
-    })
-  }
-
-  const thumbnailFiles = findFiles(extensions.imageFileExtensions, "POSTER");
-  const subtitleFiles = findFiles(extensions.subtitleFileExtensions, "SUB");
-  const audioFiles = findFiles(extensions.audioTrackFileExtensions, "AUD");
-  const nfoFiles = findFiles(['.nfo'], "NFO");
-
-  return [...thumbnailFiles, ...subtitleFiles, ...audioFiles, ...nfoFiles];
-}
 
 /**
  * Convert absolute path to relative path (relative to media folder)

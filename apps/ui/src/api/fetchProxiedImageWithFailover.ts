@@ -1,4 +1,4 @@
-import { buildAssetUrlCandidates } from "@/lib/assetImageUrls"
+import { buildAssetUrlCandidates } from "@/lib/assetImageUrlsUi"
 import { fetchDiscoverConfig, type DiscoverConfig } from "./discover"
 
 const EMPTY_DISCOVER_CONFIG: DiscoverConfig = { mediaDatabases: [], reverseProxies: [] }

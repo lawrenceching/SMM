@@ -1,6 +1,6 @@
 import type { RecognizedFile } from '@smm/types/RecognizeMediaFilePlan'
 import type { MediaMetadata } from '@smm/types'
-import { mediaFilePathEqual } from './mediaFilePathEqual'
+import { mediaFilePathEqual } from '@smm/core/pipeline/mediaFilePathEqual'
 
 function episodeKey(season: number, episode: number): string {
   return `${season}:${episode}`

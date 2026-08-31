@@ -13,8 +13,8 @@ vi.mock('@/ai/tools/EndRecognizeTask', () => ({
   cleanupRecognizePlan: vi.fn(() => Promise.resolve()),
 }))
 
-vi.mock('@/lib/recognizeEpisodes', async (importOriginal) => {
-  const mod = await importOriginal<typeof import('@/lib/recognizeEpisodes')>()
+vi.mock('@/lib/recognizeEpisodesUi', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/recognizeEpisodesUi')>()
   return {
     ...mod,
     recognizeEpisodesAsync: vi.fn((mm: Parameters<typeof mod.recognizeEpisodes>[0]) =>

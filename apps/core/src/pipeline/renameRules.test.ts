@@ -23,4 +23,17 @@ describe("generateNewFileName", () => {
       "Season 1/Show S1E2 Pilot.mkv",
     );
   });
+
+  it("builds movie filename with year", () => {
+    expect(
+      generateNewFileName("plex", {
+        type: "movie",
+        seasonNumber: 0,
+        episodeNumber: 0,
+        movieName: "The Matrix",
+        file: "The.Matrix.1999.mkv",
+        releaseYear: "1999",
+      }),
+    ).toBe("The Matrix (1999).mkv");
+  });
 });

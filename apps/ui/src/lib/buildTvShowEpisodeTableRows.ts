@@ -7,7 +7,7 @@ import { findAssociatedFiles } from "@/lib/utils";
 import { mapTagToFileType } from "@/components/tv/TvShowPanelUtils";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
-import { mediaFilePathEqual } from "@/lib/mediaFilePathEqual";
+import { mediaFilePathEqual } from "@smm/core/pipeline/mediaFilePathEqual";
 import Debug from 'debug'
 const debug = Debug('buildTvShowEpisodeTableRows')
 const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]

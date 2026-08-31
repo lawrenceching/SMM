@@ -6,9 +6,9 @@ Related earlier Core note: [2026-08-19-core-scrape-folder-design.md](../superpow
 
 ## 1. Background
 
-Legacy ScrapeDialog runs up to four tasks via UI mutations (`useScrapePosterMutation`, `useScrapeFanartMutation`, `useScrapeThumbnailMutation`, `useScrapeNfoMutation`) over **TV show | movie** × **TMDB | TVDB**.
+ScrapeDialog starts a Core scrape job (`POST /api/scrape`) and polls `POST /api/get-job` until the job is terminal. Tasks cover **TV show | movie** × **TMDB | TVDB**.
 
-Core already has a job-based `scrapeFolder` + CLI (`smm scrape` / `smm job`) for **TV + TMDB only**. This design expands Core to **full legacy parity**, then exposes HTTP + UI under `smm.v3.enabled`.
+Core already has a job-based `scrapeFolder` + CLI (`smm scrape` / `smm job`). This design expands Core to **full historical UI parity**, then exposes HTTP + UI as the only scrape path.
 
 | Task | Output |
 |------|--------|
@@ -36,7 +36,7 @@ Source of truth for resolvers/builders (port into Core, do not call UI):
 
 1. **Core parity** — done (TV + movie × TMDB + TVDB; movie skips `thumbnails`)
 2. **HTTP** — done (`POST /api/scrape` + scrape shape on `POST /api/get-job`)
-3. **UI v3** — done (`isSmmV3Enabled()` → job start + poll; legacy mutations when v3 off)
+3. **UI** — done (job start + poll; legacy per-task mutations removed)
 4. **AI + MCP** — done (`scrape` + `get-job` tools; no confirmation; fire-and-forget scrape)
 
 ## 2. Architecture
@@ -74,7 +74,7 @@ Per [refactoring.md](../../refactoring.md): HTTP is the Internal API channel int
 | `TvdbClient` | Add scrape helpers: `getSeriesExtended`, `getSeasonExtended`, `getMovieExtended`, `getArtworkTypes`, translation getters as needed |
 | `POST /api/scrape` | Validate body → Core → `{ data: { id } }` or `{ error }` |
 | `POST /api/get-job` | Existing route; `data` is discriminated job union |
-| UI `useScrapeDialog` | v3 ON → job poll path; v3 OFF → existing four mutations |
+| UI `useScrapeDialog` | Job start + poll (`POST /api/scrape` + `POST /api/get-job`) |
 | MCP / AI `scrape` | Start job via Core (MCP) or `POST /api/scrape` (in-app AI); returns `{ id, message }`; **no confirmation** |
 | MCP / AI `get-job` | Poll any job (`scrape` \| `import`) via Core / `POST /api/get-job` |
 
@@ -92,7 +92,7 @@ Per [refactoring.md](../../refactoring.md): HTTP is the Internal API channel int
 | Media / DB scope | **TV + movie**, **TMDB + TVDB** (legacy parity) |
 | Movie thumbnails | Skip (`skipped` / not run) — match ScrapeDialog (UI still TODO) |
 | Port style | One runner per task id with type×database dispatch (not separate pipelines) |
-| UI v3 | Job start + poll; no per-task Core HTTP |
+| UI | Job start + poll; no per-task Core HTTP |
 
 #### Prerequisites (`prepareScrapeFolder`)
 
@@ -374,13 +374,12 @@ sequenceDiagram
 * **Then** `thumbnails` is `skipped`  
 * **And** poster / fanart / nfo still run  
 
-### 4.5 UI v3 ScrapeDialog
+### 4.5 UI ScrapeDialog
 
-* **Given** `smm.v3.enabled` is true  
+* **Given** a managed TV or movie folder  
 * **When** the user starts scrape in ScrapeDialog  
 * **Then** UI calls `POST /api/scrape` and polls `POST /api/get-job`  
 * **And** dialog task rows mirror job `tasks`  
-* **And** when v3 is false, the legacy four mutations run unchanged  
 
 ### 4.6 AI / MCP scrape + get-job
 
@@ -398,7 +397,7 @@ sequenceDiagram
 - Plan-based scrape (`try-to-scrape` / `apply`)  
 - ProblemDetails / non-200 business status codes  
 - New REST path `/api/job/{id}`  
-- Removing legacy UI mutations while v3 is off  
+- Removing leftover UI scrape mutations (`useScrapePosterMutation` and siblings) used outside ScrapeDialog  
 
 ## 6. Testing
 
@@ -415,4 +414,4 @@ sequenceDiagram
 - Existing `ImportJob` consumers must accept `kind: "import"` (additive field).  
 - `Core.scrapeFolder` is job-based (`Promise<{ id }>`); CLI already polls.  
 - CLI e2e that expected reject for movie / non-TMDB TV must flip to success (or assert artifacts) after Core parity.  
-- Legacy `ScrapeRequestBody.mediaFolderPath` remains until UI fully migrates; new route uses `path` + `{ data: { id } }`.  
+- ScrapeDialog uses `path` + `{ data: { id } }` via `POST /api/scrape`; legacy `ScrapeRequestBody.mediaFolderPath` is unused by the dialog.  
