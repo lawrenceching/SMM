@@ -1,14 +1,14 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { MediaFolderListItemV2 } from './MediaFolderListItemV2'
+import { FolderListItem } from './FolderListItem'
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t: (key: string) => key,
   }),
 }))
 
-describe('MediaFolderListItemV2 context menu callbacks', () => {
+describe('FolderListItem context menu callbacks', () => {
   const path = '/media/tvshows/Old Name'
   const mediaName = 'Old Name'
 
@@ -26,7 +26,7 @@ describe('MediaFolderListItemV2 context menu callbacks', () => {
 
   it('calls callback props from context menu actions', () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: 'tvshow',
@@ -56,13 +56,13 @@ describe('MediaFolderListItemV2 context menu callbacks', () => {
   })
 })
 
-describe("MediaFolderListItemV2 folder_not_found status", () => {
+describe("FolderListItem folder_not_found status", () => {
   const path = "/media/tvshows/Missing"
   const mediaName = "Missing Show"
 
   it("shows folder basename in sidebar-folder-name", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path: "/root/.cache/smm/smm-test-folder/Missing Show",
         mediaName: "Missing Show",
         mediaType: "tvshow",
@@ -74,7 +74,7 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
 
   it("renders warning icon with aria-label from translation key", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -87,7 +87,7 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
 
   it("applies muted disabled-style classes on media title and folder name", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -106,7 +106,7 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
 
   it("does not show loading spinner when status is folder_not_found", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -120,7 +120,7 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
   it("still fires onClick on the row when folder_not_found (visual-only disabled state)", () => {
     const onClick = vi.fn()
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -136,13 +136,13 @@ describe("MediaFolderListItemV2 folder_not_found status", () => {
   })
 })
 
-describe("MediaFolderListItemV2 pending_for_initialization status", () => {
+describe("FolderListItem pending_for_initialization status", () => {
   const path = "/media/tvshows/Pending Show"
   const mediaName = "Pending Show"
 
   it("renders a pending-initialization badge", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -155,7 +155,7 @@ describe("MediaFolderListItemV2 pending_for_initialization status", () => {
 
   it("renders a clock icon for the pending state", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -169,7 +169,7 @@ describe("MediaFolderListItemV2 pending_for_initialization status", () => {
 
   it("shows the pending-initialization label only as sr-only text", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",
@@ -183,7 +183,7 @@ describe("MediaFolderListItemV2 pending_for_initialization status", () => {
 
   it("does not show loading spinner for pending_for_initialization", () => {
     render(
-      React.createElement(MediaFolderListItemV2, {
+      React.createElement(FolderListItem, {
         path,
         mediaName,
         mediaType: "tvshow",

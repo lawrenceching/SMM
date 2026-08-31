@@ -1,8 +1,8 @@
-import { MediaFolderListItemV2, type MediaFolderListItemV2Props } from "@/components/sidebar/MediaFolderListItemV2"
+import { FolderListItem, type FolderListItemProps } from "@/components/sidebar/FolderListItem"
 import { useTranslation } from "@/lib/i18n"
 
 export interface NavigationProps {
-  filteredAndSortedFolders: MediaFolderListItemV2Props[]
+  filteredAndSortedFolders: FolderListItemProps[]
   handleMediaFolderListItemClick: (path: string) => void
 }
 
@@ -43,7 +43,7 @@ export function Navigation({
         ) : (
           filteredAndSortedFolders.map((folder) => (
             <div key={folder.path} className="border-b border-border">
-              <MediaFolderListItemV2
+              <FolderListItem
                   mediaName={folder.mediaName}
                   mediaType={folder.mediaType}
                   path={folder.path}

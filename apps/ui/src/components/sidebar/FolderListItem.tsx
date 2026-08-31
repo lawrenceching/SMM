@@ -11,7 +11,7 @@ import { Clock, Loader2, TriangleAlert } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useTranslation } from "@/lib/i18n"
 
-export interface MediaFolderListItemV2Props {
+export interface FolderListItemProps {
   mediaName: string,
   mediaType: "tvshow" | "movie" | "music",
   /**
@@ -39,7 +39,7 @@ export interface MediaFolderListItemV2Props {
   status?: 'idle' | 'pending_for_initialization' | 'initializing' | 'ok' | 'folder_not_found' | 'loading'
 }
 
-export function MediaFolderListItemV2({
+export function FolderListItem({
   mediaName,
   path,
   onClick,
@@ -49,7 +49,7 @@ export function MediaFolderListItemV2({
   onOpenInExplorer,
   onDelete,
   status,
-}: MediaFolderListItemV2Props) {
+}: FolderListItemProps) {
   const { t } = useTranslation(['components', 'dialogs'])
   const selected = isSelected
   const isFolderUnavailable = status === 'folder_not_found'

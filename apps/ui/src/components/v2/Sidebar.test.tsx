@@ -70,8 +70,8 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }))
 
-vi.mock("../sidebar/MediaFolderListItemV2", () => ({
-  MediaFolderListItemV2: ({
+vi.mock("../sidebar/FolderListItem", () => ({
+  FolderListItem: ({
     path,
     mediaName,
     onDelete,
