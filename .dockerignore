@@ -72,7 +72,6 @@ apps/convex/
 apps/docker/
 packages/test/
 packages/electron-common/
-packages/utils/
 
 # HarmonyOS ohpm symlinks (Windows tar error)
 **/oh_modules/

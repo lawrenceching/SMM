@@ -1,7 +1,6 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@smm/types";
-import { type UIMediaMetadata } from "@/types/UIMediaMetadata";
 import { extname, join } from "@/lib/path";
 import { Path } from "@smm/utils/path";
 import { getFullExtensionForAssociatedFile } from "@smm/types/mediaFileExtensions";
@@ -77,7 +76,7 @@ export function buildFilePropsForVideoPath(
   ]
 }
 
-export function buildFileProps(mm: UIMediaMetadata, seasonNumber: number, episodeNumber: number): FileProps[] {
+export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: number, episodeNumber: number): FileProps[] {
     if(mm.mediaFolderPath === undefined) {
         console.error(`Media folder path is undefined`)
         throw new Error(`Media folder path is undefined`)
@@ -271,7 +270,7 @@ export function rebuildRenamePlanWithSelectedEpisodes(
  * @param signal optional AbortSignal to cancel the operation
  * @returns return undefined if not recognizable
  */
-export async function tryToRecognizeTvShowFolderByNFO(_mm: UIMediaMetadata, signal?: AbortSignal): Promise<UIMediaMetadata | undefined> {
+export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFolderFiles, signal?: AbortSignal): Promise<MediaMetadataWithFolderFiles | undefined> {
 
     const mm = structuredClone(_mm)
     
@@ -865,7 +864,7 @@ export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDet
  */
 export async function executeRenamePlan(
   plan: RenameFilesPlan,
-  mediaMetadata: UIMediaMetadata,
+  mediaMetadata: MediaMetadata,
 ): Promise<void> {
   if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
     toast.error("Plan does not match current media folder")
@@ -976,7 +975,7 @@ export async function buildTemporaryRecognitionPlanAsync(
 
 
 export interface OnMediaFolderSelectedParams {
-  mediaMetadata: UIMediaMetadata
+  mediaMetadata: MediaMetadata
   /** Mirrors user config; undefined means try TMDB then TVDB in recognizeMediaFolder. */
   primaryDatabase?: PrimaryDatabase
   openRuleBasedRecognizePrompt: (options: {
@@ -985,7 +984,7 @@ export interface OnMediaFolderSelectedParams {
     onConfirm?: () => void
     onCancel?: () => void
   }) => void
-  updateMediaMetadata: (path: string, metadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata), options?: { traceId?: string }) => void
+  updateMediaMetadata: (path: string, metadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata), options?: { traceId?: string }) => void
 }
 
 export interface UnlinkEpisodeParams {

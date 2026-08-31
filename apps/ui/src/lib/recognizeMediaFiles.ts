@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { videoFileExtensions } from "./utils";
 import { extname } from "./path";
 
@@ -20,7 +20,7 @@ function findVideoFiles(paths: string[]): string[] {
  * Returns one entry per video file (by extension); used by doPreprocessMediaFolder for movie-folder.
  */
 export function recognizeMovieMediaFiles(
-  mm: UIMediaMetadata
+  mm: MediaMetadataWithFolderFiles
 ): RecognizedMovieMediaFile[] {
   if (
     mm.files === undefined ||
@@ -38,7 +38,7 @@ export function recognizeMovieMediaFiles(
  * This export exists for tests that mock the recognizeMediaFiles module; it is not used by AppV2Utils for the TV branch.
  */
 export function recognizeTvShowMediaFiles(
-  _mm: UIMediaMetadata
+  _mm: MediaMetadataWithFolderFiles
 ): { videoFilePath: string; season: number; episode: number }[] {
   return [];
 }

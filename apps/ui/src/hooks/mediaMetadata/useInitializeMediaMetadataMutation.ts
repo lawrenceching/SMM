@@ -3,7 +3,7 @@ import { Path } from "@smm/utils/path"
 import { createMediaMetadata } from "@smm/core/mediaMetadata"
 import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
 import { logger } from "@/lib/log"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 
 type MediaFolderType = "music-folder" | "tvshow-folder" | "movie-folder"
 
@@ -13,9 +13,8 @@ export function useInitializeMediaMetadataMutation() {
       folderPathInPlatformFormat: string
       type: MediaFolderType
       traceId?: string
-    }): Promise<UIMediaMetadata> => {
-      const mm: UIMediaMetadata = {
-        status: "idle",
+    }): Promise<MediaMetadataWithFolderFiles> => {
+      const mm: MediaMetadataWithFolderFiles = {
         ...createMediaMetadata(Path.posix(vars.folderPathInPlatformFormat), vars.type),
         files: [],
         mediaFiles: [],

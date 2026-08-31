@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react"
 import { useConfig } from "@/hooks/userConfig"
-import type { UIMediaMetadata } from "./types/UIMediaMetadata"
+import type { MediaMetadata } from "@smm/types"
 import Debug from "debug"
 import { fetchDiscoverConfig } from "@/api/discover"
 import { discoverConfigQueryKey } from "@/lib/appQueryKeys"
@@ -12,23 +12,6 @@ import { useStatusbarStore } from "@/stores/statusbarStore"
 const debug = Debug("AppInitializer")
 
 type InitStatus = "success" | "error"
-
-// eslint-disable-next-line react-refresh/only-export-components
-export async function buildMediaMetadata(
-  folders: string[],
-  initializeMediaMetadata: (folderPath: string, type: "music-folder" | "tvshow-folder" | "movie-folder") => Promise<UIMediaMetadata>
-) {
-    const validFolders = folders.filter(f => f != null)
-
-    // Initialize all folders in parallel
-    const promises = validFolders.map(async (folder) => {
-        // For now, default to movie-folder type - this could be improved with folder analysis
-        return initializeMediaMetadata(folder, "movie-folder");
-    });
-
-    const initializedMetadata = await Promise.all(promises);
-    return initializedMetadata;
-}
 
 /**
  * Schedules app initializers, aggregates their readiness, and drives

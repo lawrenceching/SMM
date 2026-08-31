@@ -12,7 +12,7 @@ import {
   normalizeMediaFolderPathForQuery,
 } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@smm/types"
 import { invalidateFoldersQueryIfV3 } from "./invalidateFoldersQuery"
 
 function snapshotMetadata(queryClient: ReturnType<typeof useQueryClient>, paths: string[]) {
@@ -20,7 +20,7 @@ function snapshotMetadata(queryClient: ReturnType<typeof useQueryClient>, paths:
     .map((path) => {
       const normalized = normalizeMediaFolderPathForQuery(path)
       if (!normalized) return undefined
-      return queryClient.getQueryData<UIMediaMetadata>(mediaMetadataQueryKey(normalized))
+      return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(normalized))
     })
     .filter((m): m is NonNullable<typeof m> => m != null)
 }

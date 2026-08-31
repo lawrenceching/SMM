@@ -1,14 +1,15 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadata } from "@smm/types";
 import { Path } from "@smm/utils/path";
 import { createInitialMediaMetadata } from "./mediaMetadataUtils";
 import { isNil } from "es-toolkit";
 
 interface InitializeMusicFolderOptions {
     addMediaFolderInUserConfig: (traceId: string, folderInPlatformPath: string) => void;
-    getMediaMetadata: (folderInPlatformPath: string) => UIMediaMetadata | undefined;
-    addMediaMetadata: (mediaMetadata: UIMediaMetadata) => void;
-    /** When provided, used to replace an existing placeholder (status === 'initializing') with full metadata. */
-    updateMediaMetadata?: (folderPath: string, metadata: UIMediaMetadata) => Promise<void>;
+    getMediaMetadata: (folderInPlatformPath: string) => MediaMetadata | undefined;
+    addMediaMetadata: (mediaMetadata: MediaMetadata) => void;
+    /** When provided, used to replace an existing placeholder with full metadata. */
+    updateMediaMetadata?: (folderPath: string, metadata: MediaMetadata) => Promise<void>;
+    isInitializing?: (folderInPlatformPath: string) => boolean;
     traceId: string;
 }
 
@@ -19,7 +20,7 @@ interface InitializeMusicFolderOptions {
  * @returns 
  */
 export async function initializeMusicFolder(folderInPlatformPath: string, opts: InitializeMusicFolderOptions) {
-    const { addMediaFolderInUserConfig, getMediaMetadata, addMediaMetadata, updateMediaMetadata, traceId } = opts;
+    const { addMediaFolderInUserConfig, getMediaMetadata, addMediaMetadata, updateMediaMetadata, isInitializing, traceId } = opts;
 
     addMediaFolderInUserConfig(traceId, folderInPlatformPath);
     console.log(`[${traceId}] add "${folderInPlatformPath}" to user config`);
@@ -31,28 +32,18 @@ export async function initializeMusicFolder(folderInPlatformPath: string, opts: 
         const newMM = await createInitialMediaMetadata(
             folderInPlatformPath,
             'music-folder',
-            {
-                traceId,
-                mediaMetadataProps: {
-                    status: 'ok',
-                },
-            }
+            { traceId },
         );
         addMediaMetadata(newMM);
         console.log(`[${traceId}] Imported music folder and create media metadata for folder "${folderInPlatformPath}"`);
         return;
     }
 
-    if (mm.status === 'initializing' && updateMediaMetadata) {
+    if (isInitializing?.(pathPosix) && updateMediaMetadata) {
         const newMM = await createInitialMediaMetadata(
             folderInPlatformPath,
             'music-folder',
-            {
-                traceId,
-                mediaMetadataProps: {
-                    status: 'ok',
-                },
-            }
+            { traceId },
         );
         await updateMediaMetadata(pathPosix, newMM);
         console.log(`[${traceId}] Imported music folder and updated placeholder with full metadata for folder "${folderInPlatformPath}"`);

@@ -1,18 +1,18 @@
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
 import { createMediaMetadata } from "@smm/core/mediaMetadata"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@smm/types"
 
 export async function createInitialMediaMetadata(
   folderPathInPlatformFormat: string, 
   type: "music-folder" | "tvshow-folder" | "movie-folder",
-  options?: { traceId?: string, abortSignal?: AbortSignal, mediaMetadataProps?: Partial<UIMediaMetadata> }
-): Promise<UIMediaMetadata> {
+  options?: { traceId?: string, abortSignal?: AbortSignal, mediaMetadataProps?: Partial<MediaMetadata> }
+): Promise<MediaMetadataWithFolderFiles> {
   
-  const mm: UIMediaMetadata = {
-    status: 'idle',
+  const mm: MediaMetadataWithFolderFiles = {
     ...createMediaMetadata(folderPathInPlatformFormat, type),
-    ...options?.mediaMetadataProps
+    ...options?.mediaMetadataProps,
+    files: [],
   };
 
   const files = await listMediaFolderFilePaths(folderPathInPlatformFormat, options?.abortSignal)

@@ -1,4 +1,4 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import {
     tryToRecognizeMovieFolderBySearchingFolderNameInTMDB,
     tryToRecognizeTvShowFolderBySearchingFolderNameInTMDB,
@@ -15,7 +15,7 @@ import {
 } from "./tryToRecognizeMediaFolderBySearchingFolderNameInTVDB";
 import type { TVDBv4SearchParams, TVDBv4SearchResult } from "@smm/tvdb4";
 
-function fillTypeInMediaMetadata(_in_out_mm: UIMediaMetadata) {
+function fillTypeInMediaMetadata(_in_out_mm: MediaMetadataWithFolderFiles) {
     const mm = _in_out_mm;
     if(mm.tvShow !== undefined) {
         mm.type = 'tvshow-folder';
@@ -25,7 +25,7 @@ function fillTypeInMediaMetadata(_in_out_mm: UIMediaMetadata) {
 }
 
 export async function recognizeMediaFolder(
-    _in_mm: UIMediaMetadata,
+    _in_mm: MediaMetadataWithFolderFiles,
     getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>,
     getTvShowByIdFromTvdbFn: (
         seriesId: number,
@@ -36,7 +36,7 @@ export async function recognizeMediaFolder(
     preferLanguage?: PreferMediaLanguage,
     primaryDatabase?: PrimaryDatabase,
     signal?: AbortSignal,
-): Promise<UIMediaMetadata | undefined> {
+): Promise<MediaMetadataWithFolderFiles | undefined> {
 
     console.log(
         `[recognizeMediaFolder] CALLED: preferLanguage=${preferLanguage}, primaryDatabase=${primaryDatabase ?? "undefined"}`,
@@ -47,7 +47,7 @@ export async function recognizeMediaFolder(
     console.log(`[recognizeMediaFolder] recognize media folder: ${folderPath}`)
     
 
-    const isRecognized = (m: UIMediaMetadata) => {
+    const isRecognized = (m: MediaMetadataWithFolderFiles) => {
         return m.tvShow !== undefined || m.movie !== undefined;
     }
 

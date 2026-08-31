@@ -1,5 +1,4 @@
 import type { MediaMetadata } from "@smm/types";
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
 
 /**
  * UiDomainMapper handles conversion between UI metadata and domain metadata.
@@ -7,36 +6,25 @@ import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
  */
 
 /**
- * Determines if the domain metadata has changed compared to current UI metadata.
- * Only considers MediaMetadata properties, excluding UI-only fields like 'status'.
+ * Determines if the domain metadata has changed compared to current metadata.
  */
 export function hasDomainMetadataChanged(
-  current: UIMediaMetadata | undefined,
-  updated: UIMediaMetadata
+  current: MediaMetadata | undefined,
+  updated: MediaMetadata
 ): boolean {
   if (!current) {
     return true;
   }
 
-  const uiOnlyKeys: (keyof UIMediaMetadata)[] = ['status'];
-
-  // Compare all keys in the updated object
-  for (const key of Object.keys(updated) as (keyof UIMediaMetadata)[]) {
-    // Skip UI-only keys
-    if (uiOnlyKeys.includes(key)) {
-      continue;
-    }
-
+  for (const key of Object.keys(updated) as (keyof MediaMetadata)[]) {
     const currentValue = current[key];
     const updatedValue = updated[key];
 
-    // Handle arrays (e.g., mediaFiles, seasons)
     if (Array.isArray(currentValue) && Array.isArray(updatedValue)) {
       if (JSON.stringify(currentValue) !== JSON.stringify(updatedValue)) {
         return true;
       }
     } else if (currentValue !== updatedValue) {
-      // Handle null/undefined/primitive value differences
       return true;
     }
   }
@@ -44,30 +32,17 @@ export function hasDomainMetadataChanged(
   return false;
 }
 
-/**
- * Extracts persistable domain metadata from UI metadata by removing UI-only properties.
- */
-export function extractPersistableMediaMetadata(uiMetadata: UIMediaMetadata): MediaMetadata {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { status, ...domainMetadata } = uiMetadata;
-  return domainMetadata as MediaMetadata;
+/** @deprecated Identity helper; metadata cache stores domain data only. */
+export function extractPersistableMediaMetadata(metadata: MediaMetadata): MediaMetadata {
+  return metadata;
 }
 
-/**
- * Converts domain metadata to UI metadata with default UI properties.
- */
-export function toUIMediaMetadata(domainMetadata: MediaMetadata, uiProps?: Partial<UIMediaMetadata>): UIMediaMetadata {
-  return {
-    ...domainMetadata,
-    status: 'idle',
-    ...uiProps,
-  };
+/** @deprecated Use domain metadata directly; folder status lives in uiMediaFolderStore. */
+export function toUIMediaMetadata(domainMetadata: MediaMetadata): MediaMetadata {
+  return domainMetadata;
 }
 
-/**
- * Updates UI metadata while preserving or updating UI-specific properties.
- */
-export function mergeUIMetadata(base: UIMediaMetadata, updates: Partial<UIMediaMetadata>): UIMediaMetadata {
+export function mergeUIMetadata(base: MediaMetadata, updates: Partial<MediaMetadata>): MediaMetadata {
   return {
     ...base,
     ...updates,

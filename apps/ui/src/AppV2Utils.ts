@@ -2,7 +2,8 @@ import { recognizeMediaFolder } from "./lib/recognizeMediaFolder"
 import { Path } from "@smm/utils/path";
 import { basename } from "./lib/path"
 import type { MediaFolderListItemV2Props } from "./components/sidebar/MediaFolderListItemV2"
-import type { UIMediaMetadata } from "./types/UIMediaMetadata";
+import type { MediaMetadata } from "@smm/types";
+import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { recognizeMovieMediaFiles } from "./lib/recognizeMediaFiles";
 import { recognizeEpisodesAsync } from "./lib/recognizeEpisodes";
 import type { PreferMediaLanguage, PrimaryDatabase, TmdbSearchResponseBody, TvShowMediaMetadata } from "@smm/types";
@@ -21,10 +22,12 @@ export function getTmdbIdFromFolderName(folderName: string): string | null {
   return match ? match[1] : null;
 }
 
+import type { MediaMetadataWithFolderFiles } from "./lib/mediaFolderFiles";
+
 export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
-  mediaMetadatas: UIMediaMetadata[]
+  mediaMetadatas: Array<{ metadata: MediaMetadata; status?: UIMediaFolderStatus }>
 ): MediaFolderListItemV2Props[] {
-  return mediaMetadatas.map((metadata) => {
+  return mediaMetadatas.map(({ metadata, status }) => {
 
     const getMediaName = () => {
       if(metadata.tvShow) {
@@ -45,7 +48,7 @@ export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
           : metadata.type === "movie-folder"
             ? "movie"
             : "tvshow-folder",
-      status: metadata.status,
+      status,
     } as MediaFolderListItemV2Props
   })
 }
@@ -93,13 +96,13 @@ export function buildMediaFolderListItemV2PropsByUIMediaMetadatas(
  * @param options 
  */
 export async function doPreprocessMediaFolder(
-  _in_mm: UIMediaMetadata,
+  _in_mm: MediaMetadataWithFolderFiles,
   options: { 
     traceId?: string, 
     preferLanguage?: PreferMediaLanguage,
     /** Preferred metadata DB for id-in-name and folder-name fallbacks. Undefined: try TMDB, then TVDB. */
     primaryDatabase?: PrimaryDatabase,
-    onSuccess?: (mm: UIMediaMetadata) => void, 
+    onSuccess?: (mm: MediaMetadataWithFolderFiles) => void, 
     onError?: (error: Error) => void,
     getTvShowByIdFromTmdbFn: (id: number, language?: PreferMediaLanguage) => Promise<TvShowMediaMetadata>,
     getTvShowByIdFromTvdbFn: (

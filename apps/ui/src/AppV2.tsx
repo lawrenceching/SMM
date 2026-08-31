@@ -25,7 +25,7 @@ import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 import { useFeatures } from "@/hooks/useFeatures"
 import { isNotNil } from "es-toolkit"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@smm/types"
 import {
   mediaMetadataQueryKey,
   normalizeMediaFolderPathForQuery,
@@ -227,10 +227,10 @@ function AppV2Content() {
       const deletedPosix = new Set(paths.map((p) => Path.posix(p)))
       const deletedNative = new Set(paths)
 
-      const getMediaMetadata = (path: string): UIMediaMetadata | undefined => {
+      const getMediaMetadata = (path: string): MediaMetadata | undefined => {
         const normalized = normalizeMediaFolderPathForQuery(path)
         if (!normalized) return undefined
-        return queryClient.getQueryData<UIMediaMetadata>(mediaMetadataQueryKey(normalized))
+        return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(normalized))
       }
 
       // Snapshot for rollback

@@ -1,11 +1,10 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { FileExplorer } from "@/components/FileExplorer"
 import type { FileItem } from "@/components/dialogs/types"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import { nextTraceId } from "@/lib/utils"
-import { extractUIMediaMetadataProps, type UIMediaMetadata } from "@/types/UIMediaMetadata"
 import { UnknownMediaTypeWarning, type MediaType } from "@/components/UnknownMediaTypeWarning"
 
 export interface LocalFilePanelProps {
@@ -14,11 +13,12 @@ export interface LocalFilePanelProps {
 
 export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   const mediaMetadataQuery = useMediaMetadataQuery(mediaFolderPath);
-  const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() =>
-    mediaMetadataQuery.data
-      ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
-      : undefined,
-    [mediaMetadataQuery.data, mediaMetadataQuery.isError])
+  const selectedMediaMetadata = mediaMetadataQuery.data
+  const uiStatus = mediaMetadataQuery.isError
+    ? "error_loading_metadata"
+    : selectedMediaMetadata
+      ? "ok"
+      : undefined
   const { mutateAsync: updateMediaMetadata } = useUpdateMediaMetadataMutation();
   const [mediaType, setMediaType] = useState<MediaType>("unknown")
   const [currentPath, setCurrentPath] = useState<string>(mediaFolderPath || "~")
@@ -88,7 +88,6 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
       metadata: {
         ...selectedMediaMetadata,
         type: metadataType,
-        ...extractUIMediaMetadataProps(selectedMediaMetadata),
       },
       traceId,
     })
@@ -98,7 +97,7 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
   return (
     <div className="flex h-full w-full flex-col bg-background">
       {/* Warning bar - only shown when media type is unknown */}
-      {mediaType === "unknown" && selectedMediaMetadata?.status === 'ok' && (
+      {mediaType === "unknown" && uiStatus === 'ok' && (
         <UnknownMediaTypeWarning
           mediaType={mediaType}
           onMediaTypeChange={setMediaType}
@@ -130,4 +129,3 @@ export function LocalFilePanel({ mediaFolderPath }: LocalFilePanelProps) {
     </div>
   )
 }
-

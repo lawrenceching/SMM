@@ -1,11 +1,14 @@
-import { extractUIMediaMetadataProps, type UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadataWithFolderFiles } from '@/lib/mediaFolderFiles'
 import type { MediaMetadata } from '@smm/types'
 
 export function mergeRefreshedMetadata(
   response: MediaMetadata,
-  currentMediaMetadata: UIMediaMetadata | undefined
-): UIMediaMetadata {
-  return currentMediaMetadata
-    ? { ...response, ...extractUIMediaMetadataProps(currentMediaMetadata) }
-    : { ...response, status: 'idle' }
+  currentMediaMetadata: MediaMetadataWithFolderFiles | undefined
+): MediaMetadataWithFolderFiles {
+  if (!currentMediaMetadata) {
+    return response
+  }
+
+  const { files } = currentMediaMetadata
+  return files !== undefined ? { ...response, files } : response
 }

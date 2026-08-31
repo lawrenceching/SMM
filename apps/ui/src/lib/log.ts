@@ -1,9 +1,9 @@
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata";
+import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
 import { isNil } from "es-toolkit";
 import pino from 'pino'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function minimize(mm: UIMediaMetadata): any {
+export function minimize(mm: MediaMetadataWithFolderFiles): any {
     return {
         mediaFolderPath: mm.mediaFolderPath,
         type: mm.type,
@@ -17,7 +17,6 @@ export function minimize(mm: UIMediaMetadata): any {
             id: mm.movie?.id,
             name: mm.movie?.name,
         },
-        status: mm.status,
     }
 }
 

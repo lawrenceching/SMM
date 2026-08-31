@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Star, TrendingUp, FileEdit, Download } from "lucide-react"
 import { cn, nextTraceId } from "@/lib/utils"
 import { ImmersiveMovieSearchbox } from "../ImmersiveMovieSearchbox"
-import { useCallback, useState, useEffect, useMemo } from "react"
+import { useCallback, useState, useEffect } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
@@ -17,7 +17,7 @@ import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"
 import { useTranslation } from "@/lib/i18n"
 import type { TFunction } from "i18next"
-import type { UIMediaMetadata } from "@/types/UIMediaMetadata"
+import type { MediaMetadata } from "@smm/types"
 import { useTmdbQueries } from "@/hooks/useTmdbQueries"
 
 interface TMDBMovieOverviewProps {
@@ -61,22 +61,18 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
     const { t } = useTranslation('components')
     const { selectedFolder } = useUIMediaFolderStoreState()
     const mediaMetadataQuery = useMediaMetadataQuery(selectedFolder || undefined)
-    const selectedMediaMetadata: UIMediaMetadata | undefined = useMemo(() => mediaMetadataQuery.data
-        ? { ...mediaMetadataQuery.data, status: mediaMetadataQuery.isError ? "error_loading_metadata" : "ok" }
-        : undefined, [mediaMetadataQuery.data, mediaMetadataQuery.isError])
+    const selectedMediaMetadata = mediaMetadataQuery.data
+    const isMediaMetadataOk = !mediaMetadataQuery.isError && selectedMediaMetadata !== undefined
     const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
     const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation()
     const updateMediaMetadata = useCallback(async (
         path: string,
-        updaterOrMetadata: UIMediaMetadata | ((current: UIMediaMetadata) => UIMediaMetadata),
+        updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
         options?: { traceId?: string },
     ) => {
         const pathPosix = normalizeMediaFolderPathForQuery(path)
         if (!pathPosix) return
-        const current: UIMediaMetadata = {
-            ...(await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })),
-            status: "ok",
-        }
+        const current = await fetchMediaMetadata({ path: pathPosix, traceId: options?.traceId })
         const next = typeof updaterOrMetadata === "function" ? updaterOrMetadata(current) : updaterOrMetadata
         await saveMediaMetadata({ pathPosix, metadata: next, traceId: options?.traceId })
     }, [fetchMediaMetadata, saveMediaMetadata])
@@ -173,8 +169,6 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
             setIsUpdatingMovie(false)
         }
     }, [selectedMediaMetadata, updateMediaMetadata])
-    
-    const isMediaMetadataOk = selectedMediaMetadata?.status === 'ok'
 
     // When movie is undefined, show only ImmersiveMovieSearchbox
     if (!movie && !isUpdatingMovie) {
