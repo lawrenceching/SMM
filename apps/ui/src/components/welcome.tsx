@@ -2,6 +2,7 @@ import type { ComponentType, FC } from "react"
 import { FolderOpen, Download, FileVideo, Github, ArrowUpRight } from "lucide-react"
 import { Separator } from "./ui/separator"
 import { useDialogs } from "@/providers/dialog-provider"
+import { askForFormatConverter } from "@/lib/dialogRequestEvents"
 import { useTranslation } from "@/lib/i18n"
 import { useFeatures } from "@/hooks/useFeatures"
 import { cn } from "@/lib/utils"
@@ -161,9 +162,8 @@ const FeatureCard: FC<{
 }
 
 const Welcome: FC<WelcomeProps> = ({ onImportFolderClick }) => {
-  const { downloadVideoDialog, formatConverterDialog } = useDialogs()
+  const { downloadVideoDialog } = useDialogs()
   const [openDownloadVideo] = downloadVideoDialog
-  const [openFormatConverter] = formatConverterDialog
   const { isDisplayFeatureCardsInWelcomeEnabled, isDownloadVideoEnabled, isFormatConverterEnabled } = useFeatures()
   const { t } = useTranslation("components")
 
@@ -246,7 +246,7 @@ const Welcome: FC<WelcomeProps> = ({ onImportFolderClick }) => {
                   key={spec.id}
                   spec={spec}
                   title={title}
-                  onClick={() => openFormatConverter()}
+                  onClick={() => askForFormatConverter()}
                   className={cardClassName}
                 />
               )

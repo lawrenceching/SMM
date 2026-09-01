@@ -6,7 +6,7 @@ import { generateNewFileName } from "@smm/core/pipeline/renameRules"
 import { Path } from "@smm/utils/path"
 import { join, extname } from "@/lib/path"
 import { useLatest } from "react-use"
-import { useDialogs } from "@/providers/dialog-provider"
+import { askForRenameFile, askForScrape } from "@/lib/dialogRequestEvents"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useSelectMovieForFolderMutation } from "@/hooks/movie/useSelectMovieForFolderMutation"
 import { renameFiles } from "@/api/renameFiles"
@@ -20,15 +20,19 @@ import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/b
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
+import {
+  UI_AskForVideoCompression,
+  type OnAskForVideoCompressionEventData,
+} from "@/types/eventTypes"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
 import { MediaFileTable } from "../media/MediaFileTable"
 import type {
   UIMediaFileDataContextMenuItem,
+  UIMediaFileDataRow,
   UIMediaFileTableRow,
 } from "../media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
-import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "../tv/TvShowEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
@@ -91,10 +95,6 @@ function MoviePanel() {
     },
     [fetchMediaMetadata],
   )
-  const { scrapeDialog, videoCompressionDialog, renameFileDialog } = useDialogs()
-  const [openScrape] = scrapeDialog
-  const [openRenameFile] = renameFileDialog
-
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
@@ -125,7 +125,7 @@ function MoviePanel() {
     return findMediaFilesForMovieMediaMetadata(clone, folderFiles)
   }, [queriedMediaMetadata, folderFiles])
 
-  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
+  const { isVideoCompressionEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -134,7 +134,7 @@ function MoviePanel() {
   })
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    openRenameDialog: openRenameFile,
+    openRenameDialog: askForRenameFile,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
@@ -326,7 +326,7 @@ function MoviePanel() {
   }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata, t])
 
   // Build table data using the movie→tv-show adapter
-  const tableData = useMemo<TvShowEpisodeTableRow[]>(() => {
+  const tableData = useMemo<UIMediaFileTableRow[]>(() => {
     if (!mediaMetadata) return []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), folderFiles, {
@@ -335,12 +335,15 @@ function MoviePanel() {
   }, [mediaMetadata, folderStatus, t, renamePreview, folderFiles])
 
   const handleVideoCompressClick = useCallback(
-    (row: TvShowEpisodeDataRow) => {
+    (row: UIMediaFileDataRow) => {
       if (!row.videoFile) return
-      const [openVideoCompression] = videoCompressionDialog
-      openVideoCompression({ filePath: row.videoFile })
+      document.dispatchEvent(
+        new CustomEvent<OnAskForVideoCompressionEventData>(UI_AskForVideoCompression, {
+          detail: { filePath: row.videoFile },
+        }),
+      )
     },
-    [videoCompressionDialog],
+    [],
   )
 
   return (
@@ -358,7 +361,7 @@ function MoviePanel() {
           {...subtitleFlow.header}
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
-          openScrape={openScrape}
+          openScrape={askForScrape}
           episodeTableLayout={layout}
           onEpisodeTableLayoutChange={setLayout}
         />
@@ -366,28 +369,27 @@ function MoviePanel() {
       <div className="flex-1 min-h-0 overflow-auto">
         {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
-        ) : isUseMediaFileTableEnabled ? (
-          <MediaFileTable
-            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-            data={tableData as UIMediaFileTableRow[]}
-            mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            layout={isPreviewingForRename ? "simple" : layout}
-            preview={isPreviewingForRename ? "rename" : undefined}
-            extraEpisodeContextMenu={[{
-              id: "rename",
-              label: t("episodeFile.rename"),
-              onClick: videoRenameFlow.onRenameContextMenuClick,
-              disabled: (row) => !row.videoFile,
-            } satisfies UIMediaFileDataContextMenuItem]}
-          />
         ) : (
-          <TvShowEpisodeTable
+          <MediaFileTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             layout={isPreviewingForRename ? "simple" : layout}
             preview={isPreviewingForRename ? "rename" : undefined}
-            onVideoCompressContextMenuClick={isVideoCompressionEnabled ? handleVideoCompressClick : undefined}
+            extraEpisodeContextMenu={[
+              {
+                id: "rename",
+                label: t("episodeFile.rename"),
+                onClick: videoRenameFlow.onRenameContextMenuClick,
+                disabled: (row) => !row.videoFile,
+              } satisfies UIMediaFileDataContextMenuItem,
+              {
+                id: "video-compress",
+                label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
+                onClick: isVideoCompressionEnabled ? handleVideoCompressClick : undefined,
+                disabled: (row) => !row.videoFile,
+              } satisfies UIMediaFileDataContextMenuItem,
+            ]}
           />
         )}
       </div>

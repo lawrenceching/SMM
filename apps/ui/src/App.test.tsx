@@ -39,6 +39,11 @@ vi.mock("@/hooks/userConfig", () => ({
   }),
 }))
 
+vi.mock("@/hooks/folders", () => ({
+  useFoldersQuery: () => ({ data: ["/media/local-folder"], isFetching: false }),
+  useUnimportFolderMutation: () => ({ mutateAsync: vi.fn() }),
+}))
+
 vi.mock("@/lib/localStorages", () => ({
   default: mockLocalStorages,
 }))
@@ -49,6 +54,21 @@ vi.mock("@/providers/dialog-provider", () => ({
     filePickerDialog: [vi.fn(), vi.fn()],
     renameFolderDialog: [vi.fn(), vi.fn()],
   }),
+}))
+
+// App-level dialog controllers render real (heavy) dialogs that need the full
+// provider stack (JobOrchestratorProvider etc.); stub them for the App shell test.
+vi.mock("@/components/video-compression/VideoCompression", () => ({
+  VideoCompression: () => null,
+}))
+vi.mock("@/components/format-converter/FormatConverter", () => ({
+  FormatConverter: () => null,
+}))
+vi.mock("@/components/scrape/ScrapeMetadata", () => ({
+  ScrapeMetadata: () => null,
+}))
+vi.mock("@/components/rename-file/RenameFile", () => ({
+  RenameFile: () => null,
 }))
 
 vi.mock("@/components/sidebar/Sidebar", () => ({

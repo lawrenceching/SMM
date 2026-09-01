@@ -1,4 +1,4 @@
-import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/tv/TvShowEpisodeTable";
+import type { UIMediaFileTableRow, UIMediaFileFolderRow, UIMediaEpisodeSelection } from "@/components/media/UIMediaFileTable";
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { basename, join } from "@/lib/path";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
@@ -9,9 +9,30 @@ import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan";
 import { mediaFilePathEqual } from "@smm/core/pipeline/mediaFilePathEqual";
 import Debug from 'debug'
 const debug = Debug('buildTvShowEpisodeTableRows')
-const FOLDER_FILE_IDS: TvShowFolderFileRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
+const FOLDER_FILE_IDS: UIMediaFileFolderRow["id"][] = ["clearlogo", "fanart", "poster", "theme", "nfo"]
 
-function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string | undefined {
+/**
+ * Result of building episode rows: rows to render plus the episodes that should
+ * be pre-checked for the current plan / preview. Selection state itself stays
+ * in the caller; this only describes the derived default.
+ */
+export interface BuiltTvShowEpisodeTableRows {
+  rows: UIMediaFileTableRow[]
+  defaultChecked: UIMediaEpisodeSelection[]
+}
+
+/** Episodes that currently have a linked video file (base default selection). */
+function episodesWithVideoFile(rows: UIMediaFileTableRow[]): UIMediaEpisodeSelection[] {
+  const out: UIMediaEpisodeSelection[] = []
+  for (const row of rows) {
+    if (row.type === "episode" && row.videoFile !== undefined) {
+      out.push({ season: row.season, episode: row.episode })
+    }
+  }
+  return out
+}
+
+function matchFolderFile(files: string[], id: UIMediaFileFolderRow["id"]): string | undefined {
   if (!files.length) return undefined
   if (id === "nfo") {
     return files.find((f) => basename(f) === "tvshow.nfo")
@@ -28,9 +49,9 @@ function matchFolderFile(files: string[], id: TvShowFolderFileRow["id"]): string
  * @param files
  * @returns 
  */
-function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
+function buildFolderFileRows(files: string[]): UIMediaFileFolderRow[] {
 
-  const rows: TvShowFolderFileRow[] = []
+  const rows: UIMediaFileFolderRow[] = []
   for (const id of FOLDER_FILE_IDS) {
     const path = matchFolderFile(files, id)
     if (path) rows.push({ id, type: "folderFile", path })
@@ -46,8 +67,8 @@ export function buildTvShowEpisodeTableRows(
   uiStatus: UIMediaFolderStatus,
   t: (key: string) => string,
   folderFiles: string[] = [],
-): TvShowEpisodeTableRow[] {
-  const rows: TvShowEpisodeTableRow[] = []
+): UIMediaFileTableRow[] {
+  const rows: UIMediaFileTableRow[] = []
 
   if (uiStatus === "initializing") {
     return [{
@@ -93,7 +114,7 @@ export function buildTvShowEpisodeTableRows(
 
 export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadata, folderFiles: string[] = []) {
 
-  const rows: TvShowEpisodeTableRow[] = []
+  const rows: UIMediaFileTableRow[] = []
 
   if (!_in_mm.tvShow) {
     return rows
@@ -163,7 +184,6 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadata, fold
         newThumbnail: thumbnailFile?.newPath,
         newSubtitle: subtitleFile?.newPath,
         newNfo: nfoFile?.newPath,
-        checked: videoFile?.path ? true : false,
       })
     }
   }
@@ -173,7 +193,7 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadata, fold
 
 export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadata, folderFiles: string[] = []) {
 
-  const rows: TvShowEpisodeTableRow[] = []
+  const rows: UIMediaFileTableRow[] = []
 
   if(!_in_mm.tvShow || !_in_mm.tvShow.seasons) {
     return rows;
@@ -243,7 +263,6 @@ export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadata, fold
         newThumbnail: thumbnailFile?.newPath,
         newSubtitle: subtitleFile?.newPath,
         newNfo: nfoFile?.newPath,
-        checked: videoFile?.path ? true : false,
       })
     }
   }
@@ -257,37 +276,46 @@ export function buildTvShowEpisodeTableRowsForPlan(
     plan: UIRenameFilesPlan | UIRecognizeMediaFilePlan,
     t: (key: string) => string,
     folderFiles: string[] = [],
-): TvShowEpisodeTableRow[] {
+): BuiltTvShowEpisodeTableRows {
 
     if (uiStatus === "initializing") {
-      return [{
-        id: "initializing",
-        type: "divider",
-        text: t ? t('mediaFolder.initializing') : "Initializing",
-      }]
+      return {
+        rows: [{
+          id: "initializing",
+          type: "divider",
+          text: t ? t('mediaFolder.initializing') : "Initializing",
+        }],
+        defaultChecked: [],
+      }
     }
 
     if (uiStatus === "folder_not_found") {
-      return [{
-        id: "folder_not_found",
-        type: "divider",
-        text: t ? t('mediaFolder.folderNotFound') : "Folder not found",
-      }]
+      return {
+        rows: [{
+          id: "folder_not_found",
+          type: "divider",
+          text: t ? t('mediaFolder.folderNotFound') : "Folder not found",
+        }],
+        defaultChecked: [],
+      }
     }
 
     if (uiStatus === "error_loading_metadata") {
-      return [{
-        id: "error_loading_metadata",
-        type: "divider",
-        text: t ? t('mediaFolder.errorLoadingMetadata') : "Error loading metadata",
-      }]
+      return {
+        rows: [{
+          id: "error_loading_metadata",
+          type: "divider",
+          text: t ? t('mediaFolder.errorLoadingMetadata') : "Error loading metadata",
+        }],
+        defaultChecked: [],
+      }
     }
 
-    const rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t, folderFiles)
+    const rows: UIMediaFileTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t, folderFiles)
 
     if(plan.task === "recognize-media-file") {
       if(plan.status === 'preparing') {
-        return rows;
+        return { rows, defaultChecked: episodesWithVideoFile(rows) }
       }
 
       return fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(rows, plan)
@@ -298,15 +326,40 @@ export function buildTvShowEpisodeTableRowsForPlan(
 
     debug(`buildTvShowEpisodeTableRowsForPlan RETURNED: %O`, rows)
 
-    return rows
+    return { rows, defaultChecked: episodesWithVideoFile(rows) }
+}
+
+/**
+ * Builds the rows shown by the TV show panel together with the episodes that
+ * should be pre-checked. Selection defaults are co-located with row building;
+ * the selection state itself lives in the caller (TvShowPanel).
+ */
+export function buildTvShowEpisodeTableRowsForPanel(
+    mm: MediaMetadata,
+    uiStatus: UIMediaFolderStatus,
+    plan: UIRenameFilesPlan | UIRecognizeMediaFilePlan | undefined,
+    t: (key: string) => string,
+    folderFiles: string[] = [],
+): BuiltTvShowEpisodeTableRows {
+
+    if (plan === undefined) {
+      // No plan → no preview checkboxes; no episodes are pre-selected.
+      return {
+        rows: buildTvShowEpisodeTableRows(mm, uiStatus, t, folderFiles),
+        defaultChecked: [],
+      }
+    }
+
+    return buildTvShowEpisodeTableRowsForPlan(mm, uiStatus, plan, t, folderFiles)
 }
 
 export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
-    _in_rows: TvShowEpisodeTableRow[],
+    _in_rows: UIMediaFileTableRow[],
     plan: UIRecognizeMediaFilePlan,
-) {
+): BuiltTvShowEpisodeTableRows {
 
-  const rows = structuredClone(_in_rows) as TvShowEpisodeTableRow[]
+  const rows = structuredClone(_in_rows) as UIMediaFileTableRow[]
+  const defaultChecked: UIMediaEpisodeSelection[] = []
   const planFilesByKey = new Map(
     plan.files.map((file) => [`${file.season}:${file.episode}`, file] as const),
   )
@@ -329,14 +382,14 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
         && mediaFilePathEqual(existingVideoFile, planPath)
 
       if (unchanged) {
-        row.checked = false
         row.disabled = true
       } else {
-        row.checked = planPath !== undefined
         row.disabled = false
+        if (planPath !== undefined) {
+          defaultChecked.push({ season: row.season, episode: row.episode })
+        }
       }
     } else {
-      row.checked = false
       row.disabled = true
     }
   }
@@ -352,15 +405,15 @@ export function fillTvShowEpisodeTableRowByRecognizeMediaFilesPlan(
     }
   }
 
-  return rows
-
+  return { rows, defaultChecked }
 }
 
 export function fillTvShowEpisodeTableRowByRenameFilesPlan(
-    _in_rows: TvShowEpisodeTableRow[],
+    _in_rows: UIMediaFileTableRow[],
     plan: UIRenameFilesPlan,
-) {
-  const rows = structuredClone(_in_rows) as TvShowEpisodeDataRow[]
+): BuiltTvShowEpisodeTableRows {
+  const rows = structuredClone(_in_rows) as UIMediaFileTableRow[]
+  const defaultChecked: UIMediaEpisodeSelection[] = []
   const renameFiles = plan.files
 
   for (const row of rows) {
@@ -369,9 +422,6 @@ export function fillTvShowEpisodeTableRowByRenameFilesPlan(
     }
     row.newVideoFile = undefined
     row.disabled = undefined
-    if (row.videoFile) {
-      row.checked = false
-    }
   }
 
   for(const renameFile of renameFiles) {
@@ -383,8 +433,12 @@ export function fillTvShowEpisodeTableRowByRenameFilesPlan(
 
       if(row.videoFile === renameFile.from) {
         row.newVideoFile = renameFile.to;
-        row.checked = true;
         row.disabled = false;
+        if (!defaultChecked.some(
+          (e) => e.season === row.season && e.episode === row.episode,
+        )) {
+          defaultChecked.push({ season: row.season, episode: row.episode })
+        }
       }
 
     }
@@ -399,5 +453,5 @@ export function fillTvShowEpisodeTableRowByRenameFilesPlan(
     }
   }
 
-  return rows;
+  return { rows, defaultChecked };
 }

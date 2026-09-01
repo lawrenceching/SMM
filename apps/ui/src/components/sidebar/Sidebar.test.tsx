@@ -172,7 +172,7 @@ describe("Sidebar delete behavior", () => {
       />,
     )
 
-    fireEvent.click(await screen.findByTestId(`delete-${Path.toPlatformPath(pathA)}`))
+    fireEvent.click(await screen.findByTestId(`delete-${pathA}`))
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
     expect(mutateAsync).toHaveBeenCalledWith(expect.arrayContaining([pathA, pathB]))
@@ -193,10 +193,10 @@ describe("Sidebar delete behavior", () => {
       />,
     )
 
-    fireEvent.click(await screen.findByTestId(`delete-${Path.toPlatformPath(pathB)}`))
+    fireEvent.click(await screen.findByTestId(`delete-${pathB}`))
 
     expect(mutateAsync).toHaveBeenCalledTimes(1)
-    expect(mutateAsync).toHaveBeenCalledWith([Path.toPlatformPath(pathB)])
+    expect(mutateAsync).toHaveBeenCalledWith([pathB])
     expect(onDeleteSelected).not.toHaveBeenCalled()
   })
 })
@@ -362,29 +362,26 @@ describe("Sidebar selection UI", () => {
     const onSelectionChange = vi.fn()
     render(<Sidebar onSelectionChange={onSelectionChange} />)
 
-    const platformA = Path.toPlatformPath(pathA)
-    fireEvent.click(await screen.findByTestId(`select-${platformA}`))
+    fireEvent.click(await screen.findByTestId(`select-${pathA}`))
 
     expect(onSelectionChange).toHaveBeenCalledWith({
-      selectedPaths: [platformA],
-      primaryPath: platformA,
+      selectedPaths: [pathA],
+      primaryPath: pathA,
       multi: false,
     })
-    expect(screen.getByTestId(`select-${platformA}`)).toHaveAttribute("data-selected", "true")
+    expect(screen.getByTestId(`select-${pathA}`)).toHaveAttribute("data-selected", "true")
   })
 
   it("toggles multi-select with ctrl/meta click", async () => {
     const onSelectionChange = vi.fn()
     render(<Sidebar onSelectionChange={onSelectionChange} />)
 
-    const platformA = Path.toPlatformPath(pathA)
-    const platformB = Path.toPlatformPath(pathB)
-    fireEvent.click(await screen.findByTestId(`select-${platformA}`))
-    fireEvent.click(screen.getByTestId(`select-${platformB}`), { ctrlKey: true })
+    fireEvent.click(await screen.findByTestId(`select-${pathA}`))
+    fireEvent.click(screen.getByTestId(`select-${pathB}`), { ctrlKey: true })
 
     expect(onSelectionChange).toHaveBeenLastCalledWith({
-      selectedPaths: [platformA, platformB],
-      primaryPath: platformB,
+      selectedPaths: [pathA, pathB],
+      primaryPath: pathB,
       multi: true,
     })
   })
@@ -455,13 +452,13 @@ describe("Sidebar search UI", () => {
     const onSearchQueryChange = vi.fn()
     render(<Sidebar onSearchQueryChange={onSearchQueryChange} />)
 
-    expect(await screen.findByTestId(`select-${Path.toPlatformPath(pathA)}`)).toBeInTheDocument()
-    expect(screen.getByTestId(`select-${Path.toPlatformPath(pathB)}`)).toBeInTheDocument()
+    expect(await screen.findByTestId(`select-${pathA}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`select-${pathB}`)).toBeInTheDocument()
 
-    fireEvent.change(screen.getByTestId("sidebar-search-input"), { target: { value: "Beta" } })
+    fireEvent.change(screen.getByTestId("sidebar-search-input"), { target: { value: "folder-b" } })
 
-    expect(onSearchQueryChange).toHaveBeenCalledWith("Beta")
-    expect(screen.queryByTestId(`select-${Path.toPlatformPath(pathA)}`)).toBeNull()
-    expect(screen.getByTestId(`select-${Path.toPlatformPath(pathB)}`)).toBeInTheDocument()
+    expect(onSearchQueryChange).toHaveBeenCalledWith("folder-b")
+    expect(screen.queryByTestId(`select-${pathA}`)).toBeNull()
+    expect(screen.getByTestId(`select-${pathB}`)).toBeInTheDocument()
   })
 })

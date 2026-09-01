@@ -29,6 +29,10 @@ vi.mock("@/components/tv/TvShowPanelUtils", async (importOriginal) => {
   }
 })
 
+vi.mock("@/lib/mediaFolderFiles", () => ({
+  listMediaFolderFilePaths: vi.fn(async () => ["/media/folder/S01E01.mkv"]),
+}))
+
 vi.mock("@/hooks/plans", () => ({
   useCreatePlanMutation: () => ({
     createPlanOptimistic: createPlanOptimisticMock,

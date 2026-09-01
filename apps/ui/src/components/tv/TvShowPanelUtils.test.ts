@@ -17,11 +17,19 @@ vi.mock('@/lib/recognizeEpisodesUi', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/lib/recognizeEpisodesUi')>()
   return {
     ...mod,
-    recognizeEpisodesAsync: vi.fn((mm: Parameters<typeof mod.recognizeEpisodes>[0]) =>
-      Promise.resolve(mod.recognizeEpisodes(mm))
+    recognizeEpisodesAsync: vi.fn(
+      (mm: Parameters<typeof mod.recognizeEpisodes>[0], folderFiles: string[]) =>
+        Promise.resolve(mod.recognizeEpisodes(mm, folderFiles)),
     ),
   }
 })
+vi.mock('@/lib/mediaFolderFiles', () => ({
+  listMediaFolderFilePaths: vi.fn(async () => [
+    '/media/testshow/tvshow.nfo',
+    '/media/testshow/episode1.nfo',
+    '/media/testshow/episode1.mkv',
+  ]),
+}))
 vi.mock('sonner', () => ({
   toast: {
     success: vi.fn(),
@@ -137,7 +145,7 @@ describe('buildFileProps', () => {
   it('should build file props for valid media metadata', () => {
     const mm = createMockMediaMetadata()
     
-    const result = buildFileProps(mm, 1, 1)
+    const result = buildFileProps(mm, 1, 1, mm.files ?? [])
     
     expect(result.length).toBeGreaterThan(0)
     expect(result[0]).toEqual({
@@ -163,7 +171,7 @@ describe('buildFileProps', () => {
   it('should return empty array when files is undefined', () => {
     const mm = createMockMediaMetadata({ files: undefined })
     
-    const result = buildFileProps(mm, 1, 1)
+    const result = buildFileProps(mm, 1, 1, mm.files ?? [])
     
     expect(result).toEqual([])
   })
@@ -171,7 +179,7 @@ describe('buildFileProps', () => {
   it('should return empty array when files is null', () => {
     const mm = createMockMediaMetadata({ files: null })
     
-    const result = buildFileProps(mm, 1, 1)
+    const result = buildFileProps(mm, 1, 1, mm.files ?? [])
     
     expect(result).toEqual([])
   })
@@ -179,7 +187,7 @@ describe('buildFileProps', () => {
   it('should return empty array when mediaFile for season/episode is not found', () => {
     const mm = createMockMediaMetadata()
     
-    const result = buildFileProps(mm, 2, 5)
+    const result = buildFileProps(mm, 2, 5, mm.files ?? [])
     
     expect(result).toEqual([])
   })
@@ -187,7 +195,7 @@ describe('buildFileProps', () => {
   it('should include associated files in the result', () => {
     const mm = createMockMediaMetadata()
     
-    const result = buildFileProps(mm, 1, 1)
+    const result = buildFileProps(mm, 1, 1, mm.files ?? [])
     
     // Should have video file plus associated files
     expect(result.length).toBeGreaterThan(1)
@@ -1063,7 +1071,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       files: ['/media/S01E01.mkv'],
       tvShow: tvShowWithS1E1,
     }
-    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
     expect(result).toBeNull()
   })
 
@@ -1073,7 +1081,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       files: undefined,
       tvShow: tvShowWithS1E1,
     }
-    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
     expect(result).toBeNull()
   })
 
@@ -1083,7 +1091,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
       files: ['/media/S01E01.mkv'],
       tvShow: undefined,
     }
-    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
     expect(result).toBeNull()
   })
 
@@ -1098,7 +1106,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
         seasons: [{ season: 1, name: '', episodes: [{ season: 1, episode: 1, name: '' }] }],
       },
     }
-    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
     expect(result).not.toBeNull()
     expect(result!.mediaFolderPath).toBe('/media')
     expect(result!.files).toHaveLength(0)
@@ -1125,7 +1133,7 @@ describe('buildTemporaryRecognitionPlanAsync', () => {
         ],
       },
     }
-    const result = await buildTemporaryRecognitionPlanAsync(mm)
+    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
     expect(result).not.toBeNull()
     expect(result!.mediaFolderPath).toBe(mediaFolderPath)
     expect(result!.files).toHaveLength(2)

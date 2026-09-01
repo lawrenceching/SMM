@@ -2,7 +2,7 @@ import { XCircle } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
-import { useDialogs } from "@/providers/dialog-provider"
+import { askForRenameFile } from "@/lib/dialogRequestEvents"
 import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore";
 import { Path } from "@smm/utils/path"
 import { relative, join, basename, dirname, extname } from "@/lib/path"
@@ -112,8 +112,6 @@ export function EpisodeFile({
     const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
     const { data: allMediaFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
     const { mutate: fetchMediaMetadata } = useFetchMediaMetadataMutation();
-    const { renameFileDialog } = useDialogs()
-
     const mediaFolderPath = selectedMediaMetadata?.mediaFolderPath
     const relativePath = getRelativePath(mediaFolderPath, file.path)
     const newRelativePath = file.newPath ? getRelativePath(mediaFolderPath, file.newPath) : null
@@ -200,8 +198,7 @@ export function EpisodeFile({
                                 relativePath = file.path
                             }
 
-                            const [openRename] = renameFileDialog
-                            openRename(
+                            askForRenameFile(
                                 async (newRelativePath: string) => {
                                     if (!selectedMediaMetadata?.mediaFolderPath || !file.path) {
                                         console.error("Missing required paths for rename")

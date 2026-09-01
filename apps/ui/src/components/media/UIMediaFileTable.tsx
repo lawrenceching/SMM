@@ -21,7 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { ChevronRightIcon } from "lucide-react"
-import { useState, useMemo, type ReactNode } from "react"
+import { useCallback, useState, useMemo, type ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import {
@@ -49,6 +49,18 @@ export interface UIMediaFileDividerRow {
 }
 
 /**
+ * Identifies one TV episode row for checkbox selection.
+ *
+ * Selection is kept separate from the row data (controlled by the table via
+ * the `selectedEpisodes` prop, or managed internally), so user toggles survive
+ * row rebuilds that derive from refetched metadata / plans.
+ */
+export interface UIMediaEpisodeSelection {
+  season: number
+  episode: number
+}
+
+/**
  * A single playable file row (e.g. one TV episode or one movie).
  *
  * `season` and `episode` are kept on every data row for layout compatibility
@@ -69,7 +81,6 @@ export interface UIMediaFileDataRow {
   newThumbnail?: string
   newSubtitle?: string
   newNfo?: string
-  checked: boolean
   /**
    * In preview mode, row does not participate in the current plan:
    * checkbox is disabled and the row is rendered in a muted style.
@@ -145,6 +156,12 @@ export interface UIMediaFileTableProps {
    * - `preview`  no ID column, larger cover, extra content area for video screenshots
    */
   layout?: "simple" | "detail" | "preview"
+  /**
+   * Controlled checkbox selection — which episodes are currently checked.
+   * Omit → the table manages the selection internally (uncontrolled mode).
+   * Checkboxes are only rendered while `preview` is set.
+   */
+  selectedEpisodes?: UIMediaEpisodeSelection[]
   /** Checkbox state callback. Omit → checkbox column is hidden. */
   onCheck?: (row: UIMediaFileDataRow, checked: boolean) => void
   /**
@@ -296,6 +313,7 @@ export function UIMediaFileTable({
   preview,
   previewStatus,
   layout = "simple",
+  selectedEpisodes,
   onCheck,
   renderPreviewContent,
   onDoubleClick,
@@ -303,6 +321,42 @@ export function UIMediaFileTable({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
   const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(
     defaultColumnVisibility,
+  )
+  const [internalSelectedEpisodes, setInternalSelectedEpisodes] = useState<
+    UIMediaEpisodeSelection[]
+  >([])
+
+  // Controlled when the caller provides `selectedEpisodes`; otherwise the table
+  // keeps the selection in internal state (uncontrolled mode).
+  const isSelectionControlled = selectedEpisodes !== undefined
+  const effectiveSelection = selectedEpisodes ?? internalSelectedEpisodes
+  const selectedEpisodeKeys = useMemo(
+    () => new Set(effectiveSelection.map((e) => `${e.season}-${e.episode}`)),
+    [effectiveSelection],
+  )
+
+  const isEpisodeSelected = useCallback(
+    (row: UIMediaFileDataRow) => selectedEpisodeKeys.has(`${row.season}-${row.episode}`),
+    [selectedEpisodeKeys],
+  )
+
+  const handleRowCheck = useCallback(
+    (row: UIMediaFileDataRow, checked: boolean) => {
+      if (!isSelectionControlled) {
+        setInternalSelectedEpisodes((prev) => {
+          const exists = prev.some(
+            (e) => e.season === row.season && e.episode === row.episode,
+          )
+          if (checked === exists) return prev
+          if (checked) return [...prev, { season: row.season, episode: row.episode }]
+          return prev.filter(
+            (e) => !(e.season === row.season && e.episode === row.episode),
+          )
+        })
+      }
+      onCheck?.(row, checked)
+    },
+    [isSelectionControlled, onCheck],
   )
 
   const { t } = useTranslation("components")
@@ -362,7 +416,8 @@ export function UIMediaFileTable({
     preview,
     previewStatus,
     layout,
-    onCheck,
+    onCheck: handleRowCheck,
+    isSelected: isEpisodeSelected,
     renderPreviewContent,
     onDoubleClick,
     isSimpleLayout,

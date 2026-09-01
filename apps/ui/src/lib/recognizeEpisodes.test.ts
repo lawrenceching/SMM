@@ -138,39 +138,39 @@ describe('recognizeEpisodes', () => {
 
   it('returns empty array when files is undefined', () => {
     const mm = makeMM({ files: undefined })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when files is null', () => {
     const mm = makeMM({ files: null })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when files is empty', () => {
     const mm = makeMM({ files: [] })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when tvShow is undefined', () => {
     const mm = makeMM({ files: ['Show - 1.mp4'], tvShow: undefined })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when tvShow.seasons is empty', () => {
     const mm = makeMM({ files: ['Show - 1.mp4'] })
     if (mm.tvShow) mm.tvShow.seasons = []
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when first season has no episodes', () => {
     const mm = makeMM({ files: ['Show - 1.mp4'] })
     if (mm.tvShow?.seasons?.[0]) mm.tvShow.seasons[0].episodes = []
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('returns empty array when no video files (only non-video extensions)', () => {
     const mm = makeMM({ files: ['Show - 1.txt', 'Readme.srt', 'poster.jpg'] })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('excludes files under /Extras/ and /Subtitles/', () => {
@@ -181,7 +181,7 @@ describe('recognizeEpisodes', () => {
         '/media/Show/Show - 1.mp4',
       ],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toHaveLength(1)
     expect(result[0].file).toBe('/media/Show/Show - 1.mp4')
   })
@@ -190,7 +190,7 @@ describe('recognizeEpisodes', () => {
     const mm = makeMM({
       files: ['/media/Show/Show.S01E01.1080p.mp4', '/media/Show/Show.S01E02.mkv', '/media/Show/Show.S01E03.avi'],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toEqual([
       { season: 1, episode: 1, file: '/media/Show/Show.S01E01.1080p.mp4' },
       { season: 1, episode: 2, file: '/media/Show/Show.S01E02.mkv' },
@@ -202,7 +202,7 @@ describe('recognizeEpisodes', () => {
     const mm = makeMM({
       files: ['/media/Show/Show 第1季第1集.mp4', '/media/Show/Show 第1季第2集.mkv', '/media/Show/Show 第1季第3集.avi'],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toEqual([
       { season: 1, episode: 1, file: '/media/Show/Show 第1季第1集.mp4' },
       { season: 1, episode: 2, file: '/media/Show/Show 第1季第2集.mkv' },
@@ -214,7 +214,7 @@ describe('recognizeEpisodes', () => {
     const mm = makeMM({
       files: ['/media/Show/Show 第01季第01集.mp4', '/media/Show/Show 第01季第02集.mkv', '/media/Show/Show 第01季第03集.avi'],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toEqual([
       { season: 1, episode: 1, file: '/media/Show/Show 第01季第01集.mp4' },
       { season: 1, episode: 2, file: '/media/Show/Show 第01季第02集.mkv' },
@@ -226,7 +226,7 @@ describe('recognizeEpisodes', () => {
     const mm = makeMM({
       files: ['/media/Show/Show - 1.mp4', '/media/Show/Show.2.mkv', '/media/Show/Show_3.avi'],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toEqual([
       { season: 1, episode: 1, file: '/media/Show/Show - 1.mp4' },
       { season: 1, episode: 2, file: '/media/Show/Show.2.mkv' },
@@ -238,14 +238,14 @@ describe('recognizeEpisodes', () => {
     const mm = makeMM({
       files: ['/media/Show/UnknownFormat_x_y_z.mp4', '/media/Show/Other.mkv'],
     })
-    expect(recognizeEpisodes(mm)).toEqual([])
+    expect(recognizeEpisodes(mm, mm.files ?? [])).toEqual([])
   })
 
   it('prefers pattern1 over pattern4 when both could match', () => {
     const mm = makeMM({
       files: ['/media/Show/Show.S01E01.mp4', '/media/Show/Show - 1.mp4'],
     })
-    const result = recognizeEpisodes(mm)
+    const result = recognizeEpisodes(mm, mm.files ?? [])
     expect(result).toHaveLength(1)
     expect(result[0].file).toContain('S01E01')
   })

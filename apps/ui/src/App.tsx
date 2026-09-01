@@ -31,6 +31,10 @@ import {
   type OnMediaLibraryImportedEventData,
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/music/MusicPanel"
+import { VideoCompression } from "./components/video-compression/VideoCompression"
+import { FormatConverter } from "./components/format-converter/FormatConverter"
+import { ScrapeMetadata } from "./components/scrape/ScrapeMetadata"
+import { RenameFile } from "./components/rename-file/RenameFile"
 import localStorages from "@/lib/localStorages"
 import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
 import { isElectron } from "@/lib/isElectron"
@@ -355,6 +359,10 @@ export default function App() {
       </div>
       <StatusBar />
       {isAiFeatureEnabled && <Assistant />}
+      <VideoCompression />
+      <FormatConverter />
+      <ScrapeMetadata />
+      <RenameFile />
       <Toaster position="bottom-right" />
     </div>
   )

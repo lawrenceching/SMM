@@ -2,7 +2,7 @@ import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMe
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
@@ -11,28 +11,31 @@ import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "@/hooks/tv/useTvShowPanelState"
+import { useTvShowEpisodeVideoCompress } from "@/hooks/tv/useTvShowEpisodeVideoCompress"
+import { useTvShowEpisodeFormatConvert } from "@/hooks/tv/useTvShowEpisodeFormatConvert"
 import { useRuleBasedRenameFilesFlow } from "@/hooks/tv/useRuleBasedRenameFilesFlow"
 import { useRuleBasedRecognizeFlow } from "@/hooks/tv/useRuleBasedRecognizeFlow"
 import { useAiBasedRenameFilesFlow } from "@/hooks/tv/useAiBasedRenameFilesFlow"
 import { useAiBasedRecognizeFlow } from "@/hooks/tv/useAiBasedRecognizeFlow"
 import { useSelectAndUnselectFileFlow } from "@/hooks/tv/useSelectAndUnselectFileFlow"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
-import { useDialogs } from "@/providers/dialog-provider"
+import { askForRenameFile, askForScrape } from "@/lib/dialogRequestEvents"
 import { usePlansQuery } from "@/hooks/plans"
 import { MediaFileTable } from "@/components/media/MediaFileTable"
 import type {
   UIMediaFileDataContextMenuItem,
+  UIMediaFileDataRow,
   UIMediaFileTableRow,
+  UIMediaEpisodeSelection,
 } from "@/components/media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
-import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "./TvShowEpisodeTable"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { buildTvShowEpisodeTableRows, buildTvShowEpisodeTableRowsForPlan } from "@/lib/buildTvShowEpisodeTableRows"
+import { buildTvShowEpisodeTableRowsForPanel } from "@/lib/buildTvShowEpisodeTableRows"
 import {
   rebuildPlanWithSelectedEpisodes,
   rebuildRenamePlanWithSelectedEpisodes,
@@ -94,31 +97,37 @@ function TvShowPanel() {
   const { selectTvShowForFolderMutation, updateMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
-  const { renameFileDialog } = useDialogs()
-  const [openRenameFile] = renameFileDialog
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    openRenameDialog: openRenameFile,
+    openRenameDialog: askForRenameFile,
   })
 
-  const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([])
+  const [tableData, setTableData] = useState<UIMediaFileTableRow[]>([])
   const latestTableData = useLatest(tableData)
+
+  // Checkbox selection — separate UI state, kept apart from row data so that
+  // user toggles survive the row rebuilds triggered by metadata / plan refetches.
+  const [selectedEpisodes, setSelectedEpisodes] = useState<UIMediaEpisodeSelection[]>([])
+  // The plan instance the current selection was seeded from.
+  const prevPlanRef = useRef<UIRenameFilesPlan | UIRecognizeMediaFilePlan | undefined>(undefined)
 
   const getSelectedEpisodePaths = useCallback(
     () =>
-      latestTableData.current
-        .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
-        .map((row) => row.videoFile)
+      selectedEpisodes
+        .map(({ season, episode }) => {
+          const row = latestTableData.current.find(
+            (r): r is UIMediaFileDataRow =>
+              r.type === "episode" && r.season === season && r.episode === episode,
+          )
+          return row?.videoFile
+        })
         .filter((path): path is string => path !== undefined),
-    [latestTableData],
+    [selectedEpisodes, latestTableData],
   )
 
   const getSelectedEpisodes = useCallback(
-    () =>
-      latestTableData.current
-        .filter((row): row is TvShowEpisodeDataRow => row.type === "episode" && row.checked)
-        .map((row) => ({ season: row.season, episode: row.episode })),
-    [latestTableData],
+    () => selectedEpisodes,
+    [selectedEpisodes],
   )
 
   const recognizeBeforeConfirm = useCallback(
@@ -144,13 +153,14 @@ function TvShowPanel() {
     },
     [mediaMetadata?.mediaFolderPath, selectTvShowForFolderMutation],
   )
-  const { scrapeDialog, videoCompressionDialog, formatConverterDialog } = useDialogs()
-  const [openScrape] = scrapeDialog
+  
   const { mediaLanguage } = useResolvedLanguages()
 
   const [episodeTableLayout, setEpisodeTableLayout] = useState<'simple' | 'detail' | 'preview'>('simple')
 
-  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled, isFormatConverterEnabled } = useFeatures()
+  const { isVideoCompressionEnabled, isFormatConverterEnabled } = useFeatures()
+  const { handleVideoCompressForRow } = useTvShowEpisodeVideoCompress(mediaMetadata)
+  const { handleFormatConvertForRow } = useTvShowEpisodeFormatConvert(mediaMetadata)
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -277,60 +287,22 @@ function TvShowPanel() {
     /* eslint-disable react-hooks/set-state-in-effect */
     if (!mediaMetadata) return;
 
-    let ret: TvShowEpisodeTableRow[] = [];
-    if(plan === undefined) {
-      ret = buildTvShowEpisodeTableRows(mediaMetadata, uiStatus, (key: string) => {
-       return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-      }, folderFiles)
-    } else {
-      ret = buildTvShowEpisodeTableRowsForPlan(mediaMetadata, uiStatus, plan, (key: string) => {
-       return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-      }, folderFiles)
-    };
+    const built = buildTvShowEpisodeTableRowsForPanel(mediaMetadata, uiStatus, plan, (key: string) => {
+      return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+    }, folderFiles)
 
-    setTableData(ret);
+    setTableData(built.rows);
+
+    // Re-seed the selection only when a (new) plan instance arrives. The
+    // selection is separate UI state, so unrelated row rebuilds (metadata /
+    // folderFiles refetches) must not wipe the user's check toggles.
+    if (plan !== prevPlanRef.current) {
+      prevPlanRef.current = plan
+      setSelectedEpisodes(built.defaultChecked)
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
 
   }, [mediaMetadata, plan, uiStatus, t, folderFiles])
-
-  const handleVideoCompressForRow = useCallback(
-    (row: { season: number; episode: number; episodeTitle?: string }) => {
-      const seasonNo = row.season;
-      const episodeNo = row.episode;
-      const videoPath = mediaMetadata?.mediaFiles?.find(
-        (f) => f.seasonNumber === seasonNo && f.episodeNumber === episodeNo,
-      )?.absolutePath
-      if (!videoPath) {
-        console.warn(
-          `[TvShowPanel] handleVideoCompressForRow: no video path found for season ${seasonNo} episode ${episodeNo}`,
-        )
-        return
-      }
-      const [openVideoCompression] = videoCompressionDialog
-      openVideoCompression({
-        filePath: videoPath,
-        title: row.episodeTitle ?? `S${seasonNo}E${episodeNo}`,
-      })
-    },
-    [mediaMetadata, videoCompressionDialog],
-  )
-
-  const handleFormatConvertForRow = useCallback(
-    (row: { season: number; episode: number }) => {
-      const videoPath = mediaMetadata?.mediaFiles?.find(
-        (f) => f.seasonNumber === row.season && f.episodeNumber === row.episode,
-      )?.absolutePath
-      if (!videoPath) {
-        console.warn(
-          `[TvShowPanel] handleFormatConvertForRow: no video path found for S${row.season}E${row.episode}`,
-        )
-        return
-      }
-      const [openFormatConverter] = formatConverterDialog
-      openFormatConverter(videoPath)
-    },
-    [mediaMetadata, formatConverterDialog],
-  )
 
   const extraEpisodeContextMenu: UIMediaFileDataContextMenuItem[] = useMemo(
     () => [
@@ -422,7 +394,7 @@ function TvShowPanel() {
           onRenameClick={renameFlow.startRenameFlow}
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}
-          openScrape={openScrape}
+          openScrape={askForScrape}
           showSubtitleMenu={subtitleFlow.showSubtitleMenu}
           {...subtitleFlow.header}
           episodeTableLayout={episodeTableLayout}
@@ -432,39 +404,26 @@ function TvShowPanel() {
       <div className="flex-1 min-h-0 overflow-auto">
         {uiStatus === "initializing" ? (
           <MediaPanelInitializingHint />
-        ) : isUseMediaFileTableEnabled ? (
-          <MediaFileTable
-            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-            data={tableData as UIMediaFileTableRow[]}
-            mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            preview={previewMode}
-            layout={episodeTableLayout}
-            extraEpisodeContextMenu={extraEpisodeContextMenu}
-          />
         ) : (
-          <TvShowEpisodeTable
+          <MediaFileTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            onSelectFileContextMenuClick={selectFileFlow.onSelectFileContextMenuClick}
-            onUnlinkContextMenuClick={selectFileFlow.onUnlinkContextMenuClick}
-            onVideoCompressContextMenuClick={
-              isVideoCompressionEnabled ? handleVideoCompressForRow : undefined
-            }
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}
+            extraEpisodeContextMenu={extraEpisodeContextMenu}
+            selectedEpisodes={selectedEpisodes}
             onCheck={(row, checked) => {
-              
-              setTableData(prev => {
-                return prev.map(r => {
-                  if(r.type !== 'episode') return r;
-                  if(r.season !== row.season || r.episode !== row.episode) return r;
-                  return {
-                    ...r,
-                    checked: checked,
-                  }
-                })
+              setSelectedEpisodes((prev) => {
+                const exists = prev.some(
+                  (e) => e.season === row.season && e.episode === row.episode,
+                )
+                if (checked === exists) return prev
+                if (checked) return [...prev, { season: row.season, episode: row.episode }]
+                return prev.filter(
+                  (e) => !(e.season === row.season && e.episode === row.episode),
+                )
               })
             }}
           />

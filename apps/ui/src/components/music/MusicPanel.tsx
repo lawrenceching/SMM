@@ -7,6 +7,11 @@ import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery";
 import type { MediaMetadata } from "@smm/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import {
+  UI_AskForVideoCompression,
+  type OnAskForVideoCompressionEventData,
+} from "@/types/eventTypes";
+import { askForFormatConverter } from "@/lib/dialogRequestEvents";
+import {
   MusicFileTable,
   type LocalFileTableRowData,
   type MusicTableRow,
@@ -180,14 +185,10 @@ export function MusicPanel() {
     mediaFilePropertyDialog,
     confirmationDialog,
     downloadVideoDialog,
-    formatConverterDialog,
-    videoCompressionDialog,
   } = useDialogs();
   const [openMediaFileProperty] = mediaFilePropertyDialog;
   const [openConfirmation, closeConfirmation] = confirmationDialog;
   const [openDownloadVideo] = downloadVideoDialog;
-  const [openFormatConverter] = formatConverterDialog;
-  const [openVideoCompression] = videoCompressionDialog;
 
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackId, setCurrentTrackId] = useState<number | null>(null);
@@ -498,15 +499,12 @@ export function MusicPanel() {
       toast.error("This track has no file path.");
       return;
     }
-    openFormatConverter({
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      duration: track.duration,
-      path: track.path,
+    askForFormatConverter({
       filePath: track.path,
+      title: track.title,
+      duration: track.duration,
     });
-  }, [tracks, openFormatConverter]);
+  }, [tracks]);
 
   const handleTrackVideoCompress = useCallback((event: CustomEvent<TrackVideoCompressEventDetail>) => {
     const { trackId } = event.detail;
@@ -519,12 +517,16 @@ export function MusicPanel() {
       toast.error("This track has no file path.");
       return;
     }
-    openVideoCompression({
-      filePath: track.path,
-      title: track.title,
-      duration: track.duration,
-    });
-  }, [tracks, openVideoCompression]);
+    document.dispatchEvent(
+      new CustomEvent<OnAskForVideoCompressionEventData>(UI_AskForVideoCompression, {
+        detail: {
+          filePath: track.path,
+          title: track.title,
+          duration: track.duration,
+        },
+      }),
+    );
+  }, [tracks]);
 
 
 

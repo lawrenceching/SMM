@@ -41,7 +41,6 @@ const baseRow: UIMediaFileDataRow = {
   thumbnail: undefined,
   subtitle: undefined,
   nfo: undefined,
-  checked: false,
 }
 
 const data: UIMediaFileTableRow[] = [baseRow]

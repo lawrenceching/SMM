@@ -1,4 +1,4 @@
-import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow } from "@/components/tv/TvShowEpisodeTable";
+import type { UIMediaFileDataRow, UIMediaFileTableRow } from "@/components/media/UIMediaFileTable";
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { basename, join } from "@/lib/path";
@@ -11,7 +11,7 @@ export interface MovieRenamePreviewData {
 }
 
 /**
- * Builds TvShowEpisodeTableRow[] from movie MediaMetadata.
+ * Builds UIMediaFileTableRow[] from movie MediaMetadata.
  * Treats the movie as a "one season, one episode" TV show (S01E01).
  *
  * Output includes:
@@ -26,7 +26,7 @@ export function buildMovieEpisodeTableRows(
   options?: {
     renamePreview?: MovieRenamePreviewData;
   }
-): TvShowEpisodeTableRow[] {
+): UIMediaFileTableRow[] {
   // Empty states — mirror buildTvShowEpisodeTableRows behaviour
   if (uiStatus === "initializing") {
     return [{ id: "initializing", type: "divider", text: t("mediaFolder.initializing") }];
@@ -42,7 +42,7 @@ export function buildMovieEpisodeTableRows(
     return [{ id: "no-video", type: "divider", text: "No video file" }];
   }
 
-  const rows: TvShowEpisodeTableRow[] = [];
+  const rows: UIMediaFileTableRow[] = [];
   const mediaFolderPath = mm.mediaFolderPath;
   const videoFile = mm.mediaFiles[0]; // Only the first/main video file
   const allFiles = folderFiles;
@@ -112,7 +112,7 @@ export function buildMovieEpisodeTableRows(
   if (!thumbnail && posterFile) thumbnail = posterFile;
   if (!nfo && movieNfoFile) nfo = movieNfoFile;
 
-  const row: TvShowEpisodeDataRow = {
+  const row: UIMediaFileDataRow = {
     season: 1,
     episode: 1,
     type: "episode",
@@ -121,7 +121,6 @@ export function buildMovieEpisodeTableRows(
     subtitle,
     nfo,
     episodeTitle: mm.movie?.name,
-    checked: false,
   };
 
   if (options?.renamePreview) {

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MusicPanel } from './MusicPanel'
 import { useUIMediaFolderStoreState } from '@/stores/uiMediaFolderStore'
 import { useMediaMetadataQuery } from '@/hooks/mediaMetadata'
+import { useMediaFolderFilesQuery } from '@/hooks/useMediaFolderFilesQuery'
 import { useDialogs } from '@/providers/dialog-provider'
 import { openFile } from '@/api/openFile'
 import { moveFileToTrash } from '@/api/moveFileToTrash'
@@ -126,6 +127,20 @@ vi.mock('@/hooks/useJobOrchestrator', () => ({
   useJobs: () => mockJobRecords,
 }))
 
+vi.mock('@/hooks/useMediaFolderFilesQuery', () => ({
+  useMediaFolderFilesQuery: vi.fn(),
+}))
+
+vi.mock('@/hooks/useFeatures', () => ({
+  useFeatures: vi.fn(() => ({
+    isAiFeatureEnabled: false,
+    isDownloadVideoEnabled: true,
+    isFormatConverterEnabled: false,
+    isVideoCompressionEnabled: false,
+    isSubtitleFeaturesEnabled: false,
+  })),
+}))
+
 vi.mock('@/stores/backgroundJobsStore', () => {
   const state = {
     jobs: h.jobs,
@@ -168,10 +183,11 @@ describe('MusicPanel download-video jobs', () => {
     vi.mocked(useMediaMetadataQuery).mockReturnValue(
       mockQueryOk() as ReturnType<typeof useMediaMetadataQuery>
     )
+    vi.mocked(useMediaFolderFilesQuery).mockReturnValue({
+      data: [],
+    } as never)
     vi.mocked(useDialogs).mockReturnValue({
       mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-      formatConverterDialog: [vi.fn(), vi.fn()],
-      videoCompressionDialog: [vi.fn(), vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
       spinnerDialog: [vi.fn(), vi.fn()],
@@ -179,9 +195,7 @@ describe('MusicPanel download-video jobs', () => {
       openFolderDialog: [vi.fn(), vi.fn()],
       filePickerDialog: [vi.fn(), vi.fn()],
       mediaSearchDialog: [vi.fn(), vi.fn()],
-      renameFileDialog: [vi.fn(), vi.fn()],
       renameFolderDialog: [vi.fn(), vi.fn()],
-      scrapeDialog: [vi.fn(), vi.fn()],
     })
     vi.mocked(openFile).mockResolvedValue({ data: {} as any, error: undefined })
     vi.mocked(moveFileToTrash).mockResolvedValue({ data: { path: '/media/music/song1.mp3' } })

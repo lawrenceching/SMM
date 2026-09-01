@@ -7,6 +7,7 @@ import type {
   UIMediaFileTableContextMenuConfig,
   UIMediaFileDataRow,
   UIMediaFileTableRow,
+  UIMediaEpisodeSelection,
 } from "./UIMediaFileTable"
 import { useMediaFileTableController } from "./useMediaFileTableController"
 
@@ -36,6 +37,11 @@ export interface MediaFileTableProps {
   layout?: "simple" | "detail" | "preview"
   /** Checkbox state callback. Omit → checkbox column is hidden. */
   onCheck?: (row: UIMediaFileDataRow, checked: boolean) => void
+  /**
+   * Controlled checkbox selection — which episodes are currently checked.
+   * Omit → the underlying table manages the selection internally.
+   */
+  selectedEpisodes?: UIMediaEpisodeSelection[]
   /**
    * Renders the extra content area below the video path in `preview` layout
    * (e.g. video screenshots). Omit → the area is hidden.
@@ -68,6 +74,7 @@ export function MediaFileTable(props: MediaFileTableProps) {
     previewStatus,
     layout,
     onCheck,
+    selectedEpisodes,
     renderPreviewContent,
     extraEpisodeContextMenu,
   } = props
@@ -119,6 +126,7 @@ export function MediaFileTable(props: MediaFileTableProps) {
       previewStatus={previewStatus}
       layout={layout}
       onCheck={onCheck}
+      selectedEpisodes={selectedEpisodes}
       renderPreviewContent={renderPreviewContent}
       onDoubleClick={ctrl.handleDoubleClick}
     />

@@ -20,6 +20,10 @@ vi.mock("sonner", () => ({
   },
 }))
 
+vi.mock("@/lib/mediaFolderFiles", () => ({
+  listMediaFolderFilePaths: vi.fn(async () => ["/media/show/1.mkv"]),
+}))
+
 describe("handleRenamePromptConfirmForTvShow", () => {
   const mediaFolderPath = "/media/show"
   const planId = "plan-1"

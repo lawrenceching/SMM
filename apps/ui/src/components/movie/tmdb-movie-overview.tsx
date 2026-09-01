@@ -12,7 +12,7 @@ import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMed
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
 import { Button } from "../ui/button"
-import { useDialogs } from "@/providers/dialog-provider"
+import { askForScrape } from "@/lib/dialogRequestEvents"
 import type { MovieFileModel } from "./MoviePanel"
 import { MovieFilesSection } from "./movie-files-section"
 import { useTranslation } from "@/lib/i18n"
@@ -76,8 +76,6 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
         const next = typeof updaterOrMetadata === "function" ? updaterOrMetadata(current) : updaterOrMetadata
         await saveMediaMetadata({ pathPosix, metadata: next, traceId: options?.traceId })
     }, [fetchMediaMetadata, saveMediaMetadata])
-    const { scrapeDialog } = useDialogs()
-    const [openScrape] = scrapeDialog
     const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])
     const [isSearching, setIsSearching] = useState(false)
     const [searchError, setSearchError] = useState<string | null>(null)
@@ -349,7 +347,7 @@ export function TMDBMovieOverview({ movie, className, onRenameClick, movieFiles,
                                     size="sm"
                                     onClick={() => {
                                         if (!selectedMediaMetadata?.mediaFiles || !selectedMediaMetadata.movie) return
-                                        openScrape({
+                                        askForScrape({
                                             mediaMetadata: selectedMediaMetadata
                                         })
                                     }}

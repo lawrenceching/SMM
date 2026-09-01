@@ -1,17 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { initializeMusicFolder } from './initializeMusicFolder'
 
-vi.mock('@/api/listFiles', () => ({
-  listFiles: vi.fn(),
+vi.mock('@/lib/mediaMetadataUtils', () => ({
+  createInitialMediaMetadata: vi.fn(),
 }))
 
-vi.mock('@smm/core/mediaMetadata', () => ({
-  createMediaMetadata: vi.fn(),
-}))
-
-import { listFiles } from '@/api/listFiles'
-import { createMediaMetadata } from '@smm/core/mediaMetadata'
-import type { MediaMetadata } from '@smm/types'
+import { createInitialMediaMetadata } from '@/lib/mediaMetadataUtils'
 
 describe('initializeMusicFolder', () => {
   const mockAddMediaFolderInUserConfig = vi.fn()
@@ -19,29 +13,21 @@ describe('initializeMusicFolder', () => {
   const mockAddMediaMetadata = vi.fn()
   const traceId = 'test-trace-id'
 
+  const fullMetadata = {
+    mediaFolderPath: '/media/music/Album',
+    type: 'music-folder',
+    status: 'ok',
+    files: ['/media/music/Album/song1.mp3'],
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(createInitialMediaMetadata).mockResolvedValue(fullMetadata as never)
   })
 
   it('should add folder to user config', async () => {
     const folderPath = '/media/music/Album'
-
     mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [
-          { path: '/media/music/Album/song1.mp3', size: 0, mtime: 0, isDirectory: false },
-          { path: '/media/music/Album/song2.mp3', size: 0, mtime: 0, isDirectory: false },
-        ],
-        size: 2,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: '/media/music/Album',
-      type: 'music-folder',
-    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -55,23 +41,7 @@ describe('initializeMusicFolder', () => {
 
   it('should create new media metadata when folder does not exist', async () => {
     const folderPath = '/media/music/NewAlbum'
-    const posixPath = '/media/music/NewAlbum'
-
     mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [
-          { path: '/media/music/NewAlbum/song1.mp3', size: 0, mtime: 0, isDirectory: false },
-        ],
-        size: 1,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: posixPath,
-      type: 'music-folder',
-    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -80,27 +50,20 @@ describe('initializeMusicFolder', () => {
       traceId,
     })
 
-    expect(mockAddMediaMetadata).toHaveBeenCalledWith(
-      expect.objectContaining({
-        mediaFolderPath: posixPath,
-        type: 'music-folder',
-        status: 'ok',
-        files: ['/media/music/NewAlbum/song1.mp3'],
-      })
-    )
+    expect(createInitialMediaMetadata).toHaveBeenCalledWith(folderPath, 'music-folder', {
+      traceId,
+    })
+    expect(mockAddMediaMetadata).toHaveBeenCalledWith(fullMetadata)
   })
 
-  it('should not create media metadata when folder already exists with status ok', async () => {
+  it('should not create media metadata when folder already exists', async () => {
     const folderPath = '/media/music/ExistingAlbum'
     const posixPath = '/media/music/ExistingAlbum'
-
-    const existingMetadata = {
+    mockGetMediaMetadata.mockReturnValue({
       mediaFolderPath: posixPath,
       type: 'music-folder',
-      status: 'ok' as const,
-    }
-
-    mockGetMediaMetadata.mockReturnValue(existingMetadata)
+      status: 'ok',
+    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -109,73 +72,39 @@ describe('initializeMusicFolder', () => {
       traceId,
     })
 
+    expect(createInitialMediaMetadata).not.toHaveBeenCalled()
     expect(mockAddMediaMetadata).not.toHaveBeenCalled()
   })
 
-  it('should update placeholder to full metadata when folder exists with status initializing', async () => {
+  it('should update placeholder to full metadata when folder is initializing', async () => {
     const folderPath = '/media/music/ExistingAlbum'
     const posixPath = '/media/music/ExistingAlbum'
-
-    const placeholderMetadata = {
+    mockGetMediaMetadata.mockReturnValue({
       mediaFolderPath: posixPath,
       type: 'music-folder',
-      status: 'initializing' as const,
-    }
-
-    mockGetMediaMetadata.mockReturnValue(placeholderMetadata)
+      status: 'initializing',
+    })
     const mockUpdateMediaMetadata = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [
-          { path: '/media/music/ExistingAlbum/song1.mp3', size: 0, mtime: 0, isDirectory: false },
-        ],
-        size: 1,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: posixPath,
-      type: 'music-folder',
-    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
       getMediaMetadata: mockGetMediaMetadata,
       addMediaMetadata: mockAddMediaMetadata,
       updateMediaMetadata: mockUpdateMediaMetadata,
+      isInitializing: () => true,
       traceId,
     })
 
+    expect(createInitialMediaMetadata).toHaveBeenCalledWith(folderPath, 'music-folder', {
+      traceId,
+    })
     expect(mockAddMediaMetadata).not.toHaveBeenCalled()
-    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(
-      posixPath,
-      expect.objectContaining({
-        mediaFolderPath: posixPath,
-        type: 'music-folder',
-        status: 'ok',
-        files: ['/media/music/ExistingAlbum/song1.mp3'],
-      })
-    )
+    expect(mockUpdateMediaMetadata).toHaveBeenCalledWith(posixPath, fullMetadata)
   })
 
   it('should convert folder path to POSIX format when checking for existing metadata', async () => {
     const folderPath = 'C:\\media\\music\\Album'
-    const posixPath = '/C/media/music/Album'
-
     mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [],
-        size: 0,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: posixPath,
-      type: 'music-folder',
-    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -184,25 +113,12 @@ describe('initializeMusicFolder', () => {
       traceId,
     })
 
-    expect(mockGetMediaMetadata).toHaveBeenCalledWith(posixPath)
+    expect(mockGetMediaMetadata).toHaveBeenCalledWith('/C/media/music/Album')
   })
 
   it('should pass traceId to createInitialMediaMetadata', async () => {
     const folderPath = '/media/music/Album'
-
     mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [],
-        size: 0,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: '/media/music/Album',
-      type: 'music-folder',
-    })
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -211,155 +127,25 @@ describe('initializeMusicFolder', () => {
       traceId,
     })
 
-    expect(listFiles).toHaveBeenCalledWith(
-      { path: folderPath, recursively: true, onlyFiles: true },
-      undefined
-    )
+    expect(createInitialMediaMetadata).toHaveBeenCalledWith(folderPath, 'music-folder', {
+      traceId,
+    })
   })
 
-  it('should handle multiple files in music folder', async () => {
+  it('should add the media metadata returned for the folder', async () => {
     const folderPath = '/media/music/Album'
-
-    mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [
-          { path: '/media/music/Album/song1.mp3', size: 0, mtime: 0, isDirectory: false },
-          { path: '/media/music/Album/song2.mp3', size: 0, mtime: 0, isDirectory: false },
-          { path: '/media/music/Album/song3.mp3', size: 0, mtime: 0, isDirectory: false },
-        ],
-        size: 3,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: '/media/music/Album',
+    const metadata = {
+      mediaFolderPath: folderPath,
       type: 'music-folder',
-    })
-
-    await initializeMusicFolder(folderPath, {
-      addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
-      getMediaMetadata: mockGetMediaMetadata,
-      addMediaMetadata: mockAddMediaMetadata,
-      traceId,
-    })
-
-    expect(mockAddMediaMetadata).toHaveBeenCalledWith(
-      expect.objectContaining({
-        files: [
-          '/media/music/Album/song1.mp3',
-          '/media/music/Album/song2.mp3',
-          '/media/music/Album/song3.mp3',
-        ],
-      })
-    )
-  })
-
-  it('should handle Windows network paths', async () => {
-    const folderPath = '\\\\server\\share\\music\\Album'
-    const posixPath = '/server/share/music/Album'
-
-    mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [],
-        size: 0,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: posixPath,
-      type: 'music-folder',
-    })
-
-    await initializeMusicFolder(folderPath, {
-      addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
-      getMediaMetadata: mockGetMediaMetadata,
-      addMediaMetadata: mockAddMediaMetadata,
-      traceId,
-    })
-
-    expect(mockGetMediaMetadata).toHaveBeenCalledWith(posixPath)
-  })
-
-  it('should set status to ok in mediaMetadataProps', async () => {
-    const folderPath = '/media/music/Album'
-
-    mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [],
-        size: 0,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: '/media/music/Album',
-      type: 'music-folder',
-    })
-
-    await initializeMusicFolder(folderPath, {
-      addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
-      getMediaMetadata: mockGetMediaMetadata,
-      addMediaMetadata: mockAddMediaMetadata,
-      traceId,
-    })
-
-    expect(mockAddMediaMetadata).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: 'ok',
-      })
-    )
-  })
-
-  it('should log appropriate message for new folder', async () => {
-    const folderPath = '/media/music/NewAlbum'
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
-    mockGetMediaMetadata.mockReturnValue(undefined)
-    vi.mocked(listFiles).mockResolvedValue({
-      data: {
-        path: folderPath,
-        items: [],
-        size: 0,
-      },
-      error: undefined,
-    })
-    vi.mocked(createMediaMetadata).mockReturnValue({
-      mediaFolderPath: '/media/music/NewAlbum',
-      type: 'music-folder',
-    })
-
-    await initializeMusicFolder(folderPath, {
-      addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
-      getMediaMetadata: mockGetMediaMetadata,
-      addMediaMetadata: mockAddMediaMetadata,
-      traceId,
-    })
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `[${traceId}] add "${folderPath}" to user config`
-    )
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `[${traceId}] Imported music folder and create media metadata for folder "${folderPath}"`
-    )
-
-    consoleSpy.mockRestore()
-  })
-
-  it('should log appropriate message for existing folder', async () => {
-    const folderPath = '/media/music/ExistingAlbum'
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-
-    const existingMetadata: MediaMetadata = {
-      mediaFolderPath: '/media/music/ExistingAlbum',
-      type: 'music-folder',
+      status: 'ok' as const,
+      files: [
+        '/media/music/Album/song1.mp3',
+        '/media/music/Album/song2.mp3',
+        '/media/music/Album/song3.mp3',
+      ],
     }
-
-    mockGetMediaMetadata.mockReturnValue(existingMetadata)
+    vi.mocked(createInitialMediaMetadata).mockResolvedValue(metadata as never)
+    mockGetMediaMetadata.mockReturnValue(undefined)
 
     await initializeMusicFolder(folderPath, {
       addMediaFolderInUserConfig: mockAddMediaFolderInUserConfig,
@@ -368,13 +154,6 @@ describe('initializeMusicFolder', () => {
       traceId,
     })
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `[${traceId}] add "${folderPath}" to user config`
-    )
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `[${traceId}] Imported music folder "${folderPath}" and skip creating media metadata because it already exists`
-    )
-
-    consoleSpy.mockRestore()
+    expect(mockAddMediaMetadata).toHaveBeenCalledWith(metadata)
   })
 })

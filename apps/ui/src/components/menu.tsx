@@ -15,6 +15,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/providers/dialog-provider"
+import { askForFormatConverter } from "@/lib/dialogRequestEvents"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation } from "@/lib/i18n"
 // import { cleanUp } from "@/api/cleanUp"
@@ -25,7 +26,9 @@ import { Path } from "@smm/utils/path"
 import type { FolderType, FileItem } from "@/providers/dialog-provider"
 import { nextTraceId } from "@/lib/utils"
 import {
+  UI_AskForVideoCompression,
   UI_MediaLibraryImportedEvent,
+  type OnAskForVideoCompressionEventData,
   type OnMediaLibraryImportedEventData,
 } from "@/types/eventTypes"
 import { writeFrontendLog } from "@/api/log"
@@ -163,8 +166,6 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const {
     configDialog,
     downloadVideoDialog,
-    formatConverterDialog,
-    videoCompressionDialog,
     openFolderDialog,
     filePickerDialog,
     executeCmdDialog,
@@ -180,8 +181,6 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
-  const [openFormatConverter] = formatConverterDialog
-  const [openVideoCompression] = videoCompressionDialog
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const [openExecuteCmd] = executeCmdDialog
@@ -271,7 +270,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'format-conversion',
           onClick: () => {
             logMenuAction("format-conversion.click")
-            openFormatConverter()
+            askForFormatConverter()
           }
         } as const]
           : []),
@@ -281,7 +280,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'video-compression',
           onClick: () => {
             logMenuAction("video-compression.click")
-            openVideoCompression()
+            document.dispatchEvent(
+              new CustomEvent<OnAskForVideoCompressionEventData>(UI_AskForVideoCompression, {
+                detail: {},
+              }),
+            )
           }
         } as const]
           : []),

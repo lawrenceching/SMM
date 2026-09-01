@@ -35,6 +35,8 @@ export interface MediaFileTableRowContext {
   previewStatus?: "loading" | "ok"
   layout: "simple" | "detail" | "preview"
   onCheck?: (row: UIMediaFileDataRow, checked: boolean) => void
+  /** Whether the given episode row is currently checked (selection membership). */
+  isSelected: (row: UIMediaFileDataRow) => boolean
   renderPreviewContent?: (row: UIMediaFileDataRow) => ReactNode
   onDoubleClick?: (row: UIMediaFileDataRow | UIMediaFileFolderRow) => void
   isSimpleLayout: boolean
@@ -235,7 +237,7 @@ function renderEpisodeSimpleVideoContent(
   isRowDisabled: boolean,
 ): ReactNode {
   if (row.videoFile) {
-    if (ctx.preview === "rename" && !row.newVideoFile && row.checked) {
+    if (ctx.preview === "rename" && !row.newVideoFile && ctx.isSelected(row)) {
       return (
         <div
           className="truncate text-muted-foreground/60 line-through text-xs"
@@ -484,7 +486,7 @@ function MediaFileTableEpisodeRow({
               "h-3.5 w-3.5",
               isRowDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
             )}
-            checked={row.checked}
+            checked={isRowDisabled ? false : ctx.isSelected(row)}
             disabled={isRowDisabled}
             onChange={(e) => {
               if (isRowDisabled) return
