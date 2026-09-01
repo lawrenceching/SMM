@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Sidebar } from "@/components/v2/Sidebar"
-import { Toolbar } from "@/components/v2/Toolbar"
-import type { ViewMode } from "@/components/v2/ViewSwitcher"
+import { Sidebar } from "@/components/sidebar/Sidebar"
+import { Toolbar } from "@/components/sidebar/Toolbar"
+import type { ViewMode } from "@/components/sidebar/ViewSwitcher"
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
@@ -32,7 +32,7 @@ import {
   useMediaMetadataQuery,
 } from "@/hooks/mediaMetadata"
 import {
-  UI_MediaFolderImportedEvent,
+  UI_ImportFolderEvent,
   UI_MediaLibraryImportedEvent,
   type OnMediaFolderImportedEventData,
   type OnMediaLibraryImportedEventData,
@@ -47,13 +47,13 @@ import type { ImperativePanelHandle } from "react-resizable-panels"
 import { AIArea } from "@/components/AIArea"
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
-function AppV2Content() {
+function AppContent() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
   const unimportFolderMutation = useUnimportFolderMutation()
 
-  const { folders: uiFolders, selectedFolder } = useUIMediaFolderStoreState()
+  const { folders: uiFolders, selectedFolder, selectedFolders } = useUIMediaFolderStoreState()
   const { isAiAreaEnabled, isAiFeatureEnabled } = useFeatures()
 
   // View mode state
@@ -108,7 +108,7 @@ function AppV2Content() {
   useEffect(() => {
     if (selectedMediaMetadata && selectedMediaMetadata.type === undefined) {
       logger.error(
-        `[AppV2] selectedMediaMetadata.type is undefined for folder: ${selectedFolder ?? "(none)"}, folderStatus: ${folderStatus ?? "(none)"}`,
+        `[App] selectedMediaMetadata.type is undefined for folder: ${selectedFolder ?? "(none)"}, folderStatus: ${folderStatus ?? "(none)"}`,
       )
     }
   }, [selectedMediaMetadata, selectedMediaMetadata?.type, selectedFolder, folderStatus])
@@ -151,28 +151,28 @@ function AppV2Content() {
       openNativeFolderDialog().then((selectedFile) => {
         if (selectedFile) {
           openOpenFolder((type: FolderType) => {
-            const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
+            const traceId = `App:UserOpenFolder:` + nextTraceId()
             const data: OnMediaFolderImportedEventData = {
               type: type,
               folderPathInPlatformFormat: selectedFile.path,
               traceId: traceId,
             }
 
-            document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
+            document.dispatchEvent(new CustomEvent(UI_ImportFolderEvent, { detail: data }))
           }, selectedFile.path)
         }
       })
     } else {
       openFilePicker((file: FileItem) => {
         openOpenFolder((type: FolderType) => {
-          const traceId = `AppV2:UserOpenFolder:` + nextTraceId()
+          const traceId = `App:UserOpenFolder:` + nextTraceId()
           const data: OnMediaFolderImportedEventData = {
             type: type,
             folderPathInPlatformFormat: file.path,
             traceId: traceId,
           }
 
-          document.dispatchEvent(new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }))
+          document.dispatchEvent(new CustomEvent(UI_ImportFolderEvent, { detail: data }))
         }, file.path)
       }, {
         title: "Select Folder",
@@ -190,7 +190,7 @@ function AppV2Content() {
             const detail: OnMediaLibraryImportedEventData = {
               libraryPathInPlatformFormat: selectedFile.path,
               type,
-              traceId: `AppV2:UserOpenMediaLibrary:${nextTraceId()}`,
+              traceId: `App:UserOpenMediaLibrary:${nextTraceId()}`,
             }
             document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
           }, selectedFile.path)
@@ -202,7 +202,7 @@ function AppV2Content() {
           const detail: OnMediaLibraryImportedEventData = {
             libraryPathInPlatformFormat: file.path,
             type,
-            traceId: `AppV2:UserOpenMediaLibrary:${nextTraceId()}`,
+            traceId: `App:UserOpenMediaLibrary:${nextTraceId()}`,
           }
             document.dispatchEvent(new CustomEvent(UI_MediaLibraryImportedEvent, { detail }))
         }, file.path)
@@ -223,7 +223,7 @@ function AppV2Content() {
         return
       }
 
-      const traceId = `AppV2-onDeleteSelected-${nextTraceId()}`
+      const traceId = `App-onDeleteSelected-${nextTraceId()}`
       const deletedPosix = new Set(paths.map((p) => Path.posix(p)))
       const deletedNative = new Set(paths)
 
@@ -334,7 +334,17 @@ function AppV2Content() {
                   {/* Sidebar */}
                   <ResizablePanel defaultSize={20} minSize={15} maxSize={45}>
                     <div className="min-w-0 overflow-hidden border-r border-border bg-muted/30 h-full">
-                      <Sidebar onDeleteSelected={onDeleteSelected} />
+                      <Sidebar
+                        onDeleteSelected={onDeleteSelected}
+                        selectedPaths={selectedFolders}
+                        primaryPath={selectedFolder}
+                        onSelectionChange={({ selectedPaths, primaryPath }) => {
+                          useUIMediaFolderStore.setState({
+                            selectedFolder: primaryPath,
+                            selectedFolders: selectedPaths,
+                          })
+                        }}
+                      />
                     </div>
                   </ResizablePanel>
                   <ResizableHandle withHandle />
@@ -421,9 +431,9 @@ function AppV2Content() {
   )
 }
 
-export default function AppV2() {
+export default function App() {
   return (
-      <AppV2Content />
+      <AppContent />
   )
 }
 

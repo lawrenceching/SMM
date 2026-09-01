@@ -25,4 +25,16 @@ describe("buildMediaFolderListItemPropsFromFolderAndMetadata", () => {
 
     expect(row.status).toBe("loading")
   })
+
+  it("maps initializing to loading", () => {
+    const row = buildMediaFolderListItemPropsFromFolderAndMetadata(
+      {
+        path: "/media/Test",
+        status: "initializing",
+      },
+      undefined,
+    )
+
+    expect(row.status).toBe("loading")
+  })
 })

@@ -194,3 +194,18 @@ describe("FolderListItem pending_for_initialization status", () => {
     expect(document.querySelector(".animate-spin")).toBeNull()
   })
 })
+
+describe("FolderListItem loading status", () => {
+  it("shows spinner when status is loading", () => {
+    render(
+      React.createElement(FolderListItem, {
+        path: "/media/tvshows/Loading Show",
+        mediaName: "Loading Show",
+        mediaType: "tvshow",
+        status: "loading",
+      }),
+    )
+
+    expect(document.querySelector(".animate-spin")).toBeTruthy()
+  })
+})

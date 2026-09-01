@@ -6,13 +6,11 @@ export type FilterType = "all" | "tvshow" | "movie" | "music"
 interface SidebarStoreState {
   sortOrder: SortOrder
   filterType: FilterType
-  searchQuery: string
 }
 
 interface SidebarStoreActions {
   setSortOrder: (order: SortOrder) => void
   setFilterType: (type: FilterType) => void
-  setSearchQuery: (query: string) => void
 }
 
 type SidebarStore = SidebarStoreState & SidebarStoreActions
@@ -20,11 +18,9 @@ type SidebarStore = SidebarStoreState & SidebarStoreActions
 const useSidebarStore = create<SidebarStore>((set) => ({
   sortOrder: "alphabetical",
   filterType: "all",
-  searchQuery: "",
 
   setSortOrder: (order) => set({ sortOrder: order }),
   setFilterType: (type) => set({ filterType: type }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
 }))
 
 /**

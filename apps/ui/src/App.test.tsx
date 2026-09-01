@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import AppV2 from "./AppV2"
+import App from "./App"
 
 const mockUseUIMediaFolderStoreState = vi.fn()
 const mockUseMediaMetadataQuery = vi.fn()
@@ -51,11 +51,11 @@ vi.mock("@/providers/dialog-provider", () => ({
   }),
 }))
 
-vi.mock("@/components/v2/Sidebar", () => ({
+vi.mock("@/components/sidebar/Sidebar", () => ({
   Sidebar: () => <div data-testid="sidebar" />,
 }))
 
-vi.mock("@/components/v2/Toolbar", () => ({
+vi.mock("@/components/sidebar/Toolbar", () => ({
   Toolbar: () => <div data-testid="toolbar" />,
 }))
 
@@ -117,12 +117,12 @@ function renderApp() {
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <AppV2 />
+      <App />
     </QueryClientProvider>,
   )
 }
 
-describe("AppV2", () => {
+describe("App", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockSetAndSaveUserConfig.mockReset()

@@ -1,5 +1,5 @@
-import { Path } from '@smm/utils/path'
-import type { UIMediaFolder } from '@/types/UIMediaFolder'
+import { Path } from "@smm/utils/path"
+import type { UIMediaFolder } from "@/types/UIMediaFolder"
 
 export function mergeFolderPathsWithUiStatus(
   paths: string[],
@@ -14,7 +14,7 @@ export function mergeFolderPathsWithUiStatus(
     const platform = Path.toPlatformPath(p)
     return {
       path: platform,
-      status: existing?.status ?? 'ok',
+      status: existing?.status ?? "ok",
       test: existing?.test,
       type: existing?.type,
     }

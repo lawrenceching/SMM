@@ -8,7 +8,7 @@ import { FolderOpen, Upload } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 
 import {
-  UI_MediaFolderImportedEvent,
+  UI_ImportFolderEvent,
   type OnMediaFolderImportedEventData,
 } from "@/types/eventTypes"
 import { nextTraceId } from "@/lib/utils"
@@ -142,7 +142,7 @@ export function DragDropReceiver({ children }: { children: ReactNode }) {
           traceId,
         }
         document.dispatchEvent(
-          new CustomEvent(UI_MediaFolderImportedEvent, { detail: data }),
+          new CustomEvent(UI_ImportFolderEvent, { detail: data }),
         )
       }, folderPath)
     },

@@ -12,12 +12,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { useTranslation } from "@/lib/i18n"
 
 export interface FolderListItemProps {
-  mediaName: string,
-  mediaType: "tvshow" | "movie" | "music",
+  mediaName: string
+  mediaType: "tvshow" | "movie" | "music"
   /**
    * Absolute path of the media folder, in POSIX format
    */
-  path: string,
+  path: string
   /**
    * Click handler for the folder item (receives event for modifier keys)
    */
@@ -36,7 +36,7 @@ export interface FolderListItemProps {
   /**
    * Status of the media metadata initialization
    */
-  status?: 'idle' | 'pending_for_initialization' | 'initializing' | 'ok' | 'folder_not_found' | 'loading'
+  status?: "idle" | "pending_for_initialization" | "ok" | "folder_not_found" | "loading"
 }
 
 export function FolderListItem({
@@ -50,9 +50,9 @@ export function FolderListItem({
   onDelete,
   status,
 }: FolderListItemProps) {
-  const { t } = useTranslation(['components', 'dialogs'])
+  const { t } = useTranslation(["components", "dialogs"])
   const selected = isSelected
-  const isFolderUnavailable = status === 'folder_not_found'
+  const isFolderUnavailable = status === "folder_not_found"
 
   const folderName = useMemo(() => {
     return basename(path)
@@ -68,7 +68,7 @@ export function FolderListItem({
               (isPrimary
                 ? "border-l-4 border-l-primary bg-primary/5"
                 : "border-l-4 border-l-sidebar-primary bg-sidebar-accent"),
-            !selected && "bg-sidebar hover:bg-sidebar-accent/80"
+            !selected && "bg-sidebar hover:bg-sidebar-accent/80",
           )}
           onClick={onClick}
           data-selected={selected ? "true" : "false"}
@@ -78,12 +78,11 @@ export function FolderListItem({
             <h5
               className={cn(
                 "text-sm font-medium truncate",
-                isFolderUnavailable &&
-                  "text-muted-foreground opacity-60",
+                isFolderUnavailable && "text-muted-foreground opacity-60",
                 !isFolderUnavailable &&
                   (selected
                     ? "text-sidebar-foreground font-bold"
-                    : "text-sidebar-foreground/80 hover:text-sidebar-foreground")
+                    : "text-sidebar-foreground/80 hover:text-sidebar-foreground"),
               )}
               data-testid="sidebar-folder-title"
             >
@@ -92,12 +91,11 @@ export function FolderListItem({
             <p
               className={cn(
                 "text-xs truncate mt-0.5",
-                isFolderUnavailable &&
-                  "text-muted-foreground opacity-50",
+                isFolderUnavailable && "text-muted-foreground opacity-50",
                 !isFolderUnavailable &&
                   (selected
                     ? "text-sidebar-foreground/60"
-                    : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60")
+                    : "text-sidebar-foreground/50 hover:text-sidebar-foreground/60"),
               )}
               data-testid="sidebar-folder-name"
             >
@@ -105,10 +103,10 @@ export function FolderListItem({
             </p>
           </div>
           {/* Status indicator */}
-          {(status === 'initializing' || status === 'loading') && (
+          {status === "loading" && (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground shrink-0" />
           )}
-          {status === 'pending_for_initialization' && (
+          {status === "pending_for_initialization" && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span
@@ -116,17 +114,17 @@ export function FolderListItem({
                   data-testid="sidebar-folder-pending-initialization"
                 >
                   <Clock className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="sr-only">{t('mediaFolder.pendingForInitialization')}</span>
+                  <span className="sr-only">{t("mediaFolder.pendingForInitialization")}</span>
                 </span>
               </TooltipTrigger>
-              <TooltipContent>{t('mediaFolder.pendingForInitialization')}</TooltipContent>
+              <TooltipContent>{t("mediaFolder.pendingForInitialization")}</TooltipContent>
             </Tooltip>
           )}
           {isFolderUnavailable && (
             <span
               className="inline-flex shrink-0 text-amber-500"
-              title={t('mediaFolder.folderNotFound')}
-              aria-label={t('mediaFolder.folderNotFound')}
+              title={t("mediaFolder.folderNotFound")}
+              aria-label={t("mediaFolder.folderNotFound")}
             >
               <TriangleAlert className="h-4 w-4" aria-hidden />
             </span>
@@ -134,12 +132,16 @@ export function FolderListItem({
         </div>
       </ContextMenuTrigger>
       <ContextMenuContent data-testid="folder-context-menu">
-        <ContextMenuItem onClick={onRename} data-testid="context-menu-rename">{t('mediaFolder.rename')}</ContextMenuItem>
-        <ContextMenuItem onClick={onOpenInExplorer} data-testid="context-menu-open-in-explorer">{t('mediaFolder.openInExplorer')}</ContextMenuItem>
+        <ContextMenuItem onClick={onRename} data-testid="context-menu-rename">
+          {t("mediaFolder.rename")}
+        </ContextMenuItem>
+        <ContextMenuItem onClick={onOpenInExplorer} data-testid="context-menu-open-in-explorer">
+          {t("mediaFolder.openInExplorer")}
+        </ContextMenuItem>
         <ContextMenuItem onClick={onDelete} data-testid="context-menu-delete">
           <div className="flex items-center gap-4">
-            <span>{t('mediaFolder.delete')}</span>
-            <span className="text-xs text-muted-foreground">{t('mediaFolder.deleteWarning')}</span>
+            <span>{t("mediaFolder.delete")}</span>
+            <span className="text-xs text-muted-foreground">{t("mediaFolder.deleteWarning")}</span>
           </div>
         </ContextMenuItem>
       </ContextMenuContent>

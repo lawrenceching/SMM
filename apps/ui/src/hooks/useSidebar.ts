@@ -1,15 +1,11 @@
 import { useCallback, useMemo } from "react"
 import { useQueries } from "@tanstack/react-query"
 import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
-import { basename } from "@/lib/path"
 import { Path } from "@smm/utils/path"
-import {
-  useUIMediaFolderStoreActions,
-  useUIMediaFolderSelection,
-} from "@/stores/uiMediaFolderStore"
-import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
+import { useUIMediaFolderStoreActions } from "@/stores/uiMediaFolderStore"
 import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
 import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "@/lib/sidebarRowUtils"
+import { folderMatchesSearchQuery } from "@/lib/sidebarFolderSearch"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useConfig } from "@/hooks/userConfig"
 import { openInFileManagerApi } from "@/api/openInFileManager"
@@ -23,13 +19,14 @@ import { uniq } from "es-toolkit/array"
 
 export interface UseSidebarOptions {
   onDeleteSelected?: (paths: string[]) => void
+  /** Pure UI search query owned by Sidebar (filters the visible folder list). */
+  searchQuery?: string
 }
 
-export function useSidebar({ onDeleteSelected }: UseSidebarOptions = {}) {
+export function useSidebar({ onDeleteSelected, searchQuery = "" }: UseSidebarOptions = {}) {
   const { t } = useTranslation(["components"])
-  const { sortOrder, filterType, searchQuery, setSortOrder, setFilterType, setSearchQuery } = useSidebarStore()
-  const { applyFolderClick, selectAllFolderPaths, removeFolder } = useUIMediaFolderStoreActions()
-  const { selectedFolder, selectedFolderPathsSet } = useUIMediaFolderSelection()
+  const { sortOrder, filterType, setSortOrder, setFilterType } = useSidebarStore()
+  const { removeFolder } = useUIMediaFolderStoreActions()
   const { userConfig, setAndSaveUserConfig } = useConfig()
   const folders = useMemo(() => {
     return uniq(userConfig.folders)
@@ -37,8 +34,6 @@ export function useSidebar({ onDeleteSelected }: UseSidebarOptions = {}) {
   const unimportFolderMutation = useUnimportFolderMutation()
   const { renameFolderDialog } = useDialogs()
   const [openRenameForMediaFolder] = renameFolderDialog
-  const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
-  const primarySelectedPath = selectedMediaMetadata?.mediaFolderPath ?? selectedFolder
 
   const foldersQuery = useFoldersQuery()
   const v3 = isSmmV3Enabled()
@@ -64,16 +59,7 @@ export function useSidebar({ onDeleteSelected }: UseSidebarOptions = {}) {
   const filteredAndSortedFolders = useMemo(() => {
     let result = [...rowsWithMeta]
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim()
-      result = result.filter((folder) => {
-        const mediaNameMatch = folder.mediaName.toLowerCase().includes(query)
-        const pathMatch = folder.path.toLowerCase().includes(query)
-        const folderName = basename(folder.path) || ""
-        const folderNameMatch = folderName.toLowerCase().includes(query)
-        return mediaNameMatch || pathMatch || folderNameMatch
-      })
-    }
+    result = result.filter((folder) => folderMatchesSearchQuery(folder, searchQuery))
 
     if (filterType !== "all") {
       result = result.filter((folder) => folder.mediaType === filterType)
@@ -81,7 +67,7 @@ export function useSidebar({ onDeleteSelected }: UseSidebarOptions = {}) {
 
     result.sort((a, b) => compareByDisplayName(a.mediaName, b.mediaName, sortOrder))
 
-    return result
+    return result.map((folder) => folder.path)
   }, [rowsWithMeta, sortOrder, filterType, searchQuery])
 
   const handleOpenInExplorer = useCallback(async (path: string) => {
@@ -131,46 +117,14 @@ export function useSidebar({ onDeleteSelected }: UseSidebarOptions = {}) {
     [onDeleteSelected, setAndSaveUserConfig, userConfig, removeFolder, unimportFolderMutation],
   )
 
-  const handleListKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "a") {
-        e.preventDefault()
-        selectAllFolderPaths(filteredAndSortedFolders.map((f) => f.path))
-      }
-      if (e.key === "Delete" && selectedFolderPathsSet.size > 0) {
-        e.preventDefault()
-        void handleDeletePaths(Array.from(selectedFolderPathsSet))
-      }
-    },
-    [handleDeletePaths, selectAllFolderPaths, filteredAndSortedFolders, selectedFolderPathsSet],
-  )
-
-  const handleDeleteItem = useCallback(
-    (path: string) => {
-      const posix = Path.posix(path)
-      const selectedPaths = Array.from(selectedFolderPathsSet)
-      const shouldDeleteSelection =
-        selectedPaths.length > 0 && selectedPaths.some((p) => Path.posix(p) === posix)
-      const paths = shouldDeleteSelection ? selectedPaths : [path]
-      void handleDeletePaths(paths)
-    },
-    [handleDeletePaths, selectedFolderPathsSet],
-  )
-
   return {
     sortOrder,
     filterType,
-    searchQuery,
     setSortOrder,
     setFilterType,
-    setSearchQuery,
     filteredAndSortedFolders,
-    selectedFolderPathsSet,
-    primarySelectedPath,
-    applyFolderClick,
-    handleListKeyDown,
     handleRename,
     handleOpenInExplorer,
-    handleDeleteItem,
+    handleDeletePaths,
   }
 }

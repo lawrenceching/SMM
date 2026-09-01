@@ -1,4 +1,4 @@
-export const UI_MediaFolderImportedEvent = 'ui.mediaFolderImported'
+export const UI_ImportFolderEvent = 'ui.importFolder'
 
 export interface OnMediaFolderImportedEventData {
     type: "tvshow" | "movie" | "music";

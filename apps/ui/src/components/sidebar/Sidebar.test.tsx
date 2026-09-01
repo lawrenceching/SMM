@@ -1,0 +1,487 @@
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { render, screen, fireEvent } from "@testing-library/react"
+import type { MediaMetadata } from "@smm/types"
+import { Path } from "@smm/utils/path"
+import { basename } from "@/lib/path"
+import { Sidebar } from "./Sidebar"
+
+vi.mock("@tanstack/react-query", () => ({
+  useQueries: vi.fn(),
+}))
+
+vi.mock("@/hooks/folders", () => ({
+  useFoldersQuery: vi.fn(() => ({ data: undefined, isFetching: false })),
+  useUnimportFolderMutation: vi.fn(() => ({ mutateAsync: vi.fn() })),
+}))
+
+vi.mock("@/components/search-form", () => ({
+  SearchForm: ({
+    placeholder,
+    value,
+    onValueChange,
+  }: {
+    placeholder?: string
+    value?: string
+    onValueChange?: (value: string) => void
+  }) => (
+    <div data-testid="search-form">
+      <span>{placeholder}</span>
+      <input
+        data-testid="sidebar-search-input"
+        value={value ?? ""}
+        onChange={(e) => onValueChange?.(e.target.value)}
+      />
+    </div>
+  ),
+}))
+vi.mock("@/components/shared/MediaFolderToolbar", () => ({
+  MediaFolderToolbar: () => <div data-testid="media-folder-toolbar" />,
+}))
+
+vi.mock("@/stores/sidebarStore", () => ({
+  useSidebarStore: vi.fn(),
+  compareByDisplayName: (a: string, b: string) => a.localeCompare(b),
+}))
+
+vi.mock("@/stores/uiMediaFolderStore", () => ({
+  useUIMediaFolderStoreState: vi.fn(),
+  useUIMediaFolderStoreActions: vi.fn(),
+  useUIMediaFolderSelection: vi.fn(),
+}))
+
+vi.mock("@/hooks/mediaMetadata/useMediaMetadataQuery", () => ({
+  useMediaMetadataQuery: vi.fn(),
+}))
+
+vi.mock("@/providers/dialog-provider", () => ({
+  useDialogs: vi.fn(() => ({
+    renameFileDialog: [vi.fn(), vi.fn()],
+    renameFolderDialog: [vi.fn(), vi.fn()],
+  })),
+}))
+
+vi.mock("@/hooks/userConfig", () => ({
+  useConfig: vi.fn(() => ({
+    userConfig: { folders: [] },
+    setAndSaveUserConfig: vi.fn(),
+  })),
+}))
+
+vi.mock("@/api/openInFileManager", () => ({
+  openInFileManagerApi: vi.fn(),
+}))
+
+vi.mock("@/lib/utils", () => ({
+  nextTraceId: vi.fn(() => "trace-id"),
+}))
+
+vi.mock("@/api/metadata", () => ({
+  deleteMetadata: vi.fn(),
+}))
+
+vi.mock("@/lib/i18n", () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}))
+
+vi.mock("./FolderListItem", () => ({
+  FolderListItem: ({
+    path,
+    mediaName,
+    onDelete,
+    onClick,
+    isSelected,
+  }: {
+    path: string
+    mediaName: string
+    onDelete?: () => void
+    onClick?: (e: React.MouseEvent) => void
+    isSelected?: boolean
+  }) => (
+    <div>
+      <h5 data-testid="sidebar-folder-title">{mediaName}</h5>
+      <button
+        type="button"
+        data-testid={`select-${path}`}
+        data-selected={isSelected ? "true" : "false"}
+        onClick={(e) => onClick?.(e)}
+      >
+        select-{path}
+      </button>
+      <button type="button" data-testid={`delete-${path}`} onClick={onDelete}>
+        delete-{path}
+      </button>
+    </div>
+  ),
+}))
+
+import { useQueries } from "@tanstack/react-query"
+import { useSidebarStore } from "@/stores/sidebarStore"
+import {
+  useUIMediaFolderStoreState,
+  useUIMediaFolderStoreActions,
+  useUIMediaFolderSelection,
+} from "@/stores/uiMediaFolderStore"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
+import { useUnimportFolderMutation, useFoldersQuery } from "@/hooks/folders"
+
+const mockUseQueries = useQueries as ReturnType<typeof vi.fn>
+const mockUseSidebarStore = useSidebarStore as ReturnType<typeof vi.fn>
+const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<typeof vi.fn>
+const mockUseUIMediaFolderStoreActions = useUIMediaFolderStoreActions as ReturnType<typeof vi.fn>
+const mockUseUIMediaFolderSelection = useUIMediaFolderSelection as ReturnType<typeof vi.fn>
+const mockUseMediaMetadataQuery = useMediaMetadataQuery as ReturnType<typeof vi.fn>
+
+function baseSidebarMocks() {
+  mockUseSidebarStore.mockReturnValue({
+    sortOrder: "asc",
+    filterType: "all",
+    setSortOrder: vi.fn(),
+    setFilterType: vi.fn(),
+  })
+  mockUseUIMediaFolderStoreActions.mockReturnValue({
+    applyFolderClick: vi.fn(),
+    selectAllFolderPaths: vi.fn(),
+    removeFolder: vi.fn(),
+  })
+}
+
+describe("Sidebar delete behavior", () => {
+  const pathA = "/media/folder-a"
+  const pathB = "/media/folder-b"
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [
+        { path: pathA, status: "ok", test: false },
+        { path: pathB, status: "ok", test: false },
+      ],
+      selectedFolder: pathA,
+      selectedFolders: [pathA, pathB],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: pathA,
+      selectedFolders: [pathA, pathB],
+      selectedFolderPathsSet: new Set([pathA, pathB]),
+    })
+    mockUseMediaMetadataQuery.mockReturnValue({ data: { mediaFolderPath: pathA } })
+    mockUseQueries.mockReturnValue([{ data: null }, { data: null }])
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [pathA, pathB],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+    } as ReturnType<typeof useUnimportFolderMutation>)
+  })
+
+  it("deletes full selected set when deleting a selected item", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync,
+    } as ReturnType<typeof useUnimportFolderMutation>)
+    const onDeleteSelected = vi.fn()
+    render(
+      <Sidebar
+        onDeleteSelected={onDeleteSelected}
+        selectedPaths={[pathA, pathB]}
+        primaryPath={pathA}
+      />,
+    )
+
+    fireEvent.click(await screen.findByTestId(`delete-${Path.toPlatformPath(pathA)}`))
+
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(mutateAsync).toHaveBeenCalledWith(expect.arrayContaining([pathA, pathB]))
+    expect(onDeleteSelected).not.toHaveBeenCalled()
+  })
+
+  it("deletes single item when clicked item is not in selected set", async () => {
+    const mutateAsync = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useUnimportFolderMutation).mockReturnValue({
+      mutateAsync,
+    } as ReturnType<typeof useUnimportFolderMutation>)
+    const onDeleteSelected = vi.fn()
+    render(
+      <Sidebar
+        onDeleteSelected={onDeleteSelected}
+        selectedPaths={[pathA]}
+        primaryPath={pathA}
+      />,
+    )
+
+    fireEvent.click(await screen.findByTestId(`delete-${Path.toPlatformPath(pathB)}`))
+
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(mutateAsync).toHaveBeenCalledWith([Path.toPlatformPath(pathB)])
+    expect(onDeleteSelected).not.toHaveBeenCalled()
+  })
+})
+
+describe("Sidebar i18n", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [],
+      selectedFolder: null,
+      selectedFolders: [],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: null,
+      selectedFolders: [],
+      selectedFolderPathsSet: new Set(),
+    })
+    mockUseMediaMetadataQuery.mockReturnValue({ data: undefined })
+    mockUseQueries.mockReturnValue([])
+  })
+
+  it("passes the translated placeholder to the search form", () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId("search-form")).toHaveTextContent("sidebar.searchPlaceholder")
+  })
+
+  it("renders the translated empty state when no folders match", () => {
+    render(<Sidebar />)
+    expect(screen.getByTestId("sidebar-empty-state")).toHaveTextContent("sidebar.emptyState")
+  })
+})
+
+describe("Sidebar mediaName", () => {
+  const folderPath = "/media/library/RawFolder"
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [folderPath],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [{ path: folderPath, status: "ok", test: false }],
+      selectedFolder: folderPath,
+      selectedFolders: [folderPath],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: folderPath,
+      selectedFolders: [folderPath],
+      selectedFolderPathsSet: new Set([folderPath]),
+    })
+    mockUseMediaMetadataQuery.mockReturnValue({ data: { mediaFolderPath: folderPath } })
+  })
+
+  it("passes tv show title as mediaName when tvShow is set", async () => {
+    const showTitle = "Recognized TV Title"
+    const metadata = {
+      type: "tvshow-folder",
+      tvShow: {
+        database: "TMDB",
+        id: "1",
+        name: showTitle,
+        seasons: [],
+      },
+    } as MediaMetadata
+    mockUseQueries.mockReturnValue([{ data: metadata }])
+    mockUseMediaMetadataQuery.mockImplementation((path?: string) => {
+      if (!path) return { data: { mediaFolderPath: folderPath }, isPending: false }
+      return { data: metadata, isPending: false }
+    })
+
+    render(<Sidebar />)
+
+    expect(await screen.findByTestId("sidebar-folder-title")).toHaveTextContent(showTitle)
+  })
+
+  it("passes movie title as mediaName when movie is set", async () => {
+    const movieTitle = "Recognized Movie Title"
+    const metadata = {
+      type: "movie-folder",
+      movie: {
+        database: "TMDB",
+        id: "2",
+        name: movieTitle,
+      },
+    } as MediaMetadata
+    mockUseQueries.mockReturnValue([{ data: metadata }])
+    mockUseMediaMetadataQuery.mockImplementation((path?: string) => {
+      if (!path) return { data: { mediaFolderPath: folderPath }, isPending: false }
+      return { data: metadata, isPending: false }
+    })
+
+    render(<Sidebar />)
+
+    expect(await screen.findByTestId("sidebar-folder-title")).toHaveTextContent(movieTitle)
+  })
+
+  it("passes folder basename as mediaName when query has no metadata", async () => {
+    mockUseQueries.mockReturnValue([{ data: undefined }])
+    mockUseMediaMetadataQuery.mockImplementation((path?: string) => {
+      if (!path) return { data: { mediaFolderPath: folderPath }, isPending: false }
+      return { data: undefined, isPending: false }
+    })
+
+    render(<Sidebar />)
+
+    expect(await screen.findByTestId("sidebar-folder-title")).toHaveTextContent(basename(folderPath))
+  })
+
+  it("passes basename of mediaFolderPath when metadata has no tvShow or movie", async () => {
+    const aliasPath = "/media/other/AliasFolderName"
+    const metadata = {
+      type: "movie-folder",
+      mediaFolderPath: aliasPath,
+    } as MediaMetadata
+    mockUseQueries.mockReturnValue([{ data: metadata }])
+    mockUseMediaMetadataQuery.mockImplementation((path?: string) => {
+      if (!path) return { data: { mediaFolderPath: folderPath }, isPending: false }
+      return { data: metadata, isPending: false }
+    })
+
+    render(<Sidebar />)
+
+    expect(await screen.findByTestId("sidebar-folder-title")).toHaveTextContent(basename(aliasPath))
+  })
+})
+
+describe("Sidebar selection UI", () => {
+  const pathA = "/media/folder-a"
+  const pathB = "/media/folder-b"
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [
+        { path: pathA, status: "ok", test: false },
+        { path: pathB, status: "ok", test: false },
+      ],
+      selectedFolder: "",
+      selectedFolders: [],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: "",
+      selectedFolders: [],
+      selectedFolderPathsSet: new Set(),
+    })
+    mockUseMediaMetadataQuery.mockReturnValue({ data: undefined, isPending: false })
+    mockUseQueries.mockReturnValue([{ data: null }, { data: null }])
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [pathA, pathB],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+  })
+
+  it("selects a folder on click (uncontrolled)", async () => {
+    const onSelectionChange = vi.fn()
+    render(<Sidebar onSelectionChange={onSelectionChange} />)
+
+    const platformA = Path.toPlatformPath(pathA)
+    fireEvent.click(await screen.findByTestId(`select-${platformA}`))
+
+    expect(onSelectionChange).toHaveBeenCalledWith({
+      selectedPaths: [platformA],
+      primaryPath: platformA,
+      multi: false,
+    })
+    expect(screen.getByTestId(`select-${platformA}`)).toHaveAttribute("data-selected", "true")
+  })
+
+  it("toggles multi-select with ctrl/meta click", async () => {
+    const onSelectionChange = vi.fn()
+    render(<Sidebar onSelectionChange={onSelectionChange} />)
+
+    const platformA = Path.toPlatformPath(pathA)
+    const platformB = Path.toPlatformPath(pathB)
+    fireEvent.click(await screen.findByTestId(`select-${platformA}`))
+    fireEvent.click(screen.getByTestId(`select-${platformB}`), { ctrlKey: true })
+
+    expect(onSelectionChange).toHaveBeenLastCalledWith({
+      selectedPaths: [platformA, platformB],
+      primaryPath: platformB,
+      multi: true,
+    })
+  })
+})
+
+describe("Sidebar search UI", () => {
+  const pathA = "/media/folder-a"
+  const pathB = "/media/folder-b"
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    baseSidebarMocks()
+    mockUseUIMediaFolderStoreState.mockReturnValue({
+      folders: [
+        { path: pathA, status: "ok", test: false },
+        { path: pathB, status: "ok", test: false },
+      ],
+      selectedFolder: "",
+      selectedFolders: [],
+    })
+    mockUseUIMediaFolderSelection.mockReturnValue({
+      selectedFolder: "",
+      selectedFolders: [],
+      selectedFolderPathsSet: new Set(),
+    })
+    mockUseMediaMetadataQuery.mockImplementation((path?: string) => {
+      if (path === Path.toPlatformPath(pathA) || path === pathA) {
+        return {
+          data: {
+            type: "tvshow-folder",
+            tvShow: { database: "TMDB", id: "1", name: "Alpha Show", seasons: [] },
+          },
+          isPending: false,
+        }
+      }
+      if (path === Path.toPlatformPath(pathB) || path === pathB) {
+        return {
+          data: {
+            type: "movie-folder",
+            movie: { database: "TMDB", id: "2", name: "Beta Movie" },
+          },
+          isPending: false,
+        }
+      }
+      return { data: undefined, isPending: false }
+    })
+    mockUseQueries.mockReturnValue([
+      {
+        data: {
+          type: "tvshow-folder",
+          tvShow: { database: "TMDB", id: "1", name: "Alpha Show", seasons: [] },
+        },
+      },
+      {
+        data: {
+          type: "movie-folder",
+          movie: { database: "TMDB", id: "2", name: "Beta Movie" },
+        },
+      },
+    ])
+    vi.mocked(useFoldersQuery).mockReturnValue({
+      data: [pathA, pathB],
+      isFetching: false,
+    } as ReturnType<typeof useFoldersQuery>)
+  })
+
+  it("filters the list when the search query changes (uncontrolled)", async () => {
+    const onSearchQueryChange = vi.fn()
+    render(<Sidebar onSearchQueryChange={onSearchQueryChange} />)
+
+    expect(await screen.findByTestId(`select-${Path.toPlatformPath(pathA)}`)).toBeInTheDocument()
+    expect(screen.getByTestId(`select-${Path.toPlatformPath(pathB)}`)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByTestId("sidebar-search-input"), { target: { value: "Beta" } })
+
+    expect(onSearchQueryChange).toHaveBeenCalledWith("Beta")
+    expect(screen.queryByTestId(`select-${Path.toPlatformPath(pathA)}`)).toBeNull()
+    expect(screen.getByTestId(`select-${Path.toPlatformPath(pathB)}`)).toBeInTheDocument()
+  })
+})
