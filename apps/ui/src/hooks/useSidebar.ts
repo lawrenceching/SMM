@@ -1,21 +1,19 @@
 import { useCallback, useMemo } from "react"
 import { useQueries } from "@tanstack/react-query"
 import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
-import { Path } from "@smm/utils/path"
-import { useUIMediaFolderStoreActions } from "@/stores/uiMediaFolderStore"
+import { basename } from '../lib/path'
+import {
+  useUIMediaFolderStoreState,
+} from "@/stores/uiMediaFolderStore"
 import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
-import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "@/lib/sidebarRowUtils"
+import { buildMediaFolderListItemPropsFromFolderAndMetadata, mediaTypeFromMetadataType } from "@/lib/sidebarRowUtils"
 import { folderMatchesSearchQuery } from "@/lib/sidebarFolderSearch"
 import { useDialogs } from "@/providers/dialog-provider"
-import { useConfig } from "@/hooks/userConfig"
 import { openInFileManagerApi } from "@/api/openInFileManager"
-import { nextTraceId } from "@/lib/utils"
-import { deleteMetadata } from "@/api/metadata"
 import { useTranslation } from "@/lib/i18n"
-import { isSmmV3Enabled } from "@/lib/localStorages"
 import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
 import { mergeFolderPathsWithUiStatus } from "@/lib/mergeFolderPathsWithUiStatus"
-import { uniq } from "es-toolkit/array"
+import { Path } from "@smm/utils/path"
 
 export interface UseSidebarOptions {
   onDeleteSelected?: (paths: string[]) => void
@@ -23,53 +21,49 @@ export interface UseSidebarOptions {
   searchQuery?: string
 }
 
-export function useSidebar({ onDeleteSelected, searchQuery = "" }: UseSidebarOptions = {}) {
+export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
   const { t } = useTranslation(["components"])
   const { sortOrder, filterType, setSortOrder, setFilterType } = useSidebarStore()
-  const { removeFolder } = useUIMediaFolderStoreActions()
-  const { userConfig, setAndSaveUserConfig } = useConfig()
-  const folders = useMemo(() => {
-    return uniq(userConfig.folders)
-  }, [userConfig.folders])
+  const { _folders } = useUIMediaFolderStoreState()
+
   const unimportFolderMutation = useUnimportFolderMutation()
   const { renameFolderDialog } = useDialogs()
   const [openRenameForMediaFolder] = renameFolderDialog
 
-  const foldersQuery = useFoldersQuery()
-  const v3 = isSmmV3Enabled()
-  const listFolders = v3
-    ? mergeFolderPathsWithUiStatus(foldersQuery.data ?? [], folders)
-    : folders
-
-  const folderPaths = useMemo(() => listFolders.map((f) => f.path), [listFolders])
+  const foldersQuery = useFoldersQuery();
 
   const metadataQueries = useQueries({
-    queries: folderPaths.map((path) => ({
-      ...mediaMetadataReadQueryOptions(path),
-      staleTime: 5 * 60 * 1000,
+    queries: (foldersQuery.data ?? []).map((folderAbsPath) => ({
+      ...mediaMetadataReadQueryOptions(folderAbsPath)
     })),
   })
 
-  const rowsWithMeta = useMemo(() => {
-    return listFolders.map((folder, i) =>
-      buildMediaFolderListItemPropsFromFolderAndMetadata(folder, metadataQueries[i]?.data),
-    )
-  }, [listFolders, metadataQueries])
+  const folders = useMemo(() => {
 
-  const filteredAndSortedFolders = useMemo(() => {
-    let result = [...rowsWithMeta]
+    let folderSearchFields = (foldersQuery.data ?? []).map((folderAbsPath) => {
 
-    result = result.filter((folder) => folderMatchesSearchQuery(folder, searchQuery))
+      const m = metadataQueries.find((query) => query.data?.mediaFolderPath === Path.posix(folderAbsPath))?.data
 
+      return {
+        folderName: basename(folderAbsPath) ?? '',
+        type: m?.type,
+        path: folderAbsPath
+      }
+    })
+
+    folderSearchFields = folderSearchFields.filter((folder) => (folder.folderName.toLocaleLowerCase() ?? '').includes(searchQuery.toLowerCase()))
+    
     if (filterType !== "all") {
-      result = result.filter((folder) => folder.mediaType === filterType)
+      folderSearchFields = folderSearchFields.filter((folder) => mediaTypeFromMetadataType(folder.type) === filterType)
     }
 
-    result.sort((a, b) => compareByDisplayName(a.mediaName, b.mediaName, sortOrder))
+    if (sortOrder !== "none") {
+      folderSearchFields.sort((a, b) => compareByDisplayName(a.folderName, b.folderName, sortOrder))
+    }
 
-    return result.map((folder) => folder.path)
-  }, [rowsWithMeta, sortOrder, filterType, searchQuery])
-
+    return folderSearchFields.map((folder) => folder.path)
+  }, [foldersQuery.data, metadataQueries, sortOrder, filterType, searchQuery])
+  
   const handleOpenInExplorer = useCallback(async (path: string) => {
     try {
       const result = await openInFileManagerApi(path)
@@ -94,27 +88,9 @@ export function useSidebar({ onDeleteSelected, searchQuery = "" }: UseSidebarOpt
   const handleDeletePaths = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return
-      if (isSmmV3Enabled()) {
-        await unimportFolderMutation.mutateAsync(paths)
-        return
-      }
-      if (onDeleteSelected) {
-        await onDeleteSelected(paths)
-        return
-      }
-
-      const traceId = `Sidebar-onDeleteSelected-${nextTraceId()}`
-      const deletedSet = new Set(paths.map((p) => Path.posix(p)))
-
-      await Promise.all(paths.map((path) => deleteMetadata(path)))
-
-      setAndSaveUserConfig(traceId, {
-        ...userConfig,
-        folders: userConfig.folders.filter((folder) => !deletedSet.has(Path.posix(folder))),
-      })
-      paths.forEach((path) => removeFolder(path))
+      await unimportFolderMutation.mutateAsync(paths)
     },
-    [onDeleteSelected, setAndSaveUserConfig, userConfig, removeFolder, unimportFolderMutation],
+    [unimportFolderMutation],
   )
 
   return {
@@ -122,7 +98,7 @@ export function useSidebar({ onDeleteSelected, searchQuery = "" }: UseSidebarOpt
     filterType,
     setSortOrder,
     setFilterType,
-    filteredAndSortedFolders,
+    folders,
     handleRename,
     handleOpenInExplorer,
     handleDeletePaths,

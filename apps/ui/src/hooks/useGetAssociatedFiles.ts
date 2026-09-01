@@ -1,7 +1,6 @@
 import { useMemo } from "react"
 import { useQuery, skipToken } from "@tanstack/react-query"
-import { listFiles } from "@/api/listFiles"
-import { associatedFilesQueryKey } from "@/lib/associatedFilesQueryKeys"
+import { mediaFolderFilesReadQueryOptions } from "@/lib/mediaFolderFiles"
 import { basename, extname } from "@/lib/path"
 import { extensions } from "@smm/types/mediaFileExtensions"
 import type { AssociatedFile } from "@/types/associated-files"
@@ -52,21 +51,11 @@ export function useGetAssociatedFiles(
   fileAbsPath: string | undefined,
 ) {
   const trimmed = mediaFolderPath?.trim() ?? ""
-  const key = trimmed
-    ? associatedFilesQueryKey(trimmed)
-    : (["associatedFiles", null] as const)
+  const readOpts = trimmed ? mediaFolderFilesReadQueryOptions(trimmed) : null
 
   const { data: allPaths = [] } = useQuery<string[]>({
-    queryKey: key,
-    queryFn: trimmed
-      ? async ({ signal }) => {
-          const resp = await listFiles(
-            { path: trimmed, onlyFiles: true },
-            signal,
-          )
-          return (resp.data?.items ?? []).map((item) => item.path)
-        }
-      : skipToken,
+    queryKey: readOpts?.queryKey ?? (["associatedFiles", null] as const),
+    queryFn: readOpts?.queryFn ?? skipToken,
     enabled: Boolean(trimmed) && Boolean(fileAbsPath),
     staleTime: 30_000,
   })

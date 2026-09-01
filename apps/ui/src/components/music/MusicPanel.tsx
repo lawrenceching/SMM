@@ -3,8 +3,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation";
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation";
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys";
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery";
 import type { MediaMetadata } from "@smm/types";
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import {
@@ -92,6 +91,7 @@ export function MusicPanel() {
   ]);
 
   const mediaMetadata = queriedMediaMetadata ?? undefined;
+  const { data: folderFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined);
 
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation();
   const { mutateAsync: saveMediaMetadata } = useUpdateMediaMetadataMutation();
@@ -210,7 +210,7 @@ export function MusicPanel() {
       return;
     }
 
-    const musicMediaMetadata = newMusicMediaMetadata(mediaMetadata);
+    const musicMediaMetadata = newMusicMediaMetadata(mediaMetadata, folderFiles);
     const newTracks = convertMusicFilesToTracks(musicMediaMetadata.musicFiles);
 
     setTracks((prev) => {
@@ -218,7 +218,7 @@ export function MusicPanel() {
       const synced = syncTracks(basePrev, newTracks);
       return mergeLibraryTracksWithJobTracks(synced, jobTracks);
     });
-  }, [mediaMetadata, jobTracks]);
+  }, [mediaMetadata, jobTracks, folderFiles]);
 
   const pathSignature = useMemo(
     () =>
@@ -421,7 +421,7 @@ export function MusicPanel() {
         return;
       }
 
-      const currentFiles = getMediaFolderFiles(mediaMetadata);
+      const currentFiles = folderFiles;
       const trackPathPosix = Path.posix(trackPath);
       const fileIndex = currentFiles.findIndex((file) => file === trackPathPosix);
 
@@ -462,7 +462,7 @@ export function MusicPanel() {
       console.error('[MusicPanel] Failed to handle delete track:', error);
       toast.error(`Could not process delete for "${trackTitle}". ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }, [mediaMetadata, openConfirmation, confirmDelete, handleDeleteCancel]);
+  }, [mediaMetadata, folderFiles, openConfirmation, confirmDelete, handleDeleteCancel]);
 
   const handleTrackProperties = useCallback((event: CustomEvent<TrackPropertiesEventDetail>) => {
     const { trackId, trackTitle } = event.detail;
@@ -591,7 +591,7 @@ export function MusicPanel() {
       <LocalFileSubtitleScope
         platformFolder={platformFolder ?? ""}
         mediaFolderPath={mediaMetadata?.mediaFolderPath}
-        folderFiles={getMediaFolderFiles(mediaMetadata)}
+        folderFiles={folderFiles}
         localRows={musicFileRowsForDialogs}
         selectedLocalRows={selectedLocalRows}
         onClearSelection={clearSelection}
@@ -600,6 +600,7 @@ export function MusicPanel() {
         <div className="shrink-0 px-4 pt-4">
           <MusicPanelSubtitleHeader
             mediaMetadata={mediaMetadata}
+            folderFiles={folderFiles}
             onDownloadClick={isDownloadVideoEnabled ? handleDownloadClick : undefined}
             showSubtitleMenu={isSubtitleFeaturesEnabled}
             showDownloadButton={isDownloadVideoEnabled}
@@ -634,7 +635,8 @@ export function MusicPanel() {
 }
 
 interface MusicPanelSubtitleHeaderProps {
-  mediaMetadata?: MediaMetadataWithFolderFiles
+  mediaMetadata?: MediaMetadata
+  folderFiles?: string[]
   onDownloadClick?: () => void
   showSubtitleMenu?: boolean
   showDownloadButton?: boolean
@@ -644,6 +646,7 @@ interface MusicPanelSubtitleHeaderProps {
 
 function MusicPanelSubtitleHeader({
   mediaMetadata,
+  folderFiles = [],
   onDownloadClick,
   showSubtitleMenu = true,
   showDownloadButton = true,
@@ -656,6 +659,7 @@ function MusicPanelSubtitleHeader({
   return (
     <MusicHeaderV2
       selectedMediaMetadata={mediaMetadata}
+      folderFiles={folderFiles}
       onDownloadClick={onDownloadClick}
       showSubtitleMenu={showSubtitleMenu}
       showDownloadButton={showDownloadButton}

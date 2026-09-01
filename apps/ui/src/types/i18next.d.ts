@@ -70,6 +70,7 @@ interface ComponentsResources {
     toolbar: {
       sort: string
       filter: string
+      sortNone: string
       sortAlphabetical: string
       sortReverseAlphabetical: string
       filterAll: string

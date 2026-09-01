@@ -2,7 +2,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
 import type { MediaMetadata } from "@smm/types"
 import { type MediaFileMetadata, RenameRuleVariables, type RenameRule, type TMDBSeason } from "@smm/types"
 import { basename, relative, join, dirname } from "@/lib/path"
@@ -141,7 +140,8 @@ export function buildTvShowEpisodesPropsFromMediaMetadata(
           tag: "VID",
           newPath: ''
         }
-        episodeProps.associatedFiles = findAssociatedFiles(mediaFolderPath!, getMediaFolderFiles(mediaMetadata), videoFilePath.absolutePath);
+        // Deprecated: folder file listing is no longer stored on metadata.
+        episodeProps.associatedFiles = findAssociatedFiles(mediaFolderPath!, [], videoFilePath.absolutePath);
         if(renameRule) {
           episodeProps.videoFilePath.newPath = generateNameByRenameRule(mediaMetadata, renameRule, videoFilePath)
         }

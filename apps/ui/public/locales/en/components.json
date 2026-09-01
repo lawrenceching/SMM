@@ -27,6 +27,7 @@
     "toolbar": {
       "sort": "Sort",
       "filter": "Filter",
+      "sortNone": "Original order",
       "sortAlphabetical": "Alphabetical",
       "sortReverseAlphabetical": "Reverse alphabetical",
       "filterAll": "All types",

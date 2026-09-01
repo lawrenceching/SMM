@@ -1,6 +1,5 @@
 import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow } from "@/components/tv/TvShowEpisodeTable";
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
 import { basename, join } from "@/lib/path";
 import { findAssociatedFiles } from "@/lib/utils";
@@ -20,9 +19,10 @@ export interface MovieRenamePreviewData {
  * - One episode data row (S01E01) with video + stem-matched associated files
  */
 export function buildMovieEpisodeTableRows(
-  mm: MediaMetadataWithFolderFiles,
+  mm: MediaMetadata,
   uiStatus: UIMediaFolderStatus,
   t: (key: string) => string,
+  folderFiles: string[] = [],
   options?: {
     renamePreview?: MovieRenamePreviewData;
   }
@@ -45,7 +45,7 @@ export function buildMovieEpisodeTableRows(
   const rows: TvShowEpisodeTableRow[] = [];
   const mediaFolderPath = mm.mediaFolderPath;
   const videoFile = mm.mediaFiles[0]; // Only the first/main video file
-  const allFiles = getMediaFolderFiles(mm);
+  const allFiles = folderFiles;
 
   // ── Folder-level file rows (mirrors TvShowPanel's buildFolderFileRows) ──
 

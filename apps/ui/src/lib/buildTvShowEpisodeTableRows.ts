@@ -1,6 +1,5 @@
 import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow, TvShowFolderFileRow } from "@/components/tv/TvShowEpisodeTable";
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { basename, join } from "@/lib/path";
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan";
 import { findAssociatedFiles } from "@/lib/utils";
@@ -43,9 +42,10 @@ function buildFolderFileRows(files: string[]): TvShowFolderFileRow[] {
 }
 
 export function buildTvShowEpisodeTableRows(
-  mm: MediaMetadataWithFolderFiles,
+  mm: MediaMetadata,
   uiStatus: UIMediaFolderStatus,
   t: (key: string) => string,
+  folderFiles: string[] = [],
 ): TvShowEpisodeTableRow[] {
   const rows: TvShowEpisodeTableRow[] = []
 
@@ -73,14 +73,16 @@ export function buildTvShowEpisodeTableRows(
     }]
   }
 
-  const folderFiles = getMediaFolderFiles(mm)
-  if (folderFiles.length > 0 && mm.mediaFolderPath) {
-    rows.push(...buildFolderFileRows(folderFiles))
+  const folderFileRows = folderFiles.length > 0 && mm.mediaFolderPath
+    ? buildFolderFileRows(folderFiles)
+    : []
+  if (folderFileRows.length > 0) {
+    rows.push(...folderFileRows)
   }
 
   if (mm.tvShow !== undefined) {
     debug(`use tmdbTvShow to build episode table rows`)
-    const rowsFromTmdbTvShow = _buildTvShowEpisodeTableRowsFromTmdb(mm)
+    const rowsFromTmdbTvShow = _buildTvShowEpisodeTableRowsFromTmdb(mm, folderFiles)
     rows.push(...rowsFromTmdbTvShow)
     return rows;
   }
@@ -89,7 +91,7 @@ export function buildTvShowEpisodeTableRows(
   return rows
 }
 
-export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadataWithFolderFiles) {
+export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadata, folderFiles: string[] = []) {
 
   const rows: TvShowEpisodeTableRow[] = []
 
@@ -126,7 +128,6 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadataWithFo
           newPath: undefined
         }
 
-        const folderFiles = getMediaFolderFiles(_in_mm)
         if (_in_mm.mediaFolderPath && folderFiles.length > 0) {
           const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
 
@@ -170,7 +171,7 @@ export function _buildTvShowEpisodeTableRowsFromTmdb(_in_mm: MediaMetadataWithFo
   return rows;
 }
 
-export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadataWithFolderFiles) {
+export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadata, folderFiles: string[] = []) {
 
   const rows: TvShowEpisodeTableRow[] = []
 
@@ -207,7 +208,6 @@ export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadataWithFo
           newPath: undefined
         }
 
-        const folderFiles = getMediaFolderFiles(_in_mm)
         if (_in_mm.mediaFolderPath && folderFiles.length > 0) {
           const associatedFiles = findAssociatedFiles(_in_mm.mediaFolderPath, folderFiles, mediaFile.absolutePath)
 
@@ -252,10 +252,11 @@ export function _buildTvShowEpisodeTableRowsFromTvdb(_in_mm: MediaMetadataWithFo
 }
 
 export function buildTvShowEpisodeTableRowsForPlan(
-    mm: MediaMetadataWithFolderFiles,
+    mm: MediaMetadata,
     uiStatus: UIMediaFolderStatus,
     plan: UIRenameFilesPlan | UIRecognizeMediaFilePlan,
-    t: (key: string) => string
+    t: (key: string) => string,
+    folderFiles: string[] = [],
 ): TvShowEpisodeTableRow[] {
 
     if (uiStatus === "initializing") {
@@ -282,7 +283,7 @@ export function buildTvShowEpisodeTableRowsForPlan(
       }]
     }
 
-    const rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t)
+    const rows: TvShowEpisodeTableRow[] = buildTvShowEpisodeTableRows(mm, uiStatus, t, folderFiles)
 
     if(plan.task === "recognize-media-file") {
       if(plan.status === 'preparing') {

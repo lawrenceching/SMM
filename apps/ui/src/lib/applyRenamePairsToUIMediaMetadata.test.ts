@@ -3,11 +3,10 @@ import { applyRenamePairsToUIMediaMetadata } from "./applyRenamePairsToUIMediaMe
 import type { MediaMetadata } from "@smm/types";
 
 describe("applyRenamePairsToUIMediaMetadata", () => {
-  it("remaps mediaFiles and files paths", () => {
+  it("remaps mediaFiles paths", () => {
     const meta = {
       mediaFolderPath: "/show",
       type: "tvshow-folder" as const,
-      files: ["/show/old.mkv", "/show/old.srt"],
       mediaFiles: [
         {
           absolutePath: "/show/old.mkv",
@@ -23,7 +22,6 @@ describe("applyRenamePairsToUIMediaMetadata", () => {
       { from: "/show/old.srt", to: "/show/new.srt" },
     ]);
 
-    expect(next.files).toEqual(["/show/new.mkv", "/show/new.srt"]);
     expect(next.mediaFiles?.[0]?.absolutePath).toBe("/show/new.mkv");
     expect(next.mediaFiles?.[0]?.subtitleFilePaths).toEqual(["/show/new.srt"]);
   });

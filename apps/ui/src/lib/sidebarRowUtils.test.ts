@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { buildMediaFolderListItemPropsFromFolderAndMetadata } from "./sidebarRowUtils"
+import {
+  buildMediaFolderListItemPropsFromFolderAndMetadata,
+  mediaTypeFromMetadataType,
+} from "./sidebarRowUtils"
 
 describe("buildMediaFolderListItemPropsFromFolderAndMetadata", () => {
   it("passes through pending_for_initialization status", () => {
@@ -36,5 +39,17 @@ describe("buildMediaFolderListItemPropsFromFolderAndMetadata", () => {
     )
 
     expect(row.status).toBe("loading")
+  })
+})
+
+describe("mediaTypeFromMetadataType", () => {
+  it("maps raw folder metadata types to plain media types", () => {
+    expect(mediaTypeFromMetadataType("tvshow-folder")).toBe("tvshow")
+    expect(mediaTypeFromMetadataType("movie-folder")).toBe("movie")
+    expect(mediaTypeFromMetadataType("music-folder")).toBe("music")
+  })
+
+  it("returns undefined for untyped folders", () => {
+    expect(mediaTypeFromMetadataType(undefined)).toBeUndefined()
   })
 })

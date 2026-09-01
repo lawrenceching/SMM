@@ -61,11 +61,11 @@ const meta = {
   ],
   beforeEach: () => {
     mocked(useSidebar).mockImplementation((options = {}) => ({
-      sortOrder: "alphabetical",
+      sortOrder: "none",
       filterType: "all",
       setSortOrder: fn(),
       setFilterType: fn(),
-      filteredAndSortedFolders: demoFolders
+      folders: demoFolders
         .filter((f) => folderMatchesSearchQuery(f, options.searchQuery ?? ""))
         .map((f) => f.path),
       handleRename: fn(),

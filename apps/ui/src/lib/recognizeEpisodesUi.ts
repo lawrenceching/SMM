@@ -14,7 +14,6 @@ import {
   type RecognizedEpisode,
 } from "@smm/core/pipeline/recognizeEpisodes";
 import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
 
 export type { RecognizedEpisode };
 export {
@@ -30,9 +29,7 @@ export {
 export function buildEpisodes(
   mm: MediaMetadataWithFolderFiles,
 ): { season: number; episode: number }[] {
-  const files = getMediaFolderFiles(mm);
   if (
-    files.length === 0 ||
     mm.tvShow === undefined ||
     mm.tvShow.seasons === undefined ||
     mm.tvShow.seasons.length === 0
@@ -60,9 +57,11 @@ export function fuzzyRecognizeEpisodes(
 /**
  * Sync recognition using folder files from UI metadata.
  */
-export function recognizeEpisodes(mm: MediaMetadataWithFolderFiles): RecognizedEpisode[] {
-  const files = getMediaFolderFiles(mm);
-  return recognizeEpisodesPure(mm, files);
+export function recognizeEpisodes(
+  mm: MediaMetadataWithFolderFiles,
+  folderFiles: string[],
+): RecognizedEpisode[] {
+  return recognizeEpisodesPure(mm, folderFiles);
 }
 
 /** Request id for matching worker responses when using a singleton worker */
@@ -78,6 +77,7 @@ type WorkerMessage =
  */
 export function recognizeEpisodesAsync(
   mm: MediaMetadataWithFolderFiles,
+  folderFiles: string[],
 ): Promise<RecognizedEpisode[]> {
   return new Promise((resolve, reject) => {
     const id = nextRequestId++;
@@ -103,7 +103,7 @@ export function recognizeEpisodesAsync(
 
     worker.addEventListener("message", onMessage);
     worker.addEventListener("error", onError);
-    worker.postMessage({ type: "recognize", id, payload: mm });
+    worker.postMessage({ type: "recognize", id, payload: { mm, folderFiles } });
   });
 }
 

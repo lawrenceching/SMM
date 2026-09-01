@@ -12,7 +12,7 @@ import type { FileProps } from "@/lib/types"
 import { useTranslation } from "@/lib/i18n"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery";
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery";
 
 interface EpisodeFileProps {
     file: FileProps
@@ -110,6 +110,7 @@ export function EpisodeFile({
     const { t } = useTranslation(['components', 'dialogs'])
     const { selectedFolder } = useUIMediaFolderStoreState()
     const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+    const { data: allMediaFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
     const { mutate: fetchMediaMetadata } = useFetchMediaMetadataMutation();
     const { renameFileDialog } = useDialogs()
 
@@ -212,9 +213,6 @@ export function EpisodeFile({
                                         const newAbsolutePath = join(selectedMediaMetadata.mediaFolderPath, newRelativePath)
 
                                         // All files in the media folder (absolute POSIX paths from metadata)
-                                        const allMediaFiles = getMediaFolderFiles(selectedMediaMetadata)
-
-                                        // Compute renames for every file sharing the same stem as the video
                                         const assocRenames = computeAssociatedFileRenames(file.path, newAbsolutePath, allMediaFiles)
 
                                         // Call renameFiles API with video + all associated files in one batch

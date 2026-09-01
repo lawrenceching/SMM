@@ -3,8 +3,8 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo } from "react"
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
 import { useTranslation } from "@/lib/i18n"
@@ -68,7 +68,9 @@ function TvShowPanel() {
     [folders, selectedFolder],
   )
 
-  const mediaMetadata: MediaMetadataWithFolderFiles | undefined = queriedMediaMetadata ?? undefined
+  const { data: folderFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
+
+  const mediaMetadata: MediaMetadata | undefined = queriedMediaMetadata ?? undefined
 
   const uiStatus: UIMediaFolderStatus = useMemo(() => {
     if (isMediaMetadataError) return "error_loading_metadata"
@@ -94,7 +96,7 @@ function TvShowPanel() {
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: getMediaFolderFiles(mediaMetadata),
+    files: folderFiles,
     mode: "episode",
   })
 
@@ -238,6 +240,7 @@ function TvShowPanel() {
 
   const selectFileFlow = useSelectAndUnselectFileFlow({
     mediaMetadata,
+    folderFiles,
     updateMediaMetadata,
   })
 
@@ -277,17 +280,17 @@ function TvShowPanel() {
     if(plan === undefined) {
       ret = buildTvShowEpisodeTableRows(mediaMetadata, uiStatus, (key: string) => {
        return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-      })
+      }, folderFiles)
     } else {
       ret = buildTvShowEpisodeTableRowsForPlan(mediaMetadata, uiStatus, plan, (key: string) => {
        return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-      })
+      }, folderFiles)
     };
 
     setTableData(ret);
     /* eslint-enable react-hooks/set-state-in-effect */
 
-  }, [mediaMetadata, plan, uiStatus, t])
+  }, [mediaMetadata, plan, uiStatus, t, folderFiles])
 
   const handleVideoCompressForRow = useCallback(
     (row: { season: number; episode: number; episodeTitle?: string }) => {

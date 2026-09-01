@@ -37,7 +37,7 @@ import { cn } from "@/lib/utils"
 import { computeAssociatedFileRenames } from "../episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQuery"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import { isSmmV3Enabled } from "@/lib/localStorages"
 
 export interface TvShowEpisodeDividerRow {
@@ -414,6 +414,7 @@ export function TvShowEpisodeTable({
   const { t } = useTranslation(['components', 'dialogs'])
   const { selectedFolder } = useUIMediaFolderStoreState()
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+  const { data: folderFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
   const { mutate: fetchMediaMetadata } = useFetchMediaMetadataMutation()
   const { renameFileDialog } = useDialogs()
   const [openRename] = renameFileDialog
@@ -905,8 +906,7 @@ export function TvShowEpisodeTable({
                                 to: newAbsolutePath,
                               })
                             } else {
-                              const allMediaFiles = getMediaFolderFiles(selectedMediaMetadata)
-                              const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, allMediaFiles)
+                              const assocRenames = computeAssociatedFileRenames(row.videoFile, newAbsolutePath, folderFiles)
                               await renameFiles({
                                 files: [
                                   { from: row.videoFile, to: newAbsolutePath },

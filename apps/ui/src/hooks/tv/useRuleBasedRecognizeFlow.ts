@@ -14,6 +14,7 @@ import {
   isRuleBasedRecognizePlanFullyUnchanged,
 } from "@/lib/isRuleBasedRecognizePlanComplete"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
+import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
 import { nextTraceId } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 import type { Plan } from "@/api/getPlans"
@@ -156,7 +157,8 @@ export function useRuleBasedRecognizeFlow({
         tvShow: mediaMetadata.tvShow?.name,
       })
 
-      void buildTemporaryRecognitionPlanAsync(mediaMetadata)
+      void listMediaFolderFilePaths(mediaMetadata.mediaFolderPath!)
+        .then((folderFiles) => buildTemporaryRecognitionPlanAsync(mediaMetadata, folderFiles))
         .then(async (planData) => {
           if (planData && planData.files.length > 0) {
             await updatePlanMutation.mutateAsync({

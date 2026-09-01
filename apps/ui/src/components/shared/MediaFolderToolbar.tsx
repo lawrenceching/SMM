@@ -27,6 +27,7 @@ export function MediaFolderToolbar({
   const { t } = useTranslation(["components"])
 
   const sortOptions: SortingOption[] = [
+    { value: "none", label: t("sidebar.toolbar.sortNone") },
     { value: "alphabetical", label: t("sidebar.toolbar.sortAlphabetical") },
     { value: "reverse-alphabetical", label: t("sidebar.toolbar.sortReverseAlphabetical") },
   ];

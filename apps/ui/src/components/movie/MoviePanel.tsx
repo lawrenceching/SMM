@@ -17,8 +17,8 @@ import {
   type MovieFileModel,
 } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/buildMovieEpisodeTableRows"
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
@@ -108,19 +108,21 @@ function MoviePanel() {
   const [layout, setLayout] = useState<EpisodeTableLayout>("simple")
 
 
+  const { data: folderFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
+
   /**
    * Frontend-processed media metadata. Adjustments here should not persist to backend.
    */
-  const mediaMetadata: MediaMetadataWithFolderFiles | undefined = useMemo(() => {
+  const mediaMetadata: MediaMetadata | undefined = useMemo(() => {
     if (!queriedMediaMetadata) {
       return undefined
     }
 
-    const clone: MediaMetadataWithFolderFiles = structuredClone(queriedMediaMetadata)
+    const clone: MediaMetadata = structuredClone(queriedMediaMetadata)
 
     // move this step to Media Folder Initialization process
-    return findMediaFilesForMovieMediaMetadata(clone)
-  }, [queriedMediaMetadata])
+    return findMediaFilesForMovieMediaMetadata(clone, folderFiles)
+  }, [queriedMediaMetadata, folderFiles])
 
   const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
 
@@ -131,18 +133,18 @@ function MoviePanel() {
   })
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: getMediaFolderFiles(mediaMetadata),
+    files: folderFiles,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 
   // Merge base files with preview modifications
   useEffect(() => {
-    const model = buildMovieFilesFromMediaMetadata(mediaMetadata)
+    const model = buildMovieFilesFromMediaMetadata(mediaMetadata, folderFiles)
     if (model) {
       setMovieFiles(model)
     }
-  }, [mediaMetadata])
+  }, [mediaMetadata, folderFiles])
 
   // Compute preview mode from prompt states
   const isPreviewingForRename = useMemo(() => {
@@ -326,10 +328,10 @@ function MoviePanel() {
   const tableData = useMemo<TvShowEpisodeTableRow[]>(() => {
     if (!mediaMetadata) return []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), {
+    return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), folderFiles, {
       renamePreview: renamePreview ?? undefined,
     })
-  }, [mediaMetadata, folderStatus, t, renamePreview])
+  }, [mediaMetadata, folderStatus, t, renamePreview, folderFiles])
 
   const handleVideoCompressClick = useCallback(
     (row: TvShowEpisodeDataRow) => {

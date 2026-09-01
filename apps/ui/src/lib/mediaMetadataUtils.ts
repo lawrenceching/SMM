@@ -1,24 +1,16 @@
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { createMediaMetadata } from "@smm/core/mediaMetadata"
-import type { MediaMetadata } from "@smm/types"
+import type { MediaMetadata as PersistedMediaMetadata } from "@smm/types"
 
 export async function createInitialMediaMetadata(
   folderPathInPlatformFormat: string, 
   type: "music-folder" | "tvshow-folder" | "movie-folder",
-  options?: { traceId?: string, abortSignal?: AbortSignal, mediaMetadataProps?: Partial<MediaMetadata> }
-): Promise<MediaMetadataWithFolderFiles> {
-  
-  const mm: MediaMetadataWithFolderFiles = {
+  options?: { traceId?: string, abortSignal?: AbortSignal, mediaMetadataProps?: Partial<PersistedMediaMetadata> }
+): Promise<MediaMetadata> {
+  return {
     ...createMediaMetadata(folderPathInPlatformFormat, type),
     ...options?.mediaMetadataProps,
-    files: [],
-  };
-
-  const files = await listMediaFolderFilePaths(folderPathInPlatformFormat, options?.abortSignal)
-  mm.files = files;
-
-  return mm;
+  }
 }
 
 /**
@@ -29,9 +21,9 @@ export async function createInitialMediaMetadata(
  * @param newItems 
  * @returns 
  */
-export function findUpdatedMediaMetadata(old: MediaMetadataWithFolderFiles[], newItems: MediaMetadataWithFolderFiles[]): MediaMetadataWithFolderFiles[] {
+export function findUpdatedMediaMetadata(old: MediaMetadata[], newItems: MediaMetadata[]): MediaMetadata[] {
   const oldByPath = new Map(old.filter(m => m.mediaFolderPath).map(m => [m.mediaFolderPath!, m]));
-  const updated: MediaMetadataWithFolderFiles[] = [];
+  const updated: MediaMetadata[] = [];
 
   for (const item of newItems) {
     const path = item.mediaFolderPath;
@@ -46,9 +38,8 @@ export function findUpdatedMediaMetadata(old: MediaMetadataWithFolderFiles[], ne
     }
 
     // Compare relevant metadata fields
-    const fieldsToCompare: (keyof MediaMetadataWithFolderFiles)[] = [
+    const fieldsToCompare: (keyof MediaMetadata)[] = [
       'mediaFolderPath',
-      'files',
       'tvShow',
       'movie',
       'mediaFiles',

@@ -1,5 +1,4 @@
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles";
 import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@smm/types";
 import { extname, join } from "@/lib/path";
 import { Path } from "@smm/utils/path";
@@ -76,7 +75,7 @@ export function buildFilePropsForVideoPath(
   ]
 }
 
-export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: number, episodeNumber: number): FileProps[] {
+export function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number, folderFiles: string[]): FileProps[] {
     if(mm.mediaFolderPath === undefined) {
         console.error(`Media folder path is undefined`)
         throw new Error(`Media folder path is undefined`)
@@ -86,7 +85,7 @@ export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: n
         return [];
     }
 
-    if(mm.files === undefined || mm.files === null) {
+    if(folderFiles.length === 0) {
         return [];
     }
 
@@ -98,7 +97,7 @@ export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: n
 
     const episodeVideoFilePath = mediaFile.absolutePath
 
-    const files = findAssociatedFiles(mm.mediaFolderPath, mm.files, episodeVideoFilePath)
+    const files = findAssociatedFiles(mm.mediaFolderPath, folderFiles, episodeVideoFilePath)
 
     const fileProps: FileProps[] = [
         {
@@ -270,18 +269,31 @@ export function rebuildRenamePlanWithSelectedEpisodes(
  * @param signal optional AbortSignal to cancel the operation
  * @returns return undefined if not recognizable
  */
-export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFolderFiles, signal?: AbortSignal): Promise<MediaMetadataWithFolderFiles | undefined> {
+export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadata, signal?: AbortSignal): Promise<MediaMetadata | undefined> {
 
     const mm = structuredClone(_mm)
-    
-    if(mm.files === undefined || mm.files === null) {
-        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: files is undefined or null`)
+
+    if(!mm.mediaFolderPath) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: mediaFolderPath is undefined`)
+        return undefined
+    }
+
+    let folderFiles: string[]
+    try {
+        folderFiles = await listMediaFolderFilePaths(mm.mediaFolderPath, signal)
+    } catch {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: failed to list folder files`)
+        return undefined
+    }
+
+    if(folderFiles.length === 0) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: files is empty`)
         return undefined
     }
 
     mm.mediaFiles = mm.mediaFiles ?? [];
 
-    const nfoFilePath = mm.files.find(file => file.endsWith('/tvshow.nfo'))
+    const nfoFilePath = folderFiles.find(file => file.endsWith('/tvshow.nfo'))
     if(nfoFilePath === undefined) {
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tvshow.nfo not found`)
         return undefined
@@ -300,7 +312,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFold
     
     mm.tvShow = buildTvShowMediaMetadataByNFO(resp.data)
 
-    const episodeNfoFiles = mm.files.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
+    const episodeNfoFiles = folderFiles.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
     if(episodeNfoFiles.length === 0) {
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: no episode NFO files found`)
         return undefined
@@ -375,7 +387,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFold
         }
 
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: found episode S${episodeNfo.season}E${episodeNfo.episode} "${episodeNfo.originalFilename}"`)
-        const mediaFileAbsPath = mm.files.find(file => file.endsWith(episodeNfo.originalFilename!))
+        const mediaFileAbsPath = folderFiles.find(file => file.endsWith(episodeNfo.originalFilename!))
         if(mediaFileAbsPath === undefined) {
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: media file not found: ${episodeNfo.originalFilename}`)
         }
@@ -936,9 +948,9 @@ export async function executeRenamePlan(
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
 export async function buildTemporaryRecognitionPlanAsync(
-  mediaMetadata: MediaMetadataWithFolderFiles,
+  mediaMetadata: MediaMetadata,
+  folderFiles: string[],
 ): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
-  const folderFiles = getMediaFolderFiles(mediaMetadata)
   console.log("[recognize] build temporary plan started", {
     mediaFolderPath: mediaMetadata.mediaFolderPath,
     fileCount: folderFiles.length,
@@ -954,7 +966,7 @@ export async function buildTemporaryRecognitionPlanAsync(
     return null
   }
 
-  const collected = await recognizeEpisodesAsync(mediaMetadata);
+  const collected = await recognizeEpisodesAsync(mediaMetadata, folderFiles);
 
   console.log("[recognize] build temporary plan completed", {
     mediaFolderPath: mediaMetadata.mediaFolderPath,

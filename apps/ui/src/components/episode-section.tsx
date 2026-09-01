@@ -1,4 +1,4 @@
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShowDetails } from "@smm/types"
 import { ChevronDown, Play, FileVideo, FileText, Music, Image as ImageIcon, Star, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -128,6 +128,7 @@ export function EpisodeSection({
     const { t } = useTranslation(['components'])
     const { selectedFolder } = useUIMediaFolderStoreState()
     const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined)
+    const { data: localFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
     const episodeStillUrl = getTMDBImageUrl(episode.still_path, "w300")
     const isEpisodeExpanded = expandedEpisodeIds.has(episode.id)
     
@@ -163,7 +164,6 @@ export function EpisodeSection({
             return [];
         }
 
-        const localFiles = getMediaFolderFiles(selectedMediaMetadata);
         if (localFiles.length === 0) {
             return [];
         }
@@ -187,7 +187,7 @@ export function EpisodeSection({
         });
 
         return result;
-    }, [filesByType, selectedMediaMetadata])
+    }, [filesByType, selectedMediaMetadata, localFiles])
     
     return (
         <div 

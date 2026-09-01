@@ -2,12 +2,12 @@ import { FolderListItem, type FolderListItemProps } from "@/components/sidebar/F
 import { useTranslation } from "@/lib/i18n"
 
 export interface NavigationProps {
-  filteredAndSortedFolders: FolderListItemProps[]
+  folders: FolderListItemProps[]
   handleMediaFolderListItemClick: (path: string) => void
 }
 
 export function Navigation({
-  filteredAndSortedFolders,
+  folders,
   handleMediaFolderListItemClick,
 }: NavigationProps) {
   const { t } = useTranslation(["components"])
@@ -36,12 +36,12 @@ export function Navigation({
         }}
         className="hide-scrollbar"
       >
-        {filteredAndSortedFolders.length === 0 ? (
+        {folders.length === 0 ? (
           <div className="p-4 text-center text-sm text-muted-foreground">
             {t("sidebar.emptyState")}
           </div>
         ) : (
-          filteredAndSortedFolders.map((folder) => (
+          folders.map((folder) => (
             <div key={folder.path} className="border-b border-border">
               <FolderListItem
                   mediaName={folder.mediaName}

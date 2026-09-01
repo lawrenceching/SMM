@@ -81,7 +81,7 @@ export function Sidebar({
     filterType,
     setSortOrder,
     setFilterType,
-    filteredAndSortedFolders,
+    folders,
     handleRename,
     handleOpenInExplorer,
     handleDeletePaths,
@@ -122,7 +122,7 @@ export function Sidebar({
     (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "a") {
         e.preventDefault()
-        const paths = [...filteredAndSortedFolders]
+        const paths = [...folders]
         commitSelection({
           selectedPaths: paths,
           primaryPath: paths[0] ?? "",
@@ -134,7 +134,7 @@ export function Sidebar({
         void handleDeletePaths(selectedPaths)
       }
     },
-    [commitSelection, filteredAndSortedFolders, handleDeletePaths, selectedPaths],
+    [commitSelection, folders, handleDeletePaths, selectedPaths],
   )
 
   const handleDeleteItem = useCallback(
@@ -173,14 +173,14 @@ export function Sidebar({
         onKeyDown={handleListKeyDown}
         data-testid="sidebar-folder-list"
       >
-        {filteredAndSortedFolders.length === 0 ? (
+        {folders.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground text-sm" data-testid="sidebar-empty-state">
             {t("sidebar.emptyState")}
           </div>
         ) : (
           <div className="flex flex-col outline-none" data-testid="sidebar-folder-items">
             <Suspense fallback={<FolderListItemFallback />}>
-              {filteredAndSortedFolders.map((path, index) => (
+              {folders.map((path, index) => (
                 <div key={path} className="border-b border-border" data-testid={`sidebar-folder-item-${index}`}>
                   <FolderListItemSlot
                     path={path}

@@ -11,7 +11,7 @@ export default function AppNavigation() {
   const [currentPage] = useState<Page>("list")
 
   // Sidebar state (search, sort, filter)
-  const [sortOrder, setSortOrder] = useState<SortOrder>("alphabetical")
+  const [sortOrder, setSortOrder] = useState<SortOrder>("none")
   const [filterType, setFilterType] = useState<FilterType>("all")
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [isToolboxExpanded, setIsToolboxExpanded] = useState<boolean>(false)
@@ -72,7 +72,7 @@ export default function AppNavigation() {
 
         {/* 列表内容 */}
         {/* <Navigation
-          filteredAndSortedFolders={filteredAndSortedFolders}
+          folders={folders}
           handleMediaFolderListItemClick={handleMediaFolderListItemClick}
         /> */}
       </div>

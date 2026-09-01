@@ -10,12 +10,23 @@ function displayNameFromMetadata(metadata: MediaMetadata | undefined, path: stri
   return basename(metadata.mediaFolderPath ?? path) || "未识别媒体名称"
 }
 
+/**
+ * Map a raw media metadata type (`*-folder`) to the plain media type used by
+ * sidebar filters and row props. Returns `undefined` for untyped folders so
+ * they are excluded from type-specific filters.
+ */
+export function mediaTypeFromMetadataType(
+  type: MediaMetadata["type"] | undefined,
+): FolderListItemProps["mediaType"] | undefined {
+  if (!type) return undefined
+  if (type === "tvshow-folder") return "tvshow"
+  if (type === "music-folder") return "music"
+  if (type === "movie-folder") return "movie"
+  return undefined
+}
+
 function mediaTypeFromMetadata(metadata: MediaMetadata | undefined): FolderListItemProps["mediaType"] {
-  if (!metadata?.type) return "movie"
-  if (metadata.type === "tvshow-folder") return "tvshow"
-  if (metadata.type === "music-folder") return "music"
-  if (metadata.type === "movie-folder") return "movie"
-  return "movie"
+  return mediaTypeFromMetadataType(metadata?.type) ?? "movie"
 }
 
 function mapFolderStatusToItemStatus(

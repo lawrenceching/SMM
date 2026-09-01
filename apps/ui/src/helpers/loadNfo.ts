@@ -1,7 +1,7 @@
 import { readFile } from "@/api/readFile"
 import NFO from "@/lib/nfo"
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
+import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles"
 import type { TMDBTVShowDetails } from "@smm/types"
 
 /**
@@ -91,8 +91,21 @@ export function nfoToTmdbTVShowDetails(nfo: NFO): TMDBTVShowDetails {
     return tvShowDetails
 }
 
-export async function loadNfo(mediaMetadata: MediaMetadataWithFolderFiles): Promise<TMDBTVShowDetails | undefined> {
-    const nfoFilePath = getMediaFolderFiles(mediaMetadata).find((file: string) => file.endsWith('/tvshow.nfo'))
+export async function loadNfo(mediaMetadata: MediaMetadata): Promise<TMDBTVShowDetails | undefined> {
+    if (!mediaMetadata.mediaFolderPath) {
+        console.log(`[loadNfo] no media folder path in metadata`)
+        return undefined
+    }
+
+    let folderFiles: string[]
+    try {
+        folderFiles = await listMediaFolderFilePaths(mediaMetadata.mediaFolderPath)
+    } catch {
+        console.log(`[loadNfo] failed to list folder files`)
+        return undefined
+    }
+
+    const nfoFilePath = folderFiles.find((file: string) => file.endsWith('/tvshow.nfo'))
 
     if(nfoFilePath === undefined) {
         console.log(`[loadNfo] no nfo file found in media metadata`)

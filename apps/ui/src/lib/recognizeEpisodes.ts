@@ -2,7 +2,6 @@ import { uniq } from 'es-toolkit';
 import { extname, basename } from './path';
 import { videoFileExtensions } from './utils';
 import type { MediaMetadataWithFolderFiles } from '@/lib/mediaFolderFiles';
-import { getMediaFolderFiles } from '@/lib/mediaFolderFiles';
 
 export interface RecognizedEpisode {
     season: number,
@@ -130,9 +129,7 @@ export function pattern4(
 }
 
 export function buildEpisodes(mm: MediaMetadataWithFolderFiles): { season: number, episode: number }[] {
-    const files = getMediaFolderFiles(mm)
-    if( files.length === 0
-        || mm.tvShow === undefined 
+    if(mm.tvShow === undefined 
         || mm.tvShow.seasons === undefined
         || mm.tvShow.seasons.length === 0
         || mm.tvShow.seasons[0].episodes === undefined
@@ -217,16 +214,16 @@ export function excludeFiles(files: string[]) {
  */
 export function recognizeEpisodes(
     mm: MediaMetadataWithFolderFiles,
+    folderFiles: string[],
 ): RecognizedEpisode[] {
 
     const startTime = performance.now();
-    const files = getMediaFolderFiles(mm)
     console.log('[recognize] start episode matching', {
         mediaFolderPath: mm.mediaFolderPath,
-        fileCount: files.length,
+        fileCount: folderFiles.length,
     })
 
-    if( files.length === 0
+    if( folderFiles.length === 0
         || mm.tvShow === undefined 
         || mm.tvShow.seasons === undefined
         || mm.tvShow.seasons.length === 0
@@ -238,7 +235,7 @@ export function recognizeEpisodes(
 
     try {
 
-        let videoFiles = files.filter(isVideoFile);
+        let videoFiles = folderFiles.filter(isVideoFile);
         videoFiles = excludeFiles(videoFiles);
 
         if(videoFiles.length === 0) {
@@ -281,10 +278,13 @@ type WorkerMessage = { type: 'result'; id: number; payload: RecognizedEpisode[] 
  * Run recognizeEpisodes in a Web Worker to avoid blocking the main thread.
  * Uses a singleton worker; concurrent calls are serialized.
  */
-export function recognizeEpisodesAsync(mm: MediaMetadataWithFolderFiles): Promise<RecognizedEpisode[]> {
+export function recognizeEpisodesAsync(
+  mm: MediaMetadataWithFolderFiles,
+  folderFiles: string[],
+): Promise<RecognizedEpisode[]> {
   console.log('[recognize] recognizeEpisodesAsync started', {
     mediaFolderPath: mm.mediaFolderPath,
-    fileCount: getMediaFolderFiles(mm).length,
+    fileCount: folderFiles.length,
   })
   return new Promise((resolve, reject) => {
     const id = nextRequestId++;
@@ -325,7 +325,7 @@ export function recognizeEpisodesAsync(mm: MediaMetadataWithFolderFiles): Promis
 
     worker.addEventListener('message', onMessage);
     worker.addEventListener('error', onError);
-    worker.postMessage({ type: 'recognize', id, payload: mm });
+    worker.postMessage({ type: 'recognize', id, payload: { mm, folderFiles } });
   });
 }
 

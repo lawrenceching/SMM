@@ -12,6 +12,7 @@ import type { MediaMetadata } from "@smm/types"
 
 export interface UseSelectAndUnselectFileFlowOptions {
   mediaMetadata: MediaMetadata | undefined
+  folderFiles: string[]
   updateMediaMetadata: (
     path: string,
     updaterOrMetadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata),
@@ -21,6 +22,7 @@ export interface UseSelectAndUnselectFileFlowOptions {
 
 export function useSelectAndUnselectFileFlow({
   mediaMetadata,
+  folderFiles,
   updateMediaMetadata,
 }: UseSelectAndUnselectFileFlowOptions) {
   const { t: i18nT } = useTranslation(["components"])
@@ -67,6 +69,7 @@ export function useSelectAndUnselectFileFlow({
         seasonNumber,
         episodeNumber,
         file.path,
+        folderFiles,
         (errorMessage) => {
           toast.error(errorMessage)
         },
@@ -78,7 +81,7 @@ export function useSelectAndUnselectFileFlow({
 
       updateMediaMetadata(currentMediaMetadata.mediaFolderPath!, updated, { traceId })
     },
-    [requireMediaMetadata, updateMediaMetadata, t],
+    [requireMediaMetadata, updateMediaMetadata, folderFiles, t],
   )
 
   const handleOpenFilePickerForEpisode = useCallback(
