@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 import { searchTvdb } from "@/api/tvdbSearch"
-import { isSmmV3Enabled } from "@/lib/localStorages"
 import { fetchTvdbAndBuildMovieMediaMetadata, fetchTvdbAndBuildTvShowMediaMetadata, getTVDBv4Client } from "@/lib/TvdbUtils"
 import {
   tvdbArtworkTypesQueryKey,
@@ -162,19 +161,14 @@ export function useTvdbQueries() {
       return queryClient.fetchQuery({
         queryKey: tvdbSearchQueryKey(params),
         queryFn: async () => {
-          if (isSmmV3Enabled()) {
-            const body = await searchTvdb(params.query, params.type, params.language)
-            if (body.error) return undefined
-            return body.results
-          }
-          const tvdb = getClient()
-          const resp = await tvdb.search(params)
-          return resp.status === "success" ? resp.data : undefined
+          const body = await searchTvdb(params.query, params.type, params.language)
+          if (body.error) return undefined
+          return body.results
         },
         staleTime: TVDB_SEARCH_STALE_MS,
       })
     },
-    [queryClient, getClient]
+    [queryClient]
   )
 
   const getTvShowMediaMetadata = useCallback(

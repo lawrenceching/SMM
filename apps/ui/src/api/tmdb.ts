@@ -8,11 +8,10 @@ import localStorages from '@/lib/localStorages'
 import { fetchDiscoverConfig, type DiscoverConfig, type ReverseProxyEndpoint } from './discover'
 import { isEmpty } from 'es-toolkit/compat'
 import { readUserConfig } from './readUserConfig'
-import { fetchWithFailover, HttpFailoverExhaustedError } from '@/lib/http'
+import { fetchWithFailover } from '@/lib/http'
 import staticConfig from './staticConfig'
 import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 import { buildTmdbErrorFromResponse } from './tmdbErrors'
-import { isSmmV3Enabled } from '@/lib/localStorages'
 import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbV3'
 
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
@@ -103,26 +102,6 @@ export async function fetchTmdb(urlPath: string, options?: {
 }
 
 /**
- * Like {@link fetchTmdb}, but turns exhausted HTTP failover into `undefined`
- * so search callers can map it to {@link TmdbFetchError} via
- * {@link buildTmdbErrorFromResponse}. Scrape/metadata callers should use
- * {@link fetchTmdb} directly so {@link HttpFailoverExhaustedError} propagates.
- */
-export async function fetchTmdbOrUndefined(
-  urlPath: string,
-  options?: Parameters<typeof fetchTmdb>[1],
-): Promise<Response | undefined> {
-  try {
-    return await fetchTmdb(urlPath, options)
-  } catch (error) {
-    if (error instanceof HttpFailoverExhaustedError) {
-      return undefined
-    }
-    throw error
-  }
-}
-
-/**
  * Search TMDB for movies or TV shows.
  */
 export async function searchTmdb(
@@ -131,43 +110,29 @@ export async function searchTmdb(
   language: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSearchResponseBody> {
-  if (isSmmV3Enabled()) {
-    const body = await searchInTmdb(
-      { keyword, type, language },
-      options?.signal,
-    )
-    if (body.error) {
-      return {
-        error: body.error,
-        results: [],
-        page: 0,
-        total_pages: 0,
-        total_results: 0,
-      }
-    }
-    if (!body.data) {
-      return {
-        error: 'Error Reason: empty search result',
-        results: [],
-        page: 0,
-        total_pages: 0,
-        total_results: 0,
-      }
-    }
-    return body.data
-  }
-
-  const queryParams = new URLSearchParams()
-  queryParams.append('query', keyword)
-  queryParams.append('language', language)
-  const resp = await fetchTmdbOrUndefined(
-    `/search/${type}?${queryParams.toString()}`,
-    { signal: options?.signal },
+  const body = await searchInTmdb(
+    { keyword, type, language },
+    options?.signal,
   )
-  if (!resp || !resp.ok) {
-    throw await buildTmdbErrorFromResponse(resp)
+  if (body.error) {
+    return {
+      error: body.error,
+      results: [],
+      page: 0,
+      total_pages: 0,
+      total_results: 0,
+    }
   }
-  return resp.json() as Promise<TmdbSearchResponseBody>
+  if (!body.data) {
+    return {
+      error: 'Error Reason: empty search result',
+      results: [],
+      page: 0,
+      total_pages: 0,
+      total_results: 0,
+    }
+  }
+  return body.data
 }
 
 /**
@@ -178,27 +143,14 @@ export async function getTvShowById(
   language?: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
-  if (isSmmV3Enabled()) {
-    const body = await getTvShowInTmdb({ id, language }, options?.signal)
-    if (body.error) {
-      throw new Error(body.error)
-    }
-    if (!body.data) {
-      throw new Error('Error Reason: empty TV show result')
-    }
-    return body.data
+  const body = await getTvShowInTmdb({ id, language }, options?.signal)
+  if (body.error) {
+    throw new Error(body.error)
   }
-
-  const queryParams = new URLSearchParams()
-  if (language) queryParams.append('language', language)
-  const resp = await fetchTmdb(
-    `/tv/${id}?${queryParams.toString()}`,
-    { signal: options?.signal },
-  )
-  if (!resp || !resp.ok) {
-    throw await buildTmdbErrorFromResponse(resp)
+  if (!body.data) {
+    throw new Error('Error Reason: empty TV show result')
   }
-  return resp.json() as Promise<TmdbSeriesDetails>
+  return body.data
 }
 
 /**
@@ -209,27 +161,14 @@ export async function getMovieById(
   language?: string,
   options?: TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
-  if (isSmmV3Enabled()) {
-    const body = await getMovieInTmdb({ id, language }, options?.signal)
-    if (body.error) {
-      throw new Error(body.error)
-    }
-    if (!body.data) {
-      throw new Error('Error Reason: empty movie result')
-    }
-    return body.data
+  const body = await getMovieInTmdb({ id, language }, options?.signal)
+  if (body.error) {
+    throw new Error(body.error)
   }
-
-  const queryParams = new URLSearchParams()
-  if (language) queryParams.append('language', language)
-  const resp = await fetchTmdb(
-    `/movie/${id}?${queryParams.toString()}`,
-    { signal: options?.signal },
-  )
-  if (!resp || !resp.ok) {
-    throw await buildTmdbErrorFromResponse(resp)
+  if (!body.data) {
+    throw new Error('Error Reason: empty movie result')
   }
-  return resp.json() as Promise<TmdbMovieDetails>
+  return body.data
 }
 
 /**

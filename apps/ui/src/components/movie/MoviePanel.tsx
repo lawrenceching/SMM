@@ -134,7 +134,6 @@ function MoviePanel() {
   })
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: folderFiles,
     openRenameDialog: openRenameFile,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })

@@ -1,10 +1,8 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
-import { renameFolder } from '@/api/renameFolder'
 import { renameFolderViaCore } from '@/api/renameFolderV3'
 import { refreshUiAfterFolderRename } from '@/lib/refreshUiAfterFolderRename'
-import { isSmmV3Enabled } from '@/lib/localStorages'
 import { invalidateFoldersQueryIfV3 } from '@/hooks/folders/invalidateFoldersQuery'
 import { useUIMediaFolderStore } from '@/stores/uiMediaFolderStore'
 import { dirname, join } from '@/lib/path'
@@ -15,8 +13,8 @@ export interface RenameMediaFolderVariables {
 }
 
 /**
- * Renames a media folder via API and refreshes client state.
- * When `smm.v3.enabled` is on, uses `POST /api/rename-folder` → Core.renameFolder.
+ * Renames a media folder via `POST /api/rename-folder` → Core.renameFolder
+ * and refreshes client state.
  */
 export function useRenameMediaFolderMutation(
   options?: Omit<
@@ -38,11 +36,7 @@ export function useRenameMediaFolderMutation(
       }
       const newFolderPath = join(dirname(mediaFolderPath), newName)
 
-      if (isSmmV3Enabled()) {
-        await renameFolderViaCore({ from: mediaFolderPath, to: newFolderPath })
-      } else {
-        await renameFolder({ from: mediaFolderPath, to: newFolderPath })
-      }
+      await renameFolderViaCore({ from: mediaFolderPath, to: newFolderPath })
 
       await refreshUiAfterFolderRename({
         queryClient,

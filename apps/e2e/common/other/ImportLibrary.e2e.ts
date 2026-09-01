@@ -11,8 +11,8 @@ import {
 } from 'test/lib/browser-fs'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'
-import type { MediaMetadata } from '@smm/core/types'
-import { Path } from '@smm/core'
+import type { MediaMetadata } from '@smm/types'
+import { Path } from '@smm/utils/path'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 

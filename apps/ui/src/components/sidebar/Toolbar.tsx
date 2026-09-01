@@ -1,26 +1,23 @@
+import type { ReactNode } from "react"
 import { Menu } from "@/components/menu"
-import { ViewSwitcher, type ViewMode } from "./ViewSwitcher"
 import { Button } from "@/components/ui/button"
 import { Bot } from "lucide-react"
 
 export interface ToolbarProps {
   onOpenFolderMenuClick?: () => void
   onOpenMediaLibraryMenuClick?: () => void
-  viewMode?: ViewMode
-  onViewModeChange?: (mode: ViewMode) => void
-  viewSwitcherDisabled?: boolean
   onToggleAIArea?: () => void
   isAIAreaCollapsed?: boolean
+  /** Extra controls rendered in the right group, before the AI toggle. */
+  children?: ReactNode
 }
 
-export function Toolbar({ 
+export function Toolbar({
   onOpenFolderMenuClick,
   onOpenMediaLibraryMenuClick,
-  viewMode, 
-  onViewModeChange, 
-  viewSwitcherDisabled,
   onToggleAIArea,
   isAIAreaCollapsed,
+  children,
 }: ToolbarProps) {
   return (
     <div
@@ -35,13 +32,7 @@ export function Toolbar({
     >
       <Menu onOpenFolderMenuClick={onOpenFolderMenuClick} onOpenMediaLibraryMenuClick={onOpenMediaLibraryMenuClick} />
       <div className="flex items-center gap-1.5">
-        {viewMode !== undefined && onViewModeChange && (
-          <ViewSwitcher 
-            viewMode={viewMode} 
-            onViewModeChange={onViewModeChange}
-            disabled={viewSwitcherDisabled}
-          />
-        )}
+        {children}
         {onToggleAIArea && (
           <Button
             variant="ghost"
@@ -57,4 +48,3 @@ export function Toolbar({
     </div>
   )
 }
-

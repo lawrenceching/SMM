@@ -1,20 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 
-vi.mock("@/lib/localStorages", () => ({
-  isSmmV3Enabled: vi.fn().mockReturnValue(false),
-}))
-
-vi.mock("@/api/renameFiles", () => ({
-  renameFiles: vi.fn().mockResolvedValue({}),
+vi.mock("@/api/renameEpisodeFile", () => ({
+  renameEpisodeFileViaCore: vi.fn().mockResolvedValue(undefined),
 }))
 
 vi.mock("@/hooks/mediaMetadata/useFetchMediaMetadataMutation", () => ({
   useFetchMediaMetadataMutation: vi.fn(),
-}))
-
-vi.mock("@/components/episode-file", () => ({
-  computeAssociatedFileRenames: vi.fn().mockReturnValue([]),
 }))
 
 vi.mock("sonner", () => ({
@@ -25,9 +17,8 @@ vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 
-import { renameFiles } from "@/api/renameFiles"
+import { renameEpisodeFileViaCore } from "@/api/renameEpisodeFile"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { computeAssociatedFileRenames } from "@/components/episode-file"
 import { toast } from "sonner"
 import { useRenameVideoFileFlow } from "./useRenameVideoFileFlow"
 import type { UIMediaFileDataRow } from "@/components/media/UIMediaFileTable"
@@ -37,9 +28,8 @@ interface MockFetchMutation {
 }
 
 describe("useRenameVideoFileFlow", () => {
-  const renameFilesMock = vi.mocked(renameFiles)
+  const renameViaCoreMock = vi.mocked(renameEpisodeFileViaCore)
   const useFetchMock = vi.mocked(useFetchMediaMetadataMutation)
-  const computeAssocMock = vi.mocked(computeAssociatedFileRenames)
   const toastSuccess = vi.mocked(toast.success)
   const toastError = vi.mocked(toast.error)
 
@@ -47,11 +37,6 @@ describe("useRenameVideoFileFlow", () => {
   const fetchMediaMetadata = vi.fn().mockResolvedValue({})
 
   const mediaFolderPath = "/media/show"
-  const files = [
-    "/media/show/S01E01.mkv",
-    "/media/show/S01E01.srt",
-    "/media/show/S01E01.nfo",
-  ]
 
   const baseRow: UIMediaFileDataRow = {
     season: 1,
@@ -65,14 +50,12 @@ describe("useRenameVideoFileFlow", () => {
   }
 
   beforeEach(() => {
-    renameFilesMock.mockReset()
-    renameFilesMock.mockResolvedValue({})
+    renameViaCoreMock.mockReset()
+    renameViaCoreMock.mockResolvedValue(undefined)
     useFetchMock.mockReset()
     useFetchMock.mockReturnValue({
       mutateAsync: fetchMediaMetadata,
     } as unknown as MockFetchMutation)
-    computeAssocMock.mockReset()
-    computeAssocMock.mockReturnValue([])
     toastSuccess.mockReset()
     toastError.mockReset()
     openRename.mockReset()
@@ -82,7 +65,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("is a no-op when the row has no videoFile", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files, openRenameDialog: openRename }),
+      useRenameVideoFileFlow({ mediaFolderPath, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -94,7 +77,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("is a no-op when mediaFolderPath is undefined", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath: undefined, files, openRenameDialog: openRename }),
+      useRenameVideoFileFlow({ mediaFolderPath: undefined, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -106,7 +89,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("opens the rename dialog with the relative path as initial value", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files, openRenameDialog: openRename }),
+      useRenameVideoFileFlow({ mediaFolderPath, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -119,15 +102,11 @@ describe("useRenameVideoFileFlow", () => {
     expect(options?.initialValue).toBe("S01E01.mkv")
   })
 
-  it("renames the video file plus associated files and refetches metadata on success", async () => {
-    computeAssocMock.mockReturnValue([
-      { from: "/media/show/S01E01.srt", to: "/media/show/S01E02.srt" },
-    ])
+  it("renames the video file via Core and refetches metadata on success", async () => {
     const onAfterRename = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() =>
       useRenameVideoFileFlow({
         mediaFolderPath,
-        files,
         onAfterRename,
         openRenameDialog: openRename,
       }),
@@ -142,17 +121,10 @@ describe("useRenameVideoFileFlow", () => {
       await confirm("S01E02.mkv")
     })
 
-    expect(computeAssocMock).toHaveBeenCalledWith(
-      "/media/show/S01E01.mkv",
-      "/media/show/S01E02.mkv",
-      files,
-    )
-    expect(renameFilesMock).toHaveBeenCalledWith({
-      files: [
-        { from: "/media/show/S01E01.mkv", to: "/media/show/S01E02.mkv" },
-        { from: "/media/show/S01E01.srt", to: "/media/show/S01E02.srt" },
-      ],
+    expect(renameViaCoreMock).toHaveBeenCalledWith({
       mediaFolder: "/media/show",
+      from: "/media/show/S01E01.mkv",
+      to: "/media/show/S01E02.mkv",
     })
     expect(onAfterRename).toHaveBeenCalledTimes(1)
     expect(fetchMediaMetadata).toHaveBeenCalledWith({ path: mediaFolderPath })
@@ -160,13 +132,12 @@ describe("useRenameVideoFileFlow", () => {
     expect(toastError).not.toHaveBeenCalled()
   })
 
-  it("toasts an error and rethrows when renameFiles fails", async () => {
-    renameFilesMock.mockRejectedValueOnce(new Error("boom"))
+  it("toasts an error and rethrows when renameEpisodeFileViaCore fails", async () => {
+    renameViaCoreMock.mockRejectedValueOnce(new Error("boom"))
     const onAfterRename = vi.fn()
     const { result } = renderHook(() =>
       useRenameVideoFileFlow({
         mediaFolderPath,
-        files,
         onAfterRename,
         openRenameDialog: openRename,
       }),

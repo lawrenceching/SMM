@@ -1,15 +1,13 @@
 import { useState, useCallback, useEffect, useRef } from "react"
-import { useQueryClient } from "@tanstack/react-query"
 import { Sidebar } from "@/components/sidebar/Sidebar"
 import { Toolbar } from "@/components/sidebar/Toolbar"
-import type { ViewMode } from "@/components/sidebar/ViewSwitcher"
+import { RadioButtonGroup } from "@/components/ui/radio-button-group"
+import { LayoutGrid, FolderOpen } from "lucide-react"
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
 import { useTranslation } from "@/lib/i18n"
 import { Toaster } from "./components/ui/sonner"
-import { toast } from "sonner"
-import { deleteMetadata } from "@/api/metadata"
 import { Assistant } from "./ai/Assistant"
 import { StatusBar } from "./components/StatusBar"
 import { AppWarningBanner } from "./components/AppWarningBanner"
@@ -25,13 +23,7 @@ import { logger } from "@/lib/log"
 import { nextTraceId } from "@/lib/utils"
 import { useConfig } from "@/hooks/userConfig"
 import { useFeatures } from "@/hooks/useFeatures"
-import { isNotNil } from "es-toolkit"
-import type { MediaMetadata } from "@smm/types"
-import {
-  mediaMetadataQueryKey,
-  normalizeMediaFolderPathForQuery,
-  useMediaMetadataQuery,
-} from "@/hooks/mediaMetadata"
+import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import {
   UI_ImportFolderEvent,
   UI_MediaLibraryImportedEvent,
@@ -39,8 +31,8 @@ import {
   type OnMediaLibraryImportedEventData,
 } from "./types/eventTypes"
 import { MusicPanel } from "./components/music/MusicPanel"
-import localStorages, { isSmmV3Enabled } from "@/lib/localStorages"
-import { useUnimportFolderMutation } from "@/hooks/folders"
+import localStorages from "@/lib/localStorages"
+import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
 import { isElectron } from "@/lib/isElectron"
 import { openNativeFolderDialog } from "@/lib/nativeFolderDialog"
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable"
@@ -48,14 +40,18 @@ import type { ImperativePanelHandle } from "react-resizable-panels"
 import { AIArea } from "@/components/AIArea"
 // WebSocketHandlers is now at AppSwitcher level to avoid disconnection on view switch
 
-function AppContent() {
+type ViewMode = "metadata" | "files"
+
+export default function App() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
   const { t } = useTranslation(["components"])
-  const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
+  const { userConfig, isUserConfigLoaded } = useConfig()
   const unimportFolderMutation = useUnimportFolderMutation()
 
-  const { folders: uiFolders, selectedFolder, selectedFolders } = useUIMediaFolderStoreState()
+  const { data: folders } = useFoldersQuery()
+  const { selectedFolder, selectedFolders } = useUIMediaFolderStoreState()
+  const hasFolders = (folders?.length ?? 0) > 0
   const { isAiAreaEnabled, isAiFeatureEnabled } = useFeatures()
 
   // View mode state
@@ -96,7 +92,6 @@ function AppContent() {
 
   // Dialogs
   const { openFolderDialog, filePickerDialog, renameFolderDialog } = useDialogs()
-  const queryClient = useQueryClient()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const [openRenameFolder] = renameFolderDialog
@@ -105,6 +100,9 @@ function AppContent() {
 
   // Media metadata
   const { data: selectedMediaMetadata } = useMediaMetadataQuery(selectedFolder || undefined, { defaultType: folderType })
+
+  const viewSwitcherDisabled =
+    !hasFolders || !selectedMediaMetadata || folderStatus === "folder_not_found"
 
 
   // Log error when metadata is loaded but type is missing (e.g. race condition during import)
@@ -221,90 +219,9 @@ function AppContent() {
     async (paths: string[]) => {
       if (paths.length === 0) return
 
-      if (isSmmV3Enabled()) {
-        await unimportFolderMutation.mutateAsync(paths)
-        return
-      }
-
-      const traceId = `App-onDeleteSelected-${nextTraceId()}`
-      const deletedPosix = new Set(paths.map((p) => Path.posix(p)))
-      const deletedNative = new Set(paths)
-
-      const getMediaMetadata = (path: string): MediaMetadata | undefined => {
-        const normalized = normalizeMediaFolderPathForQuery(path)
-        if (!normalized) return undefined
-        return queryClient.getQueryData<MediaMetadata>(mediaMetadataQueryKey(normalized))
-      }
-
-      // Snapshot for rollback
-      const removedMetadataByPath = paths
-        .map((p) => getMediaMetadata(p))
-      const removedMetadata = removedMetadataByPath.filter((m): m is NonNullable<typeof m> => m != null)
-      const previousFolders = userConfig.folders
-      const previousUiFolders = [...useUIMediaFolderStore.getState().folders]
-      const prevUiSelection = {
-        selectedFolder: useUIMediaFolderStore.getState().selectedFolder,
-        selectedFolders: [...useUIMediaFolderStore.getState().selectedFolders],
-      }
-
-      // 1. Optimistic: remove all selected from UI state at once
-      paths.forEach((path) => {
-        const normalized = normalizeMediaFolderPathForQuery(path)
-        if (normalized) {
-          queryClient.removeQueries({ queryKey: mediaMetadataQueryKey(normalized), exact: true })
-        }
-      })
-      const newFolders = userConfig.folders
-        .filter((f) => isNotNil(f))
-        .filter((folder) => !deletedPosix.has(Path.posix(folder)))
-      setAndSaveUserConfig(traceId, { ...userConfig, folders: newFolders })
-
-      const st = useUIMediaFolderStore.getState()
-      const nextUiFolders = st.folders.filter((folder) => !deletedPosix.has(Path.posix(folder.path)))
-      const nextSelectedFolders = st.selectedFolders.filter((p) => !deletedNative.has(p))
-      let nextPrimary = st.selectedFolder
-      if (deletedNative.has(nextPrimary)) {
-        nextPrimary = newFolders[0] ? Path.toPlatformPath(newFolders[0]) : ""
-      }
-      useUIMediaFolderStore.setState({
-        folders: nextUiFolders,
-        selectedFolders:
-          nextSelectedFolders.length > 0
-            ? nextSelectedFolders
-            : nextPrimary
-              ? [nextPrimary]
-              : [],
-        selectedFolder: nextPrimary,
-      })
-
-      // 2. Async delete; rollback on failure
-      try {
-        await Promise.all(paths.map((path) => deleteMetadata(path)))
-      } catch (error) {
-        console.error("[onDeleteSelected] Failed to delete some media metadata:", error)
-        removedMetadata.forEach((metadata) => {
-          const folder = normalizeMediaFolderPathForQuery(metadata.mediaFolderPath || "")
-          if (folder) {
-            queryClient.setQueryData(mediaMetadataQueryKey(folder), metadata)
-          }
-        })
-        setAndSaveUserConfig(traceId, { ...userConfig, folders: previousFolders })
-        useUIMediaFolderStore.setState({
-          folders: previousUiFolders,
-          selectedFolder: prevUiSelection.selectedFolder,
-          selectedFolders: prevUiSelection.selectedFolders,
-        })
-        toast.error(
-          error instanceof Error ? error.message : "Failed to delete selected folders. Changes reverted."
-        )
-      }
+      await unimportFolderMutation.mutateAsync(paths)
     },
-    [
-      userConfig,
-      setAndSaveUserConfig,
-      queryClient,
-      unimportFolderMutation,
-    ]
+    [unimportFolderMutation],
   )
 
   return (
@@ -317,19 +234,22 @@ function AppContent() {
             <div className="flex flex-col h-full">
               {/* Toolbar */}
               <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-muted/50 px-3 py-1.5 shadow-sm">
-                <Toolbar 
+                <Toolbar
                   onOpenFolderMenuClick={handleOpenFolderMenuClick}
                   onOpenMediaLibraryMenuClick={handleOpenMediaLibraryMenuClick}
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                  viewSwitcherDisabled={
-                    uiFolders.length === 0 ||
-                    !selectedMediaMetadata ||
-                    folderStatus === "folder_not_found"
-                  }
                   onToggleAIArea={isAiAreaEnabled ? handleToggleAIArea : undefined}
                   isAIAreaCollapsed={isAIAreaCollapsed}
-                />
+                >
+                  <RadioButtonGroup
+                    options={[
+                      { value: "metadata", label: t("viewSwitcher.metadataView"), icon: LayoutGrid },
+                      { value: "files", label: t("viewSwitcher.filesView"), icon: FolderOpen },
+                    ]}
+                    value={viewMode}
+                    onSelect={setViewMode}
+                    disabled={viewSwitcherDisabled}
+                  />
+                </Toolbar>
               </div>
               {/* Sidebar | Content */}
               <div className="flex-1 min-h-0">
@@ -360,18 +280,18 @@ function AppContent() {
                   {/* Content */}
                   <ResizablePanel>
                     <div className="flex flex-col overflow-hidden bg-background h-full">
-                      {uiFolders.length === 0 && (
+                      {!hasFolders && (
                         <div style={{ padding: "20px", overflow: "auto" }}>
                           <Welcome onImportFolderClick={handleOpenFolderMenuClick} />
                         </div>
                       )}
-                      {uiFolders.length > 0 && selectedFolder && folderStatus === "folder_not_found" && (
+                      {hasFolders && selectedFolder && folderStatus === "folder_not_found" && (
                         <FolderNotAvailablePanel />
                       )}
-                      {uiFolders.length > 0 && selectedFolder && folderStatus === "pending_for_initialization" && (
+                      {hasFolders && selectedFolder && folderStatus === "pending_for_initialization" && (
                         <PendingInitializationPanel />
                       )}
-                      {uiFolders.length > 0 &&
+                      {hasFolders &&
                         folderStatus !== "folder_not_found" &&
                         folderStatus !== "pending_for_initialization" &&
                         selectedMediaMetadata && (
@@ -440,9 +360,5 @@ function AppContent() {
   )
 }
 
-export default function App() {
-  return (
-      <AppContent />
-  )
-}
+
 

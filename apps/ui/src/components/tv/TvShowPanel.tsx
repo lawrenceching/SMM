@@ -98,8 +98,6 @@ function TvShowPanel() {
   const [openRenameFile] = renameFileDialog
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: folderFiles,
-    mode: "episode",
     openRenameDialog: openRenameFile,
   })
 

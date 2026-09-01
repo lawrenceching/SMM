@@ -41,7 +41,6 @@ vi.mock("@/hooks/userConfig", () => ({
 
 vi.mock("@/lib/localStorages", () => ({
   default: mockLocalStorages,
-  isSmmV3Enabled: () => false,
 }))
 
 vi.mock("@/providers/dialog-provider", () => ({
