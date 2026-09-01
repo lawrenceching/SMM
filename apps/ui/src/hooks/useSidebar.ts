@@ -1,18 +1,11 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { useQueries } from "@tanstack/react-query"
-import { useSidebarStore, compareByDisplayName } from "@/stores/sidebarStore"
 import { basename } from '../lib/path'
-import {
-  useUIMediaFolderStoreState,
-} from "@/stores/uiMediaFolderStore"
 import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
-import { buildMediaFolderListItemPropsFromFolderAndMetadata, mediaTypeFromMetadataType } from "@/lib/sidebarRowUtils"
-import { folderMatchesSearchQuery } from "@/lib/sidebarFolderSearch"
-import { useDialogs } from "@/providers/dialog-provider"
+import { mediaTypeFromMetadataType } from "@/lib/sidebarRowUtils"
+import { compareByDisplayName, type SortOrder, type FilterType } from "@/lib/sidebarSort"
 import { openInFileManagerApi } from "@/api/openInFileManager"
-import { useTranslation } from "@/lib/i18n"
 import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
-import { mergeFolderPathsWithUiStatus } from "@/lib/mergeFolderPathsWithUiStatus"
 import { Path } from "@smm/utils/path"
 
 export interface UseSidebarOptions {
@@ -22,13 +15,12 @@ export interface UseSidebarOptions {
 }
 
 export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
-  const { t } = useTranslation(["components"])
-  const { sortOrder, filterType, setSortOrder, setFilterType } = useSidebarStore()
-  const { _folders } = useUIMediaFolderStoreState()
+  // Sort/filter are pure UI state owned by this hook's single consumer (Sidebar).
+  // Kept local via useState instead of a global store: no cross-component sharing.
+  const [sortOrder, setSortOrder] = useState<SortOrder>("none")
+  const [filterType, setFilterType] = useState<FilterType>("all")
 
   const unimportFolderMutation = useUnimportFolderMutation()
-  const { renameFolderDialog } = useDialogs()
-  const [openRenameForMediaFolder] = renameFolderDialog
 
   const foldersQuery = useFoldersQuery();
 
@@ -75,16 +67,6 @@ export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
     }
   }, [])
 
-  const handleRename = useCallback(
-    (path: string) => {
-      openRenameForMediaFolder(path, {
-        title: t("mediaFolder.renameTitle"),
-        description: t("mediaFolder.renameDescription"),
-      })
-    },
-    [openRenameForMediaFolder, t],
-  )
-
   const handleDeletePaths = useCallback(
     async (paths: string[]) => {
       if (paths.length === 0) return
@@ -99,7 +81,6 @@ export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
     setSortOrder,
     setFilterType,
     folders,
-    handleRename,
     handleOpenInExplorer,
     handleDeletePaths,
   }

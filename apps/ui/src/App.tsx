@@ -6,6 +6,7 @@ import type { ViewMode } from "@/components/sidebar/ViewSwitcher"
 import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem, FolderType } from "@/providers/dialog-provider"
+import { useTranslation } from "@/lib/i18n"
 import { Toaster } from "./components/ui/sonner"
 import { toast } from "sonner"
 import { deleteMetadata } from "@/api/metadata"
@@ -50,6 +51,7 @@ import { AIArea } from "@/components/AIArea"
 function AppContent() {
   // WebSocket connection is now established at AppSwitcher level to persist across view changes
   // No need to call useWebSocket() here anymore
+  const { t } = useTranslation(["components"])
   const { userConfig, setAndSaveUserConfig, isUserConfigLoaded } = useConfig()
   const unimportFolderMutation = useUnimportFolderMutation()
 
@@ -93,10 +95,11 @@ function AppContent() {
   }, [])
 
   // Dialogs
-  const { openFolderDialog, filePickerDialog } = useDialogs()
+  const { openFolderDialog, filePickerDialog, renameFolderDialog } = useDialogs()
   const queryClient = useQueryClient()
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
+  const [openRenameFolder] = renameFolderDialog
   const folderStatus = useUIMediaFolderStore((s) => s.folders.find(f => f.path === selectedFolder)?.status)
   const folderType = useUIMediaFolderStore((s) => s.folders.find(f => f.path === selectedFolder)?.type)
 
@@ -336,6 +339,12 @@ function AppContent() {
                     <div className="min-w-0 overflow-hidden border-r border-border bg-muted/30 h-full">
                       <Sidebar
                         onDeleteSelected={onDeleteSelected}
+                        onRenameFolder={(path) =>
+                          openRenameFolder(path, {
+                            title: t("mediaFolder.renameTitle"),
+                            description: t("mediaFolder.renameDescription"),
+                          })
+                        }
                         selectedPaths={selectedFolders}
                         primaryPath={selectedFolder}
                         onSelectionChange={({ selectedPaths, primaryPath }) => {

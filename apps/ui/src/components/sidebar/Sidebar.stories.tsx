@@ -68,7 +68,6 @@ const meta = {
       folders: demoFolders
         .filter((f) => folderMatchesSearchQuery(f, options.searchQuery ?? ""))
         .map((f) => f.path),
-      handleRename: fn(),
       handleOpenInExplorer: fn(),
       handleDeletePaths: fn(),
     }))

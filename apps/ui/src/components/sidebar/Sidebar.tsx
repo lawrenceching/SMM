@@ -34,6 +34,8 @@ export type FolderListItemSlot = ComponentType<FolderListItemContainerProps>
 
 export interface SidebarProps {
   onDeleteSelected?: (paths: string[]) => void
+  /** Fired when the user requests to rename a media folder (e.g. via the list-item menu). */
+  onRenameFolder?: (path: string) => void
   /**
    * Optional list-item component (e.g. Storybook mounts pure {@link FolderListItem}).
    * When omitted, lazily loads {@link FolderListItemContainer}.
@@ -53,6 +55,7 @@ export interface SidebarProps {
 
 export function Sidebar({
   onDeleteSelected,
+  onRenameFolder,
   folderListItemSlot,
   selectedPaths: selectedPathsProp,
   primaryPath: primaryPathProp,
@@ -82,7 +85,6 @@ export function Sidebar({
     setSortOrder,
     setFilterType,
     folders,
-    handleRename,
     handleOpenInExplorer,
     handleDeletePaths,
   } = useSidebar({ onDeleteSelected, searchQuery })
@@ -135,6 +137,13 @@ export function Sidebar({
       }
     },
     [commitSelection, folders, handleDeletePaths, selectedPaths],
+  )
+
+  const handleRename = useCallback(
+    (path: string) => {
+      onRenameFolder?.(path)
+    },
+    [onRenameFolder],
   )
 
   const handleDeleteItem = useCallback(

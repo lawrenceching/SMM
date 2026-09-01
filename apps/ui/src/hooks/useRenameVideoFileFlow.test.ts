@@ -9,10 +9,6 @@ vi.mock("@/api/renameFiles", () => ({
   renameFiles: vi.fn().mockResolvedValue({}),
 }))
 
-vi.mock("@/providers/dialog-provider", () => ({
-  useDialogs: vi.fn(),
-}))
-
 vi.mock("@/hooks/mediaMetadata/useFetchMediaMetadataMutation", () => ({
   useFetchMediaMetadataMutation: vi.fn(),
 }))
@@ -30,26 +26,18 @@ vi.mock("@/lib/i18n", () => ({
 }))
 
 import { renameFiles } from "@/api/renameFiles"
-import { useDialogs } from "@/providers/dialog-provider"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { computeAssociatedFileRenames } from "@/components/episode-file"
 import { toast } from "sonner"
 import { useRenameVideoFileFlow } from "./useRenameVideoFileFlow"
 import type { UIMediaFileDataRow } from "@/components/media/UIMediaFileTable"
 
-// Test-only shapes — keep these as small as possible to make the dependency
-// on the mocked modules explicit. The values are not validated; the cast only
-// narrows what fields the test reads back from the mocks.
-interface MockDialogContextValue {
-  renameFileDialog: [ReturnType<typeof vi.fn>, ReturnType<typeof vi.fn>]
-}
 interface MockFetchMutation {
   mutateAsync: ReturnType<typeof vi.fn>
 }
 
 describe("useRenameVideoFileFlow", () => {
   const renameFilesMock = vi.mocked(renameFiles)
-  const useDialogsMock = vi.mocked(useDialogs)
   const useFetchMock = vi.mocked(useFetchMediaMetadataMutation)
   const computeAssocMock = vi.mocked(computeAssociatedFileRenames)
   const toastSuccess = vi.mocked(toast.success)
@@ -79,10 +67,6 @@ describe("useRenameVideoFileFlow", () => {
   beforeEach(() => {
     renameFilesMock.mockReset()
     renameFilesMock.mockResolvedValue({})
-    useDialogsMock.mockReset()
-    useDialogsMock.mockReturnValue({
-      renameFileDialog: [openRename, vi.fn()],
-    } as unknown as MockDialogContextValue)
     useFetchMock.mockReset()
     useFetchMock.mockReturnValue({
       mutateAsync: fetchMediaMetadata,
@@ -98,7 +82,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("is a no-op when the row has no videoFile", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files }),
+      useRenameVideoFileFlow({ mediaFolderPath, files, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -110,7 +94,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("is a no-op when mediaFolderPath is undefined", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath: undefined, files }),
+      useRenameVideoFileFlow({ mediaFolderPath: undefined, files, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -122,7 +106,7 @@ describe("useRenameVideoFileFlow", () => {
 
   it("opens the rename dialog with the relative path as initial value", () => {
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files }),
+      useRenameVideoFileFlow({ mediaFolderPath, files, openRenameDialog: openRename }),
     )
 
     act(() => {
@@ -141,7 +125,12 @@ describe("useRenameVideoFileFlow", () => {
     ])
     const onAfterRename = vi.fn().mockResolvedValue(undefined)
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files, onAfterRename }),
+      useRenameVideoFileFlow({
+        mediaFolderPath,
+        files,
+        onAfterRename,
+        openRenameDialog: openRename,
+      }),
     )
 
     act(() => {
@@ -175,7 +164,12 @@ describe("useRenameVideoFileFlow", () => {
     renameFilesMock.mockRejectedValueOnce(new Error("boom"))
     const onAfterRename = vi.fn()
     const { result } = renderHook(() =>
-      useRenameVideoFileFlow({ mediaFolderPath, files, onAfterRename }),
+      useRenameVideoFileFlow({
+        mediaFolderPath,
+        files,
+        onAfterRename,
+        openRenameDialog: openRename,
+      }),
     )
 
     act(() => {

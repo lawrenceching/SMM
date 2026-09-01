@@ -48,6 +48,7 @@ vi.mock("@/providers/dialog-provider", () => ({
   useDialogs: () => ({
     openFolderDialog: [vi.fn(), vi.fn()],
     filePickerDialog: [vi.fn(), vi.fn()],
+    renameFolderDialog: [vi.fn(), vi.fn()],
   }),
 }))
 

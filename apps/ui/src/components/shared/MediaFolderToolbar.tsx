@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import { FilterButton } from "./FilterButton";
 import { SortingButton } from "./SortingButton";
 import type { FilterOption, SortingOption } from "./FilterButton";
-import type { SortOrder, FilterType } from "@/stores/sidebarStore";
+import type { SortOrder, FilterType } from "@/lib/sidebarSort";
 import { useTranslation } from "@/lib/i18n";
 
 export type { SortOrder, FilterType }

@@ -91,8 +91,9 @@ function MoviePanel() {
     },
     [fetchMediaMetadata],
   )
-  const { scrapeDialog, videoCompressionDialog } = useDialogs()
+  const { scrapeDialog, videoCompressionDialog, renameFileDialog } = useDialogs()
   const [openScrape] = scrapeDialog
+  const [openRenameFile] = renameFileDialog
 
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
@@ -134,6 +135,7 @@ function MoviePanel() {
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
     files: folderFiles,
+    openRenameDialog: openRenameFile,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)

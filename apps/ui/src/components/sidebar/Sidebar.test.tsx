@@ -38,11 +38,6 @@ vi.mock("@/components/shared/MediaFolderToolbar", () => ({
   MediaFolderToolbar: () => <div data-testid="media-folder-toolbar" />,
 }))
 
-vi.mock("@/stores/sidebarStore", () => ({
-  useSidebarStore: vi.fn(),
-  compareByDisplayName: (a: string, b: string) => a.localeCompare(b),
-}))
-
 vi.mock("@/stores/uiMediaFolderStore", () => ({
   useUIMediaFolderStoreState: vi.fn(),
   useUIMediaFolderStoreActions: vi.fn(),
@@ -51,13 +46,6 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
 
 vi.mock("@/hooks/mediaMetadata/useMediaMetadataQuery", () => ({
   useMediaMetadataQuery: vi.fn(),
-}))
-
-vi.mock("@/providers/dialog-provider", () => ({
-  useDialogs: vi.fn(() => ({
-    renameFileDialog: [vi.fn(), vi.fn()],
-    renameFolderDialog: [vi.fn(), vi.fn()],
-  })),
 }))
 
 vi.mock("@/hooks/userConfig", () => ({
@@ -117,7 +105,6 @@ vi.mock("./FolderListItem", () => ({
 }))
 
 import { useQueries } from "@tanstack/react-query"
-import { useSidebarStore } from "@/stores/sidebarStore"
 import {
   useUIMediaFolderStoreState,
   useUIMediaFolderStoreActions,
@@ -127,19 +114,12 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata/useMediaMetadataQue
 import { useUnimportFolderMutation, useFoldersQuery } from "@/hooks/folders"
 
 const mockUseQueries = useQueries as ReturnType<typeof vi.fn>
-const mockUseSidebarStore = useSidebarStore as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStoreState = useUIMediaFolderStoreState as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderStoreActions = useUIMediaFolderStoreActions as ReturnType<typeof vi.fn>
 const mockUseUIMediaFolderSelection = useUIMediaFolderSelection as ReturnType<typeof vi.fn>
 const mockUseMediaMetadataQuery = useMediaMetadataQuery as ReturnType<typeof vi.fn>
 
 function baseSidebarMocks() {
-  mockUseSidebarStore.mockReturnValue({
-    sortOrder: "asc",
-    filterType: "all",
-    setSortOrder: vi.fn(),
-    setFilterType: vi.fn(),
-  })
   mockUseUIMediaFolderStoreActions.mockReturnValue({
     applyFolderClick: vi.fn(),
     selectAllFolderPaths: vi.fn(),

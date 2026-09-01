@@ -94,10 +94,13 @@ function TvShowPanel() {
   const { selectTvShowForFolderMutation, updateMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const { renameFileDialog } = useDialogs()
+  const [openRenameFile] = renameFileDialog
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
     files: folderFiles,
     mode: "episode",
+    openRenameDialog: openRenameFile,
   })
 
   const [tableData, setTableData] = useState<TvShowEpisodeTableRow[]>([])

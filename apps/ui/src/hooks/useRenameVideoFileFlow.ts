@@ -5,11 +5,17 @@ import { useTranslation } from "@/lib/i18n"
 import { join, relative } from "@/lib/path"
 import { renameFiles } from "@/api/renameFiles"
 import { renameEpisodeFileViaCore } from "@/api/renameEpisodeFile"
-import { useDialogs } from "@/providers/dialog-provider"
 import { computeAssociatedFileRenames } from "@/components/episode-file"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { isSmmV3Enabled } from "@/lib/localStorages"
 import type { UIMediaFileDataRow } from "@/components/media/UIMediaFileTable"
+
+export interface RenameFileDialogOptions {
+  initialValue?: string
+  title?: string
+  description?: string
+  suggestions?: string[]
+}
 
 export interface UseRenameVideoFileFlowOptions {
   /**
@@ -34,6 +40,14 @@ export interface UseRenameVideoFileFlowOptions {
    * (e.g. clear checked rows) before the server re-fetch lands.
    */
   onAfterRename?: () => void | Promise<void>
+  /**
+   * Injected by the component layer — opens the rename-file dialog.
+   * Decouples this flow hook from the global dialog provider.
+   */
+  openRenameDialog: (
+    onConfirm: (newName: string) => void,
+    options?: RenameFileDialogOptions,
+  ) => void
 }
 
 export interface RenameVideoFileFlow {
@@ -56,11 +70,10 @@ export interface RenameVideoFileFlow {
 export function useRenameVideoFileFlow(
   options: UseRenameVideoFileFlowOptions,
 ): RenameVideoFileFlow {
-  const { mediaFolderPath, files, onAfterRename } = options
+  const { mediaFolderPath, files, onAfterRename, openRenameDialog } = options
   const { t } = useTranslation(["components", "dialogs"])
-  const { renameFileDialog } = useDialogs()
-  const [openRename] = renameFileDialog
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
+  const openRename = openRenameDialog
 
   const onRenameContextMenuClick = useCallback(
     (row: UIMediaFileDataRow) => {
@@ -123,7 +136,7 @@ export function useRenameVideoFileFlow(
       mediaFolderPath,
       files,
       onAfterRename,
-      openRename,
+      openRenameDialog,
       fetchMediaMetadata,
       t,
     ],
