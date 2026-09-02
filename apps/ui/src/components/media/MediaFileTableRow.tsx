@@ -62,7 +62,7 @@ function resolveDisabled<R extends UIMediaFileDataRow | UIMediaFileFolderRow>(
   return rule
 }
 
-function getDisplayPath(fullPath: string, basePath: string | undefined): string {
+export function getDisplayPath(fullPath: string, basePath: string | undefined): string {
   if (!basePath) return fullPath
   try {
     return relative(basePath, fullPath)
@@ -71,7 +71,7 @@ function getDisplayPath(fullPath: string, basePath: string | undefined): string 
   }
 }
 
-function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | undefined): string {
+export function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | undefined): string {
   const absolutePath =
     mediaFolderPath && !isAbsPath(thumbnailPath)
       ? join(mediaFolderPath, thumbnailPath)
@@ -80,7 +80,7 @@ function getThumbnailImageUrl(thumbnailPath: string, mediaFolderPath: string | u
   return pathToFileURL(platformPath)
 }
 
-function UICheckCell({ value }: { value: string | undefined }) {
+export function UICheckCell({ value }: { value: string | undefined }) {
   const checked = value !== undefined
   if (checked) {
     return (
@@ -96,7 +96,7 @@ function UICheckCell({ value }: { value: string | undefined }) {
   )
 }
 
-function UIThumbnailImage({
+export function UIThumbnailImage({
   thumbnailPath,
   mediaFolderPath,
   className = "max-h-[240px] w-auto rounded object-contain",
@@ -109,7 +109,7 @@ function UIThumbnailImage({
   return <Image url={url} alt="" className={className} />
 }
 
-function getMediaFileTableRowKey(
+export function getMediaFileTableRowKey(
   row: UIMediaFileFolderRow | UIMediaFileDataRow,
   index: number,
 ): string {
@@ -141,7 +141,7 @@ export const MediaFileTableTr = forwardRef<
   )
 })
 
-function withContextMenu<R extends UIMediaFileDataRow | UIMediaFileFolderRow>(
+export function withContextMenu<R extends UIMediaFileDataRow | UIMediaFileFolderRow>(
   rowKey: string,
   row: R,
   items: Array<{ id: string; label: string; onClick?: (row: R) => void; disabled?: boolean | ((row: R) => boolean) }>,
