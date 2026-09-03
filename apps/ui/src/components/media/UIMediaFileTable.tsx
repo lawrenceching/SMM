@@ -1,4 +1,5 @@
 import type { MetadataFiles } from "@smm/types/MetadataFiles"
+import path from 'path-browserify';
 import {
   Table,
   TableBody,
@@ -51,6 +52,7 @@ import {
   buildMediaFileTableColumnLayout,
   MediaFileTableColGroup,
 } from "./mediaFileTableColumns"
+import { Path } from "@smm/utils/path";
 
 // ========================================================================
 // Row types
@@ -338,6 +340,18 @@ function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
 // Main component
 // ========================================================================
 
+
+
+function rel(folder?: string, file?: string): string {
+
+  if(folder === undefined || file === undefined) {
+    return '';
+  }
+
+  // TODO: check if Windows UNC supported
+  return path.relative(Path.posix(folder), Path.posix(file))
+}
+
 export function UIMediaFileTable({
   data,
   metadataFiles,
@@ -542,6 +556,8 @@ export function UIMediaFileTable({
     </MediaFileTableTr>
   )
 
+
+
   return (
     <section data-testid="media-file-table" className="bg-card">
       <Table className="text-xs table-fixed w-full">
@@ -589,11 +605,11 @@ export function UIMediaFileTable({
           </ContextMenu>
         </TableHeader>
 
-        <MediaFileTableNameValueRow name='poster' value={metadataFiles?.posterPath} hoverTitle='Poster path' />
-        <MediaFileTableNameValueRow name='fanart' value={metadataFiles?.fanartPath} hoverTitle='Fanart path' />
-        <MediaFileTableNameValueRow name='nfo' value={metadataFiles?.nfoPath} hoverTitle='NFO path' />
-        <MediaFileTableNameValueRow name='clearlogo' value={metadataFiles?.clearlogoPath} hoverTitle='Clearlogo path' />
-        <MediaFileTableNameValueRow name='theme' value={metadataFiles?.themePath} hoverTitle='Theme path' />
+        <MediaFileTableNameValueRow name='poster' value={rel(mediaFolderPath, metadataFiles?.posterPath)} hoverTitle={metadataFiles?.posterPath} />
+        <MediaFileTableNameValueRow name='fanart' value={rel(mediaFolderPath, metadataFiles?.fanartPath)} hoverTitle={metadataFiles?.fanartPath} />
+        <MediaFileTableNameValueRow name='nfo' value={rel(mediaFolderPath, metadataFiles?.nfoPath)} hoverTitle={metadataFiles?.nfoPath} />
+        <MediaFileTableNameValueRow name='clearlogo' value={rel(mediaFolderPath, metadataFiles?.clearlogoPath)} hoverTitle={metadataFiles?.clearlogoPath} />
+        <MediaFileTableNameValueRow name='theme' value={rel(mediaFolderPath, metadataFiles?.themePath)} hoverTitle={metadataFiles?.themePath} />
 
         {/* New path, will be the default in the future */}
         {
