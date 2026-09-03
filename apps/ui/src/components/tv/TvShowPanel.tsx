@@ -3,6 +3,7 @@ import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import type { MetadataFiles } from "@smm/types/MetadataFiles"
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
@@ -27,6 +28,7 @@ import type {
   UIMediaFileDataRow,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
+  MediaFileTableSeasonData,
 } from "@/components/media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
@@ -49,6 +51,33 @@ import {
   type TvShowAppPlanPromptContextValue,
 } from "./plans/TvShowAppPlanPromptContext"
 
+
+export function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
+
+  if(m.type === 'tvshow-folder' || m.type === 'movie-folder') {
+    const seasons: MediaFileTableSeasonData[] = m.tvShow?.seasons?.map(s => {
+      return {
+        season: s.season,
+        title: s.name,
+        episodes: s.episodes.map(e => {
+          return {
+            season: s.season,
+            episode: e.episode,
+            title: e.name,
+            path: m.mediaFiles?.find(f => f.seasonNumber === s.season && f.episodeNumber === e.episode)?.absolutePath,
+          }
+        }),
+      }
+    }) ?? [];
+
+    return seasons;
+  }
+
+  // Should NOT reach this line in normal case.
+  console.warn(`Unsupported media type: ${m.type}, returned dummy MediaFileTableSeasonData`)
+  return []
+}
+
 function TvShowPanel() {
   const { t } = useTranslation(['components', 'errors'])
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
@@ -58,6 +87,8 @@ function TvShowPanel() {
     isPending: isMediaMetadataPending,
     fetchStatus: mediaMetadataFetchStatus,
   } = useMediaMetadataQuery(selectedFolder || undefined)
+
+ 
 
   const uiFolderRow = useMemo(
     () =>
@@ -161,6 +192,10 @@ function TvShowPanel() {
   const { isVideoCompressionEnabled, isFormatConverterEnabled } = useFeatures()
   const { handleVideoCompressForRow } = useTvShowEpisodeVideoCompress(mediaMetadata)
   const { handleFormatConvertForRow } = useTvShowEpisodeFormatConvert(mediaMetadata)
+
+  const mediaFileTableSeasonData = useMemo(() => {
+    return !!mediaMetadata ? buildMediaFileTableSeasonData(mediaMetadata) : []
+  }, [mediaMetadata])
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -377,6 +412,23 @@ function TvShowPanel() {
     }
   }, [renameFlow, aiRenameFlow, aiRecognizeFlow, recognizeFlow])
 
+  const metadataFiles: MetadataFiles = useMemo(() => {
+
+    if(mediaMetadata === undefined) {
+      return {};
+    }
+
+    return {
+      nfoPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/tvshow.nfo`),
+      posterPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/poster.jpg`),
+      fanartPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/fanart.jpg`),
+      // TODO: support in the future
+      seasonPosters: [],
+      clearlogoPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/clearlogo.png`),
+      themePath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/theme.mp3`),
+    }
+  }, [mediaMetadata, folderFiles])
+
   return (
     <TvShowAppPlanPromptProvider value={appPlanPromptValue}>
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
@@ -407,6 +459,8 @@ function TvShowPanel() {
         ) : (
           <MediaFileTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            seasonData={mediaFileTableSeasonData}
+            metadataFiles={metadataFiles}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             preview={previewMode}

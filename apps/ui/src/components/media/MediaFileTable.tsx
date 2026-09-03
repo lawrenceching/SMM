@@ -8,7 +8,9 @@ import type {
   UIMediaFileDataRow,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
+  MediaFileTableSeasonData,
 } from "./UIMediaFileTable"
+import type { MetadataFiles } from "@smm/types/MetadataFiles"
 import { useMediaFileTableController } from "./useMediaFileTableController"
 
 /**
@@ -18,6 +20,8 @@ import { useMediaFileTableController } from "./useMediaFileTableController"
  * `MediaFileTable` owns the right-click menu and exposes only Open / Properties.
  */
 export interface MediaFileTableProps {
+  seasonData?: MediaFileTableSeasonData[],
+  metadataFiles?: MetadataFiles,
   data: UIMediaFileTableRow[]
   /** When set, relative file paths are resolved against this base before opening. */
   mediaFolderPath?: string
@@ -69,6 +73,8 @@ export interface MediaFileTableProps {
 export function MediaFileTable(props: MediaFileTableProps) {
   const {
     data,
+    seasonData,
+    metadataFiles,
     mediaFolderPath,
     preview,
     previewStatus,
@@ -120,6 +126,8 @@ export function MediaFileTable(props: MediaFileTableProps) {
   return (
     <UIMediaFileTable
       data={data}
+      seasonData={seasonData}
+      metadataFiles={metadataFiles}
       mediaFolderPath={mediaFolderPath}
       contextMenuConfig={contextMenuConfig}
       preview={preview}

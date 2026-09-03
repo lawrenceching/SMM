@@ -63,7 +63,7 @@ const checkboxCellEmptyClassName = "w-10 shrink-0 px-0 py-1"
 const videoCellClassName = "max-w-px px-2 py-1"
 const iconCellClassName = "w-10 shrink-0 px-0 py-1 text-center"
 
-function thumbnailCellClassName(layout: MediaFileTableColumnLayout): string {
+export function thumbnailCellClassName(layout: MediaFileTableColumnLayout): string {
   return cn(
     layout.isPreviewLayout && "w-[160px] min-w-[160px] px-1 py-1 align-top",
     layout.layout === "detail" &&

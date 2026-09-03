@@ -1,3 +1,4 @@
+import type { MetadataFiles } from "@smm/types/MetadataFiles"
 import {
   Table,
   TableBody,
@@ -21,7 +22,15 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { ChevronRightIcon } from "lucide-react"
-import { useCallback, useState, useMemo, type ReactNode } from "react"
+import {
+  cloneElement,
+  isValidElement,
+  useCallback,
+  useState,
+  useMemo,
+  type ReactElement,
+  type ReactNode,
+} from "react"
 import { useTranslation } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import {
@@ -31,6 +40,12 @@ import {
   type MediaFileTableBodyRow,
   type MediaFileTableColumnKey,
   type MediaFileTableRowContext,
+  EpisodeContextMenu,
+  type EpisodeContextMenuItem,
+  MediaFileTableEpisodeSimpleRow,
+  MediaFileTableEpisodeDetailRow,
+  MediaFileTableEpisodePreviewRow,
+  MediaFileTableNameValueRow,
 } from "./MediaFileTableRow"
 import {
   buildMediaFileTableColumnLayout,
@@ -61,6 +76,7 @@ export interface UIMediaEpisodeSelection {
 }
 
 /**
+ * @deprecated
  * A single playable file row (e.g. one TV episode or one movie).
  *
  * `season` and `episode` are kept on every data row for layout compatibility
@@ -96,6 +112,20 @@ export interface UIMediaFileFolderRow {
   id: FolderFileId
   type: "folderFile"
   path: string
+}
+
+
+export interface MediaFileTableEpisodeData {
+  season: number,
+  episode: number,
+  title: string,
+  path?: string,
+}
+
+export interface MediaFileTableSeasonData {
+  season: number,
+  title: string,
+  episodes: MediaFileTableEpisodeData[],
 }
 
 export type UIMediaFileTableRow = UIMediaFileDividerRow | UIMediaFileDataRow | UIMediaFileFolderRow
@@ -137,6 +167,8 @@ export interface UIMediaFileTableContextMenuConfig {
 // ========================================================================
 
 export interface UIMediaFileTableProps {
+  seasonData?: MediaFileTableSeasonData[],
+  metadataFiles?: MetadataFiles,
   data: UIMediaFileTableRow[]
   /** When set, paths are shown relative to this base. */
   mediaFolderPath?: string
@@ -308,6 +340,8 @@ function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
 
 export function UIMediaFileTable({
   data,
+  metadataFiles,
+  seasonData = [],
   mediaFolderPath,
   contextMenuConfig,
   preview,
@@ -430,6 +464,13 @@ export function UIMediaFileTable({
     t: t as (key: string, options?: Record<string, unknown>) => string,
   }
 
+  // Context menu items for the seasonData-driven episode rows. Built once per
+  // config from the (deprecated) UIMediaFileDataRow-based `dataRowItems`.
+  const episodeContextMenuItems = useMemo(
+    () => buildEpisodeContextMenuItems(contextMenuConfig),
+    [contextMenuConfig],
+  )
+
   // ── Render: header row with column-visibility context menu ────────────
   const headerRow = (
     <MediaFileTableTr className="hover:bg-transparent">
@@ -548,6 +589,74 @@ export function UIMediaFileTable({
           </ContextMenu>
         </TableHeader>
 
+        <MediaFileTableNameValueRow name='poster' value={metadataFiles?.posterPath} hoverTitle='Poster path' />
+        <MediaFileTableNameValueRow name='fanart' value={metadataFiles?.fanartPath} hoverTitle='Fanart path' />
+        <MediaFileTableNameValueRow name='nfo' value={metadataFiles?.nfoPath} hoverTitle='NFO path' />
+        <MediaFileTableNameValueRow name='clearlogo' value={metadataFiles?.clearlogoPath} hoverTitle='Clearlogo path' />
+        <MediaFileTableNameValueRow name='theme' value={metadataFiles?.themePath} hoverTitle='Theme path' />
+
+        {/* New path, will be the default in the future */}
+        {
+          layout === "simple" && seasonData.map((season) => {
+            const collapsibleId = `season-${season.season}`
+            const isCollapsed = collapsedIds.has(collapsibleId)
+            return (
+              <UIMediaFileTableSeasonBlock
+                key={collapsibleId}
+                season={season}
+                items={episodeContextMenuItems}
+                isCollapsed={isCollapsed}
+                onOpenChange={(open) => setSectionCollapsed(collapsibleId, !open)}
+                showCheckboxColumn={showCheckboxColumn}
+                visibleColumnCount={visibleColumnCount}
+              >
+                <UIMediaFileTableEpisodeBlock season={season} />
+              </UIMediaFileTableSeasonBlock>
+            )
+          })
+        }
+
+{
+          layout === "detail" && seasonData.map((season) => {
+            const collapsibleId = `season-${season.season}`
+            const isCollapsed = collapsedIds.has(collapsibleId)
+            return (
+              <UIMediaFileTableSeasonBlock
+                key={collapsibleId}
+                season={season}
+                items={episodeContextMenuItems}
+                isCollapsed={isCollapsed}
+                onOpenChange={(open) => setSectionCollapsed(collapsibleId, !open)}
+                showCheckboxColumn={showCheckboxColumn}
+                visibleColumnCount={visibleColumnCount}
+              >
+                <UIMediaFileTableEpisodeDetailBlock season={season} />
+              </UIMediaFileTableSeasonBlock>
+            )
+          })
+        }
+
+        {
+          layout === "preview" && seasonData.map((season) => {
+            const collapsibleId = `season-${season.season}`
+            const isCollapsed = collapsedIds.has(collapsibleId)
+            return (
+              <UIMediaFileTableSeasonBlock
+                key={collapsibleId}
+                season={season}
+                items={episodeContextMenuItems}
+                isCollapsed={isCollapsed}
+                onOpenChange={(open) => setSectionCollapsed(collapsibleId, !open)}
+                showCheckboxColumn={showCheckboxColumn}
+                visibleColumnCount={visibleColumnCount}
+              >
+                <UIMediaFileTableEpisodePreviewBlock season={season} />
+              </UIMediaFileTableSeasonBlock>
+            )
+          })
+        }
+
+        {/* Legacy path, will be removed in the future */}
         {renderBlocks.map((block, blockIndex) => {
           if (block.kind === "rows") {
             const nextBlock = renderBlocks[blockIndex + 1]
@@ -615,4 +724,227 @@ export function UIMediaFileTable({
       </Table>
     </section>
   )
+}
+
+
+/**
+ * Collapsible season section for the `seasonData`-driven path: a header row
+ * (season title + collapse toggle) above the season content.
+ *
+ * The season content is supplied as `children`, e.g.
+ * `<UIMediaFileTableEpisodeBlock season={season} />`. When the child is an
+ * `UIMediaFileTableEpisodeBlock`, this block's `items` are forwarded into it,
+ * so the caller can compose the episode rows as children while the episode
+ * menu items stay owned by the section.
+ */
+export function UIMediaFileTableSeasonBlock({
+  season,
+  items = [],
+  isCollapsed,
+  onOpenChange,
+  showCheckboxColumn,
+  visibleColumnCount,
+  children,
+}: {
+  season: MediaFileTableSeasonData
+  /** Right-click menu items for each episode row (forwarded to the episode block child). */
+  items?: EpisodeContextMenuItem[]
+  /** Whether the section is currently collapsed (controlled by the table). */
+  isCollapsed: boolean
+  /** Called with the new open state when the user toggles the section. */
+  onOpenChange: (open: boolean) => void
+  showCheckboxColumn: boolean
+  visibleColumnCount: number
+  /** Content rendered below the season header (e.g. `UIMediaFileTableEpisodeBlock`). */
+  children?: ReactNode
+}) {
+  const { t } = useTranslation("components")
+  const expandLabel = t("mediaFileTable.expand")
+  const collapseLabel = t("mediaFileTable.collapse")
+
+  // Compose the caller-supplied content. When it is one of the episode blocks
+  // (simple/detail/preview), forward this section's `items` so the per-row
+  // context menus keep working without the caller having to repeat the items
+  // on the child.
+  const content =
+    isValidElement(children) &&
+    (children.type === UIMediaFileTableEpisodeBlock ||
+      children.type === UIMediaFileTableEpisodeDetailBlock ||
+      children.type === UIMediaFileTableEpisodePreviewBlock)
+      ? cloneElement(children as ReactElement<UIMediaFileTableEpisodeBlockProps>, {
+          items,
+        })
+      : children
+
+  return (
+    <Collapsible asChild open={!isCollapsed} onOpenChange={onOpenChange}>
+      <TableBody className="group/section">
+        <TableRow className="bg-muted/60 hover:bg-muted/70">
+          {showCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
+          <TableCell
+            colSpan={visibleColumnCount - (showCheckboxColumn ? 1 : 0)}
+            className="px-2 py-1.5 font-semibold"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span>{season.title}</span>
+              <CollapsibleTrigger asChild>
+                <button
+                  type="button"
+                  className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  title={isCollapsed ? expandLabel : collapseLabel}
+                  aria-label={isCollapsed ? expandLabel : collapseLabel}
+                  aria-expanded={!isCollapsed}
+                >
+                  <ChevronRightIcon className="size-4 transition-transform duration-200 group-data-[state=open]/section:rotate-90" />
+                </button>
+              </CollapsibleTrigger>
+            </div>
+          </TableCell>
+        </TableRow>
+        <TableRow className="border-b-0 hover:bg-transparent">
+          <TableCell colSpan={visibleColumnCount} className="p-0 border-0 align-top">
+            <CollapsibleContent className={collapsibleSectionContentClassName}>
+              {content}
+            </CollapsibleContent>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Collapsible>
+  )
+}
+
+/** Shared props of the season content blocks (`EpisodeBlock` / `EpisodeDetailBlock` /
+ * `EpisodePreviewBlock`) rendered inside `UIMediaFileTableSeasonBlock`. */
+export interface UIMediaFileTableEpisodeBlockProps {
+  season: MediaFileTableSeasonData
+  /** Right-click menu items for each episode row. */
+  items?: EpisodeContextMenuItem[]
+}
+
+export function UIMediaFileTableEpisodeBlock({
+  season,
+  items = [],
+}: UIMediaFileTableEpisodeBlockProps) {
+  return (
+    <table className="w-full table-fixed text-xs">
+      <TableBody>
+        {season.episodes.map((episode) => (
+          <EpisodeContextMenu
+            key={`season-${season.season}-episode-${episode.episode}`}
+            episode={episode}
+            items={items}
+          >
+            <MediaFileTableEpisodeSimpleRow
+              season={season.season}
+              episode={episode.episode}
+              title={episode.title}
+              path={episode.path ?? ""}
+            />
+          </EpisodeContextMenu>
+        ))}
+      </TableBody>
+    </table>
+  )
+}
+
+/**
+ * `detail`-layout season content block: one `MediaFileTableEpisodeDetailRow`
+ * per episode (id + cover thumbnail + title/path), each wrapped with its
+ * right-click menu.
+ */
+export function UIMediaFileTableEpisodeDetailBlock({
+  season,
+  items = [],
+}: UIMediaFileTableEpisodeBlockProps) {
+  return (
+    <table className="w-full table-fixed text-xs">
+      <TableBody>
+        {season.episodes.map((episode) => (
+          <EpisodeContextMenu
+            key={`season-${season.season}-episode-${episode.episode}`}
+            episode={episode}
+            items={items}
+          >
+            <MediaFileTableEpisodeDetailRow
+              season={season.season}
+              episode={episode.episode}
+              title={episode.title}
+              path={episode.path ?? ""}
+            />
+          </EpisodeContextMenu>
+        ))}
+      </TableBody>
+    </table>
+  )
+}
+
+/**
+ * `preview`-layout season content block: one `MediaFileTableEpisodePreviewRow`
+ * per episode (larger cover + id·title/path, no ID column), each wrapped with
+ * its right-click menu.
+ */
+export function UIMediaFileTableEpisodePreviewBlock({
+  season,
+  items = [],
+}: UIMediaFileTableEpisodeBlockProps) {
+  return (
+    <table className="w-full table-fixed text-xs">
+      <TableBody>
+        {season.episodes.map((episode) => (
+          <EpisodeContextMenu
+            key={`season-${season.season}-episode-${episode.episode}`}
+            episode={episode}
+            items={items}
+          >
+            <MediaFileTableEpisodePreviewRow
+              season={season.season}
+              episode={episode.episode}
+              title={episode.title}
+              path={episode.path ?? ""}
+            />
+          </EpisodeContextMenu>
+        ))}
+      </TableBody>
+    </table>
+  )
+}
+
+/**
+ * Adapts the deprecated `UIMediaFileDataRow`-based episode menu items
+ * (`UIMediaFileTableContextMenuConfig.dataRowItems`) to the new
+ * `MediaFileTableEpisodeData` model, bridging each episode to a
+ * `UIMediaFileDataRow` (`videoFile` → `path`) so the existing actions
+ * (Open / Properties / panel extras) keep working on seasonData-driven rows.
+ */
+function buildEpisodeContextMenuItems(
+  config: UIMediaFileTableContextMenuConfig | undefined,
+): EpisodeContextMenuItem[] {
+  const dataRowItems = config?.dataRowItems
+  if (!dataRowItems) return []
+
+  const toDataRow = (episode: MediaFileTableEpisodeData): UIMediaFileDataRow => ({
+    season: episode.season,
+    episode: episode.episode,
+    type: "episode",
+    videoFile: episode.path,
+    thumbnail: undefined,
+    subtitle: undefined,
+    nfo: undefined,
+    episodeTitle: episode.title,
+  })
+
+  return dataRowItems.map((item) => {
+    const disabledRule = item.disabled
+    return {
+      id: item.id,
+      label: item.label,
+      onClick: item.onClick
+        ? (episode: MediaFileTableEpisodeData) => item.onClick?.(toDataRow(episode))
+        : undefined,
+      disabled:
+        typeof disabledRule === "function"
+          ? (episode: MediaFileTableEpisodeData) => disabledRule(toDataRow(episode))
+          : disabledRule,
+    }
+  })
 }
