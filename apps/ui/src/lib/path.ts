@@ -79,6 +79,13 @@ export function relative(from: string, to: string) {
 
 }
 
+export function rel(folder?: string, file?: string): string {
+  if (folder === undefined || file === undefined) {
+    return '';
+  }
+  return relative(folder, file);
+}
+
 /**
  * 
  * @param path

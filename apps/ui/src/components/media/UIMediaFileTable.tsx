@@ -1,5 +1,4 @@
 import type { MetadataFiles } from "@smm/types/MetadataFiles"
-import path from 'path-browserify';
 import {
   Table,
   TableBody,
@@ -52,7 +51,7 @@ import {
   buildMediaFileTableColumnLayout,
   MediaFileTableColGroup,
 } from "./mediaFileTableColumns"
-import { Path } from "@smm/utils/path";
+import { rel } from "@/lib/path";
 
 // ========================================================================
 // Row types
@@ -342,16 +341,6 @@ function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
 
 
 
-function rel(folder?: string, file?: string): string {
-
-  if(folder === undefined || file === undefined) {
-    return '';
-  }
-
-  // TODO: check if Windows UNC supported
-  return path.relative(Path.posix(folder), Path.posix(file))
-}
-
 export function UIMediaFileTable({
   data,
   metadataFiles,
@@ -626,7 +615,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodeBlock season={season} />
+                <UIMediaFileTableEpisodeBlock season={season} mediaFolderPath={mediaFolderPath} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -646,7 +635,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodeDetailBlock season={season} />
+                <UIMediaFileTableEpisodeDetailBlock season={season} mediaFolderPath={mediaFolderPath} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -666,7 +655,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodePreviewBlock season={season} />
+                <UIMediaFileTableEpisodePreviewBlock season={season} mediaFolderPath={mediaFolderPath} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -835,11 +824,14 @@ export interface UIMediaFileTableEpisodeBlockProps {
   season: MediaFileTableSeasonData
   /** Right-click menu items for each episode row. */
   items?: EpisodeContextMenuItem[]
+  /** When set, paths are shown relative to this base. */
+  mediaFolderPath?: string
 }
 
 export function UIMediaFileTableEpisodeBlock({
   season,
   items = [],
+  mediaFolderPath,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">
@@ -854,7 +846,7 @@ export function UIMediaFileTableEpisodeBlock({
               season={season.season}
               episode={episode.episode}
               title={episode.title}
-              path={episode.path ?? ""}
+              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
             />
           </EpisodeContextMenu>
         ))}
@@ -871,6 +863,7 @@ export function UIMediaFileTableEpisodeBlock({
 export function UIMediaFileTableEpisodeDetailBlock({
   season,
   items = [],
+  mediaFolderPath,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">
@@ -885,7 +878,7 @@ export function UIMediaFileTableEpisodeDetailBlock({
               season={season.season}
               episode={episode.episode}
               title={episode.title}
-              path={episode.path ?? ""}
+              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
             />
           </EpisodeContextMenu>
         ))}
@@ -902,6 +895,7 @@ export function UIMediaFileTableEpisodeDetailBlock({
 export function UIMediaFileTableEpisodePreviewBlock({
   season,
   items = [],
+  mediaFolderPath,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">
@@ -916,7 +910,7 @@ export function UIMediaFileTableEpisodePreviewBlock({
               season={season.season}
               episode={episode.episode}
               title={episode.title}
-              path={episode.path ?? ""}
+              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
             />
           </EpisodeContextMenu>
         ))}
