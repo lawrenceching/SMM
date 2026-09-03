@@ -52,6 +52,7 @@ import {
   MediaFileTableColGroup,
 } from "./mediaFileTableColumns"
 import { rel } from "@/lib/path";
+import { head } from "es-toolkit"
 
 // ========================================================================
 // Row types
@@ -163,6 +164,54 @@ export interface UIMediaFileTableContextMenuConfig {
   folderFileRowItems?: UIMediaFileFolderContextMenuItem[]
 }
 
+/**
+ * Props controlling the right-click context menu on episode / data rows.
+ *
+ * `UIMediaFileTable` hardcodes all menu items internally and uses these props
+ * to control visibility, disabled state, and click handlers for each item.
+ */
+export interface MediaFileTableContextMenuProps {
+  /** Handler for "Open". Always visible when provided. */
+  onOpenMenuClick?: (row: UIMediaFileDataRow) => void
+  /** Handler for "Properties". Always visible when provided. */
+  onPropertiesMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Rename" menu item. */
+  renameMenuVisible?: boolean
+  /** Disabled state for "Rename". Defaults to `!row.videoFile` when omitted. */
+  renameMenuDisabled?: boolean
+  /** Handler for "Rename". */
+  onRenameMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Select File" menu item. */
+  selectFileMenuVisible?: boolean
+  /** Disabled state for "Select File". Defaults to `false` when omitted. */
+  selectFileMenuDisabled?: boolean
+  /** Handler for "Select File". */
+  onSelectFileMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Unlink" menu item. */
+  unlinkMenuVisible?: boolean
+  /** Disabled state for "Unlink". Defaults to `!row.videoFile` when omitted. */
+  unlinkMenuDisabled?: boolean
+  /** Handler for "Unlink". */
+  onUnlinkMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Video Compress" menu item. */
+  videoCompressMenuVisible?: boolean
+  /** Disabled state for "Video Compress". Defaults to `!row.videoFile` when omitted. */
+  videoCompressMenuDisabled?: boolean
+  /** Handler for "Video Compress". */
+  onVideoCompressMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Format Convert" menu item. */
+  formatConvertMenuVisible?: boolean
+  /** Disabled state for "Format Convert". Defaults to `!row.videoFile` when omitted. */
+  formatConvertMenuDisabled?: boolean
+  /** Handler for "Format Convert". */
+  onFormatConvertMenuClick?: (row: UIMediaFileDataRow) => void
+}
+
 // ========================================================================
 // Component props
 // ========================================================================
@@ -170,11 +219,20 @@ export interface UIMediaFileTableContextMenuConfig {
 export interface UIMediaFileTableProps {
   seasonData?: MediaFileTableSeasonData[],
   metadataFiles?: MetadataFiles,
+  subtitleFiles?: { season: number, episode: number, files: string[] }[],
+  nfoFiles?: { season: number, episode: number, files: string[] }[],
+  thumbnailFiles?: { season: number, episode: number, files: string[] }[],
   data: UIMediaFileTableRow[]
   /** When set, paths are shown relative to this base. */
   mediaFolderPath?: string
   /** Right-click menu configuration. Omit for no row context menus. */
   contextMenuConfig?: UIMediaFileTableContextMenuConfig
+  /**
+   * Right-click context menu props. When provided, `UIMediaFileTable` hardcodes
+   * the menu items and uses these props to control visibility / disabled / callbacks.
+   * Takes precedence over `contextMenuConfig` for data-row items.
+   */
+  contextMenuProps?: MediaFileTableContextMenuProps
   /**
    * NOTE: `preview` mode is a different concept from `preview` layout.
    * - `preview` mode: preview a recognition or rename plan (shows old→new paths, etc.)
@@ -344,9 +402,13 @@ function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
 export function UIMediaFileTable({
   data,
   metadataFiles,
+  subtitleFiles,
+  nfoFiles,
+  thumbnailFiles,
   seasonData = [],
   mediaFolderPath,
-  contextMenuConfig,
+  contextMenuConfig: contextMenuConfigProp,
+  contextMenuProps,
   preview,
   previewStatus,
   layout = "simple",
@@ -447,9 +509,87 @@ export function UIMediaFileTable({
     t as (key: string, options?: Record<string, unknown>) => string,
   )
 
+  // Build contextMenuConfig from contextMenuProps when provided.
+  // contextMenuProps takes precedence over contextMenuConfig for data-row items.
+  const effectiveContextMenuConfig = useMemo<UIMediaFileTableContextMenuConfig | undefined>(() => {
+    if (contextMenuProps) {
+      const { onOpenMenuClick, onPropertiesMenuClick } = contextMenuProps
+      const dataRowItems: UIMediaFileDataContextMenuItem[] = [
+        {
+          id: "open",
+          label: t("mediaFileTable.contextMenu.open"),
+          onClick: onOpenMenuClick,
+          disabled: (row) => !row.videoFile,
+        },
+        {
+          id: "properties",
+          label: t("mediaFileTable.contextMenu.properties"),
+          onClick: onPropertiesMenuClick,
+          disabled: (row) => !row.videoFile,
+        },
+      ]
+
+      if (contextMenuProps.renameMenuVisible !== false && contextMenuProps.onRenameMenuClick) {
+        dataRowItems.push({
+          id: "rename",
+          label: t("episodeFile.rename"),
+          onClick: contextMenuProps.onRenameMenuClick,
+          disabled: (row) => contextMenuProps.renameMenuDisabled ?? !row.videoFile,
+        })
+      }
+      if (contextMenuProps.selectFileMenuVisible !== false && contextMenuProps.onSelectFileMenuClick) {
+        dataRowItems.push({
+          id: "select-file",
+          label: t("episodeFile.selectFile"),
+          onClick: contextMenuProps.onSelectFileMenuClick,
+          disabled: contextMenuProps.selectFileMenuDisabled,
+        })
+      }
+      if (contextMenuProps.unlinkMenuVisible !== false && contextMenuProps.onUnlinkMenuClick) {
+        dataRowItems.push({
+          id: "unlink",
+          label: t("tvShowEpisodeTable.contextMenu.unlink"),
+          onClick: contextMenuProps.onUnlinkMenuClick,
+          disabled: (row) => contextMenuProps.unlinkMenuDisabled ?? !row.videoFile,
+        })
+      }
+      if (contextMenuProps.videoCompressMenuVisible !== false && contextMenuProps.onVideoCompressMenuClick) {
+        dataRowItems.push({
+          id: "video-compress",
+          label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
+          onClick: contextMenuProps.onVideoCompressMenuClick,
+          disabled: (row) => contextMenuProps.videoCompressMenuDisabled ?? !row.videoFile,
+        })
+      }
+      if (contextMenuProps.formatConvertMenuVisible !== false && contextMenuProps.onFormatConvertMenuClick) {
+        dataRowItems.push({
+          id: "format-convert",
+          label: t("tvShowEpisodeTable.contextMenu.formatConvert"),
+          onClick: contextMenuProps.onFormatConvertMenuClick,
+          disabled: (row) => contextMenuProps.formatConvertMenuDisabled ?? !row.videoFile,
+        })
+      }
+
+      const folderFileRowItems: UIMediaFileFolderContextMenuItem[] = [
+        {
+          id: "open",
+          label: t("mediaFileTable.contextMenu.open"),
+          onClick: onOpenMenuClick
+            ? (row) => (onOpenMenuClick as unknown as (row: UIMediaFileFolderRow) => void)(row)
+            : undefined,
+          disabled: (row) => !row.path,
+        },
+      ]
+
+      return { dataRowItems, folderFileRowItems }
+    }
+
+    return contextMenuConfigProp
+  }, [contextMenuProps, contextMenuConfigProp, t])
+
   const renderContext: MediaFileTableRowContext = {
     mediaFolderPath,
-    contextMenuConfig,
+    contextMenuConfig: effectiveContextMenuConfig,
     preview,
     previewStatus,
     layout,
@@ -470,8 +610,8 @@ export function UIMediaFileTable({
   // Context menu items for the seasonData-driven episode rows. Built once per
   // config from the (deprecated) UIMediaFileDataRow-based `dataRowItems`.
   const episodeContextMenuItems = useMemo(
-    () => buildEpisodeContextMenuItems(contextMenuConfig),
-    [contextMenuConfig],
+    () => buildEpisodeContextMenuItems(effectiveContextMenuConfig),
+    [effectiveContextMenuConfig],
   )
 
   // ── Render: header row with column-visibility context menu ────────────
@@ -615,7 +755,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodeBlock season={season} mediaFolderPath={mediaFolderPath} />
+                <UIMediaFileTableEpisodeBlock season={season} mediaFolderPath={mediaFolderPath} subtitleFiles={subtitleFiles} nfoFiles={nfoFiles} thumbnailFiles={thumbnailFiles} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -635,7 +775,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodeDetailBlock season={season} mediaFolderPath={mediaFolderPath} />
+                <UIMediaFileTableEpisodeDetailBlock season={season} mediaFolderPath={mediaFolderPath} subtitleFiles={subtitleFiles} nfoFiles={nfoFiles} thumbnailFiles={thumbnailFiles} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -655,7 +795,7 @@ export function UIMediaFileTable({
                 showCheckboxColumn={showCheckboxColumn}
                 visibleColumnCount={visibleColumnCount}
               >
-                <UIMediaFileTableEpisodePreviewBlock season={season} mediaFolderPath={mediaFolderPath} />
+                <UIMediaFileTableEpisodePreviewBlock season={season} mediaFolderPath={mediaFolderPath} subtitleFiles={subtitleFiles} nfoFiles={nfoFiles} thumbnailFiles={thumbnailFiles} />
               </UIMediaFileTableSeasonBlock>
             )
           })
@@ -826,30 +966,53 @@ export interface UIMediaFileTableEpisodeBlockProps {
   items?: EpisodeContextMenuItem[]
   /** When set, paths are shown relative to this base. */
   mediaFolderPath?: string
+  subtitleFiles?: { season: number, episode: number, files: string[] }[]
+  nfoFiles?: { season: number, episode: number, files: string[] }[]
+  thumbnailFiles?: { season: number, episode: number, files: string[] }[]
 }
 
 export function UIMediaFileTableEpisodeBlock({
   season,
   items = [],
   mediaFolderPath,
+  subtitleFiles,
+  nfoFiles,
+  thumbnailFiles,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">
       <TableBody>
-        {season.episodes.map((episode) => (
-          <EpisodeContextMenu
-            key={`season-${season.season}-episode-${episode.episode}`}
-            episode={episode}
-            items={items}
-          >
-            <MediaFileTableEpisodeSimpleRow
-              season={season.season}
-              episode={episode.episode}
-              title={episode.title}
-              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
-            />
-          </EpisodeContextMenu>
-        ))}
+        {season.episodes.map((episode) => {
+
+          console.log(thumbnailFiles)
+
+          const subtitle = subtitleFiles?.find((subtitle) => subtitle.season === season.season && subtitle.episode === episode.episode)
+          const subtitlePath = head(subtitle?.files ?? [])
+
+          const nfo = nfoFiles?.find((nfo) => nfo.season === season.season && nfo.episode === episode.episode)
+          const nfoPath = head(nfo?.files ?? [])
+
+          const thumbnail = thumbnailFiles?.find((thumbnail) => thumbnail.season === season.season && thumbnail.episode === episode.episode)
+          const thumbnailPath = head(thumbnail?.files ?? [])
+
+          return (
+            <EpisodeContextMenu
+              key={`season-${season.season}-episode-${episode.episode}`}
+              episode={episode}
+              items={items}
+            >
+              <MediaFileTableEpisodeSimpleRow
+                season={season.season}
+                episode={episode.episode}
+                title={episode.title}
+                path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
+                subtitlePath={subtitlePath}
+                nfoPath={nfoPath}
+                thumbnailPath={thumbnailPath}
+              />
+            </EpisodeContextMenu>
+          )
+        })}
       </TableBody>
     </table>
   )
@@ -864,6 +1027,9 @@ export function UIMediaFileTableEpisodeDetailBlock({
   season,
   items = [],
   mediaFolderPath,
+  subtitleFiles: _subtitleFiles,
+  nfoFiles: _nfoFiles,
+  thumbnailFiles: _thumbnailFiles,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">
@@ -896,6 +1062,9 @@ export function UIMediaFileTableEpisodePreviewBlock({
   season,
   items = [],
   mediaFolderPath,
+  subtitleFiles: _subtitleFiles,
+  nfoFiles: _nfoFiles,
+  thumbnailFiles: _thumbnailFiles,
 }: UIMediaFileTableEpisodeBlockProps) {
   return (
     <table className="w-full table-fixed text-xs">

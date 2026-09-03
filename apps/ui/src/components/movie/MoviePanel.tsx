@@ -28,7 +28,6 @@ import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
 import { MediaFileTable } from "../media/MediaFileTable"
 import type {
-  UIMediaFileDataContextMenuItem,
   UIMediaFileDataRow,
   UIMediaFileTableRow,
 } from "../media/UIMediaFileTable"
@@ -376,20 +375,12 @@ function MoviePanel() {
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             layout={isPreviewingForRename ? "simple" : layout}
             preview={isPreviewingForRename ? "rename" : undefined}
-            extraEpisodeContextMenu={[
-              {
-                id: "rename",
-                label: t("episodeFile.rename"),
-                onClick: videoRenameFlow.onRenameContextMenuClick,
-                disabled: (row) => !row.videoFile,
-              } satisfies UIMediaFileDataContextMenuItem,
-              {
-                id: "video-compress",
-                label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
-                onClick: isVideoCompressionEnabled ? handleVideoCompressClick : undefined,
-                disabled: (row) => !row.videoFile,
-              } satisfies UIMediaFileDataContextMenuItem,
-            ]}
+            contextMenuProps={{
+              renameMenuVisible: true,
+              onRenameMenuClick: videoRenameFlow.onRenameContextMenuClick,
+              videoCompressMenuVisible: isVideoCompressionEnabled,
+              onVideoCompressMenuClick: handleVideoCompressClick,
+            }}
           />
         )}
       </div>

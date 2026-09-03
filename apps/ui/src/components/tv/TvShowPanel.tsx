@@ -2,13 +2,11 @@ import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMe
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import type { MetadataFiles } from "@smm/types/MetadataFiles"
+import { useState, useCallback, useMemo } from "react"
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
-import { useTranslation } from "@/lib/i18n"
 import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "@/hooks/tv/useTvShowPanelState"
@@ -24,7 +22,7 @@ import { askForRenameFile, askForScrape } from "@/lib/dialogRequestEvents"
 import { usePlansQuery } from "@/hooks/plans"
 import { MediaFileTable } from "@/components/media/MediaFileTable"
 import type {
-  UIMediaFileDataContextMenuItem,
+  MediaFileTableContextMenuProps,
   UIMediaFileDataRow,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
@@ -37,7 +35,6 @@ import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, 
 import { useFeatures } from "@/hooks/useFeatures"
 import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
-import { buildTvShowEpisodeTableRowsForPanel } from "@/lib/buildTvShowEpisodeTableRows"
 import {
   rebuildPlanWithSelectedEpisodes,
   rebuildRenamePlanWithSelectedEpisodes,
@@ -50,6 +47,7 @@ import {
   TvShowAppPlanPromptProvider,
   type TvShowAppPlanPromptContextValue,
 } from "./plans/TvShowAppPlanPromptContext"
+import { useTvShowPanel } from "@/hooks/useTvShowPanel"
 
 
 export function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
@@ -79,7 +77,6 @@ export function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableS
 }
 
 function TvShowPanel() {
-  const { t } = useTranslation(['components', 'errors'])
   const { folders, selectedFolder } = useUIMediaFolderStoreState()
   const {
     data: queriedMediaMetadata,
@@ -88,8 +85,8 @@ function TvShowPanel() {
     fetchStatus: mediaMetadataFetchStatus,
   } = useMediaMetadataQuery(selectedFolder || undefined)
 
+  const { metadataFiles, subtitleFiles, nfoFiles, thumbnailFiles } = useTvShowPanel(selectedFolder)
  
-
   const uiFolderRow = useMemo(
     () =>
       selectedFolder
@@ -133,14 +130,12 @@ function TvShowPanel() {
     openRenameDialog: askForRenameFile,
   })
 
-  const [tableData, setTableData] = useState<UIMediaFileTableRow[]>([])
+  const [tableData] = useState<UIMediaFileTableRow[]>([])
   const latestTableData = useLatest(tableData)
 
   // Checkbox selection — separate UI state, kept apart from row data so that
   // user toggles survive the row rebuilds triggered by metadata / plan refetches.
   const [selectedEpisodes, setSelectedEpisodes] = useState<UIMediaEpisodeSelection[]>([])
-  // The plan instance the current selection was seeded from.
-  const prevPlanRef = useRef<UIRenameFilesPlan | UIRecognizeMediaFilePlan | undefined>(undefined)
 
   const getSelectedEpisodePaths = useCallback(
     () =>
@@ -318,61 +313,41 @@ function TvShowPanel() {
     }
   }, [plan])
 
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
-    if (!mediaMetadata) return;
+  // useEffect(() => {
+  //   /* eslint-disable react-hooks/set-state-in-effect */
+  //   if (!mediaMetadata) return;
 
-    const built = buildTvShowEpisodeTableRowsForPanel(mediaMetadata, uiStatus, plan, (key: string) => {
-      return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-    }, folderFiles)
+  //   const built = buildTvShowEpisodeTableRowsForPanel(mediaMetadata, uiStatus, plan, (key: string) => {
+  //     return t(key as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+  //   }, folderFiles)
 
-    setTableData(built.rows);
+  //   setTableData(built.rows);
 
-    // Re-seed the selection only when a (new) plan instance arrives. The
-    // selection is separate UI state, so unrelated row rebuilds (metadata /
-    // folderFiles refetches) must not wipe the user's check toggles.
-    if (plan !== prevPlanRef.current) {
-      prevPlanRef.current = plan
-      setSelectedEpisodes(built.defaultChecked)
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
+  //   // Re-seed the selection only when a (new) plan instance arrives. The
+  //   // selection is separate UI state, so unrelated row rebuilds (metadata /
+  //   // folderFiles refetches) must not wipe the user's check toggles.
+  //   if (plan !== prevPlanRef.current) {
+  //     prevPlanRef.current = plan
+  //     setSelectedEpisodes(built.defaultChecked)
+  //   }
+  //   /* eslint-enable react-hooks/set-state-in-effect */
 
-  }, [mediaMetadata, plan, uiStatus, t, folderFiles])
+  // }, [mediaMetadata, plan, uiStatus, t, folderFiles])
 
-  const extraEpisodeContextMenu: UIMediaFileDataContextMenuItem[] = useMemo(
-    () => [
-      {
-        id: "rename",
-        label: t("episodeFile.rename", { ns: "components" }),
-        onClick: videoRenameFlow.onRenameContextMenuClick,
-        disabled: (row) => !row.videoFile,
-      },
-      {
-        id: "select-file",
-        label: t("episodeFile.selectFile", { ns: "components" }),
-        onClick: selectFileFlow.onSelectFileContextMenuClick,
-      },
-      {
-        id: "unlink",
-        label: t("tvShowEpisodeTable.contextMenu.unlink"),
-        onClick: selectFileFlow.onUnlinkContextMenuClick,
-        disabled: (row) => !row.videoFile,
-      },
-      {
-        id: "video-compress",
-        label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
-        onClick: isVideoCompressionEnabled ? handleVideoCompressForRow : undefined,
-        disabled: (row) => !row.videoFile,
-      },
-      {
-        id: "format-convert",
-        label: t("tvShowEpisodeTable.contextMenu.formatConvert"),
-        onClick: isFormatConverterEnabled ? handleFormatConvertForRow : undefined,
-        disabled: (row) => !row.videoFile,
-      },
-    ],
+  const contextMenuProps: MediaFileTableContextMenuProps = useMemo(
+    () => ({
+      renameMenuVisible: true,
+      onRenameMenuClick: videoRenameFlow.onRenameContextMenuClick,
+      selectFileMenuVisible: true,
+      onSelectFileMenuClick: selectFileFlow.onSelectFileContextMenuClick,
+      unlinkMenuVisible: true,
+      onUnlinkMenuClick: selectFileFlow.onUnlinkContextMenuClick,
+      videoCompressMenuVisible: isVideoCompressionEnabled,
+      onVideoCompressMenuClick: handleVideoCompressForRow,
+      formatConvertMenuVisible: isFormatConverterEnabled,
+      onFormatConvertMenuClick: handleFormatConvertForRow,
+    }),
     [
-      t,
       videoRenameFlow.onRenameContextMenuClick,
       selectFileFlow.onSelectFileContextMenuClick,
       selectFileFlow.onUnlinkContextMenuClick,
@@ -412,22 +387,7 @@ function TvShowPanel() {
     }
   }, [renameFlow, aiRenameFlow, aiRecognizeFlow, recognizeFlow])
 
-  const metadataFiles: MetadataFiles = useMemo(() => {
-
-    if(mediaMetadata === undefined) {
-      return {};
-    }
-
-    return {
-      nfoPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/tvshow.nfo`),
-      posterPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/poster.jpg`),
-      fanartPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/fanart.jpg`),
-      // TODO: support in the future
-      seasonPosters: [],
-      clearlogoPath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/clearlogo.png`),
-      themePath: folderFiles.find(f => f === `${mediaMetadata.mediaFolderPath}/theme.mp3`),
-    }
-  }, [mediaMetadata, folderFiles])
+  
 
   return (
     <TvShowAppPlanPromptProvider value={appPlanPromptValue}>
@@ -461,12 +421,15 @@ function TvShowPanel() {
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
             seasonData={mediaFileTableSeasonData}
             metadataFiles={metadataFiles}
+            subtitleFiles={subtitleFiles}
+            nfoFiles={nfoFiles}
+            thumbnailFiles={thumbnailFiles}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             preview={previewMode}
             previewStatus={previewStatus}
             layout={episodeTableLayout}
-            extraEpisodeContextMenu={extraEpisodeContextMenu}
+            contextMenuProps={contextMenuProps}
             selectedEpisodes={selectedEpisodes}
             onCheck={(row, checked) => {
               setSelectedEpisodes((prev) => {

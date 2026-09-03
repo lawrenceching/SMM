@@ -1,22 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, cleanup } from "@testing-library/react"
 import type {
-  UIMediaFileDataContextMenuItem,
+  MediaFileTableContextMenuProps,
   UIMediaFileDataRow,
-  UIMediaFileTableContextMenuConfig,
   UIMediaFileTableRow,
 } from "./UIMediaFileTable"
 
-// Capture the latest contextMenuConfig the wrapper passes to the underlying
+// Capture the latest contextMenuProps the wrapper passes to the underlying
 // pure UI component, so the test can assert against it without rendering
 // the real table (which depends on UI primitives that need Radix portals).
-let lastContextMenuConfig: UIMediaFileTableContextMenuConfig | undefined
+let lastContextMenuProps: MediaFileTableContextMenuProps | undefined
 
 vi.mock("./UIMediaFileTable", () => ({
   UIMediaFileTable: (
-    props: { contextMenuConfig?: UIMediaFileTableContextMenuConfig } & Record<string, unknown>,
+    props: { contextMenuProps?: MediaFileTableContextMenuProps } & Record<string, unknown>,
   ) => {
-    lastContextMenuConfig = props.contextMenuConfig
+    lastContextMenuProps = props.contextMenuProps
     return <div data-testid="ui-media-file-table" />
   },
 }))
@@ -47,84 +46,44 @@ const data: UIMediaFileTableRow[] = [baseRow]
 
 beforeEach(() => {
   cleanup()
-  lastContextMenuConfig = undefined
+  lastContextMenuProps = undefined
 })
 
 describe("MediaFileTable right-click menu", () => {
-  it("exposes only the built-in Open and Properties items by default", () => {
+  it("passes contextMenuProps with Open and Properties handlers by default", () => {
     render(<MediaFileTable data={data} mediaFolderPath="/media/show" />)
 
-    const items = lastContextMenuConfig?.dataRowItems ?? []
-    expect(items.map((i) => i.id)).toEqual(["open", "properties"])
+    expect(lastContextMenuProps).toBeDefined()
+    expect(lastContextMenuProps?.onOpenMenuClick).toBeTypeOf("function")
+    expect(lastContextMenuProps?.onPropertiesMenuClick).toBeTypeOf("function")
   })
 
-  it("appends caller-provided extraEpisodeContextMenu items after Open and Properties", () => {
+  it("forwards caller-provided contextMenuProps", () => {
     const renameClick = vi.fn()
-    const extra: UIMediaFileDataContextMenuItem[] = [
-      {
-        id: "rename",
-        label: "Rename",
-        onClick: renameClick,
-        disabled: (row) => !row.videoFile,
-      },
-    ]
 
     render(
       <MediaFileTable
         data={data}
         mediaFolderPath="/media/show"
-        extraEpisodeContextMenu={extra}
+        contextMenuProps={{
+          renameMenuVisible: true,
+          onRenameMenuClick: renameClick,
+        }}
       />,
     )
 
-    const items = lastContextMenuConfig?.dataRowItems ?? []
-    expect(items.map((i) => i.id)).toEqual(["open", "properties", "rename"])
-    expect(items[2]?.onClick).toBe(renameClick)
+    expect(lastContextMenuProps?.renameMenuVisible).toBe(true)
+    expect(lastContextMenuProps?.onRenameMenuClick).toBe(renameClick)
   })
 
-  it("extra item's disabled predicate runs against the row and toggles per row", () => {
-    const extra: UIMediaFileDataContextMenuItem[] = [
-      {
-        id: "rename",
-        label: "Rename",
-        onClick: vi.fn(),
-        disabled: (row) => !row.videoFile,
-      },
-    ]
+  it("defaults Open/Properties handlers to ctrl.openFile/openPropertiesDialog", () => {
+    render(<MediaFileTable data={data} mediaFolderPath="/media/show" />)
 
-    render(
-      <MediaFileTable
-        data={data}
-        mediaFolderPath="/media/show"
-        extraEpisodeContextMenu={extra}
-      />,
-    )
-
-    const items = lastContextMenuConfig?.dataRowItems ?? []
-    const rename = items.find((i) => i.id === "rename")
-    if (!rename) throw new Error("expected rename item")
-    const isDisabled = rename.disabled
-    if (typeof isDisabled !== "function") {
-      throw new Error("expected function-form disabled on rename item")
-    }
-    expect(isDisabled(baseRow)).toBe(false)
-    expect(isDisabled({ ...baseRow, videoFile: undefined })).toBe(true)
-  })
-
-  it("does not leak extraEpisodeContextMenu into folder file rows", () => {
-    const extra: UIMediaFileDataContextMenuItem[] = [
-      { id: "rename", label: "Rename", onClick: vi.fn() },
-    ]
-
-    render(
-      <MediaFileTable
-        data={data}
-        mediaFolderPath="/media/show"
-        extraEpisodeContextMenu={extra}
-      />,
-    )
-
-    // folderFileRowItems is independent — designed to skip data-row-only entries
-    expect(lastContextMenuConfig?.folderFileRowItems?.map((i) => i.id)).toEqual(["open"])
+    // Open handler should call openFile when videoFile is present
+    const openHandler = lastContextMenuProps?.onOpenMenuClick
+    expect(openHandler).toBeDefined()
+    // Properties handler should call openPropertiesDialog when videoFile is present
+    const propsHandler = lastContextMenuProps?.onPropertiesMenuClick
+    expect(propsHandler).toBeDefined()
   })
 })

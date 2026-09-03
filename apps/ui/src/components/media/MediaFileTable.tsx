@@ -1,10 +1,7 @@
-import { useMemo, type ReactNode } from "react"
-import { useTranslation } from "@/lib/i18n"
+import { type ReactNode, useMemo } from "react"
 import { UIMediaFileTable } from "./UIMediaFileTable"
 import type {
-  UIMediaFileDataContextMenuItem,
-  UIMediaFileFolderContextMenuItem,
-  UIMediaFileTableContextMenuConfig,
+  MediaFileTableContextMenuProps,
   UIMediaFileDataRow,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
@@ -22,6 +19,9 @@ import { useMediaFileTableController } from "./useMediaFileTableController"
 export interface MediaFileTableProps {
   seasonData?: MediaFileTableSeasonData[],
   metadataFiles?: MetadataFiles,
+  subtitleFiles?: { season: number, episode: number, files: string[] }[],
+  nfoFiles?: { season: number, episode: number, files: string[] }[],
+  thumbnailFiles?: { season: number, episode: number, files: string[] }[],
   data: UIMediaFileTableRow[]
   /** When set, relative file paths are resolved against this base before opening. */
   mediaFolderPath?: string
@@ -52,19 +52,18 @@ export interface MediaFileTableProps {
    */
   renderPreviewContent?: (row: UIMediaFileDataRow) => ReactNode
   /**
-   * Extra data-row context menu items appended after the built-in "Open" and
-   * "Properties" entries. Use this for panel-private actions (e.g. TvShow
-   * and Movie panels inject their "Rename" item here) so `MediaFileTable`
-   * stays free of panel-specific business logic.
+   * Right-click context menu props forwarded to `UIMediaFileTable`.
+   * `UIMediaFileTable` hardcodes the menu items and uses these props to
+   * control visibility / disabled / callbacks.
    */
-  extraEpisodeContextMenu?: UIMediaFileDataContextMenuItem[]
+  contextMenuProps?: MediaFileTableContextMenuProps
 }
 
 /**
  * Business-logic wrapper around `UIMediaFileTable`. Provides:
  *  - "Open" context menu item → `openFile` API
  *  - "Properties" context menu item → `MediaFilePropertyDialog`
- *  - caller-supplied extra items via `extraEpisodeContextMenu`
+ *  - caller-supplied extra items via `contextMenuProps`
  *  - row double-click → `openFile` API
  *
  * The right-click menu and double-click behavior are owned by this component;
@@ -75,6 +74,9 @@ export function MediaFileTable(props: MediaFileTableProps) {
     data,
     seasonData,
     metadataFiles,
+    subtitleFiles,
+    nfoFiles,
+    thumbnailFiles,
     mediaFolderPath,
     preview,
     previewStatus,
@@ -82,54 +84,31 @@ export function MediaFileTable(props: MediaFileTableProps) {
     onCheck,
     selectedEpisodes,
     renderPreviewContent,
-    extraEpisodeContextMenu,
+    contextMenuProps: contextMenuPropsProp,
   } = props
 
-  const { t } = useTranslation("components")
   const ctrl = useMediaFileTableController(mediaFolderPath)
 
-  const contextMenuConfig = useMemo<UIMediaFileTableContextMenuConfig>(() => {
-    const dataRowItems: UIMediaFileDataContextMenuItem[] = [
-      {
-        id: "open",
-        label: t("mediaFileTable.contextMenu.open"),
-        onClick: (row) => {
-          if (row.videoFile) ctrl.openFile(row.videoFile)
-        },
-        disabled: (row) => !row.videoFile,
-      },
-      {
-        id: "properties",
-        label: t("mediaFileTable.contextMenu.properties"),
-        onClick: (row) => {
-          if (row.videoFile) ctrl.openPropertiesDialog(row.videoFile)
-        },
-        disabled: (row) => !row.videoFile,
-      },
-      ...(extraEpisodeContextMenu ?? []),
-    ]
-
-    const folderFileRowItems: UIMediaFileFolderContextMenuItem[] = [
-      {
-        id: "open",
-        label: t("mediaFileTable.contextMenu.open"),
-        onClick: (row) => {
-          if (row.path) ctrl.openFile(row.path)
-        },
-        disabled: (row) => !row.path,
-      },
-    ]
-
-    return { dataRowItems, folderFileRowItems }
-  }, [ctrl, t, extraEpisodeContextMenu])
+  const contextMenuProps = useMemo<MediaFileTableContextMenuProps>(() => ({
+    ...contextMenuPropsProp,
+    onOpenMenuClick: contextMenuPropsProp?.onOpenMenuClick ?? ((row) => {
+      if (row.videoFile) ctrl.openFile(row.videoFile)
+    }),
+    onPropertiesMenuClick: contextMenuPropsProp?.onPropertiesMenuClick ?? ((row) => {
+      if (row.videoFile) ctrl.openPropertiesDialog(row.videoFile)
+    }),
+  }), [contextMenuPropsProp, ctrl])
 
   return (
     <UIMediaFileTable
       data={data}
       seasonData={seasonData}
       metadataFiles={metadataFiles}
+      subtitleFiles={subtitleFiles}
+      nfoFiles={nfoFiles}
+      thumbnailFiles={thumbnailFiles}
       mediaFolderPath={mediaFolderPath}
-      contextMenuConfig={contextMenuConfig}
+      contextMenuProps={contextMenuProps}
       preview={preview}
       previewStatus={previewStatus}
       layout={layout}
