@@ -79,7 +79,7 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      <RuleBasedRenameFilePrompt
+      {/* <RuleBasedRenameFilePrompt
         isOpen={appRenamePlan !== undefined}
         namingRuleOptions={renameToolbarOptions}
         selectedNamingRule={selectedNamingRule}
@@ -100,7 +100,7 @@ export function TvShowPanelPrompts() {
             await onAppRenameCancel(appRenamePlan.id)
           }
         }}
-      />
+      /> */}
 
       <AiBasedRenameFilePrompt
         isOpen={aiRenamePlan !== undefined}

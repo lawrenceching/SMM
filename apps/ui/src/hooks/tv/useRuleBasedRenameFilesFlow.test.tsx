@@ -3,23 +3,27 @@ import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { useRuleBasedRenameFilesFlow } from "./useRuleBasedRenameFilesFlow"
-import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
-import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import type { MediaMetadata } from "@smm/types"
 
 const {
   toastErrorMock,
-  tryToRenameEpisodesMock,
-  rejectPlanMock,
-  applyPlanMock,
-  fetchMediaMetadataMock,
-} = vi.hoisted(() => ({
-  toastErrorMock: vi.fn(),
-  tryToRenameEpisodesMock: vi.fn(),
-  rejectPlanMock: vi.fn(),
-  applyPlanMock: vi.fn(),
-  fetchMediaMetadataMock: vi.fn(),
-}))
+  tryToRenameEpisodesMutationMock,
+  rejectPlanMutationMock,
+  applyPlanMutationMock,
+} = vi.hoisted(() => {
+  const makeMutation = () => ({
+    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+  })
+  return {
+    toastErrorMock: vi.fn(),
+    tryToRenameEpisodesMutationMock: makeMutation(),
+    rejectPlanMutationMock: makeMutation(),
+    applyPlanMutationMock: makeMutation(),
+  }
+})
 
 vi.mock("sonner", () => ({
   toast: {
@@ -28,22 +32,16 @@ vi.mock("sonner", () => ({
   },
 }))
 
-vi.mock("@/api/tryToRenameEpisodes", () => ({
-  tryToRenameEpisodes: (...args: unknown[]) => tryToRenameEpisodesMock(...args),
+vi.mock("@/hooks/plans/useTryToRenameEpisodesMutation", () => ({
+  useTryToRenameEpisodesMutation: () => tryToRenameEpisodesMutationMock,
 }))
 
-vi.mock("@/api/rejectPlan", () => ({
-  rejectPlan: (...args: unknown[]) => rejectPlanMock(...args),
+vi.mock("@/hooks/plans/useRejectPlanMutation", () => ({
+  useRejectPlanMutation: () => rejectPlanMutationMock,
 }))
 
-vi.mock("@/api/applyPlan", () => ({
-  applyPlan: (...args: unknown[]) => applyPlanMock(...args),
-}))
-
-vi.mock("@/hooks/mediaMetadata/useFetchMediaMetadataMutation", () => ({
-  useFetchMediaMetadataMutation: () => ({
-    mutateAsync: fetchMediaMetadataMock,
-  }),
+vi.mock("@/hooks/plans/useApplyPlanMutation", () => ({
+  useApplyPlanMutation: () => applyPlanMutationMock,
 }))
 
 vi.mock("@/lib/i18n", () => ({
@@ -54,14 +52,14 @@ vi.mock("@/lib/i18n", () => ({
 
 describe("useRuleBasedRenameFilesFlow", () => {
   const mediaFolderPath = "/storage/Users/currentUser/Download/Anime/show"
-  const pendingPlan: UIRenameFilesPlan = {
+  const pendingPlan = {
     id: "plan-1",
     task: "rename-files",
     status: "pending",
     creator: "app",
     mediaFolderPath,
     files: [{ from: `${mediaFolderPath}/S01E01.mkv`, to: `${mediaFolderPath}/plex.mkv` }],
-  }
+  } as const
 
   const mediaMetadata = {
     mediaFolderPath,
@@ -77,136 +75,246 @@ describe("useRuleBasedRenameFilesFlow", () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
+  const renderFlow = () =>
+    renderHook(() => useRuleBasedRenameFilesFlow({ mediaMetadata }), { wrapper })
+
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     })
     vi.clearAllMocks()
-    tryToRenameEpisodesMock.mockResolvedValue({ data: { plan: pendingPlan } })
-    rejectPlanMock.mockResolvedValue({ data: { plan: { ...pendingPlan, status: "rejected" } } })
-    applyPlanMock.mockResolvedValue({ data: { id: pendingPlan.id } })
-    fetchMediaMetadataMock.mockResolvedValue(mediaMetadata)
+    tryToRenameEpisodesMutationMock.mutateAsync.mockResolvedValue(pendingPlan)
+    rejectPlanMutationMock.mutateAsync.mockResolvedValue(null)
+    applyPlanMutationMock.mutateAsync.mockResolvedValue(null)
+    tryToRenameEpisodesMutationMock.isPending = false
   })
 
-  it("startRenameFlow calls try-to-rename-episodes with the default rule", async () => {
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRenameFilesFlow({
-          plans: [],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+  it("start calls try-to-rename-episodes with the default rule", async () => {
+    const { result } = renderFlow()
 
     act(() => {
-      result.current.startRenameFlow()
+      result.current.start()
     })
 
     await waitFor(() => {
-      expect(tryToRenameEpisodesMock).toHaveBeenCalledWith({
+      expect(tryToRenameEpisodesMutationMock.mutateAsync).toHaveBeenCalledWith({
         mediaFolderPath,
         rule: "plex",
       })
     })
-    expect(rejectPlanMock).not.toHaveBeenCalled()
+    expect(rejectPlanMutationMock.mutateAsync).not.toHaveBeenCalled()
+    expect(result.current.open).toBe(true)
   })
 
   it("shows failure toast when try-to-rename-episodes fails", async () => {
-    tryToRenameEpisodesMock.mockResolvedValue({ error: "Error Reason: boom" })
+    tryToRenameEpisodesMutationMock.mutateAsync.mockRejectedValue(new Error("boom"))
 
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRenameFilesFlow({
-          plans: [],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+    const { result } = renderFlow()
 
     act(() => {
-      result.current.startRenameFlow()
+      result.current.start()
     })
 
     await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith("Error Reason: boom")
+      expect(toastErrorMock).toHaveBeenCalledWith("Rename failed. Please try again.")
     })
   })
 
   it("switches naming rule via reject-plan then try-to-rename-episodes", async () => {
-    const embyPlan: UIRenameFilesPlan = {
+    const embyPlan = {
       ...pendingPlan,
       id: "plan-2",
       files: [{ from: `${mediaFolderPath}/S01E01.mkv`, to: `${mediaFolderPath}/emby.mkv` }],
     }
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [pendingPlan])
-    tryToRenameEpisodesMock.mockResolvedValue({ data: { plan: embyPlan } })
+    tryToRenameEpisodesMutationMock.mutateAsync
+      .mockResolvedValueOnce(pendingPlan)
+      .mockResolvedValueOnce(embyPlan)
 
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRenameFilesFlow({
-          plans: [pendingPlan],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+    const { result } = renderFlow()
 
     await act(async () => {
-      await result.current.onNamingRuleSelected("emby")
+      await result.current.start()
     })
 
-    expect(rejectPlanMock).toHaveBeenCalledWith({ id: "plan-1" })
-    expect(tryToRenameEpisodesMock).toHaveBeenCalledWith({
+    await act(async () => {
+      await result.current.selectNamingRule("emby")
+    })
+
+    expect(rejectPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+    })
+    expect(tryToRenameEpisodesMutationMock.mutateAsync).toHaveBeenLastCalledWith({
       mediaFolderPath,
       rule: "emby",
     })
+    expect(result.current.plan?.id).toBe("plan-2")
   })
 
-  it("confirm calls apply-plan and refreshes media metadata", async () => {
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [pendingPlan])
-
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRenameFilesFlow({
-          plans: [pendingPlan],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+  it("confirm calls apply-plan without manual metadata fetch", async () => {
+    const { result } = renderFlow()
 
     await act(async () => {
-      await result.current.onConfirm("plan-1")
+      await result.current.start()
     })
 
-    expect(applyPlanMock).toHaveBeenCalledWith({ id: "plan-1" })
-    expect(fetchMediaMetadataMock).toHaveBeenCalledWith({ path: mediaFolderPath })
+    await act(async () => {
+      await result.current.confirm([`${mediaFolderPath}/S01E01.mkv`])
+    })
+
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+      files: [`${mediaFolderPath}/S01E01.mkv`],
+    })
+    expect(result.current.open).toBe(false)
   })
 
-  it("cancel calls reject-plan", async () => {
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [pendingPlan])
-
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRenameFilesFlow({
-          plans: [pendingPlan],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
+  it("Start to rename and then cancel", async () => {
+    // Step 1: start — mutation in flight → loading is true, dialog open
+    let resolveTryToRename: (plan: typeof pendingPlan) => void = () => {}
+    tryToRenameEpisodesMutationMock.mutateAsync.mockImplementation(
+      () => new Promise<typeof pendingPlan>((resolve) => { resolveTryToRename = resolve }),
     )
+    tryToRenameEpisodesMutationMock.isPending = true
 
-    await act(async () => {
-      await result.current.onCancel("plan-1")
+    const { result } = renderFlow()
+
+    act(() => {
+      result.current.start()
     })
 
-    expect(rejectPlanMock).toHaveBeenCalledWith({ id: "plan-1" })
+    expect(result.current.open).toBe(true)
+    expect(tryToRenameEpisodesMutationMock.mutateAsync).toHaveBeenCalledWith({
+      mediaFolderPath,
+      rule: "plex",
+    })
+    expect(result.current.loading).toBe(true)
+
+    // Step 2: mutation succeeds → loading false, plan assigned
+    await act(async () => {
+      tryToRenameEpisodesMutationMock.isPending = false
+      resolveTryToRename(pendingPlan)
+    })
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.plan).toEqual(pendingPlan)
+
+    // Step 3: cancel — dialog closed, pending plan rejected, mutations reset
+    await act(async () => {
+      await result.current.cancel()
+    })
+
+    expect(result.current.open).toBe(false)
+    expect(rejectPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+    })
+    expect(tryToRenameEpisodesMutationMock.reset).toHaveBeenCalled()
+    expect(rejectPlanMutationMock.reset).toHaveBeenCalled()
+    expect(applyPlanMutationMock.reset).toHaveBeenCalled()
+    expect(result.current.plan).toBeUndefined()
+  })
+
+  it("Start to rename, switch naming rule to Emby, then confirm", async () => {
+    const embyPlan = {
+      ...pendingPlan,
+      id: "plan-2",
+      files: [{ from: `${mediaFolderPath}/S01E01.mkv`, to: `${mediaFolderPath}/emby.mkv` }],
+    }
+    tryToRenameEpisodesMutationMock.mutateAsync
+      .mockResolvedValueOnce(pendingPlan)
+      .mockResolvedValueOnce(embyPlan)
+
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.selectNamingRule("emby")
+    })
+
+    expect(result.current.plan?.id).toBe("plan-2")
+
+    await act(async () => {
+      await result.current.confirm([`${mediaFolderPath}/S01E01.mkv`])
+    })
+
+    expect(rejectPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+    })
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-2",
+      mediaFolderPath,
+      files: [`${mediaFolderPath}/S01E01.mkv`],
+    })
+    expect(result.current.open).toBe(false)
+    expect(result.current.plan).toBeUndefined()
+    expect(toastErrorMock).not.toHaveBeenCalled()
+  })
+
+  it("Start to rename but try-to-rename API fails", async () => {
+    tryToRenameEpisodesMutationMock.mutateAsync.mockRejectedValue(new Error("boom"))
+
+    const { result } = renderFlow()
+
+    act(() => {
+      result.current.start()
+    })
+
+    await waitFor(() => {
+      expect(toastErrorMock).toHaveBeenCalledWith("Rename failed. Please try again.")
+    })
+
+    expect(result.current.open).toBe(true)
+    expect(result.current.plan).toBeUndefined()
+    expect(rejectPlanMutationMock.mutateAsync).not.toHaveBeenCalled()
+  })
+
+  it("Start to rename and then confirm", async () => {
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.confirm()
+    })
+
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+      files: undefined,
+    })
+    expect(result.current.open).toBe(false)
+    expect(result.current.plan).toBeUndefined()
+    expect(toastErrorMock).not.toHaveBeenCalled()
+  })
+
+  it("Start to rename, confirm but apply-plan API fails", async () => {
+    applyPlanMutationMock.mutateAsync.mockRejectedValue(new Error("boom"))
+
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.confirm()
+    })
+
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+      files: undefined,
+    })
+    expect(toastErrorMock).toHaveBeenCalledWith("Rename failed. Please try again.")
+    expect(result.current.open).toBe(true)
+    expect(result.current.plan).toEqual(pendingPlan)
   })
 })

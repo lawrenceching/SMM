@@ -81,7 +81,6 @@ sequenceDiagram
   W->>W: invalidate useMediaMetadataQuery
 ```
 
-
 ### UC2: Switch naming rule
 
 When user click the rename button
@@ -112,6 +111,61 @@ sequenceDiagram
   S->>C: applyPlan()
   W->>W: invalidate useMediaMetadataQuery
 ```
+
+
+### UC3: Rename selected episodes
+
+User want to rename only selected episodes
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant W as UI
+  participant S as Server
+  participant C as Core
+
+  U->>W: click rename button
+  W->>S: POST /api/try-to-rename-episodes
+  S->>C: tryToRenameEpisodes()
+  C->>S: plan id + data
+  S->>W: plan id + data
+  W->>U: display plan
+  U->>W: select partial episodes in UI
+  U->>W: click confirm button
+  W->>S: 1* POST /api/apply-plan with selected episode list
+  S->>C: 2* applyPlan(..., data: any)
+  W->>W: invalidate useMediaMetadataQuery
+```
+
+1*:
+```
+POST /api/apply-plan
+{
+  data: {
+    files: [
+      '/path/to/file1',
+      '/path/to/file2',
+      '/path/to/file3',
+    ]
+  }
+}
+```
+
+RenameFilesPlan maintains a list of `{from: string, to: string}`
+The "files" represent the "from" file that needs to apply.
+
+Needs to add new validatin that files are in `from` list. If some files is not in "from" list. Throw the error in ProblemDetails format.
+
+2*: How to handle applyPlan() request with selected file list.
+applyPlan() is general interface for all plan. the `data: any` argument carries selected files list.
+Core module needs to reject the original plan(because there is no partial-approved status for a plan. We cannot apply some of rename intention and mark the plan is approved/done ).
+And then create a new plan with only selected files.
+
+In disk,
+If caller apply plan without selected file list, there is ONLY one plan file.
+If caller apply plan with selected file list, there are 2 plan file, one is rejected, another one is approved.
+
+
 
 ## MCP Tool and AI Tool
 

@@ -250,6 +250,7 @@ export function MediaFileTableNameValueRow({
   value,
   hoverTitle,
   className,
+  showCheckboxColumn = false,
 }: {
   /** Row label shown in the ID column (e.g. "subtitle"). */
   name: string
@@ -258,12 +259,14 @@ export function MediaFileTableNameValueRow({
   /** Tooltip text shown when hovering the value. */
   hoverTitle?: string
   className?: string
+  /** Render a leading empty checkbox spacer cell (keeps columns aligned when the table shows a checkbox column). */
+  showCheckboxColumn?: boolean
 }) {
 
   return (
     <MediaFileTableTr className={className}>
       <MediaFileTableRowCells
-        layout={nameValueRowSimpleLayout}
+        layout={{ ...nameValueRowSimpleLayout, showCheckboxColumn }}
         idContent={name}
         videoContent={<span title={hoverTitle ?? value}>{value}</span>}
         thumbnailContent={<UICheckCell value={undefined} />}
@@ -780,10 +783,12 @@ export interface MediaFileTableEpisodeSimpleRowProps {
   nfoPath?: string,
   isChecked?: boolean,
   isDisabled?: boolean,
+  isCheckboxDisabled?: boolean,
   newFilePath?: string,
   newRecognizedFilePath?: string
   onCheck?: (isChecked: boolean) => void,
   onDoubleClick?: () => void,
+  checboxVisible?: boolean,
 }
 
 /**
@@ -818,6 +823,7 @@ export function MediaFileTableEpisodeSimpleRow({
   nfoPath,
   isChecked = false,
   isDisabled = false,
+  isCheckboxDisabled = false,
   newFilePath = undefined,
   newRecognizedFilePath = undefined,
   onCheck = undefined,
@@ -826,9 +832,11 @@ export function MediaFileTableEpisodeSimpleRow({
   // layout; alias it out so it does not leak onto the `<tr>` as a native
   // tooltip via `...rowProps`.
   title: _title,
+  checboxVisible = false,
   ...rowProps
 }: MediaFileTableEpisodeSimpleRowProps) {
-  const showCheckbox = onCheck !== undefined
+  const showCheckbox = checboxVisible
+  const checkboxDisabled = isDisabled || isCheckboxDisabled
 
   const renameTarget =
     newFilePath !== undefined && newFilePath !== path ? newFilePath : undefined
@@ -856,12 +864,12 @@ export function MediaFileTableEpisodeSimpleRow({
             role="checkbox"
             className={cn(
               "h-3.5 w-3.5",
-              isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+              checkboxDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
             )}
-            checked={isDisabled ? false : isChecked}
-            disabled={isDisabled}
+            checked={checkboxDisabled ? false : isChecked}
+            disabled={checkboxDisabled}
             onChange={(e) => {
-              if (isDisabled) return
+              if (checkboxDisabled) return
               onCheck?.(e.target.checked)
             }}
           />
@@ -912,12 +920,15 @@ export function MediaFileTableEpisodeSimpleRow({
 function EpisodeRowCheckboxCell({
   isChecked,
   isDisabled,
+  isCheckboxDisabled = false,
   onCheck,
 }: {
   isChecked: boolean
   isDisabled: boolean
+  isCheckboxDisabled?: boolean
   onCheck?: (checked: boolean) => void
 }) {
+  const checkboxDisabled = isDisabled || isCheckboxDisabled
   return (
     <TableCell className="w-10 shrink-0 px-0 py-1 text-center align-middle">
       <input
@@ -925,12 +936,12 @@ function EpisodeRowCheckboxCell({
         role="checkbox"
         className={cn(
           "h-3.5 w-3.5",
-          isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+          checkboxDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
         )}
-        checked={isDisabled ? false : isChecked}
-        disabled={isDisabled}
+        checked={checkboxDisabled ? false : isChecked}
+        disabled={checkboxDisabled}
         onChange={(e) => {
-          if (isDisabled) return
+          if (checkboxDisabled) return
           onCheck?.(e.target.checked)
         }}
       />
@@ -953,6 +964,7 @@ export interface MediaFileTableEpisodeDetailRowProps {
   nfoPath?: string
   isChecked?: boolean
   isDisabled?: boolean
+  isCheckboxDisabled?: boolean
   onCheck?: (isChecked: boolean) => void
   onDoubleClick?: () => void
 }
@@ -983,6 +995,7 @@ export function MediaFileTableEpisodeDetailRow({
   nfoPath,
   isChecked = false,
   isDisabled = false,
+  isCheckboxDisabled = false,
   onCheck = undefined,
   onDoubleClick = undefined,
   ...rowProps
@@ -1001,6 +1014,7 @@ export function MediaFileTableEpisodeDetailRow({
         <EpisodeRowCheckboxCell
           isChecked={isChecked}
           isDisabled={isDisabled}
+          isCheckboxDisabled={isCheckboxDisabled}
           onCheck={onCheck}
         />
       )}
@@ -1066,6 +1080,7 @@ export interface MediaFileTableEpisodePreviewRowProps {
   nfoPath?: string
   isChecked?: boolean
   isDisabled?: boolean
+  isCheckboxDisabled?: boolean
   onCheck?: (isChecked: boolean) => void
   onDoubleClick?: () => void
 }
@@ -1096,6 +1111,7 @@ export function MediaFileTableEpisodePreviewRow({
   nfoPath,
   isChecked = false,
   isDisabled = false,
+  isCheckboxDisabled = false,
   onCheck = undefined,
   onDoubleClick = undefined,
   ...rowProps
@@ -1114,6 +1130,7 @@ export function MediaFileTableEpisodePreviewRow({
         <EpisodeRowCheckboxCell
           isChecked={isChecked}
           isDisabled={isDisabled}
+          isCheckboxDisabled={isCheckboxDisabled}
           onCheck={onCheck}
         />
       )}

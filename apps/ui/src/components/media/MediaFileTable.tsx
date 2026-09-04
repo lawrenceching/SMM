@@ -40,7 +40,7 @@ export interface MediaFileTableProps {
    */
   layout?: "simple" | "detail" | "preview"
   /** Checkbox state callback. Omit → checkbox column is hidden. */
-  onCheck?: (row: UIMediaFileDataRow, checked: boolean) => void
+  onCheck?: (season: number, episode: number, checked: boolean) => void
   /**
    * Controlled checkbox selection — which episodes are currently checked.
    * Omit → the underlying table manages the selection internally.
@@ -57,6 +57,8 @@ export interface MediaFileTableProps {
    * control visibility / disabled / callbacks.
    */
   contextMenuProps?: MediaFileTableContextMenuProps
+  newFilePaths?: { season: number, episode: number, newFilePath: string }[]
+  checboxVisible?: boolean
 }
 
 /**
@@ -85,6 +87,8 @@ export function MediaFileTable(props: MediaFileTableProps) {
     selectedEpisodes,
     renderPreviewContent,
     contextMenuProps: contextMenuPropsProp,
+    newFilePaths,
+    checboxVisible = false,
   } = props
 
   const ctrl = useMediaFileTableController(mediaFolderPath)
@@ -116,6 +120,8 @@ export function MediaFileTable(props: MediaFileTableProps) {
       selectedEpisodes={selectedEpisodes}
       renderPreviewContent={renderPreviewContent}
       onDoubleClick={ctrl.handleDoubleClick}
+      newFilePaths={newFilePaths}
+      checboxVisible={checboxVisible}
     />
   )
 }

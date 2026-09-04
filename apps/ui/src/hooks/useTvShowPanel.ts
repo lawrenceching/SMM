@@ -1,11 +1,14 @@
 import type { MetadataFiles } from "@smm/types/MetadataFiles";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMediaFolderFilesQuery } from "./useMediaFolderFilesQuery";
 import { useMediaMetadataQuery } from "./mediaMetadata";
 import { findFilesByExtensions } from "@/lib/music";
 import { extensions, imageFileExtensions, subtitleFileExtensions } from "@smm/types/mediaFileExtensions";
 import { basename, extname } from "@/lib/path";
 import type { MediaMetadata } from "@smm/types/types";
+import { usePlansQuery } from "./plans";
+import { Path } from "@smm/utils/path";
+import type { Plan } from "@/api/getPlans";
 
 const INIT_METADATA_FILES: MetadataFiles = {
     nfoPath: undefined,
@@ -57,7 +60,7 @@ export function findNfos(files: string[], videoFile: string): string[] {
     return files.filter(file => file === nfoFilePath)
 }
 
-export function useTvShowPanel(folderPath?: string) {
+export function useTvShowPanel(folderPath: string | undefined, plan: Plan | undefined) {
 
     if (folderPath === undefined) {
         return {
@@ -149,10 +152,51 @@ export function useTvShowPanel(folderPath?: string) {
 
     }, [metadataQuery.data, filesQuery.data])
 
+    const newFilePaths: { season: number, episode: number, newFilePath: string }[] = useMemo(() => {
+
+        if(plan === undefined) {
+            return [];
+        }
+
+        console.log(`Detected plan: `, plan)
+
+        if(plan.task === 'rename-files') {
+            return plan.files
+                .map(file => {
+
+                    // If rename-files plan is built wrongly
+                    // The plan may try to rename the episode that does not exist
+
+                    const episode = metadataQuery.data?.mediaFiles?.find(mediaFile => mediaFile.absolutePath === file.from)
+                    return {
+                        season: episode?.seasonNumber ?? -1,
+                        episode: episode?.episodeNumber ?? -1,
+                        newFilePath: file.to
+                    }
+                })
+                .filter(file => file.season !== -1 && file.episode !== -1)
+        }
+
+        if(plan.task === 'recognize-media-file') {
+            return plan.files.map(file => {
+                return {
+                    season: file.season,
+                    episode: file.episode,
+                    newFilePath: file.path
+                }
+            })
+        }
+
+        console.warn(`Unsupported type of plan: ${plan.task}`)
+        return [];
+
+    }, [plan, metadataQuery.data])
+
     return {
         metadataFiles,
         subtitleFiles,
         nfoFiles,
-        thumbnailFiles
+        thumbnailFiles,
+        newFilePaths,
     }
 }
