@@ -1,6 +1,7 @@
 import type { MediaMetadata } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import { applyRenameFilesPlanPipeline } from "./applyRenameFilesPlan";
+import { applySelectedRenameFilesPlanPipeline } from "./applySelectedRenameFilesPlan";
 import { deletePlan, type Plan } from "./plans";
 import { updateMediaFileMetadatas } from "./updateMediaFileMetadatas";
 
@@ -12,13 +13,24 @@ export interface ApplyPlanDeps {
   setMetadata: (mm: MediaMetadata) => Promise<void>;
 }
 
+export interface ApplyPlanData {
+  files?: string[];
+}
+
 /** Dispatches apply by plan task (recognize-media-file or rename-files). */
-export async function applyPlanPipeline(plan: Plan, deps: ApplyPlanDeps): Promise<void> {
+export async function applyPlanPipeline(
+  plan: Plan,
+  deps: ApplyPlanDeps,
+  data?: ApplyPlanData,
+): Promise<void> {
   const task = plan.task;
   if (task === "recognize-media-file") {
     return applyRecognizeMediaFilePlanPipeline(plan, deps);
   }
   if (task === "rename-files") {
+    if (Array.isArray(data?.files)) {
+      return applySelectedRenameFilesPlanPipeline(plan, data.files, deps);
+    }
     return applyRenameFilesPlanPipeline(plan, deps);
   }
   throw new Error(`Unsupported plan task: ${task}`);

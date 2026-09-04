@@ -7,6 +7,7 @@ import {
   applySelectedRenameFilesPlanPipeline,
   SelectedFilesNotInPlanError,
 } from "./applySelectedRenameFilesPlan";
+import { applyPlanPipeline } from "./applyPlan";
 
 const appDataDir = "/data";
 const folder = "/m/Show";
@@ -108,7 +109,7 @@ describe("applySelectedRenameFilesPlanPipeline", () => {
     expect(rejected.status).toBe("rejected");
 
     expect(deps.setMetadata).toHaveBeenCalledTimes(1);
-    const mm = deps.setMetadata.mock.calls[0][0] as MediaMetadata;
+    const mm = deps.setMetadata.mock.calls[0]![0] as MediaMetadata;
     expect(mm.mediaFiles?.map((f) => f.absolutePath)).toEqual([
       `${folder}/S01E01.mkv`,
       `${folder}/old2.mkv`,
@@ -153,5 +154,54 @@ describe("applySelectedRenameFilesPlanPipeline", () => {
     ).resolves.toBeUndefined();
 
     expect(fs.raw.has(`${folder}/S01E01.mkv`)).toBe(true);
+  });
+});
+
+describe("applyPlanPipeline dispatch with data", () => {
+  it("routes data.files to the selected pipeline", async () => {
+    const plan = basePlan();
+    const fs = seedFs(plan);
+    const deps = baseDeps(fs);
+
+    await applyPlanPipeline(plan, deps, { files: [`${folder}/old1.mkv`] });
+
+    expect(fs.raw.has(`${folder}/S01E01.mkv`)).toBe(true);
+    expect(fs.raw.has(`${folder}/S01E02.mkv`)).toBe(false);
+    const planFiles = [...fs.raw.keys()].filter((p) => p.endsWith(".plan.json"));
+    expect(planFiles).toEqual([planFilePath(appDataDir, "plan-1")]);
+  });
+
+  it("applies everything when data is absent", async () => {
+    const plan = basePlan();
+    const fs = seedFs(plan);
+    const deps = baseDeps(fs);
+
+    await applyPlanPipeline(plan, deps);
+
+    expect(fs.raw.has(`${folder}/S01E01.mkv`)).toBe(true);
+    expect(fs.raw.has(`${folder}/S01E02.mkv`)).toBe(true);
+    const planFiles = [...fs.raw.keys()].filter((p) => p.endsWith(".plan.json"));
+    expect(planFiles).toEqual([]);
+  });
+
+  it("ignores data for recognize-media-file plans", async () => {
+    const plan = {
+      id: "rec-1",
+      task: "recognize-media-file" as const,
+      status: "pending" as const,
+      creator: "app" as const,
+      mediaFolderPath: folder,
+      files: [{ season: 1, episode: 2, path: `${folder}/old1.mkv` }],
+    };
+    const fs = inMemoryFs({
+      [planFilePath(appDataDir, "rec-1")]: JSON.stringify(plan),
+      [`${folder}/old1.mkv`]: "v1",
+    });
+    const deps = baseDeps(fs);
+
+    await applyPlanPipeline(plan, deps, { files: [`${folder}/nope.mkv`] });
+
+    expect(deps.setMetadata).toHaveBeenCalledTimes(1);
+    expect(fs.raw.has(planFilePath(appDataDir, "rec-1"))).toBe(false);
   });
 });

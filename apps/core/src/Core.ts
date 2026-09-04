@@ -58,7 +58,7 @@ import {
   type RenameEpisodeFileInput,
   type RenameEpisodeFileResult,
 } from "./pipeline/renameEpisodeFile";
-import { applyPlanPipeline } from "./pipeline/applyPlan";
+import { applyPlanPipeline, type ApplyPlanData } from "./pipeline/applyPlan";
 import {
   listPlans,
   readPlan,
@@ -558,14 +558,18 @@ export class Core {
     return rejectPlan(this.fs, this.getMetadataRoot(), id);
   }
 
-  async applyPlan(plan: Plan): Promise<void> {
-    await applyPlanPipeline(plan, {
-      fs: this.fs,
-      appDataDir: this.getMetadataRoot(),
-      normalizePosix: (p) => this.normalizePosix(p),
-      setMetadata: (mm) => this.writeMetadata(mm),
-      getMediaMetadata: (folder) => this.readMetadata(folder),
-    });
+  async applyPlan(plan: Plan, data?: ApplyPlanData): Promise<void> {
+    await applyPlanPipeline(
+      plan,
+      {
+        fs: this.fs,
+        appDataDir: this.getMetadataRoot(),
+        normalizePosix: (p) => this.normalizePosix(p),
+        setMetadata: (mm) => this.writeMetadata(mm),
+        getMediaMetadata: (folder) => this.readMetadata(folder),
+      },
+      data,
+    );
   }
 
   async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {
