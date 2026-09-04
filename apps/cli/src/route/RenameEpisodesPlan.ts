@@ -239,11 +239,11 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const ok: ApplyPlanResponseBody = { data: { id: plan.id } }
       return c.json(ok, 200)
     } catch (error) {
-      logger.error({ error }, '[POST /api/apply-plan] route error')
       if (error instanceof SelectedFilesNotInPlanError) {
         const problem = problemDetails(error.message)
         return c.json(problem, 400, { 'Content-Type': 'application/problem+json' })
       }
+      logger.error({ error }, '[POST /api/apply-plan] route error')
       const err: ApplyPlanResponseBody = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }
