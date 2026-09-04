@@ -1,5 +1,7 @@
 # UC3 Apply Plan With Selected Episodes (Rename Selected Files)
 
+**Status**: Implemented (2026-09-04, commits caa77348..9db702eb)
+
 This design document describe the high level design of a feature.
 The design document is golden source and reference by one or more features.
 
