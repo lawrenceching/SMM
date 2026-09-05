@@ -167,6 +167,11 @@ export function UIMediaFileTableEpisodeBlock({
 
           const newFilePath: string | undefined = newFilePaths?.find((newFilePath) => newFilePath.season === season.season && newFilePath.episode === episode.episode)?.newFilePath
 
+          const isCheckboxDisabled = disableCheckboxIfEpisodeVideoNotAvailable && (
+            !newFilePath ||
+            newFilePath === episode.path
+          )
+
           return (
             <EpisodeContextMenu
               key={`season-${season.season}-episode-${episode.episode}`}
@@ -183,7 +188,7 @@ export function UIMediaFileTableEpisodeBlock({
                 thumbnailPath={thumbnailPath}
                 newFilePath={newFilePath === undefined ? undefined : rel(mediaFolderPath, newFilePath)}
                 checboxVisible={checboxVisible}
-                isCheckboxDisabled={disableCheckboxIfEpisodeVideoNotAvailable && !episode.path}
+                isCheckboxDisabled={isCheckboxDisabled}
                 onCheck={(isChecked) => onCheck?.(season.season, episode.episode, isChecked)}
                 isChecked={selectedEpisodes?.some((selectedEpisode) => selectedEpisode.season === season.season && selectedEpisode.episode === episode.episode)}
               />

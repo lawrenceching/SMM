@@ -1,39 +1,20 @@
 import { UseNfoPrompt } from "./UseNfoPrompt"
-import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
 import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
-import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
 import type { TMDBTVShow } from "@smm/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { useTvShowAppPlanPrompts } from "./plans/TvShowAppPlanPromptContext"
 
 export function TvShowPanelPrompts() {
   const {
-    appRenamePlan,
-    appRecognizePlan,
     aiRenamePlan,
     aiRenamePromptStatus,
     aiRecognizePlan,
     aiRecognizePromptStatus,
-    renameToolbarOptions,
-    selectedNamingRule,
-    setSelectedNamingRule,
-    onAppRenameNamingRuleSelected,
-    onAppRenameConfirm,
-    onAppRenameCancel,
     onAiRenameConfirm,
     onAiRenameCancel,
     onAiRecognizeConfirm,
     onAiRecognizeCancel,
-    onAppRecognizeConfirm,
-    onAppRecognizeCancel,
-    tvShowTitle,
-    tvShowTmdbId,
-    isRuleBasedRecognizeLoading,
-    notAllEpisodesRecognized,
-    allPlanFilesUnchanged,
-    allRenamePlanFilesUnchanged,
   } = useTvShowAppPlanPrompts()
 
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
@@ -79,29 +60,6 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      {/* <RuleBasedRenameFilePrompt
-        isOpen={appRenamePlan !== undefined}
-        namingRuleOptions={renameToolbarOptions}
-        selectedNamingRule={selectedNamingRule}
-        onNamingRuleChange={(value) => {
-          setSelectedNamingRule(value as "plex" | "emby")
-        }}
-        onNamingRulesSelected={(value) => {
-          void onAppRenameNamingRuleSelected(value as "plex" | "emby")
-        }}
-        isConfirmButtonDisabled={allRenamePlanFilesUnchanged}
-        onConfirm={async () => {
-          if (appRenamePlan) {
-            await onAppRenameConfirm(appRenamePlan.id)
-          }
-        }}
-        onCancel={async () => {
-          if (appRenamePlan) {
-            await onAppRenameCancel(appRenamePlan.id)
-          }
-        }}
-      /> */}
-
       <AiBasedRenameFilePrompt
         isOpen={aiRenamePlan !== undefined}
         status={aiRenamePromptStatus}
@@ -121,26 +79,6 @@ export function TvShowPanelPrompts() {
         }}
         onCancel={() => {
           void onAiRecognizeCancel()
-        }}
-      />
-
-      <RuleBasedRecognizePrompt
-        isOpen={appRecognizePlan !== undefined}
-        tvShowTitle={tvShowTitle}
-        tvShowTmdbId={tvShowTmdbId}
-        isLoading={isRuleBasedRecognizeLoading}
-        notAllEpisodesRecognized={notAllEpisodesRecognized}
-        allPlanFilesUnchanged={allPlanFilesUnchanged}
-        isConfirmButtonDisabled={isRuleBasedRecognizeLoading}
-        onConfirm={async () => {
-          if (appRecognizePlan) {
-            await onAppRecognizeConfirm(appRecognizePlan as UIRecognizeMediaFilePlan)
-          }
-        }}
-        onCancel={async () => {
-          if (appRecognizePlan) {
-            await onAppRecognizeCancel(appRecognizePlan.id)
-          }
         }}
       />
     </div>

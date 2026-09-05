@@ -22,10 +22,9 @@ import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
 import { renameFiles as renameFilesApi } from "@/api/renameFiles";
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { toast } from "sonner";
-import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodesUi";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -253,7 +252,7 @@ export function rebuildRenamePlanWithSelectedEpisodes(
     originalPlan: RenameFilesPlan,
     selectedEpisodePaths: string[]
 ): RenameFilesPlan {
-  
+
   return {
     ...originalPlan,
     files: originalPlan.files.filter(file => {
@@ -261,6 +260,49 @@ export function rebuildRenamePlanWithSelectedEpisodes(
     })
   }
 
+}
+
+/**
+ * RENAME flow: build the apply-plan `data.files` payload from the episode table.
+ * A rename plan only touches files that are already linked in metadata, so the
+ * table's current episode path (metadata.mediaFiles[...].absolutePath) is
+ * exactly the plan entry's `from`.
+ *
+ * Do NOT reuse this for the RECOGNIZE flow: recognize targets files that are
+ * not yet linked, whose table paths are `undefined` — the selection would
+ * silently shrink to the already-recognized files.
+ * See buildRecognizeApplySelectedFiles.
+ */
+export function buildRenameApplySelectedFiles(
+    seasonData: { episodes: { season: number; episode: number; path?: string }[] }[],
+    selectedEpisodes: { season: number; episode: number }[],
+): string[] {
+    const selectedSet = new Set(selectedEpisodes.map((e) => `${e.season}-${e.episode}`))
+    return seasonData
+        .flatMap((s) => s.episodes)
+        .flatMap((e) =>
+            e.path !== undefined && selectedSet.has(`${e.season}-${e.episode}`) ? [e.path] : [],
+        )
+}
+
+/**
+ * RECOGNIZE flow: build the apply-plan `data.files` payload from the PLAN itself.
+ * A recognize plan proposes season/episode for files that are usually NOT yet
+ * linked in metadata, so their episode-table paths are `undefined` and a
+ * table-based lookup would silently drop them from the selection. The checked
+ * (season, episode) pairs must therefore be mapped back to `plan.files[].path`,
+ * matching docs/dev/recognize-episodes.md:
+ * "data: { files } with the selected plan.files[].path entries".
+ */
+export function buildRecognizeApplySelectedFiles(
+    plan: RecognizeMediaFilePlan | undefined,
+    selectedEpisodes: { season: number; episode: number }[],
+): string[] {
+    if (plan === undefined) return []
+    const selectedSet = new Set(selectedEpisodes.map((e) => `${e.season}-${e.episode}`))
+    return plan.files
+        .filter((f) => selectedSet.has(`${f.season}-${f.episode}`))
+        .map((f) => f.path)
 }
 
 /**
@@ -947,44 +989,6 @@ export async function executeRenamePlan(
  * @returns A partial recognition plan with file mappings, or null if no files found
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
-export async function buildTemporaryRecognitionPlanAsync(
-  mediaMetadata: MediaMetadata,
-  folderFiles: string[],
-): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
-  console.log("[recognize] build temporary plan started", {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    fileCount: folderFiles.length,
-    tvShowId: mediaMetadata.tvShow?.id,
-  })
-
-  if (!mediaMetadata.mediaFolderPath || folderFiles.length === 0 || !mediaMetadata.tvShow) {
-    console.warn("[recognize] build temporary plan aborted: missing prerequisites", {
-      hasMediaFolderPath: !!mediaMetadata.mediaFolderPath,
-      hasFiles: folderFiles.length > 0,
-      hasTvShow: !!mediaMetadata.tvShow,
-    })
-    return null
-  }
-
-  const collected = await recognizeEpisodesAsync(mediaMetadata, folderFiles);
-
-  console.log("[recognize] build temporary plan completed", {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    recognizedCount: collected.length,
-  })
-
-  return {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    files: collected.map(({ season, episode, file }) => ({
-      season,
-      episode,
-      path: file,
-    }))
-  }
-}
-
-
-
 
 export interface OnMediaFolderSelectedParams {
   mediaMetadata: MediaMetadata

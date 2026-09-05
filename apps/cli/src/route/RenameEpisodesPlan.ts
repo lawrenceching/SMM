@@ -8,6 +8,7 @@ import {
 } from '@smm/types/event-types'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { SelectedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRenameFilesPlan'
+import { RecognizedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRecognizeFilesPlan'
 import type { ProblemDetails } from '@smm/types'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
@@ -239,7 +240,10 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const ok: ApplyPlanResponseBody = { data: { id: plan.id } }
       return c.json(ok, 200)
     } catch (error) {
-      if (error instanceof SelectedFilesNotInPlanError) {
+      if (
+        error instanceof SelectedFilesNotInPlanError ||
+        error instanceof RecognizedFilesNotInPlanError
+      ) {
         const problem = problemDetails(error.message)
         return c.json(problem, 400, { 'Content-Type': 'application/problem+json' })
       }

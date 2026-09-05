@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, buildTemporaryRecognitionPlanAsync, tryToRecognizeTvShowFolderByNFO, unlinkEpisode } from './TvShowPanelUtils'
+import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, tryToRecognizeTvShowFolderByNFO, unlinkEpisode, buildRenameApplySelectedFiles, buildRecognizeApplySelectedFiles } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@smm/types'
 import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'
 import { toast } from 'sonner'
@@ -1051,98 +1052,6 @@ describe('buildTmdbEpisodeByNFO', () => {
   })
 })
 
-describe('buildTemporaryRecognitionPlanAsync', () => {
-  const tvShowWithS1E1 = {
-    id: '1',
-    name: 'Show',
-    database: 'TMDB' as const,
-    seasons: [
-      {
-        season: 1,
-        name: '',
-        episodes: [{ season: 1, episode: 1, name: '' }],
-      },
-    ],
-  }
-
-  it('returns null when mediaFolderPath is missing', async () => {
-    const mm: MediaMetadata = {
-      mediaFolderPath: undefined,
-      files: ['/media/S01E01.mkv'],
-      tvShow: tvShowWithS1E1,
-    }
-    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
-    expect(result).toBeNull()
-  })
-
-  it('returns null when files is missing', async () => {
-    const mm: MediaMetadata = {
-      mediaFolderPath: '/media',
-      files: undefined,
-      tvShow: tvShowWithS1E1,
-    }
-    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
-    expect(result).toBeNull()
-  })
-
-  it('returns null when tvShow is missing', async () => {
-    const mm: MediaMetadata = {
-      mediaFolderPath: '/media',
-      files: ['/media/S01E01.mkv'],
-      tvShow: undefined,
-    }
-    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
-    expect(result).toBeNull()
-  })
-
-  it('returns plan with empty files when no files are recognized', async () => {
-    const mm: MediaMetadata = {
-      mediaFolderPath: '/media',
-      files: ['/media/other.mkv'],
-      tvShow: {
-        id: '1',
-        name: 'Show',
-        database: 'TMDB',
-        seasons: [{ season: 1, name: '', episodes: [{ season: 1, episode: 1, name: '' }] }],
-      },
-    }
-    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
-    expect(result).not.toBeNull()
-    expect(result!.mediaFolderPath).toBe('/media')
-    expect(result!.files).toHaveLength(0)
-  })
-
-  it('returns plan with files and mediaFolderPath when recognizeEpisodes returns matches', async () => {
-    const mediaFolderPath = '/media/show'
-    const mm: MediaMetadata = {
-      mediaFolderPath,
-      files: ['/media/show/S01E01.mkv', '/media/show/S01E02.mkv'],
-      tvShow: {
-        id: '1',
-        name: 'Show',
-        database: 'TMDB',
-        seasons: [
-          {
-            season: 1,
-            name: '',
-            episodes: [
-              { season: 1, episode: 1, name: '' },
-              { season: 1, episode: 2, name: '' },
-            ],
-          },
-        ],
-      },
-    }
-    const result = await buildTemporaryRecognitionPlanAsync(mm, mm.files ?? [])
-    expect(result).not.toBeNull()
-    expect(result!.mediaFolderPath).toBe(mediaFolderPath)
-    expect(result!.files).toHaveLength(2)
-    expect(result!.files).toContainEqual({ season: 1, episode: 1, path: '/media/show/S01E01.mkv' })
-    expect(result!.files).toContainEqual({ season: 1, episode: 2, path: '/media/show/S01E02.mkv' })
-  })
-})
-
-
 describe('tryToRecognizeTvShowFolderByNFO', () => {
   it('should handle parseEpisodeNfo error and return mediaMetadata with valid tvShow', async () => {
     const tvshowNfoXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -1319,5 +1228,90 @@ describe('unlinkEpisode', () => {
     })
     const [, metadata] = mockUpdateMediaMetadata.mock.calls[0]
     expect(metadata.mediaFiles).toHaveLength(0)
+  })
+})
+
+describe('buildRenameApplySelectedFiles', () => {
+  const seasonData = [
+    {
+      season: 1,
+      title: 'Season 1',
+      episodes: [
+        { season: 1, episode: 1, title: 'E1', path: '/show/S01E01.mkv' },
+        { season: 1, episode: 2, title: 'E2', path: '/show/S01E02.mkv' },
+        { season: 1, episode: 3, title: 'E3', path: undefined },
+      ],
+    },
+  ]
+
+  it('returns table paths of checked episodes', () => {
+    const result = buildRenameApplySelectedFiles(seasonData, [
+      { season: 1, episode: 1 },
+      { season: 1, episode: 2 },
+    ])
+    expect(result).toEqual(['/show/S01E01.mkv', '/show/S01E02.mkv'])
+  })
+
+  it('excludes unchecked episodes', () => {
+    const result = buildRenameApplySelectedFiles(seasonData, [{ season: 1, episode: 2 }])
+    expect(result).toEqual(['/show/S01E02.mkv'])
+  })
+
+  it('skips checked episodes whose table path is undefined', () => {
+    const result = buildRenameApplySelectedFiles(seasonData, [{ season: 1, episode: 3 }])
+    expect(result).toEqual([])
+  })
+
+  it('returns empty array for empty selection', () => {
+    expect(buildRenameApplySelectedFiles(seasonData, [])).toEqual([])
+  })
+})
+
+describe('buildRecognizeApplySelectedFiles', () => {
+  // Regression scenario from server.log/browser.log (2026-09-05): the plan
+  // proposes S01E01 + S01E02, but metadata only links S01E01. The checked
+  // episodes must map to PLAN paths — the old table-based lookup silently
+  // dropped S01E02, so its recognition was never applied.
+  const plan: RecognizeMediaFilePlan = {
+    id: 'plan-r1',
+    task: 'recognize-media-file',
+    status: 'pending',
+    creator: 'app',
+    mediaFolderPath: '/show',
+    files: [
+      { season: 1, episode: 1, path: '/show/S01E01 - old name.mkv' },
+      { season: 1, episode: 2, path: '/show/S01E02 - not yet linked.mkv' },
+    ],
+  }
+
+  it('maps checked episodes to plan file paths, including files not linked in metadata', () => {
+    const result = buildRecognizeApplySelectedFiles(plan, [
+      { season: 1, episode: 1 },
+      { season: 1, episode: 2 },
+    ])
+    expect(result).toEqual(['/show/S01E01 - old name.mkv', '/show/S01E02 - not yet linked.mkv'])
+  })
+
+  it('excludes unchecked episodes', () => {
+    const result = buildRecognizeApplySelectedFiles(plan, [{ season: 1, episode: 2 }])
+    expect(result).toEqual(['/show/S01E02 - not yet linked.mkv'])
+  })
+
+  it('ignores checked episodes that are not part of the plan', () => {
+    const result = buildRecognizeApplySelectedFiles(plan, [
+      { season: 1, episode: 1 },
+      { season: 2, episode: 5 },
+    ])
+    expect(result).toEqual(['/show/S01E01 - old name.mkv'])
+  })
+
+  it('returns empty array for empty selection', () => {
+    expect(buildRecognizeApplySelectedFiles(plan, [])).toEqual([])
+  })
+
+  it('returns empty array when plan is undefined', () => {
+    expect(
+      buildRecognizeApplySelectedFiles(undefined, [{ season: 1, episode: 1 }]),
+    ).toEqual([])
   })
 })

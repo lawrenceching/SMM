@@ -23,11 +23,9 @@ import { usePlansQuery } from "@/hooks/plans"
 import { MediaFileTable } from "@/components/media/MediaFileTable"
 import type {
   MediaFileTableContextMenuProps,
-  UIMediaFileDataRow,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
   MediaFileTableSeasonData,
-  MediaFileTableEpisodeData,
 } from "@/components/media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
@@ -38,20 +36,20 @@ import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import {
   rebuildPlanWithSelectedEpisodes,
-  rebuildRenamePlanWithSelectedEpisodes,
+  buildRenameApplySelectedFiles,
+  buildRecognizeApplySelectedFiles,
 } from "./TvShowPanelUtils"
 import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
 import {
   TvShowAppPlanPromptProvider,
   type TvShowAppPlanPromptContextValue,
 } from "./plans/TvShowAppPlanPromptContext"
 import { useTvShowPanel } from "@/hooks/useTvShowPanel"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
-import type { RenameRuleName } from "@/lib/renameRules"
-import type { string } from "zod"
+import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 
 
 export function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
@@ -133,25 +131,10 @@ function TvShowPanel() {
   })
 
   const [tableData] = useState<UIMediaFileTableRow[]>([])
-  const latestTableData = useLatest(tableData)
 
   // Checkbox selection — separate UI state, kept apart from row data so that
   // user toggles survive the row rebuilds triggered by metadata / plan refetches.
   const [selectedEpisodes, setSelectedEpisodes] = useState<UIMediaEpisodeSelection[]>([])
-
-  const getSelectedEpisodePaths = useCallback(
-    () =>
-      selectedEpisodes
-        .map(({ season, episode }) => {
-          const row = latestTableData.current.find(
-            (r): r is UIMediaFileDataRow =>
-              r.type === "episode" && r.season === season && r.episode === episode,
-          )
-          return row?.videoFile
-        })
-        .filter((path): path is string => path !== undefined),
-    [selectedEpisodes, latestTableData],
-  )
 
   const getSelectedEpisodes = useCallback(
     () => selectedEpisodes,
@@ -162,12 +145,6 @@ function TvShowPanel() {
     (plan: UIRecognizeMediaFilePlan) =>
       rebuildPlanWithSelectedEpisodes(plan, getSelectedEpisodes()),
     [getSelectedEpisodes],
-  )
-
-  const renameBeforeConfirm = useCallback(
-    (plan: UIRenameFilesPlan) =>
-      rebuildRenamePlanWithSelectedEpisodes(plan, getSelectedEpisodePaths()),
-    [getSelectedEpisodePaths],
   )
 
   const handleSelectResult = useCallback(
@@ -246,26 +223,19 @@ function TvShowPanel() {
   })
 
   const renameFlow = useRuleBasedRenameFilesFlow({
-    plans,
     mediaMetadata,
-    uiStatus,
-    beforeConfirm: renameBeforeConfirm,
-    onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
   const aiRenameFlow = useAiBasedRenameFilesFlow({
     plans,
     mediaMetadata,
-    onAppRenameConfirm: async (planId: string) => {},
+    onAppRenameConfirm: async () => {},
     setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
   const recognizeFlow = useRuleBasedRecognizeFlow({
-    plans,
     mediaMetadata,
-    uiStatus,
-    beforeConfirm: recognizeBeforeConfirm,
   })
 
   const aiRecognizeFlow = useAiBasedRecognizeFlow({
@@ -282,6 +252,8 @@ function TvShowPanel() {
     aiRecognizeFlow.plan
 
   const { metadataFiles, subtitleFiles, nfoFiles, thumbnailFiles, newFilePaths } = useTvShowPanel(selectedFolder, plan)
+
+  console.log(`>>> newFilePaths:`, newFilePaths)
 
   const selectFileFlow = useSelectAndUnselectFileFlow({
     mediaMetadata,
@@ -316,45 +288,56 @@ function TvShowPanel() {
 
   const appPlanPromptValue = useMemo((): TvShowAppPlanPromptContextValue => {
     return {
-      appRenamePlan: renameFlow.plan,
-      appRecognizePlan: recognizeFlow.plan,
       aiRenamePlan: aiRenameFlow.plan,
       aiRenamePromptStatus: aiRenameFlow.promptStatus,
       aiRecognizePlan: aiRecognizeFlow.plan,
       aiRecognizePromptStatus: aiRecognizeFlow.promptStatus,
-      renameToolbarOptions: renameFlow.namingRuleOptions,
-      selectedNamingRule: renameFlow.selectedNamingRule,
-      setSelectedNamingRule: () => {},
-      onAppRenameNamingRuleSelected: () => {},
-      onAppRenameConfirm: () => {},
-      onAppRenameCancel: () => {},
       onAiRenameConfirm: aiRenameFlow.onConfirm,
       onAiRenameCancel: aiRenameFlow.onCancel,
       onAiRecognizeConfirm: aiRecognizeFlow.onConfirm,
       onAiRecognizeCancel: aiRecognizeFlow.onCancel,
-      onAppRecognizeConfirm: recognizeFlow.onConfirm,
-      onAppRecognizeCancel: recognizeFlow.onCancel,
-      tvShowTitle: recognizeFlow.tvShowTitle,
-      tvShowTmdbId: recognizeFlow.tvShowTmdbId,
-      isRuleBasedRecognizeLoading: recognizeFlow.loading,
-      notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
-      allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
-      allRenamePlanFilesUnchanged: false,
     }
-  }, [renameFlow, aiRenameFlow, aiRecognizeFlow, recognizeFlow])
+  }, [aiRenameFlow, aiRecognizeFlow])
 
   const latestMediaMetadata = useLatest(mediaMetadata)
   const planId = useMemo(() => { return plan?.id ?? '' }, [plan])
   const selectedEpisodesByPlanId = useRef<Map<string, UIMediaEpisodeSelection[]>>(new Map())
 
+  const latestPlan = useLatest(plan)
+  const latestMetadata = useLatest(mediaMetadata)
+
   useEffect(() => {
-    const m = latestMediaMetadata.current
-    const selectedEpisodes = m?.mediaFiles
-      ?.filter(f => f.seasonNumber !== undefined && f.episodeNumber !== undefined)
-      ?.map(f => { return { season: f.seasonNumber!, episode: f.episodeNumber!} })
-    const episodes = selectedEpisodes ?? []
-    selectedEpisodesByPlanId.current.set(planId, episodes)
-    setSelectedEpisodes(episodes)
+    console.log(`>>> useEffect selectedEpisodes CALLED`);
+    const plan = latestPlan.current;
+    const metadata = latestMetadata.current;
+
+    if(planId !== plan?.id || plan.status !== 'pending') {
+      return;
+    }
+
+    if(plan.task === 'rename-files') {
+      const m = latestMediaMetadata.current;
+      const selectedEpisodes = m?.mediaFiles
+        ?.filter(f => f.seasonNumber !== undefined && f.episodeNumber !== undefined)
+        ?.map(f => { return { season: f.seasonNumber!, episode: f.episodeNumber!} })
+      const episodes = selectedEpisodes ?? []
+      selectedEpisodesByPlanId.current.set(planId, episodes)
+      setSelectedEpisodes(episodes)
+    } else if (plan.task === 'recognize-media-file') {
+      const recognizePlan = plan as RecognizeMediaFilePlan;
+      const episodes = recognizePlan.files.map(f => {
+        return {
+          season: f.season,
+          episode: f.episode,
+        }
+      })
+      .filter(f => {
+        return metadata?.tvShow?.seasons?.find(s => s.season === f.season)?.episodes?.find(e => e.episode === f.episode)
+      })
+      setSelectedEpisodes(episodes)
+    }
+    
+    
   }, [planId])
 
   const ruleBasedRenameFilePromptProps = useMemo(() => {
@@ -365,23 +348,47 @@ function TvShowPanel() {
       selectedNamingRule: renameFlow.selectedNamingRule,
       onNamingRulesSelected: renameFlow.selectNamingRule,
       onConfirm: async () => {
-
-        const episodes = mediaFileTableSeasonData.flatMap(s => s.episodes)
-
-        const selectedFiles = episodes
-           .filter((e) => {
-              return selectedEpisodes.some(s => s.season === e.season && s.episode === e.episode)
-           })
-           .flatMap(e => e.path)
-           .filter((path): path is string => path !== undefined)
+        // RENAME applies to files already linked in metadata, so each checked
+        // episode's table path (metadata.mediaFiles[...].absolutePath) is the
+        // plan entry's `from`. RECOGNIZE must not use this table lookup —
+        // see buildRecognizeApplySelectedFiles.
+        const selectedFiles = buildRenameApplySelectedFiles(
+          mediaFileTableSeasonData,
+          selectedEpisodes,
+        )
 
         renameFlow.confirm(selectedFiles)
       },
       onCancel: () => {
-        renameFlow.cancel(plan?.id ?? '')
+        void renameFlow.cancel()
       },
     }
-  }, [renameFlow])
+  }, [renameFlow, mediaFileTableSeasonData, selectedEpisodes])
+
+  const ruleBasedRecognizePromptProps = useMemo(() => {
+    return {
+      isOpen: recognizeFlow.open,
+      isLoading: recognizeFlow.loading,
+      tvShowTitle: recognizeFlow.tvShowTitle,
+      tvShowTmdbId: recognizeFlow.tvShowTmdbId,
+      notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
+      allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
+      isConfirmButtonDisabled: recognizeFlow.loading || recognizeFlow.allPlanFilesUnchanged,
+      onConfirm: async () => {
+        // RECOGNIZE applies plan-proposed paths: the files are usually NOT yet
+        // linked in metadata, so the episode-table lookup used by RENAME would
+        // drop them. The selection must resolve through recognizeFlow.plan.files.
+        const selectedFiles = buildRecognizeApplySelectedFiles(
+          recognizeFlow.plan,
+          selectedEpisodes,
+        )
+        await recognizeFlow.confirm(selectedFiles)
+      },
+      onCancel: () => {
+        void recognizeFlow.cancel()
+      },
+    }
+  }, [recognizeFlow, selectedEpisodes])
 
   return (
     <TvShowAppPlanPromptProvider value={appPlanPromptValue}>
@@ -390,6 +397,10 @@ function TvShowPanel() {
 
       {
         <RuleBasedRenameFilePrompt {...ruleBasedRenameFilePromptProps}/>
+      }
+
+      {
+        <RuleBasedRecognizePrompt {...ruleBasedRecognizePromptProps} />
       }
       
       <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
@@ -400,7 +411,7 @@ function TvShowPanel() {
       <div className="shrink-0 px-4 pt-4">
         <TvShowPanelHeader
           onSearchResultSelected={handleSelectResult}
-          onRecognizeButtonClick={recognizeFlow.startRecognizeFlow}
+          onRecognizeButtonClick={recognizeFlow.start}
           onRenameClick={renameFlow.start}
           selectedMediaMetadata={mediaMetadata}
           selectedMediaFolder={uiFolderRow}

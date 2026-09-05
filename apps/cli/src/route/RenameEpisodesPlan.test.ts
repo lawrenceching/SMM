@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { Hono } from 'hono'
 
 import { SelectedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRenameFilesPlan'
+import { RecognizedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRecognizeFilesPlan'
 
 const mocks = vi.hoisted(() => ({
   createRenameEpisodePlan: vi.fn(),
@@ -206,6 +207,32 @@ describe('POST /api/apply-plan', () => {
       title: 'Bad Request',
       status: 400,
       detail: 'Files not in plan: /media/Show/nope.mkv',
+      instance: '/api/apply-plan',
+    })
+  })
+
+  it('returns 400 ProblemDetails for RecognizedFilesNotInPlanError', async () => {
+    mocks.getPlan.mockResolvedValue({
+      ...plan,
+      task: 'recognize-media-file' as const,
+      files: [{ season: 1, episode: 1, path: '/media/Show/S01E01.mkv' }],
+    })
+    mocks.applyPlan.mockRejectedValue(
+      new RecognizedFilesNotInPlanError(['/media/Show/ghost.mkv']),
+    )
+
+    const response = await post({
+      id: 'plan-1',
+      data: { files: ['/media/Show/ghost.mkv'] },
+    })
+
+    expect(response.status).toBe(400)
+    expect(response.headers.get('Content-Type')).toContain('application/problem+json')
+    await expect(response.json()).resolves.toEqual({
+      type: 'about:blank',
+      title: 'Bad Request',
+      status: 400,
+      detail: 'Files not in plan: /media/Show/ghost.mkv',
       instance: '/api/apply-plan',
     })
   })

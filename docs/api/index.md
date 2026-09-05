@@ -110,6 +110,10 @@ Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.tryToRecognizeEpisodes 
 `smm try-to-rename <folder> [--rule plex|emby]` — build a pending rename-files plan (default rule: plex).
 `smm apply <plan-id>` — apply a pending recognize-media-file or rename-files plan (updates metadata cache, deletes plan file).
 
+## RecognizeEpisodes (Web UI)
+Source Code: apps/cli/src/route/TryToRecognizeEpisodes.ts + apps/core Core.tryToRecognizeEpisodes
+HTTP: `POST /api/try-to-recognize-episodes` — rule-based episode recognition via Layer 2 `Core.tryToRecognizeEpisodes(path)` → pending `RecognizeMediaFilePlan` persisted under `{appDataDir}/plans/`. Request body: `{ mediaFolderPath: string }`. Response: `{ data: { plan } }` or `{ error }` (HTTP 200). Apply/reject reuse `POST /api/apply-plan` / `POST /api/reject-plan`; `apply-plan` honors `data.files` for `recognize-media-file` plans (applies only the selected `plan.files[].path` entries; unknown paths → 400 ProblemDetails). Product doc: [docs/dev/recognize-episodes.md](../dev/recognize-episodes.md).
+
 ## CLI: scrape
 Source Code: apps/cli/src/cli/runCli.ts + apps/core Core.scrapeFolder
 `smm scrape <folder> [--language <code>]` — scrape TMDB TV poster, fanart, episode thumbnails, and NFO files for a managed TV show folder. Prints each task as `poster|fanart|thumbnails|nfo: completed|skipped|failed`. Requires TMDB metadata and linked episodes (for thumbnails / episode NFO).

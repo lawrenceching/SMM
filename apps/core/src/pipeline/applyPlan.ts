@@ -2,6 +2,7 @@ import type { MediaMetadata } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import { applyRenameFilesPlanPipeline } from "./applyRenameFilesPlan";
 import { applySelectedRenameFilesPlanPipeline } from "./applySelectedRenameFilesPlan";
+import { applySelectedRecognizeFilesPlanPipeline } from "./applySelectedRecognizeFilesPlan";
 import { deletePlan, type Plan } from "./plans";
 import { updateMediaFileMetadatas } from "./updateMediaFileMetadatas";
 
@@ -25,6 +26,9 @@ export async function applyPlanPipeline(
 ): Promise<void> {
   const task = plan.task;
   if (task === "recognize-media-file") {
+    if (Array.isArray(data?.files)) {
+      return applySelectedRecognizeFilesPlanPipeline(plan, data.files, deps);
+    }
     return applyRecognizeMediaFilePlanPipeline(plan, deps);
   }
   if (task === "rename-files") {

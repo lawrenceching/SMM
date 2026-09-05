@@ -1,13 +1,11 @@
 import type { MetadataFiles } from "@smm/types/MetadataFiles";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMediaFolderFilesQuery } from "./useMediaFolderFilesQuery";
 import { useMediaMetadataQuery } from "./mediaMetadata";
 import { findFilesByExtensions } from "@/lib/music";
 import { extensions, imageFileExtensions, subtitleFileExtensions } from "@smm/types/mediaFileExtensions";
 import { basename, extname } from "@/lib/path";
 import type { MediaMetadata } from "@smm/types/types";
-import { usePlansQuery } from "./plans";
-import { Path } from "@smm/utils/path";
 import type { Plan } from "@/api/getPlans";
 
 const INIT_METADATA_FILES: MetadataFiles = {
@@ -187,7 +185,7 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
             })
         }
 
-        console.warn(`Unsupported type of plan: ${plan.task}`)
+        console.warn(`Unsupported type of plan`)
         return [];
 
     }, [plan, metadataQuery.data])

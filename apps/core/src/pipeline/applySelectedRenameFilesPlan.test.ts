@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { MediaMetadata } from "@smm/types";
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { FsPort } from "../ports/FsPort";
-import { planFilePath } from "./paths";
+import { metadataCachePath, planFilePath } from "./paths";
 import {
   applySelectedRenameFilesPlanPipeline,
   SelectedFilesNotInPlanError,
@@ -184,7 +184,7 @@ describe("applyPlanPipeline dispatch with data", () => {
     expect(planFiles).toEqual([]);
   });
 
-  it("ignores data for recognize-media-file plans", async () => {
+  it("rejects unknown data.files for recognize-media-file plans", async () => {
     const plan = {
       id: "rec-1",
       task: "recognize-media-file" as const,
@@ -199,9 +199,46 @@ describe("applyPlanPipeline dispatch with data", () => {
     });
     const deps = baseDeps(fs);
 
-    await applyPlanPipeline(plan, deps, { files: [`${folder}/nope.mkv`] });
+    await expect(
+      applyPlanPipeline(plan, deps, { files: [`${folder}/nope.mkv`] }),
+    ).rejects.toMatchObject({ name: "RecognizedFilesNotInPlanError" });
 
-    expect(deps.setMetadata).toHaveBeenCalledTimes(1);
+    expect(deps.setMetadata).not.toHaveBeenCalled();
+    expect(fs.raw.has(planFilePath(appDataDir, "rec-1"))).toBe(true);
+  });
+
+  it("applies selected data.files for recognize-media-file plans", async () => {
+    const plan = {
+      id: "rec-1",
+      task: "recognize-media-file" as const,
+      status: "pending" as const,
+      creator: "app" as const,
+      mediaFolderPath: folder,
+      files: [
+        { season: 1, episode: 1, path: `${folder}/old1.mkv` },
+        { season: 1, episode: 2, path: `${folder}/old2.mkv` },
+      ],
+    };
+    const fs = inMemoryFs({
+      [metadataCachePath(appDataDir, folder)]: JSON.stringify(baseMetadata()),
+      [planFilePath(appDataDir, "rec-1")]: JSON.stringify(plan),
+      [`${folder}/old1.mkv`]: "v1",
+    });
+    const deps = {
+      fs,
+      appDataDir,
+      normalizePosix: (p: string) => p,
+      getMediaMetadata: async () =>
+        JSON.parse(fs.raw.get(metadataCachePath(appDataDir, folder))!) as MediaMetadata,
+      setMetadata: vi.fn(async (mm: MediaMetadata) => {
+        fs.raw.set(metadataCachePath(appDataDir, folder), JSON.stringify(mm));
+      }),
+    };
+
+    await applyPlanPipeline(plan, deps, { files: [`${folder}/old1.mkv`] });
+
+    const mm = JSON.parse(fs.raw.get(metadataCachePath(appDataDir, folder))!) as MediaMetadata;
+    expect(mm.mediaFiles?.find((f) => f.absolutePath === `${folder}/old1.mkv`)?.episodeNumber).toBe(1);
     expect(fs.raw.has(planFilePath(appDataDir, "rec-1"))).toBe(false);
   });
 });

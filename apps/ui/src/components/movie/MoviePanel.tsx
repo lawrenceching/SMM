@@ -98,7 +98,7 @@ function MoviePanel() {
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
-  const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
+  const [selectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
   const [, setIsRenaming] = useState(false)
 
   // Prompt states
@@ -390,7 +390,6 @@ function MoviePanel() {
         isOpen={isRuleBasedRenameFilePromptOpen}
         namingRuleOptions={toolbarOptions}
         selectedNamingRule={selectedNamingRule}
-        onNamingRuleChange={(value) => setSelectedNamingRule(value as "plex" | "emby")}
         onConfirm={handleRuleBasedRenameConfirm}
         onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
       />
