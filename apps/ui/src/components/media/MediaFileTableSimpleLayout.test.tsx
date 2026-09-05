@@ -229,7 +229,24 @@ describe("MediaFileTableSimpleLayout", () => {
 
   it("fires onCheck with (season, episode, checked) when a row checkbox is toggled", () => {
     const onCheck = vi.fn()
-    renderLayout({ checboxVisible: true, onCheck })
+    renderLayout({
+      checboxVisible: true,
+      onCheck,
+      // Checkboxes are only enabled for episodes with a plan target that
+      // differs from the current path.
+      newFilePaths: [
+        {
+          season: 1,
+          episode: 2,
+          newFilePath: `${mediaFolderPath}/Breaking Bad - S01E02 - Cat's in the Bag (renamed).mkv`,
+        },
+        {
+          season: 2,
+          episode: 1,
+          newFilePath: `${mediaFolderPath}/Breaking Bad - S02E01 - Grilled (renamed).mkv`,
+        },
+      ],
+    })
 
     const s1e2Row = getEpisodeRow("S01E02")
     fireEvent.click(within(s1e2Row).getByRole("checkbox"))
@@ -245,7 +262,24 @@ describe("MediaFileTableSimpleLayout", () => {
       { season: 1, episode: 1 },
       { season: 2, episode: 1 },
     ]
-    renderLayout({ checboxVisible: true, selectedEpisodes })
+    renderLayout({
+      checboxVisible: true,
+      selectedEpisodes,
+      // Selected episodes only render as checked while their checkbox is
+      // enabled, i.e. while a differing plan target exists.
+      newFilePaths: [
+        {
+          season: 1,
+          episode: 1,
+          newFilePath: `${mediaFolderPath}/Breaking Bad - S01E01 - Pilot (renamed).mkv`,
+        },
+        {
+          season: 2,
+          episode: 1,
+          newFilePath: `${mediaFolderPath}/Breaking Bad - S02E01 - Grilled (renamed).mkv`,
+        },
+      ],
+    })
 
     expect(
       within(getEpisodeRow("S01E01")).getByRole("checkbox"),
@@ -258,14 +292,39 @@ describe("MediaFileTableSimpleLayout", () => {
     ).not.toBeChecked()
   })
 
-  it("disables checkboxes for episodes without a video file", () => {
-    renderLayout({ checboxVisible: true })
+  it("renders selected episodes without a plan target as disabled and unchecked", () => {
+    const selectedEpisodes: UIMediaEpisodeSelection[] = [{ season: 1, episode: 1 }]
+    renderLayout({ checboxVisible: true, selectedEpisodes })
 
+    const checkbox = within(getEpisodeRow("S01E01")).getByRole("checkbox")
+    expect(checkbox).toBeDisabled()
+    expect(checkbox).not.toBeChecked()
+  })
+
+  it("disables checkboxes without a differing plan target and enables them otherwise", () => {
+    renderLayout({
+      checboxVisible: true,
+      newFilePaths: [
+        // Target equal to the current path → nothing to apply → disabled.
+        { season: 1, episode: 1, newFilePath: episodePath(1, "Pilot") },
+        // Differing target → enabled, even for an episode without a video file.
+        {
+          season: 1,
+          episode: 3,
+          newFilePath: `${mediaFolderPath}/Breaking Bad - S01E03 - Cancer Man (renamed).mkv`,
+        },
+      ],
+    })
+
+    // No plan target → disabled, regardless of a linked video file.
     expect(
-      within(getEpisodeRow("S01E03")).getByRole("checkbox"),
+      within(getEpisodeRow("S01E02")).getByRole("checkbox"),
     ).toBeDisabled()
     expect(
       within(getEpisodeRow("S01E01")).getByRole("checkbox"),
+    ).toBeDisabled()
+    expect(
+      within(getEpisodeRow("S01E03")).getByRole("checkbox"),
     ).not.toBeDisabled()
   })
 
