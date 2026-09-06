@@ -3,7 +3,7 @@
 This design document describes the high level design of a feature.
 The design document is golden source and referenced by one or more features.
 
-> **Status:** Implemented (2026-09-06). Commits: `078954e5`, `54572723`, `0c432e58`, `a52b75bb`, `74fdfbc9`.
+> **Status:** Implemented (2026-09-06). Commits: `078954e5`, `54572723`, `0c432e58`, `a52b75bb`, `74fdfbc9`, `0a85aa6b`, `8a616f7c`.
 
 ## 1. Background
 
@@ -14,13 +14,13 @@ This feature adds a new **"AI Agent"** settings category with a **`permissions`*
 **Scope for this feature (locked):**
 
 - **In scope:** new `AiAgentSettings` UI component; new "AI Agent" tab in the config panel; read/write support for `aiAgent.permissions` in user config (`smm.json`); i18n for all 4 locales.
-- **Out of scope:** enforcement (skipping confirmation prompts in AI tools / MCP handlers); server-side (`core-routes` / CLI / `apps/core`) normalization of `aiAgent`; any permission beyond `metadata.write`.
+- **Out of scope:** enforcement (skipping confirmation prompts in AI tools / MCP handlers); server-side (`core-routes` / CLI) normalization of `aiAgent`; any permission beyond `metadata.write`. (`apps/core` does register the `aiAgent` key in its config validation so core-side writes preserve it — see Decisions.)
 
 **Decisions (locked):**
 
 - Config shape: nested `aiAgent: { permissions: AiAgentPermission[] }` on `UserConfig` (user chose nested over flat `permissions`).
 - UI form: a single checkbox toggling the one supported permission; a permission list table is deferred until a second permission exists.
-- Approach: renderer-only plumbing (Approach A). Server-side defaults/normalization and a shared `hasAiAgentPermission()` helper are deferred to the enforcement feature.
+- Approach: renderer-only plumbing (Approach A). Server-side defaults/normalization and a shared `hasAiAgentPermission()` helper are deferred to the enforcement feature. Exception added during final review: `apps/core` registers `aiAgent` in its user-config validation allowlist — without it, core's whole-file smm.json writer would silently strip `aiAgent` on core-side writes (commits `0a85aa6b`, `8a616f7c`).
 - Default is `permissions: []` — no bypass unless the user explicitly grants it (safe default).
 
 ## 2. Architecture
@@ -33,6 +33,7 @@ Primary work is in `apps/ui` and `packages/types`. No new API routes; the existi
 |---------------|--------|
 | `packages/types` | Add `AI_AGENT_PERMISSIONS` constant, `AiAgentPermission` type, `AiAgentConfig` interface, `aiAgent?: AiAgentConfig` on `UserConfig` |
 | `apps/ui` | `AiAgentSettings` component, "AI Agent" tab in `config-panel.tsx`, `aiAgent` defaults in `normalizeUserConfig`, locales |
+| `apps/core` | Register `aiAgent` in `USER_CONFIG_KEY_FLAGS` + `validateUserConfig` switch so core writes preserve the field |
 
 ### 2.2 App Level Architecture
 
