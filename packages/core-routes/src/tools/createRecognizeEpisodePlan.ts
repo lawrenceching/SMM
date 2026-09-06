@@ -1,4 +1,4 @@
-import { createRenameEpisodePlanPipeline } from "@smm/core/createRenameEpisodePlan";
+import { createRecognizeEpisodePlanPipeline } from "@smm/core/createRecognizeEpisodePlan";
 import type { FsPort } from "@smm/core/FsPort";
 import { Path } from "@smm/utils/path";
 import {
@@ -6,20 +6,20 @@ import {
   hasAiAgentPermission,
   type UserConfig,
 } from "@smm/types";
-import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import {
-  CREATE_RENAME_EPISODE_PLAN,
-  CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
-  createRenameEpisodePlanInputSchema,
-} from "@smm/types/ai-tools/createRenameEpisodePlan";
+  CREATE_RECOGNIZE_EPISODE_PLAN,
+  CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION,
+  createRecognizeEpisodePlanInputSchema,
+} from "@smm/types/ai-tools/createRecognizeEpisodePlan";
 import {
   END_PLAN_TASK_SUCCESS_MESSAGE,
-  RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+  RECOGNIZE_PLAN_AUTO_APPLIED_MESSAGE,
 } from "@smm/types/ai-tools/planTaskMessages";
 import {
   MEDIA_METADATA_UPDATED_EVENT,
-  RenameFilesPlanReady,
-  type RenameFilesPlanReadyRequestData,
+  RecognizeMediaFilePlanReady,
+  type RecognizeMediaFilePlanReadyRequestData,
 } from "@smm/types/event-types";
 import { formatToolError, toolOk } from "@smm/core/ai-tool/toolResult";
 import type { ChatFs } from "../chatTypes.ts";
@@ -28,48 +28,43 @@ import type { WebSocketMessage } from "../socketIO/types.ts";
 import { defaultBroadcast } from "./broadcast.ts";
 import { createFsPort, planPath } from "./chatFsPort.ts";
 
-function metadataPath(appDataDir: string, mediaFolderPath: string): string {
-  const filename = Path.posix(mediaFolderPath).replace(/[/\\:?*|<>"]/g, "_");
-  return new Path(appDataDir, `metadata/${filename}.json`).abs("posix");
-}
-
 /**
  * Optional dependencies for the `metadata.write` auto-apply flow.
  * Auto-apply requires BOTH deps: without `getUserConfig` the tool
- * cannot verify the permission; without `applyRenameEpisodePlan`
+ * cannot verify the permission; without `applyRecognizeEpisodePlan`
  * (hosts without a Core instance, e.g. ohos) it cannot apply.
  */
-export interface CreateRenameEpisodePlanToolExtra {
+export interface CreateRecognizeEpisodePlanToolExtra {
   /** Reads the current user config for the metadata.write permission check. */
   getUserConfig?: () => Promise<UserConfig>;
-  /** Applies (renames) a created plan. Host Core runner, e.g. `Core.applyPlan`. */
-  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
+  /** Applies (merges metadata of) a created plan. Host Core runner, e.g. `Core.applyPlan`. */
+  applyRecognizeEpisodePlan?: (plan: RecognizeMediaFilePlan) => Promise<void>;
 }
 
-export function buildCreateRenameEpisodePlanTool(
+export function buildCreateRecognizeEpisodePlanTool(
   appDataDir: string,
   fs: ChatFs,
   broadcast?: (message: WebSocketMessage) => void,
   logger?: CoreRoutesLogger,
   abortSignal?: AbortSignal,
-  extra?: CreateRenameEpisodePlanToolExtra,
+  extra?: CreateRecognizeEpisodePlanToolExtra,
 ) {
   const emit = broadcast ?? defaultBroadcast;
   return {
-    description: CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
-    inputSchema: createRenameEpisodePlanInputSchema,
+    description: CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION,
+    inputSchema: createRecognizeEpisodePlanInputSchema,
     execute: async (args: unknown) => {
       if (abortSignal?.aborted) {
         throw new Error("Request was aborted");
       }
 
-      const parsed = createRenameEpisodePlanInputSchema.safeParse(args);
+      const parsed = createRecognizeEpisodePlanInputSchema.safeParse(args);
       if (!parsed.success) {
         return formatToolError(parsed.error);
       }
 
       try {
-        const plan = await createRenameEpisodePlanPipeline(
+        const plan = await createRecognizeEpisodePlanPipeline(
           parsed.data.mediaFolderPath,
           parsed.data.files,
           { creator: "ai" },
@@ -77,12 +72,10 @@ export function buildCreateRenameEpisodePlanTool(
             fs: createFsPort(fs),
             appDataDir,
             normalizePosix: Path.posix,
-            getMediaMetadata: (folder) =>
-              fs.readJson(metadataPath(appDataDir, folder)),
           },
         );
 
-        if (extra?.getUserConfig && extra.applyRenameEpisodePlan) {
+        if (extra?.getUserConfig && extra.applyRecognizeEpisodePlan) {
           try {
             const userConfig = await extra.getUserConfig();
             if (
@@ -91,7 +84,7 @@ export function buildCreateRenameEpisodePlanTool(
                 AI_AGENT_PERMISSIONS.metadataWrite,
               )
             ) {
-              await extra.applyRenameEpisodePlan(plan);
+              await extra.applyRecognizeEpisodePlan(plan);
               emit({
                 event: MEDIA_METADATA_UPDATED_EVENT,
                 data: { folderPath: plan.mediaFolderPath },
@@ -102,33 +95,33 @@ export function buildCreateRenameEpisodePlanTool(
                   folderPath: plan.mediaFolderPath,
                   fileCount: plan.files.length,
                 },
-                `[tool][${CREATE_RENAME_EPISODE_PLAN}] Plan applied automatically`,
+                `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Plan applied automatically`,
               );
               return toolOk({
-                message: RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+                message: RECOGNIZE_PLAN_AUTO_APPLIED_MESSAGE,
                 planId: plan.id,
               });
             }
           } catch (error) {
             logger?.warn(
               { planId: plan.id, error },
-              `[tool][${CREATE_RENAME_EPISODE_PLAN}] Auto-apply failed, plan stays pending`,
+              `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Auto-apply failed, plan stays pending`,
             );
           }
         }
 
-        const data: RenameFilesPlanReadyRequestData = {
+        const data: RecognizeMediaFilePlanReadyRequestData = {
           taskId: plan.id,
           planFilePath: planPath(appDataDir, plan.id),
         };
-        emit({ event: RenameFilesPlanReady.event, data });
+        emit({ event: RecognizeMediaFilePlanReady.event, data });
         logger?.info(
           {
             planId: plan.id,
             folderPath: plan.mediaFolderPath,
             fileCount: plan.files.length,
           },
-          `[tool][${CREATE_RENAME_EPISODE_PLAN}] Plan created`,
+          `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Plan created`,
         );
 
         return toolOk({
@@ -142,5 +135,5 @@ export function buildCreateRenameEpisodePlanTool(
   };
 }
 
-export const CREATE_RENAME_EPISODE_PLAN_TOOL_NAME =
-  CREATE_RENAME_EPISODE_PLAN;
+export const CREATE_RECOGNIZE_EPISODE_PLAN_TOOL_NAME =
+  CREATE_RECOGNIZE_EPISODE_PLAN;

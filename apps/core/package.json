@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./createRenameEpisodePlan": "./src/pipeline/createRenameEpisodePlan.ts",
+    "./createRecognizeEpisodePlan": "./src/pipeline/createRecognizeEpisodePlan.ts",
     "./FsPort": "./src/ports/FsPort.ts",
     "./ai-tool/*": "./src/ai-tool/*",
     "./pipeline/*": "./src/pipeline/*",
