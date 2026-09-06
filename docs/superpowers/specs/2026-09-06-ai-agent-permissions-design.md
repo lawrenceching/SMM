@@ -3,7 +3,7 @@
 This design document describes the high level design of a feature.
 The design document is golden source and referenced by one or more features.
 
-> **Status:** Pending implementation.
+> **Status:** Implemented (2026-09-06). Commits: `078954e5`, `54572723`, `0c432e58`, `a52b75bb`, `74fdfbc9`.
 
 ## 1. Background
 
