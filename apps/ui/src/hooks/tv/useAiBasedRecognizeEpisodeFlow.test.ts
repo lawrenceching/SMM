@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderHook } from "@testing-library/react"
 import { useAiBasedRecognizeEpisodeFlow } from "./useAiBasedRecognizeEpisodeFlow"
-import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
-import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import type { MediaMetadata } from "@smm/types"
 
