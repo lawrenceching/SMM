@@ -26,6 +26,7 @@ export const defaultUserConfig: UserConfig = {
   mcpHost: '127.0.0.1',
   mcpPort: 30001,
   useBundledFfmpegForVideoCaptioner: true,
+  aiAgent: { permissions: [] },
 };
 
 /** Merge persisted config with defaults so required nested fields (tmdb, tvdb) always exist. */
@@ -40,6 +41,10 @@ export function normalizeUserConfig(raw: Partial<UserConfig>): UserConfig {
     tvdb: {
       ...defaultUserConfig.tvdb,
       ...(raw.tvdb ?? {}),
+    },
+    aiAgent: {
+      ...defaultUserConfig.aiAgent,
+      ...(raw.aiAgent ?? {}),
     },
   }
 }

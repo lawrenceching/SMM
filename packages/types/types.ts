@@ -46,6 +46,26 @@ export const DEFAULT_AI_PROVIDERS: OpenAICompatibleConfig[] = [
 export const DEFAULT_SELECTED_AI_PROVIDER = 'DeepSeek'
 
 /**
+ * Permissions that let AI Assistant / MCP clients bypass the
+ * corresponding confirmation (permission) check.
+ */
+export const AI_AGENT_PERMISSIONS = {
+  /** Update media metadata (rename folders/files, metadata cache) without confirmation. */
+  metadataWrite: "metadata.write",
+} as const;
+
+export type AiAgentPermission =
+  (typeof AI_AGENT_PERMISSIONS)[keyof typeof AI_AGENT_PERMISSIONS];
+
+export interface AiAgentConfig {
+  /**
+   * Permissions granted to AI Assistant / MCP clients.
+   * Empty or undefined means every write still asks for confirmation.
+   */
+  permissions?: AiAgentPermission[];
+}
+
+/**
  * Represent the user configuration, which is editable to the user.
  */
 export interface UserConfig {
@@ -153,6 +173,12 @@ export interface UserConfig {
    * Path to the QuickJS executable file.
    */
   quickjsExecutablePath?: string
+
+  /**
+   * AI Agent settings. Currently only holds permissions that let
+   * AI Assistant / MCP clients bypass confirmation checks.
+   */
+  aiAgent?: AiAgentConfig;
 }
 
 /**
