@@ -22,9 +22,7 @@ AI助手应该参考以下步骤:
 2. 使用 get-metadata 工具获得媒体文件夹的媒体元数据. 该工具返回该文件夹的媒体类型, TMDB ID, 季集信息等.
    你需要为每一季每一集识别对应的本地视频文件
 3. 使用 list-files 工具(设置 videoFileOnly=true)并查询媒体文件夹中的所有视频文件
-2. 使用 "begin-recognize-task" 工具开始识别任务, 指定媒体文件夹路径
-3. 使用 "add-recognized-media-file" 工具添加已识别的视频文件
-4. 使用 "end-recognize-task" 工具结束识别任务, SMM 将处理识别计划
+4. 使用 "create-recognize-episode-plan" 工具一次性提交识别计划, 指定媒体文件夹路径和所有视频文件的 season/episode/path 映射
 
 **NOTE** 识别任务完成后, SMM 会在后台处理识别计划, 用户可以在 SMM UI 中查看和确认识别结果.
 `;

@@ -1,9 +1,5 @@
 import { CREATE_RENAME_EPISODE_PLAN } from '@smm/types/ai-tools/createRenameEpisodePlan'
-import {
-  ADD_RECOGNIZED_MEDIA_FILE,
-  BEGIN_RECOGNIZE_TASK,
-  END_RECOGNIZE_TASK,
-} from '@smm/types/ai-tools/recognizeMediaFileTask'
+import { CREATE_RECOGNIZE_EPISODE_PLAN } from '@smm/types/ai-tools/createRecognizeEpisodePlan'
 import { GET_APPLICATION_CONTEXT } from '@smm/types/ai-tools/getApplicationContext'
 import { GET_MEDIA_METADATA } from '@smm/types/ai-tools/getMediaMetadata'
 import { GET_EPISODES } from '@smm/types/ai-tools/getEpisodes'
@@ -54,10 +50,8 @@ Below is the steps to recognize media file:
    If user don't tell which folder he is asking for, you should call "${GET_APPLICATION_CONTEXT}" to get the selected media folder in UI.
 2. Get episodes using "${GET_EPISODES}" tool
 3. Get local files using "${LIST_FILES_IN_MEDIA_FOLDER}" tool
-4. Call "${BEGIN_RECOGNIZE_TASK}" tool to notify AI Agent to start a recognize task
-5. iterate each episodes, find the local video file for the episode, and call "${ADD_RECOGNIZED_MEDIA_FILE}" tool to add the recognized media file to the task
+4. Call "${CREATE_RECOGNIZE_EPISODE_PLAN}" once with mediaFolderPath and a files array of season/episode/path pairs for every recognized video file
    IMPORTANT: It's OK to skip the episode if the local video file is not found.
-6. Call "${END_RECOGNIZE_TASK}" tool to notify AI Agent to end the recognize task
 
 ### Rename Files
 

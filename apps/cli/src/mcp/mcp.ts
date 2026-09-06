@@ -10,6 +10,7 @@ import { GET_MEDIA_METADATA } from "@smm/types/ai-tools/getMediaMetadata";
 import { RENAME_FOLDER } from "@smm/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/types/ai-tools/renameEpisodeFile";
 import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpisodePlan";
+import { CREATE_RECOGNIZE_EPISODE_PLAN } from "@smm/types/ai-tools/createRecognizeEpisodePlan";
 import { SCRAPE } from "@smm/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/types/ai-tools/getJob";
 import { TMDB_SEARCH } from "@smm/types/ai-tools/tmdbSearch";
@@ -19,11 +20,6 @@ import { TVDB_SEARCH } from "@smm/types/ai-tools/tvdbSearch";
 import { TVDB_GET_MOVIE } from "@smm/types/ai-tools/tvdbGetMovie";
 import { TVDB_GET_TV_SHOW } from "@smm/types/ai-tools/tvdbGetTvShow";
 import { TVDB_GET_LANGUAGES } from "@smm/types/ai-tools/tvdbGetLanguages";
-import {
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
-} from "@smm/types/ai-tools/recognizeMediaFileTask";
 import { GET_EPISODES } from "@smm/types/ai-tools/getEpisodes";
 import { getAppDataDir, getUserDataDir } from "@/utils/config";
 import { acknowledge, broadcast } from "@/utils/socketIO";
@@ -52,11 +48,9 @@ const TOOL_NAME_KEYS = [
   RENAME_FOLDER,
   RENAME_EPISODE_FILE,
   CREATE_RENAME_EPISODE_PLAN,
+  CREATE_RECOGNIZE_EPISODE_PLAN,
   SCRAPE,
   GET_JOB,
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
   GET_EPISODES,
   GET_EPISODE_KEY,
   HOW_TO_RENAME_KEY,
