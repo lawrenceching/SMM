@@ -3,7 +3,7 @@
 This design document describes the high level design of a feature.
 The design document is golden source and referenced by one or more features.
 
-> **Status:** Pending implementation.
+> **Status:** Implemented (2026-09-06). Commits: `04917547`, `0e16c295`, `5def24d3`, `898b1df5`, `5514e550`, `077891fa`.
 
 > **Source spec:** uncommitted diff in `docs/dev/rename-episodes.md` (MCP Tool and AI Tool section + Browser-side Pulling section).
 > **Builds on:** [AI Agent Settings — Permissions Config](./2026-09-06-ai-agent-permissions-design.md) (Phase 1: `aiAgent.permissions` config + settings UI). This feature is the enforcement follow-up that Phase 1 deferred.
