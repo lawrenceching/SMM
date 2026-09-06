@@ -1,4 +1,5 @@
 import type { UserConfig } from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { resolveAppLanguage, detectOsLocale } from "@smm/utils/locale";
 import { GET_APPLICATION_CONTEXT } from "@smm/types/ai-tools/getApplicationContext";
 import { IS_FOLDER_EXIST } from "@smm/types/ai-tools/isFolderExist";
@@ -117,6 +118,8 @@ export interface ChatToolsExtraDeps {
   tmdb?: TmdbToolRunners;
   /** Host Core runners for TVDB query tools. */
   tvdb?: TvdbToolRunners;
+  /** Host Core runner for applying AI rename plans (Bun cli / Electron). */
+  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
 }
 
 export interface CreateChatToolsArgs {
@@ -214,6 +217,10 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       broadcast,
       logger,
       abortSignal,
+      {
+        getUserConfig: () => Promise.resolve(userConfig),
+        applyRenameEpisodePlan: extra?.applyRenameEpisodePlan,
+      },
     ),
     [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(
       clientId,

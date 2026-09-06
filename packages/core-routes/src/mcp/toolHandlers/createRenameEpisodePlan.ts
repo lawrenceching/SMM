@@ -22,6 +22,11 @@ export function registerCreateRenameEpisodePlanTool(
     config.fs ?? defaultChatFs(),
     config.broadcast,
     config.logger,
+    undefined,
+    {
+      getUserConfig: config.getUserConfig,
+      applyRenameEpisodePlan: config.applyRenameEpisodePlan,
+    },
   );
   const description =
     config.toolDescriptions?.[CREATE_RENAME_EPISODE_PLAN] ??

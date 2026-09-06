@@ -1,4 +1,5 @@
 import type { UserConfig } from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 import type { WebSocketMessage } from "../socketIO/types.ts";
@@ -93,6 +94,15 @@ export interface McpConfig {
     succeeded: Array<{ from: string; to: string }>;
     failed: Array<{ path: string; error: string }>;
   }>;
+
+  /**
+   * Optional runner for `create-rename-episode-plan` auto-apply.
+   * Hosts that expose Core (e.g. Bun cli) inject `Core.applyPlan`.
+   * When omitted (e.g. ohos has no Core instance), AI rename plans
+   * always stay pending for user approval, even when the user granted
+   * the `metadata.write` permission.
+   */
+  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
 
   /**
    * Optional runner for `scrape`. Hosts that expose Core inject

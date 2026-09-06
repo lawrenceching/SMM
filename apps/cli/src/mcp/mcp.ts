@@ -148,6 +148,7 @@ async function buildMcpConfig(): Promise<McpConfig> {
       broadcast(message as Parameters<typeof broadcast>[0]),
     toolDescriptions: await loadLocalizedToolDescriptions(),
     renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
+    applyRenameEpisodePlan: (plan) => getCore().applyPlan(plan),
     scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
     getJob: (id) => getCore().getJob(id),
     searchInTmdb: (keyword, options) => getCore().searchInTmdb(keyword, options),
