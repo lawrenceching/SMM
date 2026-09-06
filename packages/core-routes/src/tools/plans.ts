@@ -15,8 +15,8 @@ import type { CoreRoutesLogger } from "../types.ts";
 export type AnyPlan = RecognizeMediaFilePlan | RenameFilesPlan;
 
 /**
- * Plan-file storage helpers shared by the `rename-files-task` and
- * `recognize-media-file-task` agent tools. Plans live in
+ * Plan-file storage helpers shared by the `create-rename-episode-plan`
+ * and `create-recognize-episode-plan` tools. Plans live in
  * `{appDataDir}/plans/*.plan.json` and are written via the
  * runtime-neutral {@link ChatFs} abstraction so the same code works
  * for both Node (OHOS) and Bun (cli).

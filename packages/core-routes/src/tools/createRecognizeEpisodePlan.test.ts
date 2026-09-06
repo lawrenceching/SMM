@@ -204,11 +204,8 @@ describe(`buildCreateRecognizeEpisodePlanTool (${CREATE_RECOGNIZE_EPISODE_PLAN})
 
   it("validation failure returns an error payload and writes nothing", async () => {
     const broadcast = vi.fn();
-    const tool = buildCreateRecognizeEpisodePlanTool(
-      "/app-data",
-      createMockFs("/media/show"),
-      broadcast,
-    );
+    const fs = createMockFs("/media/show");
+    const tool = buildCreateRecognizeEpisodePlanTool("/app-data", fs, broadcast);
 
     const result = await tool.execute({
       mediaFolderPath: "/media/show",
@@ -219,5 +216,6 @@ describe(`buildCreateRecognizeEpisodePlanTool (${CREATE_RECOGNIZE_EPISODE_PLAN})
     });
 
     expect(result.error).toContain("Duplicate season/episode");
+    expect(fs.writeJson).not.toHaveBeenCalled();
   });
 });

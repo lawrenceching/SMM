@@ -59440,24 +59440,16 @@ var createRenameEpisodePlanInputSchema = exports_external.object({
   })).min(1)
 });
 
-// ../types/ai-tools/recognizeMediaFileTask.ts
-var BEGIN_RECOGNIZE_TASK = "begin-recognize-task";
-var ADD_RECOGNIZED_MEDIA_FILE = "add-recognized-media-file";
-var END_RECOGNIZE_TASK = "end-recognize-task";
-var BEGIN_RECOGNIZE_TASK_DESCRIPTION = "Begin a recognition task for identifying media files. " + "This tool creates a task that can be used to add media files for recognition. " + `Use ${ADD_RECOGNIZED_MEDIA_FILE} to add files, then ${END_RECOGNIZE_TASK} to execute.`;
-var ADD_RECOGNIZED_MEDIA_FILE_DESCRIPTION = "Add a recognized media file to a recognition task. " + `This tool adds a single video file to an existing task created by ${BEGIN_RECOGNIZE_TASK}. ` + "Provide the task ID, season number, episode number, and file path.";
-var END_RECOGNIZE_TASK_DESCRIPTION = "End a recognition task and execute the recognition. " + `This tool finalizes the task created by ${BEGIN_RECOGNIZE_TASK} and ` + "processes all added media files.";
-var beginRecognizeTaskInputSchema = exports_external.object({
-  mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format")
-});
-var addRecognizedMediaFileInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID returned from ${BEGIN_RECOGNIZE_TASK}`),
-  season: exports_external.number().describe("The season number of the episode."),
-  episode: exports_external.number().describe("The episode number."),
-  path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format).")
-});
-var endRecognizeTaskInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID returned from ${BEGIN_RECOGNIZE_TASK}`)
+// ../types/ai-tools/createRecognizeEpisodePlan.ts
+var CREATE_RECOGNIZE_EPISODE_PLAN = "create-recognize-episode-plan";
+var CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION = "Create a recognize-media-file plan that maps episode video files to season/episode numbers. " + "Provide every mapping (season, episode, absolute file path) in one call. " + "After success, tell the user to open SMM, review, and approve the plan.";
+var createRecognizeEpisodePlanInputSchema = exports_external.object({
+  mediaFolderPath: exports_external.string().describe("Absolute media folder path (POSIX or Windows)"),
+  files: exports_external.array(exports_external.object({
+    season: exports_external.number().describe("The season number of the episode."),
+    episode: exports_external.number().describe("The episode number."),
+    path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format).")
+  })).min(1)
 });
 
 // ../types/ai-tools/getApplicationContext.ts
@@ -59806,10 +59798,8 @@ Below is the steps to recognize media file:
    If user don't tell which folder he is asking for, you should call "${GET_APPLICATION_CONTEXT}" to get the selected media folder in UI.
 2. Get episodes using "${GET_EPISODES}" tool
 3. Get local files using "${LIST_FILES_IN_MEDIA_FOLDER}" tool
-4. Call "${BEGIN_RECOGNIZE_TASK}" tool to notify AI Agent to start a recognize task
-5. iterate each episodes, find the local video file for the episode, and call "${ADD_RECOGNIZED_MEDIA_FILE}" tool to add the recognized media file to the task
+4. Call "${CREATE_RECOGNIZE_EPISODE_PLAN}" once with mediaFolderPath and a files array of season/episode/path pairs for every recognized video file
    IMPORTANT: It's OK to skip the episode if the local video file is not found.
-6. Call "${END_RECOGNIZE_TASK}" tool to notify AI Agent to end the recognize task
 
 ### Rename Files
 
@@ -59941,18 +59931,6 @@ var renameEpisodeFileOutputSchema = exports_external.object({
   error: exports_external.string().optional().describe("Error or cancellation message when rename did not fully succeed")
 });
 var RENAME_EPISODE_FILE_CANCELLED = "User cancelled the operation";
-
-// ../types/ai-tools/createRecognizeEpisodePlan.ts
-var CREATE_RECOGNIZE_EPISODE_PLAN = "create-recognize-episode-plan";
-var CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION = "Create a recognize-media-file plan that maps episode video files to season/episode numbers. " + "Provide every mapping (season, episode, absolute file path) in one call. " + "After success, tell the user to open SMM, review, and approve the plan.";
-var createRecognizeEpisodePlanInputSchema = exports_external.object({
-  mediaFolderPath: exports_external.string().describe("Absolute media folder path (POSIX or Windows)"),
-  files: exports_external.array(exports_external.object({
-    season: exports_external.number().describe("The season number of the episode."),
-    episode: exports_external.number().describe("The episode number."),
-    path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format).")
-  })).min(1)
-});
 
 // ../utils/src/locale.ts
 var APP_LANGUAGE_FALLBACK = "en";
@@ -73339,9 +73317,9 @@ AI助手应该参考以下步骤:
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
 3. 使用 "list-files" 工具列出媒体目录下的所有视频文件
 4. 对比视频文件名和季集信息, 为每个视频文件确定它属于哪一季的哪一集
-5. 使用 "begin-recognize-task" 工具开始识别任务
-6. 使用 "add-recognized-file" 工具添加每个视频文件的识别结果
-7. 使用 "end-recognize-task" 工具结束识别任务
+5. 使用 "create-recognize-episode-plan" 工具一次性提交识别计划, 指定媒体文件夹路径和所有视频文件的 season/episode/path 映射
+
+**NOTE** 识别任务完成后, SMM 会在后台处理识别计划, 用户可以在 SMM UI 中查看和确认识别结果.
 `;
 var STATIC_TEXT_TOOLS = {
   "how-to-rename-episode-video-files": HOW_TO_RENAME_EPISODE_VIDEO_FILES,
