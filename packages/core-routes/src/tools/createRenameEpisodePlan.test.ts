@@ -1,7 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpisodePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
-import { RenameFilesPlanReady } from "@smm/types/event-types";
+import { AI_AGENT_PERMISSIONS, type UserConfig } from "@smm/types";
+import {
+  END_PLAN_TASK_SUCCESS_MESSAGE,
+  RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+} from "@smm/types/ai-tools/planTaskMessages";
+import {
+  MEDIA_METADATA_UPDATED_EVENT,
+  RenameFilesPlanReady,
+} from "@smm/types/event-types";
 import type { ChatFs } from "../chatTypes.ts";
 import * as broadcastModule from "./broadcast.ts";
 import { buildCreateRenameEpisodePlanTool } from "./createRenameEpisodePlan.ts";
@@ -101,5 +108,138 @@ describe(`buildCreateRenameEpisodePlanTool (${CREATE_RENAME_EPISODE_PLAN})`, () 
     expect(emitSpy).not.toHaveBeenCalled();
 
     emitSpy.mockRestore();
+  });
+
+  describe("auto-apply (metadata.write)", () => {
+    const folder = "/media/show";
+    const args = {
+      mediaFolderPath: folder,
+      files: [
+        {
+          from: `${folder}/S01E01.mkv`,
+          to: `${folder}/Show - S01E01.mkv`,
+        },
+      ],
+    };
+
+    function grantedConfig(): UserConfig {
+      return {
+        aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
+      } as unknown as UserConfig;
+    }
+
+    function expectPendingPlanId(result: unknown): { planId: string } {
+      if (!("planId" in result)) {
+        throw new Error((result as { error: string }).error);
+      }
+      return result as { planId: string };
+    }
+
+    it("applies the plan and reports auto-apply when permission is granted", async () => {
+      const broadcast = vi.fn();
+      const applyRenameEpisodePlan = vi.fn(async () => {});
+      const tool = buildCreateRenameEpisodePlanTool(
+        "/app-data",
+        createMockFs(folder),
+        broadcast,
+        undefined,
+        undefined,
+        {
+          getUserConfig: async () => grantedConfig(),
+          applyRenameEpisodePlan,
+        },
+      );
+
+      const result = expectPendingPlanId(await tool.execute(args));
+
+      expect(result.planId).toEqual(expect.any(String));
+      expect(applyRenameEpisodePlan).toHaveBeenCalledTimes(1);
+      expect(broadcast).toHaveBeenCalledWith({
+        event: MEDIA_METADATA_UPDATED_EVENT,
+        data: { folderPath: folder },
+      });
+      expect(broadcast).not.toHaveBeenCalledWith(
+        expect.objectContaining({ event: RenameFilesPlanReady.event }),
+      );
+    });
+
+    it("falls back to a pending plan when the apply runner fails", async () => {
+      const broadcast = vi.fn();
+      const tool = buildCreateRenameEpisodePlanTool(
+        "/app-data",
+        createMockFs(folder),
+        broadcast,
+        undefined,
+        undefined,
+        {
+          getUserConfig: async () => grantedConfig(),
+          applyRenameEpisodePlan: vi.fn(async () => {
+            throw new Error("EBUSY: resource busy");
+          }),
+        },
+      );
+
+      const result = expectPendingPlanId(await tool.execute(args));
+
+      expect(result.planId).toEqual(expect.any(String));
+      expect(broadcast).toHaveBeenCalledWith({
+        event: RenameFilesPlanReady.event,
+        data: {
+          taskId: result.planId,
+          planFilePath: `/app-data/plans/${result.planId}.plan.json`,
+        },
+      });
+    });
+
+    it("keeps the plan pending when the permission is not granted", async () => {
+      const broadcast = vi.fn();
+      const applyRenameEpisodePlan = vi.fn(async () => {});
+      const tool = buildCreateRenameEpisodePlanTool(
+        "/app-data",
+        createMockFs(folder),
+        broadcast,
+        undefined,
+        undefined,
+        {
+          getUserConfig: async () =>
+            ({ aiAgent: { permissions: [] } }) as unknown as UserConfig,
+          applyRenameEpisodePlan,
+        },
+      );
+
+      const result = expectPendingPlanId(await tool.execute(args));
+
+      expect(result.planId).toEqual(expect.any(String));
+      expect(applyRenameEpisodePlan).not.toHaveBeenCalled();
+      expect(broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({ event: RenameFilesPlanReady.event }),
+      );
+    });
+
+    it("keeps the plan pending when reading user config fails", async () => {
+      const broadcast = vi.fn();
+      const applyRenameEpisodePlan = vi.fn(async () => {});
+      const tool = buildCreateRenameEpisodePlanTool(
+        "/app-data",
+        createMockFs(folder),
+        broadcast,
+        undefined,
+        undefined,
+        {
+          getUserConfig: async () => {
+            throw new Error("config read failed");
+          },
+          applyRenameEpisodePlan,
+        },
+      );
+
+      const result = expectPendingPlanId(await tool.execute(args));
+
+      expect(result.planId).toEqual(expect.any(String));
+      expect(applyRenameEpisodePlan).not.toHaveBeenCalled();
+      expect(broadcast).toHaveBeenCalledWith(
+        expect.objectContaining({ event: RenameFilesPlanReady.event }),
+      );
+    });
   });
 });

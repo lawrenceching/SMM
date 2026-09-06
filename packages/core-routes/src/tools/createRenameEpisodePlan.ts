@@ -2,12 +2,22 @@ import { createRenameEpisodePlanPipeline } from "@smm/core/createRenameEpisodePl
 import type { FsPort } from "@smm/core/FsPort";
 import { Path } from "@smm/utils/path";
 import {
+  AI_AGENT_PERMISSIONS,
+  hasAiAgentPermission,
+  type UserConfig,
+} from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import {
   CREATE_RENAME_EPISODE_PLAN,
   CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
   createRenameEpisodePlanInputSchema,
 } from "@smm/types/ai-tools/createRenameEpisodePlan";
-import { END_PLAN_TASK_SUCCESS_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
 import {
+  END_PLAN_TASK_SUCCESS_MESSAGE,
+  RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+} from "@smm/types/ai-tools/planTaskMessages";
+import {
+  MEDIA_METADATA_UPDATED_EVENT,
   RenameFilesPlanReady,
   type RenameFilesPlanReadyRequestData,
 } from "@smm/types/event-types";
@@ -65,12 +75,26 @@ function planPath(appDataDir: string, planId: string): string {
   return new Path(appDataDir, `plans/${planId}.plan.json`).abs("posix");
 }
 
+/**
+ * Optional dependencies for the `metadata.write` auto-apply flow.
+ * Auto-apply requires BOTH deps: without `getUserConfig` the tool
+ * cannot verify the permission; without `applyRenameEpisodePlan`
+ * (hosts without a Core instance, e.g. ohos) it cannot apply.
+ */
+export interface CreateRenameEpisodePlanToolExtra {
+  /** Reads the current user config for the metadata.write permission check. */
+  getUserConfig?: () => Promise<UserConfig>;
+  /** Applies (renames) a created plan. Host Core runner, e.g. `Core.applyPlan`. */
+  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
+}
+
 export function buildCreateRenameEpisodePlanTool(
   appDataDir: string,
   fs: ChatFs,
   broadcast?: (message: WebSocketMessage) => void,
   logger?: CoreRoutesLogger,
   abortSignal?: AbortSignal,
+  extra?: CreateRenameEpisodePlanToolExtra,
 ) {
   const emit = broadcast ?? defaultBroadcast;
   return {
@@ -99,6 +123,41 @@ export function buildCreateRenameEpisodePlanTool(
               fs.readJson(metadataPath(appDataDir, folder)),
           },
         );
+
+        if (extra?.getUserConfig && extra.applyRenameEpisodePlan) {
+          try {
+            const userConfig = await extra.getUserConfig();
+            if (
+              hasAiAgentPermission(
+                userConfig,
+                AI_AGENT_PERMISSIONS.metadataWrite,
+              )
+            ) {
+              await extra.applyRenameEpisodePlan(plan);
+              emit({
+                event: MEDIA_METADATA_UPDATED_EVENT,
+                data: { folderPath: plan.mediaFolderPath },
+              });
+              logger?.info(
+                {
+                  planId: plan.id,
+                  folderPath: plan.mediaFolderPath,
+                  fileCount: plan.files.length,
+                },
+                `[tool][${CREATE_RENAME_EPISODE_PLAN}] Plan applied automatically`,
+              );
+              return toolOk({
+                message: RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+                planId: plan.id,
+              });
+            }
+          } catch (error) {
+            logger?.warn(
+              { planId: plan.id, error },
+              `[tool][${CREATE_RENAME_EPISODE_PLAN}] Auto-apply failed, plan stays pending`,
+            );
+          }
+        }
 
         const data: RenameFilesPlanReadyRequestData = {
           taskId: plan.id,

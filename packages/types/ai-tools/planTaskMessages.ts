@@ -12,3 +12,10 @@ export const END_PLAN_TASK_SUCCESS_MESSAGE =
  */
 export const PLAN_CANCELLED_BY_USER_MESSAGE =
   "该任务已被用户取消, 请停止后续操作";
+
+/**
+ * Returned to the AI when the rename plan was applied automatically
+ * because the user granted the `metadata.write` permission.
+ */
+export const RENAME_PLAN_AUTO_APPLIED_MESSAGE =
+  "Rename plan applied automatically (metadata.write permission granted). No user approval needed.";
