@@ -93,8 +93,8 @@
   "aiAgent": {
     "title": "AI 代理",
     "description": "設定授予 AI 助理與 MCP 用戶端的權限",
-    "metadataWrite": "允許無需確認即寫入元資料",
-    "metadataWriteDescription": "AI 助理與 MCP 用戶端將可以直接更新媒體元資料（例如重新命名資料夾/檔案），無需每次確認。"
+    "metadataWrite": "允許無需確認即寫入中繼資料",
+    "metadataWriteDescription": "AI 助理與 MCP 用戶端將可以直接更新媒體中繼資料（例如重新命名資料夾/檔案），無需每次確認。"
   },
   "feedback": {
     "title": "意見回饋",

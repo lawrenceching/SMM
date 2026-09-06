@@ -95,8 +95,8 @@ Follows the `GeneralSettings` pattern:
 | `sidebar.aiAgent` | `AI Agent` | `AI 智能体` | `AI 代理` |
 | `aiAgent.title` | `AI Agent` | `AI 智能体` | `AI 代理` |
 | `aiAgent.description` | `Configure permissions granted to AI Assistant and MCP clients` | `配置授予 AI 助手和 MCP 客户端的权限` | `設定授予 AI 助理與 MCP 用戶端的權限` |
-| `aiAgent.metadataWrite` | `Allow metadata writes without confirmation` | `允许无需确认即写入元数据` | `允許無需確認即寫入元資料` |
-| `aiAgent.metadataWriteDescription` | `AI Assistant and MCP clients can update media metadata (e.g. rename folders/files) without asking for confirmation each time.` | `AI 助手和 MCP 客户端将可以直接更新媒体元数据（例如重命名文件夹/文件），无需每次确认。` | `AI 助理與 MCP 用戶端將可以直接更新媒體元資料（例如重新命名資料夾/檔案），無需每次確認。` |
+| `aiAgent.metadataWrite` | `Allow metadata writes without confirmation` | `允许无需确认即写入元数据` | zh-HK：`允許無需確認即寫入元資料`；zh-TW：`允許無需確認即寫入中繼資料` |
+| `aiAgent.metadataWriteDescription` | `AI Assistant and MCP clients can update media metadata (e.g. rename folders/files) without asking for confirmation each time.` | `AI 助手和 MCP 客户端将可以直接更新媒体元数据（例如重命名文件夹/文件），无需每次确认。` | zh-HK：`...更新媒體元資料...`；zh-TW：`AI 助理與 MCP 用戶端將可以直接更新媒體中繼資料（例如重新命名資料夾/檔案），無需每次確認。` |
 
 Save button reuses the existing common-namespace key: `t('save', { ns: 'common' })` (same as `GeneralSettings`).
 
