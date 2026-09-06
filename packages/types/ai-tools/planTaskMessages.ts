@@ -19,3 +19,10 @@ export const PLAN_CANCELLED_BY_USER_MESSAGE =
  */
 export const RENAME_PLAN_AUTO_APPLIED_MESSAGE =
   "Rename plan applied automatically (metadata.write permission granted). No user approval needed.";
+
+/**
+ * Returned to the AI when the recognize plan was applied automatically
+ * because the user granted the `metadata.write` permission.
+ */
+export const RECOGNIZE_PLAN_AUTO_APPLIED_MESSAGE =
+  "Recognize plan applied automatically (metadata.write permission granted). No user approval needed.";
