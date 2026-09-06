@@ -170,20 +170,18 @@ vi.mock("@/hooks/tv/useRuleBasedRenameFilesFlow", () => ({
 vi.mock("@/hooks/tv/useAiBasedRenameEpisodeFlow", () => ({
   useAiBasedRenameEpisodeFlow: () => ({
     plan: undefined,
-    promptStatus: "generating",
     onConfirm: vi.fn(),
     onCancel: vi.fn(),
-    promptProps: { isOpen: false, status: "generating", onConfirm: vi.fn(), onCancel: vi.fn() },
+    promptProps: { isOpen: false, onConfirm: vi.fn(), onCancel: vi.fn() },
   }),
 }))
 
 vi.mock("@/hooks/tv/useAiBasedRecognizeEpisodeFlow", () => ({
   useAiBasedRecognizeEpisodeFlow: () => ({
     plan: undefined,
-    promptStatus: "generating",
     onConfirm: vi.fn(),
     onCancel: vi.fn(),
-    promptProps: { isOpen: false, status: "generating", onConfirm: vi.fn(), onCancel: vi.fn() },
+    promptProps: { isOpen: false, onConfirm: vi.fn(), onCancel: vi.fn() },
   }),
 }))
 

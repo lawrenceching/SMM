@@ -50,7 +50,7 @@ describe("useAiBasedRecognizeEpisodeFlow", () => {
     )
 
     expect(result.current.plan?.id).toBe("plan-1")
-    expect(result.current.promptStatus).toBeUndefined()
+    expect(result.current).not.toHaveProperty("promptStatus")
     expect(result.current.promptProps.isOpen).toBe(true)
     expect(result.current.promptProps).not.toHaveProperty("status")
   })
