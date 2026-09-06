@@ -1,4 +1,5 @@
 export { PLANS_QUERY_ROOT, plansQueryKey } from "./plansQueryKeys"
+export { usePlansPullOnVisible } from "./usePlansPullOnVisible"
 export { usePlansQuery } from "./usePlansQuery"
 export { useCreatePlanMutation } from "./useCreatePlanMutation"
 export {

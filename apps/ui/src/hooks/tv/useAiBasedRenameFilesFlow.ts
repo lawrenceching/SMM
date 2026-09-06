@@ -3,7 +3,11 @@ import { toast } from "sonner"
 import { cleanupRenamePlan } from "@/ai/plan/cleanupRenamePlan"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
-import { toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
+import {
+  toUpdatePlanPatch,
+  usePlansPullOnVisible,
+  useUpdatePlanMutation,
+} from "@/hooks/plans"
 import type { MediaMetadata } from "@smm/types"
 import type { UIPlan } from "@/types/UIPlan"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
@@ -87,6 +91,8 @@ export function useAiBasedRenameFilesFlow({
   useTvShowWebSocketEvents({
     setSelectedMediaMetadataByMediaFolderPath,
   })
+
+  usePlansPullOnVisible()
 
   return {
     plan,
