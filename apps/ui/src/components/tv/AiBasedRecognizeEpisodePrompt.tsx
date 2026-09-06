@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
-export interface AiBasedRecognizePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
+export interface AiBasedRecognizeEpisodePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
   /**
    * Status of the AI recognition operation
    * - "generating": AI is generating output
@@ -13,10 +13,10 @@ export interface AiBasedRecognizePromptProps extends Omit<FloatingPromptProps, '
 }
 
 /**
- * AiBasedRecognizePrompt component built on top of FloatingPrompt.
+ * AiBasedRecognizeEpisodePrompt component built on top of FloatingPrompt.
  * Used to show AI episode recognition status with status indicators.
  */
-export function AiBasedRecognizePrompt({
+export function AiBasedRecognizeEpisodePrompt({
   status,
   onConfirm,
   onCancel,
@@ -27,7 +27,7 @@ export function AiBasedRecognizePrompt({
   isConfirmButtonDisabled,
   isConfirmDisabled,
   ...promptProps
-}: AiBasedRecognizePromptProps) {
+}: AiBasedRecognizeEpisodePromptProps) {
   const { t } = useTranslation('components')
 
   // Map status to FloatingPrompt's status prop
@@ -41,7 +41,7 @@ export function AiBasedRecognizePrompt({
   const isConfirmDisabledFinal = isConfirmDisabled
 
   // Get status message
-  const statusMessage = status === "generating" 
+  const statusMessage = status === "generating"
     ? t('toolbar.aiRecognizing', { defaultValue: 'AI is recognizing episodes...' })
     : t('toolbar.aiReviewEpisodes', { defaultValue: 'Review recognized episodes' })
 

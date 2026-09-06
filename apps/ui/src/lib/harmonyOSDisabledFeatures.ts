@@ -5,7 +5,7 @@
  * The AI Summary (MusicPanel right-click → Summarize) flow is gated via the
  * master `isAiFeatureEnabled` flag, which defaults to `false` on HarmonyOS
  * (see `apps/ui/src/hooks/useFeatures.ts` `readAiFeatureEnabled`). MCP/backend
- * plan prompts (`AiBasedRecognizePrompt`, `AiBasedRenameFilePrompt`) are not
+ * plan prompts (`AiBasedRecognizeEpisodePrompt`, `AiBasedRenameEpisodePrompt`) are not
  * gated by that flag — pending `creator: "ai"` plans must always be confirmable.
  */
 export const HARMONYOS_DISABLED_FEATURE_IDS = [

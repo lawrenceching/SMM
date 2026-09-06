@@ -3,7 +3,7 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
-export interface AiBasedRenameFilePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
+export interface AiBasedRenameEpisodePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
   /**
    * Status of the AI renaming operation
    * - "generating": AI is generating output
@@ -13,10 +13,10 @@ export interface AiBasedRenameFilePromptProps extends Omit<FloatingPromptProps, 
 }
 
 /**
- * AiBasedRenameFilePrompt component built on top of FloatingPrompt.
- * Used to confirm AI renaming operations with status indicators.
+ * AiBasedRenameEpisodePrompt component built on top of FloatingPrompt.
+ * Used to confirm AI episode renaming operations with status indicators.
  */
-export function AiBasedRenameFilePrompt({
+export function AiBasedRenameEpisodePrompt({
   status,
   onConfirm,
   onCancel,
@@ -27,7 +27,7 @@ export function AiBasedRenameFilePrompt({
   isConfirmButtonDisabled,
   isConfirmDisabled,
   ...promptProps
-}: AiBasedRenameFilePromptProps) {
+}: AiBasedRenameEpisodePromptProps) {
   const { t } = useTranslation('components')
 
   // Map status to FloatingPrompt's status prop
@@ -41,7 +41,7 @@ export function AiBasedRenameFilePrompt({
   const isConfirmDisabledFinal = isConfirmDisabled
 
   // Get status message
-  const statusMessage = status === "generating" 
+  const statusMessage = status === "generating"
     ? t('toolbar.aiGenerating', { defaultValue: 'AI is generating file names...' })
     : t('toolbar.aiReview', { defaultValue: 'Review AI-generated file names' })
 

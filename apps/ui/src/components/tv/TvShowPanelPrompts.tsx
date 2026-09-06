@@ -1,6 +1,6 @@
 import { UseNfoPrompt } from "./UseNfoPrompt"
-import { AiBasedRenameFilePrompt } from "./AiBasedRenameFilePrompt"
-import { AiBasedRecognizePrompt } from "./AiBasedRecognizePrompt"
+import { AiBasedRenameEpisodePrompt } from "./AiBasedRenameEpisodePrompt"
+import { AiBasedRecognizeEpisodePrompt } from "./AiBasedRecognizeEpisodePrompt"
 import type { TMDBTVShow } from "@smm/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowAppPlanPrompts } from "./plans/TvShowAppPlanPromptContext"
@@ -60,7 +60,7 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      <AiBasedRenameFilePrompt
+      <AiBasedRenameEpisodePrompt
         isOpen={aiRenamePlan !== undefined}
         status={aiRenamePromptStatus}
         onConfirm={async () => {
@@ -71,7 +71,7 @@ export function TvShowPanelPrompts() {
         }}
       />
 
-      <AiBasedRecognizePrompt
+      <AiBasedRecognizeEpisodePrompt
         isOpen={aiRecognizePlan !== undefined}
         status={aiRecognizePromptStatus}
         onConfirm={() => {
