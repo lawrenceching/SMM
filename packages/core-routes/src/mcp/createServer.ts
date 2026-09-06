@@ -2,10 +2,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { RENAME_FOLDER } from "@smm/types/ai-tools/renameFolder";
 import { RENAME_EPISODE_FILE } from "@smm/types/ai-tools/renameEpisodeFile";
-import { registerAddRecognizedFileTool } from "./toolHandlers/addRecognizedFile.ts";
-import { registerBeginRecognizeTaskTool } from "./toolHandlers/beginRecognizeTask.ts";
+import { registerCreateRecognizeEpisodePlanTool } from "./toolHandlers/createRecognizeEpisodePlan.ts";
 import { registerCreateRenameEpisodePlanTool } from "./toolHandlers/createRenameEpisodePlan.ts";
-import { registerEndRecognizeTaskTool } from "./toolHandlers/endRecognizeTask.ts";
 import { registerGetApplicationContextTool } from "./toolHandlers/getApplicationContext.ts";
 import { registerGetEpisodeTool } from "./toolHandlers/getEpisode.ts";
 import { registerGetEpisodesTool } from "./toolHandlers/getEpisodes.ts";
@@ -115,10 +113,8 @@ export async function createMcpStreamableHttpHandler(
   // Episode-level rename plan.
   registerCreateRenameEpisodePlanTool(server, config);
 
-  // Episode recognition task (begin / add / end).
-  registerBeginRecognizeTaskTool(server, config);
-  registerAddRecognizedFileTool(server, config);
-  registerEndRecognizeTaskTool(server, config);
+  // Episode recognition plan (single call).
+  registerCreateRecognizeEpisodePlanTool(server, config);
 
   // Episode lookup.
   registerGetEpisodeTool(server, config);

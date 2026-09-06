@@ -20,11 +20,7 @@ import { TVDB_GET_MOVIE } from "@smm/types/ai-tools/tvdbGetMovie";
 import { TVDB_GET_TV_SHOW } from "@smm/types/ai-tools/tvdbGetTvShow";
 import { TVDB_GET_LANGUAGES } from "@smm/types/ai-tools/tvdbGetLanguages";
 import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpisodePlan";
-import {
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
-} from "@smm/types/ai-tools/recognizeMediaFileTask";
+import { CREATE_RECOGNIZE_EPISODE_PLAN } from "@smm/types/ai-tools/createRecognizeEpisodePlan";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createChatTools, defaultChatFs } from "./tools/index.ts";
 import { sendJson } from "./http.ts";
@@ -150,9 +146,7 @@ export async function doChat(
       [TVDB_GET_TV_SHOW]: tools[TVDB_GET_TV_SHOW],
       [TVDB_GET_LANGUAGES]: tools[TVDB_GET_LANGUAGES],
       [CREATE_RENAME_EPISODE_PLAN]: tools[CREATE_RENAME_EPISODE_PLAN],
-      [BEGIN_RECOGNIZE_TASK]: tools[BEGIN_RECOGNIZE_TASK],
-      [ADD_RECOGNIZED_MEDIA_FILE]: tools[ADD_RECOGNIZED_MEDIA_FILE],
-      [END_RECOGNIZE_TASK]: tools[END_RECOGNIZE_TASK],
+      [CREATE_RECOGNIZE_EPISODE_PLAN]: tools[CREATE_RECOGNIZE_EPISODE_PLAN],
     },
     stopWhen: stepCountIs(CHAT_STEP_LIMIT),
   });

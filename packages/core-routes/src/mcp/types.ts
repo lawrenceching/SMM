@@ -1,5 +1,6 @@
 import type { UserConfig } from "@smm/types";
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 import type { WebSocketMessage } from "../socketIO/types.ts";
@@ -103,6 +104,9 @@ export interface McpConfig {
    * the `metadata.write` permission.
    */
   applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
+
+  /** Host Core runner for applying AI recognize plans (Bun cli / Electron). */
+  applyRecognizeEpisodePlan?: (plan: RecognizeMediaFilePlan) => Promise<void>;
 
   /**
    * Optional runner for `scrape`. Hosts that expose Core inject
