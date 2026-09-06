@@ -66,6 +66,17 @@ export interface AiAgentConfig {
 }
 
 /**
+ * Whether the user config grants the given AI Agent permission.
+ * Missing config or permissions means nothing is granted.
+ */
+export function hasAiAgentPermission(
+  userConfig: UserConfig | undefined,
+  permission: AiAgentPermission,
+): boolean {
+  return userConfig?.aiAgent?.permissions?.includes(permission) ?? false;
+}
+
+/**
  * Represent the user configuration, which is editable to the user.
  */
 export interface UserConfig {
