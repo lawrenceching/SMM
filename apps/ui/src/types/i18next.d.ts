@@ -1106,6 +1106,12 @@ interface SettingsResources {
     checkSuccess: string
     checkError: string
   }
+  aiAgent: {
+    title: string
+    description: string
+    metadataWrite: string
+    metadataWriteDescription: string
+  }
   feedback: {
     title: string
     description: string
@@ -1153,6 +1159,7 @@ interface SettingsResources {
     title: string
     general: string
     ai: string
+    aiAgent: string
     mediaDatabases: string
     renameRules: string
     externalApps: string
