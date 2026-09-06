@@ -10,9 +10,6 @@ import { toast } from 'sonner'
 
 vi.mock('@/api/readFile')
 vi.mock('@/lib/nfo')
-vi.mock('@/ai/tools/EndRecognizeTask', () => ({
-  cleanupRecognizePlan: vi.fn(() => Promise.resolve()),
-}))
 
 vi.mock('@/lib/recognizeEpisodesUi', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/lib/recognizeEpisodesUi')>()

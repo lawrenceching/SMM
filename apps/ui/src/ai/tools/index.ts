@@ -11,7 +11,5 @@ export { GetJobTool } from './GetJob';
 export { TmdbSearchTool } from './TmdbSearch';
 export { TmdbGetMovieTool } from './TmdbGetMovie';
 export { TmdbGetTvShowTool } from './TmdbGetTvShow';
-export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
-export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
-export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';
+export { CreateRecognizeEpisodePlanTool } from './CreateRecognizeEpisodePlan';
 export { CreateRenameEpisodePlanTool } from './CreateRenameEpisodePlan';

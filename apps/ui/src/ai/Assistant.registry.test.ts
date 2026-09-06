@@ -30,9 +30,7 @@ const ASSISTANT_PATH = join(__dirname, 'Assistant.tsx')
 
 const FRONTEND_TRANSPORT_ONLY_TASK_COMPONENTS = new Set([
   'CreateRenameEpisodePlanTool',
-  'BeginRecognizeTaskTool',
-  'AddRecognizedMediaFileTool',
-  'EndRecognizeTaskTool',
+  'CreateRecognizeEpisodePlanTool',
 ])
 
 interface MountedTool {

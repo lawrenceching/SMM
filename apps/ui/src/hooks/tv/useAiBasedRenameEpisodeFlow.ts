@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { toast } from "sonner"
-import { cleanupRenamePlan } from "@/ai/plan/cleanupRenamePlan"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
 import {
@@ -67,7 +66,6 @@ export function useAiBasedRenameEpisodeFlow({
     if (!plan || !mediaFolderPath) return
     try {
       await applyPlanMutation.mutateAsync({ id: plan.id, mediaFolderPath })
-      await cleanupRenamePlan(plan.id)
     } catch (error) {
       console.error("[useAiBasedRenameEpisodeFlow] Error applying rename plan:", error)
       toast.error(
@@ -84,7 +82,6 @@ export function useAiBasedRenameEpisodeFlow({
         mediaFolderPath,
         patch: toUpdatePlanPatch({ status: "rejected" }),
       })
-      await cleanupRenamePlan(plan.id)
     } catch (error) {
       console.error("[useAiBasedRenameEpisodeFlow] Error rejecting rename plan:", error)
       toast.error(

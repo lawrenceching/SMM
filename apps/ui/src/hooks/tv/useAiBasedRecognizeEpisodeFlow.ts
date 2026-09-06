@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react"
 import { toast } from "sonner"
 import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
-import { cleanupRecognizePlan } from "@/ai/tools/EndRecognizeTask"
 import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { toUpdatePlanPatch, usePlansQuery, useUpdatePlanMutation } from "@/hooks/plans"
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
@@ -67,7 +66,6 @@ export function useAiBasedRecognizeEpisodeFlow({
         })
       },
     )
-    await cleanupRecognizePlan(plan.id)
   }, [
     plan,
     mediaMetadata,
@@ -84,7 +82,6 @@ export function useAiBasedRecognizeEpisodeFlow({
         mediaFolderPath,
         patch: toUpdatePlanPatch({ status: "rejected" }),
       })
-      await cleanupRecognizePlan(plan.id)
     } catch (error) {
       console.error("[useAiBasedRecognizeEpisodeFlow] Error rejecting recognize plan:", error)
       toast.error(

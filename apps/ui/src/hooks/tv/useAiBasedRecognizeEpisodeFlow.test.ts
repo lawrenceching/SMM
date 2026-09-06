@@ -7,7 +7,6 @@ import type { MediaMetadata } from "@smm/types"
 const h = vi.hoisted(() => ({
   plans: [] as unknown[],
   updatePlanMutateAsync: vi.fn(),
-  cleanupRecognizePlan: vi.fn(),
   handleAiRecognizeConfirm: vi.fn(),
 }))
 
@@ -23,10 +22,6 @@ vi.mock("@/hooks/mediaMetadata/useUpdateMediaMetadataMutation", () => ({
 
 vi.mock("@/actions/handleAiRecognizeConfirm", () => ({
   handleAiRecognizeConfirm: h.handleAiRecognizeConfirm,
-}))
-
-vi.mock("@/ai/tools/EndRecognizeTask", () => ({
-  cleanupRecognizePlan: h.cleanupRecognizePlan,
 }))
 
 describe("useAiBasedRecognizeEpisodeFlow", () => {
@@ -90,10 +85,9 @@ describe("useAiBasedRecognizeEpisodeFlow", () => {
       expect.any(Function),
       expect.any(Function),
     )
-    expect(h.cleanupRecognizePlan).toHaveBeenCalledWith("plan-1")
   })
 
-  it("rejects and cleans up the plan on cancel", async () => {
+  it("rejects the plan on cancel", async () => {
     h.plans = [pendingAiPlan]
     const { result } = renderHook(() =>
       useAiBasedRecognizeEpisodeFlow({
@@ -109,6 +103,5 @@ describe("useAiBasedRecognizeEpisodeFlow", () => {
       mediaFolderPath,
       patch: { status: "rejected" },
     })
-    expect(h.cleanupRecognizePlan).toHaveBeenCalledWith("plan-1")
   })
 })

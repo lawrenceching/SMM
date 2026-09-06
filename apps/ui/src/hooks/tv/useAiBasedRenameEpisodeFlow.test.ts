@@ -8,7 +8,6 @@ const h = vi.hoisted(() => ({
   plans: [] as unknown[],
   updatePlanMutateAsync: vi.fn(),
   applyPlanMutateAsync: vi.fn(),
-  cleanupRenamePlan: vi.fn(),
   toastError: vi.fn(),
 }))
 
@@ -30,10 +29,6 @@ vi.mock("@/stores/uiMediaFolderStore", () => ({
 
 vi.mock("./useTvShowWebSocketEvents", () => ({
   useTvShowWebSocketEvents: () => undefined,
-}))
-
-vi.mock("@/ai/plan/cleanupRenamePlan", () => ({
-  cleanupRenamePlan: h.cleanupRenamePlan,
 }))
 
 describe("useAiBasedRenameEpisodeFlow", () => {
@@ -87,7 +82,7 @@ describe("useAiBasedRenameEpisodeFlow", () => {
     expect(result.current.promptProps.isOpen).toBe(false)
   })
 
-  it("rejects and cleans up the plan on cancel", async () => {
+  it("rejects the plan on cancel", async () => {
     h.plans = [pendingAiPlan]
     const { result } = renderHook(() =>
       useAiBasedRenameEpisodeFlow({ mediaMetadata }),
@@ -100,10 +95,9 @@ describe("useAiBasedRenameEpisodeFlow", () => {
       mediaFolderPath,
       patch: { status: "rejected" },
     })
-    expect(h.cleanupRenamePlan).toHaveBeenCalledWith("rename-plan-1")
   })
 
-  it("applies the full plan on confirm and cleans up the draft", async () => {
+  it("applies the full plan on confirm", async () => {
     h.plans = [pendingAiPlan]
     const { result } = renderHook(() =>
       useAiBasedRenameEpisodeFlow({ mediaMetadata }),
@@ -115,7 +109,6 @@ describe("useAiBasedRenameEpisodeFlow", () => {
       id: "rename-plan-1",
       mediaFolderPath,
     })
-    expect(h.cleanupRenamePlan).toHaveBeenCalledWith("rename-plan-1")
   })
 
   it("shows a toast and keeps the plan when apply fails", async () => {
@@ -130,6 +123,5 @@ describe("useAiBasedRenameEpisodeFlow", () => {
     expect(h.toastError).toHaveBeenCalledWith(
       expect.stringContaining("Failed to apply rename plan"),
     )
-    expect(h.cleanupRenamePlan).not.toHaveBeenCalled()
   })
 })
