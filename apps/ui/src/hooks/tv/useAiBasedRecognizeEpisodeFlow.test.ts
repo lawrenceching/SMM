@@ -50,9 +50,9 @@ describe("useAiBasedRecognizeEpisodeFlow", () => {
     )
 
     expect(result.current.plan?.id).toBe("plan-1")
-    expect(result.current.promptStatus).toBe("wait-for-ack")
+    expect(result.current.promptStatus).toBeUndefined()
     expect(result.current.promptProps.isOpen).toBe(true)
-    expect(result.current.promptProps.status).toBe("wait-for-ack")
+    expect(result.current.promptProps).not.toHaveProperty("status")
   })
 
   it("ignores plans of other media folders", () => {

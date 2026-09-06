@@ -48,9 +48,6 @@ export function useAiBasedRenameEpisodeFlow({
     [plans, mediaFolderPath],
   )
 
-  const promptStatus: "generating" | "wait-for-ack" =
-    plan?.status === "preparing" ? "generating" : "wait-for-ack"
-
   useEffect(() => {
     console.log(
       `[rename] useAiBasedRenameEpisodeFlow: plan=${plan ? `id=${plan.id} status=${plan.status}` : "undefined"}, ` +
@@ -109,18 +106,16 @@ export function useAiBasedRenameEpisodeFlow({
 
   const promptProps = useMemo((): AiBasedRenameEpisodePromptProps => ({
     isOpen: plan !== undefined,
-    status: promptStatus,
     onConfirm: () => {
       void onConfirm()
     },
     onCancel: () => {
       void onCancel()
     },
-  }), [plan, promptStatus, onConfirm, onCancel])
+  }), [plan, onConfirm, onCancel])
 
   return {
     plan,
-    promptStatus,
     onConfirm,
     onCancel,
     promptProps,

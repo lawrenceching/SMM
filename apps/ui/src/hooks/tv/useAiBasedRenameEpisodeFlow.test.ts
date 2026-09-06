@@ -57,19 +57,9 @@ describe("useAiBasedRenameEpisodeFlow", () => {
     )
 
     expect(result.current.plan?.id).toBe("rename-plan-1")
-    expect(result.current.promptStatus).toBe("wait-for-ack")
+    expect(result.current.promptStatus).toBeUndefined()
     expect(result.current.promptProps.isOpen).toBe(true)
-    expect(result.current.promptProps.status).toBe("wait-for-ack")
-  })
-
-  it("maps a preparing plan to the generating prompt status", () => {
-    h.plans = [{ ...pendingAiPlan, status: "preparing" }]
-    const { result } = renderHook(() =>
-      useAiBasedRenameEpisodeFlow({ mediaMetadata }),
-    )
-
-    expect(result.current.promptStatus).toBe("generating")
-    expect(result.current.promptProps.status).toBe("generating")
+    expect(result.current.promptProps).not.toHaveProperty("status")
   })
 
   it("ignores plans of other media folders", () => {

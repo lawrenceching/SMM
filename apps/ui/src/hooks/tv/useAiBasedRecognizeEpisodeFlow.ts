@@ -48,9 +48,6 @@ export function useAiBasedRecognizeEpisodeFlow({
     [plans, mediaFolderPath],
   )
 
-  const promptStatus: "generating" | "wait-for-ack" =
-    plan?.status === "preparing" ? "generating" : "wait-for-ack"
-
   const onConfirm = useCallback(async () => {
     if (!plan || !mediaMetadata?.mediaFolderPath) return
     const preparedPlan = beforeConfirm(plan) as RecognizeMediaFilePlan
@@ -99,18 +96,16 @@ export function useAiBasedRecognizeEpisodeFlow({
 
   const promptProps = useMemo((): AiBasedRecognizeEpisodePromptProps => ({
     isOpen: plan !== undefined,
-    status: promptStatus,
     onConfirm: () => {
       void onConfirm()
     },
     onCancel: () => {
       void onCancel()
     },
-  }), [plan, promptStatus, onConfirm, onCancel])
+  }), [plan, onConfirm, onCancel])
 
   return {
     plan,
-    promptStatus,
     onConfirm,
     onCancel,
     promptProps,

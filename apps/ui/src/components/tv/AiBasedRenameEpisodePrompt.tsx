@@ -1,23 +1,15 @@
 import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
-import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
 export interface AiBasedRenameEpisodePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
-  /**
-   * Status of the AI renaming operation
-   * - "generating": AI is generating output
-   * - "wait-for-ack": Waiting for user to confirm
-   */
-  status: "generating" | "wait-for-ack"
 }
 
 /**
  * AiBasedRenameEpisodePrompt component built on top of FloatingPrompt.
- * Used to confirm AI episode renaming operations with status indicators.
+ * Used to confirm AI episode renaming operations.
  */
 export function AiBasedRenameEpisodePrompt({
-  status,
   onConfirm,
   onCancel,
   isOpen = false,
@@ -30,21 +22,6 @@ export function AiBasedRenameEpisodePrompt({
 }: AiBasedRenameEpisodePromptProps) {
   const { t } = useTranslation('components')
 
-  // Map status to FloatingPrompt's status prop
-  const floatingPromptStatus = status === "generating" ? "running" : "wait-for-ack"
-
-  // The cancel button (mapped to isConfirmDisabled in FloatingPrompt)
-  // must stay enabled during "generating" so the user can stop a stuck
-  // preparing-state plan. Only the confirm button is disabled while
-  // the AI is still preparing results.
-  const isConfirmButtonDisabledFinal = isConfirmButtonDisabled || status === "generating"
-  const isConfirmDisabledFinal = isConfirmDisabled
-
-  // Get status message
-  const statusMessage = status === "generating"
-    ? t('toolbar.aiGenerating', { defaultValue: 'AI is generating file names...' })
-    : t('toolbar.aiReview', { defaultValue: 'Review AI-generated file names' })
-
   return (
     <FloatingPrompt
       {...promptProps}
@@ -53,18 +30,14 @@ export function AiBasedRenameEpisodePrompt({
       onCancel={onCancel}
       confirmLabel={confirmLabel}
       cancelLabel={cancelLabel}
-      isConfirmButtonDisabled={isConfirmButtonDisabledFinal}
-      isConfirmDisabled={isConfirmDisabledFinal}
+      isConfirmButtonDisabled={isConfirmButtonDisabled}
+      isConfirmDisabled={isConfirmDisabled}
       mode="ai"
-      status={floatingPromptStatus}
       className={cn(className)}
     >
       <div className="flex items-center gap-2" data-testid="ai-based-rename-status">
-        {status === "generating" && (
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        )}
         <span className="text-sm">
-          {statusMessage}
+          {t('toolbar.aiReview', { defaultValue: 'Review AI-generated file names' })}
         </span>
       </div>
     </FloatingPrompt>
