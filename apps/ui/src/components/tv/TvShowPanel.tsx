@@ -1,4 +1,4 @@
-import { useUIMediaFolderStore, useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
@@ -14,12 +14,11 @@ import { useTvShowEpisodeVideoCompress } from "@/hooks/tv/useTvShowEpisodeVideoC
 import { useTvShowEpisodeFormatConvert } from "@/hooks/tv/useTvShowEpisodeFormatConvert"
 import { useRuleBasedRenameFilesFlow } from "@/hooks/tv/useRuleBasedRenameFilesFlow"
 import { useRuleBasedRecognizeFlow } from "@/hooks/tv/useRuleBasedRecognizeFlow"
-import { useAiBasedRenameFilesFlow } from "@/hooks/tv/useAiBasedRenameFilesFlow"
-import { useAiBasedRecognizeFlow } from "@/hooks/tv/useAiBasedRecognizeFlow"
+import { useAiBasedRenameEpisodeFlow } from "@/hooks/tv/useAiBasedRenameEpisodeFlow"
+import { useAiBasedRecognizeEpisodeFlow } from "@/hooks/tv/useAiBasedRecognizeEpisodeFlow"
 import { useSelectAndUnselectFileFlow } from "@/hooks/tv/useSelectAndUnselectFileFlow"
 import { useResolvedLanguages } from "@/hooks/useResolvedLanguages"
 import { askForRenameFile, askForScrape } from "@/lib/dialogRequestEvents"
-import { usePlansQuery } from "@/hooks/plans"
 import { MediaFileTable } from "@/components/media/MediaFileTable"
 import type {
   MediaFileTableContextMenuProps,
@@ -42,13 +41,11 @@ import {
 import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
-import {
-  TvShowAppPlanPromptProvider,
-  type TvShowAppPlanPromptContextValue,
-} from "./plans/TvShowAppPlanPromptContext"
 import { useTvShowPanel } from "@/hooks/useTvShowPanel"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
+import { AiBasedRenameEpisodePrompt } from "./AiBasedRenameEpisodePrompt"
+import { AiBasedRecognizeEpisodePrompt } from "./AiBasedRecognizeEpisodePrompt"
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 
 
@@ -116,12 +113,6 @@ function TvShowPanel() {
     uiFolderRow?.status,
   ])
 
-  // Plans for the current folder, backed by TanStack Query.
-  const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
-
-  const setSelectedByMediaFolderPath = useCallback((path: string) => {
-    useUIMediaFolderStore.getState().applyFolderClick(path, false)
-  }, [])
   const { selectTvShowForFolderMutation, updateMediaMetadata } =
     useSelectTvShowForFolderMutation()
   const { mutateAsync: fetchMediaMetadata } = useFetchMediaMetadataMutation()
@@ -226,11 +217,8 @@ function TvShowPanel() {
     mediaMetadata,
   })
 
-  const aiRenameFlow = useAiBasedRenameFilesFlow({
-    plans,
+  const aiRenameFlow = useAiBasedRenameEpisodeFlow({
     mediaMetadata,
-    onAppRenameConfirm: async () => {},
-    setSelectedMediaMetadataByMediaFolderPath: setSelectedByMediaFolderPath,
     onFlowStart: () => setEpisodeTableLayout("simple"),
   })
 
@@ -238,8 +226,7 @@ function TvShowPanel() {
     mediaMetadata,
   })
 
-  const aiRecognizeFlow = useAiBasedRecognizeFlow({
-    plans,
+  const aiRecognizeFlow = useAiBasedRecognizeEpisodeFlow({
     mediaMetadata,
     beforeConfirm: recognizeBeforeConfirm,
     onFlowStart: () => setEpisodeTableLayout("simple"),
@@ -283,19 +270,6 @@ function TvShowPanel() {
       isFormatConverterEnabled,
     ],
   )
-
-  const appPlanPromptValue = useMemo((): TvShowAppPlanPromptContextValue => {
-    return {
-      aiRenamePlan: aiRenameFlow.plan,
-      aiRenamePromptStatus: aiRenameFlow.promptStatus,
-      aiRecognizePlan: aiRecognizeFlow.plan,
-      aiRecognizePromptStatus: aiRecognizeFlow.promptStatus,
-      onAiRenameConfirm: aiRenameFlow.onConfirm,
-      onAiRenameCancel: aiRenameFlow.onCancel,
-      onAiRecognizeConfirm: aiRecognizeFlow.onConfirm,
-      onAiRecognizeCancel: aiRecognizeFlow.onCancel,
-    }
-  }, [aiRenameFlow, aiRecognizeFlow])
 
   const latestMediaMetadata = useLatest(mediaMetadata)
   const planId = useMemo(() => { return plan?.id ?? '' }, [plan])
@@ -388,7 +362,6 @@ function TvShowPanel() {
   }, [recognizeFlow, selectedEpisodes])
 
   return (
-    <TvShowAppPlanPromptProvider value={appPlanPromptValue}>
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       <TvShowPanelPrompts />
 
@@ -399,7 +372,11 @@ function TvShowPanel() {
       {
         <RuleBasedRecognizePrompt {...ruleBasedRecognizePromptProps} />
       }
-      
+
+      <AiBasedRenameEpisodePrompt {...aiRenameFlow.promptProps} />
+
+      <AiBasedRecognizeEpisodePrompt {...aiRecognizeFlow.promptProps} />
+
       <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
       <SubtitleTranslationDialog {...subtitleFlow.dialogs.translate} />
       <SynthesizeSubtitleDialog {...subtitleFlow.dialogs.synthesize} />
@@ -454,7 +431,6 @@ function TvShowPanel() {
         )}
       </div>
     </div>
-    </TvShowAppPlanPromptProvider>
   )
 }
 

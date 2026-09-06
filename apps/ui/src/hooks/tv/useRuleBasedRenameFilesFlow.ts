@@ -5,9 +5,13 @@ import { useApplyPlanMutation } from "@/hooks/plans/useApplyPlanMutation"
 import { useRejectPlanMutation } from "@/hooks/plans/useRejectPlanMutation"
 import { useTryToRenameEpisodesMutation } from "@/hooks/plans/useTryToRenameEpisodesMutation"
 import { useTranslation } from "@/lib/i18n"
-import type { RenameToolbarOption } from "@/components/tv/plans/TvShowAppPlanPromptContext"
 import type { MediaMetadata } from "@smm/types"
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan"
+
+export interface RenameToolbarOption {
+  value: "plex" | "emby"
+  label: string
+}
 
 export interface UseRuleBasedRenameFilesFlowOptions {
   mediaMetadata: MediaMetadata | undefined

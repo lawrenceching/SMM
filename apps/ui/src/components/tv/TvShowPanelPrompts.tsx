@@ -1,22 +1,8 @@
 import { UseNfoPrompt } from "./UseNfoPrompt"
-import { AiBasedRenameEpisodePrompt } from "./AiBasedRenameEpisodePrompt"
-import { AiBasedRecognizeEpisodePrompt } from "./AiBasedRecognizeEpisodePrompt"
 import type { TMDBTVShow } from "@smm/types"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
-import { useTvShowAppPlanPrompts } from "./plans/TvShowAppPlanPromptContext"
 
 export function TvShowPanelPrompts() {
-  const {
-    aiRenamePlan,
-    aiRenamePromptStatus,
-    aiRecognizePlan,
-    aiRecognizePromptStatus,
-    onAiRenameConfirm,
-    onAiRenameCancel,
-    onAiRecognizeConfirm,
-    onAiRecognizeCancel,
-  } = useTvShowAppPlanPrompts()
-
   const closeUseNfoPrompt = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
 
   const useNfoPrompt = useTvShowPromptsStore((state) => state.useNfoPrompt)
@@ -57,28 +43,6 @@ export function TvShowPanelPrompts() {
           if (cancelCallback) {
             cancelCallback()
           }
-        }}
-      />
-
-      <AiBasedRenameEpisodePrompt
-        isOpen={aiRenamePlan !== undefined}
-        status={aiRenamePromptStatus}
-        onConfirm={async () => {
-          await onAiRenameConfirm()
-        }}
-        onCancel={() => {
-          void onAiRenameCancel()
-        }}
-      />
-
-      <AiBasedRecognizeEpisodePrompt
-        isOpen={aiRecognizePlan !== undefined}
-        status={aiRecognizePromptStatus}
-        onConfirm={() => {
-          void onAiRecognizeConfirm()
-        }}
-        onCancel={() => {
-          void onAiRecognizeCancel()
         }}
       />
     </div>
