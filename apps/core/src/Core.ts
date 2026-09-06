@@ -77,6 +77,10 @@ import {
   createRenameEpisodePlanPipeline,
   type CreateRenameEpisodePlanOptions,
 } from "./pipeline/createRenameEpisodePlan";
+import {
+  createRecognizeEpisodePlanPipeline,
+  type CreateRecognizeEpisodePlanOptions as CreateRecognizeEpisodePlanCoreOptions,
+} from "./pipeline/createRecognizeEpisodePlan";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
   prepareScrapeFolder,
@@ -541,6 +545,18 @@ export class Core {
       appDataDir: this.getMetadataRoot(),
       normalizePosix: (path) => this.normalizePosix(path),
       getMediaMetadata: (folder) => this.readMetadata(folder),
+    });
+  }
+
+  async createRecognizeEpisodePlan(
+    mediaFolderPath: string,
+    files: Array<{ season: number; episode: number; path: string }>,
+    options?: CreateRecognizeEpisodePlanCoreOptions,
+  ): Promise<RecognizeMediaFilePlan> {
+    return createRecognizeEpisodePlanPipeline(mediaFolderPath, files, options, {
+      fs: this.fs,
+      appDataDir: this.getMetadataRoot(),
+      normalizePosix: (path) => this.normalizePosix(path),
     });
   }
 
