@@ -10,11 +10,6 @@ import type { RenameFileEntry, RenameFilesPlan } from "@smm/types/RenameFilesPla
 import type { PlanCreator, PlanStatus } from "@smm/types/planCommon";
 import { isActivePlanStatus } from "@smm/types/planCommon";
 import { PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
-import {
-  createEmptyRenamePlan,
-  prepareAppendRenameEntry,
-  type PrepareAppendRenameEntryDeps,
-} from "@smm/core/plan/renamePlan";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 
@@ -55,67 +50,6 @@ async function ensurePlansDirExists(
 }
 
 // ─── Rename-files plan ───────────────────────────────────────────
-
-export interface RenamePlanAppendDeps {
-  validateOperations: PrepareAppendRenameEntryDeps["validateOperations"];
-  getMediaMetadata: PrepareAppendRenameEntryDeps["getMediaMetadata"];
-}
-
-/**
- * Begin a rename-files task: create an empty plan file and return
- * the new plan id.
- *
- * AI/MCP-created plans start as `preparing` with `creator: "ai"`; the
- * end-task tool flips them to `pending` once entries are added.
- */
-export async function beginRenamePlan(
-  appDataDir: string,
-  mediaFolderPath: string,
-  fs: ChatFs,
-): Promise<string> {
-  await ensurePlansDirExists(appDataDir, fs);
-  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath), undefined, {
-    creator: "ai",
-    status: "preparing",
-  });
-  await fs.writeJson(planFilePath(appDataDir, plan.id), plan);
-  return plan.id;
-}
-
-/**
- * Append a rename entry to an existing plan. Throws if the plan is
- * missing or validation fails.
- */
-export async function appendRenamePlanEntry(
-  appDataDir: string,
-  planId: string,
-  from: string,
-  to: string,
-  fs: ChatFs,
-  deps: RenamePlanAppendDeps,
-): Promise<void> {
-  const filePath = planFilePath(appDataDir, planId);
-  const plan = (await fs.readJson<RenameFilesPlan>(filePath)) ?? null;
-  if (!plan) {
-    throw new Error(`Task with id ${planId} not found`);
-  }
-
-  if (plan.status === "rejected") {
-    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
-  }
-
-  const result = await prepareAppendRenameEntry(
-    plan,
-    { from, to },
-    deps,
-  );
-
-  if ("error" in result) {
-    throw new Error(result.error.replace(/^Error Reason: /, ""));
-  }
-
-  await fs.writeJson(filePath, result);
-}
 
 /**
  * Read a rename plan by id. Returns `null` if the file does not

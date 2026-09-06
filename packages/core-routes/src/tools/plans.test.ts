@@ -10,7 +10,6 @@ import {
 } from "./plans.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatFs } from "../chatTypes.ts";
-import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { AnyPlan } from "./plans.ts";
 import type {
   RecognizeMediaFilePlan,
@@ -218,44 +217,8 @@ describe("plan cancellation (rejected status)", () => {
     ).rejects.toThrow("该任务已被用户取消, 请停止后续操作");
   });
 
-  it("appendRenamePlanEntry throws the cancellation message when the plan is rejected", async () => {
-    const {
-      appendRenamePlanEntry,
-      beginRenamePlan,
-      readRenamePlan,
-    } = await import("./plans.ts");
-    const { PLAN_CANCELLED_BY_USER_MESSAGE } = await import(
-      "@smm/types/ai-tools/planTaskMessages"
-    );
-    const taskId = await beginRenamePlan(appDataDir, "/media/show", fs);
-    const existing = fs.plans.get(taskId) as RenameFilesPlan | undefined;
-    expect(existing).toBeDefined();
-    fs.plans.set(taskId, { ...existing!, status: "rejected" });
-
-    await expect(
-      appendRenamePlanEntry(
-        appDataDir,
-        taskId,
-        "/media/show/a.mp4",
-        "/media/show/b.mp4",
-        fs,
-        {
-          validateOperations: async () => ({
-            isValid: true,
-            errors: [],
-            validatedRenames: [],
-          }),
-          getMediaMetadata: async () => null,
-        },
-      ),
-    ).rejects.toThrow(PLAN_CANCELLED_BY_USER_MESSAGE);
-    void readRenamePlan;
-  });
-
   it("updatePlanContent keeps the plan file when status is 'rejected' (no delete)", async () => {
-    const { readRenamePlan, updatePlanContent } = await import(
-      "./plans.ts"
-    );
+    const { updatePlanContent } = await import("./plans.ts");
     const taskId = await beginRecognizePlan(appDataDir, "/media/show", fs);
 
     const updated = await updatePlanContent(
@@ -270,7 +233,6 @@ describe("plan cancellation (rejected status)", () => {
     // calls (add-*-file / end-*-task) can detect the cancellation.
     const planAfter = await readRecognizePlan(appDataDir, taskId, fs);
     expect(planAfter?.status).toBe("rejected");
-    void readRenamePlan;
   });
 
   it("updatePlanContent still deletes the plan file when status is 'completed' (regression)", async () => {
