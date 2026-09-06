@@ -56,11 +56,7 @@ import { TVDB_GET_MOVIE } from '@smm/types/ai-tools/tvdbGetMovie'
 import { TVDB_GET_TV_SHOW } from '@smm/types/ai-tools/tvdbGetTvShow'
 import { TVDB_GET_LANGUAGES } from '@smm/types/ai-tools/tvdbGetLanguages'
 import { CREATE_RENAME_EPISODE_PLAN } from '@smm/types/ai-tools/createRenameEpisodePlan'
-import {
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
-} from '@smm/types/ai-tools/recognizeMediaFileTask'
+import { CREATE_RECOGNIZE_EPISODE_PLAN } from '@smm/types/ai-tools/createRecognizeEpisodePlan'
 
 /**
  * Flags describing which transports a tool is exposed on. The LLM
@@ -123,10 +119,8 @@ export const AI_TOOL_REGISTRY: readonly AiToolDescriptor[] = [
   // Rename episode plan
   { name: CREATE_RENAME_EPISODE_PLAN, backend: true, frontend: true },
 
-  // Recognize media file task
-  { name: BEGIN_RECOGNIZE_TASK, backend: true, frontend: true },
-  { name: ADD_RECOGNIZED_MEDIA_FILE, backend: true, frontend: true },
-  { name: END_RECOGNIZE_TASK, backend: true, frontend: true },
+  // Recognize episode plan
+  { name: CREATE_RECOGNIZE_EPISODE_PLAN, backend: true, frontend: true },
 ] as const
 
 /**
