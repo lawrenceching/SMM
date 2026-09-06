@@ -253,8 +253,6 @@ function TvShowPanel() {
 
   const { metadataFiles, subtitleFiles, nfoFiles, thumbnailFiles, newFilePaths } = useTvShowPanel(selectedFolder, plan)
 
-  console.log(`>>> newFilePaths:`, newFilePaths)
-
   const selectFileFlow = useSelectAndUnselectFileFlow({
     mediaMetadata,
     folderFiles,
@@ -307,7 +305,6 @@ function TvShowPanel() {
   const latestMetadata = useLatest(mediaMetadata)
 
   useEffect(() => {
-    console.log(`>>> useEffect selectedEpisodes CALLED`);
     const plan = latestPlan.current;
     const metadata = latestMetadata.current;
 
