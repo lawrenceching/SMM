@@ -5,6 +5,7 @@ import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
 import { useTvShowWebSocketEvents } from "./useTvShowWebSocketEvents"
 import {
   toUpdatePlanPatch,
+  useApplyPlanMutation,
   usePlansPullOnVisible,
   usePlansQuery,
   useUpdatePlanMutation,
@@ -35,6 +36,7 @@ export function useAiBasedRenameEpisodeFlow({
 }: UseAiBasedRenameEpisodeFlowOptions) {
   const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
   const updatePlanMutation = useUpdatePlanMutation()
+  const applyPlanMutation = useApplyPlanMutation()
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
 
   const plan = useMemo(
@@ -58,11 +60,21 @@ export function useAiBasedRenameEpisodeFlow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan?.id, plan?.status, plans.length, mediaFolderPath])
 
-  // The actual rename is performed by the backend that created the plan;
-  // confirming from the app only acknowledges the prompt (pre-existing no-op).
+  // Applies the pending plan via POST /api/apply-plan (AI rename approval in
+  // docs/dev/rename-episodes.md). useApplyPlanMutation removes the plan from
+  // the plans cache on success, which closes the prompt.
   const onConfirm = useCallback(async () => {
-    if (!plan) return
-  }, [plan])
+    if (!plan || !mediaFolderPath) return
+    try {
+      await applyPlanMutation.mutateAsync({ id: plan.id, mediaFolderPath })
+      await cleanupRenamePlan(plan.id)
+    } catch (error) {
+      console.error("[useAiBasedRenameEpisodeFlow] Error applying rename plan:", error)
+      toast.error(
+        `Failed to apply rename plan: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }, [plan, mediaFolderPath, applyPlanMutation])
 
   const onCancel = useCallback(async () => {
     if (!plan || !mediaFolderPath) return

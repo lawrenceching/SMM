@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { renderHook } from "@testing-library/react"
 import { useAiBasedRenameEpisodeFlow } from "./useAiBasedRenameEpisodeFlow"
 import type { UIRenameFilesPlan } from "@/types/UIRenameFilesPlan"
@@ -7,13 +7,20 @@ import type { MediaMetadata } from "@smm/types"
 const h = vi.hoisted(() => ({
   plans: [] as unknown[],
   updatePlanMutateAsync: vi.fn(),
+  applyPlanMutateAsync: vi.fn(),
   cleanupRenamePlan: vi.fn(),
+  toastError: vi.fn(),
+}))
+
+vi.mock("sonner", () => ({
+  toast: { error: h.toastError, success: vi.fn() },
 }))
 
 vi.mock("@/hooks/plans", () => ({
   usePlansQuery: () => ({ data: h.plans }),
   usePlansPullOnVisible: () => undefined,
   useUpdatePlanMutation: () => ({ mutateAsync: h.updatePlanMutateAsync }),
+  useApplyPlanMutation: () => ({ mutateAsync: h.applyPlanMutateAsync }),
   toUpdatePlanPatch: (patch: unknown) => patch,
 }))
 
@@ -32,6 +39,10 @@ vi.mock("@/ai/plan/cleanupRenamePlan", () => ({
 describe("useAiBasedRenameEpisodeFlow", () => {
   const mediaFolderPath = "/storage/Users/currentUser/Download/Anime/show"
   const mediaMetadata = { mediaFolderPath, type: "tvshow-folder" } as MediaMetadata
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   const pendingAiPlan: UIRenameFilesPlan = {
     id: "rename-plan-1",
@@ -90,5 +101,35 @@ describe("useAiBasedRenameEpisodeFlow", () => {
       patch: { status: "rejected" },
     })
     expect(h.cleanupRenamePlan).toHaveBeenCalledWith("rename-plan-1")
+  })
+
+  it("applies the full plan on confirm and cleans up the draft", async () => {
+    h.plans = [pendingAiPlan]
+    const { result } = renderHook(() =>
+      useAiBasedRenameEpisodeFlow({ mediaMetadata }),
+    )
+
+    await result.current.onConfirm()
+
+    expect(h.applyPlanMutateAsync).toHaveBeenCalledWith({
+      id: "rename-plan-1",
+      mediaFolderPath,
+    })
+    expect(h.cleanupRenamePlan).toHaveBeenCalledWith("rename-plan-1")
+  })
+
+  it("shows a toast and keeps the plan when apply fails", async () => {
+    h.plans = [pendingAiPlan]
+    h.applyPlanMutateAsync.mockRejectedValueOnce(new Error("disk locked"))
+    const { result } = renderHook(() =>
+      useAiBasedRenameEpisodeFlow({ mediaMetadata }),
+    )
+
+    await result.current.onConfirm()
+
+    expect(h.toastError).toHaveBeenCalledWith(
+      expect.stringContaining("Failed to apply rename plan"),
+    )
+    expect(h.cleanupRenamePlan).not.toHaveBeenCalled()
   })
 })
