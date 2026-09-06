@@ -90,6 +90,12 @@
     "checkError": "连接失败",
     "checkChecking": "检查中..."
   },
+  "aiAgent": {
+    "title": "AI 智能体",
+    "description": "配置授予 AI 助手和 MCP 客户端的权限",
+    "metadataWrite": "允许无需确认即写入元数据",
+    "metadataWriteDescription": "AI 助手和 MCP 客户端将可以直接更新媒体元数据（例如重命名文件夹/文件），无需每次确认。"
+  },
   "feedback": {
     "title": "反馈",
     "description": "分享您的反馈、报告错误或建议新功能",
@@ -136,6 +142,7 @@
     "title": "设置",
     "general": "常规",
     "ai": "AI",
+    "aiAgent": "AI 智能体",
     "mediaDatabases": "媒体数据库",
     "renameRules": "重命名规则",
     "externalApps": "外部应用",
