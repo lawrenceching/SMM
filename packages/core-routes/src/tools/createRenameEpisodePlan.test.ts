@@ -128,7 +128,7 @@ describe(`buildCreateRenameEpisodePlanTool (${CREATE_RENAME_EPISODE_PLAN})`, () 
       } as unknown as UserConfig;
     }
 
-    function expectPendingPlanId(result: unknown): { planId: string } {
+    function expectPendingPlanId(result: object): { planId: string } {
       if (!("planId" in result)) {
         throw new Error((result as { error: string }).error);
       }
