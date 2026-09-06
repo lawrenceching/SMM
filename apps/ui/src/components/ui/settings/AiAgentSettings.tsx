@@ -24,9 +24,7 @@ export function AiAgentSettings() {
 
   // Reset form when userConfig changes
   useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
     setMetadataWrite(initialValues.metadataWrite)
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [initialValues])
 
   const hasChanges = metadataWrite !== initialValues.metadataWrite
