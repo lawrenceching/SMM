@@ -66,6 +66,16 @@ describe('normalizeUserConfig', () => {
 
     expect(normalized.aiAgent).toEqual({ permissions: ['metadata.write'] })
   })
+
+  it('keeps aiAgent through a serialize → normalize round trip', () => {
+    const normalized = normalizeUserConfig({
+      aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
+    })
+    const persisted = JSON.parse(JSON.stringify(normalized))
+    expect(normalizeUserConfig(persisted).aiAgent).toEqual({
+      permissions: ['metadata.write'],
+    })
+  })
 })
 
 describe('readUserConfigFromUserDataDir', () => {
