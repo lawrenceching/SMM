@@ -1,5 +1,7 @@
 import { isPreferMediaLanguage } from "@smm/utils/locale";
 import type {
+  AiAgentConfig,
+  AiAgentPermission,
   LanguageCode,
   OpenAICompatibleConfig,
   PrimaryDatabase,
@@ -44,6 +46,16 @@ function validateTvdbConfig(value: unknown): TVDBConfig {
     host: assertOptionalString(obj.host, "tvdb.host"),
     apiKey: assertOptionalString(obj.apiKey, "tvdb.apiKey"),
     httpProxy: assertOptionalString(obj.httpProxy, "tvdb.httpProxy"),
+  };
+}
+
+function validateAiAgentConfig(value: unknown): AiAgentConfig {
+  const obj = assertObject(value, "aiAgent");
+  return {
+    permissions:
+      obj.permissions === undefined
+        ? []
+        : (validateStringArray(obj.permissions, "aiAgent.permissions") as AiAgentPermission[]),
   };
 }
 
@@ -211,6 +223,10 @@ export function validateUserConfigValue<K extends keyof UserConfig>(
         throw new Error("useBundledFfmpegForVideoCaptioner must be a boolean");
       }
       return value as UserConfig[K];
+    }
+    case "aiAgent": {
+      if (value === undefined) return undefined as UserConfig[K];
+      return validateAiAgentConfig(value) as UserConfig[K];
     }
     default: {
       const _exhaustive: never = key;
