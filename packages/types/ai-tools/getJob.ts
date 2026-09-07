@@ -30,7 +30,7 @@ const scrapeJobTaskSchema = z.object({
   error: z.string().optional(),
 })
 
-export const scrapeJobSchema = z.object({
+const scrapeJobSchema = z.object({
   kind: z.literal('scrape'),
   id: z.string(),
   folderPath: z.string(),
@@ -46,7 +46,7 @@ export const scrapeJobSchema = z.object({
   updatedAt: z.number(),
 })
 
-export const importJobSchema = z.object({
+const importJobSchema = z.object({
   kind: z.literal('import'),
   id: z.string(),
   folderPath: z.string(),
@@ -60,7 +60,7 @@ export const importJobSchema = z.object({
   updatedAt: z.number(),
 })
 
-export const jobSchema = z.discriminatedUnion('kind', [
+const jobSchema = z.discriminatedUnion('kind', [
   scrapeJobSchema,
   importJobSchema,
 ])
@@ -77,6 +77,5 @@ export const getJobOutputSchema = z.object({
     .describe('Error message when the job could not be loaded'),
 })
 
-export type GetJobInput = z.infer<typeof getJobInputSchema>
 export type GetJobOutput = z.infer<typeof getJobOutputSchema>
 export type JobToolPayload = z.infer<typeof jobSchema>

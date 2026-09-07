@@ -5,7 +5,7 @@ import type {
   TmdbSeriesDetails,
 } from '@smm/types'
 
-export interface TmdbCoreRequestOptions {
+interface TmdbCoreRequestOptions {
   language?: string
   host?: string
   password?: string

@@ -2,7 +2,7 @@
 
 import { browser } from '@wdio/globals'
 import { clickContextMenuItem, rightClickElement } from '../lib/context-menu'
-import SearchboxCO from './Searchbox.co'
+import { SearchboxCO } from './Searchbox.co'
 
 /** Confirm button labels (en and zh-CN). */
 const CONFIRM_LABELS = ['Confirm', '确认']
@@ -560,8 +560,4 @@ class TVShowPanel {
     
 }
 
-/**
- * Keep both default export and named export for backwards compatibility.
- */
 export const TvShowPanelCO = new TVShowPanel()
-export default TvShowPanelCO

@@ -1,7 +1,6 @@
 import { useMemo } from "react"
 import { create } from "zustand"
 import { useShallow } from "zustand/shallow"
-import { Path } from "@smm/utils/path"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { installUIMediaFolderStoreBridge } from "./uiMediaFolderStoreBridge"
 import { queryClient } from "@/lib/queryClient"
@@ -116,15 +115,6 @@ installUIMediaFolderStoreBridge(() => {
   const { folders, selectedFolder } = useUIMediaFolderStore.getState()
   return { folders, selectedFolder }
 })
-
-/** Pure helper for later integration: map `UserConfig.folders` to {@link UIMediaFolder} rows. */
-export function uiMediaFoldersFromPaths(paths: string[]): UIMediaFolder[] {
-  return paths.map((path) => ({
-    path: Path.toPlatformPath(path),
-    status: "idle",
-    test: false,
-  }))
-}
 
 export const useUIMediaFolderStoreState = () =>
   useUIMediaFolderStore(

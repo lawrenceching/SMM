@@ -13,23 +13,37 @@
     "packages/electron-common/ohos/**"
   ],
   "ignoreBinaries": [
-    "vitest",
-    "eslint",
-    "vite",
-    "electron-vite",
-    "pino-pretty",
-    "ffmpeg",
-    "hdc"
+    "hdc",
+    "pino-pretty"
+  ],
+  "ignoreDependencies": [
+    "@ai-sdk/mcp"
   ],
   "workspaces": {
     ".": {
-      "entry": ["ci/**/*.ts", "scripts/**/*.ts"]
+      "entry": [
+        "ci/**/*.ts",
+        "scripts/**/*.ts",
+        "test/bin/*.ts",
+        "test/mcp-test-client/*.ts",
+        "test/utils/*.ts",
+        "test/mcp/**/*.test.ts"
+      ],
+      "ignore": [
+        "test/mcp/lib/**"
+      ]
     },
     "apps/cli": {
-      "entry": ["index.ts", "scripts/**/*.ts", "src/**/*.test.ts", "test/**/*.test.ts"]
+      "entry": [
+        "scripts/**/*.ts",
+        "src/**/*.test.ts",
+        "test/**/*.test.ts"
+      ]
     },
     "apps/core": {
-      "entry": ["src/**/*.test.ts"]
+      "entry": [
+        "src/**/*.test.ts"
+      ]
     },
     "apps/ui": {
       "entry": [
@@ -38,56 +52,85 @@
         "src/**/*.stories.tsx",
         "src/**/*.test.ts",
         "src/**/*.test.tsx"
+      ],
+      "ignoreDependencies": [
+        "@icons-pack/react-simple-icons",
+        "@radix-ui/react-accordion",
+        "@radix-ui/react-avatar",
+        "@radix-ui/react-use-controllable-state",
+        "@shikijs/transformers",
+        "@types/react-syntax-highlighter",
+        "cmdk",
+        "embla-carousel-react",
+        "harden-react-markdown",
+        "katex",
+        "react-markdown",
+        "react-syntax-highlighter",
+        "rehype-katex",
+        "remark-math",
+        "shiki",
+        "use-stick-to-bottom"
       ]
-    },
-    "apps/electron": {
-      "entry": ["src/main/index.ts", "src/preload/index.ts"]
     },
     "apps/e2e": {
       "entry": [
-        "wdio.conf.ts",
         "wdio.conf.test.ts",
         "cli/**/*.test.ts",
         "common/**/*.e2e.ts",
-        "scenarios/**/*.ts",
+        "common/**/*.template.ts",
         "test/**/*.ts",
         "ohos/**/*.ts",
         "electron/**/*.ts",
         "docker/**/*.{ts,mjs}"
       ],
-      "ignore": ["common/manual/**"],
+      "ignore": [
+        "common/manual/**"
+      ],
       "ignoreDependencies": [
-        "test/pageobjects/page",
-        "test/lib/testbed",
-        "test/lib/env",
-        "test/actions/import-folders",
-        "test/componentobjects/Sidebar",
         "@wdio/html-nice-reporter"
       ]
     },
     "apps/convex": {
-      "entry": ["convex/**/*.ts"]
+      "entry": [
+        "convex/**/*.ts"
+      ]
     },
     "apps/cicd": {
-      "entry": ["run.ts", "src/**/*.ts", "test/**/*.test.ts"]
+      "entry": [
+        "src/**/*.ts",
+        "test/**/*.test.ts"
+      ]
     },
     "apps/tools": {
-      "entry": ["**/*.ts"]
+      "entry": [
+        "**/*.ts"
+      ]
     },
     "packages/types": {
-      "entry": ["**/*.test.ts"]
+      "entry": [
+        "**/*.test.ts"
+      ]
     },
     "packages/utils": {
-      "entry": ["src/**/*.test.ts"]
+      "entry": [
+        "src/**/*.test.ts"
+      ]
     },
     "packages/core-routes": {
-      "entry": ["src/**/*.test.ts"]
+      "entry": [
+        "src/**/*.test.ts"
+      ]
     },
     "packages/tvdb4": {
-      "entry": ["src/**/*.test.ts", "test/**/*.ts"]
+      "entry": [
+        "src/**/*.test.ts",
+        "test/**/*.ts"
+      ]
     },
     "packages/electron-common": {
-      "entry": ["src/**/*.test.ts"]
+      "entry": [
+        "src/**/*.test.ts"
+      ]
     },
     "packages/test": {}
   }

@@ -29,7 +29,6 @@ export const renameFolderOutputSchema = z.object({
   error: z.string().optional().describe('Error message if rename failed'),
 })
 
-export type RenameFolderInput = z.infer<typeof renameFolderInputSchema>
 export type RenameFolderOutput = z.infer<typeof renameFolderOutputSchema>
 
 export const RENAME_FOLDER_CANCELLED = 'User cancelled the operation'

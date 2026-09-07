@@ -26,11 +26,7 @@ import {
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
 } from '@/types/background-jobs'
-import {
-  getAllJobs,
-  selectRecordsForBackgroundJobsUi,
-  type TaskJobRecord,
-} from '@/lib/downloadTaskDb'
+import { type TaskJobRecord } from '@/lib/downloadTaskDb'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 
 function applyCommandLogCorrelation<T extends { executionId?: string; logRelativePath?: string }>(
@@ -480,15 +476,4 @@ export function syncJobRecordsToStore(records: TaskJobRecord[]): void {
   useBackgroundJobsStore.setState((state) => ({
     jobs: [...state.jobs.filter((j) => !isPersistedFromIdbJob(j)), ...mapped],
   }))
-}
-
-/**
- * Load all jobs from IndexedDB, filter to within-one-hour, and return.
- * Also syncs to the Zustand store as a side-effect.
- */
-export async function loadAndSyncJobs(): Promise<TaskJobRecord[]> {
-  const records = await getAllJobs()
-  const filtered = selectRecordsForBackgroundJobsUi(records)
-  syncJobRecordsToStore(filtered)
-  return filtered
 }

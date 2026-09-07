@@ -89,4 +89,3 @@ export const TMDB_PRIMARY_TRANSLATIONS = [
   'zu-ZA',
 ] as const
 
-export type TmdbPrimaryTranslation = (typeof TMDB_PRIMARY_TRANSLATIONS)[number]

@@ -3,7 +3,7 @@ import { TmdbFetchError } from "@/api/tmdb"
 import { HttpFailoverExhaustedError } from "@/lib/http"
 import { TVDBv4Error } from "@smm/tvdb4"
 
-export type ScrapeErrorKey =
+type ScrapeErrorKey =
   | "scrape.errors.imageUrlTimeout"
   | "scrape.errors.imageUrlNotFound"
   | "scrape.errors.imageUrlConnectionRefused"

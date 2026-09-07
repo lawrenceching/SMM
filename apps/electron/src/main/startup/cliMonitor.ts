@@ -160,7 +160,7 @@ export function buildMissingBinaryFailure(executablePath: string): CliStartupFai
   }
 }
 
-export function buildSpawnFailure(
+function buildSpawnFailure(
   executablePath: string,
   error: NodeJS.ErrnoException,
 ): CliStartupFailure {

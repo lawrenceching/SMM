@@ -19,14 +19,13 @@ import {
   type DialogConfig,
   type FolderType,
   type FileItem,
-  type Task,
   type TrackProperties,
   type ExecuteCmdType,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
 
 // Re-export types for backward compatibility
-export type { FolderType, FileItem, Task }
+export type { FolderType, FileItem }
 
 interface DialogContextValue {
   confirmationDialog: [

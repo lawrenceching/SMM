@@ -22,19 +22,6 @@ type WebSocketEventListener = (message: WebSocketMessage) => void;
 const webSocketEventListeners = new Set<WebSocketEventListener>();
 let activeSocket: Socket | null = null;
 
-export function sendWebSocketMessage(message: WebSocketMessage): void {
-  if (activeSocket?.connected) {
-    try {
-      activeSocket.emit(message.event, message.data);
-    } catch (error) {
-      console.error('[Socket.IO] Error sending message:', error);
-    }
-    return;
-  }
-
-  console.warn('[Socket.IO] Cannot send message: Socket is not connected');
-}
-
 /**
  * Register a Socket.IO event handler.
  *
@@ -53,15 +40,6 @@ export function useWebSocketEvent(handler: (message: WebSocketMessage) => void):
     return () => {
       webSocketEventListeners.delete(listener);
     };
-  }, []);
-}
-
-/**
- * React hook that returns a stable send function for the active Socket.IO connection.
- */
-export function useWebSocketSend() {
-  return useCallback((message: WebSocketMessage) => {
-    sendWebSocketMessage(message);
   }, []);
 }
 

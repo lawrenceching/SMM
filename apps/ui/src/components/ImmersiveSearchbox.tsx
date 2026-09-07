@@ -15,13 +15,6 @@ export interface SearchLanguageOption {
   name: string
 }
 
-/**
- * Maximum number of "priority" language options shown in the default (collapsed)
- * view of the language dropdown. Anything beyond this is reachable via the
- * "Show all languages" toggle.
- */
-export const PRIORITY_LANGUAGE_OPTION_LIMIT = 3
-
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"

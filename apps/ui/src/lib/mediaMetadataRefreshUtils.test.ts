@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mergeRefreshedMetadata } from './mediaMetadataRefreshUtils'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@smm/types'
 import type { MediaMetadata, TvShowMediaMetadata } from '@smm/types'
 
 const defaultTvShow = (name: string): TvShowMediaMetadata => ({
@@ -17,13 +17,13 @@ const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetad
   ...overrides,
 })
 
-const createMockUIMediaMetadata = (overrides?: Partial<UIMediaMetadata>): UIMediaMetadata => ({
+const createMockUIMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
   mediaFolderPath: '/media/show1',
   type: 'tvshow-folder',
   status: 'ok',
   tvShow: defaultTvShow('Show 1'),
   ...overrides,
-} as UIMediaMetadata)
+} as MediaMetadata)
 
 describe('mergeRefreshedMetadata', () => {
   it('should return response with idle status when no current metadata exists', () => {

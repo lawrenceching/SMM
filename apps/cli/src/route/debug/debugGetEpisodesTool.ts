@@ -15,7 +15,7 @@ const getEpisodesToolSchema = z.object({
   clientId: z.string().optional(),
 })
 
-export async function processGetEpisodesTool(
+async function processGetEpisodesTool(
   body: unknown,
 ): Promise<DebugGetEpisodesToolResponseBody> {
   try {

@@ -17,7 +17,7 @@ const listFilesToolSchema = z.object({
   clientId: z.string().optional(),
 })
 
-export async function processListFilesTool(
+async function processListFilesTool(
   body: unknown,
 ): Promise<DebugListFilesToolResponseBody> {
   try {

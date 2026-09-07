@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch';
-export type FrontendLogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal"
+type FrontendLogLevel = "trace" | "debug" | "info" | "warn" | "error" | "fatal"
 
 export interface FrontendLogPayload {
   level?: FrontendLogLevel

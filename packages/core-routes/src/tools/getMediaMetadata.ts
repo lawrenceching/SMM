@@ -6,7 +6,6 @@ import {
 } from "@smm/core/ai-tool/getMediaMetadataResponse";
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import {
-  GET_MEDIA_METADATA,
   GET_MEDIA_METADATA_DESCRIPTION,
   GET_MEDIA_METADATA_FOLDER_NOT_FOUND,
   GET_MEDIA_METADATA_NOT_DIRECTORY,
@@ -117,5 +116,3 @@ export function buildGetMediaMetadataTool(
   };
 }
 
-/** Re-exported tool name constant for the tools registry. */
-export const GET_MEDIA_METADATA_TOOL_NAME = GET_MEDIA_METADATA;

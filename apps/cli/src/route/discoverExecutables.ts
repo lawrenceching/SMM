@@ -4,12 +4,12 @@ import { resolveYtdlpPathInfo } from '../utils/Ytdlp';
 import { resolveVideoCaptionerPathInfo } from '../utils/VideoCaptioner';
 import { resolveQuickjsPathInfo } from '../utils/QuickJS';
 
-export interface ExecutablePathInfo {
+interface ExecutablePathInfo {
   configuredPath: string | null;
   discoveredPath: string | null;
 }
 
-export interface DiscoverExecutablesData {
+interface DiscoverExecutablesData {
   ffmpeg: ExecutablePathInfo;
   ytdlp: ExecutablePathInfo;
   videocaptioner: ExecutablePathInfo;

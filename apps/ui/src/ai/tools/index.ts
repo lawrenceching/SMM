@@ -1,7 +1,7 @@
 export { GetMediaFoldersTool } from './GetMediaFolders';
 export { GetFilesInMediaFolderTool } from './ListFilesInMediaFolder';
 export { GetMediaMetadataTool } from './GetMediaMetadata';
-export { GetApplicationContextTool, type ApplicationContextData } from './GetApplicationContext';
+export { GetApplicationContextTool} from './GetApplicationContext';
 export { IsFolderExistTool } from './IsFolderExist';
 export { GetEpisodesTool } from './GetEpisodes';
 export { RenameFolderTool } from './RenameFolder';

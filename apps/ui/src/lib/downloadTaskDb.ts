@@ -1,10 +1,4 @@
-import type {
-  DownloadVideoBackgroundJob,
-  ProcessBackgroundJob,
-  SynthesizeBackgroundJob,
-  TranscribeBackgroundJob,
-  TranslateBackgroundJob,
-} from '@/types/background-jobs'
+
 
 const DB_NAME = 'DownloadTaskDatabase'
 const DB_VERSION = 1
@@ -27,7 +21,7 @@ export interface TaskJobRecord {
 /** @deprecated Use {@link TaskJobRecord} */
 export type DownloadJobRecord = TaskJobRecord
 
-export function openDownloadTaskDB(): Promise<IDBDatabase> {
+function openDownloadTaskDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
     request.onupgradeneeded = () => {
@@ -88,7 +82,7 @@ export function isWithinOneHour(createdAt: number): boolean {
   return Date.now() - createdAt < ONE_HOUR_MS
 }
 
-export function jobRecordActivityTime(record: TaskJobRecord): number {
+function jobRecordActivityTime(record: TaskJobRecord): number {
   return record.updatedAt || record.createdAt || 0
 }
 
@@ -107,115 +101,8 @@ export function selectRecordsForBackgroundJobsUi(records: TaskJobRecord[]): Task
     .slice(0, MAX_BACKGROUND_JOBS_UI)
 }
 
-export interface GetJobsByTypeAndFolderOptions {
-  /** When true (default), omit records with status `succeeded`. */
-  excludeSucceeded?: boolean
-  /** When true (default), only include jobs created within the last hour. */
-  withinOneHour?: boolean
-}
-
-export async function getJobsByTypeAndFolder(
-  jobType: string,
-  folder: string,
-  options: GetJobsByTypeAndFolderOptions = {},
-): Promise<TaskJobRecord[]> {
-  const { excludeSucceeded = true, withinOneHour = true } = options
-  const records = await getAllJobs()
-  return records.filter((r) => {
-    if (r.type !== jobType || r.folder !== folder) return false
-    if (withinOneHour && !isWithinOneHour(r.createdAt)) return false
-    if (excludeSucceeded && r.status === 'succeeded') return false
-    return true
-  })
-}
-
 export function notifyIndexedDbUpdated(): void {
   window.dispatchEvent(new CustomEvent('indexed-updated'))
-}
-
-export async function saveDownloadVideoJob(job: DownloadVideoBackgroundJob): Promise<void> {
-  const now = Date.now()
-  const record: TaskJobRecord = {
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    progress: job.progress,
-    type: job.type,
-    folder: job.data.folder,
-    data: JSON.stringify(job.data),
-    createdAt: now,
-    updatedAt: now,
-  }
-  await putJob(record)
-  notifyIndexedDbUpdated()
-}
-
-export async function saveTranslateJob(job: TranslateBackgroundJob): Promise<void> {
-  const now = Date.now()
-  const record: TaskJobRecord = {
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    progress: job.progress,
-    type: job.type,
-    folder: job.data.folder,
-    data: JSON.stringify(job.data),
-    createdAt: now,
-    updatedAt: now,
-  }
-  await putJob(record)
-  notifyIndexedDbUpdated()
-}
-
-export async function saveSynthesizeJob(job: SynthesizeBackgroundJob): Promise<void> {
-  const now = Date.now()
-  const record: TaskJobRecord = {
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    progress: job.progress,
-    type: job.type,
-    folder: job.data.folder,
-    data: JSON.stringify(job.data),
-    createdAt: now,
-    updatedAt: now,
-  }
-  await putJob(record)
-  notifyIndexedDbUpdated()
-}
-
-export async function saveProcessJob(job: ProcessBackgroundJob): Promise<void> {
-  const now = Date.now()
-  const record: TaskJobRecord = {
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    progress: job.progress,
-    type: job.type,
-    folder: job.data.folder,
-    data: JSON.stringify(job.data),
-    createdAt: now,
-    updatedAt: now,
-  }
-  await putJob(record)
-  notifyIndexedDbUpdated()
-}
-
-export async function saveTranscribeJob(job: TranscribeBackgroundJob): Promise<void> {
-  const now = Date.now()
-  const record: TaskJobRecord = {
-    id: job.id,
-    name: job.name,
-    status: job.status,
-    progress: job.progress,
-    type: job.type,
-    folder: job.data.folder,
-    data: JSON.stringify(job.data),
-    createdAt: now,
-    updatedAt: now,
-  }
-  await putJob(record)
-  notifyIndexedDbUpdated()
 }
 
 /**

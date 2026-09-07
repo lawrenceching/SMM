@@ -47,7 +47,7 @@ import { AiBasedRecognizeEpisodePrompt } from "./AiBasedRecognizeEpisodePrompt"
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 
 
-export function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
+function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
 
   if(m.type === 'tvshow-folder' || m.type === 'movie-folder') {
     const seasons: MediaFileTableSeasonData[] = m.tvShow?.seasons?.map(s => {

@@ -106,47 +106,6 @@ export function logHttpRespOut(c: Context, body: unknown, statusCode: number = 2
   }
 }
 
-/**
- * Logs outgoing HTTP request to external API.
- * In debug mode, includes the request body; otherwise only logs method and URL.
- */
-export function logHttpReqOut(url: string, method: string = 'GET', body?: unknown) {
-  const logData: Record<string, unknown> = {
-    method,
-    url,
-    target: 'external',
-  };
-
-  if (logger.isLevelEnabled('debug') && body !== undefined) {
-    logData.body = body;
-  }
-
-  logger.info(logData, 'HTTP request sent to external API');
-}
-
-/**
- * Logs incoming HTTP response from external API.
- * In debug mode, includes the response body; otherwise only logs method, URL, and status code.
- * Automatically determines error state by checking status code >= 400.
- */
-export function logHttpRespIn(url: string, statusCode: number, body?: unknown) {
-  const logData: Record<string, unknown> = {
-    url,
-    statusCode,
-    target: 'external',
-  };
-
-  if (logger.isLevelEnabled('debug') && body !== undefined) {
-    logData.body = body;
-  }
-
-  if (statusCode >= 400) {
-    logger.error(logData, 'HTTP response received from external API (error)');
-  } else {
-    logger.info(logData, 'HTTP response received from external API');
-  }
-}
-
 await initSensitiveStrings();
 
 // Create and export the logger instance
@@ -170,29 +129,3 @@ export const frontendLogger = pino(
 );
 
 // Export a default as well for convenience
-export default logger;
-
-/**
- * Log with trace ID context
- * @param level Log level ('info', 'warn', 'error', 'debug')
- * @param traceId Trace ID for request correlation
- * @param message Log message
- * @param data Additional data to log
- */
-export function logWithTrace(
-  level: 'info' | 'warn' | 'error' | 'debug',
-  traceId: number,
-  message: string,
-  data?: Record<string, unknown>
-) {
-  logger[level]({ traceId, ...data }, message);
-}
-
-/**
- * Create a child logger with trace ID bound
- * @param traceId Trace ID to bind to the logger
- * @returns A child logger instance with trace ID in all log entries
- */
-export function createTraceLogger(traceId: number) {
-  return logger.child({ traceId });
-}

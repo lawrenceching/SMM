@@ -10,7 +10,7 @@ import { setAuthLoginRequired } from '@/lib/authSession';
 import { useReloadAppConfig } from '@/hooks/userConfig/useReloadAppConfig';
 import { useAuthLoginRequired } from '@/hooks/useAuthLoginRequired';
 
-export function LoginPanel() {
+function LoginPanel() {
   const { t } = useTranslation('common');
   const { reload } = useReloadAppConfig();
   const [token, setToken] = useState('');

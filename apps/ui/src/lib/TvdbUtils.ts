@@ -10,7 +10,7 @@ import { isCustomUpstream } from "@/lib/mediaDatabaseAccess"
 
 export const SMM_TVDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tvdb'
 
-export interface TvdbUpstream {
+interface TvdbUpstream {
     reverseProxyUrl: string | null
     upstreamBaseURL: string
     apiKey?: string
@@ -26,24 +26,6 @@ function isParallelTranslationEnabled(): boolean {
   } catch {
     return true
   }
-}
-
-/**
- * The TVDB search API return object id in form "series-421069".
- * This function return the number id extracted from the object id.
- */
-export function extractSeriesId(objectId: string): number {
-    const str = objectId.replace('series-', '').trim()
-    return parseInt(str, 10)
-}
-
-/**
- * TVDB search returns movie `objectID` / `id` like "movie-15778".
- */
-export function extractMovieId(objectId: string): number {
-    const str = objectId.replace(/^movie-/i, '').trim()
-    const n = parseInt(str, 10)
-    return Number.isFinite(n) && n > 0 ? n : NaN
 }
 
 export interface GetTVDBv4ClientOverrides {
@@ -454,7 +436,7 @@ export async function fetchTvdbAndBuildMovieMediaMetadata(
  * Map IETF BCP 47 / RFC 5646 lang code to ISO 639 lang code(which is used by TVDB)
  * For example, zh-CN -> zho
  */
-export function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
+function mapToTvdbLangCode(lang: "zh-CN" | "en-US" | "ja-JP"): string {
     switch(lang) {
         case "zh-CN":
             return "zho"

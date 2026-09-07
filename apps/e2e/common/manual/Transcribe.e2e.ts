@@ -7,7 +7,7 @@ import { setup, cleanup, importFolderWithMediaMetadata } from 'test/lib/testbed'
 import { createFolderInTestFolder, folder1, folder5 } from 'test/actions/import-folders'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
-import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
+import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
     createTestFolderViaBrowser,

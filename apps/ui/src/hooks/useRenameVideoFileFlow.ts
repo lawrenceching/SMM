@@ -7,7 +7,7 @@ import { renameEpisodeFileViaCore } from "@/api/renameEpisodeFile"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import type { UIMediaFileDataRow } from "@/components/media/UIMediaFileTable"
 
-export interface RenameFileDialogOptions {
+interface RenameFileDialogOptions {
   initialValue?: string
   title?: string
   description?: string

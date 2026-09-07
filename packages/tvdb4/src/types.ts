@@ -1,4 +1,4 @@
-export interface TVDBv4Links {
+interface TVDBv4Links {
   prev?: string | null;
   self?: string | null;
   next?: string | null;
@@ -30,7 +30,7 @@ export type TVDBv4MovieBaseRecord = Record<string, unknown> & { id?: number };
 export type TVDBv4SeasonBaseRecord = Record<string, unknown> & { id?: number };
 export type TVDBv4SeriesBaseRecord = Record<string, unknown> & { id?: number };
 
-export interface TVDBv4SeriesSeasonsExtendedResponseEpisode {
+interface TVDBv4SeriesSeasonsExtendedResponseEpisode {
   id: number;
   seriesId: number;
   name: string;
@@ -186,7 +186,7 @@ export interface TVDBv4ListMoviesParams extends TVDBv4ListParams {}
 export interface TVDBv4ListSeasonsParams extends TVDBv4ListParams {}
 export interface TVDBv4ListSeriesParams extends TVDBv4ListParams {}
 
-export type TVDBv4SearchType = "series" | "movie";
+type TVDBv4SearchType = "series" | "movie";
 
 export interface TVDBv4SearchParams extends TVDBv4ListParams {
   query: string;

@@ -17,7 +17,6 @@ import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbV3'
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
 
 export type {
-  TmdbTvSeasonDetails,
   TmdbSeriesDetails,
   TmdbSeasonDetails,
   TmdbMovieDetails,
@@ -51,8 +50,6 @@ export function clearDisabledDomains(domains: string[]): void {
   }
   localStorages.disabledDomains = next
 }
-
-export { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 
 export async function fetchTmdb(urlPath: string, options?: {
   disabledDomains?: Set<string>
@@ -262,5 +259,5 @@ export async function getSeason(
   return resp.json() as Promise<TmdbSeasonDetails>
 }
 
-export { TmdbFetchError, classifyTmdbError, formatTmdbErrorForDisplay, buildTmdbErrorFromResponse } from './tmdbErrors'
+export { TmdbFetchError, classifyTmdbError, formatTmdbErrorForDisplay} from './tmdbErrors'
 

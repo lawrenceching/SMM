@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n"
 
-export const SMM_RELEASES_URL = "https://github.com/lawrenceching/fanclub/releases"
+const SMM_RELEASES_URL = "https://github.com/lawrenceching/fanclub/releases"
 
 interface NewVersionDialogProps {
   open: boolean

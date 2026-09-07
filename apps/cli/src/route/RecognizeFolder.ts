@@ -3,13 +3,7 @@ import type { RecognizeFolderDb } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface RecognizeFolderRequestBody {
-  path: string
-  db: RecognizeFolderDb
-  id: string
-}
-
-export interface RecognizeFolderResponseBody {
+interface RecognizeFolderResponseBody {
   data?: { path: string }
   error?: string
 }

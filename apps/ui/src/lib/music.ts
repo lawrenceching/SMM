@@ -12,7 +12,7 @@ export function newMusicMediaMetadata(mm: MediaMetadata, folderFiles: string[]):
     }
 }
 
-export function buildMusicFilePropsArray(files: string[]): MusicFileProps[] {
+function buildMusicFilePropsArray(files: string[]): MusicFileProps[] {
     const propsArray: MusicFileProps[] = [];
     const videoFiles = findFilesByExtensions(files, extensions.videoFileExtensions);
     const audioFiles = findFilesByExtensions(files, extensions.musicFileExtensions);
@@ -22,7 +22,7 @@ export function buildMusicFilePropsArray(files: string[]): MusicFileProps[] {
     return propsArray;
 }
 
-export function buildMusicFileProps(files: string[], file: string, type: "audio" | "video"): MusicFileProps {
+function buildMusicFileProps(files: string[], file: string, type: "audio" | "video"): MusicFileProps {
 
     const filename = new Path(file).name()
     const filenameWithoutExt = filename.lastIndexOf('.') !== -1 ? filename.substring(0, filename.lastIndexOf('.')) : filename;
@@ -55,7 +55,7 @@ export function buildMusicFileProps(files: string[], file: string, type: "audio"
  * 
  * @param associatedFiles Absolute path for associated files 
  */
-export function findThumbnail(associatedFiles: string[]): string | undefined {
+function findThumbnail(associatedFiles: string[]): string | undefined {
     const imageExts = extensions.imageFileExtensions;
     const ret = findFilesByExtensions(associatedFiles, imageExts);
     return ret[0]
@@ -83,7 +83,7 @@ export function findFilesByExtensions(files: string[], extensions: string[]): st
  * @param files file paths in POSIX format
  * @param filenameWithoutExt 
  */
-export function findFilesByFileName(files: string[], filenameWithoutExt: string): string[] {
+function findFilesByFileName(files: string[], filenameWithoutExt: string): string[] {
     return files.filter(file => {
         const filename = new Path(file).name();
         const lastDotIndex = filename.lastIndexOf('.');

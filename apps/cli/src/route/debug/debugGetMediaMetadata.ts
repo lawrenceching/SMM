@@ -25,7 +25,7 @@ const getMediaMetadataSchema = z.object({
   clientId: z.string().optional(),
 });
 
-export async function processGetMediaMetadata(body: unknown): Promise<DebugGetMediaMetadataResponseBody> {
+async function processGetMediaMetadata(body: unknown): Promise<DebugGetMediaMetadataResponseBody> {
   try {
     console.log('[DebugAPI] Received getMediaMetadata request:', body);
 

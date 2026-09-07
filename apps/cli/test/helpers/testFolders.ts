@@ -8,14 +8,7 @@ import { getCore } from '../../src/core/getCore'
 import { smm } from './smm'
 
 export {
-  type LangCode,
   type TestFolder,
-  folder1,
-  folder2,
-  folder3,
-  folder4,
-  folder5,
-  folder6,
   musicFolder,
   tvShowFolder,
   movieFolder,
@@ -32,11 +25,6 @@ const MEDIA_METADATA_TEMPLATES_DIR = join(repoRoot, 'test', 'templates', 'mediaM
 export function metadataCachePath(appDataDir: string, folderPathInPosix: string): string {
   const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
   return join(appDataDir, 'metadata', `${filename}.json`)
-}
-
-/** Sibling path with " - Renamed" suffix (same naming as e2e RenameFolder). */
-export function renamedFolderPath(folderPath: string, folderName: string): string {
-  return join(dirname(folderPath), `${folderName} - Renamed`)
 }
 
 function loadTemplate(templateFileName: string): MediaMetadata {

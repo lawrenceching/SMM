@@ -9,13 +9,13 @@ export interface ImportFolderParams {
   traceId?: string
 }
 
-export interface ImportFolderResponseBody {
+interface ImportFolderResponseBody {
   data?: { id: string }
   error?: string
 }
 
 /** Layer-2 import folder via Core (`POST /api/import-folder`). */
-export async function importFolder(
+async function importFolder(
   params: ImportFolderParams,
   signal?: AbortSignal,
 ): Promise<ImportFolderResponseBody> {

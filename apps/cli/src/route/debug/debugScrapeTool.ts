@@ -16,7 +16,7 @@ const scrapeToolSchema = z.object({
   language: z.string().optional(),
 })
 
-export async function processScrapeTool(
+async function processScrapeTool(
   body: unknown,
 ): Promise<DebugScrapeToolResponseBody> {
   try {

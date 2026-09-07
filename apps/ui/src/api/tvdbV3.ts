@@ -15,7 +15,7 @@ export function toTvdbApiLanguage(language?: string): string | undefined {
   return trimmed
 }
 
-export interface TvdbCoreRequestOptions {
+interface TvdbCoreRequestOptions {
   language?: string
   host?: string
   password?: string

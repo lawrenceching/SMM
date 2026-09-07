@@ -1,10 +1,7 @@
 /** All yt-dlp `--cookies-from-browser` profile names (lowercase). */
-export const YTDLP_COOKIES_BROWSER_IDS_ALL = ["chrome", "edge", "firefox"] as const
+const YTDLP_COOKIES_BROWSER_IDS_ALL = ["chrome", "edge", "firefox"] as const
 
 export type YtdlpCookiesBrowserId = (typeof YTDLP_COOKIES_BROWSER_IDS_ALL)[number]
-
-/** @deprecated Use `getCookiesBrowserIds(platform)` for platform-aware filtering. */
-export const YTDLP_COOKIES_BROWSER_IDS = YTDLP_COOKIES_BROWSER_IDS_ALL
 
 /**
  * Returns available browsers for `--cookies-from-browser` on the given platform.

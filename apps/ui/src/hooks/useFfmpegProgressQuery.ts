@@ -44,16 +44,6 @@ export function parseHmsTime(value: string): number | null {
 }
 
 /**
- * Match an `HH:MM:SS[.xx]` token inside a free-form line. Returns the raw
- * substring (without leading/trailing whitespace) or null when no such token
- * is present.
- */
-function findHmsToken(line: string): string | null {
-  const match = /\b(\d{1,2}:\d{2}:\d{2}(?:\.\d+)?)\b/.exec(line)
-  return match ? match[1] : null
-}
-
-/**
  * Strip the CLI log line prefix `${ISO timestamp} [KIND] ` from a single
  * line. Returns the unprefixed payload, or the original line if the prefix
  * is not present (so callers can still try to parse unknown lines).
@@ -231,4 +221,3 @@ export function useFfmpegProgressQuery({
 
 // Re-export the helper used by BackgroundJobItem.tsx to find HMS tokens
 // inside free-form log segments (e.g. for the Log dialog "Duration" callout).
-export { findHmsToken }

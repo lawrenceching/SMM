@@ -141,5 +141,3 @@ export function buildCreateRenameEpisodePlanTool(
   };
 }
 
-export const CREATE_RENAME_EPISODE_PLAN_TOOL_NAME =
-  CREATE_RENAME_EPISODE_PLAN;

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, tryToRecognizeTvShowFolderByNFO, unlinkEpisode, buildRenameApplySelectedFiles, buildRecognizeApplySelectedFiles } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@smm/types'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@smm/types'
 import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import { readFile } from '@/api/readFile'
 import { parseEpisodeNfo } from '@/lib/nfo'
@@ -122,7 +122,7 @@ describe('newPath', () => {
 })
 
 describe('buildFileProps', () => {
-  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): UIMediaMetadata => ({
+  const createMockMediaMetadata = (overrides?: Partial<MediaMetadata>): MediaMetadata => ({
     mediaFolderPath: '/media/tvshow',
     mediaFiles: [
       {
@@ -138,7 +138,7 @@ describe('buildFileProps', () => {
     ],
     status: 'ok',
     ...overrides,
-  } as UIMediaMetadata)
+  } as MediaMetadata)
 
   it('should build file props for valid media metadata', () => {
     const mm = createMockMediaMetadata()
@@ -1072,7 +1072,7 @@ describe('tryToRecognizeTvShowFolderByNFO', () => {
   <originalfilename>episode1.mkv</originalfilename>
 </episodedetails>`
 
-    const mediaMetadata: UIMediaMetadata = {
+    const mediaMetadata: MediaMetadata = {
       mediaFolderPath: '/media/testshow',
       files: [
         '/media/testshow/tvshow.nfo',
@@ -1120,7 +1120,7 @@ describe('unlinkEpisode', () => {
       episodeNumber: mf.episodeNumber,
       absolutePath: mf.absolutePath ?? `/show/season1/ep${i + 1}.mkv`,
     })),
-  } as UIMediaMetadata)
+  } as MediaMetadata)
 
   it('does nothing when mediaMetadata is undefined', () => {
     unlinkEpisode({
@@ -1148,7 +1148,7 @@ describe('unlinkEpisode', () => {
     unlinkEpisode({
       season: 1,
       episode: 1,
-      mediaMetadata: { mediaFolderPath: '/show', status: 'ok', mediaFiles: undefined } as UIMediaMetadata,
+      mediaMetadata: { mediaFolderPath: '/show', status: 'ok', mediaFiles: undefined } as MediaMetadata,
       updateMediaMetadata: mockUpdateMediaMetadata,
       t: mockT,
     })

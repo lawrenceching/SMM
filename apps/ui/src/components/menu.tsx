@@ -33,7 +33,7 @@ import {
 } from "@/types/eventTypes"
 import { writeFrontendLog } from "@/api/log"
 
-export interface MenuItem {
+interface MenuItem {
   name: string
   /** Unique identifier used for id and data-testid attributes */
   id?: string
@@ -45,18 +45,18 @@ export interface MenuItem {
   variant?: "default" | "destructive"
 }
 
-export interface MenuSeparator {
+interface MenuSeparator {
   type: "separator"
 }
 
-export interface MenuCheckboxItem {
+interface MenuCheckboxItem {
   type: "checkbox"
   name: string
   checked?: boolean
   onCheckedChange?: (checked: boolean) => void
 }
 
-export interface MenuRadioGroup {
+interface MenuRadioGroup {
   type: "radio-group"
   value?: string
   onValueChange?: (value: string) => void
@@ -66,17 +66,17 @@ export interface MenuRadioGroup {
   }>
 }
 
-export interface MenuSubmenu {
+interface MenuSubmenu {
   type: "submenu"
   name: string
   items: MenuSubmenuItem[]
 }
 
-export type MenuSubmenuItem = MenuItem | MenuSeparator
+type MenuSubmenuItem = MenuItem | MenuSeparator
 
-export type MenuContentItem = MenuItem | MenuSeparator | MenuCheckboxItem | MenuRadioGroup | MenuSubmenu
+type MenuContentItem = MenuItem | MenuSeparator | MenuCheckboxItem | MenuRadioGroup | MenuSubmenu
 
-export interface MenuTemplate {
+interface MenuTemplate {
   label: string
   submenu: MenuContentItem[]
 }

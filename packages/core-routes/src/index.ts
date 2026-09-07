@@ -150,7 +150,6 @@ export {
   handleListFilesPost,
   handleWriteFilePost,
   handleHelloGet,
-  handleHelloPost,
   handleIsFolderAvailablePost,
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,

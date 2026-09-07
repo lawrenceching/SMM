@@ -2,7 +2,7 @@ import type { Hono } from 'hono'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface UnimportFolderResponseBody {
+interface UnimportFolderResponseBody {
   data?: { path: string }
   error?: string
 }

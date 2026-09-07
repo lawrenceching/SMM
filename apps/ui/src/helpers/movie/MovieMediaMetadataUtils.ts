@@ -35,7 +35,7 @@ export function findMediaFilesForMovieMediaMetadata(
     }
 }
 
-export function findVideoFiles(paths: string[]): string[] {
+function findVideoFiles(paths: string[]): string[] {
     return paths.filter(path => {
         return videoFileExtensions.includes(extname(path).toLowerCase());
     })

@@ -12,7 +12,6 @@ import { z } from 'zod/v3';
 import { logger } from '../../lib/logger';
 import {
   COMMAND_WHITELIST,
-  type WhitelistedCommand,
   type YtdlpProgressData,
   type SystemEvent,
   enqueueYtDlpExecuteCmd,
@@ -20,7 +19,6 @@ import {
   resolveSpawnArgsAndEnv,
   runCommand,
   runWhitelistedCommandSync,
-  type VideoCaptionerTranscribeResult,
 } from '../utils/cmd';
 import { createCommandExecutionLogWriter } from './commandExecutionLog';
 import { parseOptionalXCommandExecutionId } from './commandLog';
@@ -268,5 +266,3 @@ export function handleExecuteCmd(app: Hono) {
 // ─── Re-exports for downstream callers ──────────────────────────────────────
 
 export { runWhitelistedCommandSync };
-export type { VideoCaptionerTranscribeResult };
-export type { WhitelistedCommand };

@@ -41,7 +41,6 @@ import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useTranslation } from "react-i18next"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
-export type { MovieFileModel } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 
 interface ToolbarOption {
   value: "plex" | "emby",

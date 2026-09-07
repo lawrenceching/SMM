@@ -17,7 +17,7 @@ const INIT_METADATA_FILES: MetadataFiles = {
     themePath: undefined,
 };
 
-export function findMetadataFiles(metadata: MediaMetadata, files: string[]) {
+function findMetadataFiles(metadata: MediaMetadata, files: string[]) {
     const images = findFilesByExtensions(files, extensions.imageFileExtensions)
 
     return {
@@ -40,19 +40,19 @@ export function findMetadataFiles(metadata: MediaMetadata, files: string[]) {
     }
 }
 
-export function findThumbnails(files: string[], videoFile: string): string[] {
+function findThumbnails(files: string[], videoFile: string): string[] {
     const videoFileExt = extname(videoFile)
     const possibleThumbnailFilePaths = imageFileExtensions.map(ext => `${videoFile.replace(videoFileExt, ext)}`)
     return files.filter(file => possibleThumbnailFilePaths.includes(file))
 }
 
-export function findSubtitles(files: string[], videoFile: string): string[] {
+function findSubtitles(files: string[], videoFile: string): string[] {
     const videoFileExt = extname(videoFile)
     const possibleSubtitleFilePaths = subtitleFileExtensions.map(ext => `${videoFile.replace(videoFileExt, ext)}`)
     return files.filter(file => possibleSubtitleFilePaths.includes(file))
 }
 
-export function findNfos(files: string[], videoFile: string): string[] {
+function findNfos(files: string[], videoFile: string): string[] {
     const videoFileExt = extname(videoFile)
     const nfoFilePath = `${videoFile.replace(videoFileExt, '.nfo')}`
     return files.filter(file => file === nfoFilePath)

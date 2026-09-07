@@ -1,10 +1,5 @@
 import type { McpLifecycleManager } from "@smm/core-routes";
-import { getBunMcpServerPort, setBunMcpServerError } from "./BunMcpServerPort";
-
-export type { McpServerState } from "@smm/core";
-export type McpServerStatus = "running" | "stopped" | "error";
-
-export { getBunMcpServerPort, setBunMcpServerError };
+import { getBunMcpServerPort } from "./BunMcpServerPort";
 
 /**
  * MCP lifecycle manager for core-routes HTTP handlers and legacy callers.
@@ -27,24 +22,4 @@ export function getBunMcpLifecycleManager(): McpLifecycleManager {
       return getBunMcpServerPort().getState();
     },
   };
-}
-
-/** @deprecated Use {@link getBunMcpLifecycleManager}.getState() via Core */
-export function getMcpServerState() {
-  return getBunMcpServerPort().getState();
-}
-
-/** @deprecated Use Core.startMcpServer */
-export async function startMcpServer(options?: {
-  hostname?: string;
-  port?: number;
-}): Promise<void> {
-  const { getCore } = await import("@/core/getCore");
-  await getCore().startMcpServer(options, { persistUserConfig: true });
-}
-
-/** @deprecated Use Core.stopMcpServer */
-export async function stopMcpServer(): Promise<void> {
-  const { getCore } = await import("@/core/getCore");
-  await getCore().stopMcpServer({ persistUserConfig: true });
 }

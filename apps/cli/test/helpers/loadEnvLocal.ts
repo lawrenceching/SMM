@@ -35,11 +35,3 @@ export function loadEnvLocal(startDir: string = process.cwd()): Record<string, s
   }
   return merged
 }
-
-export function requiredEnv(name: string): string {
-  const value = process.env[name]?.trim()
-  if (!value) {
-    throw new Error(`${name} is not set (searched .env.local from cwd up to filesystem root)`)
-  }
-  return value
-}

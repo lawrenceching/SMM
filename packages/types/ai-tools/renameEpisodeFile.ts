@@ -53,7 +53,6 @@ export const renameEpisodeFileOutputSchema = z.object({
   error: z.string().optional().describe('Error or cancellation message when rename did not fully succeed'),
 })
 
-export type RenameEpisodeFileInput = z.infer<typeof renameEpisodeFileInputSchema>
 export type RenameEpisodeFileOutput = z.infer<typeof renameEpisodeFileOutputSchema>
 
 export const RENAME_EPISODE_FILE_CANCELLED = 'User cancelled the operation'

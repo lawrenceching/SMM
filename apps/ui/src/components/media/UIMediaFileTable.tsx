@@ -60,7 +60,7 @@ export interface UIMediaFileDataRow {
   disabled?: boolean
 }
 
-export type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
+type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
 
 /** A folder-level asset (poster, fanart, nfo, etc.) — not playable. */
 export interface UIMediaFileFolderRow {
@@ -90,7 +90,7 @@ export type UIMediaFileTableRow = UIMediaFileDividerRow | UIMediaFileDataRow | U
 // ========================================================================
 
 /** A single context menu item for data rows (type === "episode"). */
-export interface UIMediaFileDataContextMenuItem {
+interface UIMediaFileDataContextMenuItem {
   /** Unique id. */
   id: string
   /** Display label (already translated). */
@@ -102,7 +102,7 @@ export interface UIMediaFileDataContextMenuItem {
 }
 
 /** A single context menu item for folder file rows (type === "folderFile"). */
-export interface UIMediaFileFolderContextMenuItem {
+interface UIMediaFileFolderContextMenuItem {
   id: string
   label: string
   onClick?: (row: UIMediaFileFolderRow) => void
@@ -389,27 +389,6 @@ export function UIMediaFileTable(props: UIMediaFileTableProps) {
 // ========================================================================
 // Season / episode content blocks (moved to MediaFileTableBlocks)
 // ========================================================================
-
-export {
-  UIMediaFileTableSeasonBlock,
-  UIMediaFileTableEpisodeBlock,
-  UIMediaFileTableEpisodeDetailBlock,
-  UIMediaFileTableEpisodePreviewBlock,
-  type UIMediaFileTableEpisodeBlockProps,
-} from "./MediaFileTableBlocks"
-
-export {
-  MediaFileTableSimpleLayout,
-  type MediaFileTableSimpleLayoutProps,
-} from "./MediaFileTableSimpleLayout"
-export {
-  MediaFileTableDetailLayout,
-  type MediaFileTableDetailLayoutProps,
-} from "./MediaFileTableDetailLayout"
-export {
-  MediaFileTablePreviewLayout,
-  type MediaFileTablePreviewLayoutProps,
-} from "./MediaFileTablePreviewLayout"
 
 /**
  * Adapts the deprecated `UIMediaFileDataRow`-based episode menu items

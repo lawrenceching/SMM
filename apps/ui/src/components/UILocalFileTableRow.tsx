@@ -12,7 +12,6 @@ import { AssociatedFileRow } from "./AssociatedFileRow"
 import { EmptyAssociatedFileRow } from "./EmptyAssociatedFileRow"
 import { JobRow } from "./JobRow"
 
-export type { MusicTableSelection, LocalFileTableRowFileMenu, LocalFileTableRowSubtitleActions }
 
 export interface UILocalFileTableRowProps {
   row: LocalFileTableRowData

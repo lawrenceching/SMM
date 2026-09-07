@@ -12,7 +12,7 @@ const coreRoutesLogger: CoreRoutesLogger = {
   error: (obj, msg) => logger.error(obj, msg),
 };
 
-export async function processRenameFiles(
+async function processRenameFiles(
   body: RenameFilesRequestBody,
   clientId?: string,
 ): Promise<RenameFilesResponseBody> {

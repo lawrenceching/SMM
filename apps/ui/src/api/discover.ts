@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { apiFetch } from '@/lib/apiFetch';
 
-export type MediaDatabaseType = 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset'
-export type MediaDatabaseAuthorizationMethod = 'date-token' | 'none'
+type MediaDatabaseType = 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset'
+type MediaDatabaseAuthorizationMethod = 'date-token' | 'none'
 
-export type ReverseProxyType = 'general'
+type ReverseProxyType = 'general'
 
 /**
  * Normalized media database entry returned by the CLI's `/api/discover`

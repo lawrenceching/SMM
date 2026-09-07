@@ -15,7 +15,7 @@ export type ScrapeTaskRuntimeStatus =
   | 'completed'
   | 'failed'
 
-export interface ScrapeJobTask {
+interface ScrapeJobTask {
   status: ScrapeTaskRuntimeStatus
   error?: string
 }
@@ -31,7 +31,7 @@ export interface ScrapeJob {
   updatedAt: number
 }
 
-export interface ImportJob {
+interface ImportJob {
   kind: 'import'
   id: string
   folderPath: string

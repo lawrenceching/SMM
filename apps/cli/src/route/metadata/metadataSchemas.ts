@@ -5,7 +5,7 @@ import type {
 } from '@smm/types'
 import { z } from 'zod'
 
-export const metadataFolderTypeSchema = z.enum([
+const metadataFolderTypeSchema = z.enum([
   'music-folder',
   'tvshow-folder',
   'movie-folder',
@@ -19,7 +19,7 @@ const mediaFileMetadataSchema: z.ZodType<MediaFileMetadata> = z.object({
   audioFilePaths: z.array(z.string()).optional(),
 })
 
-export const metadataMediaFilesSchema: z.ZodType<MediaFileMetadata[]> = z.array(
+const metadataMediaFilesSchema: z.ZodType<MediaFileMetadata[]> = z.array(
   mediaFileMetadataSchema,
 )
 
@@ -27,12 +27,12 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
-export const tvShowMediaMetadataSchema: z.ZodType<TvShowMediaMetadata> = z.custom<TvShowMediaMetadata>(
+const tvShowMediaMetadataSchema: z.ZodType<TvShowMediaMetadata> = z.custom<TvShowMediaMetadata>(
   (val) => isPlainObject(val),
   { message: 'tvShow must be an object' },
 )
 
-export const movieMediaMetadataSchema: z.ZodType<MovieMediaMetadata> = z.custom<MovieMediaMetadata>(
+const movieMediaMetadataSchema: z.ZodType<MovieMediaMetadata> = z.custom<MovieMediaMetadata>(
   (val) => isPlainObject(val),
   { message: 'movie must be an object' },
 )

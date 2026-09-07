@@ -5,7 +5,6 @@ import {
   toTmdbCoreOptions,
 } from "@smm/types/ai-tools/tmdbCommon";
 import {
-  TMDB_SEARCH,
   TMDB_SEARCH_DESCRIPTION,
   tmdbSearchInputSchema,
   tmdbSearchOutputSchema,
@@ -13,7 +12,6 @@ import {
   type TmdbSearchOutput,
 } from "@smm/types/ai-tools/tmdbSearch";
 import {
-  TMDB_GET_MOVIE,
   TMDB_GET_MOVIE_DESCRIPTION,
   tmdbGetMovieInputSchema,
   tmdbGetMovieOutputSchema,
@@ -21,7 +19,6 @@ import {
   type TmdbGetMovieOutput,
 } from "@smm/types/ai-tools/tmdbGetMovie";
 import {
-  TMDB_GET_TV_SHOW,
   TMDB_GET_TV_SHOW_DESCRIPTION,
   tmdbGetTvShowInputSchema,
   tmdbGetTvShowOutputSchema,
@@ -197,4 +194,3 @@ export function buildTmdbGetTvShowTool(
   };
 }
 
-export { TMDB_SEARCH, TMDB_GET_MOVIE, TMDB_GET_TV_SHOW };

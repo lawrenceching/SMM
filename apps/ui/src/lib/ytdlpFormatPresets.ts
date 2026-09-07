@@ -1,4 +1,4 @@
-export const YTDLP_FORMAT_PRESET_IDS = [
+const YTDLP_FORMAT_PRESET_IDS = [
   "default",
   "best",
   "1080p",

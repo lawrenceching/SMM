@@ -4,12 +4,7 @@ import {
   doFetchDiscoveredMediaDatabases,
   EMPTY_DISCOVER_CONFIG,
   type DiscoverConfig,
-  type DiscoverResponseBody,
   type MediaDatabaseEntry,
-  type MediaDatabaseType,
-  type MediaDatabaseAuthorizationMethod,
-  type ReverseProxyEntry,
-  type ReverseProxyType,
 } from '@smm/core-routes/discover';
 import { logger } from '../../lib/logger';
 
@@ -20,21 +15,11 @@ const coreRoutesLogger = {
   error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
-export type {
-  DiscoverConfig,
-  DiscoverResponseBody,
-  MediaDatabaseEntry,
-  MediaDatabaseType,
-  MediaDatabaseAuthorizationMethod,
-  ReverseProxyEntry,
-  ReverseProxyType,
-};
-
 /**
  * Fetch and normalize the remote discovery config.
  * On error, returns hardcoded fallback mediaDatabases so TMDB/TVDB hosts remain available.
  */
-export async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
+async function fetchDiscoverConfig(): Promise<DiscoverConfig> {
   return doFetchDiscoverConfig({ logger: coreRoutesLogger });
 }
 

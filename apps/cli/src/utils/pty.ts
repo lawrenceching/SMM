@@ -21,7 +21,7 @@ export interface IPty {
   kill: (signal?: string) => void;
 }
 
-export interface PtySpawnOptions {
+interface PtySpawnOptions {
   name?: string;
   cols?: number;
   rows?: number;

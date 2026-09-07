@@ -1,5 +1,5 @@
 import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles";
-import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@smm/types";
+import type { MediaFileMetadata, MediaMetadata, TMDBEpisode, TvShowMediaMetadata } from "@smm/types";
 import { extname, join } from "@/lib/path";
 import { Path } from "@smm/utils/path";
 import { getFullExtensionForAssociatedFile } from "@smm/types/mediaFileExtensions";
@@ -21,9 +21,7 @@ export function mediaFolderPathEqual(a: string | undefined, b: string | undefine
 import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
-import { renameFiles as renameFilesApi } from "@/api/renameFiles";
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import { toast } from "sonner";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
@@ -50,28 +48,6 @@ export function newPath(mediaFolderPath: string, videoFilePath: string, associat
     const videoRelativePath = videoFilePath.replace(mediaFolderPath + '/', '')
     const associatedRelativePath = videoRelativePath.replace(videoFileExtension, associatedFileExtension)
     return join(mediaFolderPath, associatedRelativePath)
-}
-
-/**
- * Build FileProps[] for an episode from a video path: video file plus associated files (subtitle, nfo, poster, etc.).
- * Used when building SeasonModel preview from recognized paths (rule-based or plan-based).
- */
-export function buildFilePropsForVideoPath(
-  mediaFolderPath: string,
-  fileList: string[],
-  videoFilePath: string
-): FileProps[] {
-  if (!mediaFolderPath || fileList.length === 0) {
-    return [{ type: "video", path: videoFilePath }]
-  }
-  const associatedFiles = findAssociatedFiles(mediaFolderPath, fileList, videoFilePath)
-  return [
-    { type: "video", path: videoFilePath },
-    ...associatedFiles.map((file) => ({
-      type: mapTagToFileType(file.tag),
-      path: join(mediaFolderPath, file.path),
-    })),
-  ]
 }
 
 export function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number, folderFiles: string[]): FileProps[] {
@@ -246,20 +222,6 @@ export function rebuildPlanWithSelectedEpisodes(
         ...originalPlan,
         files: filteredFiles
     }
-}
-
-export function rebuildRenamePlanWithSelectedEpisodes(
-    originalPlan: RenameFilesPlan,
-    selectedEpisodePaths: string[]
-): RenameFilesPlan {
-
-  return {
-    ...originalPlan,
-    files: originalPlan.files.filter(file => {
-      return selectedEpisodePaths.some(path => path === file.from)
-    })
-  }
-
 }
 
 /**
@@ -726,256 +688,6 @@ export function buildTvShowMediaMetadataByNFO(tvshowNfoXml: string): TvShowMedia
 }
 
 /**
- * @deprecated, use buildTvShowMediaMetadataByNFO instead
- * @param tvshowNfoXml 
- * @returns 
- */
-export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDetails | undefined {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(tvshowNfoXml, 'text/xml')
-    
-    // Check for parsing errors
-    const parseError = doc.querySelector('parsererror')
-    if (parseError) {
-        console.error(`[buildTmdbTVShowDetailsByNFO] Failed to parse XML: ${parseError.textContent}`)
-        return undefined
-    }
-    
-    const tvshow = doc.querySelector('tvshow')
-    if (!tvshow) {
-        return undefined
-    }
-    
-    // Helper function to get text content from an element
-    const getTextContent = (selector: string): string | undefined => {
-        const element = tvshow.querySelector(selector)
-        return element?.textContent?.trim() || undefined
-    }
-    
-    // Extract ID - prefer uniqueid with type="tmdb", fallback to tmdbid, then id
-    let id = 0
-    const tmdbUniqueId = tvshow.querySelector('uniqueid[type="tmdb"]')
-    if (tmdbUniqueId) {
-        const idText = tmdbUniqueId.textContent?.trim()
-        if (idText) {
-            const parsedId = parseInt(idText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Fallback to tmdbid element
-    if (id === 0) {
-        const tmdbidText = getTextContent('tmdbid')
-        if (tmdbidText) {
-            const parsedId = parseInt(tmdbidText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Fallback to id element
-    if (id === 0) {
-        const idText = getTextContent('id')
-        if (idText) {
-            const parsedId = parseInt(idText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Extract name (title)
-    const name = getTextContent('title') || ''
-    
-    // Extract original_name (originaltitle)
-    const original_name = getTextContent('originaltitle') || ''
-    
-    // Extract overview (plot)
-    const overview = getTextContent('plot') || ''
-    
-    // Extract poster_path from thumb with aspect="poster" and no season attribute
-    let poster_path: string | null = null
-    const posterThumbs = tvshow.querySelectorAll('thumb[aspect="poster"]')
-    for (const thumb of Array.from(posterThumbs)) {
-        const seasonAttr = thumb.getAttribute('season')
-        if (!seasonAttr) {
-            const thumbUrl = thumb.textContent?.trim()
-            if (thumbUrl) {
-                poster_path = extractTmdbImagePath(thumbUrl)
-                break
-            }
-        }
-    }
-    
-    // Extract backdrop_path from fanart
-    let backdrop_path: string | null = null
-    const fanart = tvshow.querySelector('fanart')
-    if (fanart) {
-        const fanartThumb = fanart.querySelector('thumb')
-        if (fanartThumb) {
-            const fanartUrl = fanartThumb.textContent?.trim()
-            if (fanartUrl) {
-                backdrop_path = extractTmdbImagePath(fanartUrl)
-            }
-        }
-    }
-    
-    // Fallback to fanart element if fanart/thumb structure not found
-    if (!backdrop_path) {
-        const fanartUrl = getTextContent('fanart')
-        backdrop_path = extractTmdbImagePath(fanartUrl)
-    }
-    
-    // Extract first_air_date (premiered)
-    const first_air_date = getTextContent('premiered') || ''
-    
-    // Extract vote_average and vote_count from ratings
-    let vote_average = 0
-    let vote_count = 0
-    const rating = tvshow.querySelector('ratings > rating[name="themoviedb"]')
-    if (rating) {
-        const valueElement = rating.querySelector('value')
-        const votesElement = rating.querySelector('votes')
-        
-        if (valueElement) {
-            const valueText = valueElement.textContent?.trim()
-            if (valueText) {
-                const parsedValue = parseFloat(valueText)
-                if (!isNaN(parsedValue)) {
-                    vote_average = parsedValue
-                }
-            }
-        }
-        
-        if (votesElement) {
-            const votesText = votesElement.textContent?.trim()
-            if (votesText) {
-                const parsedVotes = parseInt(votesText, 10)
-                if (!isNaN(parsedVotes)) {
-                    vote_count = parsedVotes
-                }
-            }
-        }
-    }
-    
-    // Extract origin_country from country elements
-    const origin_country: string[] = []
-    const countryElements = tvshow.querySelectorAll('country')
-    for (const country of Array.from(countryElements)) {
-        const countryText = country.textContent?.trim()
-        if (countryText) {
-            origin_country.push(countryText)
-        }
-    }
-    
-    // Extract status
-    const status = getTextContent('status') || ''
-    
-    // Extract last_air_date (not directly in NFO, but we can try to infer from status or leave empty)
-    const last_air_date = ''
-    
-    // Build and return TMDBTVShowDetails
-    const tvShowDetails: TMDBTVShowDetails = {
-        // Base TMDBTVShow fields
-        id,
-        name,
-        original_name,
-        overview,
-        poster_path,
-        backdrop_path,
-        first_air_date,
-        vote_average,
-        vote_count,
-        popularity: 0, // Not available in NFO
-        genre_ids: [], // Genre names in NFO, can't map to IDs without API
-        origin_country,
-        media_type: 'tv',
-        
-        // TMDBTVShowDetails specific fields
-        number_of_seasons: 0, // Not available in NFO
-        number_of_episodes: 0, // Not available in NFO
-        seasons: [], // Not available in NFO
-        status,
-        type: '', // Not available in NFO
-        in_production: status.toLowerCase() !== 'ended', // Infer from status
-        last_air_date,
-        networks: [], // Not available in NFO
-        production_companies: [], // Not available in NFO
-    }
-    
-    return tvShowDetails
-}
-
-
-/**
- * @deprecated, use startToRenameFiles in useTvShowRenaming instead
- * @param plan 
- * @param mediaMetadata 
- * @returns 
- */
-export async function executeRenamePlan(
-  plan: RenameFilesPlan,
-  mediaMetadata: MediaMetadata,
-): Promise<void> {
-  if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
-    toast.error("Plan does not match current media folder")
-    return
-  }
-  const mediaFolderPath = mediaMetadata.mediaFolderPath
-  if (!mediaFolderPath) {
-    toast.error("Media folder path is not available")
-    return
-  }
-  const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
-
-  if (plan.files.length === 0) {
-    console.warn(`empty RenameFilesPlan, do nothing but mark plan as completed`)
-  }
-
-  try {
-    // Pass platform-specific paths so the backend can perform file system operations correctly.
-    // mediaFolder is used for metadata update and broadcast; files.from/to must be platform format.
-    const response = await renameFilesApi({
-      files: plan.files.map(({ from, to }) => ({
-        from: Path.toPlatformPath(from),
-        to: Path.toPlatformPath(to),
-      })),
-      traceId,
-      mediaFolder: Path.toPlatformPath(mediaFolderPath),
-    })
-
-    if (response.error) {
-      toast.error(response.error)
-      return
-    }
-
-    const succeededPaths = response.data?.succeeded ?? []
-    const failedPaths = response.data?.failed ?? []
-
-    if (succeededPaths.length === 0) {
-      toast.error(`Failed to rename ${failedPaths.length} file(s)`)
-      return
-    }
-
-    const successCount = succeededPaths.length
-    const errorCount = failedPaths.length
-
-    if (errorCount === 0) {
-      toast.success(`Successfully renamed ${successCount} file(s)`)
-    } else {
-      toast.warning(`Renamed ${successCount} file(s), ${errorCount} failed`)
-    }
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    toast.error(`Failed to rename files: ${errorMessage}`)
-  }
-}
-
-/**
  * Build a temporary recognition plan from the media metadata.
  * This is used for rule-based recognition where the frontend creates
  * episode-to-file mappings using the lookup utility.
@@ -989,19 +701,6 @@ export async function executeRenamePlan(
  * @returns A partial recognition plan with file mappings, or null if no files found
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
-
-export interface OnMediaFolderSelectedParams {
-  mediaMetadata: MediaMetadata
-  /** Mirrors user config; undefined means try TMDB then TVDB in recognizeMediaFolder. */
-  primaryDatabase?: PrimaryDatabase
-  openRuleBasedRecognizePrompt: (options: {
-    tvShowTitle: string
-    tvShowTmdbId: number
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
-  updateMediaMetadata: (path: string, metadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata), options?: { traceId?: string }) => void
-}
 
 export interface UnlinkEpisodeParams {
   season: number,

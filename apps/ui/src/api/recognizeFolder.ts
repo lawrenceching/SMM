@@ -1,6 +1,6 @@
 import { apiFetch } from '@/lib/apiFetch'
 
-export type RecognizeFolderDb = 'tmdb' | 'tvdb'
+type RecognizeFolderDb = 'tmdb' | 'tvdb'
 
 export interface RecognizeFolderParams {
   path: string
@@ -8,13 +8,13 @@ export interface RecognizeFolderParams {
   id: string
 }
 
-export interface RecognizeFolderResponseBody {
+interface RecognizeFolderResponseBody {
   data?: { path: string }
   error?: string
 }
 
 /** `POST /api/recognize-folder` → `Core.recognizeFolder`. */
-export async function recognizeFolder(
+async function recognizeFolder(
   params: RecognizeFolderParams,
   signal?: AbortSignal,
 ): Promise<RecognizeFolderResponseBody> {

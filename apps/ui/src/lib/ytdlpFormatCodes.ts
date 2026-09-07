@@ -1,6 +1,6 @@
 import type { Format } from "@/api/ytdlp/types"
 
-export type YtdlpFormatCodeCategory = "audio-only" | "video-only" | "combined"
+type YtdlpFormatCodeCategory = "audio-only" | "video-only" | "combined"
 
 export interface YtdlpFormatCodeEntry {
   id: string

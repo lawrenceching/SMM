@@ -30,14 +30,3 @@ export async function postRenameFolder(
 
   return (await resp.json()) as FolderRenameResponseBody
 }
-
-/** Throws on HTTP or business error — for mutations and dialogs. */
-export async function renameFolder(
-  params: RenameFolderParams,
-): Promise<FolderRenameResponseBody> {
-  const data = await postRenameFolder(params)
-  if (data.error) {
-    throw new Error(data.error)
-  }
-  return data
-}

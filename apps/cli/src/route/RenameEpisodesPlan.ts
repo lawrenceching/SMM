@@ -15,20 +15,9 @@ import { broadcast } from '@/utils/socketIO'
 import { getAppDataDir } from '@/utils/config'
 import { logger } from '../../lib/logger'
 
-export interface TryToRenameEpisodesRequestBody {
-  mediaFolderPath: string
-  rule?: 'plex' | 'emby'
-}
-
-export interface TryToRenameEpisodesResponseBody {
+interface TryToRenameEpisodesResponseBody {
   data?: { plan: RenameFilesPlan }
   error?: string
-}
-
-export interface CreateRenameEpisodePlanRequestBody {
-  mediaFolderPath: string
-  files: Array<{ from: string; to: string }>
-  creator?: 'ai' | 'app'
 }
 
 export interface CreateRenameEpisodePlanResponseBody {
@@ -36,21 +25,12 @@ export interface CreateRenameEpisodePlanResponseBody {
   error?: string
 }
 
-export interface ApplyPlanRequestBody {
-  id: string
-  data?: { files?: string[] }
-}
-
-export interface ApplyPlanResponseBody {
+interface ApplyPlanResponseBody {
   data?: { id: string }
   error?: string
 }
 
-export interface RejectPlanRequestBody {
-  id: string
-}
-
-export interface RejectPlanResponseBody {
+interface RejectPlanResponseBody {
   data?: { plan: Plan }
   error?: string
 }

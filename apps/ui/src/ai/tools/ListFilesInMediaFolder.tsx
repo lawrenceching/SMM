@@ -34,5 +34,3 @@ export const GetFilesInMediaFolderTool = makeAssistantTool({
   toolName: LIST_FILES_IN_MEDIA_FOLDER,
 })
 
-/** @deprecated Use GetFilesInMediaFolderTool (tool name is list-files-in-media-folder) */
-export const ListFilesInMediaFolderTool = GetFilesInMediaFolderTool

@@ -43,7 +43,7 @@ const endRecognizeTaskSchema = z.object({
   clientId: z.string().optional(),
 });
 
-export async function processStartRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<BeginRecognizeTaskToolResult>> {
+async function processStartRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<BeginRecognizeTaskToolResult>> {
   try {
     console.log(`[DebugAPI] Received startRecognizeTask request:`, body);
 
@@ -85,7 +85,7 @@ export async function processStartRecognizeTask(body: any): Promise<DebugRecogni
   }
 }
 
-export async function processAddFileToRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<AddRecognizedMediaFileToolResult>> {
+async function processAddFileToRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<AddRecognizedMediaFileToolResult>> {
   try {
     console.log(`[DebugAPI] Received addFileToRecognizeTask request:`, body);
 
@@ -130,7 +130,7 @@ export async function processAddFileToRecognizeTask(body: any): Promise<DebugRec
   }
 }
 
-export async function processEndRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<EndRecognizeTaskToolResult>> {
+async function processEndRecognizeTask(body: any): Promise<DebugRecognizeTaskResponseBody<EndRecognizeTaskToolResult>> {
   try {
     console.log(`[DebugAPI] Received endRecognizeTask request:`, body);
 

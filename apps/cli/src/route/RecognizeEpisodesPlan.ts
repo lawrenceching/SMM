@@ -11,13 +11,7 @@ import { broadcast } from '@/utils/socketIO'
 import { getAppDataDir } from '@/utils/config'
 import { logger } from '../../lib/logger'
 
-export interface CreateRecognizeEpisodePlanRequestBody {
-  mediaFolderPath: string
-  files: Array<{ season: number; episode: number; path: string }>
-  creator?: 'ai' | 'app'
-}
-
-export interface CreateRecognizeEpisodePlanResponseBody {
+interface CreateRecognizeEpisodePlanResponseBody {
   data?: { plan: RecognizeMediaFilePlan }
   error?: string
 }
@@ -49,7 +43,7 @@ function readRecognizeFiles(
   return files as Array<{ season: number; episode: number; path: string }>
 }
 
-export async function createRecognizeEpisodePlanFromBody(
+async function createRecognizeEpisodePlanFromBody(
   body: unknown,
 ): Promise<CreateRecognizeEpisodePlanResponseBody> {
   const mediaFolderPath = readStringField(body, 'mediaFolderPath')

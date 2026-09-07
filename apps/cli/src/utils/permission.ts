@@ -49,8 +49,3 @@ export async function allowRead(path: string): Promise<boolean> {
 
     return false;
 }
-
-export async function allowWrite(path: string): Promise<boolean> {
-    // so far, file allowed to read is allow to write
-    return await allowRead(path);
-}

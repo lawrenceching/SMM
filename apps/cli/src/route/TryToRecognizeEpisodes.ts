@@ -3,11 +3,7 @@ import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface TryToRecognizeEpisodesRequestBody {
-  mediaFolderPath: string
-}
-
-export interface TryToRecognizeEpisodesResponseBody {
+interface TryToRecognizeEpisodesResponseBody {
   data?: { plan: RecognizeMediaFilePlan }
   error?: string
 }

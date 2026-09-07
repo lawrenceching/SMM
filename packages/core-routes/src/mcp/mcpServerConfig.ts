@@ -21,7 +21,7 @@ function mcpErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function resolveMcpStartOptions(
+function resolveMcpStartOptions(
   config: UserConfig,
   options?: StartMcpOptions,
 ): { hostname: string; port: number } {

@@ -1,4 +1,4 @@
-import { Path } from "@smm/utils/path";
+
 import { findAssociatedFiles as findAssociatedPaths } from "@smm/core/pipeline/findAssociatedFiles";
 import {
   extensions,
@@ -7,7 +7,7 @@ import {
 } from "@smm/types/mediaFileExtensions";
 import { basename, relative } from "@/lib/path";
 
-export type AssociatedFileTag = "SUB" | "AUD" | "NFO" | "POSTER" | "VID";
+type AssociatedFileTag = "SUB" | "AUD" | "NFO" | "POSTER" | "VID";
 
 export interface TaggedAssociatedFile {
   path: string;
@@ -50,15 +50,4 @@ export function findAssociatedFiles(
     tag: tagForPath(abs),
     newPath: "N/A",
   }));
-}
-
-/** Absolute POSIX paths (same as pure). */
-export function findAssociatedFilePaths(
-  mediaFolderPath: string,
-  filePaths: string[],
-  videoFilePath: string,
-): string[] {
-  return findAssociatedPaths(mediaFolderPath, filePaths, videoFilePath).map((p) =>
-    Path.posix(p),
-  );
 }

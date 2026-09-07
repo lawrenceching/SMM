@@ -58,7 +58,7 @@ const debugRequestSchema = z.discriminatedUnion('name', [
   // Add more schemas here as new debug functions are added
 ]);
 
-export async function processDebugRequest(body: any): Promise<DebugApiResponseBody> {
+async function processDebugRequest(body: any): Promise<DebugApiResponseBody> {
   try {
     console.log(`[DebugAPI] Received debug request:`, body);
 

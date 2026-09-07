@@ -1,9 +1,9 @@
 import { withDevApiUrl } from '@/api/executeCmd'
 import { apiFetch } from '@/lib/apiFetch'
 
-export type CommandExecutionPhase = 'unknown' | 'running' | 'finished'
+type CommandExecutionPhase = 'unknown' | 'running' | 'finished'
 
-export type CommandExecutionOutcome = 'success' | 'failure'
+type CommandExecutionOutcome = 'success' | 'failure'
 
 export interface CommandExecutionStatusResponse {
   executionId: string

@@ -3,7 +3,7 @@ import type { Job } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface GetJobResponseBody {
+interface GetJobResponseBody {
   data?: Job
   error?: string
 }

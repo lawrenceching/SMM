@@ -2,7 +2,7 @@ import type { Hono } from 'hono'
 import { NodejsNetworkPort } from '../core/NodejsNetworkPort'
 import { logger } from '../../lib/logger'
 
-export interface CoreFetchRequestBody {
+interface CoreFetchRequestBody {
   url?: unknown
   method?: unknown
   headers?: unknown
@@ -10,7 +10,7 @@ export interface CoreFetchRequestBody {
   proxy?: unknown
 }
 
-export interface CoreFetchResponseData {
+interface CoreFetchResponseData {
   ok: boolean
   status: number
   statusText: string
@@ -18,7 +18,7 @@ export interface CoreFetchResponseData {
   bodyBase64: string
 }
 
-export interface CoreFetchResponseBody {
+interface CoreFetchResponseBody {
   data?: CoreFetchResponseData
   error?: string
 }

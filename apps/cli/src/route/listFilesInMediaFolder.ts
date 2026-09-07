@@ -14,7 +14,7 @@ const coreRoutesLogger: CoreRoutesLogger = {
   error: (obj, msg) => logger.error(obj, msg),
 }
 
-export async function processListFilesInMediaFolder(
+async function processListFilesInMediaFolder(
   body: unknown,
   _abortSignal?: AbortSignal,
 ) {

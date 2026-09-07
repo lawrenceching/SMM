@@ -3,13 +3,11 @@ import type { MediaMetadata, UserConfig } from "@smm/types"
 import type { ReverseProxyCandidate } from "@/hooks/useReverseProxyBaseUrls"
 import localStorages from "@/lib/localStorages"
 
-export const MEDIA_DATABASE_DEFAULT_HOST = "mediadb.vercel.app"
-
 export function normalizeUpstreamBaseUrl(url: string): string {
   return url.trim().replace(/\/+$/, "")
 }
 
-export function hostnameFromUrl(url: string): string | null {
+function hostnameFromUrl(url: string): string | null {
   try {
     return new URL(url).hostname
   } catch {
@@ -17,15 +15,15 @@ export function hostnameFromUrl(url: string): string | null {
   }
 }
 
-export function readDisabledDomains(): Set<string> {
+function readDisabledDomains(): Set<string> {
   return localStorages.disabledDomains
 }
 
-export function isDomainDisabled(domain: string): boolean {
+function isDomainDisabled(domain: string): boolean {
   return readDisabledDomains().has(domain)
 }
 
-export function isUpstreamDirectDisabled(upstreamBaseUrl: string): boolean {
+function isUpstreamDirectDisabled(upstreamBaseUrl: string): boolean {
   const host = hostnameFromUrl(upstreamBaseUrl)
   return host !== null && isDomainDisabled(host)
 }

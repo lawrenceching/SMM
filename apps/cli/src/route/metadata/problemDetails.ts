@@ -7,7 +7,7 @@ import {
 } from '@smm/core'
 import { ZodError } from 'zod'
 
-export function problemJson(
+function problemJson(
   c: Context,
   status: 400 | 404 | 409 | 500,
   type: string,

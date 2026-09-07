@@ -14,12 +14,12 @@ import {
 } from "./toolExecutableDiscovery";
 
 const videoCaptionerLog = logger.child({ module: "videocaptioner" });
-export const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
+const TRANSCRIBE_TIMEOUT_MS = 10 * 60 * 1000;
 /** Subtitle mux/burn can exceed transcribe duration. */
-export const SYNTHESIZE_TIMEOUT_MS = 60 * 60 * 1000;
+const SYNTHESIZE_TIMEOUT_MS = 60 * 60 * 1000;
 
 /** Full `videocaptioner process` (transcribe → subtitle → optional synthesize) can run much longer. */
-export const PROCESS_TIMEOUT_MS = 2 * 60 * 60 * 1000;
+const PROCESS_TIMEOUT_MS = 2 * 60 * 60 * 1000;
 
 import {
   buildVideoCaptionerProcessArgs,
@@ -136,7 +136,7 @@ export function getPythonScriptsCandidatePaths(exeName: string): string[] {
 }
 
 /** App auto-discovery (no user config): bundled → project bin → install dir → PATH → Python Scripts. */
-export function discoverVideoCaptionerAuto(): string | undefined {
+function discoverVideoCaptionerAuto(): string | undefined {
   const exeName = videoCaptionerExeName();
   return resolveAutoToolPathWithExtras(
     "videocaptioner",
@@ -303,31 +303,31 @@ async function runVideocaptionerSpawnWithCommandLog(input: {
   }
 }
 
-export const VIDEOCAPTIONER_ASR_ENGINES = ["bijian", "jianying", "whisper-cpp"] as const;
-export type VideoCaptionerAsrEngine = (typeof VIDEOCAPTIONER_ASR_ENGINES)[number];
+const VIDEOCAPTIONER_ASR_ENGINES = ["bijian", "jianying", "whisper-cpp"] as const;
+type VideoCaptionerAsrEngine = (typeof VIDEOCAPTIONER_ASR_ENGINES)[number];
 
-export const VIDEOCAPTIONER_TRANSCRIBE_FORMATS = ["srt", "ass", "txt", "json"] as const;
-export type VideoCaptionerTranscribeFormat = (typeof VIDEOCAPTIONER_TRANSCRIBE_FORMATS)[number];
+const VIDEOCAPTIONER_TRANSCRIBE_FORMATS = ["srt", "ass", "txt", "json"] as const;
+type VideoCaptionerTranscribeFormat = (typeof VIDEOCAPTIONER_TRANSCRIBE_FORMATS)[number];
 
-export const VIDEOCAPTIONER_TRANSLATORS = ["bing", "google", "llm"] as const;
-export type VideoCaptionerTranslator = (typeof VIDEOCAPTIONER_TRANSLATORS)[number];
+const VIDEOCAPTIONER_TRANSLATORS = ["bing", "google", "llm"] as const;
+type VideoCaptionerTranslator = (typeof VIDEOCAPTIONER_TRANSLATORS)[number];
 
-export const VIDEOCAPTIONER_SUBTITLE_LAYOUTS = [
+const VIDEOCAPTIONER_SUBTITLE_LAYOUTS = [
   "target-above",
   "source-above",
   "target-only",
   "source-only",
 ] as const;
-export type VideoCaptionerSubtitleLayout = (typeof VIDEOCAPTIONER_SUBTITLE_LAYOUTS)[number];
+type VideoCaptionerSubtitleLayout = (typeof VIDEOCAPTIONER_SUBTITLE_LAYOUTS)[number];
 
-export const VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES = ["soft", "hard"] as const;
-export type VideoCaptionerSynthesizeSubtitleMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES)[number];
+const VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES = ["soft", "hard"] as const;
+type VideoCaptionerSynthesizeSubtitleMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_SUBTITLE_MODES)[number];
 
-export const VIDEOCAPTIONER_SYNTHESIZE_QUALITY = ["ultra", "high", "medium", "low"] as const;
-export type VideoCaptionerSynthesizeQuality = (typeof VIDEOCAPTIONER_SYNTHESIZE_QUALITY)[number];
+const VIDEOCAPTIONER_SYNTHESIZE_QUALITY = ["ultra", "high", "medium", "low"] as const;
+type VideoCaptionerSynthesizeQuality = (typeof VIDEOCAPTIONER_SYNTHESIZE_QUALITY)[number];
 
-export const VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES = ["ass", "rounded"] as const;
-export type VideoCaptionerSynthesizeRenderMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES)[number];
+const VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES = ["ass", "rounded"] as const;
+type VideoCaptionerSynthesizeRenderMode = (typeof VIDEOCAPTIONER_SYNTHESIZE_RENDER_MODES)[number];
 
 export interface VideoCaptionerSynthesizeCliOptions {
   subtitleMode?: VideoCaptionerSynthesizeSubtitleMode;
@@ -570,7 +570,7 @@ export async function synthesizeWithVideoCaptioner(
 }
 
 /** argv for `videocaptioner` executable (subcommand `process` + flags). */
-export function buildProcessVideoCaptionerArgs(
+function buildProcessVideoCaptionerArgs(
   mediaPath: string,
   options?: VideoCaptionerProcessCliOptions,
 ): string[] {

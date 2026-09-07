@@ -3,7 +3,7 @@ import { getJobViaCore, type Job, type JobStatus } from "@/api/getJob"
 
 const DEFAULT_POLL_INTERVAL_MS = 1000
 
-export function jobQueryKey(jobId: string) {
+function jobQueryKey(jobId: string) {
   return ["job", jobId] as const
 }
 

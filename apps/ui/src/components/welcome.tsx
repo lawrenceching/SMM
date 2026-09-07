@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 const GITHUB_REPO_URL = "https://github.com/lawrenceching/SMM"
 const GITCODE_REPO_URL = "https://gitcode.com/lawrenceching/SMM"
 
-export interface WelcomeProps {
+interface WelcomeProps {
   /**
    * Triggered when the user clicks the "Import Folder" card.
    * Should match the behavior of `SMM → Open Folder` in the top-left menu

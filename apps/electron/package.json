@@ -24,8 +24,7 @@
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
-    "@smm/electron-common": "workspace:*",
-    "electron-updater": "^6.3.9"
+    "@smm/electron-common": "workspace:*"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",

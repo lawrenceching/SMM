@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { isRuleBasedRecognizePlanComplete, isRuleBasedRecognizePlanFullyUnchanged } from './isRuleBasedRecognizePlanComplete'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@smm/types'
 
 const tvShowTwoEpisodes = {
   id: '1',
@@ -18,7 +18,7 @@ const tvShowTwoEpisodes = {
   ],
 }
 
-function mediaMetadata(overrides: Partial<UIMediaMetadata> = {}): UIMediaMetadata {
+function mediaMetadata(overrides: Partial<MediaMetadata> = {}): MediaMetadata {
   return {
     status: 'ok',
     mediaFolderPath: '/media/show',

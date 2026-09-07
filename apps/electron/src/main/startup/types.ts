@@ -1,4 +1,4 @@
-export type CliStartupFailureKind =
+type CliStartupFailureKind =
   | "missing-binary"
   | "spawn-failed"
   | "exited"

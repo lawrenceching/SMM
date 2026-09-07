@@ -2,13 +2,12 @@ import { useCallback, useMemo, useState, type ComponentType, type KeyboardEvent,
 import { lazy, Suspense } from "react"
 import { Loader2 } from "lucide-react"
 import { SearchForm } from "@/components/search-form"
-import { MediaFolderToolbar, type SortOrder, type FilterType } from "@/components/shared/MediaFolderToolbar"
+import { MediaFolderToolbar } from "@/components/shared/MediaFolderToolbar"
 import { useSidebar } from "@/hooks/useSidebar"
 import { useTranslation } from "@/lib/i18n"
 import { isPathInSelection, nextFolderSelection } from "@/lib/sidebarFolderSelection"
 import type { FolderListItemContainerProps } from "./FolderListItemContainer"
 
-export type { SortOrder, FilterType }
 
 const DefaultFolderListItemContainer = lazy(() =>
   import("./FolderListItemContainer").then((m) => ({
@@ -30,7 +29,7 @@ export interface SidebarSelectionChange {
   multi: boolean
 }
 
-export type FolderListItemSlot = ComponentType<FolderListItemContainerProps>
+type FolderListItemSlot = ComponentType<FolderListItemContainerProps>
 
 export interface SidebarProps {
   onDeleteSelected?: (paths: string[]) => void

@@ -5,13 +5,13 @@ export interface RenameFolderV3Params {
   to: string
 }
 
-export interface RenameFolderV3ResponseBody {
+interface RenameFolderV3ResponseBody {
   data?: { from: string; to: string }
   error?: string
 }
 
 /** Layer-2 rename via Core (`POST /api/rename-folder`). Used when SMM v3 is enabled. */
-export async function renameFolderV3(
+async function renameFolderV3(
   params: RenameFolderV3Params,
   signal?: AbortSignal,
 ): Promise<RenameFolderV3ResponseBody> {

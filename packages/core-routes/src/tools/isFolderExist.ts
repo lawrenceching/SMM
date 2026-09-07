@@ -1,5 +1,4 @@
 import {
-  IS_FOLDER_EXIST,
   IS_FOLDER_EXIST_DESCRIPTION,
   isFolderExistInputSchema,
   isFolderExistOutputSchema,
@@ -58,4 +57,3 @@ export function buildIsFolderExistTool() {
 }
 
 /** Re-exported tool name constant for the tools registry. */
-export const IS_FOLDER_EXIST_TOOL_NAME = IS_FOLDER_EXIST;

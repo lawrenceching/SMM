@@ -25,7 +25,7 @@ const coreRoutesLogger = {
  *   - writing the binary response with the right headers,
  *   - mapping thrown errors to `500 { error }` JSON.
  */
-export async function processDownloadImage(url: string): Promise<DownloadImageResult> {
+async function processDownloadImage(url: string): Promise<DownloadImageResult> {
   const allowlist = await buildAllowlist();
   return doDownloadImageCore(url, { allowlist, logger: coreRoutesLogger });
 }

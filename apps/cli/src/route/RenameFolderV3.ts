@@ -5,12 +5,7 @@ import { broadcastUserConfigFolderRenamedEvent } from '@/events/userConfigUpdate
 import { broadcast } from '@/utils/socketIO'
 import { logger } from '../../lib/logger'
 
-export interface RenameFolderV3RequestBody {
-  from: string
-  to: string
-}
-
-export interface RenameFolderV3ResponseBody {
+interface RenameFolderV3ResponseBody {
   data?: { from: string; to: string }
   error?: string
 }

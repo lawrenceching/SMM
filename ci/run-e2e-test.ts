@@ -59,7 +59,8 @@ async function main(): Promise<number> {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 
   try {
-    const result = await $`bun apps/cicd/run.ts -f ${CONFIG_REL_PATH} --cwd ${ROOT}`
+    const runner = path.join('apps', 'cicd', 'run.ts');
+    const result = await $`bun ${runner} -f ${CONFIG_REL_PATH} --cwd ${ROOT}`
       .cwd(ROOT)
       .env(process.env)
       .nothrow();

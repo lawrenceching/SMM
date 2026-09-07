@@ -7,7 +7,7 @@ export const GET_MEDIA_FOLDERS_DESCRIPTION =
 
 export const getMediaFoldersInputSchema = z.object({})
 
-export const getMediaFoldersDataSchema = z.object({
+const getMediaFoldersDataSchema = z.object({
   folders: z
     .array(z.string())
     .describe('Array of media folder paths managed by SMM'),
@@ -17,7 +17,6 @@ export const getMediaFoldersOutputSchema = getMediaFoldersDataSchema.extend({
   error: z.string().optional(),
 })
 
-export type GetMediaFoldersInput = z.infer<typeof getMediaFoldersInputSchema>
 export type GetMediaFoldersResponseData = z.infer<
   typeof getMediaFoldersDataSchema
 >

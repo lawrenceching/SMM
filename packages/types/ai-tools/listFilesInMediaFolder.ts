@@ -30,7 +30,7 @@ export const listFilesInMediaFolderInputSchema = z.object({
     .describe('Whether to return only video files (default: false)'),
 })
 
-export const listFilesInMediaFolderDataSchema = z.object({
+const listFilesInMediaFolderDataSchema = z.object({
   files: z.array(z.string()).describe('Array of file paths'),
   count: z.number().describe('Number of files listed'),
 })
@@ -40,9 +40,6 @@ export const listFilesInMediaFolderOutputSchema =
     error: z.string().optional(),
   })
 
-export type ListFilesInMediaFolderInput = z.infer<
-  typeof listFilesInMediaFolderInputSchema
->
 export type ListFilesInMediaFolderResponseData = z.infer<
   typeof listFilesInMediaFolderDataSchema
 >

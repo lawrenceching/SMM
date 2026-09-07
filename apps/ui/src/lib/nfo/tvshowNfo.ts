@@ -30,7 +30,7 @@ export interface TvShowNFOActor {
   tmdbid?: string
 }
 
-export interface TvShowNFONamedSeason {
+interface TvShowNFONamedSeason {
   number?: number
   name?: string
 }
@@ -199,7 +199,7 @@ export class NFO {
   }
 }
 
-export async function parseTvShowNfo(xml: string): Promise<TvShowNFO | undefined> {
+async function parseTvShowNfo(xml: string): Promise<TvShowNFO | undefined> {
   const parser = new DOMParser()
   const doc = parser.parseFromString(xml, "text/xml")
   const parseError = doc.querySelector("parsererror")
@@ -442,4 +442,4 @@ export function convertTvShowNfoToXml(nfo: TvShowNFO): string {
   return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + formatXml(serializer.serializeToString(doc))
 }
 
-export default NFO
+

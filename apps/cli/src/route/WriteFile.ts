@@ -12,7 +12,7 @@ const coreRoutesLogger = {
   error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
-export async function doWriteFile(body: WriteFileRequestBody, traceId: string = ''): Promise<WriteFileResponseBody> {
+async function doWriteFile(body: WriteFileRequestBody, traceId: string = ''): Promise<WriteFileResponseBody> {
   const allowlist = await buildAllowlist();
   return doWriteFileCore(body, { allowlist, logger: coreRoutesLogger }, traceId);
 }
@@ -48,4 +48,3 @@ export function handleWriteFile(app: Hono) {
   });
 }
 
-export { isError, ExistedFileError };

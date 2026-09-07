@@ -134,5 +134,3 @@ export function buildCreateRecognizeEpisodePlanTool(
   };
 }
 
-export const CREATE_RECOGNIZE_EPISODE_PLAN_TOOL_NAME =
-  CREATE_RECOGNIZE_EPISODE_PLAN;

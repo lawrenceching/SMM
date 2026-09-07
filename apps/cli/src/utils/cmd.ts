@@ -35,7 +35,6 @@ import {
   type VideoCaptionerTranscribeResult,
 } from './VideoCaptioner';
 
-export type { VideoCaptionerTranscribeResult } from './VideoCaptioner';
 import { discoverQuickjs } from './QuickJS';
 import {
   createCommandExecutionLogWriter,
@@ -60,7 +59,7 @@ export type ResolvedCommand =
   | { kind: 'not-found'; command: WhitelistedCommand };
 
 /** Reason why the requested PTY mode could not be honored. */
-export type PtyFallbackReason =
+type PtyFallbackReason =
   | 'not-yt-dlp'
   | 'pty-unavailable'
   | { reason: string };

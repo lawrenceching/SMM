@@ -21,10 +21,6 @@ export function selectSelectedFolderSnapshot(
   return { path: folder.path, status: folder.status }
 }
 
-export type UIMediaFolderStoreBridge = {
-  getSelectedFolderSnapshot: () => UIMediaFolderStoreBridgeSnapshot | null
-}
-
 export function installUIMediaFolderStoreBridge(
   getState: () => UIMediaFolderStoreBridgeState,
 ): void {

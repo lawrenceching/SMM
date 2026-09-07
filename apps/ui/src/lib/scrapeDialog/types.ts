@@ -10,7 +10,7 @@ export interface ScrapeTaskView {
   failedReason?: string
 }
 
-export const SCRAPE_TASK_IDS: ScrapeTaskId[] = ["poster", "fanart", "thumbnails", "nfo"]
+const SCRAPE_TASK_IDS: ScrapeTaskId[] = ["poster", "fanart", "thumbnails", "nfo"]
 
 export function getScrapeTaskIdsForMedia(
   mediaMetadata: Pick<MediaMetadata, "type"> | undefined,
@@ -19,10 +19,6 @@ export function getScrapeTaskIdsForMedia(
     return SCRAPE_TASK_IDS.filter((id) => id !== "thumbnails")
   }
   return [...SCRAPE_TASK_IDS]
-}
-
-export function createInitialScrapeTasks(): ScrapeTaskView[] {
-  return SCRAPE_TASK_IDS.map((id) => ({ id, status: "pending" }))
 }
 
 export function createInitialScrapeTasksForMedia(

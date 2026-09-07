@@ -2,7 +2,7 @@ import type { FetchInit, HttpResponse, NetworkPort } from '../../../core/src/por
 import { apiFetch } from '@/lib/apiFetch'
 
 /** Request body for `POST /api/core/fetch`. */
-export interface CoreFetchRequestBody {
+interface CoreFetchRequestBody {
   url: string
   method?: string
   headers?: Record<string, string>
@@ -11,7 +11,7 @@ export interface CoreFetchRequestBody {
 }
 
 /** Upstream response payload inside API `data`. */
-export interface CoreFetchResponseData {
+interface CoreFetchResponseData {
   ok: boolean
   status: number
   statusText: string
@@ -20,7 +20,7 @@ export interface CoreFetchResponseData {
   bodyBase64: string
 }
 
-export interface CoreFetchResponseBody {
+interface CoreFetchResponseBody {
   data?: CoreFetchResponseData
   error?: string
 }

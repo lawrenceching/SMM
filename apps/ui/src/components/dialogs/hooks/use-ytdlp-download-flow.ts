@@ -20,7 +20,7 @@ import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
 import { setCachedCookies, extractHostname } from "@/lib/ytdlpCookiesCache"
 import { validateDownloadUrl } from "@smm/core/download-video-validators"
 
-export interface VideoListItem {
+interface VideoListItem {
   title: string
   artist: string
   url: string

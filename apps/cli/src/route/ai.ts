@@ -23,7 +23,7 @@ const schema = z.object({
   ).describe('Array of matched media files with their corresponding season and episode numbers'),
 });
 
-export async function matchMediaFilesToEpisode(config: OpenAICompatibleConfig, prompt: string): Promise<MatchMediaFilesToEpisodeResponse> {
+async function matchMediaFilesToEpisode(config: OpenAICompatibleConfig, prompt: string): Promise<MatchMediaFilesToEpisodeResponse> {
   // Validate required config values
   if (!config.baseURL) {
     throw new Error('baseURL is required in OpenAICompatibleConfig');

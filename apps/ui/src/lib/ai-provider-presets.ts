@@ -8,7 +8,7 @@ export interface AiProvider {
  * Common OpenAI-compatible providers for the AI settings UI.
  * Not persisted to user config; used only for combobox suggestions and defaults.
  */
-export const COMMON_AI_PROVIDERS: AiProvider[] = [
+const COMMON_AI_PROVIDERS: AiProvider[] = [
   {
     name: 'DeepSeek',
     baseUrl: 'https://api.deepseek.com',

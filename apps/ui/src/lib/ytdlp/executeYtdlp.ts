@@ -1,6 +1,5 @@
 import {
   parseYtdlpCookiesFileArg,
-  isManagedYtdlpCookiesPath,
 } from '@smm/core/whitelistedCmd/ytdlpCookies';
 import {
   executeCmdToCompletion,
@@ -10,7 +9,7 @@ import {
 } from '@/lib/whitelistedCmd/executeCmdToCompletion';
 import { permanentlyDeleteYtdlpCookiesFile } from '@/lib/ytdlpCookiesFile';
 
-export type YtdlpCleanupPolicy =
+type YtdlpCleanupPolicy =
   /** Delete managed cookies file after this command completes (success or failure). */
   | 'managed-cookies-after-run'
   /** Caller is responsible (e.g. batch download job finally block). */
@@ -67,4 +66,4 @@ export async function executeYtdlp(
   }
 }
 
-export { isManagedYtdlpCookiesPath, parseYtdlpCookiesFileArg };
+

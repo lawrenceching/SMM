@@ -2,7 +2,6 @@ import { z } from 'zod/v3';
 import { stat } from 'node:fs/promises';
 import { Path } from '@smm/utils/path';
 import type { MediaMetadata, RenameValidationResult } from '@smm/types';
-import { updateMediaMetadataAfterRename } from '@smm/core/mediaMetadata';
 import { validateRenameOperations as validateRenameOperationsShared } from '@smm/core/validations/rename/validateRenameOperations';
 import type { RenameFileExistenceProbe } from '@smm/core/validations/rename/validateRenameFileExistence';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
@@ -15,12 +14,6 @@ const logger = pino();
 interface RenameFile {
   from: string;
   to: string;
-}
-
-/** @deprecated Use RenameValidationResult from @smm/types instead */
-export interface ValidationResult {
-  validationErrors: string[];
-  validatedRenames: RenameFile[];
 }
 
 function createCliRenameFileExistenceProbe(): RenameFileExistenceProbe {
@@ -80,7 +73,6 @@ export async function validateRenameOperations(
   return result;
 }
 
-export { updateMediaMetadataAfterRename };
 
 export const createRenameFilesInBatchTool = (clientId: string, abortSignal?: AbortSignal) => ({
   description: `Rename multiple files in a media folder in batch.

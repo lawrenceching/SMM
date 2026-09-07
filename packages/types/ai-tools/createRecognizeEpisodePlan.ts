@@ -24,6 +24,3 @@ export const createRecognizeEpisodePlanInputSchema = z.object({
     .min(1),
 })
 
-export type CreateRecognizeEpisodePlanInput = z.infer<
-  typeof createRecognizeEpisodePlanInputSchema
->

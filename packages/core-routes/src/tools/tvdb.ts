@@ -4,7 +4,6 @@ import {
   toTvdbCoreOptions,
 } from "@smm/types/ai-tools/tvdbCommon";
 import {
-  TVDB_SEARCH,
   TVDB_SEARCH_DESCRIPTION,
   tvdbSearchInputSchema,
   tvdbSearchOutputSchema,
@@ -12,7 +11,6 @@ import {
   type TvdbSearchOutput,
 } from "@smm/types/ai-tools/tvdbSearch";
 import {
-  TVDB_GET_MOVIE,
   TVDB_GET_MOVIE_DESCRIPTION,
   tvdbGetMovieInputSchema,
   tvdbGetMovieOutputSchema,
@@ -20,7 +18,6 @@ import {
   type TvdbGetMovieOutput,
 } from "@smm/types/ai-tools/tvdbGetMovie";
 import {
-  TVDB_GET_TV_SHOW,
   TVDB_GET_TV_SHOW_DESCRIPTION,
   tvdbGetTvShowInputSchema,
   tvdbGetTvShowOutputSchema,
@@ -28,7 +25,6 @@ import {
   type TvdbGetTvShowOutput,
 } from "@smm/types/ai-tools/tvdbGetTvShow";
 import {
-  TVDB_GET_LANGUAGES,
   TVDB_GET_LANGUAGES_DESCRIPTION,
   tvdbGetLanguagesInputSchema,
   tvdbGetLanguagesOutputSchema,
@@ -230,4 +226,3 @@ export function buildTvdbGetLanguagesTool(
   };
 }
 
-export { TVDB_SEARCH, TVDB_GET_MOVIE, TVDB_GET_TV_SHOW, TVDB_GET_LANGUAGES };

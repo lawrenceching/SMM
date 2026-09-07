@@ -219,4 +219,3 @@ class SearchboxComponentObject {
 }
 
 export const SearchboxCO = new SearchboxComponentObject()
-export default SearchboxCO

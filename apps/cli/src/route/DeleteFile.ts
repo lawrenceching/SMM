@@ -23,7 +23,7 @@ const coreRoutesLogger: CoreRoutesLogger = {
  * previously restricted to `{userDataDir}/temp/ytdlp-cookies-*.txt`
  * via `isManagedYtdlpCookiesPath`).
  */
-export async function processDeleteFile(
+async function processDeleteFile(
   body: DeleteFileRequestBody,
 ): Promise<DeleteFileResponseBody> {
   const allowlist = await buildAllowlist();

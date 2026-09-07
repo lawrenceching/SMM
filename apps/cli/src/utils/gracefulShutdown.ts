@@ -16,10 +16,6 @@ export function registerGracefulShutdown(options: {
   process.once('SIGTERM', onSignal);
 }
 
-export function isShutdownInProgress(): boolean {
-  return shutdownInProgress;
-}
-
 export async function runGracefulShutdown(options?: {
   signal?: string;
   exitProcess?: boolean;

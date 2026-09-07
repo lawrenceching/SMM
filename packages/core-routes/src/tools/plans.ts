@@ -21,11 +21,11 @@ export type AnyPlan = RecognizeMediaFilePlan | RenameFilesPlan;
  * runtime-neutral {@link ChatFs} abstraction so the same code works
  * for both Node (OHOS) and Bun (cli).
  */
-export function plansDir(appDataDir: string): string {
+function plansDir(appDataDir: string): string {
   return path.join(appDataDir, "plans");
 }
 
-export function planFilePath(appDataDir: string, planId: string): string {
+function planFilePath(appDataDir: string, planId: string): string {
   return path.join(plansDir(appDataDir), `${planId}.plan.json`);
 }
 
@@ -48,22 +48,6 @@ async function ensurePlansDirExists(
 }
 
 // ─── Rename-files plan ───────────────────────────────────────────
-
-/**
- * Read a rename plan by id. Returns `null` if the file does not
- * exist.
- */
-export async function readRenamePlan(
-  appDataDir: string,
-  planId: string,
-  fs: ChatFs,
-): Promise<RenameFilesPlan | null> {
-  const plan = await readPlanById(appDataDir, planId, fs);
-  if (!plan || plan.task !== "rename-files") {
-    return null;
-  }
-  return plan as RenameFilesPlan;
-}
 
 /**
  * Read any plan file by id. Returns `null` when the file does not
@@ -240,7 +224,7 @@ export async function updatePlanContent(
 /**
  * Delete a plan file by id. No-op if the file does not exist.
  */
-export async function deletePlan(
+async function deletePlan(
   appDataDir: string,
   id: string,
 ): Promise<void> {

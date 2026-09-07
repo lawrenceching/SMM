@@ -1,7 +1,7 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
-import SearchboxCO from './Searchbox.co'
+import { SearchboxCO } from './Searchbox.co'
 
 class MoviePanelComponentObject {
 

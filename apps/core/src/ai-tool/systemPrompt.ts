@@ -114,10 +114,3 @@ EpisodeName: The episode name
 Extension: The file extension, such as "mp4", "mkv", "avi", ...
 `
 
-/**
- * Legacy alias kept for backward compatibility with existing imports
- * of `prompts.system` from `apps/ui/src/ai/prompts.ts`.
- *
- * @deprecated Import `SYSTEM_PROMPT` from `@smm/core/ai-tool/systemPrompt` instead.
- */
-export const systemPrompt = SYSTEM_PROMPT

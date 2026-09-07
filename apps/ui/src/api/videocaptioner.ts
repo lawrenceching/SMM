@@ -12,9 +12,9 @@ export interface VideoCaptionerDiscoverResponse {
   error?: string;
 }
 
-export type VideoCaptionerTranscribeAsr = "bijian" | "jianying" | "whisper-cpp";
+type VideoCaptionerTranscribeAsr = "bijian" | "jianying" | "whisper-cpp";
 
-export type VideoCaptionerTranscribeFormat = "srt" | "ass" | "txt" | "json";
+type VideoCaptionerTranscribeFormat = "srt" | "ass" | "txt" | "json";
 
 export interface VideoCaptionerTranscribeRequest {
   mediaPath: string;

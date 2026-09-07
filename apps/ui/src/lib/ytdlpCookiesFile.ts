@@ -41,6 +41,3 @@ export async function permanentlyDeleteYtdlpCookiesFile(
     console.warn('[ytdlpCookies] failed to permanently delete cookies file:', error);
   }
 }
-
-/** @deprecated Use {@link permanentlyDeleteYtdlpCookiesFile} */
-export const deleteYtdlpCookiesFile = permanentlyDeleteYtdlpCookiesFile;

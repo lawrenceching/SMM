@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { createFolderInTestFolder, folder1, folder2, musicFolder } from '@smm/test'
+import { createFolderInTestFolder, tvShowFolder, folder2, musicFolder } from '@smm/test'
 import { setup, cleanup, bin } from './base'
 import { $ } from 'bun'
 
@@ -34,9 +34,9 @@ describe('import library', () => {
   })
 
   it('import TV show library', async () => {
-    const show1 = createFolderInTestFolder(libraryPath, folder1)
+    const show1 = createFolderInTestFolder(libraryPath, tvShowFolder)
     const show2 = createFolderInTestFolder(libraryPath, {
-      ...folder1,
+      ...tvShowFolder,
       folderName: 'UnknownFolder',
       files: ['S01E01.mkv'],
     })

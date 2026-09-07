@@ -39,13 +39,6 @@ export interface OnFixedDelayBackgroundJobEventData {
     outcome?: FixedDelayBackgroundJobOutcome;
 }
 
-/** Fired when a download-video background job finishes an item; MusicPanel may refresh metadata for `folder`. */
-export const UI_DownloadVideoJobFolderRefreshEvent = 'ui.downloadVideoJobFolderRefresh'
-
-export interface OnDownloadVideoJobFolderRefreshEventData {
-    folder: string
-}
-
 /**
  * Fired when the user asks to compress a video.
  * Dispatched by TvShowPanel / MoviePanel / MusicPanel / the app menu;

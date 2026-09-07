@@ -30,7 +30,7 @@ export async function isFolderImported(folder: string): Promise<boolean> {
   })
 }
 
-export type ShowFolderStatus =
+type ShowFolderStatus =
   | 'ok'
   | 'folder_not_found'
   | 'error_loading_metadata'
