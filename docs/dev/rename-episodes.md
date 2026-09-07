@@ -180,23 +180,66 @@ The tool calls `Core.createRenameEpisodePlan(..., { creator: "ai" })`, writes a 
 
 HTTP surface (same Core call): `POST /api/create-rename-episode-plan`. E2e/debug helper: `POST /debug/createRenameEpisodePlan`.
 
+If user config `metadata.write` is false, then user needs to approve the plan in SMM UI. 
+
 ```mermaid
 sequenceDiagram
-  participant U as User
-  participant A as AI Agent
-  participant T as MCP Tool/AI Tool
-  participant C as Core
+  participant U as WebUI User
   participant W as UI
+  participant S as Server
+  participant C as Core
+  participant T as MCP Tool/AI Tool
+  participant A as AI Agent
+  participant AgentUser
 
-  U->>A: ask for renaming episodes
+  AgentUser->>A: ask for renaming episodes
   A->>T: create-rename-episode-plan(folder, files)
   T->>C: createRenameEpisodePlan(..., creator ai)
-  C->>T: RenameFilesPlan (pending)
-  T->>W: RenameFilesPlanReady
-  T->>A: success message (review in SMM)
-  A->>U: message to user
-  U->>W: review + confirm
-  W->>C: applyPlan()
+  C->>C: build RenameEpisodePlan
+  alt if metadata.write is true
+     C->>C: apply plan
+     C->>T: print message
+  else
+     C->>T: return
+  T->>AgentUser: print message
+  C->>S: emit PlanAddedEvent
+  S->>W: emit PlanAddedEvent
+  W->>U: show AiBasedRenameEpisodePrompt
+  U->>W: click confirm button
+  W->>S: POST /api/apply-plan
+  S->>C: applyPlan
+  C->>S: return
+  S->>W: return
+  end
+  
+```
+
+### Browser-side Pulling
+
+If browser move to background, the browser side JavaScript may pause and may not receive event push by server.
+
+To increase the robustness, we need to implement the brower-side pulling.
+There are 2 trigger points:
+1. User select folder in Sidebar
+2. Browser reactives and one folder was already selected.
+
+
+```mermaid
+sequenceDiagram
+  participant U as WebUI User
+  participant W as UI
+  participant S as Server
+  participant C as Core
+
+  U->>W: select folder or reactive browser window
+  W->>S: pull tasks
+  W->>U: show AiBasedRenameEpisodePrompt
+  U->>W: click confirm button
+  W->>S: POST /api/apply-plan
+  S->>C: applyPlan
+  C->>S: return
+  S->>W: return
+
 ```
 
 

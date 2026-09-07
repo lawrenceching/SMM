@@ -363,18 +363,11 @@ function TvShowPanel() {
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
-      <TvShowPanelPrompts />
+      {/* <TvShowPanelPrompts /> */}
 
-      {
-        <RuleBasedRenameFilePrompt {...ruleBasedRenameFilePromptProps}/>
-      }
-
-      {
-        <RuleBasedRecognizePrompt {...ruleBasedRecognizePromptProps} />
-      }
-
+      <RuleBasedRenameFilePrompt {...ruleBasedRenameFilePromptProps}/>
+      <RuleBasedRecognizePrompt {...ruleBasedRecognizePromptProps} />
       <AiBasedRenameEpisodePrompt {...aiRenameFlow.promptProps} />
-
       <AiBasedRecognizeEpisodePrompt {...aiRecognizeFlow.promptProps} />
 
       <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
