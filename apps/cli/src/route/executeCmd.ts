@@ -51,8 +51,6 @@ const executeCmdRequestSchema = z.object({
   tty: z.boolean().optional().default(false),
 });
 
-type ExecuteCmdRequestBody = z.infer<typeof executeCmdRequestSchema>;
-
 // ─── NDJSON envelope ─────────────────────────────────────────────────────────
 
 interface NdjsonStdoutStderrMessage {
@@ -118,7 +116,7 @@ export function handleExecuteCmd(app: Hono) {
 
       // Pre-compute the final args/env so the response header can report
       // them. We also use this as a guard for the streaming case below.
-      const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args, {
+      await resolveSpawnArgsAndEnv(command, args, {
         tty,
       });
 

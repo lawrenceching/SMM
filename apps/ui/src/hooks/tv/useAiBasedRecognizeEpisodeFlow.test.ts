@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest"
 import { renderHook } from "@testing-library/react"
 import { useAiBasedRecognizeEpisodeFlow } from "./useAiBasedRecognizeEpisodeFlow"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 import type { MediaMetadata } from "@smm/types"
 
 const h = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ describe("useAiBasedRecognizeEpisodeFlow", () => {
   const mediaFolderPath = "/storage/Users/currentUser/Download/Anime/show"
   const mediaMetadata = { mediaFolderPath, type: "tvshow-folder" } as MediaMetadata
 
-  const pendingAiPlan: UIRecognizeMediaFilePlan = {
+  const pendingAiPlan: RecognizeMediaFilePlan = {
     id: "plan-1",
     task: "recognize-media-file",
     status: "pending",

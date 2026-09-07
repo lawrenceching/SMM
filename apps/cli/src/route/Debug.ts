@@ -1,5 +1,5 @@
 import { z } from 'zod/v3';
-import { broadcast, acknowledge, type WebSocketMessage } from '../utils/socketIO';
+import { broadcast, acknowledge } from '../utils/socketIO';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import { getUserConfigPath } from '../utils/config';
@@ -78,11 +78,6 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
     switch (validatedBody.name) {
       case 'broadcastMessage': {
         try {
-          const message: WebSocketMessage = {
-            event: validatedBody.event,
-            data: validatedBody.data,
-          };
-          
           broadcast({
             event: validatedBody.event,
             data: validatedBody.data,
@@ -103,11 +98,6 @@ export async function processDebugRequest(body: any): Promise<DebugApiResponseBo
 
       case 'retrieve': {
         try {
-          const message: WebSocketMessage = {
-            event: validatedBody.event,
-            data: validatedBody.data,
-          };
-          
           console.log(`[DebugAPI] Sending retrieve request: event=${validatedBody.event}`);
           
           // Send and wait for acknowledgement response with 30 second timeout

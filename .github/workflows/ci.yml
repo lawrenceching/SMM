@@ -18,6 +18,7 @@ on:
       - 'ci/**'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
+      - 'knip.json'
       - '.github/workflows/ci.yml'
       - '.github/workflows/_e2e-cli.yml'
       - '.github/workflows/e2e-cli.yml'
@@ -29,6 +30,7 @@ on:
       - 'ci/**'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
+      - 'knip.json'
       - '.github/workflows/ci.yml'
       - '.github/workflows/_e2e-cli.yml'
       - '.github/workflows/e2e-cli.yml'
@@ -101,6 +103,27 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+  # Advisory report of unused files/exports/dependencies (knip).
+  # Not a gate: continue-on-error keeps the workflow green until the
+  # existing findings are triaged (see docs/superpowers/specs/2026-09-07-unused-code-detection-design.md).
+  knip:
+    name: Knip (unused code report)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run knip
+        run: pnpm knip
 
   build-ui:
     name: Build UI

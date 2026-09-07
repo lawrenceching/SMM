@@ -1,5 +1,4 @@
 import { createRecognizeEpisodePlanPipeline } from "@smm/core/createRecognizeEpisodePlan";
-import type { FsPort } from "@smm/core/FsPort";
 import { Path } from "@smm/utils/path";
 import {
   AI_AGENT_PERMISSIONS,

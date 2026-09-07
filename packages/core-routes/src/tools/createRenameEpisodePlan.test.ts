@@ -3,7 +3,6 @@ import { CREATE_RENAME_EPISODE_PLAN } from "@smm/types/ai-tools/createRenameEpis
 import { AI_AGENT_PERMISSIONS, type UserConfig } from "@smm/types";
 import {
   END_PLAN_TASK_SUCCESS_MESSAGE,
-  RENAME_PLAN_AUTO_APPLIED_MESSAGE,
 } from "@smm/types/ai-tools/planTaskMessages";
 import {
   MEDIA_METADATA_UPDATED_EVENT,

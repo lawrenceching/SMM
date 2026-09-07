@@ -1,0 +1,94 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "ignoreWorkspaces": [
+    "apps/ohos"
+  ],
+  "ignore": [
+    ".agents/**",
+    "apps/site/**",
+    "apps/cli/public/**",
+    "apps/electron/build/**",
+    "apps/ui/src/components/ui/**",
+    "packages/electron-common/dist/**",
+    "packages/electron-common/ohos/**"
+  ],
+  "ignoreBinaries": [
+    "vitest",
+    "eslint",
+    "vite",
+    "electron-vite",
+    "pino-pretty",
+    "ffmpeg",
+    "hdc"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": ["ci/**/*.ts", "scripts/**/*.ts"]
+    },
+    "apps/cli": {
+      "entry": ["index.ts", "scripts/**/*.ts", "src/**/*.test.ts", "test/**/*.test.ts"]
+    },
+    "apps/core": {
+      "entry": ["src/**/*.test.ts"]
+    },
+    "apps/ui": {
+      "entry": [
+        "index.html",
+        ".storybook/**/*.{ts,tsx}",
+        "src/**/*.stories.tsx",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx"
+      ]
+    },
+    "apps/electron": {
+      "entry": ["src/main/index.ts", "src/preload/index.ts"]
+    },
+    "apps/e2e": {
+      "entry": [
+        "wdio.conf.ts",
+        "wdio.conf.test.ts",
+        "cli/**/*.test.ts",
+        "common/**/*.e2e.ts",
+        "scenarios/**/*.ts",
+        "test/**/*.ts",
+        "ohos/**/*.ts",
+        "electron/**/*.ts",
+        "docker/**/*.{ts,mjs}"
+      ],
+      "ignore": ["common/manual/**"],
+      "ignoreDependencies": [
+        "test/pageobjects/page",
+        "test/lib/testbed",
+        "test/lib/env",
+        "test/actions/import-folders",
+        "test/componentobjects/Sidebar",
+        "@wdio/html-nice-reporter"
+      ]
+    },
+    "apps/convex": {
+      "entry": ["convex/**/*.ts"]
+    },
+    "apps/cicd": {
+      "entry": ["run.ts", "src/**/*.ts", "test/**/*.test.ts"]
+    },
+    "apps/tools": {
+      "entry": ["**/*.ts"]
+    },
+    "packages/types": {
+      "entry": ["**/*.test.ts"]
+    },
+    "packages/utils": {
+      "entry": ["src/**/*.test.ts"]
+    },
+    "packages/core-routes": {
+      "entry": ["src/**/*.test.ts"]
+    },
+    "packages/tvdb4": {
+      "entry": ["src/**/*.test.ts", "test/**/*.ts"]
+    },
+    "packages/electron-common": {
+      "entry": ["src/**/*.test.ts"]
+    },
+    "packages/test": {}
+  }
+}

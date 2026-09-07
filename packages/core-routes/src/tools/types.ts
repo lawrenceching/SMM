@@ -1,5 +1,3 @@
-import type { z } from "zod";
-
 /**
  * Shape of an agent tool built for AI SDK's `streamText` `tools` map.
  *

@@ -24,7 +24,7 @@ import { CREATE_RECOGNIZE_EPISODE_PLAN } from "@smm/types/ai-tools/createRecogni
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createChatTools, defaultChatFs } from "./tools/index.ts";
 import { sendJson } from "./http.ts";
-import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
+import type { RouteContext } from "./types.ts";
 import type { ChatConfig, ChatFs, ChatRequestBody } from "./chatTypes.ts";
 import type { ChatToolsExtraDeps } from "./tools/index.ts";
 

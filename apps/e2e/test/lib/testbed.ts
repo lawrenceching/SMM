@@ -17,7 +17,6 @@ import StatusBar from '../componentobjects/StatusBar'
 import {
     deleteAppDataSubdirViaBrowser,
     ensureBrowserOnUiPage,
-    fetchHelloPathsViaBrowser,
     joinPlatformPath,
     resetUserConfigViaBrowser,
     setActiveTestbedOs,

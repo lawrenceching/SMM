@@ -107,7 +107,7 @@ describe("TVDBv4 client", () => {
 
     const resp = await client.search({
       query: "foo",
-      type: "tv",
+      type: "series",
       language: "eng",
       page: 2,
       limit: 10,
@@ -194,7 +194,7 @@ describe("TVDBv4 client", () => {
   it("error propagation: throws TVDBv4Error on non-2xx responses", async () => {
     const baseUrl = "https://example.com/v4";
 
-    const fetchImpl = vi.fn(async (input: string, init?: any) => {
+    const fetchImpl = vi.fn(async (input: string, _init?: any) => {
       if (input === `${baseUrl}/login`) {
         return makeFetchResponse({
           ok: true,
@@ -219,7 +219,7 @@ describe("TVDBv4 client", () => {
     const client = new TVDBv4({ apiKey: "api-key", baseUrl, fetchImpl });
 
     try {
-      await client.search({ query: "foo", type: "tv" });
+      await client.search({ query: "foo", type: "series" });
       throw new Error("Expected search() to throw");
     } catch (err) {
       expect(err).toBeInstanceOf(TVDBv4Error);

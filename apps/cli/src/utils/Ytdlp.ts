@@ -1,7 +1,6 @@
 import { getUserConfig, getTmpDir } from "./config";
 import path from "path";
 import os from "os";
-import fs from "fs";
 import { mkdir, rename, rm, readdir } from "fs/promises";
 import { spawn, execSync } from "child_process";
 import { logger } from "../../lib/logger";

@@ -205,7 +205,6 @@ export async function listFiles(_folderPath: Path, recursively: boolean = false,
   async function moveToTrashLinux(filePath: string): Promise<void> {
     const homeDir = require('os').homedir();
     const xdgDataHome = process.env.XDG_DATA_HOME || path.join(homeDir, '.local', 'share');
-    const trashDir = path.join(xdgDataHome, 'Trash');
     const trashInfoDir = path.join(xdgDataHome, 'Trash', 'info');
     const trashFilesDir = path.join(xdgDataHome, 'Trash', 'files');
 
@@ -221,7 +220,7 @@ export async function listFiles(_folderPath: Path, recursively: boolean = false,
     const trashFileDest = path.join(trashFilesDir, uniqueFileName);
     const trashInfoDest = path.join(trashInfoDir, `${uniqueFileName}.trashinfo`);
 
-    const fileStats = await stat(filePath);
+    await stat(filePath);
     const deletionDate = new Date().toISOString();
     
     const trashInfoContent = `[Trash Info]

@@ -6,12 +6,11 @@ import { toUpdatePlanPatch, usePlansQuery, useUpdatePlanMutation } from "@/hooks
 import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
 import type { MediaMetadata } from "@smm/types"
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import type { AiBasedRecognizeEpisodePromptProps } from "@/components/tv/AiBasedRecognizeEpisodePrompt"
 
 export interface UseAiBasedRecognizeEpisodeFlowOptions {
   mediaMetadata: MediaMetadata | undefined
-  beforeConfirm: (plan: UIRecognizeMediaFilePlan) => UIRecognizeMediaFilePlan
+  beforeConfirm: (plan: RecognizeMediaFilePlan) => RecognizeMediaFilePlan
   /** Called when an AI recognize plan is detected (e.g. switch episode table to simple layout). */
   onFlowStart?: () => void
 }
@@ -40,7 +39,7 @@ export function useAiBasedRecognizeEpisodeFlow({
 
   const plan = useMemo(
     () =>
-      selectActiveAiPlan<UIRecognizeMediaFilePlan>(
+      selectActiveAiPlan<RecognizeMediaFilePlan>(
         plans,
         mediaFolderPath,
         "recognize-media-file",
@@ -50,7 +49,7 @@ export function useAiBasedRecognizeEpisodeFlow({
 
   const onConfirm = useCallback(async () => {
     if (!plan || !mediaMetadata?.mediaFolderPath) return
-    const preparedPlan = beforeConfirm(plan) as RecognizeMediaFilePlan
+    const preparedPlan = beforeConfirm(plan)
     await handleAiRecognizeConfirm(
       preparedPlan,
       mediaMetadata,

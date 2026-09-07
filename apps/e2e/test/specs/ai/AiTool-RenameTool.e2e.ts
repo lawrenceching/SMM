@@ -15,7 +15,6 @@ import { Path } from '@smm/utils/path'
 import Prompts from 'test/componentobjects/Prompts'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
-const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('AI Assistant - Rename Tool', async () => {
 

@@ -1,4 +1,3 @@
-import type { ServerResponse } from "node:http";
 import { describe, expect, it, vi } from "vitest";
 import {
   enforceCoreRoutesAuth,

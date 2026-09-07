@@ -10,7 +10,6 @@ import { tmpdir } from 'os'
 import path from 'path'
 import { Hono } from 'hono'
 import { handleExecuteCmd } from './executeCmd'
-import { getCommandExecutionRegistryStatus } from './commandExecutionRegistry'
 import { clearCommandExecutionRegistry } from './commandExecutionRegistry'
 
 const mocks = vi.hoisted(() => ({

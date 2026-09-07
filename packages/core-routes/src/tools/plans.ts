@@ -31,7 +31,6 @@ export function planFilePath(appDataDir: string, planId: string): string {
 
 async function ensurePlansDirExists(
   appDataDir: string,
-  fs: ChatFs,
 ): Promise<void> {
   const dir = plansDir(appDataDir);
   try {
@@ -168,7 +167,7 @@ export async function createPlan(
   input: CreatePlanInput,
   fs: ChatFs,
 ): Promise<AnyPlan> {
-  await ensurePlansDirExists(appDataDir, fs);
+  await ensurePlansDirExists(appDataDir);
   const id = input.id ?? randomUUID();
   const mediaFolderPath = Path.posix(input.mediaFolderPath);
   const plan: AnyPlan =

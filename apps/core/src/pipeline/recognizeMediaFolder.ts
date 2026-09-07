@@ -90,7 +90,6 @@ function folderNameOf(mm: MediaMetadata): string {
 }
 
 async function recognizeByNfo(
-  mm: MediaMetadata,
   deps: RecognitionDeps,
   result: RecognitionResult,
   isTvShow: boolean,
@@ -240,7 +239,7 @@ export async function recognizeMediaFolder(
       ? (await deps.fs.listFiles(mm.mediaFolderPath)).map((f) => Path.posix(f))
       : []);
 
-  await recognizeByNfo(mm, deps, result, isTvShow, tvdbLang, paths);
+  await recognizeByNfo(deps, result, isTvShow, tvdbLang, paths);
 
   const tmdbId = getTmdbIdFromFolderName(folderName);
   if (tmdbId !== null && result.tvShow === undefined && result.movie === undefined) {

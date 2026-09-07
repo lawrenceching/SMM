@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Hono } from "hono";
 import { handleLog, _resetRateLimiterForTests, formatFrontendLogLine } from "./Log";
 import { frontendLogger } from "../../lib/logger";

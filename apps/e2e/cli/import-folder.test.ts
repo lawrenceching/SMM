@@ -14,7 +14,7 @@ describe('import folder', () => {
             removeMetadataDir: true,
             removePlansDir: true,
             removeMediaFolders: true,
-            resetUserConfig: (config) => {
+            resetUserConfig: (_config) => {
                 // config.primaryDatabase = 'TMDB'
                 // config.preferMediaLanguage = 'zh-CN'
             },

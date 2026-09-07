@@ -1,5 +1,4 @@
 import { acknowledge, getFirstAvailableSocket } from '@/utils/socketIO'
-import { z } from 'zod'
 import type { ToolDefinition } from './types'
 import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase'
 import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale'

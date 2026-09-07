@@ -1,4 +1,3 @@
-import { Path } from "@smm/utils/path";
 import { buildRenameFolderConfirmationMessage } from "@smm/core/ai-tool/renameFolderConfirm";
 import {
   renameFolderCancelled,

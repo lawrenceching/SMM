@@ -15,7 +15,6 @@ import {
 } from "@smm/types/ai-tools/listFilesInMediaFolder";
 import type { UserConfig } from "@smm/types";
 import { doListFiles } from "../listFiles.ts";
-import { isMediaFolderManaged } from "../userConfig.ts";
 
 /**
  * Pure execution of `listFilesInMediaFolder`. Mirrors the

@@ -1,4 +1,4 @@
-import { expect, browser } from '@wdio/globals'
+import { browser } from '@wdio/globals'
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import * as os from 'node:os'
@@ -14,7 +14,6 @@ import Prompts from 'test/componentobjects/Prompts'
 import { Path } from '@smm/utils/path'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
-const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('AI Assistant - Recognize Tool', async () => {
 

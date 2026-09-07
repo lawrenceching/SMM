@@ -593,7 +593,6 @@ function spawnAndPump(internals: SpawnInternals): Promise<void> {
   } = internals
   return new Promise((resolve) => {
     let child: ChildProcess | IPty | null = null
-    let timeoutTimer: ReturnType<typeof setTimeout> | null = null
     let ptyExited = false
     let cmdLogEnded = false
     // Buffer for the trailing partial line from stdout. yt-dlp may
@@ -787,7 +786,7 @@ function spawnAndPump(internals: SpawnInternals): Promise<void> {
         })
       }
 
-      timeoutTimer = setTimeout(() => {
+      setTimeout(() => {
         if (isChildRunning()) {
           logger.warn(
             { commandExecutionId: cmdLog.executionId, command, timeoutMs },

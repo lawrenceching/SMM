@@ -12,7 +12,6 @@ import { fileURLToPath } from 'node:url'
 import { browser } from '@wdio/globals'
 import type { TestFolder } from 'test/actions/import-folders'
 import {
-    createTestFolderViaBrowser,
     joinPlatformPath,
     listFileNamesViaBrowser,
     resolveSmmTestFolderViaBrowser,

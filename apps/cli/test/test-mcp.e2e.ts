@@ -832,7 +832,6 @@ describe('MCP Server - BeginRecognizeTaskTool, AddRecognizedFileTool, EndRecogni
     );
     // Verify our specific files exist in any pending plan
     const episode1PathPosix = Path.posix(episode1Path);
-    const episode2PathPosix = Path.posix(episode2Path);
     const ourTask = recognizePlans.find(p =>
       p.files.some(f => f.path === episode1PathPosix && f.season === 1 && f.episode === 1)
     );

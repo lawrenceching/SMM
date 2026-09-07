@@ -1,7 +1,6 @@
 import type { FolderType } from "@smm/types";
 import type {
   ImportLibraryJob as ImportLibraryJobPayload,
-  ImportLibraryJobTask,
 } from "@smm/types/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
 

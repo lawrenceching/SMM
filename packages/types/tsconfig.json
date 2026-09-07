@@ -11,6 +11,8 @@
     "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "baseUrl": "."
   },
   "include": ["./**/*.ts"],

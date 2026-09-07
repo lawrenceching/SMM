@@ -1,5 +1,4 @@
 import { getUserConfig } from "./config";
-import path from "path";
 import os from "os";
 import { execSync } from "child_process";
 import { logger } from "../../lib/logger";

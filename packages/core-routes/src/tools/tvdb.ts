@@ -2,7 +2,6 @@ import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import {
   formatTvdbToolError,
   toTvdbCoreOptions,
-  type TvdbToolHostOptions,
 } from "@smm/types/ai-tools/tvdbCommon";
 import {
   TVDB_SEARCH,

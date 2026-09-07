@@ -3,7 +3,6 @@ import type { TmdbMovieDetails, TmdbSearchResponseBody, TmdbSeriesDetails } from
 import {
   formatTmdbToolError,
   toTmdbCoreOptions,
-  type TmdbToolHostOptions,
 } from "@smm/types/ai-tools/tmdbCommon";
 import {
   TMDB_SEARCH,

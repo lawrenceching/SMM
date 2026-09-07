@@ -4,7 +4,7 @@
  * client receives a non-empty body containing the exit system event.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'fs'
+import { mkdtempSync, rmSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import path from 'path'
 import { runCommand } from './cmd'

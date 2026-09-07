@@ -1,4 +1,3 @@
-import { stat } from 'node:fs/promises';
 import os from 'os';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';

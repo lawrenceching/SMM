@@ -213,7 +213,7 @@ export async function getTool(abortSignal?: AbortSignal): Promise<ToolDefinition
   };
 }
 
-export async function getEpisodeAgentTool(clientId: string, abortSignal?: AbortSignal) {
+export async function getEpisodeAgentTool(_clientId: string, abortSignal?: AbortSignal) {
   const tool = await getTool(abortSignal);
   return {
     description: tool.description,
@@ -232,7 +232,7 @@ export async function getEpisodeMcpTool() {
   return getTool();
 }
 
-export const createGetEpisodeTool = (clientId: string, abortSignal?: AbortSignal) => ({
+export const createGetEpisodeTool = (_clientId: string, abortSignal?: AbortSignal) => ({
   description: `Get episode information from a media folder in SMM.
 This tool accepts the media folder path, season number, and episode number.
 It returns the absolute video file path for the specified episode.

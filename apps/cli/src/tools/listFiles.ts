@@ -8,7 +8,6 @@ import { getLocalizedToolDescription } from '@/i18n/helpers'
 import { doListFiles } from '@/route/ListFiles'
 import {
   buildListFilesInMediaFolderResponse,
-  createEmptyListFilesInMediaFolderData,
 } from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
 
@@ -34,7 +33,6 @@ export async function executeListFilesMcp(
   }
 
   const { folderPath, recursive, videoFileOnly } = params
-  const empty = createEmptyListFilesInMediaFolderData()
 
   if (!folderPath || typeof folderPath !== 'string' || folderPath.trim() === '') {
     return createErrorResponse(

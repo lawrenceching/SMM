@@ -299,7 +299,6 @@ class TVShowPanel {
             const table = await this.episodeTable
             if (await table.isExisting()) {
                 const rows = await table.$$('tr')
-                const rowCount = await rows.length
 
                 for (const row of rows) {
                     const cells = await row.$$('td')

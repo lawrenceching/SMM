@@ -181,12 +181,6 @@ This tool return JSON response with the following format:
     }
 
     // 5. Ask for user confirmation
-    const getFilename = (path: string) => {
-      const pathInPosix = Path.posix(path);
-      const parts = pathInPosix.split('/').filter(p => p);
-      return parts[parts.length - 1] || pathInPosix;
-    };
-    
     try {
       // TODO: Check abortSignal during confirmation wait
       const posixFiles = files.map(file => ({

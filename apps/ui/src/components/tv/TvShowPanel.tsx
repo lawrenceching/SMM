@@ -7,7 +7,6 @@ import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
-import { TvShowPanelPrompts } from "./TvShowPanelPrompts"
 import { useTvShowPromptsStore } from "@/stores/tvShowPromptsStore"
 import { useTvShowPanelState } from "@/hooks/tv/useTvShowPanelState"
 import { useTvShowEpisodeVideoCompress } from "@/hooks/tv/useTvShowEpisodeVideoCompress"
@@ -40,7 +39,6 @@ import {
 } from "./TvShowPanelUtils"
 import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import { useTvShowPanel } from "@/hooks/useTvShowPanel"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { RuleBasedRecognizePrompt } from "./RuleBasedRecognizePrompt"
@@ -133,7 +131,7 @@ function TvShowPanel() {
   )
 
   const recognizeBeforeConfirm = useCallback(
-    (plan: UIRecognizeMediaFilePlan) =>
+    (plan: RecognizeMediaFilePlan) =>
       rebuildPlanWithSelectedEpisodes(plan, getSelectedEpisodes()),
     [getSelectedEpisodes],
   )

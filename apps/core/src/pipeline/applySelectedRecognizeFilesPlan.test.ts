@@ -5,7 +5,6 @@ import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath, planFilePath } from "./paths";
 import {
   applySelectedRecognizeFilesPlanPipeline,
-  RecognizedFilesNotInPlanError,
 } from "./applySelectedRecognizeFilesPlan";
 import { applyPlanPipeline } from "./applyPlan";
 
