@@ -106,16 +106,60 @@ export class TvdbClient {
     m.airDate = series.firstAired;
 
     const seasons = series.seasons.filter((s) => s.type.name === "Aired Order");
+    type EpisodeRow = {
+      episodeId: number;
+      seasonNumber: number;
+      episodeNumber: number;
+      defaultName: string;
+      needsTranslation: boolean;
+    };
+    const allEpisodes: EpisodeRow[] = [];
+
     for (const season of seasons) {
+      m.seasons.push({ season: season.number, name: "", episodes: [] });
       const seasonResp = await this.client.seasonExtendedById(season.id);
       const episodes =
         seasonResp.status === "success"
           ? (seasonResp.data as TVDBv4SeriesSeasonsExtendedResponse).episodes
           : [];
-      m.seasons.push({
-        season: season.number,
-        name: "",
-        episodes: episodes.map((ep) => ({ season: ep.seasonNumber, episode: ep.number, name: ep.name ?? "" })),
+      for (const ep of episodes) {
+        allEpisodes.push({
+          episodeId: ep.id,
+          seasonNumber: ep.seasonNumber,
+          episodeNumber: ep.number,
+          defaultName: ep.name ?? "",
+          needsTranslation: ep.nameTranslations?.includes(language) ?? false,
+        });
+      }
+    }
+
+    // Parallelize: sequential per-episode translation can take minutes on large shows
+    // (each request goes through media-db failover) and stalls import/e2e past UI timeouts.
+    const translatedNames = new Map<number, string>();
+    const episodesToTranslate = allEpisodes.filter((e) => e.needsTranslation);
+    const translationSettled = await Promise.allSettled(
+      episodesToTranslate.map(async (ep) => {
+        const tr = await this.client.episodeTranslationByLangCode(ep.episodeId, language);
+        if (tr.status !== "success") return;
+        const name = tr.data?.name;
+        if (typeof name === "string" && name.trim()) {
+          return { episodeId: ep.episodeId, name: name.trim() };
+        }
+      }),
+    );
+    for (const result of translationSettled) {
+      if (result.status === "fulfilled" && result.value) {
+        translatedNames.set(result.value.episodeId, result.value.name);
+      }
+    }
+
+    for (const ep of allEpisodes) {
+      const mediaSeason = m.seasons.find((s) => s.season === ep.seasonNumber);
+      if (!mediaSeason) continue;
+      mediaSeason.episodes.push({
+        season: ep.seasonNumber,
+        episode: ep.episodeNumber,
+        name: translatedNames.get(ep.episodeId) ?? ep.defaultName,
       });
     }
     return m;

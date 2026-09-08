@@ -74,7 +74,7 @@ describe('Initialize TV Show by TVDB', () => {
             await browser.pause(2000)
 
             const state = await TvShowPanelCO.toString()
-            expect(state).toContain(`Season 0
+            expect(state).toContain(`Specials
 S00E01 - - - -
 S00E02 - - - -
 Season 1
@@ -114,7 +114,7 @@ S01E12 - - - -`)
             await TvShowPanelCO.waitForTitleToBe('【我推的孩子】', 3 * 60 * 1000)
 
             const state = await TvShowPanelCO.toString()
-            expect(state).toContain(`Season 0
+            expect(state).toContain(`Specials
 S00E01 - - - -
 S00E02 - - - -
 Season 1
@@ -186,7 +186,7 @@ S04E01 - - - -`)
             await browser.pause(2000)
 
             expect(await TvShowPanelCO.toString()).toBe(`nfo
-Season 0
+Specials
 S00E01 - - - -
 S00E02 - - - -
 Season 1

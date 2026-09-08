@@ -102,6 +102,97 @@ describe("TvdbClient", () => {
     });
   });
 
+  it("getTvShowMediaMetadata localizes episode names when nameTranslations includes language", async () => {
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        if (url.includes("/series/1/translations/zho")) {
+          return jsonResponse(envelope({ name: "天使降临到了我身边！" }));
+        }
+        if (url.includes("/series/1/extended")) {
+          return jsonResponse(
+            envelope({
+              id: 1,
+              name: "Wataten",
+              firstAired: "2019-01-08",
+              seasons: [{ id: 11, number: 1, type: { name: "Aired Order" } }],
+            }),
+          );
+        }
+        if (url.includes("/seasons/11/extended")) {
+          return jsonResponse(
+            envelope({
+              id: 11,
+              episodes: [
+                {
+                  id: 101,
+                  number: 1,
+                  seasonNumber: 1,
+                  name: "もにょっとした気持ち",
+                  nameTranslations: ["zho", "eng"],
+                },
+              ],
+            }),
+          );
+        }
+        if (url.includes("/episodes/101/translations/zho")) {
+          return jsonResponse(envelope({ name: "心裏癢癢的感覺" }));
+        }
+        throw new Error("unexpected url: " + url);
+      },
+    };
+    const client = new TvdbClient(network, {});
+    const tvShow = await client.getTvShowMediaMetadata(1, "zho");
+    expect(tvShow?.name).toBe("天使降临到了我身边！");
+    expect(tvShow?.seasons[0]?.episodes[0]?.name).toBe("心裏癢癢的感覺");
+  });
+
+  it("getTvShowMediaMetadata fetches episode translations in parallel", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    const network: NetworkPort = {
+      fetch: async (url) => {
+        if (url.includes("/series/1/translations/zho")) {
+          return jsonResponse(envelope({ name: "Show" }));
+        }
+        if (url.includes("/series/1/extended")) {
+          return jsonResponse(
+            envelope({
+              id: 1,
+              name: "Show",
+              firstAired: "2020-01-01",
+              seasons: [{ id: 11, number: 1, type: { name: "Aired Order" } }],
+            }),
+          );
+        }
+        if (url.includes("/seasons/11/extended")) {
+          return jsonResponse(
+            envelope({
+              id: 11,
+              episodes: [
+                { id: 101, number: 1, seasonNumber: 1, name: "E1", nameTranslations: ["zho"] },
+                { id: 102, number: 2, seasonNumber: 1, name: "E2", nameTranslations: ["zho"] },
+                { id: 103, number: 3, seasonNumber: 1, name: "E3", nameTranslations: ["zho"] },
+              ],
+            }),
+          );
+        }
+        const m = url.match(/\/episodes\/(\d+)\/translations\/zho/);
+        if (m) {
+          inFlight += 1;
+          maxInFlight = Math.max(maxInFlight, inFlight);
+          await new Promise((r) => setTimeout(r, 30));
+          inFlight -= 1;
+          return jsonResponse(envelope({ name: `T${m[1]}` }));
+        }
+        throw new Error("unexpected url: " + url);
+      },
+    };
+    const client = new TvdbClient(network, {});
+    const tvShow = await client.getTvShowMediaMetadata(1, "zho");
+    expect(tvShow?.seasons[0]?.episodes.map((e) => e.name)).toEqual(["T101", "T102", "T103"]);
+    expect(maxInFlight).toBeGreaterThan(1);
+  });
+
   it("getMovieMediaMetadata maps a movie", async () => {
     const client = new TvdbClient(tvdbNetwork(), {});
     const movie = await client.getMovieMediaMetadata(2, "eng");

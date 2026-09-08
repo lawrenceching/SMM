@@ -740,3 +740,36 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
       toast.error(t('tvShowEpisodeTable.unlinkFailed'))
     })
 }
+/** Display title for a season row: season 0 is always Specials; empty names get Season N. */
+export function seasonDisplayTitle(season: number, name: string | undefined): string {
+  if (season === 0) return 'Specials'
+  const trimmed = name?.trim() ?? ''
+  return trimmed || `Season ${season}`
+}
+
+/**
+ * Map MediaMetadata seasons into MediaFileTable seasonData rows (UI display titles).
+ */
+export function buildMediaFileTableSeasonData(
+  m: MediaMetadata,
+): import("@/components/media/UIMediaFileTable").MediaFileTableSeasonData[] {
+  if (m.type === 'tvshow-folder' || m.type === 'movie-folder') {
+    return (
+      m.tvShow?.seasons?.map((s) => ({
+        season: s.season,
+        title: seasonDisplayTitle(s.season, s.name),
+        episodes: s.episodes.map((e) => ({
+          season: s.season,
+          episode: e.episode,
+          title: e.name,
+          path: m.mediaFiles?.find(
+            (f) => f.seasonNumber === s.season && f.episodeNumber === e.episode,
+          )?.absolutePath,
+        })),
+      })) ?? []
+    )
+  }
+
+  console.warn(`Unsupported media type: ${m.type}, returned dummy MediaFileTableSeasonData`)
+  return []
+}

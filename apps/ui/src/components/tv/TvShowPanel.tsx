@@ -23,7 +23,6 @@ import type {
   MediaFileTableContextMenuProps,
   UIMediaFileTableRow,
   UIMediaEpisodeSelection,
-  MediaFileTableSeasonData,
 } from "@/components/media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
 import { TvShowPanelHeader } from "./TvShowPanelHeader"
@@ -36,6 +35,7 @@ import {
   rebuildPlanWithSelectedEpisodes,
   buildRenameApplySelectedFiles,
   buildRecognizeApplySelectedFiles,
+  buildMediaFileTableSeasonData,
 } from "./TvShowPanelUtils"
 import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
@@ -46,32 +46,6 @@ import { AiBasedRenameEpisodePrompt } from "./AiBasedRenameEpisodePrompt"
 import { AiBasedRecognizeEpisodePrompt } from "./AiBasedRecognizeEpisodePrompt"
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 
-
-function buildMediaFileTableSeasonData(m: MediaMetadata): MediaFileTableSeasonData[] {
-
-  if(m.type === 'tvshow-folder' || m.type === 'movie-folder') {
-    const seasons: MediaFileTableSeasonData[] = m.tvShow?.seasons?.map(s => {
-      return {
-        season: s.season,
-        title: s.name,
-        episodes: s.episodes.map(e => {
-          return {
-            season: s.season,
-            episode: e.episode,
-            title: e.name,
-            path: m.mediaFiles?.find(f => f.seasonNumber === s.season && f.episodeNumber === e.episode)?.absolutePath,
-          }
-        }),
-      }
-    }) ?? [];
-
-    return seasons;
-  }
-
-  // Should NOT reach this line in normal case.
-  console.warn(`Unsupported media type: ${m.type}, returned dummy MediaFileTableSeasonData`)
-  return []
-}
 
 function TvShowPanel() {
   const { folders, selectedFolder } = useUIMediaFolderStoreState()

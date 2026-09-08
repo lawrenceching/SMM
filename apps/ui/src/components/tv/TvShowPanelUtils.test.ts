@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, tryToRecognizeTvShowFolderByNFO, unlinkEpisode, buildRenameApplySelectedFiles, buildRecognizeApplySelectedFiles } from './TvShowPanelUtils'
+import { mapTagToFileType, newPath, buildFileProps, renameFiles, updateMediaFileMetadatas, buildTvShowMediaMetadataByNFO, buildTmdbEpisodeByNFO, tryToRecognizeTvShowFolderByNFO, unlinkEpisode, buildRenameApplySelectedFiles, buildRecognizeApplySelectedFiles, buildMediaFileTableSeasonData } from './TvShowPanelUtils'
 import type { FileProps } from '@/lib/types'
 import type { MediaMetadata, MediaFileMetadata } from '@smm/types'
 import type { MediaMetadata } from '@smm/types'
@@ -1310,5 +1310,68 @@ describe('buildRecognizeApplySelectedFiles', () => {
     expect(
       buildRecognizeApplySelectedFiles(undefined, [{ season: 1, episode: 1 }]),
     ).toEqual([])
+  })
+})
+
+describe('buildMediaFileTableSeasonData', () => {
+  it('uses Specials for season 0 and Season N fallback when names are empty', () => {
+    const meta: MediaMetadata = {
+      mediaFolderPath: '/show',
+      type: 'tvshow-folder',
+      tvShow: {
+        database: 'TVDB',
+        id: '1',
+        name: 'Show',
+        seasons: [
+          { season: 0, name: '', episodes: [{ season: 0, episode: 1, name: '' }] },
+          { season: 1, name: '', episodes: [{ season: 1, episode: 1, name: '' }] },
+        ],
+      },
+      mediaFiles: [],
+    }
+    expect(buildMediaFileTableSeasonData(meta).map((s) => s.title)).toEqual([
+      'Specials',
+      'Season 1',
+    ])
+  })
+
+  it('normalizes season 0 to Specials even when API provides a localized name (TMDB)', () => {
+    const meta: MediaMetadata = {
+      mediaFolderPath: '/show',
+      type: 'tvshow-folder',
+      tvShow: {
+        database: 'TMDB',
+        id: '1',
+        name: 'Show',
+        seasons: [
+          { season: 0, name: '特别篇', episodes: [{ season: 0, episode: 1, name: '' }] },
+          { season: 1, name: '第 1 季', episodes: [{ season: 1, episode: 1, name: '' }] },
+        ],
+      },
+      mediaFiles: [],
+    }
+    expect(buildMediaFileTableSeasonData(meta).map((s) => s.title)).toEqual([
+      'Specials',
+      '第 1 季',
+    ])
+  })
+
+  it('keeps non-empty names for season >= 1', () => {
+    const meta: MediaMetadata = {
+      mediaFolderPath: '/show',
+      type: 'tvshow-folder',
+      tvShow: {
+        database: 'TMDB',
+        id: '1',
+        name: 'Show',
+        seasons: [
+          { season: 1, name: 'Season 1', episodes: [{ season: 1, episode: 1, name: 'Pilot' }] },
+        ],
+      },
+      mediaFiles: [{ absolutePath: '/show/S01E01.mkv', seasonNumber: 1, episodeNumber: 1 }],
+    }
+    const result = buildMediaFileTableSeasonData(meta)
+    expect(result[0]?.title).toBe('Season 1')
+    expect(result[0]?.episodes[0]?.path).toBe('/show/S01E01.mkv')
   })
 })

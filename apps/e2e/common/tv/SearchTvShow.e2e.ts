@@ -16,7 +16,7 @@ import type { MediaMetadata, UserConfig } from '@smm/types'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
-const OSHI_NO_KO_TMDB_EPISODE_TABLE = `特别篇
+const OSHI_NO_KO_TMDB_EPISODE_TABLE = `Specials
 S00E01 - - - -
 S00E02 - - - -
 第 1 季
@@ -56,13 +56,13 @@ S01E33 - - - -
 S01E34 - - - -
 S01E35 - - - -`
 
-/** TVDB lists 5 aired-order seasons (S0–S4); empty season names render as "Season N" in zh-CN UI. */
+/** TVDB lists 5 aired-order seasons (S0–S4); empty names → Specials / Season N. */
 function buildEpisodeTableExpectation(
     seasons: ReadonlyArray<{ season: number; episodes: number }>,
 ): string {
     const lines: string[] = []
     for (const { season, episodes } of seasons) {
-        lines.push(`Season ${season}`)
+        lines.push(season === 0 ? 'Specials' : `Season ${season}`)
         for (let episode = 1; episode <= episodes; episode += 1) {
             lines.push(
                 `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')} - - - -`,
@@ -154,7 +154,7 @@ describe('Search TV Show', () => {
             }, {
                 timeout: 3 * 60 * 1000,
                 interval: 2000,
-                timeoutMsg: 'Expected to see Season 0 in the TV show panel within 3 minutes after TMDB select',
+                timeoutMsg: 'Expected to see Specials in the TV show panel within 3 minutes after TMDB select',
             })
         })
 
