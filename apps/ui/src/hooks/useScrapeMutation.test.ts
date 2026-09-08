@@ -6,7 +6,7 @@ import { useScrapeMutation } from "./useScrapeMutation"
 
 const scrapeFolderViaCoreMock = vi.fn()
 
-vi.mock("@/api/scrapeV3", () => ({
+vi.mock("@/api/scrape", () => ({
   scrapeFolderViaCore: (...args: unknown[]) => scrapeFolderViaCoreMock(...args),
 }))
 

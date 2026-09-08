@@ -13,7 +13,7 @@ import {
 } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import type { MediaMetadata } from "@smm/types"
-import { invalidateFoldersQueryIfV3 } from "./invalidateFoldersQuery"
+import { invalidateFoldersQuery } from "./invalidateFoldersQuery"
 
 function snapshotMetadata(queryClient: ReturnType<typeof useQueryClient>, paths: string[]) {
   return paths
@@ -91,7 +91,7 @@ export function useUnimportFolderMutation() {
             if (resp.error) throw new Error(resp.error)
           }),
         )
-        invalidateFoldersQueryIfV3(queryClient)
+        invalidateFoldersQuery(queryClient)
       } catch (error) {
         if (dir) {
           queryClient.setQueryData(userConfigQueryKey(dir), prev)

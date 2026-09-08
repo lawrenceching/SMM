@@ -1,3 +1,6 @@
+/** Must match apps/ui `UI_ImportFolderEvent` (`eventTypes.ts`). */
+export const UI_ImportFolderEvent = 'ui.importFolder'
+
 interface ImportMediaFolderData {
     type: "tvshow" | "movie" | "music";
     folderPathInPlatformFormat: string;
@@ -6,7 +9,10 @@ interface ImportMediaFolderData {
 }
 
 export async function importMediaFolder(data: ImportMediaFolderData) {
-    await browser.executeScript(`document.dispatchEvent(new CustomEvent('ui.mediaFolderImported', { detail: arguments[0] }))`, [data]);
+    await browser.executeScript(
+        `document.dispatchEvent(new CustomEvent('${UI_ImportFolderEvent}', { detail: arguments[0] }))`,
+        [data],
+    );
 }
 
 

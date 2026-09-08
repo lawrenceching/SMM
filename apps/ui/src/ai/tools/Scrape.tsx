@@ -7,7 +7,7 @@ import {
 } from '@smm/types/ai-tools/scrape'
 import { scrapeFailed, scrapeSucceeded } from '@smm/core/ai-tool/scrapeResult'
 import { formatToolError, requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
-import { scrapeFolderV3 } from '@/api/scrapeV3'
+import { scrapeFolder } from '@/api/scrape'
 
 const scrapeTool = tool({
   description: SCRAPE_DESCRIPTION,
@@ -19,7 +19,7 @@ const scrapeTool = tool({
     }
 
     try {
-      const result = await scrapeFolderV3({
+      const result = await scrapeFolder({
         path: pathCheck,
         language,
       })

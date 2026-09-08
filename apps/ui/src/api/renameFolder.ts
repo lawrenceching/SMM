@@ -1,25 +1,25 @@
-import type { FolderRenameRequestBody, FolderRenameResponseBody } from '@smm/types'
-import { apiFetch } from '@/lib/apiFetch';
+import { apiFetch } from '@/lib/apiFetch'
 
 export interface RenameFolderParams {
   from: string
   to: string
 }
 
+export interface RenameFolderResponseBody {
+  data?: { from: string; to: string }
+  error?: string
+}
+
+/** `POST /api/rename-folder` → `Core.renameFolder`. */
 export async function postRenameFolder(
   params: RenameFolderParams,
-): Promise<FolderRenameResponseBody> {
-  const req: FolderRenameRequestBody = {
-    from: params.from,
-    to: params.to,
-  }
-
-  const resp = await apiFetch('/api/renameFolder', {
+  signal?: AbortSignal,
+): Promise<RenameFolderResponseBody> {
+  const resp = await apiFetch('/api/rename-folder', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: params.from, to: params.to }),
+    signal,
   })
 
   if (!resp.ok) {
@@ -28,5 +28,13 @@ export async function postRenameFolder(
     }
   }
 
-  return (await resp.json()) as FolderRenameResponseBody
+  return (await resp.json()) as RenameFolderResponseBody
+}
+
+/** Throws on business error. */
+export async function renameFolderViaCore(params: RenameFolderParams): Promise<void> {
+  const data = await postRenameFolder(params)
+  if (data.error) {
+    throw new Error(data.error)
+  }
 }

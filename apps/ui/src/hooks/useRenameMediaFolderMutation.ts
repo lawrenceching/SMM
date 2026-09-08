@@ -1,9 +1,9 @@
 import { useMutation, useQueryClient, type UseMutationOptions } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
-import { renameFolderViaCore } from '@/api/renameFolderV3'
+import { renameFolderViaCore } from '@/api/renameFolder'
 import { refreshUiAfterFolderRename } from '@/lib/refreshUiAfterFolderRename'
-import { invalidateFoldersQueryIfV3 } from '@/hooks/folders/invalidateFoldersQuery'
+import { invalidateFoldersQuery } from '@/hooks/folders/invalidateFoldersQuery'
 import { useUIMediaFolderStore } from '@/stores/uiMediaFolderStore'
 import { dirname, join } from '@/lib/path'
 
@@ -46,7 +46,7 @@ export function useRenameMediaFolderMutation(
         from: mediaFolderPath,
         to: newFolderPath,
       })
-      invalidateFoldersQueryIfV3(queryClient)
+      invalidateFoldersQuery(queryClient)
     },
     onError: (error, variables, context, mutation) => {
       userOnError?.(error, variables, context, mutation)

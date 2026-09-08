@@ -1,20 +1,20 @@
 import { apiFetch } from '@/lib/apiFetch'
 
-export interface ScrapeFolderV3Params {
+export interface ScrapeFolderParams {
   path: string
   language?: string
 }
 
-export interface ScrapeFolderV3ResponseBody {
+export interface ScrapeFolderResponseBody {
   data?: { id: string }
   error?: string
 }
 
 /** Layer-2 scrape via Core (`POST /api/scrape`). */
-export async function scrapeFolderV3(
-  params: ScrapeFolderV3Params,
+export async function scrapeFolder(
+  params: ScrapeFolderParams,
   signal?: AbortSignal,
-): Promise<ScrapeFolderV3ResponseBody> {
+): Promise<ScrapeFolderResponseBody> {
   const body: Record<string, string> = { path: params.path }
   if (params.language !== undefined && params.language.trim() !== '') {
     body.language = params.language
@@ -31,12 +31,12 @@ export async function scrapeFolderV3(
     throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
   }
 
-  return (await resp.json()) as ScrapeFolderV3ResponseBody
+  return (await resp.json()) as ScrapeFolderResponseBody
 }
 
 /** Throws on business error; returns job id. */
-export async function scrapeFolderViaCore(params: ScrapeFolderV3Params): Promise<string> {
-  const data = await scrapeFolderV3(params)
+export async function scrapeFolderViaCore(params: ScrapeFolderParams): Promise<string> {
+  const data = await scrapeFolder(params)
   if (data.error) {
     throw new Error(data.error)
   }

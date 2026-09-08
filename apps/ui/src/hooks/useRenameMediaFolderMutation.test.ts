@@ -4,7 +4,7 @@ import { renderHook, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { useRenameMediaFolderMutation } from "./useRenameMediaFolderMutation"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
-import { renameFolderViaCore } from "@/api/renameFolderV3"
+import { renameFolderViaCore } from "@/api/renameFolder"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { mediaMetadataQueryKey, normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
@@ -13,11 +13,11 @@ vi.mock("@/lib/i18n", () => ({
   useTranslation: () => ({ t: (key: string) => key }),
 }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-vi.mock("@/api/renameFolderV3", () => ({
+vi.mock("@/api/renameFolder", () => ({
   renameFolderViaCore: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock("@/hooks/folders/invalidateFoldersQuery", () => ({
-  invalidateFoldersQueryIfV3: vi.fn(),
+  invalidateFoldersQuery: vi.fn(),
 }))
 vi.mock("@/stores/uiMediaFolderStore")
 

@@ -9,7 +9,7 @@ import { UI_MediaLibraryImportedEvent, type OnMediaLibraryImportedEventData } fr
 import debug from "debug"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { useRefreshUserConfig } from "@/hooks/userConfig"
-import { invalidateFoldersQueryIfV3 } from "@/hooks/folders"
+import { invalidateFoldersQuery } from "@/hooks/folders"
 import { persistHarmonyOSFileAccess } from "@/lib/persistHarmonyOSFileAccess"
 import { toast } from "sonner"
 import { useTranslation } from "@/lib/i18n"
@@ -20,7 +20,7 @@ import {
   pollImportLibraryJob,
   syncSidebarFromImportLibraryJob,
   waitForLibraryFoldersRegistered,
-} from "@/lib/importLibraryV3"
+} from "@/lib/importLibrary"
 
 export function MediaLibraryImportedEventHandler() {
   const { t: tComponents } = useTranslation("components")
@@ -62,7 +62,7 @@ export function MediaLibraryImportedEventHandler() {
 
       const registeredPaths = await waitForLibraryFoldersRegistered(coreJobId, trace)
       await refreshUserConfig()
-      invalidateFoldersQueryIfV3(queryClient)
+      invalidateFoldersQuery(queryClient)
       importLibraryLog(trace, "sidebar folder list refreshed", {
         folderCount: registeredPaths.length,
         folderPaths: registeredPaths,
@@ -94,7 +94,7 @@ export function MediaLibraryImportedEventHandler() {
         upsertFolder(folder)
       }
       await refreshUserConfig()
-      invalidateFoldersQueryIfV3(queryClient)
+      invalidateFoldersQuery(queryClient)
       importLibraryLog(trace, "sidebar folder status synced after import", {
         folderCount: importedFolders.length,
       })

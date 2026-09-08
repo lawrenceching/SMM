@@ -1,5 +1,4 @@
 export { useFoldersQuery } from './useFoldersQuery'
 
-export { invalidateFoldersQueryIfV3 } from './invalidateFoldersQuery'
+export { invalidateFoldersQuery } from './invalidateFoldersQuery'
 export { useUnimportFolderMutation } from './useUnimportFolderMutation'
-

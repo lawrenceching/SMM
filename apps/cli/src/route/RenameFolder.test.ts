@@ -11,7 +11,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
-import { handleRenameFolderV3 } from './RenameFolderV3'
+import { handleRenameFolder } from './RenameFolder'
 import { metadataCachePath } from '../../test/helpers/testFolders'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
@@ -29,10 +29,10 @@ describe('POST /api/rename-folder', () => {
   let app: Hono
 
   beforeEach(() => {
-    env = installCliTestEnv('smm-rename-folder-v3')
-    mediaDir = mkdtempSync(join(tmpdir(), 'smm-rename-folder-v3-media-'))
+    env = installCliTestEnv('smm-rename-folder')
+    mediaDir = mkdtempSync(join(tmpdir(), 'smm-rename-folder-media-'))
     app = new Hono()
-    handleRenameFolderV3(app)
+    handleRenameFolder(app)
   })
 
   afterEach(() => {

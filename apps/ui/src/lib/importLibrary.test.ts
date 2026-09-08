@@ -16,7 +16,7 @@ vi.mock('@/api/getFolders', () => ({
 import {
   importLibraryTaskStatusToUiStatus,
   waitForLibraryFoldersRegistered,
-} from './importLibraryV3'
+} from './importLibrary'
 
 describe('importLibraryTaskStatusToUiStatus', () => {
   it('maps task status to sidebar folder status', () => {

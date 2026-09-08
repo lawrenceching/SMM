@@ -9,7 +9,7 @@ export async function handleRenameFolderPost(
   res: ServerResponse,
   ctx: RouteContext,
 ): Promise<boolean> {
-  if (req.method !== "POST" || ctx.url.pathname !== "/api/renameFolder") {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/rename-folder") {
     return false;
   }
 
@@ -17,7 +17,7 @@ export async function handleRenameFolderPost(
     const rawBody = (await readJsonBody(req)) as FolderRenameRequestBody;
     ctx.config.logger?.info(
       { from: rawBody.from, to: rawBody.to },
-      "[RenameFolder] POST /api/renameFolder",
+      "[RenameFolder] POST /api/rename-folder",
     );
     const result = await doRenameFolder(rawBody, ctx.config);
     sendJson(res, 200, result);

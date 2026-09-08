@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbV3'
+import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbHttp'
 
 vi.mock('@/lib/apiFetch', () => ({
   apiFetch: vi.fn(),
@@ -17,7 +17,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
-describe('tmdbV3 Internal HTTP clients', () => {
+describe('tmdbHttp Internal HTTP clients', () => {
   beforeEach(() => {
     mockApiFetch.mockReset()
   })

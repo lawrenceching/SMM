@@ -12,7 +12,7 @@ import { fetchWithFailover } from '@/lib/http'
 import staticConfig from './staticConfig'
 import { fetchByInternalReverseProxy } from './fetchByInternalReverseProxy'
 import { buildTmdbErrorFromResponse } from './tmdbErrors'
-import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbV3'
+import { getMovieInTmdb, getTvShowInTmdb, searchInTmdb } from './tmdbHttp'
 
 export const SMM_TMDB_DEFAULT_UPSTREAM = 'https://mediadb.vercel.app/api/tmdb'
 

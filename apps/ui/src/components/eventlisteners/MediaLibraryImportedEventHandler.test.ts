@@ -29,8 +29,8 @@ const { refreshUserConfigMock } = vi.hoisted(() => ({
   refreshUserConfigMock: vi.fn().mockResolvedValue(undefined),
 }))
 
-const { invalidateFoldersQueryIfV3Mock } = vi.hoisted(() => ({
-  invalidateFoldersQueryIfV3Mock: vi.fn(),
+const { invalidateFoldersQueryMock } = vi.hoisted(() => ({
+  invalidateFoldersQueryMock: vi.fn(),
 }))
 
 const { addJobMock, updateJobMock } = vi.hoisted(() => ({
@@ -50,8 +50,8 @@ vi.mock("@/api/getJob", () => ({
   getJobViaCore: getJobViaCoreMock,
 }))
 
-vi.mock("@/lib/importLibraryV3", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/importLibraryV3")>()
+vi.mock("@/lib/importLibrary", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/importLibrary")>()
   return {
     ...actual,
     pollImportLibraryJob: pollImportLibraryJobMock,
@@ -65,7 +65,7 @@ vi.mock("@/hooks/userConfig", () => ({
 }))
 
 vi.mock("@/hooks/folders", () => ({
-  invalidateFoldersQueryIfV3: invalidateFoldersQueryIfV3Mock,
+  invalidateFoldersQuery: invalidateFoldersQueryMock,
 }))
 
 vi.mock("@/hooks/useJobManager", () => ({
@@ -127,7 +127,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     waitForLibraryFoldersRegisteredMock.mockReset()
     refreshUserConfigMock.mockReset()
     refreshUserConfigMock.mockResolvedValue(undefined)
-    invalidateFoldersQueryIfV3Mock.mockReset()
+    invalidateFoldersQueryMock.mockReset()
     persistHarmonyOSFileAccessMock.mockReset()
     persistHarmonyOSFileAccessMock.mockResolvedValue(undefined)
     addJobMock.mockReset()
@@ -185,7 +185,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     expect(persistHarmonyOSFileAccessMock).toHaveBeenCalledWith([libraryPath])
     expect(waitForLibraryFoldersRegisteredMock).toHaveBeenCalledWith("core-job-1", { traceId: "test-trace" })
     expect(refreshUserConfigMock).toHaveBeenCalled()
-    expect(invalidateFoldersQueryIfV3Mock).toHaveBeenCalledWith(queryClient)
+    expect(invalidateFoldersQueryMock).toHaveBeenCalledWith(queryClient)
     expect(getJobViaCoreMock).toHaveBeenCalledWith("core-job-1")
 
     const refreshOrder = refreshUserConfigMock.mock.invocationCallOrder[0]!

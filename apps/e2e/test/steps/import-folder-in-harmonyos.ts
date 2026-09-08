@@ -2,7 +2,7 @@ import { registerStep } from '../lib/gherkin'
 import { importMediaFolder } from 'test/actions/events'
 
 /**
- * Dispatch `ui.mediaFolderImported` for a folder that already exists on the
+ * Dispatch `ui.importFolder` for a folder that already exists on the
  * HarmonyOS device (no host-side fixture creation).
  *
  * Defaults to `tvshow`. Override via `ctx._folderType` (`tvshow` | `movie` | `music`).

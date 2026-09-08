@@ -1,5 +1,7 @@
 # Core.renameFolder
 
+> **Status:** Superseded for HTTP path naming — UI and Internal HTTP use `POST /api/rename-folder` → `Core.renameFolder`. MCP/debug still use in-process `doRenameFolder` from `@smm/core-routes`.
+
 This design document describes migrating Sidebar folder rename (metadata cache + user config + on-disk rename) into Layer 2 `apps/core`, without changing existing UI or `packages/core-routes` source.
 
 ## 1. Background

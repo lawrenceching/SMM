@@ -6,7 +6,7 @@ import {
   type TmdbSearchOutput,
 } from '@smm/types/ai-tools/tmdbSearch'
 import { formatToolError, requireNonEmptyString } from '@smm/core/ai-tool/toolResult'
-import { searchInTmdb } from '@/api/tmdbV3'
+import { searchInTmdb } from '@/api/tmdbHttp'
 
 const tmdbSearchTool = tool({
   description: TMDB_SEARCH_DESCRIPTION,

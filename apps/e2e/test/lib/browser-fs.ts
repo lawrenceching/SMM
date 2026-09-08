@@ -474,7 +474,7 @@ export async function createTestFolderViaBrowser(
 
 /**
  * Create a fixture under `{tmpDir}/smm-test-folder` (or `base`) and emit
- * `ui.mediaFolderImported` via {@link importMediaFolder}.
+ * `ui.importFolder` via {@link importMediaFolder}.
  */
 export async function createAndImportFolderViaBrowser(
     folder: {

@@ -3,8 +3,13 @@ import { useMemo } from "react";
 import { useMediaFolderFilesQuery } from "./useMediaFolderFilesQuery";
 import { useMediaMetadataQuery } from "./mediaMetadata";
 import { findFilesByExtensions } from "@/lib/music";
-import { extensions, imageFileExtensions, subtitleFileExtensions } from "@smm/types/mediaFileExtensions";
-import { basename, extname } from "@/lib/path";
+import { extensions } from "@smm/types/mediaFileExtensions";
+import { basename } from "@/lib/path";
+import {
+    findNfos,
+    findSubtitles,
+    findThumbnails,
+} from "@/lib/tvShowEpisodeAssociatedFiles";
 import type { MediaMetadata } from "@smm/types/types";
 import type { Plan } from "@/api/getPlans";
 
@@ -38,24 +43,6 @@ function findMetadataFiles(metadata: MediaMetadata, files: string[]) {
                 return basename(f)?.toLowerCase().includes('theme');
             }),
     }
-}
-
-function findThumbnails(files: string[], videoFile: string): string[] {
-    const videoFileExt = extname(videoFile)
-    const possibleThumbnailFilePaths = imageFileExtensions.map(ext => `${videoFile.replace(videoFileExt, ext)}`)
-    return files.filter(file => possibleThumbnailFilePaths.includes(file))
-}
-
-function findSubtitles(files: string[], videoFile: string): string[] {
-    const videoFileExt = extname(videoFile)
-    const possibleSubtitleFilePaths = subtitleFileExtensions.map(ext => `${videoFile.replace(videoFileExt, ext)}`)
-    return files.filter(file => possibleSubtitleFilePaths.includes(file))
-}
-
-function findNfos(files: string[], videoFile: string): string[] {
-    const videoFileExt = extname(videoFile)
-    const nfoFilePath = `${videoFile.replace(videoFileExt, '.nfo')}`
-    return files.filter(file => file === nfoFilePath)
 }
 
 export function useTvShowPanel(folderPath: string | undefined, plan: Plan | undefined) {

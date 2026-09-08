@@ -14,7 +14,7 @@ const refreshMediaMetadataMock = vi.fn().mockResolvedValue(undefined)
 const listFilesMock = vi.fn().mockResolvedValue({ data: { items: [] } })
 const userConfigMock = { preferMediaLanguage: "zh-CN" }
 
-vi.mock("@/api/scrapeV3", () => ({
+vi.mock("@/api/scrape", () => ({
   scrapeFolderViaCore: (...args: unknown[]) => scrapeFolderViaCoreMock(...args),
 }))
 vi.mock("@/api/getJob", () => ({

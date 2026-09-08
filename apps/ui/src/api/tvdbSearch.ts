@@ -1,5 +1,5 @@
 import type { TVDBv4SearchResult } from '@smm/tvdb4/types'
-import { searchInTvdb } from './tvdbV3'
+import { searchInTvdb } from './tvdbHttp'
 
 export interface SearchTvdbResponse {
   results: TVDBv4SearchResult[]

@@ -103,7 +103,7 @@ class Menu {
      * @deprecated use functions in test/actions/events.ts instead
      */
     public async importMediaFolder(data: ImportMediaFolderData) {
-        await browser.executeScript(`document.dispatchEvent(new CustomEvent('ui.mediaFolderImported', { detail: arguments[0] }))`, [data]);
+        await browser.executeScript(`document.dispatchEvent(new CustomEvent('ui.importFolder', { detail: arguments[0] }))`, [data]);
     }
 }
 

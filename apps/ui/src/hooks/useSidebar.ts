@@ -7,6 +7,8 @@ import { compareByDisplayName, type SortOrder, type FilterType } from "@/lib/sid
 import { openInFileManagerApi } from "@/api/openInFileManager"
 import { useFoldersQuery, useUnimportFolderMutation } from "@/hooks/folders"
 import { Path } from "@smm/utils/path"
+import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
+import { mergeFolderListPaths } from "@/lib/mergeFolderListPaths"
 
 export interface UseSidebarOptions {
   onDeleteSelected?: (paths: string[]) => void
@@ -21,18 +23,27 @@ export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
   const [filterType, setFilterType] = useState<FilterType>("all")
 
   const unimportFolderMutation = useUnimportFolderMutation()
+  const { folders: storeFolders } = useUIMediaFolderStoreState()
 
   const foldersQuery = useFoldersQuery();
 
+  const folderPaths = useMemo(
+    () => mergeFolderListPaths(
+      foldersQuery.data,
+      storeFolders.map((folder) => folder.path),
+    ),
+    [foldersQuery.data, storeFolders],
+  )
+
   const metadataQueries = useQueries({
-    queries: (foldersQuery.data ?? []).map((folderAbsPath) => ({
+    queries: folderPaths.map((folderAbsPath) => ({
       ...mediaMetadataReadQueryOptions(folderAbsPath)
     })),
   })
 
   const folders = useMemo(() => {
 
-    let folderSearchFields = (foldersQuery.data ?? []).map((folderAbsPath) => {
+    let folderSearchFields = folderPaths.map((folderAbsPath) => {
 
       const m = metadataQueries.find((query) => query.data?.mediaFolderPath === Path.posix(folderAbsPath))?.data
 
@@ -54,7 +65,7 @@ export function useSidebar({ searchQuery = "" }: UseSidebarOptions = {}) {
     }
 
     return folderSearchFields.map((folder) => folder.path)
-  }, [foldersQuery.data, metadataQueries, sortOrder, filterType, searchQuery])
+  }, [folderPaths, metadataQueries, sortOrder, filterType, searchQuery])
   
   const handleOpenInExplorer = useCallback(async (path: string) => {
     try {
