@@ -160,12 +160,11 @@ async function searchInTmdb(
       }
     } else {
       const body = await deps.tmdb.search(folderName, "movie", deps.language);
-      for (const item of body.results) {
-        const movie = item as TMDBMovie;
-        if (movie.title === folderName) {
-          result.movie = movieMediaMetadataFromTmdbSearch(movie);
-          return;
-        }
+      const movies = body.results as TMDBMovie[];
+      const exact = movies.find((movie) => movie.title === folderName);
+      const chosen = exact ?? movies[0];
+      if (chosen !== undefined) {
+        result.movie = movieMediaMetadataFromTmdbSearch(chosen);
       }
     }
   } catch {

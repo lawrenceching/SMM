@@ -16,7 +16,13 @@ import {
   buildMovieFilesFromMediaMetadata,
   type MovieFileModel,
 } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
-import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/buildMovieEpisodeTableRows"
+import {
+  buildMovieEpisodeAssociatedFileLists,
+  buildMovieEpisodeTableRows,
+  buildMovieMediaFileTableSeasonData,
+  buildMovieMetadataFiles,
+  type MovieRenamePreviewData,
+} from "@/lib/buildMovieEpisodeTableRows"
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
@@ -28,6 +34,7 @@ import { MovieHeaderV2 } from "./MovieHeaderV2"
 import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
 import { MediaFileTable } from "../media/MediaFileTable"
 import type {
+  MediaFileTableSeasonData,
   UIMediaFileDataRow,
   UIMediaFileTableRow,
 } from "../media/UIMediaFileTable"
@@ -332,6 +339,30 @@ function MoviePanel() {
     })
   }, [mediaMetadata, folderStatus, t, renamePreview, folderFiles])
 
+  // MediaFileTable simple/detail/preview layouts render seasonData, not legacy `data`.
+  const seasonData = useMemo<MediaFileTableSeasonData[]>(() => {
+    if (!mediaMetadata) return []
+    return buildMovieMediaFileTableSeasonData(mediaMetadata)
+  }, [mediaMetadata])
+
+  const metadataFiles = useMemo(
+    () => (mediaMetadata ? buildMovieMetadataFiles(mediaMetadata, folderFiles) : undefined),
+    [mediaMetadata, folderFiles],
+  )
+
+  const associatedFileLists = useMemo(
+    () =>
+      mediaMetadata
+        ? buildMovieEpisodeAssociatedFileLists(mediaMetadata, folderFiles)
+        : { subtitleFiles: [], nfoFiles: [], thumbnailFiles: [] },
+    [mediaMetadata, folderFiles],
+  )
+
+  const newFilePaths = useMemo(() => {
+    if (!renamePreview?.newVideoFile) return []
+    return [{ season: 1, episode: 1, newFilePath: renamePreview.newVideoFile }]
+  }, [renamePreview])
+
   const handleVideoCompressClick = useCallback(
     (row: UIMediaFileDataRow) => {
       if (!row.videoFile) return
@@ -370,6 +401,12 @@ function MoviePanel() {
         ) : (
           <MediaFileTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            seasonData={seasonData}
+            metadataFiles={metadataFiles}
+            subtitleFiles={associatedFileLists.subtitleFiles}
+            nfoFiles={associatedFileLists.nfoFiles}
+            thumbnailFiles={associatedFileLists.thumbnailFiles}
+            newFilePaths={newFilePaths}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             layout={isPreviewingForRename ? "simple" : layout}

@@ -290,6 +290,51 @@ describe("recognizeMediaFolder", () => {
     expect(d.tmdb.search).toHaveBeenCalledWith(folder2.folderName, "movie", "en-US");
   });
 
+  it("recognizes movie from first TMDB hit when localized title differs from folder name", async () => {
+    const d = deps();
+    (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
+      results: [
+        {
+          id: 1539104,
+          title: "JUJUTSU KAISEN: Execution",
+          original_title: "劇場版 呪術廻戦「渋谷事変 特別編集版」×「死滅回游 先行上映」",
+        },
+        { id: 999, title: "Unrelated Movie" },
+      ],
+    });
+
+    const created = createFolderInTestFolder(mediaDir, folder2);
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual({
+      id: "1539104",
+      name: "JUJUTSU KAISEN: Execution",
+      database: "TMDB",
+    });
+    expect(d.tmdb.search).toHaveBeenCalledWith(folder2.folderName, "movie", "en-US");
+  });
+
+  it("prefers exact TMDB title match over a non-matching first result", async () => {
+    const d = deps();
+    (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
+      results: [
+        { id: 1, title: "Wrong First Hit" },
+        { id: 1539104, title: folder2.folderName },
+      ],
+    });
+
+    const created = createFolderInTestFolder(mediaDir, folder2);
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual({
+      id: "1539104",
+      name: folder2.folderName,
+      database: "TMDB",
+    });
+  });
+
   it("recognizes movie by TVDB folder name search", async () => {
     const d = deps({ primaryDatabase: "TVDB" });
     (d.tvdb.searchMovie as ReturnType<typeof vi.fn>).mockResolvedValue([
