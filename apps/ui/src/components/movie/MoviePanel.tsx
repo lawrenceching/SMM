@@ -30,8 +30,8 @@ import {
   UI_AskForVideoCompression,
   type OnAskForVideoCompressionEventData,
 } from "@/types/eventTypes"
-import { MovieHeaderV2 } from "./MovieHeaderV2"
-import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
+import { MediaFileTableToolbar, type EpisodeTableLayout } from "@/components/media/MediaFileTableToolbar"
+import { useMovieMediaFileTableToolbar } from "@/hooks/movie/useMovieMediaFileTableToolbar"
 import { MediaFileTable } from "../media/MediaFileTable"
 import type {
   MediaFileTableSeasonData,
@@ -375,6 +375,18 @@ function MoviePanel() {
     [],
   )
 
+  const mediaFileTableToolbarProps = useMovieMediaFileTableToolbar({
+    onSearchResultSelected: handleSelectResult,
+    onRenameClick: () => setIsRuleBasedRenameFilePromptOpen(true),
+    showSubtitleMenu: subtitleFlow.showSubtitleMenu,
+    ...subtitleFlow.header,
+    selectedMediaMetadata: mediaMetadata,
+    selectedMediaFolder: uiFolderRow,
+    openScrape: askForScrape,
+    episodeTableLayout: layout,
+    onEpisodeTableLayoutChange: setLayout,
+  })
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
       <TranscribeDialog {...subtitleFlow.dialogs.transcribe} />
@@ -383,17 +395,7 @@ function MoviePanel() {
       <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
-        <MovieHeaderV2
-          onSearchResultSelected={handleSelectResult}
-          onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
-          showSubtitleMenu={subtitleFlow.showSubtitleMenu}
-          {...subtitleFlow.header}
-          selectedMediaMetadata={mediaMetadata}
-          selectedMediaFolder={uiFolderRow}
-          openScrape={askForScrape}
-          episodeTableLayout={layout}
-          onEpisodeTableLayoutChange={setLayout}
-        />
+        <MediaFileTableToolbar {...mediaFileTableToolbarProps} />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {folderStatus === "initializing" ? (

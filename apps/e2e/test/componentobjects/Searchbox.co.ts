@@ -91,54 +91,82 @@ class SearchboxComponentObject {
         await selectItem.click()
     }
 
+    private languageTextMatches(text: string, languageOrCode: string): boolean {
+        const trimmed = text.trim()
+        return (
+            trimmed === languageOrCode ||
+            trimmed.startsWith(`${languageOrCode} (`) ||
+            trimmed.endsWith(`(${languageOrCode})`) ||
+            trimmed.includes(`(${languageOrCode})`)
+        )
+    }
+
     async setLanguage(languageOrCode: string) {
         const selectTrigger = await this.language
 
         await selectTrigger.waitForExist({ timeout: 5000 })
         await selectTrigger.waitForDisplayed({ timeout: 5000 })
         await selectTrigger.waitForClickable({ timeout: 5000 })
-        await selectTrigger.click()
 
-        const byCodeSelector = `[data-testid="tmdb-search-language-option-${languageOrCode}"]`
-        const byCode = await $(byCodeSelector)
-
-        // Wait for the option to appear in the open Select portal (cold Electron
-        // start can race a fixed pause and report "Language option not found").
-        try {
-            await byCode.waitForExist({ timeout: 10000 })
-            await byCode.waitForClickable({ timeout: 5000 })
-            await byCode.click()
+        // Prefer-media-language is often already en-US; avoid opening the Select.
+        const currentLabel = String(await selectTrigger.getText().catch(() => '')).trim()
+        if (this.languageTextMatches(currentLabel, languageOrCode)) {
             return
-        } catch {
-            // Fall through to text match (display name may not use the code as test id).
         }
 
-        let targetItem: WebdriverIO.Element | undefined
-        await browser.waitUntil(
-            async () => {
-                const selectItems = await $$('[data-testid^="tmdb-search-language-option-"]')
-                for (const item of selectItems) {
-                    const text = (await item.getText()).trim()
-                    if (
-                        text === languageOrCode ||
-                        text.startsWith(`${languageOrCode} (`) ||
-                        text.endsWith(`(${languageOrCode})`)
-                    ) {
-                        targetItem = item
-                        return true
-                    }
-                }
-                return false
-            },
-            {
-                timeout: 10000,
-                interval: 200,
-                timeoutMsg: `Language option "${languageOrCode}" not found`,
-            },
-        )
+        const byCodeSelector = `[data-testid="tmdb-search-language-option-${languageOrCode}"]`
+        const maxAttempts = 3
+        let lastError: Error | undefined
 
-        await targetItem!.waitForClickable({ timeout: 5000 })
-        await targetItem!.click()
+        // Cold start can remount Select items when language lists hydrate; retry
+        // open+click so we do not fail on a single stale portal.
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            try {
+                await selectTrigger.click()
+                await browser.pause(200)
+
+                const byCode = await $(byCodeSelector)
+                try {
+                    await byCode.waitForExist({ timeout: 5000 })
+                    await byCode.waitForClickable({ timeout: 5000 })
+                    await byCode.click()
+                    return
+                } catch {
+                    // Fall through to text match (display name may not use the code as test id).
+                }
+
+                let targetItem: WebdriverIO.Element | undefined
+                await browser.waitUntil(
+                    async () => {
+                        const selectItems = await $$('[data-testid^="tmdb-search-language-option-"]')
+                        for (const item of selectItems) {
+                            const text = (await item.getText()).trim()
+                            if (this.languageTextMatches(text, languageOrCode)) {
+                                targetItem = item
+                                return true
+                            }
+                        }
+                        return false
+                    },
+                    {
+                        timeout: 5000,
+                        interval: 200,
+                        timeoutMsg: `Language option "${languageOrCode}" not found`,
+                    },
+                )
+
+                await targetItem!.waitForClickable({ timeout: 5000 })
+                await targetItem!.click()
+                return
+            } catch (err) {
+                lastError = err instanceof Error ? err : new Error(String(err))
+                // Dismiss a half-open select before retrying.
+                await browser.keys('Escape').catch(() => undefined)
+                await browser.pause(300)
+            }
+        }
+
+        throw lastError ?? new Error(`Language option "${languageOrCode}" not found`)
     }
 
     async selectSearchResultByText(text: string) {

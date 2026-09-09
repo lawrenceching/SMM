@@ -187,7 +187,12 @@ vi.mock("@/hooks/tv/useAiBasedRecognizeEpisodeFlow", () => ({
   }),
 }))
 
-vi.mock("./TvShowPanelHeader", () => ({ TvShowPanelHeader: () => null }))
+vi.mock("@/components/media/MediaFileTableToolbar", () => ({
+  MediaFileTableToolbar: () => null,
+}))
+vi.mock("@/hooks/tv/useTvShowMediaFileTableToolbar", () => ({
+  useTvShowMediaFileTableToolbar: () => ({}),
+}))
 vi.mock("./TvShowPanelPrompts", () => ({ TvShowPanelPrompts: () => null }))
 vi.mock("../RuleBasedRenameFilePrompt", () => ({
   RuleBasedRenameFilePrompt: () => null,

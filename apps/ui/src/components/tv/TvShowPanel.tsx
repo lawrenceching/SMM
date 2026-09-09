@@ -25,7 +25,8 @@ import type {
   UIMediaEpisodeSelection,
 } from "@/components/media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
-import { TvShowPanelHeader } from "./TvShowPanelHeader"
+import { MediaFileTableToolbar } from "@/components/media/MediaFileTableToolbar"
+import { useTvShowMediaFileTableToolbar } from "@/hooks/tv/useTvShowMediaFileTableToolbar"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import { TranscribeDialog, SubtitleTranslationDialog, SynthesizeSubtitleDialog, ProcessPipelineDialog } from "@/components/dialogs"
 import { useFeatures } from "@/hooks/useFeatures"
@@ -334,6 +335,19 @@ function TvShowPanel() {
     }
   }, [recognizeFlow, selectedEpisodes])
 
+  const mediaFileTableToolbarProps = useTvShowMediaFileTableToolbar({
+    onSearchResultSelected: handleSelectResult,
+    onRecognizeButtonClick: recognizeFlow.start,
+    onRenameClick: renameFlow.start,
+    selectedMediaMetadata: mediaMetadata,
+    selectedMediaFolder: uiFolderRow,
+    openScrape: askForScrape,
+    showSubtitleMenu: subtitleFlow.showSubtitleMenu,
+    ...subtitleFlow.header,
+    episodeTableLayout,
+    onEpisodeTableLayoutChange: setEpisodeTableLayout,
+  })
+
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col' data-testid="tv-show-panel">
       {/* <TvShowPanelPrompts /> */}
@@ -349,18 +363,7 @@ function TvShowPanel() {
       <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
-        <TvShowPanelHeader
-          onSearchResultSelected={handleSelectResult}
-          onRecognizeButtonClick={recognizeFlow.start}
-          onRenameClick={renameFlow.start}
-          selectedMediaMetadata={mediaMetadata}
-          selectedMediaFolder={uiFolderRow}
-          openScrape={askForScrape}
-          showSubtitleMenu={subtitleFlow.showSubtitleMenu}
-          {...subtitleFlow.header}
-          episodeTableLayout={episodeTableLayout}
-          onEpisodeTableLayoutChange={setEpisodeTableLayout}
-        />
+        <MediaFileTableToolbar {...mediaFileTableToolbarProps} />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {uiStatus === "initializing" ? (

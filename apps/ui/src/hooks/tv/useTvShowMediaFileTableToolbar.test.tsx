@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { TvShowPanelHeader } from './TvShowPanelHeader'
+import { TvShowMediaFileTableToolbar } from './useTvShowMediaFileTableToolbar'
 import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
@@ -9,11 +9,11 @@ const mockMediaDatabaseSearchbox = vi.fn((props: any) => (
   <div data-testid="media-database-searchbox" data-value={props.value ?? ''} />
 ))
 
-vi.mock('../MediaDatabaseSearchbox', () => ({
+vi.mock('@/components/MediaDatabaseSearchbox', () => ({
   MediaDatabaseSearchbox: (props: any) => mockMediaDatabaseSearchbox(props),
 }))
 
-vi.mock('../ui/dropdown-menu', () => {
+vi.mock('@/components/ui/dropdown-menu', () => {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const React = require('react')
   return {
@@ -54,7 +54,7 @@ vi.mock('@/lib/isHarmonyOS', () => ({
   isHarmonyOS: isHarmonyOSMock,
 }))
 
-describe('TvShowPanelHeader', () => {
+describe('TvShowMediaFileTableToolbar', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
     onRecognizeButtonClick: vi.fn(),
@@ -73,7 +73,7 @@ describe('TvShowPanelHeader', () => {
   describe('"更多" dropdown / "在TMDB中打开"', () => {
     it('always enables the more menu button so overflow actions are accessible on small screens', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={{
             mediaFolderPath: '/media/show',
@@ -88,7 +88,7 @@ describe('TvShowPanelHeader', () => {
 
     it('enables the more menu button when tvShow has TMDB id', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -106,7 +106,7 @@ describe('TvShowPanelHeader', () => {
 
     it('enables the more menu button when tvShow.id is available', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -126,7 +126,7 @@ describe('TvShowPanelHeader', () => {
   describe('TVDB TV Show Metadata', () => {
     it('passes tvShow.name as value for TVDB metadata', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -154,7 +154,7 @@ describe('TvShowPanelHeader', () => {
 
     it('shows "Open in TMDB" when database is TMDB', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -173,7 +173,7 @@ describe('TvShowPanelHeader', () => {
 
     it('shows "Open in TVDB" when database is TVDB', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -192,7 +192,7 @@ describe('TvShowPanelHeader', () => {
 
     it('opens TMDB TV page when clicking the TMDB link', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -215,7 +215,7 @@ describe('TvShowPanelHeader', () => {
 
     it('opens TVDB search page with id and name when clicking the TVDB link', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -238,7 +238,7 @@ describe('TvShowPanelHeader', () => {
 
     it('disables the external link when no media id is available', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={{
             mediaFolderPath: '/media/show',
@@ -262,7 +262,7 @@ describe('TvShowPanelHeader', () => {
 
     it('shows loading skeleton and hides searchbox when selected folder is loading', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'loading' }}
@@ -275,7 +275,7 @@ describe('TvShowPanelHeader', () => {
 
     it('shows searchbox when selected folder status is ok', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -295,7 +295,7 @@ describe('TvShowPanelHeader', () => {
 
     it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -307,7 +307,7 @@ describe('TvShowPanelHeader', () => {
     it('invokes onSynthesizeClick when synthesize menu item is used', () => {
       const onSynthesizeClick = vi.fn()
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -323,7 +323,7 @@ describe('TvShowPanelHeader', () => {
     it('invokes onProcessClick when process menu item is used', () => {
       const onProcessClick = vi.fn()
       render(
-        <TvShowPanelHeader
+        <TvShowMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okTv}
           selectedMediaFolder={{ path: '/media/show', status: 'ok' }}
@@ -349,7 +349,7 @@ describe('TvShowPanelHeader', () => {
       return {
         onEpisodeTableLayoutChange,
         renderResult: render(
-          <TvShowPanelHeader
+          <TvShowMediaFileTableToolbar
             {...defaultProps}
             selectedMediaMetadata={okTv}
             selectedMediaFolder={{ path: '/media/show', status: 'ok' }}

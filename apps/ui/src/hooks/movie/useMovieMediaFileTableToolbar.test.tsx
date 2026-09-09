@@ -3,7 +3,7 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MovieHeaderV2 } from './MovieHeaderV2'
+import { MovieMediaFileTableToolbar } from './useMovieMediaFileTableToolbar'
 import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolder } from '@/types/UIMediaFolder'
 
@@ -64,7 +64,7 @@ vi.mock('@/hooks/userConfig', () => ({
 
 const defaultOkFolder: UIMediaFolder = { path: '/media/movie', status: 'ok' }
 
-describe('MovieHeaderV2', () => {
+describe('MovieMediaFileTableToolbar', () => {
   const defaultProps = {
     onSearchResultSelected: vi.fn(),
     onRenameClick: vi.fn(),
@@ -78,9 +78,9 @@ describe('MovieHeaderV2', () => {
   })
 
   describe('"更多" dropdown / "在TMDB中打开"', () => {
-    it('disables the more menu button when tmdb id is not available (no tmdbMovie)', () => {
+    it('keeps the more menu button enabled when tmdb id is not available so overflow actions stay reachable', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={{
             status: 'ok',
@@ -89,13 +89,13 @@ describe('MovieHeaderV2', () => {
           } as MediaMetadata}
         />
       )
-      const moreButton = screen.getByRole('button', { name: 'movie.more' })
-      expect(moreButton).toBeDisabled()
+      const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
+      expect(moreButton).not.toBeDisabled()
     })
 
-    it('disables the more menu button when movie has no usable id', () => {
+    it('keeps the more menu button enabled when movie has no usable id', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -107,13 +107,13 @@ describe('MovieHeaderV2', () => {
           }
         />
       )
-      const moreButton = screen.getByRole('button', { name: 'movie.more' })
-      expect(moreButton).toBeDisabled()
+      const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
+      expect(moreButton).not.toBeDisabled()
     })
 
     it('enables the more menu button when movie has TMDB id', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -125,13 +125,13 @@ describe('MovieHeaderV2', () => {
           }
         />
       )
-      const moreButton = screen.getByRole('button', { name: 'movie.more' })
+      const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
       expect(moreButton).not.toBeDisabled()
     })
 
     it('enables the more menu button when movie has TVDB id', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -143,7 +143,7 @@ describe('MovieHeaderV2', () => {
           }
         />
       )
-      const moreButton = screen.getByRole('button', { name: 'movie.more' })
+      const moreButton = screen.getByRole('button', { name: 'tvShow.more' })
       expect(moreButton).not.toBeDisabled()
     })
   })
@@ -157,7 +157,7 @@ describe('MovieHeaderV2', () => {
 
     it('shows "Open in TMDB" when database is TMDB', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -170,13 +170,13 @@ describe('MovieHeaderV2', () => {
         />
       )
 
-      expect(screen.getByText('movie.openInTmdb')).toBeInTheDocument()
-      expect(screen.queryByText('movie.openInTvdb')).not.toBeInTheDocument()
+      expect(screen.getByText('tvShow.openInTmdb')).toBeInTheDocument()
+      expect(screen.queryByText('tvShow.openInTvdb')).not.toBeInTheDocument()
     })
 
     it('shows "Open in TVDB" when database is TVDB', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -189,13 +189,13 @@ describe('MovieHeaderV2', () => {
         />
       )
 
-      expect(screen.getByText('movie.openInTvdb')).toBeInTheDocument()
-      expect(screen.queryByText('movie.openInTmdb')).not.toBeInTheDocument()
+      expect(screen.getByText('tvShow.openInTvdb')).toBeInTheDocument()
+      expect(screen.queryByText('tvShow.openInTmdb')).not.toBeInTheDocument()
     })
 
     it('opens TMDB movie page when clicking the TMDB link', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -208,7 +208,7 @@ describe('MovieHeaderV2', () => {
         />
       )
 
-      fireEvent.click(screen.getByText('movie.openInTmdb'))
+      fireEvent.click(screen.getByText('tvShow.openInTmdb'))
       expect(openSpy).toHaveBeenCalledWith(
         'https://www.themoviedb.org/movie/789',
         '_blank',
@@ -218,7 +218,7 @@ describe('MovieHeaderV2', () => {
 
     it('opens TVDB search page with id and name when clicking the TVDB link', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={
             {
@@ -231,7 +231,7 @@ describe('MovieHeaderV2', () => {
         />
       )
 
-      fireEvent.click(screen.getByText('movie.openInTvdb'))
+      fireEvent.click(screen.getByText('tvShow.openInTvdb'))
       expect(openSpy).toHaveBeenCalledWith(
         'https://www.thetvdb.com/search?query=tvdb-1%20TVDB%20Movie%20Name',
         '_blank',
@@ -241,7 +241,7 @@ describe('MovieHeaderV2', () => {
 
     it('disables the external link when no movie metadata is present', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={{
             status: 'ok',
@@ -251,7 +251,7 @@ describe('MovieHeaderV2', () => {
         />
       )
 
-      const menuItem = screen.getByText('movie.openInTmdb')
+      const menuItem = screen.getByText('tvShow.openInTmdb')
       expect(menuItem.closest('[role="menuitem"]')).toHaveAttribute('aria-disabled', 'true')
     })
   })
@@ -266,7 +266,7 @@ describe('MovieHeaderV2', () => {
 
     it('shows loading skeleton and hides searchbox when selected folder is updating', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/movie', status: 'updating' }}
@@ -278,7 +278,7 @@ describe('MovieHeaderV2', () => {
 
     it('shows loading skeleton and hides searchbox when selected folder status is loading', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/movie', status: 'loading' }}
@@ -290,7 +290,7 @@ describe('MovieHeaderV2', () => {
 
     it('shows loading skeleton and hides searchbox when selectedMediaFolder is undefined', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={undefined}
@@ -302,7 +302,7 @@ describe('MovieHeaderV2', () => {
 
     it('shows searchbox when selected folder status is ok', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMetadata}
           selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
@@ -323,7 +323,7 @@ describe('MovieHeaderV2', () => {
 
     it('disables subtitle dropdown when transcribe, translate, synthesize, and process are all blocked', () => {
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMovie}
           selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
@@ -335,7 +335,7 @@ describe('MovieHeaderV2', () => {
     it('invokes onSynthesizeClick when synthesize menu item is used', () => {
       const onSynthesizeClick = vi.fn()
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMovie}
           selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
@@ -351,7 +351,7 @@ describe('MovieHeaderV2', () => {
     it('invokes onProcessClick when process menu item is used', () => {
       const onProcessClick = vi.fn()
       renderWithQueryClient(
-        <MovieHeaderV2
+        <MovieMediaFileTableToolbar
           {...defaultProps}
           selectedMediaMetadata={okMovie}
           selectedMediaFolder={{ path: '/media/movie', status: 'ok' }}
