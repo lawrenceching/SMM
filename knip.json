@@ -87,7 +87,8 @@
         "common/manual/**"
       ],
       "ignoreDependencies": [
-        "@wdio/html-nice-reporter"
+        "@wdio/html-nice-reporter",
+        "@wdio/local-runner"
       ]
     },
     "apps/convex": {

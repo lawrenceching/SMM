@@ -1,7 +1,7 @@
 import type { MediaFileTableMenuId } from "@/components/media/MediaFileTableToolbar"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 
-export const SUBTITLE_MENU_IDS: MediaFileTableMenuId[] = [
+const SUBTITLE_MENU_IDS: MediaFileTableMenuId[] = [
   "subtitle",
   "transcribe",
   "translate",

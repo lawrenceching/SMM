@@ -38,7 +38,7 @@ export type MediaFileTableMenuId =
     | "process"
     | "openExternal"
 
-export type MediaFileTableToolbarCollapseAt = 410 | 310 | 220 | 200
+type MediaFileTableToolbarCollapseAt = 410 | 310 | 220 | 200
 
 export interface MediaFileTableToolbarProps {
     leading: ReactNode

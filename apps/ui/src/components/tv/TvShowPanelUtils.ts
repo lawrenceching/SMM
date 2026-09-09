@@ -741,7 +741,7 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
     })
 }
 /** Display title for a season row: season 0 is always Specials; empty names get Season N. */
-export function seasonDisplayTitle(season: number, name: string | undefined): string {
+function seasonDisplayTitle(season: number, name: string | undefined): string {
   if (season === 0) return 'Specials'
   const trimmed = name?.trim() ?? ''
   return trimmed || `Season ${season}`

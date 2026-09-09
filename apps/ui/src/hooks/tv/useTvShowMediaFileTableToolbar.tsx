@@ -17,8 +17,6 @@ import {
   isMediaFileTableToolbarLoading,
 } from "../media/mediaFileTableToolbarShared"
 
-export type { EpisodeTableLayout }
-
 export interface UseTvShowMediaFileTableToolbarArgs {
   onSearchResultSelected: (args: SearchResultSelectedArgs) => void
   onRecognizeButtonClick?: () => void
