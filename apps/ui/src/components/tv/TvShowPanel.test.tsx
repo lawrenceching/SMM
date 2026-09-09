@@ -144,6 +144,7 @@ vi.mock("@/hooks/tv/useRuleBasedRecognizeFlow", () => ({
     tvShowTmdbId: 1,
     notAllEpisodesRecognized: false,
     allPlanFilesUnchanged: false,
+    isConfirmButtonDisabled: false,
     confirm: h.recognizeConfirm,
     cancel: h.recognizeCancel,
     start: h.recognizeStart,
@@ -155,6 +156,7 @@ vi.mock("@/hooks/tv/useRuleBasedRenameFilesFlow", () => ({
     plan: undefined,
     open: false,
     loading: false,
+    isConfirmButtonDisabled: false,
     selectedNamingRule: "plex",
     namingRuleOptions: [
       { value: "plex", label: "Plex" },

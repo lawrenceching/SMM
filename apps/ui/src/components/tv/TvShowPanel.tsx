@@ -290,6 +290,7 @@ function TvShowPanel() {
       namingRuleOptions: renameFlow.namingRuleOptions,
       selectedNamingRule: renameFlow.selectedNamingRule,
       onNamingRulesSelected: renameFlow.selectNamingRule,
+      isConfirmButtonDisabled: renameFlow.isConfirmButtonDisabled,
       onConfirm: async () => {
         // RENAME applies to files already linked in metadata, so each checked
         // episode's table path (metadata.mediaFiles[...].absolutePath) is the
@@ -316,7 +317,7 @@ function TvShowPanel() {
       tvShowTmdbId: recognizeFlow.tvShowTmdbId,
       notAllEpisodesRecognized: recognizeFlow.notAllEpisodesRecognized,
       allPlanFilesUnchanged: recognizeFlow.allPlanFilesUnchanged,
-      isConfirmButtonDisabled: recognizeFlow.loading || recognizeFlow.allPlanFilesUnchanged,
+      isConfirmButtonDisabled: recognizeFlow.isConfirmButtonDisabled,
       onConfirm: async () => {
         // RECOGNIZE applies plan-proposed paths: the files are usually NOT yet
         // linked in metadata, so the episode-table lookup used by RENAME would

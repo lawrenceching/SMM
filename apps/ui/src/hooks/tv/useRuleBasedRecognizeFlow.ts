@@ -158,6 +158,8 @@ export function useRuleBasedRecognizeFlow({
     return isRuleBasedRecognizePlanFullyUnchanged(plan.files, mediaMetadata)
   }, [plan, mediaMetadata])
 
+  const isConfirmButtonDisabled = loading || allPlanFilesUnchanged
+
   return {
     plan,
     open,
@@ -166,6 +168,7 @@ export function useRuleBasedRecognizeFlow({
     tvShowTmdbId,
     notAllEpisodesRecognized,
     allPlanFilesUnchanged,
+    isConfirmButtonDisabled,
     confirm,
     cancel,
     start,

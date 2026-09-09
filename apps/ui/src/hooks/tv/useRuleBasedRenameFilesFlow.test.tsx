@@ -317,4 +317,64 @@ describe("useRuleBasedRenameFilesFlow", () => {
     expect(result.current.open).toBe(true)
     expect(result.current.plan).toEqual(pendingPlan)
   })
+
+  describe("isConfirmButtonDisabled", () => {
+    it("is false when idle with no plan", () => {
+      const { result } = renderFlow()
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true while try-to-rename is pending", async () => {
+      let resolveTryToRename: (plan: typeof pendingPlan) => void = () => {}
+      tryToRenameEpisodesMutationMock.mutateAsync.mockImplementation(
+        () =>
+          new Promise<typeof pendingPlan>((resolve) => {
+            resolveTryToRename = resolve
+          }),
+      )
+      tryToRenameEpisodesMutationMock.isPending = true
+
+      const { result } = renderFlow()
+
+      act(() => {
+        result.current.start()
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
+
+      await act(async () => {
+        tryToRenameEpisodesMutationMock.isPending = false
+        resolveTryToRename(pendingPlan)
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is false when plan has files to rename", async () => {
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.plan?.files.length).toBeGreaterThan(0)
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true when plan has no files to rename (already match naming rule)", async () => {
+      tryToRenameEpisodesMutationMock.mutateAsync.mockResolvedValue({
+        ...pendingPlan,
+        files: [],
+      })
+
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.plan?.files).toEqual([])
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
+    })
+  })
 })

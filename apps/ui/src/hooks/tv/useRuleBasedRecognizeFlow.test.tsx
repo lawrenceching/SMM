@@ -253,4 +253,67 @@ describe("useRuleBasedRecognizeFlow", () => {
     expect(result.current.open).toBe(false)
     expect(result.current.plan).toBeUndefined()
   })
+
+  describe("isConfirmButtonDisabled", () => {
+    it("is false when idle with no plan", () => {
+      const { result } = renderFlow()
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true while try-to-recognize is pending", async () => {
+      let resolveTryToRecognize: (plan: RecognizeMediaFilePlan) => void = () => {}
+      tryToRecognizeMutationMock.mutateAsync.mockImplementation(
+        () =>
+          new Promise<RecognizeMediaFilePlan>((resolve) => {
+            resolveTryToRecognize = resolve
+          }),
+      )
+      tryToRecognizeMutationMock.isPending = true
+
+      const { result } = renderFlow()
+
+      act(() => {
+        result.current.start()
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
+
+      await act(async () => {
+        tryToRecognizeMutationMock.isPending = false
+        resolveTryToRecognize(pendingPlan)
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is false when plan has files that still need applying", async () => {
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.allPlanFilesUnchanged).toBe(false)
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true when every plan file already matches mediaFiles", async () => {
+      const unchangedPlan: RecognizeMediaFilePlan = {
+        ...pendingPlan,
+        files: [
+          { season: 1, episode: 1, path: `${mediaFolderPath}/S01E01.mkv` },
+        ],
+      }
+      tryToRecognizeMutationMock.mutateAsync.mockResolvedValue(unchangedPlan)
+
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.allPlanFilesUnchanged).toBe(true)
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
+    })
+  })
 })

@@ -182,10 +182,13 @@ export function useRuleBasedRenameFilesFlow({
     reset
   ])
 
+  const isConfirmButtonDisabled = loading || plan?.files.length === 0
+
   return {
     plan,
     open,
     loading,
+    isConfirmButtonDisabled,
     selectedNamingRule,
     namingRuleOptions,
     selectNamingRule,
