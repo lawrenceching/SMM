@@ -2,8 +2,7 @@ import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
-export interface AiBasedRecognizeEpisodePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
-}
+export type AiBasedRecognizeEpisodePromptProps = Omit<FloatingPromptProps, 'mode' | 'status' | 'children'>
 
 /**
  * AiBasedRecognizeEpisodePrompt component built on top of FloatingPrompt.

@@ -2,7 +2,7 @@ import { useUIMediaFolderStoreState } from "@/stores/uiMediaFolderStore"
 import { useMediaMetadataQuery } from "@/hooks/mediaMetadata"
 import { useSelectTvShowForFolderMutation } from "@/hooks/useSelectTvShowForFolderMutation"
 import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { useState, useCallback, useMemo, useEffect, useRef } from "react"
+import { useState, useCallback, useMemo } from "react"
 import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { TMDBTVShow, TMDBTVShowDetails } from "@smm/types"
@@ -38,7 +38,6 @@ import {
   buildRecognizeApplySelectedFiles,
   buildMediaFileTableSeasonData,
 } from "./TvShowPanelUtils"
-import { useLatest } from "react-use"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
 import { useTvShowPanel } from "@/hooks/useTvShowPanel"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
@@ -132,7 +131,7 @@ function TvShowPanel() {
   const { handleFormatConvertForRow } = useTvShowEpisodeFormatConvert(mediaMetadata)
 
   const mediaFileTableSeasonData = useMemo(() => {
-    return !!mediaMetadata ? buildMediaFileTableSeasonData(mediaMetadata) : []
+    return mediaMetadata ? buildMediaFileTableSeasonData(mediaMetadata) : []
   }, [mediaMetadata])
 
   const subtitleFlow = useSubtitleFlow({
@@ -244,45 +243,33 @@ function TvShowPanel() {
     ],
   )
 
-  const latestMediaMetadata = useLatest(mediaMetadata)
   const planId = useMemo(() => { return plan?.id ?? '' }, [plan])
-  const selectedEpisodesByPlanId = useRef<Map<string, UIMediaEpisodeSelection[]>>(new Map())
+  const [syncedPlanId, setSyncedPlanId] = useState(planId)
 
-  const latestPlan = useLatest(plan)
-  const latestMetadata = useLatest(mediaMetadata)
+  // Adjust checkbox selection when the active plan changes (React: adjust state during render).
+  if (planId !== syncedPlanId) {
+    setSyncedPlanId(planId)
 
-  useEffect(() => {
-    const plan = latestPlan.current;
-    const metadata = latestMetadata.current;
-
-    if(planId !== plan?.id || plan.status !== 'pending') {
-      return;
+    if (plan && plan.id === planId && plan.status === 'pending') {
+      if (plan.task === 'rename-files') {
+        const episodes =
+          mediaMetadata?.mediaFiles
+            ?.filter(f => f.seasonNumber !== undefined && f.episodeNumber !== undefined)
+            ?.map(f => ({ season: f.seasonNumber!, episode: f.episodeNumber! })) ?? []
+        setSelectedEpisodes(episodes)
+      } else if (plan.task === 'recognize-media-file') {
+        const recognizePlan = plan as RecognizeMediaFilePlan
+        const episodes = recognizePlan.files
+          .map(f => ({ season: f.season, episode: f.episode }))
+          .filter(f =>
+            mediaMetadata?.tvShow?.seasons
+              ?.find(s => s.season === f.season)
+              ?.episodes?.find(e => e.episode === f.episode),
+          )
+        setSelectedEpisodes(episodes)
+      }
     }
-
-    if(plan.task === 'rename-files') {
-      const m = latestMediaMetadata.current;
-      const selectedEpisodes = m?.mediaFiles
-        ?.filter(f => f.seasonNumber !== undefined && f.episodeNumber !== undefined)
-        ?.map(f => { return { season: f.seasonNumber!, episode: f.episodeNumber!} })
-      const episodes = selectedEpisodes ?? []
-      selectedEpisodesByPlanId.current.set(planId, episodes)
-      setSelectedEpisodes(episodes)
-    } else if (plan.task === 'recognize-media-file') {
-      const recognizePlan = plan as RecognizeMediaFilePlan;
-      const episodes = recognizePlan.files.map(f => {
-        return {
-          season: f.season,
-          episode: f.episode,
-        }
-      })
-      .filter(f => {
-        return metadata?.tvShow?.seasons?.find(s => s.season === f.season)?.episodes?.find(e => e.episode === f.episode)
-      })
-      setSelectedEpisodes(episodes)
-    }
-    
-    
-  }, [planId])
+  }
 
   const ruleBasedRenameFilePromptProps = useMemo(() => {
     return {
@@ -385,15 +372,13 @@ function TvShowPanel() {
             checboxVisible={plan !== undefined}
             onCheck={(season, episode, checked) => {
               setSelectedEpisodes(prev => {
-                const newSelected = checked
+                return checked
                   ? prev.some(e => e.season === season && e.episode === episode)
                     ? prev
                     : [...prev, { season, episode }]
                   : prev.some(e => e.season === season && e.episode === episode)
                     ? prev.filter(e => e.season !== season || e.episode !== episode)
                     : prev
-                selectedEpisodesByPlanId.current.set(planId, newSelected)
-                return newSelected
               })
             }}
           />

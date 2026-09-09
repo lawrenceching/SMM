@@ -6,7 +6,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
   MetadataHttpError,
   createMetadata,
-  deleteMetadata,
   getMetadata,
   setMetadata,
 } from "@/api/metadata"

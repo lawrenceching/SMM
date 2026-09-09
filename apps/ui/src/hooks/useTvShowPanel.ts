@@ -10,7 +10,7 @@ import {
     findSubtitles,
     findThumbnails,
 } from "@/lib/tvShowEpisodeAssociatedFiles";
-import type { MediaMetadata } from "@smm/types/types";
+import type { MediaFileMetadata, MediaMetadata } from "@smm/types/types";
 import type { Plan } from "@/api/getPlans";
 
 const INIT_METADATA_FILES: MetadataFiles = {
@@ -45,20 +45,19 @@ function findMetadataFiles(metadata: MediaMetadata, files: string[]) {
     }
 }
 
+function hasSeasonEpisode(
+    mediaFile: MediaFileMetadata,
+): mediaFile is MediaFileMetadata & { seasonNumber: number; episodeNumber: number } {
+    return mediaFile.seasonNumber !== undefined && mediaFile.episodeNumber !== undefined
+}
+
 export function useTvShowPanel(folderPath: string | undefined, plan: Plan | undefined) {
-
-    if (folderPath === undefined) {
-        return {
-            metadataFiles: INIT_METADATA_FILES
-        }
-    }
-
     const metadataQuery = useMediaMetadataQuery(folderPath)
     const filesQuery = useMediaFolderFilesQuery(folderPath)
 
     const metadataFiles: MetadataFiles = useMemo(() => {
-
-        if (metadataQuery.data === undefined
+        if (folderPath === undefined
+            || metadataQuery.data === undefined
             || metadataQuery.isError
             || metadataQuery.isPending
             || metadataQuery.fetchStatus !== 'idle'
@@ -75,83 +74,72 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
         const metadata = metadataQuery.data
         return findMetadataFiles(metadata, files)
 
-    }, [metadataQuery.data, filesQuery.data])
+    }, [
+        folderPath,
+        metadataQuery.data,
+        metadataQuery.isError,
+        metadataQuery.isPending,
+        metadataQuery.fetchStatus,
+        filesQuery.data,
+        filesQuery.isError,
+        filesQuery.isPending,
+        filesQuery.fetchStatus,
+    ])
 
     const subtitleFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-
-        if (metadataQuery.data === undefined
-            || filesQuery.data === undefined
-        ) {
+        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
             return []
         }
 
-        return metadataQuery.data?.mediaFiles
-            ?.filter((mediaFile) => mediaFile.seasonNumber !== undefined && mediaFile.episodeNumber !== undefined)
-            ?.map((mediaFile) => {
-                return {
-                    season: mediaFile.seasonNumber!!,
-                    episode: mediaFile.episodeNumber!!,
-                    files: findSubtitles(filesQuery.data, mediaFile.absolutePath)
-                }
-            }) ?? []
-
+        return metadataQuery.data.mediaFiles
+            ?.filter(hasSeasonEpisode)
+            ?.map((mediaFile) => ({
+                season: mediaFile.seasonNumber,
+                episode: mediaFile.episodeNumber,
+                files: findSubtitles(filesQuery.data, mediaFile.absolutePath),
+            })) ?? []
     }, [metadataQuery.data, filesQuery.data])
 
     const nfoFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-
-        if (metadataQuery.data === undefined
-            || filesQuery.data === undefined
-        ) {
+        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
             return []
         }
 
-        return metadataQuery.data?.mediaFiles
-            ?.filter((mediaFile) => mediaFile.seasonNumber !== undefined && mediaFile.episodeNumber !== undefined)
-            ?.map((mediaFile) => {
-                return {
-                    season: mediaFile.seasonNumber!!,
-                    episode: mediaFile.episodeNumber!!,
-                    files: findNfos(filesQuery.data, mediaFile.absolutePath)
-                }
-            }) ?? []
-
+        return metadataQuery.data.mediaFiles
+            ?.filter(hasSeasonEpisode)
+            ?.map((mediaFile) => ({
+                season: mediaFile.seasonNumber,
+                episode: mediaFile.episodeNumber,
+                files: findNfos(filesQuery.data, mediaFile.absolutePath),
+            })) ?? []
     }, [metadataQuery.data, filesQuery.data])
 
     const thumbnailFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-
-        if (metadataQuery.data === undefined
-            || filesQuery.data === undefined
-        ) {
+        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
             return []
         }
 
-        return metadataQuery.data?.mediaFiles
-            ?.filter((mediaFile) => mediaFile.seasonNumber !== undefined && mediaFile.episodeNumber !== undefined)
-            ?.map((mediaFile) => {
-                return {
-                    season: mediaFile.seasonNumber!!,
-                    episode: mediaFile.episodeNumber!!,
-                    files: findThumbnails(filesQuery.data, mediaFile.absolutePath)
-                }
-            }) ?? []
-
+        return metadataQuery.data.mediaFiles
+            ?.filter(hasSeasonEpisode)
+            ?.map((mediaFile) => ({
+                season: mediaFile.seasonNumber,
+                episode: mediaFile.episodeNumber,
+                files: findThumbnails(filesQuery.data, mediaFile.absolutePath),
+            })) ?? []
     }, [metadataQuery.data, filesQuery.data])
 
     const newFilePaths: { season: number, episode: number, newFilePath: string }[] = useMemo(() => {
-
-        if(plan === undefined) {
+        if (plan === undefined) {
             return [];
         }
 
         console.log(`Detected plan: `, plan)
 
-        if(plan.task === 'rename-files') {
+        if (plan.task === 'rename-files') {
             return plan.files
                 .map(file => {
-
                     // If rename-files plan is built wrongly
                     // The plan may try to rename the episode that does not exist
-
                     const episode = metadataQuery.data?.mediaFiles?.find(mediaFile => mediaFile.absolutePath === file.from)
                     return {
                         season: episode?.seasonNumber ?? -1,
@@ -162,7 +150,7 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
                 .filter(file => file.season !== -1 && file.episode !== -1)
         }
 
-        if(plan.task === 'recognize-media-file') {
+        if (plan.task === 'recognize-media-file') {
             return plan.files.map(file => {
                 return {
                     season: file.season,
@@ -174,7 +162,6 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
 
         console.warn(`Unsupported type of plan`)
         return [];
-
     }, [plan, metadataQuery.data])
 
     return {

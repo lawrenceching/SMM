@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- hook module with test helper component */
 import { useMemo } from "react"
 import type { MediaMetadata } from "@smm/types"
 import type { UIMediaFolder } from "@/types/UIMediaFolder"

@@ -136,6 +136,7 @@ export function useRuleBasedRenameFilesFlow({
     },
     [
       mediaFolderPath,
+      mediaMetadata,
       plan,
       applyPlanMutation,
       renameFailedMessage,
@@ -161,7 +162,7 @@ export function useRuleBasedRenameFilesFlow({
       reset()
 
     },
-    [mediaFolderPath, rejectPlanMutation, renameFailedMessage, plan, reset],
+    [mediaFolderPath, rejectPlanMutation, plan, reset],
   )
 
   /** Opens RuleBasedRenameFilePrompt by calling try-to-rename-episodes with the default rule. */

@@ -2,8 +2,7 @@ import { FloatingPrompt, type FloatingPromptProps } from "../FloatingPrompt"
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
 
-export interface AiBasedRenameEpisodePromptProps extends Omit<FloatingPromptProps, 'mode' | 'status' | 'children'> {
-}
+export type AiBasedRenameEpisodePromptProps = Omit<FloatingPromptProps, 'mode' | 'status' | 'children'>
 
 /**
  * AiBasedRenameEpisodePrompt component built on top of FloatingPrompt.
