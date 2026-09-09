@@ -17,17 +17,18 @@ async function getEpisodeVideoCellText(episodeId: string): Promise<string> {
     await idCell.waitForDisplayed({ timeout: 10000 })
     const row = await idCell.parentElement()
     const cells = await row.$$('td')
+    const cellsCount = await cells.length
     let idCellIndex = -1
-    for (let i = 0; i < cells.length; i++) {
+    for (let i = 0; i < cellsCount; i++) {
         const text = (await cells[i]!.getText()).trim()
         if (text === episodeId) {
             idCellIndex = i
             break
         }
     }
-    if (idCellIndex < 0 || idCellIndex + 1 >= cells.length) {
+    if (idCellIndex < 0 || idCellIndex + 1 >= cellsCount) {
         throw new Error(
-            `Video file cell not found for episode "${episodeId}" (idCellIndex=${idCellIndex}, cells=${cells.length})`,
+            `Video file cell not found for episode "${episodeId}" (idCellIndex=${idCellIndex}, cells=${cellsCount})`,
         )
     }
     return (await cells[idCellIndex + 1]!.getText()).trim()
