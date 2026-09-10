@@ -133,6 +133,10 @@
         "src/**/*.test.ts"
       ]
     },
-    "packages/test": {}
+    "packages/test": {
+      "ignoreIssues": {
+        "src/testFolders.ts": ["duplicates"]
+      }
+    }
   }
 }

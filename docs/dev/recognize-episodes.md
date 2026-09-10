@@ -58,3 +58,5 @@ The Web UI may uncheck episodes before confirming; `apply-plan` then carries `da
 [Import Folder](./import-folder.md)
 
 [Supported Platform](./supported-platform.md)
+
+[E2E Test Cases](../../apps/e2e/recognize-episodes-test.md)
