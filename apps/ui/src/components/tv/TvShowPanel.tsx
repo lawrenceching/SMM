@@ -244,7 +244,9 @@ function TvShowPanel() {
   )
 
   const planId = useMemo(() => { return plan?.id ?? '' }, [plan])
-  const [syncedPlanId, setSyncedPlanId] = useState(planId)
+  // null sentinel so the first render with an already-pending plan still seeds selection
+  // (useState(planId) would skip sync when plan is present on mount).
+  const [syncedPlanId, setSyncedPlanId] = useState<string | null>(null)
 
   // Adjust checkbox selection when the active plan changes (React: adjust state during render).
   if (planId !== syncedPlanId) {
