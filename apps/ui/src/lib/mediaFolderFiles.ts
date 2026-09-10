@@ -1,30 +1,12 @@
 import type { MediaMetadata } from "@smm/types"
 import { listFiles } from "@/api/listFiles"
 import { Path } from "@smm/utils/path"
+import { associatedFilesQueryKey } from "@/lib/associatedFilesQueryKeys"
 
-/** Live folder listing from `listFiles`; not persisted in metadata cache. */
-export type MediaMetadataWithFolderFiles = MediaMetadata & {
-  files?: string[]
-}
+export type { MediaMetadata }
 
-export function getMediaFolderFiles(
-  mm: MediaMetadataWithFolderFiles | null | undefined,
-): string[] {
-  return mm?.files ?? []
-}
-
-/** Keep the UI-only live listing when replacing cache with persisted metadata. */
-export function withLiveFolderFiles(
-  persisted: MediaMetadata,
-  previous: MediaMetadataWithFolderFiles | null | undefined,
-  incoming?: MediaMetadataWithFolderFiles,
-): MediaMetadataWithFolderFiles {
-  const files = previous?.files ?? incoming?.files
-  if (files === undefined) {
-    return persisted
-  }
-  return { ...persisted, files }
-}
+/** @deprecated Use `MediaMetadata` directly. */
+export type MediaMetadataWithFolderFiles = MediaMetadata
 
 export async function listMediaFolderFilePaths(
   folderPath: string,
@@ -43,19 +25,12 @@ export async function listMediaFolderFilePaths(
   return result.data.items.map((item) => Path.posix(item.path))
 }
 
-/** Attach live folder file paths to persisted metadata for UI consumers. */
-export async function hydrateMediaMetadataWithFolderFiles(
-  metadata: MediaMetadata,
-  signal?: AbortSignal,
-): Promise<MediaMetadataWithFolderFiles> {
-  const folderPath = metadata.mediaFolderPath
-  if (!folderPath) {
-    return metadata
-  }
-  try {
-    const files = await listMediaFolderFilePaths(folderPath, signal)
-    return { ...metadata, files }
-  } catch {
-    return metadata
+/** Shared TanStack Query options for live folder file listings (`associatedFiles` cache). */
+export function mediaFolderFilesReadQueryOptions(folderPath: string) {
+  const folderPathPosix = Path.posix(folderPath)
+  return {
+    queryKey: associatedFilesQueryKey(folderPathPosix),
+    queryFn: async ({ signal }: { signal?: AbortSignal } = {}) =>
+      listMediaFolderFilePaths(folderPathPosix, signal),
   }
 }

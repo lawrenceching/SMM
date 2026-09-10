@@ -38,13 +38,7 @@ import {
 } from "@/hooks/useTvdbLanguages"
 import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 import localStorages from "@/lib/localStorages"
-import {
-  preferMediaLanguageToTvdbCode,
-  type TmdbSearchLanguage,
-  type TvdbSearchLanguage,
-  DEFAULT_TMDB_SEARCH_LANGUAGE,
-  DEFAULT_TVDB_SEARCH_LANGUAGE,
-} from "@/lib/searchLanguage"
+import { preferMediaLanguageToTvdbCode, type TmdbSearchLanguage, type TvdbSearchLanguage, DEFAULT_TVDB_SEARCH_LANGUAGE } from "@/lib/searchLanguage"
 
 /**
  * The current search language. Format depends on `database`:
@@ -415,4 +409,3 @@ function resolveInitialSearchLanguage(
   return preferMediaLanguageToTvdbCode(resolvedMediaLanguage) || DEFAULT_TVDB_SEARCH_LANGUAGE
 }
 
-export { DEFAULT_TMDB_SEARCH_LANGUAGE, DEFAULT_TVDB_SEARCH_LANGUAGE }

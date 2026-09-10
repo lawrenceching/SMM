@@ -6,7 +6,7 @@ import { defaultUserConfig } from "@/api/readUserConfig"
 import { join } from "@/lib/path"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
-import { invalidateFoldersQueryIfV3 } from "@/hooks/folders"
+import { invalidateFoldersQuery } from "@/hooks/folders"
 
 export function useAddMediaFolderMutation() {
   const queryClient = useQueryClient()
@@ -42,7 +42,7 @@ export function useAddMediaFolderMutation() {
         queryClient.setQueryData(userConfigQueryKey(dir), config)
       }
       if (foldersChanged) {
-        invalidateFoldersQueryIfV3(queryClient)
+        invalidateFoldersQuery(queryClient)
       }
     },
   })

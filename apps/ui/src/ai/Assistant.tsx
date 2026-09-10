@@ -25,9 +25,7 @@ import {
     TmdbSearchTool,
     TmdbGetMovieTool,
     TmdbGetTvShowTool,
-    BeginRecognizeTaskTool,
-    AddRecognizedMediaFileTool,
-    EndRecognizeTaskTool,
+    CreateRecognizeEpisodePlanTool,
     CreateRenameEpisodePlanTool,
 } from "./tools";
 import { AIBasedConfirmationBridge } from "./AIBasedConfirmationBridge";
@@ -330,9 +328,7 @@ function AssistantImpl() {
             plan creation (orphan id 1 + LLM id 2). */}
         {useFrontendTransport && (
             <>
-                <BeginRecognizeTaskTool />
-                <AddRecognizedMediaFileTool />
-                <EndRecognizeTaskTool />
+                <CreateRecognizeEpisodePlanTool />
                 <CreateRenameEpisodePlanTool />
             </>
         )}

@@ -5,11 +5,7 @@ import { GET_MEDIA_METADATA } from '@smm/types/ai-tools/getMediaMetadata'
 import { GET_EPISODES } from '@smm/types/ai-tools/getEpisodes'
 import { LIST_FILES_IN_MEDIA_FOLDER } from '@smm/types/ai-tools/listFilesInMediaFolder'
 import { CREATE_RENAME_EPISODE_PLAN } from '@smm/types/ai-tools/createRenameEpisodePlan'
-import {
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
-} from '@smm/types/ai-tools/recognizeMediaFileTask'
+import { CREATE_RECOGNIZE_EPISODE_PLAN } from '@smm/types/ai-tools/createRecognizeEpisodePlan'
 import { SCRAPE } from '@smm/types/ai-tools/scrape'
 import { GET_JOB } from '@smm/types/ai-tools/getJob'
 import { TMDB_SEARCH } from '@smm/types/ai-tools/tmdbSearch'
@@ -36,9 +32,7 @@ describe('systemPrompt', () => {
       GET_EPISODES,
       LIST_FILES_IN_MEDIA_FOLDER,
       CREATE_RENAME_EPISODE_PLAN,
-      BEGIN_RECOGNIZE_TASK,
-      ADD_RECOGNIZED_MEDIA_FILE,
-      END_RECOGNIZE_TASK,
+      CREATE_RECOGNIZE_EPISODE_PLAN,
       SCRAPE,
       GET_JOB,
       TMDB_SEARCH,
@@ -57,6 +51,12 @@ describe('systemPrompt', () => {
     expect(SYSTEM_PROMPT).not.toContain('begin-rename-files-task')
     expect(SYSTEM_PROMPT).not.toContain('add-rename-file-to-task')
     expect(SYSTEM_PROMPT).not.toContain('end-rename-files-task')
+  })
+
+  it('does not reference deprecated begin/add/end recognize task tools', () => {
+    expect(SYSTEM_PROMPT).not.toContain('begin-recognize-task')
+    expect(SYSTEM_PROMPT).not.toContain('add-recognized-media-file')
+    expect(SYSTEM_PROMPT).not.toContain('end-recognize-task')
   })
 
   it('does not reference any kebab-case token that is not a known tool', () => {

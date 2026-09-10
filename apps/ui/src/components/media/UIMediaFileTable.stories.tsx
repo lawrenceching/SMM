@@ -48,7 +48,6 @@ const movieRow: UIMediaFileDataRow = {
   subtitle: `${mediaFolderPath}/Inception (2010).en.srt`,
   nfo: `${mediaFolderPath}/Inception (2010).nfo`,
   episodeTitle: "Inception",
-  checked: false,
 }
 
 // TV show fixtures
@@ -67,7 +66,6 @@ const season1Ep1: UIMediaFileDataRow = {
   subtitle: `${mediaFolderPath}/S01E01.srt`,
   nfo: `${mediaFolderPath}/S01E01.nfo`,
   episodeTitle: "Pilot",
-  checked: true,
 }
 
 const season1Ep2: UIMediaFileDataRow = {
@@ -79,7 +77,6 @@ const season1Ep2: UIMediaFileDataRow = {
   subtitle: undefined,
   nfo: `${mediaFolderPath}/S01E02.nfo`,
   episodeTitle: "Episode 2",
-  checked: false,
 }
 
 const season1Ep3: UIMediaFileDataRow = {
@@ -91,7 +88,6 @@ const season1Ep3: UIMediaFileDataRow = {
   subtitle: `${mediaFolderPath}/S01E03.srt`,
   nfo: undefined,
   episodeTitle: "Episode 3",
-  checked: false,
   disabled: true, // Inactive in current plan
 }
 
@@ -110,7 +106,6 @@ const season2Ep1: UIMediaFileDataRow = {
   subtitle: `${mediaFolderPath}/S02E01.srt`,
   nfo: `${mediaFolderPath}/S02E01.nfo`,
   episodeTitle: "Season Premiere",
-  checked: true,
 }
 
 // ------------------------------------------------------------------------
@@ -385,15 +380,15 @@ export const RenamePreviewPartialFilesRename: Story = {
       {
         ...season1Ep1,
         newVideoFile: `${mediaFolderPath}/Show - S01E01 - Pilot.mkv`,
-        checked: true,
       },
       {
         ...season1Ep2,
-        checked: false,
         disabled: true,
       },
     ],
     preview: "rename",
+    // Controlled: only S01E01 is selected.
+    selectedEpisodes: [{ season: 1, episode: 1 }],
   },
 }
 
@@ -406,6 +401,7 @@ export const RenamePreviewWithCheckboxes: Story = {
       season1Ep3, // disabled — should be greyed out
     ],
     preview: "rename",
+    selectedEpisodes: [{ season: 1, episode: 1 }],
     onCheck: action("onCheck"),
   },
 }
@@ -430,11 +426,12 @@ export const RenamePreviewRemoved: Story = {
       season1Divider,
       {
         ...season1Ep1,
-        // checked + no newVideoFile → row will be removed (strikethrough in simple layout)
+        // selected + no newVideoFile → row will be removed (strikethrough in simple layout)
         newVideoFile: undefined,
       },
     ],
     preview: "rename",
+    selectedEpisodes: [{ season: 1, episode: 1 }],
   },
 }
 

@@ -2,7 +2,7 @@ import { apiFetch } from '@/lib/apiFetch'
 import type { MediaMetadata } from '@smm/types'
 import type { UIMediaFolderStatus } from '@/types/UIMediaFolder'
 
-export type ShowFolderStatus = Extract<
+type ShowFolderStatus = Extract<
   UIMediaFolderStatus,
   'ok' | 'folder_not_found' | 'error_loading_metadata'
 >
@@ -14,13 +14,13 @@ export interface ShowFolderResult {
   title?: string
 }
 
-export interface ShowFolderResponseBody {
+interface ShowFolderResponseBody {
   data?: ShowFolderResult
   error?: string
 }
 
 /** Resolve folder display status via Core (`POST /api/show-folder`). */
-export async function showFolder(path: string, signal?: AbortSignal): Promise<ShowFolderResponseBody> {
+async function showFolder(path: string, signal?: AbortSignal): Promise<ShowFolderResponseBody> {
   const resp = await apiFetch('/api/show-folder', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

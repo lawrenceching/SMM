@@ -12,7 +12,6 @@ import { z } from 'zod/v3';
 import { logger } from '../../lib/logger';
 import {
   COMMAND_WHITELIST,
-  type WhitelistedCommand,
   type YtdlpProgressData,
   type SystemEvent,
   enqueueYtDlpExecuteCmd,
@@ -20,7 +19,6 @@ import {
   resolveSpawnArgsAndEnv,
   runCommand,
   runWhitelistedCommandSync,
-  type VideoCaptionerTranscribeResult,
 } from '../utils/cmd';
 import { createCommandExecutionLogWriter } from './commandExecutionLog';
 import { parseOptionalXCommandExecutionId } from './commandLog';
@@ -50,8 +48,6 @@ const executeCmdRequestSchema = z.object({
    */
   tty: z.boolean().optional().default(false),
 });
-
-type ExecuteCmdRequestBody = z.infer<typeof executeCmdRequestSchema>;
 
 // ─── NDJSON envelope ─────────────────────────────────────────────────────────
 
@@ -118,7 +114,7 @@ export function handleExecuteCmd(app: Hono) {
 
       // Pre-compute the final args/env so the response header can report
       // them. We also use this as a guard for the streaming case below.
-      const { args: spawnArgs, env: spawnEnv } = await resolveSpawnArgsAndEnv(command, args, {
+      await resolveSpawnArgsAndEnv(command, args, {
         tty,
       });
 
@@ -270,5 +266,3 @@ export function handleExecuteCmd(app: Hono) {
 // ─── Re-exports for downstream callers ──────────────────────────────────────
 
 export { runWhitelistedCommandSync };
-export type { VideoCaptionerTranscribeResult };
-export type { WhitelistedCommand };

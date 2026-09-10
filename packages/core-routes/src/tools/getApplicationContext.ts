@@ -1,5 +1,4 @@
 import {
-  GET_APPLICATION_CONTEXT,
   GET_APPLICATION_CONTEXT_DESCRIPTION,
   getApplicationContextInputSchema,
   getApplicationContextOutputSchema,
@@ -80,5 +79,3 @@ async function resolveSelectedMediaFolder(
   return responseData?.selectedMediaMetadata?.mediaFolderPath ?? "";
 }
 
-/** Re-exported tool name constant for the tools registry. */
-export const GET_APPLICATION_CONTEXT_TOOL_NAME = GET_APPLICATION_CONTEXT;

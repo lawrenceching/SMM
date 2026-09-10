@@ -9,35 +9,28 @@ import type {
 import type { RenameFileEntry, RenameFilesPlan } from "@smm/types/RenameFilesPlan";
 import type { PlanCreator, PlanStatus } from "@smm/types/planCommon";
 import { isActivePlanStatus } from "@smm/types/planCommon";
-import { PLAN_CANCELLED_BY_USER_MESSAGE } from "@smm/types/ai-tools/planTaskMessages";
-import {
-  createEmptyRenamePlan,
-  prepareAppendRenameEntry,
-  type PrepareAppendRenameEntryDeps,
-} from "@smm/core/plan/renamePlan";
 import type { ChatFs } from "../chatTypes.ts";
 import type { CoreRoutesLogger } from "../types.ts";
 
 export type AnyPlan = RecognizeMediaFilePlan | RenameFilesPlan;
 
 /**
- * Plan-file storage helpers shared by the `rename-files-task` and
- * `recognize-media-file-task` agent tools. Plans live in
+ * Plan-file storage helpers shared by the `create-rename-episode-plan`
+ * and `create-recognize-episode-plan` tools. Plans live in
  * `{appDataDir}/plans/*.plan.json` and are written via the
  * runtime-neutral {@link ChatFs} abstraction so the same code works
  * for both Node (OHOS) and Bun (cli).
  */
-export function plansDir(appDataDir: string): string {
+function plansDir(appDataDir: string): string {
   return path.join(appDataDir, "plans");
 }
 
-export function planFilePath(appDataDir: string, planId: string): string {
+function planFilePath(appDataDir: string, planId: string): string {
   return path.join(plansDir(appDataDir), `${planId}.plan.json`);
 }
 
 async function ensurePlansDirExists(
   appDataDir: string,
-  fs: ChatFs,
 ): Promise<void> {
   const dir = plansDir(appDataDir);
   try {
@@ -56,83 +49,6 @@ async function ensurePlansDirExists(
 
 // ─── Rename-files plan ───────────────────────────────────────────
 
-export interface RenamePlanAppendDeps {
-  validateOperations: PrepareAppendRenameEntryDeps["validateOperations"];
-  getMediaMetadata: PrepareAppendRenameEntryDeps["getMediaMetadata"];
-}
-
-/**
- * Begin a rename-files task: create an empty plan file and return
- * the new plan id.
- *
- * AI/MCP-created plans start as `preparing` with `creator: "ai"`; the
- * end-task tool flips them to `pending` once entries are added.
- */
-export async function beginRenamePlan(
-  appDataDir: string,
-  mediaFolderPath: string,
-  fs: ChatFs,
-): Promise<string> {
-  await ensurePlansDirExists(appDataDir, fs);
-  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath), undefined, {
-    creator: "ai",
-    status: "preparing",
-  });
-  await fs.writeJson(planFilePath(appDataDir, plan.id), plan);
-  return plan.id;
-}
-
-/**
- * Append a rename entry to an existing plan. Throws if the plan is
- * missing or validation fails.
- */
-export async function appendRenamePlanEntry(
-  appDataDir: string,
-  planId: string,
-  from: string,
-  to: string,
-  fs: ChatFs,
-  deps: RenamePlanAppendDeps,
-): Promise<void> {
-  const filePath = planFilePath(appDataDir, planId);
-  const plan = (await fs.readJson<RenameFilesPlan>(filePath)) ?? null;
-  if (!plan) {
-    throw new Error(`Task with id ${planId} not found`);
-  }
-
-  if (plan.status === "rejected") {
-    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
-  }
-
-  const result = await prepareAppendRenameEntry(
-    plan,
-    { from, to },
-    deps,
-  );
-
-  if ("error" in result) {
-    throw new Error(result.error.replace(/^Error Reason: /, ""));
-  }
-
-  await fs.writeJson(filePath, result);
-}
-
-/**
- * Read a rename plan by id. Returns `null` if the file does not
- * exist.
- */
-export async function readRenamePlan(
-  appDataDir: string,
-  planId: string,
-  fs: ChatFs,
-): Promise<RenameFilesPlan | null> {
-  const plan = await readPlanById(appDataDir, planId, fs);
-  if (!plan || plan.task !== "rename-files") {
-    return null;
-  }
-  return plan as RenameFilesPlan;
-}
-
 /**
  * Read any plan file by id. Returns `null` when the file does not
  * exist.
@@ -150,101 +66,6 @@ export async function readPlanById(
 }
 
 // ─── Recognize-media-file plan ───────────────────────────────────
-
-/**
- * Begin a recognition task: create an empty plan file and return the
- * new plan id.
- *
- * AI/MCP-created plans start as `preparing` with `creator: "ai"`; the
- * end-task tool flips them to `pending` once files are added.
- */
-export async function beginRecognizePlan(
-  appDataDir: string,
-  mediaFolderPath: string,
-  fs: ChatFs,
-): Promise<string> {
-  await ensurePlansDirExists(appDataDir, fs);
-  const planId = randomUUID();
-  const plan: RecognizeMediaFilePlan = {
-    id: planId,
-    task: "recognize-media-file",
-    status: "preparing",
-    creator: "ai",
-    mediaFolderPath: Path.posix(mediaFolderPath),
-    files: [],
-  };
-  await fs.writeJson(planFilePath(appDataDir, planId), plan);
-  return planId;
-}
-
-export interface RecognizePlanAppendDeps {
-  /**
-   * Filesystem-existence check for the path being added. Defaults to
-   * a runtime-neutral {@link ChatFs.exists} probe when omitted. The
-   * legacy CLI used Bun's `Bun.file(...).exists()`; both backends
-   * behave identically for the "regular file exists" question this
-   * tool needs to answer.
-   */
-  validateFiles?: (files: RecognizedFile[]) => Promise<void>;
-}
-
-/**
- * Validate that every recognized file path points to a regular file
- * on disk. Throws on the first missing path with a descriptive
- * message. Uses {@link ChatFs.exists} so the same code runs on both
- * Bun (`apps/cli`) and Node (`apps/ohos`).
- */
-export async function defaultValidateRecognizedFiles(
-  files: RecognizedFile[],
-  fs: ChatFs,
-): Promise<void> {
-  for (const file of files) {
-    if (!file.path) {
-      throw new Error(
-        `File path is empty for S${file.season}E${file.episode}`,
-      );
-    }
-    const platformPath = Path.toPlatformPath(Path.posix(file.path));
-    const exists = await fs.exists(platformPath);
-    if (!exists) {
-      throw new Error(
-        `File "${Path.posix(file.path)}" (S${file.season}E${file.episode}) does not exist in the media folder`,
-      );
-    }
-  }
-}
-
-export async function appendRecognizedFile(
-  appDataDir: string,
-  taskId: string,
-  file: RecognizedFile,
-  fs: ChatFs,
-  deps: RecognizePlanAppendDeps = {},
-): Promise<void> {
-  const filePath = planFilePath(appDataDir, taskId);
-  const plan = (await fs.readJson<RecognizeMediaFilePlan>(filePath)) ?? null;
-  if (!plan) {
-    throw new Error(`Task with id ${taskId} not found`);
-  }
-
-  if (plan.status === "rejected") {
-    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
-  }
-
-  const normalizedPath = Path.posix(file.path);
-  const validate =
-    deps.validateFiles ??
-    ((files) => defaultValidateRecognizedFiles(files, fs));
-  await validate([{ ...file, path: normalizedPath }]);
-
-  plan.files.push({
-    season: file.season,
-    episode: file.episode,
-    path: normalizedPath,
-  });
-
-  await fs.writeJson(filePath, plan);
-}
 
 export async function readRecognizePlan(
   appDataDir: string,
@@ -330,7 +151,7 @@ export async function createPlan(
   input: CreatePlanInput,
   fs: ChatFs,
 ): Promise<AnyPlan> {
-  await ensurePlansDirExists(appDataDir, fs);
+  await ensurePlansDirExists(appDataDir);
   const id = input.id ?? randomUUID();
   const mediaFolderPath = Path.posix(input.mediaFolderPath);
   const plan: AnyPlan =
@@ -367,9 +188,8 @@ export interface UpdatePlanPatch {
  * - `completed` (user confirmed and applied): delete the plan file.
  * - `rejected` (user cancelled, possibly mid-`preparing`): keep the
  *   plan file with `status: "rejected"` so that a still-in-flight AI
- *   workflow calling `add-*-file` or `end-*-task` afterwards can detect
- *   the cancellation and return a clear message instead of silently
- *   queueing entries into a deleted plan.
+ *   workflow can detect the cancellation afterwards and stop instead
+ *   of silently queueing entries into a deleted plan.
  *
  * Returns `null` if the plan file does not exist.
  */
@@ -404,7 +224,7 @@ export async function updatePlanContent(
 /**
  * Delete a plan file by id. No-op if the file does not exist.
  */
-export async function deletePlan(
+async function deletePlan(
   appDataDir: string,
   id: string,
 ): Promise<void> {

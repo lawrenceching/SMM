@@ -13,7 +13,7 @@ import {
   type GetApplicationContextOutput,
 } from "@smm/types/ai-tools/getApplicationContext"
 
-export type ApplicationContextData = GetApplicationContextOutput
+type ApplicationContextData = GetApplicationContextOutput
 
 const getApplicationContextTool = tool({
   description: GET_APPLICATION_CONTEXT_DESCRIPTION,

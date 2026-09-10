@@ -14,7 +14,7 @@ const getApplicationContextSchema = z.object({
   clientId: z.string().optional(),
 });
 
-export async function processGetApplicationContext(
+async function processGetApplicationContext(
   body: unknown,
 ): Promise<DebugGetApplicationContextResponseBody> {
   try {

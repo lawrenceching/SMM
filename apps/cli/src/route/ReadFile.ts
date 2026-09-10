@@ -12,7 +12,7 @@ const coreRoutesLogger = {
  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
-export async function processReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
+async function processReadFile(body: ReadFileRequestBody): Promise<ReadFileResponseBody> {
  const allowlist = await buildAllowlist();
  return doReadFileCore(body, { allowlist, logger: coreRoutesLogger });
 }

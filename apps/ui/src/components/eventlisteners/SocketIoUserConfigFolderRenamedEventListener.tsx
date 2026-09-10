@@ -3,7 +3,7 @@ import { useRef } from "react";
 import { useLatest, useMount, useUnmount } from "react-use"
 import { useQueryClient } from "@tanstack/react-query"
 import { useConfig } from "@/hooks/userConfig";
-import { invalidateFoldersQueryIfV3 } from "@/hooks/folders";
+import { invalidateFoldersQuery } from "@/hooks/folders";
 import { Path } from "@smm/utils/path";
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata";
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore";
@@ -45,7 +45,7 @@ export function SocketIoUserConfigFolderRenamedEventListener() {
               } : folder))
 
             setSelectedFolder(to)
-            invalidateFoldersQueryIfV3(queryClient)
+            invalidateFoldersQuery(queryClient)
             fetchMediaMetadata({ path: Path.posix(to), traceId })
         };
 

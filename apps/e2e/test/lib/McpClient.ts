@@ -4,14 +4,10 @@ import shell from 'shelljs'
 import { delay } from 'es-toolkit'
 import {
   McpToolName,
-  type AddRecognizedFileRequest,
-  type AddRecognizedFileResponse,
   type CreateRenameEpisodePlanRequest,
   type CreateRenameEpisodePlanResponse,
-  type BeginRecognizeTaskRequest,
-  type BeginRecognizeTaskResponse,
-  type EndRecognizeTaskRequest,
-  type EndRecognizeTaskResponse,
+  type CreateRecognizeEpisodePlanRequest,
+  type CreateRecognizeEpisodePlanResponse,
   type GetAppContextResponse,
   type GetEpisodeRequest,
   type GetEpisodeResponse,
@@ -250,28 +246,17 @@ class McpClient {
     )
   }
 
-  async beginRecognizeTask(
+  async createRecognizeEpisodePlan(
     clientCwd: string,
     mcpAddress: string,
-    req: BeginRecognizeTaskRequest,
-  ): Promise<BeginRecognizeTaskResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.beginRecognizeTask, toolArgs(req))
-  }
-
-  async addRecognizedFile(
-    clientCwd: string,
-    mcpAddress: string,
-    req: AddRecognizedFileRequest,
-  ): Promise<AddRecognizedFileResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.addRecognizedFile, toolArgs(req))
-  }
-
-  async endRecognizeTask(
-    clientCwd: string,
-    mcpAddress: string,
-    req: EndRecognizeTaskRequest,
-  ): Promise<EndRecognizeTaskResponse> {
-    return this.execTyped(clientCwd, mcpAddress, McpToolName.endRecognizeTask, toolArgs(req))
+    req: CreateRecognizeEpisodePlanRequest,
+  ): Promise<CreateRecognizeEpisodePlanResponse> {
+    return this.execTyped(
+      clientCwd,
+      mcpAddress,
+      McpToolName.createRecognizeEpisodePlan,
+      toolArgs(req),
+    )
   }
 
   async getEpisode(

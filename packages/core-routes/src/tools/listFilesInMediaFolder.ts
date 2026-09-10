@@ -5,7 +5,6 @@ import {
 } from "@smm/core/ai-tool/buildListFilesInMediaFolderResponse";
 import { formatToolError, requireNonEmptyString, toolOk } from "@smm/core/ai-tool/toolResult";
 import {
-  LIST_FILES_IN_MEDIA_FOLDER,
   LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION,
   LIST_FILES_IN_MEDIA_FOLDER_INVALID_PATH,
   LIST_FILES_IN_MEDIA_FOLDER_NOT_MANAGED,
@@ -15,7 +14,6 @@ import {
 } from "@smm/types/ai-tools/listFilesInMediaFolder";
 import type { UserConfig } from "@smm/types";
 import { doListFiles } from "../listFiles.ts";
-import { isMediaFolderManaged } from "../userConfig.ts";
 
 /**
  * Pure execution of `listFilesInMediaFolder`. Mirrors the
@@ -24,7 +22,7 @@ import { isMediaFolderManaged } from "../userConfig.ts";
  * pre-resolved `UserConfig` snapshot so the tool does not need to
  * touch the filesystem-bound config reader.
  */
-export async function executeListFilesInMediaFolder(
+async function executeListFilesInMediaFolder(
   params: {
     mediaFolderPath: string;
     recursively?: boolean;
@@ -133,5 +131,3 @@ export function buildListFilesInMediaFolderTool(
   };
 }
 
-/** Re-exported tool name constant for the tools registry. */
-export const LIST_FILES_IN_MEDIA_FOLDER_TOOL_NAME = LIST_FILES_IN_MEDIA_FOLDER;

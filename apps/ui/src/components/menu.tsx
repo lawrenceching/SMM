@@ -15,6 +15,7 @@ import {
   MenubarTrigger,
 } from "@/components/ui/menubar"
 import { useDialogs } from "@/providers/dialog-provider"
+import { askForFormatConverter } from "@/lib/dialogRequestEvents"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useTranslation } from "@/lib/i18n"
 // import { cleanUp } from "@/api/cleanUp"
@@ -25,12 +26,14 @@ import { Path } from "@smm/utils/path"
 import type { FolderType, FileItem } from "@/providers/dialog-provider"
 import { nextTraceId } from "@/lib/utils"
 import {
+  UI_AskForVideoCompression,
   UI_MediaLibraryImportedEvent,
+  type OnAskForVideoCompressionEventData,
   type OnMediaLibraryImportedEventData,
 } from "@/types/eventTypes"
 import { writeFrontendLog } from "@/api/log"
 
-export interface MenuItem {
+interface MenuItem {
   name: string
   /** Unique identifier used for id and data-testid attributes */
   id?: string
@@ -42,18 +45,18 @@ export interface MenuItem {
   variant?: "default" | "destructive"
 }
 
-export interface MenuSeparator {
+interface MenuSeparator {
   type: "separator"
 }
 
-export interface MenuCheckboxItem {
+interface MenuCheckboxItem {
   type: "checkbox"
   name: string
   checked?: boolean
   onCheckedChange?: (checked: boolean) => void
 }
 
-export interface MenuRadioGroup {
+interface MenuRadioGroup {
   type: "radio-group"
   value?: string
   onValueChange?: (value: string) => void
@@ -63,17 +66,17 @@ export interface MenuRadioGroup {
   }>
 }
 
-export interface MenuSubmenu {
+interface MenuSubmenu {
   type: "submenu"
   name: string
   items: MenuSubmenuItem[]
 }
 
-export type MenuSubmenuItem = MenuItem | MenuSeparator
+type MenuSubmenuItem = MenuItem | MenuSeparator
 
-export type MenuContentItem = MenuItem | MenuSeparator | MenuCheckboxItem | MenuRadioGroup | MenuSubmenu
+type MenuContentItem = MenuItem | MenuSeparator | MenuCheckboxItem | MenuRadioGroup | MenuSubmenu
 
-export interface MenuTemplate {
+interface MenuTemplate {
   label: string
   submenu: MenuContentItem[]
 }
@@ -163,8 +166,6 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
   const {
     configDialog,
     downloadVideoDialog,
-    formatConverterDialog,
-    videoCompressionDialog,
     openFolderDialog,
     filePickerDialog,
     executeCmdDialog,
@@ -180,8 +181,6 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
-  const [openFormatConverter] = formatConverterDialog
-  const [openVideoCompression] = videoCompressionDialog
   const [openOpenFolder] = openFolderDialog
   const [openFilePicker] = filePickerDialog
   const [openExecuteCmd] = executeCmdDialog
@@ -271,7 +270,7 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'format-conversion',
           onClick: () => {
             logMenuAction("format-conversion.click")
-            openFormatConverter()
+            askForFormatConverter()
           }
         } as const]
           : []),
@@ -281,7 +280,11 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           id: 'video-compression',
           onClick: () => {
             logMenuAction("video-compression.click")
-            openVideoCompression()
+            document.dispatchEvent(
+              new CustomEvent<OnAskForVideoCompressionEventData>(UI_AskForVideoCompression, {
+                detail: {},
+              }),
+            )
           }
         } as const]
           : []),

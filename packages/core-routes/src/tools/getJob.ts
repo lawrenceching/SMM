@@ -1,7 +1,6 @@
 import { getJobFailed, getJobSucceeded } from "@smm/core/ai-tool/getJobResult";
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import {
-  GET_JOB,
   GET_JOB_DESCRIPTION,
   getJobInputSchema,
   getJobOutputSchema,
@@ -65,4 +64,3 @@ export function buildGetJobTool(
   };
 }
 
-export { GET_JOB };

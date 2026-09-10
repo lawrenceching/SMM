@@ -10,7 +10,7 @@ const moveFileToTrashRequestSchema = z.object({
   path: z.string().min(1, 'Path is required'),
 });
 
-export async function doMoveFileToTrash(
+async function doMoveFileToTrash(
   body: MoveFileToTrashRequestBody,
 ): Promise<MoveFileToTrashResponseBody> {
   try {

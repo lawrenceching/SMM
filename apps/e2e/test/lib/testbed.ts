@@ -17,7 +17,6 @@ import StatusBar from '../componentobjects/StatusBar'
 import {
     deleteAppDataSubdirViaBrowser,
     ensureBrowserOnUiPage,
-    fetchHelloPathsViaBrowser,
     joinPlatformPath,
     resetUserConfigViaBrowser,
     setActiveTestbedOs,
@@ -26,7 +25,6 @@ import {
 import type { TestbedOs } from './ui-page-url'
 import { isOhosE2e, testbedOs as defaultTestbedOs } from './e2e-platform'
 import { browser } from '@wdio/globals'
-import { localStorageEntriesAfterClear } from './e2e-smm-v3'
 import {
     applyResetUserConfig as applyResetUserConfigHost,
     updateUserConfig as updateUserConfigHost,
@@ -134,7 +132,6 @@ export async function setup(options: {
      * Clear `localStorage` during cleanup and again after opening the page.
      * Defaults to `true` so Ohos/Electron attach sessions do not leak debug
      * overrides (e.g. wronghost TMDB asset host) across specs.
-     * When `E2E_SMM_V3=true`, `smm.v3.enabled` is written back after clear.
      */
     clearLocalStorage?: boolean,
     /**
@@ -297,7 +294,6 @@ export async function cleanup(options?: {
      * Clear `localStorage` (debug overrides, agreement flags, etc.).
      * Defaults to `true` so leftover keys do not pollute the next spec
      * when the session is reused (Ohos/Electron attach).
-     * When `E2E_SMM_V3=true`, `smm.v3.enabled` is written back after clear.
      */
     clearLocalStorage?: boolean,
     /**
@@ -403,14 +399,10 @@ export async function removeDirInSidebar(): Promise<void> {
 async function clearBrowserLocalStorage(): Promise<void> {
     // In some cleanup paths browser context may not be ready.
     try {
-        const restore = localStorageEntriesAfterClear()
-        await browser.execute((entries: Record<string, string>) => {
+        await browser.execute(() => {
             const storage = (globalThis as { localStorage?: Storage }).localStorage
             storage?.clear()
-            for (const [key, value] of Object.entries(entries)) {
-                storage?.setItem(key, value)
-            }
-        }, restore)
+        })
     } catch (error) {
         console.warn('Skip clearing localStorage because browser is not ready:', error)
     }

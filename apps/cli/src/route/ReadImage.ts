@@ -24,7 +24,7 @@ const coreRoutesLogger = {
  * / allowlist / I/O failures. This matches the original Hono
  * handler contract so the UI does not need to change.
  */
-export async function processReadImage(
+async function processReadImage(
   body: ReadImageRequestBody,
 ): Promise<ReadImageResponseBody> {
   const allowlist = await buildAllowlist();

@@ -9,6 +9,6 @@ describe('MCP Prompts - HowToRenameEpisodeVideoFilesTool', () => {
     const r = await callTool(ctx.url, 'how-to-rename-episode-video-files')
     expect(r.isError).toBe(false)
     expect(r.structuredContent!.text).toContain('如何使用 SMM MCP tool 重命名媒体文件')
-    expect(r.structuredContent!.text).toContain('begin-rename-episode-video-file-task')
+    expect(r.structuredContent!.text).toContain('create-rename-episode-plan')
   })
 })

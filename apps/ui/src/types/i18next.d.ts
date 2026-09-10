@@ -70,6 +70,7 @@ interface ComponentsResources {
     toolbar: {
       sort: string
       filter: string
+      sortNone: string
       sortAlphabetical: string
       sortReverseAlphabetical: string
       filterAll: string
@@ -95,10 +96,8 @@ interface ComponentsResources {
     cancel: string
     selectPlaceholder: string
     generating: string
-    aiGenerating: string
     aiRenaming: string
     aiReview: string
-    aiRecognizing: string
     aiReviewEpisodes: string
     reviewRecognizeEpisodes: string
     useNfoMetadata: string
@@ -1105,6 +1104,12 @@ interface SettingsResources {
     checkSuccess: string
     checkError: string
   }
+  aiAgent: {
+    title: string
+    description: string
+    metadataWrite: string
+    metadataWriteDescription: string
+  }
   feedback: {
     title: string
     description: string
@@ -1152,6 +1157,7 @@ interface SettingsResources {
     title: string
     general: string
     ai: string
+    aiAgent: string
     mediaDatabases: string
     renameRules: string
     externalApps: string

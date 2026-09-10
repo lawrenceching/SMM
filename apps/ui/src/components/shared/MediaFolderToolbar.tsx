@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils"
 import { FilterButton } from "./FilterButton";
 import { SortingButton } from "./SortingButton";
 import type { FilterOption, SortingOption } from "./FilterButton";
-import type { SortOrder, FilterType } from "@/stores/sidebarStore";
+import type { SortOrder, FilterType } from "@/lib/sidebarSort";
 import { useTranslation } from "@/lib/i18n";
 
 export type { SortOrder, FilterType }
@@ -27,6 +27,7 @@ export function MediaFolderToolbar({
   const { t } = useTranslation(["components"])
 
   const sortOptions: SortingOption[] = [
+    { value: "none", label: t("sidebar.toolbar.sortNone") },
     { value: "alphabetical", label: t("sidebar.toolbar.sortAlphabetical") },
     { value: "reverse-alphabetical", label: t("sidebar.toolbar.sortReverseAlphabetical") },
   ];

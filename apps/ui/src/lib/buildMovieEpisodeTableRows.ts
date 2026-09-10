@@ -1,9 +1,18 @@
-import type { TvShowEpisodeDataRow, TvShowEpisodeTableRow } from "@/components/tv/TvShowEpisodeTable";
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
+import type {
+  MediaFileTableSeasonData,
+  UIMediaFileDataRow,
+  UIMediaFileTableRow,
+} from "@/components/media/UIMediaFileTable";
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder";
+import type { MetadataFiles } from "@smm/types/MetadataFiles";
 import { basename, join } from "@/lib/path";
 import { findAssociatedFiles } from "@/lib/utils";
+import {
+  findNfos,
+  findSubtitles,
+  findThumbnails,
+} from "@/lib/tvShowEpisodeAssociatedFiles";
 
 export interface MovieRenamePreviewData {
   newVideoFile?: string;
@@ -11,8 +20,118 @@ export interface MovieRenamePreviewData {
   newNfo?: string;
 }
 
+export type MovieEpisodeAssociatedFileLists = {
+  subtitleFiles: { season: number; episode: number; files: string[] }[];
+  nfoFiles: { season: number; episode: number; files: string[] }[];
+  thumbnailFiles: { season: number; episode: number; files: string[] }[];
+};
+
 /**
- * Builds TvShowEpisodeTableRow[] from movie MediaMetadata.
+ * Builds seasonData for MediaFileTable simple/detail/preview layouts.
+ * Movies are modeled as one season ("Movie") with a single S01E01 episode.
+ */
+export function buildMovieMediaFileTableSeasonData(
+  mm: MediaMetadata,
+): MediaFileTableSeasonData[] {
+  if (!mm.mediaFolderPath || !mm.mediaFiles || mm.mediaFiles.length === 0) {
+    return [];
+  }
+
+  const videoFile = mm.mediaFiles[0]!;
+  return [
+    {
+      season: 1,
+      title: "Movie",
+      episodes: [
+        {
+          season: 1,
+          episode: 1,
+          title: mm.movie?.name ?? "",
+          path: videoFile.absolutePath,
+        },
+      ],
+    },
+  ];
+}
+
+/** Folder-level poster / fanart / movie.nfo for MediaFileTable metadata rows. */
+export function buildMovieMetadataFiles(
+  mm: MediaMetadata,
+  folderFiles: string[],
+): MetadataFiles {
+  void mm;
+  const posterPath = folderFiles.find((f) => {
+    const name = basename(f);
+    return name != null && name.startsWith("poster.");
+  });
+  const fanartPath = folderFiles.find((f) => {
+    const name = basename(f);
+    return name != null && name.startsWith("fanart.");
+  });
+  const nfoPath = folderFiles.find((f) => basename(f) === "movie.nfo");
+
+  return {
+    posterPath,
+    fanartPath,
+    nfoPath,
+    seasonPosters: [],
+    clearlogoPath: undefined,
+    themePath: undefined,
+  };
+}
+
+/**
+ * Associated subtitle / nfo / thumbnail lists keyed as S01E01 for MediaFileTable.
+ * Prefers stem-matched files; falls back to folder-level poster.* / movie.nfo.
+ */
+export function buildMovieEpisodeAssociatedFileLists(
+  mm: MediaMetadata,
+  folderFiles: string[],
+): MovieEpisodeAssociatedFileLists {
+  const empty: MovieEpisodeAssociatedFileLists = {
+    subtitleFiles: [],
+    nfoFiles: [],
+    thumbnailFiles: [],
+  };
+
+  if (!mm.mediaFolderPath || !mm.mediaFiles || mm.mediaFiles.length === 0) {
+    return empty;
+  }
+
+  const videoPath = mm.mediaFiles[0]!.absolutePath;
+  let subtitles = findSubtitles(folderFiles, videoPath);
+  if (subtitles.length === 0 && mm.mediaFiles[0]!.subtitleFilePaths?.length) {
+    subtitles = [...mm.mediaFiles[0]!.subtitleFilePaths!];
+  }
+
+  let nfoFiles = findNfos(folderFiles, videoPath);
+  if (nfoFiles.length === 0) {
+    const movieNfo = folderFiles.find((f) => basename(f) === "movie.nfo");
+    if (movieNfo) nfoFiles = [movieNfo];
+  }
+
+  let thumbnails = findThumbnails(folderFiles, videoPath);
+  if (thumbnails.length === 0) {
+    const poster = folderFiles.find((f) => {
+      const name = basename(f);
+      return name != null && name.startsWith("poster.");
+    });
+    if (poster) thumbnails = [poster];
+  }
+
+  return {
+    subtitleFiles: subtitles.length
+      ? [{ season: 1, episode: 1, files: subtitles }]
+      : [],
+    nfoFiles: nfoFiles.length ? [{ season: 1, episode: 1, files: nfoFiles }] : [],
+    thumbnailFiles: thumbnails.length
+      ? [{ season: 1, episode: 1, files: thumbnails }]
+      : [],
+  };
+}
+
+/**
+ * Builds UIMediaFileTableRow[] from movie MediaMetadata.
  * Treats the movie as a "one season, one episode" TV show (S01E01).
  *
  * Output includes:
@@ -20,13 +139,14 @@ export interface MovieRenamePreviewData {
  * - One episode data row (S01E01) with video + stem-matched associated files
  */
 export function buildMovieEpisodeTableRows(
-  mm: MediaMetadataWithFolderFiles,
+  mm: MediaMetadata,
   uiStatus: UIMediaFolderStatus,
   t: (key: string) => string,
+  folderFiles: string[] = [],
   options?: {
     renamePreview?: MovieRenamePreviewData;
   }
-): TvShowEpisodeTableRow[] {
+): UIMediaFileTableRow[] {
   // Empty states — mirror buildTvShowEpisodeTableRows behaviour
   if (uiStatus === "initializing") {
     return [{ id: "initializing", type: "divider", text: t("mediaFolder.initializing") }];
@@ -42,10 +162,10 @@ export function buildMovieEpisodeTableRows(
     return [{ id: "no-video", type: "divider", text: "No video file" }];
   }
 
-  const rows: TvShowEpisodeTableRow[] = [];
+  const rows: UIMediaFileTableRow[] = [];
   const mediaFolderPath = mm.mediaFolderPath;
   const videoFile = mm.mediaFiles[0]; // Only the first/main video file
-  const allFiles = getMediaFolderFiles(mm);
+  const allFiles = folderFiles;
 
   // ── Folder-level file rows (mirrors TvShowPanel's buildFolderFileRows) ──
 
@@ -112,7 +232,7 @@ export function buildMovieEpisodeTableRows(
   if (!thumbnail && posterFile) thumbnail = posterFile;
   if (!nfo && movieNfoFile) nfo = movieNfoFile;
 
-  const row: TvShowEpisodeDataRow = {
+  const row: UIMediaFileDataRow = {
     season: 1,
     episode: 1,
     type: "episode",
@@ -121,7 +241,6 @@ export function buildMovieEpisodeTableRows(
     subtitle,
     nfo,
     episodeTitle: mm.movie?.name,
-    checked: false,
   };
 
   if (options?.renamePreview) {

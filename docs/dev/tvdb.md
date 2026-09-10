@@ -7,9 +7,9 @@ SMM 通过 `apps/core` 统一访问 TVDB：**全部出站流量**经 `Core` + `N
 | CLI | ✅ | `smm tvdb search` → 进程内 `Core.searchInTvdb` |
 | AI Tool | ✅ | 应用内 Chat → 对应 HTTP API → Core；服务端 Chat 进程内注入 Core |
 | MCP Tool | ✅ | MCP 工具进程内调用 Core 同名方法（与 HTTP 路由同一 Core） |
-| Web UI | ⏳ | `smm.v3.enabled`：对应 HTTP API → Core 同名方法 |
+| Web UI | ✅ | 对应 HTTP API → Core 同名方法 |
 
-Core 方法与 Internal HTTP **一对一**暴露。Web UI（v3）与应用内 AI 走这些 API 再进入 Core；MCP / 服务端 Chat 在进程内调用同一套 Core 方法。均不走 `POST /api/core/fetch`（那是 `BrowserNetworkPort` 的通用出站中继，见 [network-core.md](./network-core.md)）。
+Core 方法与 Internal HTTP **一对一**暴露。Web UI 与应用内 AI 走这些 API 再进入 Core；MCP / 服务端 Chat 在进程内调用同一套 Core 方法。均不走 `POST /api/core/fetch`（那是 `BrowserNetworkPort` 的通用出站中继，见 [network-core.md](./network-core.md)）。
 
 | Core 方法 | HTTP |
 |-----------|------|
@@ -206,13 +206,11 @@ CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTvdb` / `getMovieInTvdb` / `ge
 
 ---
 
-## Web UI（✅ v3 搜索）
-
-Web UI 的改动需要使用 localStorage 开关 `smm.v3.enabled` 控制.
+## Web UI
 
 搜索入口：`MediaDatabaseSearchbox`（`TvShowPanelHeader` / `MovieHeaderV2`）。
 
-**目标路径**（与 Core v3 一致）：UI 调用一对一 Internal HTTP，服务端再调对应 Core 方法。不经 `BrowserNetworkPort` / `POST /api/core/fetch`。
+**路径**（与 Core 一致）：UI 调用一对一 Internal HTTP，服务端再调对应 Core 方法。不经 `BrowserNetworkPort` / `POST /api/core/fetch`。
 
 ```mermaid
 flowchart LR
@@ -224,7 +222,7 @@ flowchart LR
 
 | 层 | 文件 / 接口 |
 |----|------|
-| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` · `apps/ui/src/api/tvdbSearch.ts` · `apps/ui/src/api/tvdbV3.ts` |
+| UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` · `apps/ui/src/api/tvdbSearch.ts` · `apps/ui/src/api/tvdbHttp.ts` |
 | HTTP | `POST /api/search-in-tvdb` · `POST /api/get-movie-in-tvdb` · `POST /api/get-tvshow-in-tvdb` · `POST /api/get-tvdb-languages` |
 | Core | `searchInTvdb` · `getMovieInTvdb` · `getTvShowInTvdb` · `getTvdbLanguages` |
 | 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |

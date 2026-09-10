@@ -1,15 +1,10 @@
-# e2e
+# apps/e2e
 
-To install dependencies:
+This folder holds the e2e tests for various [supported platform](../../docs/dev/supported-platform.md).
 
-```bash
-bun install
+The test cases are managed by google/zx markdown file.
+
+
 ```
-
-To run:
-
-```bash
-bun run index.ts
+$ pnpm zx import-folder-test.md --platform web
 ```
-
-This project was created using `bun init` in bun v1.3.3. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

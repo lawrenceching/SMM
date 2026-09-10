@@ -3,12 +3,7 @@ import fs from 'fs';
 import { ReportAggregator } from 'wdio-html-nice-reporter';
 import { browser } from '@wdio/globals';
 import { WDIO_CACHE_DIR } from './lib/wdioCacheDir';
-import { setup, updateUserConfig } from './test/lib/testbed';
 import { registerExpectExtensions } from './test/lib/expect-extensions';
-import {
-    disableMcpFromStatusBarAndClearGlobal,
-    enableMcpFromStatusBarAndStoreAddress,
-} from './test/lib/mcpSpecShared';
 import {
     clearNetworkLogDir,
     initNetworkLogCapture,
@@ -130,36 +125,6 @@ const formatBrowserLogEntry = (entry: BrowserLogEntry): string => {
     return baseText || argsText || '';
 };
 
-
-function workerSpecsIncludeMcp(specs: string[] | undefined): boolean {
-    if (!specs?.length) return false;
-    return specs.some((specPath) => {
-        const n = specPath.replace(/\\/g, '/');
-        return (
-            n.includes('/specs/mcp/') ||
-            n.includes('/common/mcp/') ||
-            n.includes('/specs/tvdb/McpServerTools-TVDB') ||
-            n.includes('/common/tvdb/McpServerTools-TVDB')
-        );
-    });
-}
-
-async function enableMcpServerForE2eWorker(): Promise<void> {
-    await setup({
-        removeMetadataDir: false,
-        removePlansDir: false,
-        removeMediaFolders: false,
-        removeDirInSidebar: false,
-        resetUserConfig: false,
-        openBrowserPage: true,
-    });
-
-    await enableMcpFromStatusBarAndStoreAddress();
-}
-
-async function disableMcpServerForE2eWorker(): Promise<void> {
-    await disableMcpFromStatusBarAndClearGlobal();
-}
 
 const chromeOptionsForDockerEnv: string[] = [
     '--window-size=1920,1080',
@@ -444,7 +409,7 @@ export const config: WebdriverIO.Config = {
      * @param {Array.<String>} specs        List of spec file paths that are to be run
      * @param {object}         browser      instance of created browser/device session
      */
-    before: async function (_capabilities, specs) {
+    before: async function (_capabilities, _specs) {
         registerExpectExtensions();
         await applyE2eWindowSize();
 
@@ -485,13 +450,6 @@ export const config: WebdriverIO.Config = {
         }
 
         await setupNetworkLogCapture(browser);
-
-        // if (workerSpecsIncludeMcp(specs)) {
-        //     await updateUserConfig((userConfig) => {
-        //         userConfig.enableMcpServer = true;
-        //         return userConfig;
-        //     });
-        // }
     },
     /**
      * Runs before a WebdriverIO command gets executed.
@@ -562,9 +520,6 @@ export const config: WebdriverIO.Config = {
      */
     after: async function (_result, _capabilities, _specs) {
         saveNetworkLog();
-        // if (workerSpecsIncludeMcp(specs)) {
-        //     await disableMcpServerForE2eWorker();
-        // }
     },
     /**
      * Gets executed right after terminating the webdriver session.

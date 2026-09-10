@@ -3,7 +3,6 @@ import {
   applyTmdbTlsDevBypassToProcessIfEnabled,
   trustAllTmdbCertEnabled,
 } from '@/utils/tmdbTls';
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { Server } from './server';
 import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
@@ -61,13 +60,6 @@ function parseArgs(): CommandLineArguments {
   
   return result;
 }
-
-// Create a custom provider with your baseURL and API key
-const customProvider = createOpenAICompatible({
-  name: 'DeepSeek',
-  baseURL: 'https://api.deepseek.com/v1', // Your custom base URL
-  apiKey: '', // Your API key
-});
 
 // Parse command line arguments
 const args = parseArgs();

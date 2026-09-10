@@ -26,11 +26,11 @@ export function getSmmDataDir(): string {
   }
 }
 
-export function existingPathIfFile(filePath: string): string | undefined {
+function existingPathIfFile(filePath: string): string | undefined {
   return fs.existsSync(filePath) ? filePath : undefined;
 }
 
-export function getSystemPathEnv(): string | undefined {
+function getSystemPathEnv(): string | undefined {
   return process.env.PATH ?? process.env.Path;
 }
 
@@ -58,7 +58,7 @@ export function findExecutableOnSystemPath(
   return undefined;
 }
 
-export function bundledToolPath(
+function bundledToolPath(
   binSubdir: string,
   exeName: string
 ): string | undefined {
@@ -69,16 +69,16 @@ export function bundledToolPath(
   return existingPathIfFile(path.join(resourcesPath, "bin", binSubdir, exeName));
 }
 
-export function projectToolPath(binSubdir: string, exeName: string): string | undefined {
+function projectToolPath(binSubdir: string, exeName: string): string | undefined {
   return existingPathIfFile(path.join(getCliProjectRoot(), "bin", binSubdir, exeName));
 }
 
-export function installToolPath(binSubdir: string, exeName: string): string | undefined {
+function installToolPath(binSubdir: string, exeName: string): string | undefined {
   return existingPathIfFile(path.join(getSmmDataDir(), "bin", binSubdir, exeName));
 }
 
 /** First existing path in extraCandidates (tool-specific, e.g. Python Scripts). */
-export function firstExistingCandidate(
+function firstExistingCandidate(
   candidates: readonly string[]
 ): string | undefined {
   for (const candidate of candidates) {

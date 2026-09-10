@@ -32,7 +32,7 @@
 import { create } from "zustand"
 import type { LanguageCode } from "@smm/types"
 
-export interface AiContextSnapshot {
+interface AiContextSnapshot {
   /**
    * The currently selected media folder path (POSIX form when
    * available, otherwise platform-native). Empty string when
@@ -77,18 +77,3 @@ export const useAiContextStore = create<AiContextStore>((set) => ({
   setOsLocale: (locale) => set({ osLocale: locale ?? "" }),
   setSnapshot: (snapshot) => set((prev) => ({ ...prev, ...snapshot })),
 }))
-
-/**
- * Synchronous snapshot accessor for use inside tool `execute`
- * functions (which run outside React). Always reflects the most
- * recent commit; never returns a partial update because callers
- * should use `setSnapshot` for multi-field writes.
- */
-export function readAiContext(): AiContextSnapshot {
-  const s = useAiContextStore.getState()
-  return {
-    selectedMediaFolder: s.selectedMediaFolder,
-    applicationLanguage: s.applicationLanguage,
-    osLocale: s.osLocale,
-  }
-}

@@ -6,7 +6,7 @@ import {
   type TmdbGetTvShowOutput,
 } from '@smm/types/ai-tools/tmdbGetTvShow'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
-import { getTvShowInTmdb } from '@/api/tmdbV3'
+import { getTvShowInTmdb } from '@/api/tmdbHttp'
 
 const tmdbGetTvShowTool = tool({
   description: TMDB_GET_TV_SHOW_DESCRIPTION,

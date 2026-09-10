@@ -16,7 +16,7 @@ import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelin
 
 export type SubtitlePipelineType = "transcribe" | "translate" | "synthesize" | "process"
 
-export type SubtitleIndexColumnVariant = "index" | "checkbox" | "spinner" | "failed"
+type SubtitleIndexColumnVariant = "index" | "checkbox" | "spinner" | "failed"
 
 export interface RowSubtitlePipelineState {
   transcribeStatus?: "running" | "failed"

@@ -13,7 +13,7 @@ Element.prototype.scrollIntoView = vi.fn()
 
 describe("MediaFolderToolbar i18n", () => {
   const baseProps = {
-    sortOrder: "alphabetical" as const,
+    sortOrder: "none" as const,
     onSortOrderChange: vi.fn(),
     filterType: "all" as const,
     onFilterTypeChange: vi.fn(),
@@ -32,6 +32,9 @@ describe("MediaFolderToolbar i18n", () => {
   it("renders translated sort option labels", async () => {
     render(<MediaFolderToolbar {...baseProps} />)
     fireEvent.click(screen.getByTestId("sort-select-trigger"))
+    expect(await screen.findByTestId("sort-option-none")).toHaveTextContent(
+      "sidebar.toolbar.sortNone",
+    )
     expect(await screen.findByTestId("sort-option-alphabetical")).toHaveTextContent(
       "sidebar.toolbar.sortAlphabetical",
     )

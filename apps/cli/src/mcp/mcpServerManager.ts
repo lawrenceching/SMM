@@ -2,16 +2,6 @@ import { getCore } from "@/core/getCore";
 import { logger } from "../../lib/logger";
 import { setBunMcpServerError } from "./BunMcpServerPort";
 
-export type { McpServerState, McpServerStatus } from "./bunMcpLifecycleManager";
-export {
-  getMcpServerState,
-  startMcpServer,
-  stopMcpServer,
-  getBunMcpLifecycleManager,
-  getBunMcpServerPort,
-  setBunMcpServerError,
-} from "./bunMcpLifecycleManager";
-
 /**
  * Reads user config and starts or stops the MCP server accordingly.
  * Used at CLI HTTP server startup to honour the persisted enableMcpServer setting.

@@ -35,14 +35,25 @@ export function selectActiveAppPlan<T extends Plan>(
 }
 
 /**
- * Active (`preparing` / `pending`) AI/MCP-created plan for a media folder.
+ * Active (`pending`) AI/MCP-created plan for a media folder.
  * Used by AI rename/recognize flows; preview mode and prompt visibility
  * derive from the returned plan the same way as rule-based plans.
+ * Only `pending` plans surface: since the single-call recognize migration
+ * no code creates `preparing` AI plans, so a preparing plan must not open
+ * the prompt.
  */
 export function selectActiveAiPlan<T extends Plan>(
   plans: Plan[],
   mediaFolderPath: string | undefined,
   task: PlanTask,
 ): T | undefined {
-  return selectActivePlanByCreator(plans, mediaFolderPath, task, "ai")
+  if (!mediaFolderPath) return undefined
+
+  return plans.find(
+    (p) =>
+      p.task === task &&
+      p.creator === "ai" &&
+      p.status === "pending" &&
+      mediaFolderPathEqual(p.mediaFolderPath, mediaFolderPath),
+  ) as T | undefined
 }

@@ -224,7 +224,7 @@ Phase 1 完成后，预览与执行已共用 pure 算法，但仍有 **双路径
 
 **执行顺序：**
 
-1. 确认 `isSmmV3Enabled()` 在生产/CI 恒为 true  
+1. Core HTTP / folders query 路径已恒开启（无 feature flag）  
 2. 删除 `handleStartLegacy` 等调用链  
 3. 删除 UI 副本文件  
 4. 收缩 `useInitializeImportedMediaFolder` 为调用 Core job API  

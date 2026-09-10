@@ -19,9 +19,7 @@ export const McpToolName = {
   scrape: 'scrape',
   getJob: 'get-job',
   createRenameEpisodePlan: 'create-rename-episode-plan',
-  beginRecognizeTask: 'begin-recognize-task',
-  addRecognizedFile: 'add-recognized-media-file',
-  endRecognizeTask: 'end-recognize-task',
+  createRecognizeEpisodePlan: 'create-recognize-episode-plan',
   getEpisode: 'get-episode',
   getEpisodes: 'get-episodes',
   tmdbSearch: 'tmdb-search',
@@ -207,38 +205,19 @@ export interface CreateRenameEpisodePlanResponse {
   planId: string
 }
 
-// --- recognize task ---
-export interface BeginRecognizeTaskRequest {
+// --- create-recognize-episode-plan ---
+export interface CreateRecognizeEpisodePlanRequest {
   mediaFolderPath: string
+  files: Array<{
+    season: number
+    episode: number
+    path: string
+  }>
 }
 
-export interface BeginRecognizeTaskResponse {
-  success: boolean
-  taskId: string
-  mediaFolderPath?: string
-}
-
-export interface AddRecognizedFileRequest {
-  taskId: string
-  season: number
-  episode: number
-  path: string
-}
-
-export interface AddRecognizedFileResponse {
-  success: boolean
-  taskId: string
-}
-
-export interface EndRecognizeTaskRequest {
-  taskId: string
-}
-
-export interface EndRecognizeTaskResponse {
-  success: boolean
-  taskId: string
-  fileCount?: number
-  error?: string
+export interface CreateRecognizeEpisodePlanResponse {
+  message: string
+  planId: string
 }
 
 // --- get-episode / get-episodes ---

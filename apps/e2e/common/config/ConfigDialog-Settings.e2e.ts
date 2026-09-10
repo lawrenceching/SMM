@@ -52,14 +52,6 @@ describe('Config Dialog Settings - General Settings', () => {
         await browser.pause(500)
     }
 
-    async function saveAndCloseDialog(): Promise<void> {
-        await ConfigDialog.clickSave()
-        await ConfigDialog.pressEscape()
-        await browser.pause(200)
-        await ConfigDialog.pressEscape()
-        await ConfigDialog.waitForClosed()
-    }
-
     it('should persist all general settings after save and page refresh', async function() {
         if (slowdown) {
             this.timeout(120 * 1000)

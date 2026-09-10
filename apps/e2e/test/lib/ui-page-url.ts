@@ -17,8 +17,6 @@ export const HARMONYOS_UI_ORIGIN = 'http://127.0.0.1:18081/'
 /** Default docker UI origin (host-mapped port 30000). Override with `E2E_DOCKER_UI_ORIGIN`. */
 export const DEFAULT_DOCKER_UI_ORIGIN = 'http://localhost:30000/'
 
-/** @deprecated Prefer resolveDockerUiOrigin() — kept for existing imports/tests. */
-export const DOCKER_UI_ORIGIN = DEFAULT_DOCKER_UI_ORIGIN
 
 /**
  * Docker UI origin for Host Runner WDIO / wait-ready.

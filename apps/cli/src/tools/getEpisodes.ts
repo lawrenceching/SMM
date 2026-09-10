@@ -5,7 +5,6 @@ import {
 } from '@smm/core/ai-tool/buildGetEpisodesResponse'
 import { requireNonEmptyString, toolOk } from '@smm/core/ai-tool/toolResult'
 import {
-  GET_EPISODES,
   GET_EPISODES_DESCRIPTION,
   GET_EPISODES_INVALID_PATH,
   GET_EPISODES_NO_CACHE,
@@ -15,30 +14,11 @@ import {
   getEpisodesToolOutputSchema,
   type GetEpisodesToolOutput,
 } from '@smm/types/ai-tools/getEpisodes'
-import type { ToolDefinition } from './types'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from '@/mcp/tools/mcpToolBase'
-import { getLocalizedToolDescription } from '@/i18n/helpers'
 import { findMediaMetadata } from '@/utils/mediaMetadata'
 import { getUserConfig } from '@/utils/config'
-import logger from '../../lib/logger'
+import { logger } from '../../lib/logger'
 
 export type { GetEpisodesToolOutput }
-export {
-  buildGetEpisodesResponse,
-  createEmptyGetEpisodesData,
-} from '@smm/core/ai-tool/buildGetEpisodesResponse'
-export type {
-  GetEpisodesResponseData,
-  GetEpisodesEpisode,
-} from '@smm/types/ai-tools/getEpisodes'
-
-/** @deprecated Use GetEpisodesInput from @smm/types/ai-tools/getEpisodes */
-export interface GetEpisodesParams {
-  mediaFolderPath: string
-}
 
 async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   const userConfig = await getUserConfig()
@@ -52,7 +32,7 @@ async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   })
 }
 
-export async function executeGetEpisodes(
+async function executeGetEpisodes(
   params: { mediaFolderPath: string },
   abortSignal?: AbortSignal,
 ): Promise<GetEpisodesToolOutput> {
@@ -97,25 +77,6 @@ export async function executeGetEpisodes(
   return toolOk(buildGetEpisodesResponse(metadata))
 }
 
-export async function handleGetEpisodes(
-  params: GetEpisodesParams,
-  abortSignal?: AbortSignal,
-): Promise<
-  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
-> {
-  try {
-    const result = await executeGetEpisodes(params, abortSignal)
-    if (result.error) {
-      return createErrorResponse(result.error)
-    }
-    const { error: _error, ...data } = result
-    return createSuccessResponse(data)
-  } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Request was aborted',
-    )
-  }
-}
 
 export function getEpisodesAgentTool(_clientId: string, abortSignal?: AbortSignal) {
   return {
@@ -128,23 +89,3 @@ export function getEpisodesAgentTool(_clientId: string, abortSignal?: AbortSigna
   }
 }
 
-/** @deprecated Use getEpisodesAgentTool */
-export const createGetEpisodesTool = getEpisodesAgentTool
-
-export async function getTool(): Promise<ToolDefinition> {
-  const description = await getLocalizedToolDescription(GET_EPISODES)
-
-  return {
-    toolName: GET_EPISODES,
-    description,
-    inputSchema: getEpisodesInputSchema,
-    outputSchema: getEpisodesToolOutputSchema,
-    execute: async (args: { mediaFolderPath: string }) => {
-      return handleGetEpisodes(args)
-    },
-  }
-}
-
-export async function getEpisodesMcpTool() {
-  return getTool()
-}

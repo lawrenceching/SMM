@@ -2,7 +2,7 @@
 
 import { browser } from '@wdio/globals'
 import { clickContextMenuItem, rightClickElement } from '../lib/context-menu'
-import SearchboxCO from './Searchbox.co'
+import { SearchboxCO } from './Searchbox.co'
 
 /** Confirm button labels (en and zh-CN). */
 const CONFIRM_LABELS = ['Confirm', '确认']
@@ -47,10 +47,10 @@ class TVShowPanel {
     }
 
     /**
-     * Get the episode table element
+     * Get the episode table element ({@link MediaFileTable})
      */
     get episodeTable() {
-        return $('[data-testid="tvshow-episode-table"]')
+        return $('[data-testid="media-file-table"]')
     }
 
     /**
@@ -247,7 +247,7 @@ class TVShowPanel {
      * This simulates a right-click on the corresponding table row.
      */
     async openContextMenuForEpisode(episodeId: string): Promise<void> {
-        const table = await $('[data-testid="tvshow-episode-table"]')
+        const table = await this.episodeTable
         await table.waitForDisplayed({ timeout: 10_000 })
         const episodeIdCell = await table.$(`td=${episodeId}`)
         await episodeIdCell.waitForDisplayed({ timeout: 10_000 })
@@ -275,7 +275,32 @@ class TVShowPanel {
     }
 
     /**
+     * Video cell text for {@link MediaFileTableEpisodeSimpleRow}.
+     * Prefer the rename preview target when both old/new paths are shown.
+     */
+    private async getVideoFileCellText(cell: ChainablePromiseElement): Promise<string> {
+        try {
+            const newPath = await cell.$('[data-testid="media-file-table-new-video-file"]')
+            if (await newPath.isExisting().catch(() => false)) {
+                return (await newPath.getText()).trim()
+            }
+            const text = (await cell.getText()).trim()
+            if (!text) return ''
+            // Recognize preview shows struck-through current path + new target.
+            const lines = text.split(/\n/).map((l) => l.trim()).filter(Boolean)
+            return lines[lines.length - 1] ?? ''
+        } catch {
+            return ''
+        }
+    }
+
+    /**
      * Get the current state of the TV show panel
+     *
+     * MediaFileTable nests episode rows inside season collapsible content
+     * (`table` within a wrapper `tr`). Season headers include a collapse
+     * button whose label must not be treated as the divider title.
+     * Episode column order: `[checkbox?] [SxxExx] [video] [thumb] [sub] [nfo]`.
      */
     async getState(): Promise<TvShowPanelState> {
         const state: TvShowPanelState = {
@@ -299,20 +324,46 @@ class TVShowPanel {
             const table = await this.episodeTable
             if (await table.isExisting()) {
                 const rows = await table.$$('tr')
-                const rowCount = await rows.length
 
                 for (const row of rows) {
+                    // Wrapper row that holds the nested episode <table>
+                    const nestedTable = await row.$('table')
+                    if (await nestedTable.isExisting().catch(() => false)) {
+                        continue
+                    }
+
                     const cells = await row.$$('td')
                     const cellsCount = await cells.length
-
                     if (cellsCount === 0) continue
 
-                    const firstCellText = await cells[0]!.getText()
-                    
-                    const idMatch = firstCellText.match(/^S(\d+)E(\d+)$/)
-                    if (idMatch) {
-                        const tableRow: TvShowPanelState['table'][number] = {
-                            id: firstCellText,
+                    // Season header: title span + collapse/expand control
+                    const collapseBtn = await row.$('button[aria-expanded]')
+                    if (await collapseBtn.isExisting().catch(() => false)) {
+                        const titleSpan = await row.$('td span')
+                        const title = titleSpan && (await titleSpan.isExisting().catch(() => false))
+                            ? (await titleSpan.getText()).trim()
+                            : ''
+                        if (title) {
+                            state.table.push({ id: title, type: 'divider' })
+                        }
+                        continue
+                    }
+
+                    // Find the SxxExx id cell (checkbox column may come first)
+                    let idCellIndex = -1
+                    let idText = ''
+                    for (let i = 0; i < cellsCount; i++) {
+                        const text = (await cells[i]!.getText()).trim()
+                        if (/^S\d+E\d+$/.test(text)) {
+                            idCellIndex = i
+                            idText = text
+                            break
+                        }
+                    }
+
+                    if (idCellIndex >= 0) {
+                        const tableRow: TvShowEpisodeTableSimpleRow = {
+                            id: idText,
                             type: 'episode',
                             checkbox: false,
                             videoFile: '',
@@ -321,19 +372,16 @@ class TVShowPanel {
                             subtitle: ''
                         }
 
-                        let cellIndex = 1
-
-                        if (cellsCount > cellIndex) {
-                            const nextCell = await cells[cellIndex]!.$('input[type="checkbox"]')
-                            const hasCheckbox = await nextCell.isExisting().catch(() => false)
-                            if (hasCheckbox) {
-                                tableRow.checkbox = await nextCell.isSelected()
-                                cellIndex++
+                        if (idCellIndex > 0) {
+                            const checkbox = await cells[0]!.$('input[type="checkbox"]')
+                            if (await checkbox.isExisting().catch(() => false)) {
+                                tableRow.checkbox = await checkbox.isSelected()
                             }
                         }
 
+                        let cellIndex = idCellIndex + 1
                         if (cellsCount > cellIndex) {
-                            tableRow.videoFile = await cells[cellIndex]!.getText()
+                            tableRow.videoFile = await this.getVideoFileCellText(cells[cellIndex]!)
                             cellIndex++
                         }
                         if (cellsCount > cellIndex) {
@@ -349,11 +397,16 @@ class TVShowPanel {
                         }
 
                         state.table.push(tableRow)
-                    } else if (firstCellText.length > 0 && !firstCellText.match(/^\s*$/)) {
-                        state.table.push({
-                            id: firstCellText.trim(),
-                            type: 'divider'
-                        })
+                        continue
+                    }
+
+                    // Metadata name/value rows (e.g. "nfo") — treat label as divider
+                    let label = (await cells[0]!.getText()).trim()
+                    if (!label && cellsCount > 1) {
+                        label = (await cells[1]!.getText()).trim()
+                    }
+                    if (label.length > 0) {
+                        state.table.push({ id: label, type: 'divider' })
                     }
                 }
             }
@@ -556,13 +609,9 @@ class TVShowPanel {
     }
 
     get newVideoFilePaths() {
-        return $$('[data-testid="tvshow-episode-table-new-video-file"]')
+        return $$('[data-testid="media-file-table-new-video-file"]')
     }
     
 }
 
-/**
- * Keep both default export and named export for backwards compatibility.
- */
 export const TvShowPanelCO = new TVShowPanel()
-export default TvShowPanelCO

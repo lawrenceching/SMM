@@ -27,6 +27,3 @@ export async function handleHelloGet(
   sendJson(res, 200, result satisfies HelloHttpResponseBody);
   return true;
 }
-
-/** @deprecated Use handleHelloGet */
-export const handleHelloPost = handleHelloGet;

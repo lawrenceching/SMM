@@ -22,7 +22,7 @@ export interface ValidateRenameOperationsResponseBody {
   error: string | null
 }
 
-export async function processValidateRenameOperations(
+async function processValidateRenameOperations(
   body: unknown,
 ): Promise<ValidateRenameOperationsResponseBody> {
   const parsed = requestSchema.safeParse(body)

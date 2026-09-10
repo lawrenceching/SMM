@@ -17,7 +17,7 @@ const renameFolderToolSchema = z.object({
   to: z.string().min(1, 'Destination folder path is required'),
 });
 
-export async function processRenameFolderTool(body: unknown): Promise<DebugRenameFolderToolResponseBody> {
+async function processRenameFolderTool(body: unknown): Promise<DebugRenameFolderToolResponseBody> {
   try {
     console.log('[DebugAPI] Received renameFolderTool request:', body);
 

@@ -110,7 +110,7 @@ export function registerCoreRoutes(server: http.Server, config: CoreRoutesConfig
 
 export { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
 export { handleWriteFilePost } from "./routes/writeFileRoute.ts";
-export { handleHelloGet, handleHelloPost } from "./routes/helloRoute.ts";
+export { handleHelloGet } from "./routes/helloRoute.ts";
 export { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
 export { handleReadFilePost } from "./routes/readFileRoute.ts";
 export { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";

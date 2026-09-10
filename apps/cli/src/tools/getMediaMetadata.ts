@@ -6,7 +6,6 @@ import {
 } from '@smm/core/ai-tool/getMediaMetadataResponse'
 import { requireNonEmptyString } from '@smm/core/ai-tool/toolResult'
 import {
-  GET_MEDIA_METADATA,
   GET_MEDIA_METADATA_DESCRIPTION,
   GET_MEDIA_METADATA_FOLDER_NOT_FOUND,
   GET_MEDIA_METADATA_NOT_DIRECTORY,
@@ -16,26 +15,10 @@ import {
   getMediaMetadataToolOutputSchema,
   type GetMediaMetadataToolOutput,
 } from '@smm/types/ai-tools/getMediaMetadata'
-import type { ToolDefinition } from './types'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from '@/mcp/tools/mcpToolBase'
-import { getLocalizedToolDescription } from '@/i18n/helpers'
 import { findMediaMetadata } from '@/utils/mediaMetadata'
 import { getUserConfig } from '@/utils/config'
 
 export type { GetMediaMetadataToolOutput }
-export {
-  fillMediaMetadataResponseData,
-  createBaseGetMediaMetadataData,
-} from '@smm/core/ai-tool/getMediaMetadataResponse'
-export type { GetMediaMetadataResponseData } from '@smm/types/ai-tools/getMediaMetadata'
-
-/** @deprecated Use GetMediaMetadataInput from @smm/types/ai-tools/getMediaMetadata */
-export interface GetMediaMetadataParams {
-  mediaFolderPath: string
-}
 
 async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   const userConfig = await getUserConfig()
@@ -49,7 +32,7 @@ async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   })
 }
 
-export async function executeGetMediaMetadata(
+async function executeGetMediaMetadata(
   params: { mediaFolderPath: string },
   abortSignal?: AbortSignal,
 ): Promise<GetMediaMetadataToolOutput> {
@@ -103,25 +86,6 @@ export async function executeGetMediaMetadata(
   }
 }
 
-export async function handleGetMediaMetadata(
-  params: { mediaFolderPath: string },
-  abortSignal?: AbortSignal,
-): Promise<
-  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
-> {
-  try {
-    const result = await executeGetMediaMetadata(params, abortSignal)
-    if (result.error) {
-      const { error, ...data } = result
-      return createSuccessResponse({ data, error })
-    }
-    return createSuccessResponse({ data: result })
-  } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Request was aborted',
-    )
-  }
-}
 
 export function getMediaMetadataAgentTool(
   _clientId: string,
@@ -135,24 +99,4 @@ export function getMediaMetadataAgentTool(
       return executeGetMediaMetadata(args, abortSignal)
     },
   }
-}
-
-export const getTool = async function (
-  abortSignal?: AbortSignal,
-): Promise<ToolDefinition> {
-  const description = await getLocalizedToolDescription(GET_MEDIA_METADATA)
-
-  return {
-    toolName: GET_MEDIA_METADATA,
-    description,
-    inputSchema: getMediaMetadataInputSchema,
-    outputSchema: getMediaMetadataToolOutputSchema,
-    execute: async (args: { mediaFolderPath: string }) => {
-      return handleGetMediaMetadata(args, abortSignal)
-    },
-  }
-}
-
-export async function getMediaMetadataMcpTool() {
-  return getTool()
 }

@@ -8,7 +8,7 @@ import {
 import { delay } from 'es-toolkit'
 import { folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import SearchboxCO from 'test/componentobjects/Searchbox.co'
+import { SearchboxCO } from 'test/componentobjects/Searchbox.co'
 import env from 'test/lib/env'
 import type { UserConfig } from '@smm/types'
 

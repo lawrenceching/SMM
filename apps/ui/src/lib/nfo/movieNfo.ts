@@ -1,31 +1,31 @@
 import type { NfoThumb, ThumbAspect, TvShowNFOActor, TvShowNFORating, TvShowNFOUniqueId } from "./tvshowNfo"
 
 /** @see TvShowNFORating — same `<ratings><rating>…` shape as tvshow NFO */
-export type MovieNFORating = TvShowNFORating
+type MovieNFORating = TvShowNFORating
 
-export type MovieNFOUniqueId = TvShowNFOUniqueId
+type MovieNFOUniqueId = TvShowNFOUniqueId
 
-export type MovieNFOActor = TvShowNFOActor
+type MovieNFOActor = TvShowNFOActor
 
-export interface MovieNFOSet {
+interface MovieNFOSet {
   name?: string
   overview?: string
 }
 
 /** `<credits>` / `<director>`: optional `tmdbid` attribute + text name */
-export interface MovieNFOTextCredit {
+interface MovieNFOTextCredit {
   tmdbid?: string
   name?: string
 }
 
-export interface MovieNFOProducer {
+interface MovieNFOProducer {
   tmdbid?: string
   name?: string
   role?: string
   profile?: string
 }
 
-export interface MovieNFOVideoStream {
+interface MovieNFOVideoStream {
   codec?: string
   aspect?: number
   width?: number
@@ -33,11 +33,11 @@ export interface MovieNFOVideoStream {
   durationInSeconds?: number
 }
 
-export interface MovieNFOStreamDetails {
+interface MovieNFOStreamDetails {
   videos?: MovieNFOVideoStream[]
 }
 
-export interface MovieNFOFileInfo {
+interface MovieNFOFileInfo {
   streamDetails?: MovieNFOStreamDetails
 }
 
@@ -105,27 +105,6 @@ function parseBooleanField(value: string | undefined): boolean | undefined {
   if (normalized === "true") return true
   if (normalized === "false") return false
   return undefined
-}
-
-function formatXml(xml: string): string {
-  const PADDING = "  "
-  const reg = /(>)(<)(\/*)/g
-  let formatted = ""
-  xml = xml.replace(reg, "$1\n$2$3")
-  let pad = 0
-  xml.split("\n").forEach((node) => {
-    let indent = 0
-    if (node.match(/.+<\/\w[^>]*>$/)) {
-      indent = 0
-    } else if (node.match(/^<\/\w/)) {
-      if (pad > 0) pad -= 1
-    } else if (node.match(/^<\w([^>]*[^/])?>.*$/)) {
-      indent = 1
-    }
-    formatted += PADDING.repeat(pad) + node + "\n"
-    pad += indent
-  })
-  return formatted.trim()
 }
 
 export async function parseMovieNfo(xml: string): Promise<MovieNFO | undefined> {
@@ -291,222 +270,4 @@ export async function parseMovieNfo(xml: string): Promise<MovieNFO | undefined> 
   }
 
   return movieNfo
-}
-
-export function convertMovieNfoToXml(nfo: MovieNFO): string {
-  const doc = document.implementation.createDocument(null, "movie", null)
-  const root = doc.documentElement
-  const addElement = (name: string, value: string) => {
-    const el = doc.createElement(name)
-    el.textContent = value
-    root.appendChild(el)
-  }
-  const addOptionalText = (name: string, value: string | undefined) => {
-    if (value !== undefined) addElement(name, value)
-  }
-  const addOptionalNumber = (name: string, value: number | undefined) => {
-    if (value !== undefined) addElement(name, String(value))
-  }
-
-  addOptionalText("title", nfo.title)
-  addOptionalText("originaltitle", nfo.originalTitle)
-  addOptionalText("sorttitle", nfo.sortTitle)
-  addOptionalText("epbookmark", nfo.epbookmark)
-  addOptionalNumber("year", nfo.year)
-  if (nfo.ratings?.length) {
-    const ratingsEl = doc.createElement("ratings")
-    for (const r of nfo.ratings) {
-      const ratingEl = doc.createElement("rating")
-      if (r.default !== undefined) ratingEl.setAttribute("default", String(r.default))
-      if (r.max !== undefined) ratingEl.setAttribute("max", String(r.max))
-      if (r.name) ratingEl.setAttribute("name", r.name)
-      if (r.value !== undefined) {
-        const valueEl = doc.createElement("value")
-        valueEl.textContent = String(r.value)
-        ratingEl.appendChild(valueEl)
-      }
-      if (r.votes !== undefined) {
-        const votesEl = doc.createElement("votes")
-        votesEl.textContent = String(r.votes)
-        ratingEl.appendChild(votesEl)
-      }
-      ratingsEl.appendChild(ratingEl)
-    }
-    root.appendChild(ratingsEl)
-  }
-  addOptionalNumber("userrating", nfo.userRating)
-  addOptionalNumber("top250", nfo.top250)
-  if (nfo.set && (nfo.set.name !== undefined || nfo.set.overview !== undefined)) {
-    const setEl = doc.createElement("set")
-    if (nfo.set.name !== undefined) {
-      const nameEl = doc.createElement("name")
-      nameEl.textContent = nfo.set.name
-      setEl.appendChild(nameEl)
-    }
-    if (nfo.set.overview !== undefined) {
-      const overviewEl = doc.createElement("overview")
-      overviewEl.textContent = nfo.set.overview
-      setEl.appendChild(overviewEl)
-    }
-    root.appendChild(setEl)
-  }
-  addOptionalText("plot", nfo.plot)
-  addOptionalText("outline", nfo.outline)
-  addOptionalText("tagline", nfo.tagline)
-  addOptionalNumber("runtime", nfo.runtime)
-
-  nfo.thumbs?.forEach((thumb) => {
-    if (!thumb.url) return
-    const thumbEl = doc.createElement("thumb")
-    thumbEl.textContent = thumb.url
-    if (thumb.aspect) thumbEl.setAttribute("aspect", thumb.aspect)
-    if (thumb.season !== undefined) thumbEl.setAttribute("season", String(thumb.season))
-    if (thumb.type) thumbEl.setAttribute("type", thumb.type)
-    root.appendChild(thumbEl)
-  })
-  if (nfo.fanartThumbs?.length) {
-    const fanartEl = doc.createElement("fanart")
-    nfo.fanartThumbs.forEach((thumbUrl) => {
-      if (!thumbUrl) return
-      const thumbEl = doc.createElement("thumb")
-      thumbEl.textContent = thumbUrl
-      fanartEl.appendChild(thumbEl)
-    })
-    root.appendChild(fanartEl)
-  }
-
-  addOptionalText("mpaa", nfo.mpaa)
-  addOptionalText("certification", nfo.certification)
-  addOptionalText("id", nfo.id)
-  addOptionalText("imdbid", nfo.imdbid)
-  addOptionalText("tmdbid", nfo.tmdbid)
-  addOptionalText("tvdbid", nfo.tvdbid)
-  nfo.uniqueIds?.forEach((uniqueId) => {
-    const uniqueIdEl = doc.createElement("uniqueid")
-    if (uniqueId.default !== undefined) uniqueIdEl.setAttribute("default", String(uniqueId.default))
-    if (uniqueId.type) uniqueIdEl.setAttribute("type", uniqueId.type)
-    if (uniqueId.value !== undefined) uniqueIdEl.textContent = uniqueId.value
-    root.appendChild(uniqueIdEl)
-  })
-
-  nfo.countries?.forEach((country) => country && addElement("country", country))
-  addOptionalText("status", nfo.status)
-  addOptionalText("code", nfo.code)
-  addOptionalText("premiered", nfo.premiered)
-  if (nfo.watched !== undefined) addElement("watched", String(nfo.watched))
-  addOptionalNumber("playcount", nfo.playcount)
-  nfo.genres?.forEach((genre) => genre && addElement("genre", genre))
-  nfo.studios?.forEach((studio) => studio && addElement("studio", studio))
-
-  nfo.credits?.forEach((credit) => {
-    if (credit.name === undefined) return
-    const el = doc.createElement("credits")
-    if (credit.tmdbid) el.setAttribute("tmdbid", credit.tmdbid)
-    el.textContent = credit.name
-    root.appendChild(el)
-  })
-  nfo.directors?.forEach((director) => {
-    if (director.name === undefined) return
-    const el = doc.createElement("director")
-    if (director.tmdbid) el.setAttribute("tmdbid", director.tmdbid)
-    el.textContent = director.name
-    root.appendChild(el)
-  })
-
-  nfo.actors?.forEach((actor) => {
-    const actorEl = doc.createElement("actor")
-    if (actor.name !== undefined) {
-      const el = doc.createElement("name")
-      el.textContent = actor.name
-      actorEl.appendChild(el)
-    }
-    if (actor.role !== undefined) {
-      const el = doc.createElement("role")
-      el.textContent = actor.role
-      actorEl.appendChild(el)
-    }
-    if (actor.thumb !== undefined) {
-      const el = doc.createElement("thumb")
-      el.textContent = actor.thumb
-      actorEl.appendChild(el)
-    }
-    if (actor.profile !== undefined) {
-      const el = doc.createElement("profile")
-      el.textContent = actor.profile
-      actorEl.appendChild(el)
-    }
-    if (actor.tmdbid !== undefined) {
-      const el = doc.createElement("tmdbid")
-      el.textContent = actor.tmdbid
-      actorEl.appendChild(el)
-    }
-    root.appendChild(actorEl)
-  })
-  nfo.producers?.forEach((producer) => {
-    const producerEl = doc.createElement("producer")
-    if (producer.tmdbid) producerEl.setAttribute("tmdbid", producer.tmdbid)
-    if (producer.name !== undefined) {
-      const el = doc.createElement("name")
-      el.textContent = producer.name
-      producerEl.appendChild(el)
-    }
-    if (producer.role !== undefined) {
-      const el = doc.createElement("role")
-      el.textContent = producer.role
-      producerEl.appendChild(el)
-    }
-    if (producer.profile !== undefined) {
-      const el = doc.createElement("profile")
-      el.textContent = producer.profile
-      producerEl.appendChild(el)
-    }
-    root.appendChild(producerEl)
-  })
-
-  addOptionalText("trailer", nfo.trailer)
-  addOptionalText("languages", nfo.languages)
-  addOptionalText("dateadded", nfo.dateadded)
-  addOptionalText("source", nfo.source)
-  addOptionalText("edition", nfo.edition)
-  addOptionalText("original_filename", nfo.originalFilename)
-  addOptionalText("user_note", nfo.userNote)
-
-  if (nfo.fileInfo?.streamDetails?.videos?.length) {
-    const fileInfoEl = doc.createElement("fileinfo")
-    const streamDetailsEl = doc.createElement("streamdetails")
-    nfo.fileInfo.streamDetails.videos.forEach((video) => {
-      const videoEl = doc.createElement("video")
-      if (video.codec !== undefined) {
-        const codecEl = doc.createElement("codec")
-        codecEl.textContent = video.codec
-        videoEl.appendChild(codecEl)
-      }
-      if (video.aspect !== undefined) {
-        const aspectEl = doc.createElement("aspect")
-        aspectEl.textContent = String(video.aspect)
-        videoEl.appendChild(aspectEl)
-      }
-      if (video.width !== undefined) {
-        const widthEl = doc.createElement("width")
-        widthEl.textContent = String(video.width)
-        videoEl.appendChild(widthEl)
-      }
-      if (video.height !== undefined) {
-        const heightEl = doc.createElement("height")
-        heightEl.textContent = String(video.height)
-        videoEl.appendChild(heightEl)
-      }
-      if (video.durationInSeconds !== undefined) {
-        const dEl = doc.createElement("durationinseconds")
-        dEl.textContent = String(video.durationInSeconds)
-        videoEl.appendChild(dEl)
-      }
-      streamDetailsEl.appendChild(videoEl)
-    })
-    fileInfoEl.appendChild(streamDetailsEl)
-    root.appendChild(fileInfoEl)
-  }
-
-  const serializer = new XMLSerializer()
-  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + formatXml(serializer.serializeToString(doc))
 }

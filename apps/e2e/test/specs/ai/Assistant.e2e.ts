@@ -6,8 +6,6 @@ import Menu from '../../componentobjects/Menu'
 import { createBeforeHook } from '../../lib/testbed'
 import { delay } from 'es-toolkit'
 
-const slowdown = process.env.SLOWDOWN === 'true'
-
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
 const mediaDir = path.join(tmpMediaRoot, 'media')
 

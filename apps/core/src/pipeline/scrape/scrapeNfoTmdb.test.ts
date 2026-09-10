@@ -2,7 +2,6 @@ import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/t
 import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { FsPort } from "../../ports/FsPort";
-import type { NetworkPort } from "../../ports/NetworkPort";
 import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
 import { scrapeNfoTmdb } from "./scrapeNfoTmdb";
 import type { ScrapeTaskDeps } from "./scrapeTaskDeps";

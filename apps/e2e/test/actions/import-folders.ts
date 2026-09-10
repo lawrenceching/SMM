@@ -10,15 +10,15 @@ import {
 export {
   type LangCode,
   type TestFolder,
-  folder1,
+  tvShowFolder,
+  tvShowFolder as folder1,
   folder2,
   folder3,
   folder4,
-  folder5,
+  movieFolder,
+  movieFolder as folder5,
   folder6,
   musicFolder,
-  tvShowFolder,
-  movieFolder,
 } from '@smm/test'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')

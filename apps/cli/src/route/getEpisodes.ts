@@ -14,7 +14,7 @@ const coreRoutesLogger: CoreRoutesLogger = {
   error: (obj, msg) => logger.error(obj, msg),
 }
 
-export async function processGetEpisodes(body: unknown, _abortSignal?: AbortSignal) {
+async function processGetEpisodes(body: unknown, _abortSignal?: AbortSignal) {
   const config = await buildCoreRoutesConfig(coreRoutesLogger)
   return doGetEpisodes(body, config)
 }

@@ -1,5 +1,4 @@
 import {
-  GET_EPISODES,
   GET_EPISODES_DESCRIPTION,
   getEpisodesInputSchema,
   getEpisodesToolOutputSchema,
@@ -32,4 +31,3 @@ export function buildGetEpisodesTool(
 }
 
 /** Re-exported tool name constant for the tools registry. */
-export const GET_EPISODES_TOOL_NAME = GET_EPISODES;

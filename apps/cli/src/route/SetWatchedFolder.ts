@@ -6,7 +6,7 @@ import type {
 import { getFolderWatcher } from '../services/folderWatcher';
 import { logger, logHttpReqIn, logHttpRespOut } from '../../lib/logger';
 
-export async function processSetWatchedFolder(
+async function processSetWatchedFolder(
   body: SetWatchedFolderRequestBody,
 ): Promise<SetWatchedFolderResponseBody> {
   const folderPath =

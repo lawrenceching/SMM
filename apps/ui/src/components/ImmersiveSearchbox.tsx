@@ -15,13 +15,6 @@ export interface SearchLanguageOption {
   name: string
 }
 
-/**
- * Maximum number of "priority" language options shown in the default (collapsed)
- * view of the language dropdown. Anything beyond this is reachable via the
- * "Show all languages" toggle.
- */
-export const PRIORITY_LANGUAGE_OPTION_LIMIT = 3
-
 // Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
@@ -214,7 +207,23 @@ export function ImmersiveSearchbox({
                     }}
                     onInteractOutside={(e) => {
                         const target = e.target as HTMLElement
-                        if (inputContainerRef.current?.contains(target)) {
+                        // Keep the search popover open while using nested Selects
+                        // (database / language). Their content portals to <body>,
+                        // so without this the popover closes and unmounts the options.
+                        if (
+                            inputContainerRef.current?.contains(target) ||
+                            target.closest('[data-slot="select-content"]') ||
+                            target.closest('[data-slot="select-trigger"]')
+                        ) {
+                            e.preventDefault()
+                        }
+                    }}
+                    onFocusOutside={(e) => {
+                        const target = e.target as HTMLElement
+                        if (
+                            target.closest('[data-slot="select-content"]') ||
+                            target.closest('[data-slot="select-trigger"]')
+                        ) {
                             e.preventDefault()
                         }
                     }}

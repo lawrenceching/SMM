@@ -54,7 +54,15 @@ export function SortingButton<T extends string>({
                 <SelectItem
                   key={option.value}
                   value={option.value}
-                  data-testid={option.value === "alphabetical" ? "sort-option-alphabetical" : option.value === "reverse-alphabetical" ? "sort-option-reverse-alphabetical" : undefined}
+                  data-testid={
+                    option.value === "none"
+                      ? "sort-option-none"
+                      : option.value === "alphabetical"
+                        ? "sort-option-alphabetical"
+                        : option.value === "reverse-alphabetical"
+                          ? "sort-option-reverse-alphabetical"
+                          : undefined
+                  }
                 >
                   {option.label}
                 </SelectItem>

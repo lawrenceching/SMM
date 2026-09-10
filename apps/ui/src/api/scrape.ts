@@ -1,28 +1,47 @@
-import type { ScrapeRequestBody, ScrapeResponseBody } from "@smm/types";
-import { apiFetch } from '@/lib/apiFetch';
+import { apiFetch } from '@/lib/apiFetch'
 
-/**
- * Scrape media files (poster, thumbnails, nfo) for a media folder
- * @param mediaFolderPath - The absolute path to the media folder (in POSIX format)
- */
-export async function scrapeApi(mediaFolderPath: string): Promise<ScrapeResponseBody> {
-  const req: ScrapeRequestBody = {
-    mediaFolderPath: mediaFolderPath,
+export interface ScrapeFolderParams {
+  path: string
+  language?: string
+}
+
+export interface ScrapeFolderResponseBody {
+  data?: { id: string }
+  error?: string
+}
+
+/** Layer-2 scrape via Core (`POST /api/scrape`). */
+export async function scrapeFolder(
+  params: ScrapeFolderParams,
+  signal?: AbortSignal,
+): Promise<ScrapeFolderResponseBody> {
+  const body: Record<string, string> = { path: params.path }
+  if (params.language !== undefined && params.language.trim() !== '') {
+    body.language = params.language
   }
 
   const resp = await apiFetch('/api/scrape', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    signal,
+  })
 
   if (!resp.ok) {
-    throw new Error(`Failed to scrape media: ${resp.statusText}`);
+    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
   }
 
-  const data: ScrapeResponseBody = await resp.json();
-  return data;
+  return (await resp.json()) as ScrapeFolderResponseBody
 }
 
+/** Throws on business error; returns job id. */
+export async function scrapeFolderViaCore(params: ScrapeFolderParams): Promise<string> {
+  const data = await scrapeFolder(params)
+  if (data.error) {
+    throw new Error(data.error)
+  }
+  if (!data.data?.id) {
+    throw new Error('Error Reason: scrape job id missing')
+  }
+  return data.data.id
+}

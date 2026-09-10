@@ -44,7 +44,7 @@ export function registerGetEpisodesTool(
         );
       }
       try {
-        const userConfig = await config.getUserConfig();
+        await config.getUserConfig();
         const syntheticConfig: CoreRoutesConfig = {
           allowlist: [],
           hello: {

@@ -58,7 +58,7 @@ import {
   type RenameEpisodeFileInput,
   type RenameEpisodeFileResult,
 } from "./pipeline/renameEpisodeFile";
-import { applyPlanPipeline } from "./pipeline/applyPlan";
+import { applyPlanPipeline, type ApplyPlanData } from "./pipeline/applyPlan";
 import {
   listPlans,
   readPlan,
@@ -77,6 +77,10 @@ import {
   createRenameEpisodePlanPipeline,
   type CreateRenameEpisodePlanOptions,
 } from "./pipeline/createRenameEpisodePlan";
+import {
+  createRecognizeEpisodePlanPipeline,
+  type CreateRecognizeEpisodePlanOptions as CreateRecognizeEpisodePlanCoreOptions,
+} from "./pipeline/createRecognizeEpisodePlan";
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
   prepareScrapeFolder,
@@ -544,6 +548,18 @@ export class Core {
     });
   }
 
+  async createRecognizeEpisodePlan(
+    mediaFolderPath: string,
+    files: Array<{ season: number; episode: number; path: string }>,
+    options?: CreateRecognizeEpisodePlanCoreOptions,
+  ): Promise<RecognizeMediaFilePlan> {
+    return createRecognizeEpisodePlanPipeline(mediaFolderPath, files, options, {
+      fs: this.fs,
+      appDataDir: this.getMetadataRoot(),
+      normalizePosix: (path) => this.normalizePosix(path),
+    });
+  }
+
   async getPlan(id: string): Promise<Plan> {
     const plan = await readPlan(this.fs, this.getMetadataRoot(), id);
     if (!plan) throw new Error(`Plan not found: ${id}`);
@@ -558,14 +574,18 @@ export class Core {
     return rejectPlan(this.fs, this.getMetadataRoot(), id);
   }
 
-  async applyPlan(plan: Plan): Promise<void> {
-    await applyPlanPipeline(plan, {
-      fs: this.fs,
-      appDataDir: this.getMetadataRoot(),
-      normalizePosix: (p) => this.normalizePosix(p),
-      setMetadata: (mm) => this.writeMetadata(mm),
-      getMediaMetadata: (folder) => this.readMetadata(folder),
-    });
+  async applyPlan(plan: Plan, data?: ApplyPlanData): Promise<void> {
+    await applyPlanPipeline(
+      plan,
+      {
+        fs: this.fs,
+        appDataDir: this.getMetadataRoot(),
+        normalizePosix: (p) => this.normalizePosix(p),
+        setMetadata: (mm) => this.writeMetadata(mm),
+        getMediaMetadata: (folder) => this.readMetadata(folder),
+      },
+      data,
+    );
   }
 
   async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {

@@ -1,4 +1,6 @@
 import type { UserConfig } from "@smm/types";
+import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import { resolveAppLanguage, detectOsLocale } from "@smm/utils/locale";
 import { GET_APPLICATION_CONTEXT } from "@smm/types/ai-tools/getApplicationContext";
 import { IS_FOLDER_EXIST } from "@smm/types/ai-tools/isFolderExist";
@@ -34,10 +36,8 @@ import {
   CREATE_RENAME_EPISODE_PLAN,
 } from "@smm/types/ai-tools/createRenameEpisodePlan";
 import {
-  BEGIN_RECOGNIZE_TASK,
-  ADD_RECOGNIZED_MEDIA_FILE,
-  END_RECOGNIZE_TASK,
-} from "@smm/types/ai-tools/recognizeMediaFileTask";
+  CREATE_RECOGNIZE_EPISODE_PLAN,
+} from "@smm/types/ai-tools/createRecognizeEpisodePlan";
 import type { CoreRoutesConfig } from "../types.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatConfig, ChatFs } from "../chatTypes.ts";
@@ -63,11 +63,7 @@ import {
   type GetJobRunner,
 } from "./getJob.ts";
 import { buildCreateRenameEpisodePlanTool } from "./createRenameEpisodePlan.ts";
-import {
-  buildAddRecognizedMediaFileTool,
-  buildBeginRecognizeTaskTool,
-  buildEndRecognizeTaskTool,
-} from "./recognizeMediaFilesTask.ts";
+import { buildCreateRecognizeEpisodePlanTool } from "./createRecognizeEpisodePlan.ts";
 
 /**
  * The chat tools registered in `streamText({ tools })`, keyed by
@@ -96,9 +92,9 @@ export interface ChatTools {
   [CREATE_RENAME_EPISODE_PLAN]: ReturnType<
     typeof buildCreateRenameEpisodePlanTool
   >;
-  [BEGIN_RECOGNIZE_TASK]: ReturnType<typeof buildBeginRecognizeTaskTool>;
-  [ADD_RECOGNIZED_MEDIA_FILE]: ReturnType<typeof buildAddRecognizedMediaFileTool>;
-  [END_RECOGNIZE_TASK]: ReturnType<typeof buildEndRecognizeTaskTool>;
+  [CREATE_RECOGNIZE_EPISODE_PLAN]: ReturnType<
+    typeof buildCreateRecognizeEpisodePlanTool
+  >;
 }
 
 /**
@@ -117,6 +113,10 @@ export interface ChatToolsExtraDeps {
   tmdb?: TmdbToolRunners;
   /** Host Core runners for TVDB query tools. */
   tvdb?: TvdbToolRunners;
+  /** Host Core runner for applying AI rename plans (Bun cli / Electron). */
+  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
+  /** Host Core runner for applying AI recognize plans (Bun cli / Electron). */
+  applyRecognizeEpisodePlan?: (plan: RecognizeMediaFilePlan) => Promise<void>;
 }
 
 export interface CreateChatToolsArgs {
@@ -214,29 +214,21 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       broadcast,
       logger,
       abortSignal,
+      {
+        getUserConfig: () => Promise.resolve(userConfig),
+        applyRenameEpisodePlan: extra?.applyRenameEpisodePlan,
+      },
     ),
-    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(
-      clientId,
+    [CREATE_RECOGNIZE_EPISODE_PLAN]: buildCreateRecognizeEpisodePlanTool(
       config.appDataDir,
       fs,
       broadcast,
       logger,
       abortSignal,
-    ),
-    [ADD_RECOGNIZED_MEDIA_FILE]: buildAddRecognizedMediaFileTool(
-      clientId,
-      config.appDataDir,
-      fs,
-      logger,
-      abortSignal,
-    ),
-    [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(
-      clientId,
-      config.appDataDir,
-      fs,
-      broadcast,
-      logger,
-      abortSignal,
+      {
+        getUserConfig: () => Promise.resolve(userConfig),
+        applyRecognizeEpisodePlan: extra?.applyRecognizeEpisodePlan,
+      },
     ),
   };
 }

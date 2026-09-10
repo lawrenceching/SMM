@@ -1,4 +1,3 @@
-import { Path } from "@smm/utils/path";
 import { buildRenameFolderConfirmationMessage } from "@smm/core/ai-tool/renameFolderConfirm";
 import {
   renameFolderCancelled,
@@ -7,7 +6,6 @@ import {
 } from "@smm/core/ai-tool/renameFolderResult";
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import {
-  RENAME_FOLDER,
   RENAME_FOLDER_DESCRIPTION,
   renameFolderInputSchema,
   renameFolderOutputSchema,
@@ -158,4 +156,3 @@ export function buildRenameFolderTool(
 }
 
 /** Re-exported tool name constant for the tools registry. */
-export const RENAME_FOLDER_TOOL_NAME = RENAME_FOLDER;

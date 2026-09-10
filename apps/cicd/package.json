@@ -1,6 +1,6 @@
 {
   "name": "@smm/cicd",
-  "module": "index.ts",
+  "module": "run.ts",
   "type": "module",
   "private": true,
   "scripts": {

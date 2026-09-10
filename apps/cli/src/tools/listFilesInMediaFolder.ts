@@ -16,10 +16,6 @@ import { doListFiles } from '@/route/ListFiles'
 import { getUserConfig } from '@/utils/config'
 
 export type { ListFilesInMediaFolderToolOutput }
-export {
-  buildListFilesInMediaFolderResponse,
-  createEmptyListFilesInMediaFolderData,
-} from '@smm/core/ai-tool/buildListFilesInMediaFolderResponse'
 
 async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   const userConfig = await getUserConfig()
@@ -33,7 +29,7 @@ async function isMediaFolderManaged(mediaFolderPath: string): Promise<boolean> {
   })
 }
 
-export async function executeListFilesInMediaFolder(
+async function executeListFilesInMediaFolder(
   params: {
     mediaFolderPath: string
     recursively?: boolean
@@ -104,6 +100,3 @@ export function listFilesInMediaFolderAgentTool(_clientId: string) {
     }) => executeListFilesInMediaFolder(args),
   }
 }
-
-/** @deprecated Use listFilesInMediaFolderAgentTool */
-export const listFilesAgentTool = listFilesInMediaFolderAgentTool

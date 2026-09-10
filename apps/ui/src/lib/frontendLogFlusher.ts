@@ -3,7 +3,7 @@ import { FrontendLogBuffer } from "./frontendLogBuffer";
 import { getAuthToken, buildAuthorizationHeader } from "@/lib/authToken";
 
 const FLUSH_INTERVAL_MS = 2_000;
-export const FLUSH_THRESHOLD = 50;
+const FLUSH_THRESHOLD = 50;
 const ENDPOINT = "/api/log";
 const BLOB_TYPE = "application/json";
 

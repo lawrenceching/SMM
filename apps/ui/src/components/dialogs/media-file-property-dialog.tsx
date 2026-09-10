@@ -39,7 +39,7 @@ import { useFailedCommandLogsStore } from "@/stores/failedCommandLogsStore"
 import { useJobManager } from "@/hooks/useJobManager"
 import { buildFfmpegWriteTagsJob } from "@/lib/ffmpegWriteTagsJobFactory"
 
-export interface TrackProperties {
+interface TrackProperties {
   id: number
   title?: string
   artist?: string

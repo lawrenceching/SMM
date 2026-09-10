@@ -21,7 +21,7 @@ const coreRoutesLogger: CoreRoutesLogger = {
  * Delegates to `doDeleteFolder` in `@smm/core-routes`. Path validation
  * is allowlist-based (any directory inside the allowlist is deletable).
  */
-export async function processDeleteFolder(
+async function processDeleteFolder(
   body: DeleteFolderRequestBody,
 ): Promise<DeleteFolderResponseBody> {
   const allowlist = await buildAllowlist();

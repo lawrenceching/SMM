@@ -2,12 +2,12 @@ import type { Hono } from 'hono'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface TmdbSearchHttpResponseBody {
+interface TmdbSearchHttpResponseBody {
   data?: unknown
   error?: string
 }
 
-export interface TmdbDetailsHttpResponseBody {
+interface TmdbDetailsHttpResponseBody {
   data?: unknown
   error?: string
 }

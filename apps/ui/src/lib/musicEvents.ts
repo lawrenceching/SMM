@@ -10,7 +10,7 @@ export const MUSIC_EVENT_NAMES: Record<MusicEventType, MusicEventType> = {
   'track:videoCompress': 'track:videoCompress',
 };
 
-export interface BaseMusicEventDetail {
+interface BaseMusicEventDetail {
   trackId: number;
   timestamp: number;
 }
@@ -87,7 +87,7 @@ export function createTrackPropertiesEvent(track: Track): CustomEvent<TrackPrope
   });
 }
 
-export function emitMusicEvent(event: CustomEvent<MusicEventDetail>): void {
+function emitMusicEvent(event: CustomEvent<MusicEventDetail>): void {
   document.dispatchEvent(event);
 }
 
@@ -106,7 +106,7 @@ export function emitTrackPropertiesEvent(track: Track): void {
   emitMusicEvent(event);
 }
 
-export function createTrackFormatConvertEvent(track: Track): CustomEvent<TrackFormatConvertEventDetail> {
+function createTrackFormatConvertEvent(track: Track): CustomEvent<TrackFormatConvertEventDetail> {
   return new CustomEvent<TrackFormatConvertEventDetail>(MUSIC_EVENT_NAMES['track:formatConvert'], {
     bubbles: true,
     composed: true,
@@ -124,7 +124,7 @@ export function emitTrackFormatConvertEvent(track: Track): void {
   emitMusicEvent(event);
 }
 
-export function createTrackVideoCompressEvent(track: Track): CustomEvent<TrackVideoCompressEventDetail> {
+function createTrackVideoCompressEvent(track: Track): CustomEvent<TrackVideoCompressEventDetail> {
   return new CustomEvent<TrackVideoCompressEventDetail>(MUSIC_EVENT_NAMES['track:videoCompress'], {
     bubbles: true,
     composed: true,

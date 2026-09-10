@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { handleAiRecognizeConfirm, type SetPlanByIdFn } from './handleAiRecognizeConfirm'
 import type { PersistUIMediaMetadataFn } from '@/types/persistUIMediaMetadata'
 import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
-import type { UIMediaMetadata } from '@/types/UIMediaMetadata'
+import type { MediaMetadata } from '@smm/types'
 import { applyRecognizeMediaFilePlan } from '@/components/tv/TvShowPanelUtils'
 
 vi.mock('@/components/tv/TvShowPanelUtils', () => ({
@@ -30,13 +30,13 @@ describe('handleAiRecognizeConfirm', () => {
     ],
   }
 
-  const mediaMetadata: UIMediaMetadata = {
+  const mediaMetadata: MediaMetadata = {
     mediaFolderPath,
     type: 'tvshow-folder',
     status: 'ok',
     files: ['/media/show/ep1.mkv'],
     mediaFiles: [],
-  } as UIMediaMetadata
+  } as MediaMetadata
 
   let persist: ReturnType<typeof vi.fn>
   let setPlanById: ReturnType<typeof vi.fn>

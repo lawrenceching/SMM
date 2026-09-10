@@ -53,7 +53,7 @@ describe("buildMovieFilesFromMediaMetadata", () => {
       files: [videoPath, subtitlePath, nfoPath],
     }
 
-    expect(buildMovieFilesFromMediaMetadata(mediaMetadata)).toEqual({
+    expect(buildMovieFilesFromMediaMetadata(mediaMetadata, mediaMetadata.files ?? [])).toEqual({
       files: [
         { type: "video", path: videoPath, newPath: undefined },
         { type: "subtitle", path: subtitlePath, newPath: undefined },
@@ -73,7 +73,7 @@ describe("buildMovieFilesFromMediaMetadata", () => {
       files: [videoPath, posterPath, audioPath],
     }
 
-    expect(buildMovieFilesFromMediaMetadata(mediaMetadata)).toEqual({
+    expect(buildMovieFilesFromMediaMetadata(mediaMetadata, mediaMetadata.files ?? [])).toEqual({
       files: [
         { type: "video", path: videoPath, newPath: undefined },
         { type: "poster", path: posterPath, newPath: undefined },
@@ -94,7 +94,7 @@ describe("buildMovieFilesFromMediaMetadata", () => {
       files: [fanartPath, nfoPath, posterPath, videoPath],
     }
 
-    expect(buildMovieFilesFromMediaMetadata(mediaMetadata)).toEqual({
+    expect(buildMovieFilesFromMediaMetadata(mediaMetadata, mediaMetadata.files ?? [])).toEqual({
       files: [
         { type: "video", path: videoPath, newPath: undefined },
         { type: "nfo", path: nfoPath, newPath: undefined },

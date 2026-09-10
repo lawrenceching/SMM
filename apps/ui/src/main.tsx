@@ -4,7 +4,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { i18nReady } from './lib/i18n'
-import AppV2 from './AppV2.tsx'
+import App from './App.tsx'
+import { ImportFolderEventHandler } from './components/eventlisteners/ImportFolderEventHandler.tsx'
 import AppNavigation from './AppNavigation.tsx'
 import { ThemeProvider } from './providers/theme-provider'
 import { AppLanguageSync } from './hooks/userConfig'
@@ -149,7 +150,7 @@ function EventListeners() {
       <RecognizeMediaFilePlanReadyEventListener />
       <UserConfigUpdatedEventListener />
       <MediaMetadataUpdatedEventListener />
-      {/* <MediaFolderImportedEventHandler /> */}
+      <ImportFolderEventHandler />
       <MediaLibraryImportedEventHandler />
       <FixedDelayBackgroundJobHandler />
       <FolderContentChangedEventListener />
@@ -174,10 +175,10 @@ function AppSwitcher() {
     )
   }
 
-  // On desktop, use AppV2 only
+  // On desktop, use App only
   return (
     <>
-      <AppV2 />
+      <App />
       <WebSocketHandlers />
       <EventListeners />
     </>

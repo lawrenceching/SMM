@@ -104,6 +104,25 @@ describe("selectActiveAiPlan", () => {
     ).toBeUndefined()
   })
 
+  it("ignores preparing AI plans (preparing no longer surfaces)", () => {
+    expect(
+      selectActiveAiPlan(
+        [
+          {
+            id: "rename-ai-preparing",
+            task: "rename-files",
+            status: "preparing",
+            creator: "ai",
+            mediaFolderPath: "/media/show",
+            files: [],
+          },
+        ],
+        "/media/show",
+        "rename-files",
+      ),
+    ).toBeUndefined()
+  })
+
   it("returns active AI recognize plan", () => {
     expect(
       selectActiveAiPlan(

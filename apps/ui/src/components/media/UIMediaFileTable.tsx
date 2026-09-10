@@ -1,41 +1,11 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  ContextMenu,
-  ContextMenuCheckboxItem,
-  ContextMenuContent,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import { ChevronRightIcon } from "lucide-react"
-import { useState, useMemo, type ReactNode } from "react"
+import type { MetadataFiles } from "@smm/types/MetadataFiles"
+import { useCallback, useMemo, useState } from "react"
+import type { ReactNode } from "react"
 import { useTranslation } from "@/lib/i18n"
-import { cn } from "@/lib/utils"
-import {
-  MediaFileTableTr,
-  MediaFileTableRowsBody,
-  MediaFileTableSectionRows,
-  type MediaFileTableBodyRow,
-  type MediaFileTableColumnKey,
-  type MediaFileTableRowContext,
-} from "./MediaFileTableRow"
-import {
-  buildMediaFileTableColumnLayout,
-  MediaFileTableColGroup,
-} from "./mediaFileTableColumns"
+import type { EpisodeContextMenuItem } from "./MediaFileTableRow"
+import { MediaFileTableDetailLayout } from "./MediaFileTableDetailLayout"
+import { MediaFileTablePreviewLayout } from "./MediaFileTablePreviewLayout"
+import { MediaFileTableSimpleLayout } from "./MediaFileTableSimpleLayout"
 
 // ========================================================================
 // Row types
@@ -49,6 +19,19 @@ export interface UIMediaFileDividerRow {
 }
 
 /**
+ * Identifies one TV episode row for checkbox selection.
+ *
+ * Selection is kept separate from the row data (controlled by the table via
+ * the `selectedEpisodes` prop, or managed internally), so user toggles survive
+ * row rebuilds that derive from refetched metadata / plans.
+ */
+export interface UIMediaEpisodeSelection {
+  season: number
+  episode: number
+}
+
+/**
+ * @deprecated
  * A single playable file row (e.g. one TV episode or one movie).
  *
  * `season` and `episode` are kept on every data row for layout compatibility
@@ -69,7 +52,6 @@ export interface UIMediaFileDataRow {
   newThumbnail?: string
   newSubtitle?: string
   newNfo?: string
-  checked: boolean
   /**
    * In preview mode, row does not participate in the current plan:
    * checkbox is disabled and the row is rendered in a muted style.
@@ -78,13 +60,27 @@ export interface UIMediaFileDataRow {
   disabled?: boolean
 }
 
-export type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
+type FolderFileId = "clearlogo" | "fanart" | "poster" | "theme" | "nfo"
 
 /** A folder-level asset (poster, fanart, nfo, etc.) — not playable. */
 export interface UIMediaFileFolderRow {
   id: FolderFileId
   type: "folderFile"
   path: string
+}
+
+
+export interface MediaFileTableEpisodeData {
+  season: number,
+  episode: number,
+  title: string,
+  path?: string,
+}
+
+export interface MediaFileTableSeasonData {
+  season: number,
+  title: string,
+  episodes: MediaFileTableEpisodeData[],
 }
 
 export type UIMediaFileTableRow = UIMediaFileDividerRow | UIMediaFileDataRow | UIMediaFileFolderRow
@@ -94,7 +90,7 @@ export type UIMediaFileTableRow = UIMediaFileDividerRow | UIMediaFileDataRow | U
 // ========================================================================
 
 /** A single context menu item for data rows (type === "episode"). */
-export interface UIMediaFileDataContextMenuItem {
+interface UIMediaFileDataContextMenuItem {
   /** Unique id. */
   id: string
   /** Display label (already translated). */
@@ -106,7 +102,7 @@ export interface UIMediaFileDataContextMenuItem {
 }
 
 /** A single context menu item for folder file rows (type === "folderFile"). */
-export interface UIMediaFileFolderContextMenuItem {
+interface UIMediaFileFolderContextMenuItem {
   id: string
   label: string
   onClick?: (row: UIMediaFileFolderRow) => void
@@ -121,16 +117,75 @@ export interface UIMediaFileTableContextMenuConfig {
   folderFileRowItems?: UIMediaFileFolderContextMenuItem[]
 }
 
+/**
+ * Props controlling the right-click context menu on episode / data rows.
+ *
+ * `UIMediaFileTable` hardcodes all menu items internally and uses these props
+ * to control visibility, disabled state, and click handlers for each item.
+ */
+export interface MediaFileTableContextMenuProps {
+  /** Handler for "Open". Always visible when provided. */
+  onOpenMenuClick?: (row: UIMediaFileDataRow) => void
+  /** Handler for "Properties". Always visible when provided. */
+  onPropertiesMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Rename" menu item. */
+  renameMenuVisible?: boolean
+  /** Disabled state for "Rename". Defaults to `!row.videoFile` when omitted. */
+  renameMenuDisabled?: boolean
+  /** Handler for "Rename". */
+  onRenameMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Select File" menu item. */
+  selectFileMenuVisible?: boolean
+  /** Disabled state for "Select File". Defaults to `false` when omitted. */
+  selectFileMenuDisabled?: boolean
+  /** Handler for "Select File". */
+  onSelectFileMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Unlink" menu item. */
+  unlinkMenuVisible?: boolean
+  /** Disabled state for "Unlink". Defaults to `!row.videoFile` when omitted. */
+  unlinkMenuDisabled?: boolean
+  /** Handler for "Unlink". */
+  onUnlinkMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Video Compress" menu item. */
+  videoCompressMenuVisible?: boolean
+  /** Disabled state for "Video Compress". Defaults to `!row.videoFile` when omitted. */
+  videoCompressMenuDisabled?: boolean
+  /** Handler for "Video Compress". */
+  onVideoCompressMenuClick?: (row: UIMediaFileDataRow) => void
+
+  /** Show "Format Convert" menu item. */
+  formatConvertMenuVisible?: boolean
+  /** Disabled state for "Format Convert". Defaults to `!row.videoFile` when omitted. */
+  formatConvertMenuDisabled?: boolean
+  /** Handler for "Format Convert". */
+  onFormatConvertMenuClick?: (row: UIMediaFileDataRow) => void
+}
+
 // ========================================================================
 // Component props
 // ========================================================================
 
 export interface UIMediaFileTableProps {
+  seasonData?: MediaFileTableSeasonData[],
+  metadataFiles?: MetadataFiles,
+  subtitleFiles?: { season: number, episode: number, files: string[] }[],
+  nfoFiles?: { season: number, episode: number, files: string[] }[],
+  thumbnailFiles?: { season: number, episode: number, files: string[] }[],
   data: UIMediaFileTableRow[]
   /** When set, paths are shown relative to this base. */
   mediaFolderPath?: string
   /** Right-click menu configuration. Omit for no row context menus. */
   contextMenuConfig?: UIMediaFileTableContextMenuConfig
+  /**
+   * Right-click context menu props. When provided, `UIMediaFileTable` hardcodes
+   * the menu items and uses these props to control visibility / disabled / callbacks.
+   * Takes precedence over `contextMenuConfig` for data-row items.
+   */
+  contextMenuProps?: MediaFileTableContextMenuProps
   /**
    * NOTE: `preview` mode is a different concept from `preview` layout.
    * - `preview` mode: preview a recognition or rename plan (shows old→new paths, etc.)
@@ -145,8 +200,14 @@ export interface UIMediaFileTableProps {
    * - `preview`  no ID column, larger cover, extra content area for video screenshots
    */
   layout?: "simple" | "detail" | "preview"
+  /**
+   * Controlled checkbox selection — which episodes are currently checked.
+   * Omit → the table manages the selection internally (uncontrolled mode).
+   * Checkboxes are only rendered while `preview` is set.
+   */
+  selectedEpisodes?: UIMediaEpisodeSelection[]
   /** Checkbox state callback. Omit → checkbox column is hidden. */
-  onCheck?: (row: UIMediaFileDataRow, checked: boolean) => void
+  onCheck?: (season: number, episode: number, checked: boolean) => void
   /**
    * Renders the extra content area below the video path in `preview` layout
    * (e.g. video screenshots). Omit → the area is hidden.
@@ -159,405 +220,212 @@ export interface UIMediaFileTableProps {
    * Omit → double-click has no effect.
    */
   onDoubleClick?: (row: UIMediaFileDataRow | UIMediaFileFolderRow) => void
+  newFilePaths?: { season: number, episode: number, newFilePath: string }[]
+  checboxVisible?: boolean
+  /**
+   * When `true` (default), episodes without a video file (`MediaFileTableEpisodeData.path`
+   * is undefined) render their checkbox as disabled.
+   */
+  disableCheckboxIfEpisodeVideoNotAvailable?: boolean
 }
 
 // ========================================================================
-// Column visibility
+// Shared layout-independent table state
 // ========================================================================
 
-type ColumnKey = MediaFileTableColumnKey
-
-const getColumnLabels = (
-  t: (key: string, options?: Record<string, unknown>) => string,
-): Record<ColumnKey, string> => ({
-  video: t("mediaFileTable.columns.video"),
-  thumbnail: t("mediaFileTable.columns.thumbnail"),
-  subtitle: t("mediaFileTable.columns.subtitle"),
-  nfo: t("mediaFileTable.columns.nfo"),
-})
-
-const defaultColumnVisibility: Record<ColumnKey, boolean> = {
-  video: true,
-  thumbnail: true,
-  subtitle: true,
-  nfo: true,
+/**
+ * State owned by the `UIMediaFileTable` dispatcher and shared with the
+ * per-layout presentational components (kept outside them so switching layout
+ * does not remount the state).
+ */
+export interface MediaFileTableLayoutState {
+  /** Divider ids currently collapsed. */
+  collapsedIds: Set<string>
+  /** Toggle a divider section's collapsed state. */
+  setSectionCollapsed: (dividerId: string, collapsed: boolean) => void
+  /** Context-menu items forwarded to every episode row. */
+  episodeContextMenuItems: EpisodeContextMenuItem[]
 }
 
-// ========================================================================
-// Table segmentation (divider sections)
-// ========================================================================
+type Translator = (key: string, options?: Record<string, unknown>) => string
 
-type TableSegment =
-  | { kind: "standalone"; row: UIMediaFileTableRow; index: number }
-  | {
-      kind: "section"
-      divider: UIMediaFileDividerRow
-      dividerIndex: number
-      rows: Array<{ row: UIMediaFileTableRow; index: number }>
+/** Build the effective context-menu config from `contextMenuProps` (which takes
+ * precedence over the raw `contextMenuConfig` for data-row items). */
+function buildEffectiveContextMenuConfig(
+  contextMenuProps: MediaFileTableContextMenuProps | undefined,
+  contextMenuConfig: UIMediaFileTableContextMenuConfig | undefined,
+  t: Translator,
+): UIMediaFileTableContextMenuConfig | undefined {
+  if (contextMenuProps) {
+    const { onOpenMenuClick, onPropertiesMenuClick } = contextMenuProps
+    const dataRowItems: UIMediaFileDataContextMenuItem[] = [
+      {
+        id: "open",
+        label: t("mediaFileTable.contextMenu.open"),
+        onClick: onOpenMenuClick,
+        disabled: (row) => !row.videoFile,
+      },
+      {
+        id: "properties",
+        label: t("mediaFileTable.contextMenu.properties"),
+        onClick: onPropertiesMenuClick,
+        disabled: (row) => !row.videoFile,
+      },
+    ]
+
+    if (contextMenuProps.renameMenuVisible !== false && contextMenuProps.onRenameMenuClick) {
+      dataRowItems.push({
+        id: "rename",
+        label: t("episodeFile.rename"),
+        onClick: contextMenuProps.onRenameMenuClick,
+        disabled: (row) => contextMenuProps.renameMenuDisabled ?? !row.videoFile,
+      })
+    }
+    if (contextMenuProps.selectFileMenuVisible !== false && contextMenuProps.onSelectFileMenuClick) {
+      dataRowItems.push({
+        id: "select-file",
+        label: t("episodeFile.selectFile"),
+        onClick: contextMenuProps.onSelectFileMenuClick,
+        disabled: contextMenuProps.selectFileMenuDisabled,
+      })
+    }
+    if (contextMenuProps.unlinkMenuVisible !== false && contextMenuProps.onUnlinkMenuClick) {
+      dataRowItems.push({
+        id: "unlink",
+        label: t("tvShowEpisodeTable.contextMenu.unlink"),
+        onClick: contextMenuProps.onUnlinkMenuClick,
+        disabled: (row) => contextMenuProps.unlinkMenuDisabled ?? !row.videoFile,
+      })
+    }
+    if (contextMenuProps.videoCompressMenuVisible !== false && contextMenuProps.onVideoCompressMenuClick) {
+      dataRowItems.push({
+        id: "video-compress",
+        label: t("tvShowEpisodeTable.contextMenu.videoCompress"),
+        onClick: contextMenuProps.onVideoCompressMenuClick,
+        disabled: (row) => contextMenuProps.videoCompressMenuDisabled ?? !row.videoFile,
+      })
+    }
+    if (contextMenuProps.formatConvertMenuVisible !== false && contextMenuProps.onFormatConvertMenuClick) {
+      dataRowItems.push({
+        id: "format-convert",
+        label: t("tvShowEpisodeTable.contextMenu.formatConvert"),
+        onClick: contextMenuProps.onFormatConvertMenuClick,
+        disabled: (row) => contextMenuProps.formatConvertMenuDisabled ?? !row.videoFile,
+      })
     }
 
-function groupTableData(data: UIMediaFileTableRow[]): TableSegment[] {
-  const segments: TableSegment[] = []
-  let index = 0
+    const folderFileRowItems: UIMediaFileFolderContextMenuItem[] = [
+      {
+        id: "open",
+        label: t("mediaFileTable.contextMenu.open"),
+        onClick: onOpenMenuClick
+          ? (row) => (onOpenMenuClick as unknown as (row: UIMediaFileFolderRow) => void)(row)
+          : undefined,
+        disabled: (row) => !row.path,
+      },
+    ]
 
-  while (index < data.length) {
-    const row = data[index]
-    if (row.type === "divider") {
-      const divider = row
-      const dividerIndex = index
-      index += 1
-      const rows: Array<{ row: UIMediaFileTableRow; index: number }> = []
-      while (index < data.length && data[index].type !== "divider") {
-        rows.push({ row: data[index], index })
-        index += 1
-      }
-      segments.push({ kind: "section", divider, dividerIndex, rows })
-    } else {
-      segments.push({ kind: "standalone", row, index })
-      index += 1
-    }
+    return { dataRowItems, folderFileRowItems }
   }
 
-  return segments
-}
-
-const collapsibleSectionContentClassName = cn(
-  "media-file-table-section-content overflow-hidden",
-  "data-[state=closed]:animate-[media-file-table-collapsible-up_200ms_ease-out]",
-  "data-[state=open]:animate-[media-file-table-collapsible-down_200ms_ease-out]",
-)
-
-type TableRenderBlock =
-  | { kind: "rows"; key: string; rows: MediaFileTableBodyRow[] }
-  | {
-      kind: "section"
-      divider: UIMediaFileDividerRow
-      dividerIndex: number
-      rows: MediaFileTableBodyRow[]
-    }
-
-function toBodyRow(
-  row: UIMediaFileTableRow,
-  index: number,
-): MediaFileTableBodyRow | null {
-  if (row.type === "folderFile") return { row, index }
-  if (row.type === "episode") return { row, index }
-  return null
-}
-
-/** Merge consecutive standalone rows into one tbody so row borders render correctly. */
-function groupSegmentsForRender(segments: TableSegment[]): TableRenderBlock[] {
-  const blocks: TableRenderBlock[] = []
-  let standaloneBatch: MediaFileTableBodyRow[] = []
-
-  const flushStandalone = () => {
-    if (standaloneBatch.length === 0) return
-    blocks.push({
-      kind: "rows",
-      key: `standalone-${standaloneBatch[0].index}`,
-      rows: standaloneBatch,
-    })
-    standaloneBatch = []
-  }
-
-  for (const segment of segments) {
-    if (segment.kind === "standalone") {
-      const bodyRow = toBodyRow(segment.row, segment.index)
-      if (bodyRow) standaloneBatch.push(bodyRow)
-      continue
-    }
-
-    flushStandalone()
-
-    const sectionRows = segment.rows
-      .map(({ row, index }) => toBodyRow(row, index))
-      .filter((row): row is MediaFileTableBodyRow => row !== null)
-
-    blocks.push({
-      kind: "section",
-      divider: segment.divider,
-      dividerIndex: segment.dividerIndex,
-      rows: sectionRows,
-    })
-  }
-
-  flushStandalone()
-  return blocks
+  return contextMenuConfig
 }
 
 // ========================================================================
-// Main component
+// Main component (dispatcher)
 // ========================================================================
 
-export function UIMediaFileTable({
-  data,
-  mediaFolderPath,
-  contextMenuConfig,
-  preview,
-  previewStatus,
-  layout = "simple",
-  onCheck,
-  renderPreviewContent,
-  onDoubleClick,
-}: UIMediaFileTableProps) {
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
-  const [columnVisibility, setColumnVisibility] = useState<Record<ColumnKey, boolean>>(
-    defaultColumnVisibility,
-  )
-
+/**
+ * Dispatches to a per-layout presentational component (`simple` / `detail` /
+ * `preview`). Owns the layout-independent table state (season collapse,
+ * context-menu items) so it survives layout switches.
+ *
+ * A rename preview (`newFilePaths` non-empty) always renders the `simple`
+ * layout, since only that layout supports reviewing old→new file paths.
+ */
+export function UIMediaFileTable(props: UIMediaFileTableProps) {
+  const { layout = "simple", newFilePaths, contextMenuProps, contextMenuConfig } = props
   const { t } = useTranslation("components")
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
 
-  const isSimpleLayout = layout === "simple"
-  const isPreviewLayout = layout === "preview"
-  const showThumbnailColumn =
-    (!isSimpleLayout && layout === "detail") || isPreviewLayout || columnVisibility.thumbnail
-  const showIdColumn = layout !== "preview"
-  const showCheckboxColumn = preview !== undefined
-  const visibleColumnCount =
-    (showCheckboxColumn ? 1 : 0) +
-    (showIdColumn ? 1 : 0) +
-    (showThumbnailColumn ? 1 : 0) +
-    (columnVisibility.video ? 1 : 0) +
-    (columnVisibility.subtitle ? 1 : 0) +
-    (columnVisibility.nfo ? 1 : 0)
-
-  const thumbnailCellWidth = isPreviewLayout
-    ? "w-[160px] min-w-[160px]"
-    : layout === "detail"
-      ? "w-[100px] min-w-[100px]"
-      : ""
-
-  const segments = useMemo(() => groupTableData(data), [data])
-  const renderBlocks = useMemo(() => groupSegmentsForRender(segments), [segments])
-  const columnLayout = useMemo(
-    () =>
-      buildMediaFileTableColumnLayout({
-        layout,
-        preview,
-        columnVisibility,
-      }),
-    [layout, preview, columnVisibility],
-  )
-
-  const setSectionCollapsed = (dividerId: string, collapsed: boolean) => {
+  const setSectionCollapsed = useCallback((dividerId: string, collapsed: boolean) => {
     setCollapsedIds((prev) => {
       const next = new Set(prev)
       if (collapsed) next.add(dividerId)
       else next.delete(dividerId)
       return next
     })
-  }
+  }, [])
 
-  const toggleColumn = (key: ColumnKey) => {
-    setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }))
-  }
-
-  const columnLabels = getColumnLabels(
-    t as (key: string, options?: Record<string, unknown>) => string,
+  const effectiveContextMenuConfig = useMemo(
+    () => buildEffectiveContextMenuConfig(contextMenuProps, contextMenuConfig, t as Translator),
+    [contextMenuProps, contextMenuConfig, t],
   )
 
-  const renderContext: MediaFileTableRowContext = {
-    mediaFolderPath,
-    contextMenuConfig,
-    preview,
-    previewStatus,
-    layout,
-    onCheck,
-    renderPreviewContent,
-    onDoubleClick,
-    isSimpleLayout,
-    isPreviewLayout,
-    showThumbnailColumn,
-    showIdColumn,
-    showCheckboxColumn,
-    columnVisibility,
-    columnLayout,
-    t: t as (key: string, options?: Record<string, unknown>) => string,
+  // Context menu items for the seasonData-driven episode rows. Built once per
+  // config from the (deprecated) UIMediaFileDataRow-based `dataRowItems`.
+  const episodeContextMenuItems = useMemo(
+    () => buildEpisodeContextMenuItems(effectiveContextMenuConfig),
+    [effectiveContextMenuConfig],
+  )
+
+  const tableState: MediaFileTableLayoutState = {
+    collapsedIds,
+    setSectionCollapsed,
+    episodeContextMenuItems,
   }
 
-  // ── Render: header row with column-visibility context menu ────────────
-  const headerRow = (
-    <MediaFileTableTr className="hover:bg-transparent">
-      {showCheckboxColumn && (
-        <TableCell
-          className="h-8 w-10 shrink-0 px-0 py-1 text-center"
-          title={t("mediaFileTable.renameCheckboxTitle", {
-            defaultValue: "Include in rename",
-          })}
-        />
-      )}
-      {showIdColumn && (
-        <TableHead className="h-8 w-[100px] px-2 py-1">
-          {t("mediaFileTable.columns.id")}
-        </TableHead>
-      )}
-      {isSimpleLayout ? (
-        <>
-          {columnVisibility.video && (
-            <TableHead className="h-8 min-w-0 px-2 py-1">
-              {t("mediaFileTable.header.videoFile")}
-            </TableHead>
-          )}
-          {showThumbnailColumn && (
-            <TableHead
-              className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"
-              title={t("mediaFileTable.columns.thumbnail")}
-            >
-              {t("mediaFileTable.header.thumb")}
-            </TableHead>
-          )}
-        </>
-      ) : (
-        <>
-          {showThumbnailColumn && (
-            <TableHead
-              className={cn(
-                "h-8 px-1 py-1",
-                thumbnailCellWidth || "w-10 shrink-0 px-0 text-center whitespace-nowrap",
-              )}
-              title={t("mediaFileTable.columns.thumbnail")}
-            >
-              {t("mediaFileTable.header.thumb")}
-            </TableHead>
-          )}
-          {columnVisibility.video && (
-            <TableHead className="h-8 min-w-0 px-2 py-1">
-              {t("mediaFileTable.header.videoFile")}
-            </TableHead>
-          )}
-        </>
-      )}
-      {columnVisibility.subtitle && (
-        <TableHead
-          className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"
-          title={t("mediaFileTable.columns.subtitle")}
-        >
-          {t("mediaFileTable.header.sub")}
-        </TableHead>
-      )}
-      {columnVisibility.nfo && (
-        <TableHead
-          className="h-8 w-10 shrink-0 px-0 py-1 text-center whitespace-nowrap"
-          title={t("mediaFileTable.columns.nfo")}
-        >
-          {t("mediaFileTable.header.nfo")}
-        </TableHead>
-      )}
-    </MediaFileTableTr>
-  )
+  const effectiveLayout = (newFilePaths?.length ?? 0) > 0 ? "simple" : layout
 
-  return (
-    <section data-testid="media-file-table" className="bg-card">
-      <Table className="text-xs table-fixed w-full">
-        <MediaFileTableColGroup layout={columnLayout} />
-        <TableHeader>
-          <ContextMenu>
-            <ContextMenuTrigger asChild>{headerRow}</ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>
-                  {t("mediaFileTable.contextMenu.showColumns")}
-                </ContextMenuSubTrigger>
-                <ContextMenuSubContent>
-                  <ContextMenuCheckboxItem
-                    checked={columnVisibility.video}
-                    onCheckedChange={() => toggleColumn("video")}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {columnLabels.video}
-                  </ContextMenuCheckboxItem>
-                  <ContextMenuCheckboxItem
-                    checked={columnVisibility.thumbnail}
-                    onCheckedChange={() => toggleColumn("thumbnail")}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {columnLabels.thumbnail}
-                  </ContextMenuCheckboxItem>
-                  <ContextMenuCheckboxItem
-                    checked={columnVisibility.subtitle}
-                    onCheckedChange={() => toggleColumn("subtitle")}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {columnLabels.subtitle}
-                  </ContextMenuCheckboxItem>
-                  <ContextMenuCheckboxItem
-                    checked={columnVisibility.nfo}
-                    onCheckedChange={() => toggleColumn("nfo")}
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    {columnLabels.nfo}
-                  </ContextMenuCheckboxItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-            </ContextMenuContent>
-          </ContextMenu>
-        </TableHeader>
+  if (effectiveLayout === "detail") {
+    return <MediaFileTableDetailLayout {...props} tableState={tableState} />
+  }
+  if (effectiveLayout === "preview") {
+    return <MediaFileTablePreviewLayout {...props} tableState={tableState} />
+  }
+  return <MediaFileTableSimpleLayout {...props} tableState={tableState} />
+}
 
-        {renderBlocks.map((block, blockIndex) => {
-          if (block.kind === "rows") {
-            const nextBlock = renderBlocks[blockIndex + 1]
-            const preserveLastRowBorder = nextBlock?.kind === "section"
-            return (
-              <MediaFileTableRowsBody
-                key={block.key}
-                ctx={renderContext}
-                rows={block.rows}
-                preserveLastRowBorder={preserveLastRowBorder}
-              />
-            )
-          }
+// ========================================================================
+// Season / episode content blocks (moved to MediaFileTableBlocks)
+// ========================================================================
 
-          const { divider, dividerIndex, rows } = block
-          const isCollapsed = collapsedIds.has(divider.id)
-          const expandLabel = t("mediaFileTable.expand")
-          const collapseLabel = t("mediaFileTable.collapse")
+/**
+ * Adapts the deprecated `UIMediaFileDataRow`-based episode menu items
+ * (`UIMediaFileTableContextMenuConfig.dataRowItems`) to the new
+ * `MediaFileTableEpisodeData` model, bridging each episode to a
+ * `UIMediaFileDataRow` (`videoFile` → `path`) so the existing actions
+ * (Open / Properties / panel extras) keep working on seasonData-driven rows.
+ */
+function buildEpisodeContextMenuItems(
+  config: UIMediaFileTableContextMenuConfig | undefined,
+): EpisodeContextMenuItem[] {
+  const dataRowItems = config?.dataRowItems
+  if (!dataRowItems) return []
 
-          return (
-            <Collapsible
-              key={`${divider.id}-${dividerIndex}`}
-              asChild
-              open={!isCollapsed}
-              onOpenChange={(open) => setSectionCollapsed(divider.id, !open)}
-            >
-              <TableBody className="group/section">
-                <TableRow className="bg-muted/60 hover:bg-muted/70">
-                  {showCheckboxColumn && <TableCell className="w-10 shrink-0 px-0 py-1" />}
-                  <TableCell
-                    colSpan={visibleColumnCount - (showCheckboxColumn ? 1 : 0)}
-                    className="px-2 py-1.5 font-semibold"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span>{divider.text}</span>
-                      <CollapsibleTrigger asChild>
-                        <button
-                          type="button"
-                          className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                          title={isCollapsed ? expandLabel : collapseLabel}
-                          aria-label={isCollapsed ? expandLabel : collapseLabel}
-                          aria-expanded={!isCollapsed}
-                        >
-                          <ChevronRightIcon className="size-4 transition-transform duration-200 group-data-[state=open]/section:rotate-90" />
-                        </button>
-                      </CollapsibleTrigger>
-                    </div>
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-b-0 hover:bg-transparent">
-                  <TableCell colSpan={visibleColumnCount} className="p-0 border-0 align-top">
-                    <CollapsibleContent className={collapsibleSectionContentClassName}>
-                      <MediaFileTableSectionRows
-                        columnLayout={columnLayout}
-                        ctx={renderContext}
-                        rows={rows}
-                      />
-                    </CollapsibleContent>
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Collapsible>
-          )
-        })}
-      </Table>
-    </section>
-  )
+  const toDataRow = (episode: MediaFileTableEpisodeData): UIMediaFileDataRow => ({
+    season: episode.season,
+    episode: episode.episode,
+    type: "episode",
+    videoFile: episode.path,
+    thumbnail: undefined,
+    subtitle: undefined,
+    nfo: undefined,
+    episodeTitle: episode.title,
+  })
+
+  return dataRowItems.map((item) => {
+    const disabledRule = item.disabled
+    return {
+      id: item.id,
+      label: item.label,
+      onClick: item.onClick
+        ? (episode: MediaFileTableEpisodeData) => item.onClick?.(toDataRow(episode))
+        : undefined,
+      disabled:
+        typeof disabledRule === "function"
+          ? (episode: MediaFileTableEpisodeData) => disabledRule(toDataRow(episode))
+          : disabledRule,
+    }
+  })
 }

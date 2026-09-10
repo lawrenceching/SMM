@@ -2,7 +2,7 @@ import type { Hono } from 'hono'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface GetFoldersResponseBody {
+interface GetFoldersResponseBody {
   data?: { folders: string[] }
   error?: string
 }

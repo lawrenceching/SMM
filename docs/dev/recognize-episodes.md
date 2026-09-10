@@ -45,13 +45,18 @@ sequenceDiagram
   CLI->>Browser: RecognizeMediaFilePlan
   Browser->>User: show RuleBasedRecognizePrompt
   User->>Browser: click confirm button
+  Browser->>Browser: (optionally uncheck episodes)
   Browser->>CLI: POST /api/apply-plan
   CLI->>Core: applyPlan()
   Core->>Core: update MediaMetadata
 ```
+
+The Web UI may uncheck episodes before confirming; `apply-plan` then carries `data: { files }` with the selected `plan.files[].path` entries (same selection semantics as rename UC3).
 
 ## References
 
 [Import Folder](./import-folder.md)
 
 [Supported Platform](./supported-platform.md)
+
+[E2E Test Cases](../../apps/e2e/recognize-episodes-test.md)

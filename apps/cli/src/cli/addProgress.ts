@@ -1,6 +1,6 @@
 import type { Core, FolderType, ImportJob, JobStage } from '@smm/core'
 
-export type AddProgressKind = 'tvshow' | 'movie'
+type AddProgressKind = 'tvshow' | 'movie'
 
 function mediaKind(type: FolderType): AddProgressKind | null {
   if (type === 'tvshow') return 'tvshow'

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import type { UserConfig } from '@smm/types'
+import { AI_AGENT_PERMISSIONS, type UserConfig } from '@smm/types'
 import { defaultUserConfig, normalizeUserConfig, readUserConfigFromUserDataDir } from './readUserConfig'
 import { readFile } from './readFile'
 
@@ -47,6 +47,34 @@ describe('normalizeUserConfig', () => {
       apiKey: '',
     })
     expect(normalized.primaryDatabase).toBe('TMDB')
+  })
+
+  it('fills missing aiAgent with empty permissions', () => {
+    const raw: Partial<UserConfig> = { folders: [] }
+
+    const normalized = normalizeUserConfig(raw)
+
+    expect(normalized.aiAgent).toEqual({ permissions: [] })
+  })
+
+  it('merges partial aiAgent without dropping other defaults', () => {
+    const raw: Partial<UserConfig> = {
+      aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
+    }
+
+    const normalized = normalizeUserConfig(raw)
+
+    expect(normalized.aiAgent).toEqual({ permissions: ['metadata.write'] })
+  })
+
+  it('keeps aiAgent through a serialize → normalize round trip', () => {
+    const normalized = normalizeUserConfig({
+      aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
+    })
+    const persisted = JSON.parse(JSON.stringify(normalized))
+    expect(normalizeUserConfig(persisted).aiAgent).toEqual({
+      permissions: ['metadata.write'],
+    })
   })
 })
 

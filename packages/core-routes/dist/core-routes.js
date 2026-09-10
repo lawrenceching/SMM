@@ -145,19 +145,19 @@ var require_token_io = __commonJS((exports, module) => {
     getUserDataDir: () => getUserDataDir
   });
   module.exports = __toCommonJS(token_io_exports);
-  var import_path = __toESM2(__require("path"));
+  var import_path2 = __toESM2(__require("path"));
   var import_fs = __toESM2(__require("fs"));
   var import_os = __toESM2(__require("os"));
   var import_token_error = require_token_error();
   function findRootDir() {
     try {
       let dir = process.cwd();
-      while (dir !== import_path.default.dirname(dir)) {
-        const pkgPath = import_path.default.join(dir, ".vercel");
+      while (dir !== import_path2.default.dirname(dir)) {
+        const pkgPath = import_path2.default.join(dir, ".vercel");
         if (import_fs.default.existsSync(pkgPath)) {
           return dir;
         }
-        dir = import_path.default.dirname(dir);
+        dir = import_path2.default.dirname(dir);
       }
     } catch (e) {
       throw new import_token_error.VercelOidcTokenError("Token refresh only supported in node server environments");
@@ -170,9 +170,9 @@ var require_token_io = __commonJS((exports, module) => {
     }
     switch (import_os.default.platform()) {
       case "darwin":
-        return import_path.default.join(import_os.default.homedir(), "Library/Application Support");
+        return import_path2.default.join(import_os.default.homedir(), "Library/Application Support");
       case "linux":
-        return import_path.default.join(import_os.default.homedir(), ".local/share");
+        return import_path2.default.join(import_os.default.homedir(), ".local/share");
       case "win32":
         if (process.env.LOCALAPPDATA) {
           return process.env.LOCALAPPDATA;
@@ -2046,6 +2046,4081 @@ var require_src = __commonJS((exports) => {
     propagation: propagation_api_1.propagation,
     trace: trace_api_1.trace
   };
+});
+
+// ../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
+var require_ms = __commonJS((exports, module) => {
+  var s = 1000;
+  var m = s * 60;
+  var h = m * 60;
+  var d = h * 24;
+  var w = d * 7;
+  var y = d * 365.25;
+  module.exports = function(val, options) {
+    options = options || {};
+    var type = typeof val;
+    if (type === "string" && val.length > 0) {
+      return parse5(val);
+    } else if (type === "number" && isFinite(val)) {
+      return options.long ? fmtLong(val) : fmtShort(val);
+    }
+    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
+  };
+  function parse5(str) {
+    str = String(str);
+    if (str.length > 100) {
+      return;
+    }
+    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
+    if (!match) {
+      return;
+    }
+    var n = parseFloat(match[1]);
+    var type = (match[2] || "ms").toLowerCase();
+    switch (type) {
+      case "years":
+      case "year":
+      case "yrs":
+      case "yr":
+      case "y":
+        return n * y;
+      case "weeks":
+      case "week":
+      case "w":
+        return n * w;
+      case "days":
+      case "day":
+      case "d":
+        return n * d;
+      case "hours":
+      case "hour":
+      case "hrs":
+      case "hr":
+      case "h":
+        return n * h;
+      case "minutes":
+      case "minute":
+      case "mins":
+      case "min":
+      case "m":
+        return n * m;
+      case "seconds":
+      case "second":
+      case "secs":
+      case "sec":
+      case "s":
+        return n * s;
+      case "milliseconds":
+      case "millisecond":
+      case "msecs":
+      case "msec":
+      case "ms":
+        return n;
+      default:
+        return;
+    }
+  }
+  function fmtShort(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return Math.round(ms / d) + "d";
+    }
+    if (msAbs >= h) {
+      return Math.round(ms / h) + "h";
+    }
+    if (msAbs >= m) {
+      return Math.round(ms / m) + "m";
+    }
+    if (msAbs >= s) {
+      return Math.round(ms / s) + "s";
+    }
+    return ms + "ms";
+  }
+  function fmtLong(ms) {
+    var msAbs = Math.abs(ms);
+    if (msAbs >= d) {
+      return plural(ms, msAbs, d, "day");
+    }
+    if (msAbs >= h) {
+      return plural(ms, msAbs, h, "hour");
+    }
+    if (msAbs >= m) {
+      return plural(ms, msAbs, m, "minute");
+    }
+    if (msAbs >= s) {
+      return plural(ms, msAbs, s, "second");
+    }
+    return ms + " ms";
+  }
+  function plural(ms, msAbs, n, name21) {
+    var isPlural = msAbs >= n * 1.5;
+    return Math.round(ms / n) + " " + name21 + (isPlural ? "s" : "");
+  }
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/common.js
+var require_common = __commonJS((exports, module) => {
+  function setup(env) {
+    createDebug.debug = createDebug;
+    createDebug.default = createDebug;
+    createDebug.coerce = coerce2;
+    createDebug.disable = disable;
+    createDebug.enable = enable;
+    createDebug.enabled = enabled;
+    createDebug.humanize = require_ms();
+    createDebug.destroy = destroy;
+    Object.keys(env).forEach((key) => {
+      createDebug[key] = env[key];
+    });
+    createDebug.names = [];
+    createDebug.skips = [];
+    createDebug.formatters = {};
+    function selectColor(namespace) {
+      let hash2 = 0;
+      for (let i = 0;i < namespace.length; i++) {
+        hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i);
+        hash2 |= 0;
+      }
+      return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
+    }
+    createDebug.selectColor = selectColor;
+    function createDebug(namespace) {
+      let prevTime;
+      let enableOverride = null;
+      let namespacesCache;
+      let enabledCache;
+      function debug(...args) {
+        if (!debug.enabled) {
+          return;
+        }
+        const self = debug;
+        const curr = Number(new Date);
+        const ms = curr - (prevTime || curr);
+        self.diff = ms;
+        self.prev = prevTime;
+        self.curr = curr;
+        prevTime = curr;
+        args[0] = createDebug.coerce(args[0]);
+        if (typeof args[0] !== "string") {
+          args.unshift("%O");
+        }
+        let index = 0;
+        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
+          if (match === "%%") {
+            return "%";
+          }
+          index++;
+          const formatter = createDebug.formatters[format];
+          if (typeof formatter === "function") {
+            const val = args[index];
+            match = formatter.call(self, val);
+            args.splice(index, 1);
+            index--;
+          }
+          return match;
+        });
+        createDebug.formatArgs.call(self, args);
+        const logFn = self.log || createDebug.log;
+        logFn.apply(self, args);
+      }
+      debug.namespace = namespace;
+      debug.useColors = createDebug.useColors();
+      debug.color = createDebug.selectColor(namespace);
+      debug.extend = extend2;
+      debug.destroy = createDebug.destroy;
+      Object.defineProperty(debug, "enabled", {
+        enumerable: true,
+        configurable: false,
+        get: () => {
+          if (enableOverride !== null) {
+            return enableOverride;
+          }
+          if (namespacesCache !== createDebug.namespaces) {
+            namespacesCache = createDebug.namespaces;
+            enabledCache = createDebug.enabled(namespace);
+          }
+          return enabledCache;
+        },
+        set: (v) => {
+          enableOverride = v;
+        }
+      });
+      if (typeof createDebug.init === "function") {
+        createDebug.init(debug);
+      }
+      return debug;
+    }
+    function extend2(namespace, delimiter) {
+      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
+      newDebug.log = this.log;
+      return newDebug;
+    }
+    function enable(namespaces) {
+      createDebug.save(namespaces);
+      createDebug.namespaces = namespaces;
+      createDebug.names = [];
+      createDebug.skips = [];
+      const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
+      for (const ns of split2) {
+        if (ns[0] === "-") {
+          createDebug.skips.push(ns.slice(1));
+        } else {
+          createDebug.names.push(ns);
+        }
+      }
+    }
+    function matchesTemplate(search, template) {
+      let searchIndex = 0;
+      let templateIndex = 0;
+      let starIndex = -1;
+      let matchIndex = 0;
+      while (searchIndex < search.length) {
+        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
+          if (template[templateIndex] === "*") {
+            starIndex = templateIndex;
+            matchIndex = searchIndex;
+            templateIndex++;
+          } else {
+            searchIndex++;
+            templateIndex++;
+          }
+        } else if (starIndex !== -1) {
+          templateIndex = starIndex + 1;
+          matchIndex++;
+          searchIndex = matchIndex;
+        } else {
+          return false;
+        }
+      }
+      while (templateIndex < template.length && template[templateIndex] === "*") {
+        templateIndex++;
+      }
+      return templateIndex === template.length;
+    }
+    function disable() {
+      const namespaces = [
+        ...createDebug.names,
+        ...createDebug.skips.map((namespace) => "-" + namespace)
+      ].join(",");
+      createDebug.enable("");
+      return namespaces;
+    }
+    function enabled(name21) {
+      for (const skip of createDebug.skips) {
+        if (matchesTemplate(name21, skip)) {
+          return false;
+        }
+      }
+      for (const ns of createDebug.names) {
+        if (matchesTemplate(name21, ns)) {
+          return true;
+        }
+      }
+      return false;
+    }
+    function coerce2(val) {
+      if (val instanceof Error) {
+        return val.stack || val.message;
+      }
+      return val;
+    }
+    function destroy() {
+      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+    }
+    createDebug.enable(createDebug.load());
+    return createDebug;
+  }
+  module.exports = setup;
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/browser.js
+var require_browser = __commonJS((exports, module) => {
+  exports.formatArgs = formatArgs;
+  exports.save = save;
+  exports.load = load;
+  exports.useColors = useColors;
+  exports.storage = localstorage();
+  exports.destroy = (() => {
+    let warned = false;
+    return () => {
+      if (!warned) {
+        warned = true;
+        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+      }
+    };
+  })();
+  exports.colors = [
+    "#0000CC",
+    "#0000FF",
+    "#0033CC",
+    "#0033FF",
+    "#0066CC",
+    "#0066FF",
+    "#0099CC",
+    "#0099FF",
+    "#00CC00",
+    "#00CC33",
+    "#00CC66",
+    "#00CC99",
+    "#00CCCC",
+    "#00CCFF",
+    "#3300CC",
+    "#3300FF",
+    "#3333CC",
+    "#3333FF",
+    "#3366CC",
+    "#3366FF",
+    "#3399CC",
+    "#3399FF",
+    "#33CC00",
+    "#33CC33",
+    "#33CC66",
+    "#33CC99",
+    "#33CCCC",
+    "#33CCFF",
+    "#6600CC",
+    "#6600FF",
+    "#6633CC",
+    "#6633FF",
+    "#66CC00",
+    "#66CC33",
+    "#9900CC",
+    "#9900FF",
+    "#9933CC",
+    "#9933FF",
+    "#99CC00",
+    "#99CC33",
+    "#CC0000",
+    "#CC0033",
+    "#CC0066",
+    "#CC0099",
+    "#CC00CC",
+    "#CC00FF",
+    "#CC3300",
+    "#CC3333",
+    "#CC3366",
+    "#CC3399",
+    "#CC33CC",
+    "#CC33FF",
+    "#CC6600",
+    "#CC6633",
+    "#CC9900",
+    "#CC9933",
+    "#CCCC00",
+    "#CCCC33",
+    "#FF0000",
+    "#FF0033",
+    "#FF0066",
+    "#FF0099",
+    "#FF00CC",
+    "#FF00FF",
+    "#FF3300",
+    "#FF3333",
+    "#FF3366",
+    "#FF3399",
+    "#FF33CC",
+    "#FF33FF",
+    "#FF6600",
+    "#FF6633",
+    "#FF9900",
+    "#FF9933",
+    "#FFCC00",
+    "#FFCC33"
+  ];
+  function useColors() {
+    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
+      return true;
+    }
+    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
+      return false;
+    }
+    let m;
+    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
+  }
+  function formatArgs(args) {
+    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module.exports.humanize(this.diff);
+    if (!this.useColors) {
+      return;
+    }
+    const c = "color: " + this.color;
+    args.splice(1, 0, c, "color: inherit");
+    let index = 0;
+    let lastC = 0;
+    args[0].replace(/%[a-zA-Z%]/g, (match) => {
+      if (match === "%%") {
+        return;
+      }
+      index++;
+      if (match === "%c") {
+        lastC = index;
+      }
+    });
+    args.splice(lastC, 0, c);
+  }
+  exports.log = console.debug || console.log || (() => {});
+  function save(namespaces) {
+    try {
+      if (namespaces) {
+        exports.storage.setItem("debug", namespaces);
+      } else {
+        exports.storage.removeItem("debug");
+      }
+    } catch (error48) {}
+  }
+  function load() {
+    let r;
+    try {
+      r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
+    } catch (error48) {}
+    if (!r && typeof process !== "undefined" && "env" in process) {
+      r = process.env.DEBUG;
+    }
+    return r;
+  }
+  function localstorage() {
+    try {
+      return localStorage;
+    } catch (error48) {}
+  }
+  module.exports = require_common()(exports);
+  var { formatters } = module.exports;
+  formatters.j = function(v) {
+    try {
+      return JSON.stringify(v);
+    } catch (error48) {
+      return "[UnexpectedJSONParseError]: " + error48.message;
+    }
+  };
+});
+
+// ../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js
+var require_has_flag = __commonJS((exports, module) => {
+  module.exports = (flag, argv = process.argv) => {
+    const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+    const position = argv.indexOf(prefix + flag);
+    const terminatorPosition = argv.indexOf("--");
+    return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+  };
+});
+
+// ../../node_modules/.pnpm/supports-color@8.1.1/node_modules/supports-color/index.js
+var require_supports_color = __commonJS((exports, module) => {
+  var os2 = __require("os");
+  var tty = __require("tty");
+  var hasFlag = require_has_flag();
+  var { env } = process;
+  var flagForceColor;
+  if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+    flagForceColor = 0;
+  } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+    flagForceColor = 1;
+  }
+  function envForceColor() {
+    if ("FORCE_COLOR" in env) {
+      if (env.FORCE_COLOR === "true") {
+        return 1;
+      }
+      if (env.FORCE_COLOR === "false") {
+        return 0;
+      }
+      return env.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+    }
+  }
+  function translateLevel(level) {
+    if (level === 0) {
+      return false;
+    }
+    return {
+      level,
+      hasBasic: true,
+      has256: level >= 2,
+      has16m: level >= 3
+    };
+  }
+  function supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+    const noFlagForceColor = envForceColor();
+    if (noFlagForceColor !== undefined) {
+      flagForceColor = noFlagForceColor;
+    }
+    const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+    if (forceColor === 0) {
+      return 0;
+    }
+    if (sniffFlags) {
+      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+        return 3;
+      }
+      if (hasFlag("color=256")) {
+        return 2;
+      }
+    }
+    if (haveStream && !streamIsTTY && forceColor === undefined) {
+      return 0;
+    }
+    const min = forceColor || 0;
+    if (env.TERM === "dumb") {
+      return min;
+    }
+    if (process.platform === "win32") {
+      const osRelease = os2.release().split(".");
+      if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+        return Number(osRelease[2]) >= 14931 ? 3 : 2;
+      }
+      return 1;
+    }
+    if ("CI" in env) {
+      if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => (sign in env)) || env.CI_NAME === "codeship") {
+        return 1;
+      }
+      return min;
+    }
+    if ("TEAMCITY_VERSION" in env) {
+      return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+    }
+    if (env.COLORTERM === "truecolor") {
+      return 3;
+    }
+    if ("TERM_PROGRAM" in env) {
+      const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+      switch (env.TERM_PROGRAM) {
+        case "iTerm.app":
+          return version2 >= 3 ? 3 : 2;
+        case "Apple_Terminal":
+          return 2;
+      }
+    }
+    if (/-256(color)?$/i.test(env.TERM)) {
+      return 2;
+    }
+    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+      return 1;
+    }
+    if ("COLORTERM" in env) {
+      return 1;
+    }
+    return min;
+  }
+  function getSupportLevel(stream, options = {}) {
+    const level = supportsColor(stream, {
+      streamIsTTY: stream && stream.isTTY,
+      ...options
+    });
+    return translateLevel(level);
+  }
+  module.exports = {
+    supportsColor: getSupportLevel,
+    stdout: getSupportLevel({ isTTY: tty.isatty(1) }),
+    stderr: getSupportLevel({ isTTY: tty.isatty(2) })
+  };
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/node.js
+var require_node2 = __commonJS((exports, module) => {
+  var tty = __require("tty");
+  var util3 = __require("util");
+  exports.init = init;
+  exports.log = log;
+  exports.formatArgs = formatArgs;
+  exports.save = save;
+  exports.load = load;
+  exports.useColors = useColors;
+  exports.destroy = util3.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
+  exports.colors = [6, 2, 3, 4, 5, 1];
+  try {
+    const supportsColor = require_supports_color();
+    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+      exports.colors = [
+        20,
+        21,
+        26,
+        27,
+        32,
+        33,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        56,
+        57,
+        62,
+        63,
+        68,
+        69,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        92,
+        93,
+        98,
+        99,
+        112,
+        113,
+        128,
+        129,
+        134,
+        135,
+        148,
+        149,
+        160,
+        161,
+        162,
+        163,
+        164,
+        165,
+        166,
+        167,
+        168,
+        169,
+        170,
+        171,
+        172,
+        173,
+        178,
+        179,
+        184,
+        185,
+        196,
+        197,
+        198,
+        199,
+        200,
+        201,
+        202,
+        203,
+        204,
+        205,
+        206,
+        207,
+        208,
+        209,
+        214,
+        215,
+        220,
+        221
+      ];
+    }
+  } catch (error48) {}
+  exports.inspectOpts = Object.keys(process.env).filter((key) => {
+    return /^debug_/i.test(key);
+  }).reduce((obj, key) => {
+    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
+      return k.toUpperCase();
+    });
+    let val = process.env[key];
+    if (/^(yes|on|true|enabled)$/i.test(val)) {
+      val = true;
+    } else if (/^(no|off|false|disabled)$/i.test(val)) {
+      val = false;
+    } else if (val === "null") {
+      val = null;
+    } else {
+      val = Number(val);
+    }
+    obj[prop] = val;
+    return obj;
+  }, {});
+  function useColors() {
+    return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+  }
+  function formatArgs(args) {
+    const { namespace: name21, useColors: useColors2 } = this;
+    if (useColors2) {
+      const c = this.color;
+      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
+      const prefix = `  ${colorCode};1m${name21} \x1B[0m`;
+      args[0] = prefix + args[0].split(`
+`).join(`
+` + prefix);
+      args.push(colorCode + "m+" + module.exports.humanize(this.diff) + "\x1B[0m");
+    } else {
+      args[0] = getDate() + name21 + " " + args[0];
+    }
+  }
+  function getDate() {
+    if (exports.inspectOpts.hideDate) {
+      return "";
+    }
+    return new Date().toISOString() + " ";
+  }
+  function log(...args) {
+    return process.stderr.write(util3.formatWithOptions(exports.inspectOpts, ...args) + `
+`);
+  }
+  function save(namespaces) {
+    if (namespaces) {
+      process.env.DEBUG = namespaces;
+    } else {
+      delete process.env.DEBUG;
+    }
+  }
+  function load() {
+    return process.env.DEBUG;
+  }
+  function init(debug) {
+    debug.inspectOpts = {};
+    const keys = Object.keys(exports.inspectOpts);
+    for (let i = 0;i < keys.length; i++) {
+      debug.inspectOpts[keys[i]] = exports.inspectOpts[keys[i]];
+    }
+  }
+  module.exports = require_common()(exports);
+  var { formatters } = module.exports;
+  formatters.o = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util3.inspect(v, this.inspectOpts).split(`
+`).map((str) => str.trim()).join(" ");
+  };
+  formatters.O = function(v) {
+    this.inspectOpts.colors = this.useColors;
+    return util3.inspect(v, this.inspectOpts);
+  };
+});
+
+// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/index.js
+var require_src2 = __commonJS((exports, module) => {
+  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
+    module.exports = require_browser();
+  } else {
+    module.exports = require_node2();
+  }
+});
+
+// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/helpers.js
+var require_helpers = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.req = exports.json = exports.toBuffer = undefined;
+  var http = __importStar(__require("http"));
+  var https = __importStar(__require("https"));
+  async function toBuffer(stream) {
+    let length = 0;
+    const chunks = [];
+    for await (const chunk2 of stream) {
+      length += chunk2.length;
+      chunks.push(chunk2);
+    }
+    return Buffer.concat(chunks, length);
+  }
+  exports.toBuffer = toBuffer;
+  async function json3(stream) {
+    const buf = await toBuffer(stream);
+    const str = buf.toString("utf8");
+    try {
+      return JSON.parse(str);
+    } catch (_err) {
+      const err = _err;
+      err.message += ` (input: ${str})`;
+      throw err;
+    }
+  }
+  exports.json = json3;
+  function req(url2, opts = {}) {
+    const href = typeof url2 === "string" ? url2 : url2.href;
+    const req2 = (href.startsWith("https:") ? https : http).request(url2, opts);
+    const promise2 = new Promise((resolve2, reject) => {
+      req2.once("response", resolve2).once("error", reject).end();
+    });
+    req2.then = promise2.then.bind(promise2);
+    return req2;
+  }
+  exports.req = req;
+});
+
+// ../../node_modules/.pnpm/agent-base@7.1.4/node_modules/agent-base/dist/index.js
+var require_dist2 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
+        __createBinding(exports2, m, p);
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.Agent = undefined;
+  var net = __importStar(__require("net"));
+  var http = __importStar(__require("http"));
+  var https_1 = __require("https");
+  __exportStar(require_helpers(), exports);
+  var INTERNAL = Symbol("AgentBaseInternalState");
+
+  class Agent extends http.Agent {
+    constructor(opts) {
+      super(opts);
+      this[INTERNAL] = {};
+    }
+    isSecureEndpoint(options) {
+      if (options) {
+        if (typeof options.secureEndpoint === "boolean") {
+          return options.secureEndpoint;
+        }
+        if (typeof options.protocol === "string") {
+          return options.protocol === "https:";
+        }
+      }
+      const { stack } = new Error;
+      if (typeof stack !== "string")
+        return false;
+      return stack.split(`
+`).some((l) => l.indexOf("(https.js:") !== -1 || l.indexOf("node:https:") !== -1);
+    }
+    incrementSockets(name21) {
+      if (this.maxSockets === Infinity && this.maxTotalSockets === Infinity) {
+        return null;
+      }
+      if (!this.sockets[name21]) {
+        this.sockets[name21] = [];
+      }
+      const fakeSocket = new net.Socket({ writable: false });
+      this.sockets[name21].push(fakeSocket);
+      this.totalSocketCount++;
+      return fakeSocket;
+    }
+    decrementSockets(name21, socket) {
+      if (!this.sockets[name21] || socket === null) {
+        return;
+      }
+      const sockets = this.sockets[name21];
+      const index = sockets.indexOf(socket);
+      if (index !== -1) {
+        sockets.splice(index, 1);
+        this.totalSocketCount--;
+        if (sockets.length === 0) {
+          delete this.sockets[name21];
+        }
+      }
+    }
+    getName(options) {
+      const secureEndpoint = this.isSecureEndpoint(options);
+      if (secureEndpoint) {
+        return https_1.Agent.prototype.getName.call(this, options);
+      }
+      return super.getName(options);
+    }
+    createSocket(req, options, cb) {
+      const connectOpts = {
+        ...options,
+        secureEndpoint: this.isSecureEndpoint(options)
+      };
+      const name21 = this.getName(connectOpts);
+      const fakeSocket = this.incrementSockets(name21);
+      Promise.resolve().then(() => this.connect(req, connectOpts)).then((socket) => {
+        this.decrementSockets(name21, fakeSocket);
+        if (socket instanceof http.Agent) {
+          try {
+            return socket.addRequest(req, connectOpts);
+          } catch (err) {
+            return cb(err);
+          }
+        }
+        this[INTERNAL].currentSocket = socket;
+        super.createSocket(req, options, cb);
+      }, (err) => {
+        this.decrementSockets(name21, fakeSocket);
+        cb(err);
+      });
+    }
+    createConnection() {
+      const socket = this[INTERNAL].currentSocket;
+      this[INTERNAL].currentSocket = undefined;
+      if (!socket) {
+        throw new Error("No socket was returned in the `connect()` function");
+      }
+      return socket;
+    }
+    get defaultPort() {
+      return this[INTERNAL].defaultPort ?? (this.protocol === "https:" ? 443 : 80);
+    }
+    set defaultPort(v) {
+      if (this[INTERNAL]) {
+        this[INTERNAL].defaultPort = v;
+      }
+    }
+    get protocol() {
+      return this[INTERNAL].protocol ?? (this.isSecureEndpoint() ? "https:" : "http:");
+    }
+    set protocol(v) {
+      if (this[INTERNAL]) {
+        this[INTERNAL].protocol = v;
+      }
+    }
+  }
+  exports.Agent = Agent;
+});
+
+// ../../node_modules/.pnpm/http-proxy-agent@7.0.2/node_modules/http-proxy-agent/dist/index.js
+var require_dist3 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.HttpProxyAgent = undefined;
+  var net = __importStar(__require("net"));
+  var tls = __importStar(__require("tls"));
+  var debug_1 = __importDefault(require_src2());
+  var events_1 = __require("events");
+  var agent_base_1 = require_dist2();
+  var url_1 = __require("url");
+  var debug = (0, debug_1.default)("http-proxy-agent");
+
+  class HttpProxyAgent extends agent_base_1.Agent {
+    constructor(proxy, opts) {
+      super(opts);
+      this.proxy = typeof proxy === "string" ? new url_1.URL(proxy) : proxy;
+      this.proxyHeaders = opts?.headers ?? {};
+      debug("Creating new HttpProxyAgent instance: %o", this.proxy.href);
+      const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, "");
+      const port = this.proxy.port ? parseInt(this.proxy.port, 10) : this.proxy.protocol === "https:" ? 443 : 80;
+      this.connectOpts = {
+        ...opts ? omit3(opts, "headers") : null,
+        host,
+        port
+      };
+    }
+    addRequest(req, opts) {
+      req._header = null;
+      this.setRequestProps(req, opts);
+      super.addRequest(req, opts);
+    }
+    setRequestProps(req, opts) {
+      const { proxy } = this;
+      const protocol = opts.secureEndpoint ? "https:" : "http:";
+      const hostname3 = req.getHeader("host") || "localhost";
+      const base = `${protocol}//${hostname3}`;
+      const url2 = new url_1.URL(req.path, base);
+      if (opts.port !== 80) {
+        url2.port = String(opts.port);
+      }
+      req.path = String(url2);
+      const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
+      if (proxy.username || proxy.password) {
+        const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+        headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+      }
+      if (!headers["Proxy-Connection"]) {
+        headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
+      }
+      for (const name21 of Object.keys(headers)) {
+        const value = headers[name21];
+        if (value) {
+          req.setHeader(name21, value);
+        }
+      }
+    }
+    async connect(req, opts) {
+      req._header = null;
+      if (!req.path.includes("://")) {
+        this.setRequestProps(req, opts);
+      }
+      let first;
+      let endOfHeaders;
+      debug("Regenerating stored HTTP header string for request");
+      req._implicitHeader();
+      if (req.outputData && req.outputData.length > 0) {
+        debug("Patching connection write() output buffer with updated header");
+        first = req.outputData[0].data;
+        endOfHeaders = first.indexOf(`\r
+\r
+`) + 4;
+        req.outputData[0].data = req._header + first.substring(endOfHeaders);
+        debug("Output buffer: %o", req.outputData[0].data);
+      }
+      let socket;
+      if (this.proxy.protocol === "https:") {
+        debug("Creating `tls.Socket`: %o", this.connectOpts);
+        socket = tls.connect(this.connectOpts);
+      } else {
+        debug("Creating `net.Socket`: %o", this.connectOpts);
+        socket = net.connect(this.connectOpts);
+      }
+      await (0, events_1.once)(socket, "connect");
+      return socket;
+    }
+  }
+  HttpProxyAgent.protocols = ["http", "https"];
+  exports.HttpProxyAgent = HttpProxyAgent;
+  function omit3(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+      if (!keys.includes(key)) {
+        ret[key] = obj[key];
+      }
+    }
+    return ret;
+  }
+});
+
+// ../../node_modules/.pnpm/https-proxy-agent@7.0.6/node_modules/https-proxy-agent/dist/parse-proxy-response.js
+var require_parse_proxy_response = __commonJS((exports) => {
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.parseProxyResponse = undefined;
+  var debug_1 = __importDefault(require_src2());
+  var debug = (0, debug_1.default)("https-proxy-agent:parse-proxy-response");
+  function parseProxyResponse(socket) {
+    return new Promise((resolve2, reject) => {
+      let buffersLength = 0;
+      const buffers = [];
+      function read() {
+        const b = socket.read();
+        if (b)
+          ondata(b);
+        else
+          socket.once("readable", read);
+      }
+      function cleanup() {
+        socket.removeListener("end", onend);
+        socket.removeListener("error", onerror);
+        socket.removeListener("readable", read);
+      }
+      function onend() {
+        cleanup();
+        debug("onend");
+        reject(new Error("Proxy connection ended before receiving CONNECT response"));
+      }
+      function onerror(err) {
+        cleanup();
+        debug("onerror %o", err);
+        reject(err);
+      }
+      function ondata(b) {
+        buffers.push(b);
+        buffersLength += b.length;
+        const buffered = Buffer.concat(buffers, buffersLength);
+        const endOfHeaders = buffered.indexOf(`\r
+\r
+`);
+        if (endOfHeaders === -1) {
+          debug("have not received end of HTTP headers yet...");
+          read();
+          return;
+        }
+        const headerParts = buffered.slice(0, endOfHeaders).toString("ascii").split(`\r
+`);
+        const firstLine = headerParts.shift();
+        if (!firstLine) {
+          socket.destroy();
+          return reject(new Error("No header received from proxy CONNECT response"));
+        }
+        const firstLineParts = firstLine.split(" ");
+        const statusCode = +firstLineParts[1];
+        const statusText = firstLineParts.slice(2).join(" ");
+        const headers = {};
+        for (const header of headerParts) {
+          if (!header)
+            continue;
+          const firstColon = header.indexOf(":");
+          if (firstColon === -1) {
+            socket.destroy();
+            return reject(new Error(`Invalid header from proxy CONNECT response: "${header}"`));
+          }
+          const key = header.slice(0, firstColon).toLowerCase();
+          const value = header.slice(firstColon + 1).trimStart();
+          const current = headers[key];
+          if (typeof current === "string") {
+            headers[key] = [current, value];
+          } else if (Array.isArray(current)) {
+            current.push(value);
+          } else {
+            headers[key] = value;
+          }
+        }
+        debug("got proxy server response: %o %o", firstLine, headers);
+        cleanup();
+        resolve2({
+          connect: {
+            statusCode,
+            statusText,
+            headers
+          },
+          buffered
+        });
+      }
+      socket.on("error", onerror);
+      socket.on("end", onend);
+      read();
+    });
+  }
+  exports.parseProxyResponse = parseProxyResponse;
+});
+
+// ../../node_modules/.pnpm/https-proxy-agent@7.0.6/node_modules/https-proxy-agent/dist/index.js
+var require_dist4 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.HttpsProxyAgent = undefined;
+  var net = __importStar(__require("net"));
+  var tls = __importStar(__require("tls"));
+  var assert_1 = __importDefault(__require("assert"));
+  var debug_1 = __importDefault(require_src2());
+  var agent_base_1 = require_dist2();
+  var url_1 = __require("url");
+  var parse_proxy_response_1 = require_parse_proxy_response();
+  var debug = (0, debug_1.default)("https-proxy-agent");
+  var setServernameFromNonIpHost = (options) => {
+    if (options.servername === undefined && options.host && !net.isIP(options.host)) {
+      return {
+        ...options,
+        servername: options.host
+      };
+    }
+    return options;
+  };
+
+  class HttpsProxyAgent extends agent_base_1.Agent {
+    constructor(proxy, opts) {
+      super(opts);
+      this.options = { path: undefined };
+      this.proxy = typeof proxy === "string" ? new url_1.URL(proxy) : proxy;
+      this.proxyHeaders = opts?.headers ?? {};
+      debug("Creating new HttpsProxyAgent instance: %o", this.proxy.href);
+      const host = (this.proxy.hostname || this.proxy.host).replace(/^\[|\]$/g, "");
+      const port = this.proxy.port ? parseInt(this.proxy.port, 10) : this.proxy.protocol === "https:" ? 443 : 80;
+      this.connectOpts = {
+        ALPNProtocols: ["http/1.1"],
+        ...opts ? omit3(opts, "headers") : null,
+        host,
+        port
+      };
+    }
+    async connect(req, opts) {
+      const { proxy } = this;
+      if (!opts.host) {
+        throw new TypeError('No "host" provided');
+      }
+      let socket;
+      if (proxy.protocol === "https:") {
+        debug("Creating `tls.Socket`: %o", this.connectOpts);
+        socket = tls.connect(setServernameFromNonIpHost(this.connectOpts));
+      } else {
+        debug("Creating `net.Socket`: %o", this.connectOpts);
+        socket = net.connect(this.connectOpts);
+      }
+      const headers = typeof this.proxyHeaders === "function" ? this.proxyHeaders() : { ...this.proxyHeaders };
+      const host = net.isIPv6(opts.host) ? `[${opts.host}]` : opts.host;
+      let payload = `CONNECT ${host}:${opts.port} HTTP/1.1\r
+`;
+      if (proxy.username || proxy.password) {
+        const auth = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`;
+        headers["Proxy-Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+      }
+      headers.Host = `${host}:${opts.port}`;
+      if (!headers["Proxy-Connection"]) {
+        headers["Proxy-Connection"] = this.keepAlive ? "Keep-Alive" : "close";
+      }
+      for (const name21 of Object.keys(headers)) {
+        payload += `${name21}: ${headers[name21]}\r
+`;
+      }
+      const proxyResponsePromise = (0, parse_proxy_response_1.parseProxyResponse)(socket);
+      socket.write(`${payload}\r
+`);
+      const { connect, buffered } = await proxyResponsePromise;
+      req.emit("proxyConnect", connect);
+      this.emit("proxyConnect", connect, req);
+      if (connect.statusCode === 200) {
+        req.once("socket", resume);
+        if (opts.secureEndpoint) {
+          debug("Upgrading socket connection to TLS");
+          return tls.connect({
+            ...omit3(setServernameFromNonIpHost(opts), "host", "path", "port"),
+            socket
+          });
+        }
+        return socket;
+      }
+      socket.destroy();
+      const fakeSocket = new net.Socket({ writable: false });
+      fakeSocket.readable = true;
+      req.once("socket", (s) => {
+        debug("Replaying proxy buffer for failed request");
+        (0, assert_1.default)(s.listenerCount("data") > 0);
+        s.push(buffered);
+        s.push(null);
+      });
+      return fakeSocket;
+    }
+  }
+  HttpsProxyAgent.protocols = ["http", "https"];
+  exports.HttpsProxyAgent = HttpsProxyAgent;
+  function resume(socket) {
+    socket.resume();
+  }
+  function omit3(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+      if (!keys.includes(key)) {
+        ret[key] = obj[key];
+      }
+    }
+    return ret;
+  }
+});
+
+// ../../node_modules/.pnpm/smart-buffer@4.2.0/node_modules/smart-buffer/build/utils.js
+var require_utils3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  var buffer_1 = __require("buffer");
+  var ERRORS = {
+    INVALID_ENCODING: "Invalid encoding provided. Please specify a valid encoding the internal Node.js Buffer supports.",
+    INVALID_SMARTBUFFER_SIZE: "Invalid size provided. Size must be a valid integer greater than zero.",
+    INVALID_SMARTBUFFER_BUFFER: "Invalid Buffer provided in SmartBufferOptions.",
+    INVALID_SMARTBUFFER_OBJECT: "Invalid SmartBufferOptions object supplied to SmartBuffer constructor or factory methods.",
+    INVALID_OFFSET: "An invalid offset value was provided.",
+    INVALID_OFFSET_NON_NUMBER: "An invalid offset value was provided. A numeric value is required.",
+    INVALID_LENGTH: "An invalid length value was provided.",
+    INVALID_LENGTH_NON_NUMBER: "An invalid length value was provived. A numeric value is required.",
+    INVALID_TARGET_OFFSET: "Target offset is beyond the bounds of the internal SmartBuffer data.",
+    INVALID_TARGET_LENGTH: "Specified length value moves cursor beyong the bounds of the internal SmartBuffer data.",
+    INVALID_READ_BEYOND_BOUNDS: "Attempted to read beyond the bounds of the managed data.",
+    INVALID_WRITE_BEYOND_BOUNDS: "Attempted to write beyond the bounds of the managed data."
+  };
+  exports.ERRORS = ERRORS;
+  function checkEncoding(encoding) {
+    if (!buffer_1.Buffer.isEncoding(encoding)) {
+      throw new Error(ERRORS.INVALID_ENCODING);
+    }
+  }
+  exports.checkEncoding = checkEncoding;
+  function isFiniteInteger(value) {
+    return typeof value === "number" && isFinite(value) && isInteger(value);
+  }
+  exports.isFiniteInteger = isFiniteInteger;
+  function checkOffsetOrLengthValue(value, offset) {
+    if (typeof value === "number") {
+      if (!isFiniteInteger(value) || value < 0) {
+        throw new Error(offset ? ERRORS.INVALID_OFFSET : ERRORS.INVALID_LENGTH);
+      }
+    } else {
+      throw new Error(offset ? ERRORS.INVALID_OFFSET_NON_NUMBER : ERRORS.INVALID_LENGTH_NON_NUMBER);
+    }
+  }
+  function checkLengthValue(length) {
+    checkOffsetOrLengthValue(length, false);
+  }
+  exports.checkLengthValue = checkLengthValue;
+  function checkOffsetValue(offset) {
+    checkOffsetOrLengthValue(offset, true);
+  }
+  exports.checkOffsetValue = checkOffsetValue;
+  function checkTargetOffset(offset, buff) {
+    if (offset < 0 || offset > buff.length) {
+      throw new Error(ERRORS.INVALID_TARGET_OFFSET);
+    }
+  }
+  exports.checkTargetOffset = checkTargetOffset;
+  function isInteger(value) {
+    return typeof value === "number" && isFinite(value) && Math.floor(value) === value;
+  }
+  function bigIntAndBufferInt64Check(bufferMethod) {
+    if (typeof BigInt === "undefined") {
+      throw new Error("Platform does not support JS BigInt type.");
+    }
+    if (typeof buffer_1.Buffer.prototype[bufferMethod] === "undefined") {
+      throw new Error(`Platform does not support Buffer.prototype.${bufferMethod}.`);
+    }
+  }
+  exports.bigIntAndBufferInt64Check = bigIntAndBufferInt64Check;
+});
+
+// ../../node_modules/.pnpm/smart-buffer@4.2.0/node_modules/smart-buffer/build/smartbuffer.js
+var require_smartbuffer = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  var utils_1 = require_utils3();
+  var DEFAULT_SMARTBUFFER_SIZE = 4096;
+  var DEFAULT_SMARTBUFFER_ENCODING = "utf8";
+
+  class SmartBuffer {
+    constructor(options) {
+      this.length = 0;
+      this._encoding = DEFAULT_SMARTBUFFER_ENCODING;
+      this._writeOffset = 0;
+      this._readOffset = 0;
+      if (SmartBuffer.isSmartBufferOptions(options)) {
+        if (options.encoding) {
+          utils_1.checkEncoding(options.encoding);
+          this._encoding = options.encoding;
+        }
+        if (options.size) {
+          if (utils_1.isFiniteInteger(options.size) && options.size > 0) {
+            this._buff = Buffer.allocUnsafe(options.size);
+          } else {
+            throw new Error(utils_1.ERRORS.INVALID_SMARTBUFFER_SIZE);
+          }
+        } else if (options.buff) {
+          if (Buffer.isBuffer(options.buff)) {
+            this._buff = options.buff;
+            this.length = options.buff.length;
+          } else {
+            throw new Error(utils_1.ERRORS.INVALID_SMARTBUFFER_BUFFER);
+          }
+        } else {
+          this._buff = Buffer.allocUnsafe(DEFAULT_SMARTBUFFER_SIZE);
+        }
+      } else {
+        if (typeof options !== "undefined") {
+          throw new Error(utils_1.ERRORS.INVALID_SMARTBUFFER_OBJECT);
+        }
+        this._buff = Buffer.allocUnsafe(DEFAULT_SMARTBUFFER_SIZE);
+      }
+    }
+    static fromSize(size, encoding) {
+      return new this({
+        size,
+        encoding
+      });
+    }
+    static fromBuffer(buff, encoding) {
+      return new this({
+        buff,
+        encoding
+      });
+    }
+    static fromOptions(options) {
+      return new this(options);
+    }
+    static isSmartBufferOptions(options) {
+      const castOptions = options;
+      return castOptions && (castOptions.encoding !== undefined || castOptions.size !== undefined || castOptions.buff !== undefined);
+    }
+    readInt8(offset) {
+      return this._readNumberValue(Buffer.prototype.readInt8, 1, offset);
+    }
+    readInt16BE(offset) {
+      return this._readNumberValue(Buffer.prototype.readInt16BE, 2, offset);
+    }
+    readInt16LE(offset) {
+      return this._readNumberValue(Buffer.prototype.readInt16LE, 2, offset);
+    }
+    readInt32BE(offset) {
+      return this._readNumberValue(Buffer.prototype.readInt32BE, 4, offset);
+    }
+    readInt32LE(offset) {
+      return this._readNumberValue(Buffer.prototype.readInt32LE, 4, offset);
+    }
+    readBigInt64BE(offset) {
+      utils_1.bigIntAndBufferInt64Check("readBigInt64BE");
+      return this._readNumberValue(Buffer.prototype.readBigInt64BE, 8, offset);
+    }
+    readBigInt64LE(offset) {
+      utils_1.bigIntAndBufferInt64Check("readBigInt64LE");
+      return this._readNumberValue(Buffer.prototype.readBigInt64LE, 8, offset);
+    }
+    writeInt8(value, offset) {
+      this._writeNumberValue(Buffer.prototype.writeInt8, 1, value, offset);
+      return this;
+    }
+    insertInt8(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeInt8, 1, value, offset);
+    }
+    writeInt16BE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeInt16BE, 2, value, offset);
+    }
+    insertInt16BE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeInt16BE, 2, value, offset);
+    }
+    writeInt16LE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeInt16LE, 2, value, offset);
+    }
+    insertInt16LE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeInt16LE, 2, value, offset);
+    }
+    writeInt32BE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeInt32BE, 4, value, offset);
+    }
+    insertInt32BE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeInt32BE, 4, value, offset);
+    }
+    writeInt32LE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeInt32LE, 4, value, offset);
+    }
+    insertInt32LE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeInt32LE, 4, value, offset);
+    }
+    writeBigInt64BE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigInt64BE");
+      return this._writeNumberValue(Buffer.prototype.writeBigInt64BE, 8, value, offset);
+    }
+    insertBigInt64BE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigInt64BE");
+      return this._insertNumberValue(Buffer.prototype.writeBigInt64BE, 8, value, offset);
+    }
+    writeBigInt64LE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigInt64LE");
+      return this._writeNumberValue(Buffer.prototype.writeBigInt64LE, 8, value, offset);
+    }
+    insertBigInt64LE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigInt64LE");
+      return this._insertNumberValue(Buffer.prototype.writeBigInt64LE, 8, value, offset);
+    }
+    readUInt8(offset) {
+      return this._readNumberValue(Buffer.prototype.readUInt8, 1, offset);
+    }
+    readUInt16BE(offset) {
+      return this._readNumberValue(Buffer.prototype.readUInt16BE, 2, offset);
+    }
+    readUInt16LE(offset) {
+      return this._readNumberValue(Buffer.prototype.readUInt16LE, 2, offset);
+    }
+    readUInt32BE(offset) {
+      return this._readNumberValue(Buffer.prototype.readUInt32BE, 4, offset);
+    }
+    readUInt32LE(offset) {
+      return this._readNumberValue(Buffer.prototype.readUInt32LE, 4, offset);
+    }
+    readBigUInt64BE(offset) {
+      utils_1.bigIntAndBufferInt64Check("readBigUInt64BE");
+      return this._readNumberValue(Buffer.prototype.readBigUInt64BE, 8, offset);
+    }
+    readBigUInt64LE(offset) {
+      utils_1.bigIntAndBufferInt64Check("readBigUInt64LE");
+      return this._readNumberValue(Buffer.prototype.readBigUInt64LE, 8, offset);
+    }
+    writeUInt8(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeUInt8, 1, value, offset);
+    }
+    insertUInt8(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeUInt8, 1, value, offset);
+    }
+    writeUInt16BE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeUInt16BE, 2, value, offset);
+    }
+    insertUInt16BE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeUInt16BE, 2, value, offset);
+    }
+    writeUInt16LE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeUInt16LE, 2, value, offset);
+    }
+    insertUInt16LE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeUInt16LE, 2, value, offset);
+    }
+    writeUInt32BE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeUInt32BE, 4, value, offset);
+    }
+    insertUInt32BE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeUInt32BE, 4, value, offset);
+    }
+    writeUInt32LE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeUInt32LE, 4, value, offset);
+    }
+    insertUInt32LE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeUInt32LE, 4, value, offset);
+    }
+    writeBigUInt64BE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigUInt64BE");
+      return this._writeNumberValue(Buffer.prototype.writeBigUInt64BE, 8, value, offset);
+    }
+    insertBigUInt64BE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigUInt64BE");
+      return this._insertNumberValue(Buffer.prototype.writeBigUInt64BE, 8, value, offset);
+    }
+    writeBigUInt64LE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigUInt64LE");
+      return this._writeNumberValue(Buffer.prototype.writeBigUInt64LE, 8, value, offset);
+    }
+    insertBigUInt64LE(value, offset) {
+      utils_1.bigIntAndBufferInt64Check("writeBigUInt64LE");
+      return this._insertNumberValue(Buffer.prototype.writeBigUInt64LE, 8, value, offset);
+    }
+    readFloatBE(offset) {
+      return this._readNumberValue(Buffer.prototype.readFloatBE, 4, offset);
+    }
+    readFloatLE(offset) {
+      return this._readNumberValue(Buffer.prototype.readFloatLE, 4, offset);
+    }
+    writeFloatBE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeFloatBE, 4, value, offset);
+    }
+    insertFloatBE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeFloatBE, 4, value, offset);
+    }
+    writeFloatLE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeFloatLE, 4, value, offset);
+    }
+    insertFloatLE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeFloatLE, 4, value, offset);
+    }
+    readDoubleBE(offset) {
+      return this._readNumberValue(Buffer.prototype.readDoubleBE, 8, offset);
+    }
+    readDoubleLE(offset) {
+      return this._readNumberValue(Buffer.prototype.readDoubleLE, 8, offset);
+    }
+    writeDoubleBE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeDoubleBE, 8, value, offset);
+    }
+    insertDoubleBE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeDoubleBE, 8, value, offset);
+    }
+    writeDoubleLE(value, offset) {
+      return this._writeNumberValue(Buffer.prototype.writeDoubleLE, 8, value, offset);
+    }
+    insertDoubleLE(value, offset) {
+      return this._insertNumberValue(Buffer.prototype.writeDoubleLE, 8, value, offset);
+    }
+    readString(arg1, encoding) {
+      let lengthVal;
+      if (typeof arg1 === "number") {
+        utils_1.checkLengthValue(arg1);
+        lengthVal = Math.min(arg1, this.length - this._readOffset);
+      } else {
+        encoding = arg1;
+        lengthVal = this.length - this._readOffset;
+      }
+      if (typeof encoding !== "undefined") {
+        utils_1.checkEncoding(encoding);
+      }
+      const value = this._buff.slice(this._readOffset, this._readOffset + lengthVal).toString(encoding || this._encoding);
+      this._readOffset += lengthVal;
+      return value;
+    }
+    insertString(value, offset, encoding) {
+      utils_1.checkOffsetValue(offset);
+      return this._handleString(value, true, offset, encoding);
+    }
+    writeString(value, arg2, encoding) {
+      return this._handleString(value, false, arg2, encoding);
+    }
+    readStringNT(encoding) {
+      if (typeof encoding !== "undefined") {
+        utils_1.checkEncoding(encoding);
+      }
+      let nullPos = this.length;
+      for (let i = this._readOffset;i < this.length; i++) {
+        if (this._buff[i] === 0) {
+          nullPos = i;
+          break;
+        }
+      }
+      const value = this._buff.slice(this._readOffset, nullPos);
+      this._readOffset = nullPos + 1;
+      return value.toString(encoding || this._encoding);
+    }
+    insertStringNT(value, offset, encoding) {
+      utils_1.checkOffsetValue(offset);
+      this.insertString(value, offset, encoding);
+      this.insertUInt8(0, offset + value.length);
+      return this;
+    }
+    writeStringNT(value, arg2, encoding) {
+      this.writeString(value, arg2, encoding);
+      this.writeUInt8(0, typeof arg2 === "number" ? arg2 + value.length : this.writeOffset);
+      return this;
+    }
+    readBuffer(length) {
+      if (typeof length !== "undefined") {
+        utils_1.checkLengthValue(length);
+      }
+      const lengthVal = typeof length === "number" ? length : this.length;
+      const endPoint = Math.min(this.length, this._readOffset + lengthVal);
+      const value = this._buff.slice(this._readOffset, endPoint);
+      this._readOffset = endPoint;
+      return value;
+    }
+    insertBuffer(value, offset) {
+      utils_1.checkOffsetValue(offset);
+      return this._handleBuffer(value, true, offset);
+    }
+    writeBuffer(value, offset) {
+      return this._handleBuffer(value, false, offset);
+    }
+    readBufferNT() {
+      let nullPos = this.length;
+      for (let i = this._readOffset;i < this.length; i++) {
+        if (this._buff[i] === 0) {
+          nullPos = i;
+          break;
+        }
+      }
+      const value = this._buff.slice(this._readOffset, nullPos);
+      this._readOffset = nullPos + 1;
+      return value;
+    }
+    insertBufferNT(value, offset) {
+      utils_1.checkOffsetValue(offset);
+      this.insertBuffer(value, offset);
+      this.insertUInt8(0, offset + value.length);
+      return this;
+    }
+    writeBufferNT(value, offset) {
+      if (typeof offset !== "undefined") {
+        utils_1.checkOffsetValue(offset);
+      }
+      this.writeBuffer(value, offset);
+      this.writeUInt8(0, typeof offset === "number" ? offset + value.length : this._writeOffset);
+      return this;
+    }
+    clear() {
+      this._writeOffset = 0;
+      this._readOffset = 0;
+      this.length = 0;
+      return this;
+    }
+    remaining() {
+      return this.length - this._readOffset;
+    }
+    get readOffset() {
+      return this._readOffset;
+    }
+    set readOffset(offset) {
+      utils_1.checkOffsetValue(offset);
+      utils_1.checkTargetOffset(offset, this);
+      this._readOffset = offset;
+    }
+    get writeOffset() {
+      return this._writeOffset;
+    }
+    set writeOffset(offset) {
+      utils_1.checkOffsetValue(offset);
+      utils_1.checkTargetOffset(offset, this);
+      this._writeOffset = offset;
+    }
+    get encoding() {
+      return this._encoding;
+    }
+    set encoding(encoding) {
+      utils_1.checkEncoding(encoding);
+      this._encoding = encoding;
+    }
+    get internalBuffer() {
+      return this._buff;
+    }
+    toBuffer() {
+      return this._buff.slice(0, this.length);
+    }
+    toString(encoding) {
+      const encodingVal = typeof encoding === "string" ? encoding : this._encoding;
+      utils_1.checkEncoding(encodingVal);
+      return this._buff.toString(encodingVal, 0, this.length);
+    }
+    destroy() {
+      this.clear();
+      return this;
+    }
+    _handleString(value, isInsert, arg3, encoding) {
+      let offsetVal = this._writeOffset;
+      let encodingVal = this._encoding;
+      if (typeof arg3 === "number") {
+        offsetVal = arg3;
+      } else if (typeof arg3 === "string") {
+        utils_1.checkEncoding(arg3);
+        encodingVal = arg3;
+      }
+      if (typeof encoding === "string") {
+        utils_1.checkEncoding(encoding);
+        encodingVal = encoding;
+      }
+      const byteLength = Buffer.byteLength(value, encodingVal);
+      if (isInsert) {
+        this.ensureInsertable(byteLength, offsetVal);
+      } else {
+        this._ensureWriteable(byteLength, offsetVal);
+      }
+      this._buff.write(value, offsetVal, byteLength, encodingVal);
+      if (isInsert) {
+        this._writeOffset += byteLength;
+      } else {
+        if (typeof arg3 === "number") {
+          this._writeOffset = Math.max(this._writeOffset, offsetVal + byteLength);
+        } else {
+          this._writeOffset += byteLength;
+        }
+      }
+      return this;
+    }
+    _handleBuffer(value, isInsert, offset) {
+      const offsetVal = typeof offset === "number" ? offset : this._writeOffset;
+      if (isInsert) {
+        this.ensureInsertable(value.length, offsetVal);
+      } else {
+        this._ensureWriteable(value.length, offsetVal);
+      }
+      value.copy(this._buff, offsetVal);
+      if (isInsert) {
+        this._writeOffset += value.length;
+      } else {
+        if (typeof offset === "number") {
+          this._writeOffset = Math.max(this._writeOffset, offsetVal + value.length);
+        } else {
+          this._writeOffset += value.length;
+        }
+      }
+      return this;
+    }
+    ensureReadable(length, offset) {
+      let offsetVal = this._readOffset;
+      if (typeof offset !== "undefined") {
+        utils_1.checkOffsetValue(offset);
+        offsetVal = offset;
+      }
+      if (offsetVal < 0 || offsetVal + length > this.length) {
+        throw new Error(utils_1.ERRORS.INVALID_READ_BEYOND_BOUNDS);
+      }
+    }
+    ensureInsertable(dataLength, offset) {
+      utils_1.checkOffsetValue(offset);
+      this._ensureCapacity(this.length + dataLength);
+      if (offset < this.length) {
+        this._buff.copy(this._buff, offset + dataLength, offset, this._buff.length);
+      }
+      if (offset + dataLength > this.length) {
+        this.length = offset + dataLength;
+      } else {
+        this.length += dataLength;
+      }
+    }
+    _ensureWriteable(dataLength, offset) {
+      const offsetVal = typeof offset === "number" ? offset : this._writeOffset;
+      this._ensureCapacity(offsetVal + dataLength);
+      if (offsetVal + dataLength > this.length) {
+        this.length = offsetVal + dataLength;
+      }
+    }
+    _ensureCapacity(minLength) {
+      const oldLength = this._buff.length;
+      if (minLength > oldLength) {
+        let data = this._buff;
+        let newLength = oldLength * 3 / 2 + 1;
+        if (newLength < minLength) {
+          newLength = minLength;
+        }
+        this._buff = Buffer.allocUnsafe(newLength);
+        data.copy(this._buff, 0, 0, oldLength);
+      }
+    }
+    _readNumberValue(func, byteSize, offset) {
+      this.ensureReadable(byteSize, offset);
+      const value = func.call(this._buff, typeof offset === "number" ? offset : this._readOffset);
+      if (typeof offset === "undefined") {
+        this._readOffset += byteSize;
+      }
+      return value;
+    }
+    _insertNumberValue(func, byteSize, value, offset) {
+      utils_1.checkOffsetValue(offset);
+      this.ensureInsertable(byteSize, offset);
+      func.call(this._buff, value, offset);
+      this._writeOffset += byteSize;
+      return this;
+    }
+    _writeNumberValue(func, byteSize, value, offset) {
+      if (typeof offset === "number") {
+        if (offset < 0) {
+          throw new Error(utils_1.ERRORS.INVALID_WRITE_BEYOND_BOUNDS);
+        }
+        utils_1.checkOffsetValue(offset);
+      }
+      const offsetVal = typeof offset === "number" ? offset : this._writeOffset;
+      this._ensureWriteable(byteSize, offsetVal);
+      func.call(this._buff, value, offsetVal);
+      if (typeof offset === "number") {
+        this._writeOffset = Math.max(this._writeOffset, offsetVal + byteSize);
+      } else {
+        this._writeOffset += byteSize;
+      }
+      return this;
+    }
+  }
+  exports.SmartBuffer = SmartBuffer;
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/common/constants.js
+var require_constants = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.SOCKS5_NO_ACCEPTABLE_AUTH = exports.SOCKS5_CUSTOM_AUTH_END = exports.SOCKS5_CUSTOM_AUTH_START = exports.SOCKS_INCOMING_PACKET_SIZES = exports.SocksClientState = exports.Socks5Response = exports.Socks5HostType = exports.Socks5Auth = exports.Socks4Response = exports.SocksCommand = exports.ERRORS = exports.DEFAULT_TIMEOUT = undefined;
+  var DEFAULT_TIMEOUT = 30000;
+  exports.DEFAULT_TIMEOUT = DEFAULT_TIMEOUT;
+  var ERRORS = {
+    InvalidSocksCommand: "An invalid SOCKS command was provided. Valid options are connect, bind, and associate.",
+    InvalidSocksCommandForOperation: "An invalid SOCKS command was provided. Only a subset of commands are supported for this operation.",
+    InvalidSocksCommandChain: "An invalid SOCKS command was provided. Chaining currently only supports the connect command.",
+    InvalidSocksClientOptionsDestination: "An invalid destination host was provided.",
+    InvalidSocksClientOptionsExistingSocket: "An invalid existing socket was provided. This should be an instance of stream.Duplex.",
+    InvalidSocksClientOptionsProxy: "Invalid SOCKS proxy details were provided.",
+    InvalidSocksClientOptionsTimeout: "An invalid timeout value was provided. Please enter a value above 0 (in ms).",
+    InvalidSocksClientOptionsProxiesLength: "At least two socks proxies must be provided for chaining.",
+    InvalidSocksClientOptionsCustomAuthRange: "Custom auth must be a value between 0x80 and 0xFE.",
+    InvalidSocksClientOptionsCustomAuthOptions: "When a custom_auth_method is provided, custom_auth_request_handler, custom_auth_response_size, and custom_auth_response_handler must also be provided and valid.",
+    NegotiationError: "Negotiation error",
+    SocketClosed: "Socket closed",
+    ProxyConnectionTimedOut: "Proxy connection timed out",
+    InternalError: "SocksClient internal error (this should not happen)",
+    InvalidSocks4HandshakeResponse: "Received invalid Socks4 handshake response",
+    Socks4ProxyRejectedConnection: "Socks4 Proxy rejected connection",
+    InvalidSocks4IncomingConnectionResponse: "Socks4 invalid incoming connection response",
+    Socks4ProxyRejectedIncomingBoundConnection: "Socks4 Proxy rejected incoming bound connection",
+    InvalidSocks5InitialHandshakeResponse: "Received invalid Socks5 initial handshake response",
+    InvalidSocks5IntiailHandshakeSocksVersion: "Received invalid Socks5 initial handshake (invalid socks version)",
+    InvalidSocks5InitialHandshakeNoAcceptedAuthType: "Received invalid Socks5 initial handshake (no accepted authentication type)",
+    InvalidSocks5InitialHandshakeUnknownAuthType: "Received invalid Socks5 initial handshake (unknown authentication type)",
+    Socks5AuthenticationFailed: "Socks5 Authentication failed",
+    InvalidSocks5FinalHandshake: "Received invalid Socks5 final handshake response",
+    InvalidSocks5FinalHandshakeRejected: "Socks5 proxy rejected connection",
+    InvalidSocks5IncomingConnectionResponse: "Received invalid Socks5 incoming connection response",
+    Socks5ProxyRejectedIncomingBoundConnection: "Socks5 Proxy rejected incoming bound connection"
+  };
+  exports.ERRORS = ERRORS;
+  var SOCKS_INCOMING_PACKET_SIZES = {
+    Socks5InitialHandshakeResponse: 2,
+    Socks5UserPassAuthenticationResponse: 2,
+    Socks5ResponseHeader: 5,
+    Socks5ResponseIPv4: 10,
+    Socks5ResponseIPv6: 22,
+    Socks5ResponseHostname: (hostNameLength) => hostNameLength + 7,
+    Socks4Response: 8
+  };
+  exports.SOCKS_INCOMING_PACKET_SIZES = SOCKS_INCOMING_PACKET_SIZES;
+  var SocksCommand;
+  (function(SocksCommand2) {
+    SocksCommand2[SocksCommand2["connect"] = 1] = "connect";
+    SocksCommand2[SocksCommand2["bind"] = 2] = "bind";
+    SocksCommand2[SocksCommand2["associate"] = 3] = "associate";
+  })(SocksCommand || (exports.SocksCommand = SocksCommand = {}));
+  var Socks4Response;
+  (function(Socks4Response2) {
+    Socks4Response2[Socks4Response2["Granted"] = 90] = "Granted";
+    Socks4Response2[Socks4Response2["Failed"] = 91] = "Failed";
+    Socks4Response2[Socks4Response2["Rejected"] = 92] = "Rejected";
+    Socks4Response2[Socks4Response2["RejectedIdent"] = 93] = "RejectedIdent";
+  })(Socks4Response || (exports.Socks4Response = Socks4Response = {}));
+  var Socks5Auth;
+  (function(Socks5Auth2) {
+    Socks5Auth2[Socks5Auth2["NoAuth"] = 0] = "NoAuth";
+    Socks5Auth2[Socks5Auth2["GSSApi"] = 1] = "GSSApi";
+    Socks5Auth2[Socks5Auth2["UserPass"] = 2] = "UserPass";
+  })(Socks5Auth || (exports.Socks5Auth = Socks5Auth = {}));
+  var SOCKS5_CUSTOM_AUTH_START = 128;
+  exports.SOCKS5_CUSTOM_AUTH_START = SOCKS5_CUSTOM_AUTH_START;
+  var SOCKS5_CUSTOM_AUTH_END = 254;
+  exports.SOCKS5_CUSTOM_AUTH_END = SOCKS5_CUSTOM_AUTH_END;
+  var SOCKS5_NO_ACCEPTABLE_AUTH = 255;
+  exports.SOCKS5_NO_ACCEPTABLE_AUTH = SOCKS5_NO_ACCEPTABLE_AUTH;
+  var Socks5Response;
+  (function(Socks5Response2) {
+    Socks5Response2[Socks5Response2["Granted"] = 0] = "Granted";
+    Socks5Response2[Socks5Response2["Failure"] = 1] = "Failure";
+    Socks5Response2[Socks5Response2["NotAllowed"] = 2] = "NotAllowed";
+    Socks5Response2[Socks5Response2["NetworkUnreachable"] = 3] = "NetworkUnreachable";
+    Socks5Response2[Socks5Response2["HostUnreachable"] = 4] = "HostUnreachable";
+    Socks5Response2[Socks5Response2["ConnectionRefused"] = 5] = "ConnectionRefused";
+    Socks5Response2[Socks5Response2["TTLExpired"] = 6] = "TTLExpired";
+    Socks5Response2[Socks5Response2["CommandNotSupported"] = 7] = "CommandNotSupported";
+    Socks5Response2[Socks5Response2["AddressNotSupported"] = 8] = "AddressNotSupported";
+  })(Socks5Response || (exports.Socks5Response = Socks5Response = {}));
+  var Socks5HostType;
+  (function(Socks5HostType2) {
+    Socks5HostType2[Socks5HostType2["IPv4"] = 1] = "IPv4";
+    Socks5HostType2[Socks5HostType2["Hostname"] = 3] = "Hostname";
+    Socks5HostType2[Socks5HostType2["IPv6"] = 4] = "IPv6";
+  })(Socks5HostType || (exports.Socks5HostType = Socks5HostType = {}));
+  var SocksClientState;
+  (function(SocksClientState2) {
+    SocksClientState2[SocksClientState2["Created"] = 0] = "Created";
+    SocksClientState2[SocksClientState2["Connecting"] = 1] = "Connecting";
+    SocksClientState2[SocksClientState2["Connected"] = 2] = "Connected";
+    SocksClientState2[SocksClientState2["SentInitialHandshake"] = 3] = "SentInitialHandshake";
+    SocksClientState2[SocksClientState2["ReceivedInitialHandshakeResponse"] = 4] = "ReceivedInitialHandshakeResponse";
+    SocksClientState2[SocksClientState2["SentAuthentication"] = 5] = "SentAuthentication";
+    SocksClientState2[SocksClientState2["ReceivedAuthenticationResponse"] = 6] = "ReceivedAuthenticationResponse";
+    SocksClientState2[SocksClientState2["SentFinalHandshake"] = 7] = "SentFinalHandshake";
+    SocksClientState2[SocksClientState2["ReceivedFinalResponse"] = 8] = "ReceivedFinalResponse";
+    SocksClientState2[SocksClientState2["BoundWaitingForConnection"] = 9] = "BoundWaitingForConnection";
+    SocksClientState2[SocksClientState2["Established"] = 10] = "Established";
+    SocksClientState2[SocksClientState2["Disconnected"] = 11] = "Disconnected";
+    SocksClientState2[SocksClientState2["Error"] = 99] = "Error";
+  })(SocksClientState || (exports.SocksClientState = SocksClientState = {}));
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/common/util.js
+var require_util = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.shuffleArray = exports.SocksClientError = undefined;
+
+  class SocksClientError extends Error {
+    constructor(message, options) {
+      super(message);
+      this.options = options;
+    }
+  }
+  exports.SocksClientError = SocksClientError;
+  function shuffleArray(array3) {
+    for (let i = array3.length - 1;i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array3[i], array3[j]] = [array3[j], array3[i]];
+    }
+  }
+  exports.shuffleArray = shuffleArray;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/common.js
+var require_common2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.isInSubnet = isInSubnet;
+  exports.isCorrect = isCorrect;
+  exports.numberToPaddedHex = numberToPaddedHex;
+  exports.stringToPaddedHex = stringToPaddedHex;
+  exports.testBit = testBit;
+  function isInSubnet(address) {
+    if (this.subnetMask < address.subnetMask) {
+      return false;
+    }
+    if (this.mask(address.subnetMask) === address.mask()) {
+      return true;
+    }
+    return false;
+  }
+  function isCorrect(defaultBits) {
+    return function() {
+      if (this.addressMinusSuffix !== this.correctForm()) {
+        return false;
+      }
+      if (this.subnetMask === defaultBits && !this.parsedSubnet) {
+        return true;
+      }
+      return this.parsedSubnet === String(this.subnetMask);
+    };
+  }
+  function numberToPaddedHex(number4) {
+    return number4.toString(16).padStart(2, "0");
+  }
+  function stringToPaddedHex(numberString) {
+    return numberToPaddedHex(parseInt(numberString, 10));
+  }
+  function testBit(binaryValue, position) {
+    const { length } = binaryValue;
+    if (position > length) {
+      return false;
+    }
+    const positionInString = length - position;
+    return binaryValue.substring(positionInString, positionInString + 1) === "1";
+  }
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/v4/constants.js
+var require_constants2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.RE_SUBNET_STRING = exports.RE_ADDRESS = exports.GROUPS = exports.BITS = undefined;
+  exports.BITS = 32;
+  exports.GROUPS = 4;
+  exports.RE_ADDRESS = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/g;
+  exports.RE_SUBNET_STRING = /\/\d{1,2}$/;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/address-error.js
+var require_address_error = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.AddressError = undefined;
+
+  class AddressError extends Error {
+    constructor(message, parseMessage) {
+      super(message);
+      this.name = "AddressError";
+      this.parseMessage = parseMessage;
+    }
+  }
+  exports.AddressError = AddressError;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/ipv4.js
+var require_ipv4 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.Address4 = undefined;
+  var common = __importStar(require_common2());
+  var constants = __importStar(require_constants2());
+  var address_error_1 = require_address_error();
+
+  class Address4 {
+    constructor(address) {
+      this.groups = constants.GROUPS;
+      this.parsedAddress = [];
+      this.parsedSubnet = "";
+      this.subnet = "/32";
+      this.subnetMask = 32;
+      this.v4 = true;
+      this.isCorrect = common.isCorrect(constants.BITS);
+      this.isInSubnet = common.isInSubnet;
+      this.address = address;
+      const subnet = constants.RE_SUBNET_STRING.exec(address);
+      if (subnet) {
+        this.parsedSubnet = subnet[0].replace("/", "");
+        this.subnetMask = parseInt(this.parsedSubnet, 10);
+        this.subnet = `/${this.subnetMask}`;
+        if (this.subnetMask < 0 || this.subnetMask > constants.BITS) {
+          throw new address_error_1.AddressError("Invalid subnet mask.");
+        }
+        address = address.replace(constants.RE_SUBNET_STRING, "");
+      }
+      this.addressMinusSuffix = address;
+      this.parsedAddress = this.parse(address);
+    }
+    static isValid(address) {
+      try {
+        new Address4(address);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    parse(address) {
+      const groups = address.split(".");
+      if (!address.match(constants.RE_ADDRESS)) {
+        throw new address_error_1.AddressError("Invalid IPv4 address.");
+      }
+      return groups;
+    }
+    correctForm() {
+      return this.parsedAddress.map((part) => parseInt(part, 10)).join(".");
+    }
+    static fromHex(hex3) {
+      const padded = hex3.replace(/:/g, "").padStart(8, "0");
+      const groups = [];
+      let i;
+      for (i = 0;i < 8; i += 2) {
+        const h = padded.slice(i, i + 2);
+        groups.push(parseInt(h, 16));
+      }
+      return new Address4(groups.join("."));
+    }
+    static fromInteger(integer2) {
+      return Address4.fromHex(integer2.toString(16));
+    }
+    static fromArpa(arpaFormAddress) {
+      const leader = arpaFormAddress.replace(/(\.in-addr\.arpa)?\.$/, "");
+      const address = leader.split(".").reverse().join(".");
+      return new Address4(address);
+    }
+    toHex() {
+      return this.parsedAddress.map((part) => common.stringToPaddedHex(part)).join(":");
+    }
+    toArray() {
+      return this.parsedAddress.map((part) => parseInt(part, 10));
+    }
+    toGroup6() {
+      const output = [];
+      let i;
+      for (i = 0;i < constants.GROUPS; i += 2) {
+        output.push(`${common.stringToPaddedHex(this.parsedAddress[i])}${common.stringToPaddedHex(this.parsedAddress[i + 1])}`);
+      }
+      return output.join(":");
+    }
+    bigInt() {
+      return BigInt(`0x${this.parsedAddress.map((n) => common.stringToPaddedHex(n)).join("")}`);
+    }
+    _startAddress() {
+      return BigInt(`0b${this.mask() + "0".repeat(constants.BITS - this.subnetMask)}`);
+    }
+    startAddress() {
+      return Address4.fromBigInt(this._startAddress());
+    }
+    startAddressExclusive() {
+      const adjust = BigInt("1");
+      return Address4.fromBigInt(this._startAddress() + adjust);
+    }
+    _endAddress() {
+      return BigInt(`0b${this.mask() + "1".repeat(constants.BITS - this.subnetMask)}`);
+    }
+    endAddress() {
+      return Address4.fromBigInt(this._endAddress());
+    }
+    endAddressExclusive() {
+      const adjust = BigInt("1");
+      return Address4.fromBigInt(this._endAddress() - adjust);
+    }
+    static fromBigInt(bigInt) {
+      return Address4.fromHex(bigInt.toString(16));
+    }
+    static fromByteArray(bytes) {
+      if (bytes.length !== 4) {
+        throw new address_error_1.AddressError("IPv4 addresses require exactly 4 bytes");
+      }
+      for (let i = 0;i < bytes.length; i++) {
+        if (!Number.isInteger(bytes[i]) || bytes[i] < 0 || bytes[i] > 255) {
+          throw new address_error_1.AddressError("All bytes must be integers between 0 and 255");
+        }
+      }
+      return this.fromUnsignedByteArray(bytes);
+    }
+    static fromUnsignedByteArray(bytes) {
+      if (bytes.length !== 4) {
+        throw new address_error_1.AddressError("IPv4 addresses require exactly 4 bytes");
+      }
+      const address = bytes.join(".");
+      return new Address4(address);
+    }
+    mask(mask) {
+      if (mask === undefined) {
+        mask = this.subnetMask;
+      }
+      return this.getBitsBase2(0, mask);
+    }
+    getBitsBase2(start, end) {
+      return this.binaryZeroPad().slice(start, end);
+    }
+    reverseForm(options) {
+      if (!options) {
+        options = {};
+      }
+      const reversed = this.correctForm().split(".").reverse().join(".");
+      if (options.omitSuffix) {
+        return reversed;
+      }
+      return `${reversed}.in-addr.arpa.`;
+    }
+    isMulticast() {
+      return this.isInSubnet(new Address4("224.0.0.0/4"));
+    }
+    binaryZeroPad() {
+      return this.bigInt().toString(2).padStart(constants.BITS, "0");
+    }
+    groupForV6() {
+      const segments = this.parsedAddress;
+      return this.address.replace(constants.RE_ADDRESS, `<span class="hover-group group-v4 group-6">${segments.slice(0, 2).join(".")}</span>.<span class="hover-group group-v4 group-7">${segments.slice(2, 4).join(".")}</span>`);
+    }
+  }
+  exports.Address4 = Address4;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/v6/constants.js
+var require_constants3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.RE_URL_WITH_PORT = exports.RE_URL = exports.RE_ZONE_STRING = exports.RE_SUBNET_STRING = exports.RE_BAD_ADDRESS = exports.RE_BAD_CHARACTERS = exports.TYPES = exports.SCOPES = exports.GROUPS = exports.BITS = undefined;
+  exports.BITS = 128;
+  exports.GROUPS = 8;
+  exports.SCOPES = {
+    0: "Reserved",
+    1: "Interface local",
+    2: "Link local",
+    4: "Admin local",
+    5: "Site local",
+    8: "Organization local",
+    14: "Global",
+    15: "Reserved"
+  };
+  exports.TYPES = {
+    "ff01::1/128": "Multicast (All nodes on this interface)",
+    "ff01::2/128": "Multicast (All routers on this interface)",
+    "ff02::1/128": "Multicast (All nodes on this link)",
+    "ff02::2/128": "Multicast (All routers on this link)",
+    "ff05::2/128": "Multicast (All routers in this site)",
+    "ff02::5/128": "Multicast (OSPFv3 AllSPF routers)",
+    "ff02::6/128": "Multicast (OSPFv3 AllDR routers)",
+    "ff02::9/128": "Multicast (RIP routers)",
+    "ff02::a/128": "Multicast (EIGRP routers)",
+    "ff02::d/128": "Multicast (PIM routers)",
+    "ff02::16/128": "Multicast (MLDv2 reports)",
+    "ff01::fb/128": "Multicast (mDNSv6)",
+    "ff02::fb/128": "Multicast (mDNSv6)",
+    "ff05::fb/128": "Multicast (mDNSv6)",
+    "ff02::1:2/128": "Multicast (All DHCP servers and relay agents on this link)",
+    "ff05::1:2/128": "Multicast (All DHCP servers and relay agents in this site)",
+    "ff02::1:3/128": "Multicast (All DHCP servers on this link)",
+    "ff05::1:3/128": "Multicast (All DHCP servers in this site)",
+    "::/128": "Unspecified",
+    "::1/128": "Loopback",
+    "ff00::/8": "Multicast",
+    "fe80::/10": "Link-local unicast"
+  };
+  exports.RE_BAD_CHARACTERS = /([^0-9a-f:/%])/gi;
+  exports.RE_BAD_ADDRESS = /([0-9a-f]{5,}|:{3,}|[^:]:$|^:[^:]|\/$)/gi;
+  exports.RE_SUBNET_STRING = /\/\d{1,3}(?=%|$)/;
+  exports.RE_ZONE_STRING = /%.*$/;
+  exports.RE_URL = /^\[{0,1}([0-9a-f:]+)\]{0,1}/;
+  exports.RE_URL_WITH_PORT = /\[([0-9a-f:]+)\]:([0-9]{1,5})/;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/v6/helpers.js
+var require_helpers2 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.spanAllZeroes = spanAllZeroes;
+  exports.spanAll = spanAll;
+  exports.spanLeadingZeroes = spanLeadingZeroes;
+  exports.simpleGroup = simpleGroup;
+  function spanAllZeroes(s) {
+    return s.replace(/(0+)/g, '<span class="zero">$1</span>');
+  }
+  function spanAll(s, offset = 0) {
+    const letters = s.split("");
+    return letters.map((n, i) => `<span class="digit value-${n} position-${i + offset}">${spanAllZeroes(n)}</span>`).join("");
+  }
+  function spanLeadingZeroesSimple(group) {
+    return group.replace(/^(0+)/, '<span class="zero">$1</span>');
+  }
+  function spanLeadingZeroes(address) {
+    const groups = address.split(":");
+    return groups.map((g) => spanLeadingZeroesSimple(g)).join(":");
+  }
+  function simpleGroup(addressString, offset = 0) {
+    const groups = addressString.split(":");
+    return groups.map((g, i) => {
+      if (/group-v4/.test(g)) {
+        return g;
+      }
+      return `<span class="hover-group group-${i + offset}">${spanLeadingZeroesSimple(g)}</span>`;
+    });
+  }
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/v6/regular-expressions.js
+var require_regular_expressions = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.ADDRESS_BOUNDARY = undefined;
+  exports.groupPossibilities = groupPossibilities;
+  exports.padGroup = padGroup;
+  exports.simpleRegularExpression = simpleRegularExpression;
+  exports.possibleElisions = possibleElisions;
+  var v6 = __importStar(require_constants3());
+  function groupPossibilities(possibilities) {
+    return `(${possibilities.join("|")})`;
+  }
+  function padGroup(group) {
+    if (group.length < 4) {
+      return `0{0,${4 - group.length}}${group}`;
+    }
+    return group;
+  }
+  exports.ADDRESS_BOUNDARY = "[^A-Fa-f0-9:]";
+  function simpleRegularExpression(groups) {
+    const zeroIndexes = [];
+    groups.forEach((group, i) => {
+      const groupInteger = parseInt(group, 16);
+      if (groupInteger === 0) {
+        zeroIndexes.push(i);
+      }
+    });
+    const possibilities = zeroIndexes.map((zeroIndex) => groups.map((group, i) => {
+      if (i === zeroIndex) {
+        const elision = i === 0 || i === v6.GROUPS - 1 ? ":" : "";
+        return groupPossibilities([padGroup(group), elision]);
+      }
+      return padGroup(group);
+    }).join(":"));
+    possibilities.push(groups.map(padGroup).join(":"));
+    return groupPossibilities(possibilities);
+  }
+  function possibleElisions(elidedGroups, moreLeft, moreRight) {
+    const left = moreLeft ? "" : ":";
+    const right = moreRight ? "" : ":";
+    const possibilities = [];
+    if (!moreLeft && !moreRight) {
+      possibilities.push("::");
+    }
+    if (moreLeft && moreRight) {
+      possibilities.push("");
+    }
+    if (moreRight && !moreLeft || !moreRight && moreLeft) {
+      possibilities.push(":");
+    }
+    possibilities.push(`${left}(:0{1,4}){1,${elidedGroups - 1}}`);
+    possibilities.push(`(0{1,4}:){1,${elidedGroups - 1}}${right}`);
+    possibilities.push(`(0{1,4}:){${elidedGroups - 1}}0{1,4}`);
+    for (let groups = 1;groups < elidedGroups - 1; groups++) {
+      for (let position = 1;position < elidedGroups - groups; position++) {
+        possibilities.push(`(0{1,4}:){${position}}:(0{1,4}:){${elidedGroups - position - groups - 1}}0{1,4}`);
+      }
+    }
+    return groupPossibilities(possibilities);
+  }
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/ipv6.js
+var require_ipv6 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.Address6 = undefined;
+  var common = __importStar(require_common2());
+  var constants4 = __importStar(require_constants2());
+  var constants6 = __importStar(require_constants3());
+  var helpers = __importStar(require_helpers2());
+  var ipv4_1 = require_ipv4();
+  var regular_expressions_1 = require_regular_expressions();
+  var address_error_1 = require_address_error();
+  var common_1 = require_common2();
+  function assert2(condition) {
+    if (!condition) {
+      throw new Error("Assertion failed.");
+    }
+  }
+  function addCommas(number4) {
+    const r = /(\d+)(\d{3})/;
+    while (r.test(number4)) {
+      number4 = number4.replace(r, "$1,$2");
+    }
+    return number4;
+  }
+  function spanLeadingZeroes4(n) {
+    n = n.replace(/^(0{1,})([1-9]+)$/, '<span class="parse-error">$1</span>$2');
+    n = n.replace(/^(0{1,})(0)$/, '<span class="parse-error">$1</span>$2');
+    return n;
+  }
+  function compact2(address, slice) {
+    const s1 = [];
+    const s2 = [];
+    let i;
+    for (i = 0;i < address.length; i++) {
+      if (i < slice[0]) {
+        s1.push(address[i]);
+      } else if (i > slice[1]) {
+        s2.push(address[i]);
+      }
+    }
+    return s1.concat(["compact"]).concat(s2);
+  }
+  function paddedHex(octet) {
+    return parseInt(octet, 16).toString(16).padStart(4, "0");
+  }
+  function unsignByte(b) {
+    return b & 255;
+  }
+
+  class Address6 {
+    constructor(address, optionalGroups) {
+      this.addressMinusSuffix = "";
+      this.parsedSubnet = "";
+      this.subnet = "/128";
+      this.subnetMask = 128;
+      this.v4 = false;
+      this.zone = "";
+      this.isInSubnet = common.isInSubnet;
+      this.isCorrect = common.isCorrect(constants6.BITS);
+      if (optionalGroups === undefined) {
+        this.groups = constants6.GROUPS;
+      } else {
+        this.groups = optionalGroups;
+      }
+      this.address = address;
+      const subnet = constants6.RE_SUBNET_STRING.exec(address);
+      if (subnet) {
+        this.parsedSubnet = subnet[0].replace("/", "");
+        this.subnetMask = parseInt(this.parsedSubnet, 10);
+        this.subnet = `/${this.subnetMask}`;
+        if (Number.isNaN(this.subnetMask) || this.subnetMask < 0 || this.subnetMask > constants6.BITS) {
+          throw new address_error_1.AddressError("Invalid subnet mask.");
+        }
+        address = address.replace(constants6.RE_SUBNET_STRING, "");
+      } else if (/\//.test(address)) {
+        throw new address_error_1.AddressError("Invalid subnet mask.");
+      }
+      const zone = constants6.RE_ZONE_STRING.exec(address);
+      if (zone) {
+        this.zone = zone[0];
+        address = address.replace(constants6.RE_ZONE_STRING, "");
+      }
+      this.addressMinusSuffix = address;
+      this.parsedAddress = this.parse(this.addressMinusSuffix);
+    }
+    static isValid(address) {
+      try {
+        new Address6(address);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }
+    static fromBigInt(bigInt) {
+      const hex3 = bigInt.toString(16).padStart(32, "0");
+      const groups = [];
+      let i;
+      for (i = 0;i < constants6.GROUPS; i++) {
+        groups.push(hex3.slice(i * 4, (i + 1) * 4));
+      }
+      return new Address6(groups.join(":"));
+    }
+    static fromURL(url2) {
+      let host;
+      let port = null;
+      let result;
+      if (url2.indexOf("[") !== -1 && url2.indexOf("]:") !== -1) {
+        result = constants6.RE_URL_WITH_PORT.exec(url2);
+        if (result === null) {
+          return {
+            error: "failed to parse address with port",
+            address: null,
+            port: null
+          };
+        }
+        host = result[1];
+        port = result[2];
+      } else if (url2.indexOf("/") !== -1) {
+        url2 = url2.replace(/^[a-z0-9]+:\/\//, "");
+        result = constants6.RE_URL.exec(url2);
+        if (result === null) {
+          return {
+            error: "failed to parse address from URL",
+            address: null,
+            port: null
+          };
+        }
+        host = result[1];
+      } else {
+        host = url2;
+      }
+      if (port) {
+        port = parseInt(port, 10);
+        if (port < 0 || port > 65536) {
+          port = null;
+        }
+      } else {
+        port = null;
+      }
+      return {
+        address: new Address6(host),
+        port
+      };
+    }
+    static fromAddress4(address) {
+      const address4 = new ipv4_1.Address4(address);
+      const mask6 = constants6.BITS - (constants4.BITS - address4.subnetMask);
+      return new Address6(`::ffff:${address4.correctForm()}/${mask6}`);
+    }
+    static fromArpa(arpaFormAddress) {
+      let address = arpaFormAddress.replace(/(\.ip6\.arpa)?\.$/, "");
+      const semicolonAmount = 7;
+      if (address.length !== 63) {
+        throw new address_error_1.AddressError("Invalid 'ip6.arpa' form.");
+      }
+      const parts = address.split(".").reverse();
+      for (let i = semicolonAmount;i > 0; i--) {
+        const insertIndex = i * 4;
+        parts.splice(insertIndex, 0, ":");
+      }
+      address = parts.join("");
+      return new Address6(address);
+    }
+    microsoftTranscription() {
+      return `${this.correctForm().replace(/:/g, "-")}.ipv6-literal.net`;
+    }
+    mask(mask = this.subnetMask) {
+      return this.getBitsBase2(0, mask);
+    }
+    possibleSubnets(subnetSize = 128) {
+      const availableBits = constants6.BITS - this.subnetMask;
+      const subnetBits = Math.abs(subnetSize - constants6.BITS);
+      const subnetPowers = availableBits - subnetBits;
+      if (subnetPowers < 0) {
+        return "0";
+      }
+      return addCommas((BigInt("2") ** BigInt(subnetPowers)).toString(10));
+    }
+    _startAddress() {
+      return BigInt(`0b${this.mask() + "0".repeat(constants6.BITS - this.subnetMask)}`);
+    }
+    startAddress() {
+      return Address6.fromBigInt(this._startAddress());
+    }
+    startAddressExclusive() {
+      const adjust = BigInt("1");
+      return Address6.fromBigInt(this._startAddress() + adjust);
+    }
+    _endAddress() {
+      return BigInt(`0b${this.mask() + "1".repeat(constants6.BITS - this.subnetMask)}`);
+    }
+    endAddress() {
+      return Address6.fromBigInt(this._endAddress());
+    }
+    endAddressExclusive() {
+      const adjust = BigInt("1");
+      return Address6.fromBigInt(this._endAddress() - adjust);
+    }
+    getScope() {
+      let scope = constants6.SCOPES[parseInt(this.getBits(12, 16).toString(10), 10)];
+      if (this.getType() === "Global unicast" && scope !== "Link local") {
+        scope = "Global";
+      }
+      return scope || "Unknown";
+    }
+    getType() {
+      for (const subnet of Object.keys(constants6.TYPES)) {
+        if (this.isInSubnet(new Address6(subnet))) {
+          return constants6.TYPES[subnet];
+        }
+      }
+      return "Global unicast";
+    }
+    getBits(start, end) {
+      return BigInt(`0b${this.getBitsBase2(start, end)}`);
+    }
+    getBitsBase2(start, end) {
+      return this.binaryZeroPad().slice(start, end);
+    }
+    getBitsBase16(start, end) {
+      const length = end - start;
+      if (length % 4 !== 0) {
+        throw new Error("Length of bits to retrieve must be divisible by four");
+      }
+      return this.getBits(start, end).toString(16).padStart(length / 4, "0");
+    }
+    getBitsPastSubnet() {
+      return this.getBitsBase2(this.subnetMask, constants6.BITS);
+    }
+    reverseForm(options) {
+      if (!options) {
+        options = {};
+      }
+      const characters = Math.floor(this.subnetMask / 4);
+      const reversed = this.canonicalForm().replace(/:/g, "").split("").slice(0, characters).reverse().join(".");
+      if (characters > 0) {
+        if (options.omitSuffix) {
+          return reversed;
+        }
+        return `${reversed}.ip6.arpa.`;
+      }
+      if (options.omitSuffix) {
+        return "";
+      }
+      return "ip6.arpa.";
+    }
+    correctForm() {
+      let i;
+      let groups = [];
+      let zeroCounter = 0;
+      const zeroes = [];
+      for (i = 0;i < this.parsedAddress.length; i++) {
+        const value = parseInt(this.parsedAddress[i], 16);
+        if (value === 0) {
+          zeroCounter++;
+        }
+        if (value !== 0 && zeroCounter > 0) {
+          if (zeroCounter > 1) {
+            zeroes.push([i - zeroCounter, i - 1]);
+          }
+          zeroCounter = 0;
+        }
+      }
+      if (zeroCounter > 1) {
+        zeroes.push([this.parsedAddress.length - zeroCounter, this.parsedAddress.length - 1]);
+      }
+      const zeroLengths = zeroes.map((n) => n[1] - n[0] + 1);
+      if (zeroes.length > 0) {
+        const index = zeroLengths.indexOf(Math.max(...zeroLengths));
+        groups = compact2(this.parsedAddress, zeroes[index]);
+      } else {
+        groups = this.parsedAddress;
+      }
+      for (i = 0;i < groups.length; i++) {
+        if (groups[i] !== "compact") {
+          groups[i] = parseInt(groups[i], 16).toString(16);
+        }
+      }
+      let correct = groups.join(":");
+      correct = correct.replace(/^compact$/, "::");
+      correct = correct.replace(/(^compact)|(compact$)/, ":");
+      correct = correct.replace(/compact/, "");
+      return correct;
+    }
+    binaryZeroPad() {
+      return this.bigInt().toString(2).padStart(constants6.BITS, "0");
+    }
+    parse4in6(address) {
+      const groups = address.split(":");
+      const lastGroup = groups.slice(-1)[0];
+      const address4 = lastGroup.match(constants4.RE_ADDRESS);
+      if (address4) {
+        this.parsedAddress4 = address4[0];
+        this.address4 = new ipv4_1.Address4(this.parsedAddress4);
+        for (let i = 0;i < this.address4.groups; i++) {
+          if (/^0[0-9]+/.test(this.address4.parsedAddress[i])) {
+            throw new address_error_1.AddressError("IPv4 addresses can't have leading zeroes.", address.replace(constants4.RE_ADDRESS, this.address4.parsedAddress.map(spanLeadingZeroes4).join(".")));
+          }
+        }
+        this.v4 = true;
+        groups[groups.length - 1] = this.address4.toGroup6();
+        address = groups.join(":");
+      }
+      return address;
+    }
+    parse(address) {
+      address = this.parse4in6(address);
+      const badCharacters = address.match(constants6.RE_BAD_CHARACTERS);
+      if (badCharacters) {
+        throw new address_error_1.AddressError(`Bad character${badCharacters.length > 1 ? "s" : ""} detected in address: ${badCharacters.join("")}`, address.replace(constants6.RE_BAD_CHARACTERS, '<span class="parse-error">$1</span>'));
+      }
+      const badAddress = address.match(constants6.RE_BAD_ADDRESS);
+      if (badAddress) {
+        throw new address_error_1.AddressError(`Address failed regex: ${badAddress.join("")}`, address.replace(constants6.RE_BAD_ADDRESS, '<span class="parse-error">$1</span>'));
+      }
+      let groups = [];
+      const halves = address.split("::");
+      if (halves.length === 2) {
+        let first = halves[0].split(":");
+        let last2 = halves[1].split(":");
+        if (first.length === 1 && first[0] === "") {
+          first = [];
+        }
+        if (last2.length === 1 && last2[0] === "") {
+          last2 = [];
+        }
+        const remaining = this.groups - (first.length + last2.length);
+        if (!remaining) {
+          throw new address_error_1.AddressError("Error parsing groups");
+        }
+        this.elidedGroups = remaining;
+        this.elisionBegin = first.length;
+        this.elisionEnd = first.length + this.elidedGroups;
+        groups = groups.concat(first);
+        for (let i = 0;i < remaining; i++) {
+          groups.push("0");
+        }
+        groups = groups.concat(last2);
+      } else if (halves.length === 1) {
+        groups = address.split(":");
+        this.elidedGroups = 0;
+      } else {
+        throw new address_error_1.AddressError("Too many :: groups found");
+      }
+      groups = groups.map((group) => parseInt(group, 16).toString(16));
+      if (groups.length !== this.groups) {
+        throw new address_error_1.AddressError("Incorrect number of groups found");
+      }
+      return groups;
+    }
+    canonicalForm() {
+      return this.parsedAddress.map(paddedHex).join(":");
+    }
+    decimal() {
+      return this.parsedAddress.map((n) => parseInt(n, 16).toString(10).padStart(5, "0")).join(":");
+    }
+    bigInt() {
+      return BigInt(`0x${this.parsedAddress.map(paddedHex).join("")}`);
+    }
+    to4() {
+      const binary = this.binaryZeroPad().split("");
+      return ipv4_1.Address4.fromHex(BigInt(`0b${binary.slice(96, 128).join("")}`).toString(16));
+    }
+    to4in6() {
+      const address4 = this.to4();
+      const address6 = new Address6(this.parsedAddress.slice(0, 6).join(":"), 6);
+      const correct = address6.correctForm();
+      let infix = "";
+      if (!/:$/.test(correct)) {
+        infix = ":";
+      }
+      return correct + infix + address4.address;
+    }
+    inspectTeredo() {
+      const prefix = this.getBitsBase16(0, 32);
+      const bitsForUdpPort = this.getBits(80, 96);
+      const udpPort = (bitsForUdpPort ^ BigInt("0xffff")).toString();
+      const server4 = ipv4_1.Address4.fromHex(this.getBitsBase16(32, 64));
+      const bitsForClient4 = this.getBits(96, 128);
+      const client4 = ipv4_1.Address4.fromHex((bitsForClient4 ^ BigInt("0xffffffff")).toString(16));
+      const flagsBase2 = this.getBitsBase2(64, 80);
+      const coneNat = (0, common_1.testBit)(flagsBase2, 15);
+      const reserved = (0, common_1.testBit)(flagsBase2, 14);
+      const groupIndividual = (0, common_1.testBit)(flagsBase2, 8);
+      const universalLocal = (0, common_1.testBit)(flagsBase2, 9);
+      const nonce = BigInt(`0b${flagsBase2.slice(2, 6) + flagsBase2.slice(8, 16)}`).toString(10);
+      return {
+        prefix: `${prefix.slice(0, 4)}:${prefix.slice(4, 8)}`,
+        server4: server4.address,
+        client4: client4.address,
+        flags: flagsBase2,
+        coneNat,
+        microsoft: {
+          reserved,
+          universalLocal,
+          groupIndividual,
+          nonce
+        },
+        udpPort
+      };
+    }
+    inspect6to4() {
+      const prefix = this.getBitsBase16(0, 16);
+      const gateway2 = ipv4_1.Address4.fromHex(this.getBitsBase16(16, 48));
+      return {
+        prefix: prefix.slice(0, 4),
+        gateway: gateway2.address
+      };
+    }
+    to6to4() {
+      if (!this.is4()) {
+        return null;
+      }
+      const addr6to4 = [
+        "2002",
+        this.getBitsBase16(96, 112),
+        this.getBitsBase16(112, 128),
+        "",
+        "/16"
+      ].join(":");
+      return new Address6(addr6to4);
+    }
+    toByteArray() {
+      const valueWithoutPadding = this.bigInt().toString(16);
+      const leadingPad = "0".repeat(valueWithoutPadding.length % 2);
+      const value = `${leadingPad}${valueWithoutPadding}`;
+      const bytes = [];
+      for (let i = 0, length = value.length;i < length; i += 2) {
+        bytes.push(parseInt(value.substring(i, i + 2), 16));
+      }
+      return bytes;
+    }
+    toUnsignedByteArray() {
+      return this.toByteArray().map(unsignByte);
+    }
+    static fromByteArray(bytes) {
+      return this.fromUnsignedByteArray(bytes.map(unsignByte));
+    }
+    static fromUnsignedByteArray(bytes) {
+      const BYTE_MAX = BigInt("256");
+      let result = BigInt("0");
+      let multiplier = BigInt("1");
+      for (let i = bytes.length - 1;i >= 0; i--) {
+        result += multiplier * BigInt(bytes[i].toString(10));
+        multiplier *= BYTE_MAX;
+      }
+      return Address6.fromBigInt(result);
+    }
+    isCanonical() {
+      return this.addressMinusSuffix === this.canonicalForm();
+    }
+    isLinkLocal() {
+      if (this.getBitsBase2(0, 64) === "1111111010000000000000000000000000000000000000000000000000000000") {
+        return true;
+      }
+      return false;
+    }
+    isMulticast() {
+      return this.getType() === "Multicast";
+    }
+    is4() {
+      return this.v4;
+    }
+    isTeredo() {
+      return this.isInSubnet(new Address6("2001::/32"));
+    }
+    is6to4() {
+      return this.isInSubnet(new Address6("2002::/16"));
+    }
+    isLoopback() {
+      return this.getType() === "Loopback";
+    }
+    href(optionalPort) {
+      if (optionalPort === undefined) {
+        optionalPort = "";
+      } else {
+        optionalPort = `:${optionalPort}`;
+      }
+      return `http://[${this.correctForm()}]${optionalPort}/`;
+    }
+    link(options) {
+      if (!options) {
+        options = {};
+      }
+      if (options.className === undefined) {
+        options.className = "";
+      }
+      if (options.prefix === undefined) {
+        options.prefix = "/#address=";
+      }
+      if (options.v4 === undefined) {
+        options.v4 = false;
+      }
+      let formFunction = this.correctForm;
+      if (options.v4) {
+        formFunction = this.to4in6;
+      }
+      const form = formFunction.call(this);
+      if (options.className) {
+        return `<a href="${options.prefix}${form}" class="${options.className}">${form}</a>`;
+      }
+      return `<a href="${options.prefix}${form}">${form}</a>`;
+    }
+    group() {
+      if (this.elidedGroups === 0) {
+        return helpers.simpleGroup(this.address).join(":");
+      }
+      assert2(typeof this.elidedGroups === "number");
+      assert2(typeof this.elisionBegin === "number");
+      const output = [];
+      const [left, right] = this.address.split("::");
+      if (left.length) {
+        output.push(...helpers.simpleGroup(left));
+      } else {
+        output.push("");
+      }
+      const classes = ["hover-group"];
+      for (let i = this.elisionBegin;i < this.elisionBegin + this.elidedGroups; i++) {
+        classes.push(`group-${i}`);
+      }
+      output.push(`<span class="${classes.join(" ")}"></span>`);
+      if (right.length) {
+        output.push(...helpers.simpleGroup(right, this.elisionEnd));
+      } else {
+        output.push("");
+      }
+      if (this.is4()) {
+        assert2(this.address4 instanceof ipv4_1.Address4);
+        output.pop();
+        output.push(this.address4.groupForV6());
+      }
+      return output.join(":");
+    }
+    regularExpressionString(substringSearch = false) {
+      let output = [];
+      const address6 = new Address6(this.correctForm());
+      if (address6.elidedGroups === 0) {
+        output.push((0, regular_expressions_1.simpleRegularExpression)(address6.parsedAddress));
+      } else if (address6.elidedGroups === constants6.GROUPS) {
+        output.push((0, regular_expressions_1.possibleElisions)(constants6.GROUPS));
+      } else {
+        const halves = address6.address.split("::");
+        if (halves[0].length) {
+          output.push((0, regular_expressions_1.simpleRegularExpression)(halves[0].split(":")));
+        }
+        assert2(typeof address6.elidedGroups === "number");
+        output.push((0, regular_expressions_1.possibleElisions)(address6.elidedGroups, halves[0].length !== 0, halves[1].length !== 0));
+        if (halves[1].length) {
+          output.push((0, regular_expressions_1.simpleRegularExpression)(halves[1].split(":")));
+        }
+        output = [output.join(":")];
+      }
+      if (!substringSearch) {
+        output = [
+          "(?=^|",
+          regular_expressions_1.ADDRESS_BOUNDARY,
+          "|[^\\w\\:])(",
+          ...output,
+          ")(?=[^\\w\\:]|",
+          regular_expressions_1.ADDRESS_BOUNDARY,
+          "|$)"
+        ];
+      }
+      return output.join("");
+    }
+    regularExpression(substringSearch = false) {
+      return new RegExp(this.regularExpressionString(substringSearch), "i");
+    }
+  }
+  exports.Address6 = Address6;
+});
+
+// ../../node_modules/.pnpm/ip-address@10.1.0/node_modules/ip-address/dist/ip-address.js
+var require_ip_address = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.v6 = exports.AddressError = exports.Address6 = exports.Address4 = undefined;
+  var ipv4_1 = require_ipv4();
+  Object.defineProperty(exports, "Address4", { enumerable: true, get: function() {
+    return ipv4_1.Address4;
+  } });
+  var ipv6_1 = require_ipv6();
+  Object.defineProperty(exports, "Address6", { enumerable: true, get: function() {
+    return ipv6_1.Address6;
+  } });
+  var address_error_1 = require_address_error();
+  Object.defineProperty(exports, "AddressError", { enumerable: true, get: function() {
+    return address_error_1.AddressError;
+  } });
+  var helpers = __importStar(require_helpers2());
+  exports.v6 = { helpers };
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/common/helpers.js
+var require_helpers3 = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.ipToBuffer = exports.int32ToIpv4 = exports.ipv4ToInt32 = exports.validateSocksClientChainOptions = exports.validateSocksClientOptions = undefined;
+  var util_1 = require_util();
+  var constants_1 = require_constants();
+  var stream = __require("stream");
+  var ip_address_1 = require_ip_address();
+  var net = __require("net");
+  function validateSocksClientOptions(options, acceptedCommands = ["connect", "bind", "associate"]) {
+    if (!constants_1.SocksCommand[options.command]) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksCommand, options);
+    }
+    if (acceptedCommands.indexOf(options.command) === -1) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksCommandForOperation, options);
+    }
+    if (!isValidSocksRemoteHost(options.destination)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsDestination, options);
+    }
+    if (!isValidSocksProxy(options.proxy)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsProxy, options);
+    }
+    validateCustomProxyAuth(options.proxy, options);
+    if (options.timeout && !isValidTimeoutValue(options.timeout)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsTimeout, options);
+    }
+    if (options.existing_socket && !(options.existing_socket instanceof stream.Duplex)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsExistingSocket, options);
+    }
+  }
+  exports.validateSocksClientOptions = validateSocksClientOptions;
+  function validateSocksClientChainOptions(options) {
+    if (options.command !== "connect") {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksCommandChain, options);
+    }
+    if (!isValidSocksRemoteHost(options.destination)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsDestination, options);
+    }
+    if (!(options.proxies && Array.isArray(options.proxies) && options.proxies.length >= 2)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsProxiesLength, options);
+    }
+    options.proxies.forEach((proxy) => {
+      if (!isValidSocksProxy(proxy)) {
+        throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsProxy, options);
+      }
+      validateCustomProxyAuth(proxy, options);
+    });
+    if (options.timeout && !isValidTimeoutValue(options.timeout)) {
+      throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsTimeout, options);
+    }
+  }
+  exports.validateSocksClientChainOptions = validateSocksClientChainOptions;
+  function validateCustomProxyAuth(proxy, options) {
+    if (proxy.custom_auth_method !== undefined) {
+      if (proxy.custom_auth_method < constants_1.SOCKS5_CUSTOM_AUTH_START || proxy.custom_auth_method > constants_1.SOCKS5_CUSTOM_AUTH_END) {
+        throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsCustomAuthRange, options);
+      }
+      if (proxy.custom_auth_request_handler === undefined || typeof proxy.custom_auth_request_handler !== "function") {
+        throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsCustomAuthOptions, options);
+      }
+      if (proxy.custom_auth_response_size === undefined) {
+        throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsCustomAuthOptions, options);
+      }
+      if (proxy.custom_auth_response_handler === undefined || typeof proxy.custom_auth_response_handler !== "function") {
+        throw new util_1.SocksClientError(constants_1.ERRORS.InvalidSocksClientOptionsCustomAuthOptions, options);
+      }
+    }
+  }
+  function isValidSocksRemoteHost(remoteHost) {
+    return remoteHost && typeof remoteHost.host === "string" && Buffer.byteLength(remoteHost.host) < 256 && typeof remoteHost.port === "number" && remoteHost.port >= 0 && remoteHost.port <= 65535;
+  }
+  function isValidSocksProxy(proxy) {
+    return proxy && (typeof proxy.host === "string" || typeof proxy.ipaddress === "string") && typeof proxy.port === "number" && proxy.port >= 0 && proxy.port <= 65535 && (proxy.type === 4 || proxy.type === 5);
+  }
+  function isValidTimeoutValue(value) {
+    return typeof value === "number" && value > 0;
+  }
+  function ipv4ToInt32(ip) {
+    const address = new ip_address_1.Address4(ip);
+    return address.toArray().reduce((acc, part) => (acc << 8) + part, 0) >>> 0;
+  }
+  exports.ipv4ToInt32 = ipv4ToInt32;
+  function int32ToIpv4(int322) {
+    const octet1 = int322 >>> 24 & 255;
+    const octet2 = int322 >>> 16 & 255;
+    const octet3 = int322 >>> 8 & 255;
+    const octet4 = int322 & 255;
+    return [octet1, octet2, octet3, octet4].join(".");
+  }
+  exports.int32ToIpv4 = int32ToIpv4;
+  function ipToBuffer(ip) {
+    if (net.isIPv4(ip)) {
+      const address = new ip_address_1.Address4(ip);
+      return Buffer.from(address.toArray());
+    } else if (net.isIPv6(ip)) {
+      const address = new ip_address_1.Address6(ip);
+      return Buffer.from(address.canonicalForm().split(":").map((segment) => segment.padStart(4, "0")).join(""), "hex");
+    } else {
+      throw new Error("Invalid IP address format");
+    }
+  }
+  exports.ipToBuffer = ipToBuffer;
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/common/receivebuffer.js
+var require_receivebuffer = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.ReceiveBuffer = undefined;
+
+  class ReceiveBuffer {
+    constructor(size = 4096) {
+      this.buffer = Buffer.allocUnsafe(size);
+      this.offset = 0;
+      this.originalSize = size;
+    }
+    get length() {
+      return this.offset;
+    }
+    append(data) {
+      if (!Buffer.isBuffer(data)) {
+        throw new Error("Attempted to append a non-buffer instance to ReceiveBuffer.");
+      }
+      if (this.offset + data.length >= this.buffer.length) {
+        const tmp = this.buffer;
+        this.buffer = Buffer.allocUnsafe(Math.max(this.buffer.length + this.originalSize, this.buffer.length + data.length));
+        tmp.copy(this.buffer);
+      }
+      data.copy(this.buffer, this.offset);
+      return this.offset += data.length;
+    }
+    peek(length) {
+      if (length > this.offset) {
+        throw new Error("Attempted to read beyond the bounds of the managed internal data.");
+      }
+      return this.buffer.slice(0, length);
+    }
+    get(length) {
+      if (length > this.offset) {
+        throw new Error("Attempted to read beyond the bounds of the managed internal data.");
+      }
+      const value = Buffer.allocUnsafe(length);
+      this.buffer.slice(0, length).copy(value);
+      this.buffer.copyWithin(0, length, length + this.offset - length);
+      this.offset -= length;
+      return value;
+    }
+  }
+  exports.ReceiveBuffer = ReceiveBuffer;
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/client/socksclient.js
+var require_socksclient = __commonJS((exports) => {
+  var __awaiter = exports && exports.__awaiter || function(thisArg, _arguments, P, generator) {
+    function adopt(value) {
+      return value instanceof P ? value : new P(function(resolve2) {
+        resolve2(value);
+      });
+    }
+    return new (P || (P = Promise))(function(resolve2, reject) {
+      function fulfilled(value) {
+        try {
+          step(generator.next(value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function rejected(value) {
+        try {
+          step(generator["throw"](value));
+        } catch (e) {
+          reject(e);
+        }
+      }
+      function step(result) {
+        result.done ? resolve2(result.value) : adopt(result.value).then(fulfilled, rejected);
+      }
+      step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.SocksClientError = exports.SocksClient = undefined;
+  var events_1 = __require("events");
+  var net = __require("net");
+  var smart_buffer_1 = require_smartbuffer();
+  var constants_1 = require_constants();
+  var helpers_1 = require_helpers3();
+  var receivebuffer_1 = require_receivebuffer();
+  var util_1 = require_util();
+  Object.defineProperty(exports, "SocksClientError", { enumerable: true, get: function() {
+    return util_1.SocksClientError;
+  } });
+  var ip_address_1 = require_ip_address();
+
+  class SocksClient extends events_1.EventEmitter {
+    constructor(options) {
+      super();
+      this.options = Object.assign({}, options);
+      (0, helpers_1.validateSocksClientOptions)(options);
+      this.setState(constants_1.SocksClientState.Created);
+    }
+    static createConnection(options, callback) {
+      return new Promise((resolve2, reject) => {
+        try {
+          (0, helpers_1.validateSocksClientOptions)(options, ["connect"]);
+        } catch (err) {
+          if (typeof callback === "function") {
+            callback(err);
+            return resolve2(err);
+          } else {
+            return reject(err);
+          }
+        }
+        const client = new SocksClient(options);
+        client.connect(options.existing_socket);
+        client.once("established", (info) => {
+          client.removeAllListeners();
+          if (typeof callback === "function") {
+            callback(null, info);
+            resolve2(info);
+          } else {
+            resolve2(info);
+          }
+        });
+        client.once("error", (err) => {
+          client.removeAllListeners();
+          if (typeof callback === "function") {
+            callback(err);
+            resolve2(err);
+          } else {
+            reject(err);
+          }
+        });
+      });
+    }
+    static createConnectionChain(options, callback) {
+      return new Promise((resolve2, reject) => __awaiter(this, undefined, undefined, function* () {
+        try {
+          (0, helpers_1.validateSocksClientChainOptions)(options);
+        } catch (err) {
+          if (typeof callback === "function") {
+            callback(err);
+            return resolve2(err);
+          } else {
+            return reject(err);
+          }
+        }
+        if (options.randomizeChain) {
+          (0, util_1.shuffleArray)(options.proxies);
+        }
+        try {
+          let sock;
+          for (let i = 0;i < options.proxies.length; i++) {
+            const nextProxy = options.proxies[i];
+            const nextDestination = i === options.proxies.length - 1 ? options.destination : {
+              host: options.proxies[i + 1].host || options.proxies[i + 1].ipaddress,
+              port: options.proxies[i + 1].port
+            };
+            const result = yield SocksClient.createConnection({
+              command: "connect",
+              proxy: nextProxy,
+              destination: nextDestination,
+              existing_socket: sock
+            });
+            sock = sock || result.socket;
+          }
+          if (typeof callback === "function") {
+            callback(null, { socket: sock });
+            resolve2({ socket: sock });
+          } else {
+            resolve2({ socket: sock });
+          }
+        } catch (err) {
+          if (typeof callback === "function") {
+            callback(err);
+            resolve2(err);
+          } else {
+            reject(err);
+          }
+        }
+      }));
+    }
+    static createUDPFrame(options) {
+      const buff = new smart_buffer_1.SmartBuffer;
+      buff.writeUInt16BE(0);
+      buff.writeUInt8(options.frameNumber || 0);
+      if (net.isIPv4(options.remoteHost.host)) {
+        buff.writeUInt8(constants_1.Socks5HostType.IPv4);
+        buff.writeUInt32BE((0, helpers_1.ipv4ToInt32)(options.remoteHost.host));
+      } else if (net.isIPv6(options.remoteHost.host)) {
+        buff.writeUInt8(constants_1.Socks5HostType.IPv6);
+        buff.writeBuffer((0, helpers_1.ipToBuffer)(options.remoteHost.host));
+      } else {
+        buff.writeUInt8(constants_1.Socks5HostType.Hostname);
+        buff.writeUInt8(Buffer.byteLength(options.remoteHost.host));
+        buff.writeString(options.remoteHost.host);
+      }
+      buff.writeUInt16BE(options.remoteHost.port);
+      buff.writeBuffer(options.data);
+      return buff.toBuffer();
+    }
+    static parseUDPFrame(data) {
+      const buff = smart_buffer_1.SmartBuffer.fromBuffer(data);
+      buff.readOffset = 2;
+      const frameNumber = buff.readUInt8();
+      const hostType = buff.readUInt8();
+      let remoteHost;
+      if (hostType === constants_1.Socks5HostType.IPv4) {
+        remoteHost = (0, helpers_1.int32ToIpv4)(buff.readUInt32BE());
+      } else if (hostType === constants_1.Socks5HostType.IPv6) {
+        remoteHost = ip_address_1.Address6.fromByteArray(Array.from(buff.readBuffer(16))).canonicalForm();
+      } else {
+        remoteHost = buff.readString(buff.readUInt8());
+      }
+      const remotePort = buff.readUInt16BE();
+      return {
+        frameNumber,
+        remoteHost: {
+          host: remoteHost,
+          port: remotePort
+        },
+        data: buff.readBuffer()
+      };
+    }
+    setState(newState) {
+      if (this.state !== constants_1.SocksClientState.Error) {
+        this.state = newState;
+      }
+    }
+    connect(existingSocket) {
+      this.onDataReceived = (data) => this.onDataReceivedHandler(data);
+      this.onClose = () => this.onCloseHandler();
+      this.onError = (err) => this.onErrorHandler(err);
+      this.onConnect = () => this.onConnectHandler();
+      const timer = setTimeout(() => this.onEstablishedTimeout(), this.options.timeout || constants_1.DEFAULT_TIMEOUT);
+      if (timer.unref && typeof timer.unref === "function") {
+        timer.unref();
+      }
+      if (existingSocket) {
+        this.socket = existingSocket;
+      } else {
+        this.socket = new net.Socket;
+      }
+      this.socket.once("close", this.onClose);
+      this.socket.once("error", this.onError);
+      this.socket.once("connect", this.onConnect);
+      this.socket.on("data", this.onDataReceived);
+      this.setState(constants_1.SocksClientState.Connecting);
+      this.receiveBuffer = new receivebuffer_1.ReceiveBuffer;
+      if (existingSocket) {
+        this.socket.emit("connect");
+      } else {
+        this.socket.connect(this.getSocketOptions());
+        if (this.options.set_tcp_nodelay !== undefined && this.options.set_tcp_nodelay !== null) {
+          this.socket.setNoDelay(!!this.options.set_tcp_nodelay);
+        }
+      }
+      this.prependOnceListener("established", (info) => {
+        setImmediate(() => {
+          if (this.receiveBuffer.length > 0) {
+            const excessData = this.receiveBuffer.get(this.receiveBuffer.length);
+            info.socket.emit("data", excessData);
+          }
+          info.socket.resume();
+        });
+      });
+    }
+    getSocketOptions() {
+      return Object.assign(Object.assign({}, this.options.socket_options), { host: this.options.proxy.host || this.options.proxy.ipaddress, port: this.options.proxy.port });
+    }
+    onEstablishedTimeout() {
+      if (this.state !== constants_1.SocksClientState.Established && this.state !== constants_1.SocksClientState.BoundWaitingForConnection) {
+        this.closeSocket(constants_1.ERRORS.ProxyConnectionTimedOut);
+      }
+    }
+    onConnectHandler() {
+      this.setState(constants_1.SocksClientState.Connected);
+      if (this.options.proxy.type === 4) {
+        this.sendSocks4InitialHandshake();
+      } else {
+        this.sendSocks5InitialHandshake();
+      }
+      this.setState(constants_1.SocksClientState.SentInitialHandshake);
+    }
+    onDataReceivedHandler(data) {
+      this.receiveBuffer.append(data);
+      this.processData();
+    }
+    processData() {
+      while (this.state !== constants_1.SocksClientState.Established && this.state !== constants_1.SocksClientState.Error && this.receiveBuffer.length >= this.nextRequiredPacketBufferSize) {
+        if (this.state === constants_1.SocksClientState.SentInitialHandshake) {
+          if (this.options.proxy.type === 4) {
+            this.handleSocks4FinalHandshakeResponse();
+          } else {
+            this.handleInitialSocks5HandshakeResponse();
+          }
+        } else if (this.state === constants_1.SocksClientState.SentAuthentication) {
+          this.handleInitialSocks5AuthenticationHandshakeResponse();
+        } else if (this.state === constants_1.SocksClientState.SentFinalHandshake) {
+          this.handleSocks5FinalHandshakeResponse();
+        } else if (this.state === constants_1.SocksClientState.BoundWaitingForConnection) {
+          if (this.options.proxy.type === 4) {
+            this.handleSocks4IncomingConnectionResponse();
+          } else {
+            this.handleSocks5IncomingConnectionResponse();
+          }
+        } else {
+          this.closeSocket(constants_1.ERRORS.InternalError);
+          break;
+        }
+      }
+    }
+    onCloseHandler() {
+      this.closeSocket(constants_1.ERRORS.SocketClosed);
+    }
+    onErrorHandler(err) {
+      this.closeSocket(err.message);
+    }
+    removeInternalSocketHandlers() {
+      this.socket.pause();
+      this.socket.removeListener("data", this.onDataReceived);
+      this.socket.removeListener("close", this.onClose);
+      this.socket.removeListener("error", this.onError);
+      this.socket.removeListener("connect", this.onConnect);
+    }
+    closeSocket(err) {
+      if (this.state !== constants_1.SocksClientState.Error) {
+        this.setState(constants_1.SocksClientState.Error);
+        this.socket.destroy();
+        this.removeInternalSocketHandlers();
+        this.emit("error", new util_1.SocksClientError(err, this.options));
+      }
+    }
+    sendSocks4InitialHandshake() {
+      const userId = this.options.proxy.userId || "";
+      const buff = new smart_buffer_1.SmartBuffer;
+      buff.writeUInt8(4);
+      buff.writeUInt8(constants_1.SocksCommand[this.options.command]);
+      buff.writeUInt16BE(this.options.destination.port);
+      if (net.isIPv4(this.options.destination.host)) {
+        buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
+        buff.writeStringNT(userId);
+      } else {
+        buff.writeUInt8(0);
+        buff.writeUInt8(0);
+        buff.writeUInt8(0);
+        buff.writeUInt8(1);
+        buff.writeStringNT(userId);
+        buff.writeStringNT(this.options.destination.host);
+      }
+      this.nextRequiredPacketBufferSize = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks4Response;
+      this.socket.write(buff.toBuffer());
+    }
+    handleSocks4FinalHandshakeResponse() {
+      const data = this.receiveBuffer.get(8);
+      if (data[1] !== constants_1.Socks4Response.Granted) {
+        this.closeSocket(`${constants_1.ERRORS.Socks4ProxyRejectedConnection} - (${constants_1.Socks4Response[data[1]]})`);
+      } else {
+        if (constants_1.SocksCommand[this.options.command] === constants_1.SocksCommand.bind) {
+          const buff = smart_buffer_1.SmartBuffer.fromBuffer(data);
+          buff.readOffset = 2;
+          const remoteHost = {
+            port: buff.readUInt16BE(),
+            host: (0, helpers_1.int32ToIpv4)(buff.readUInt32BE())
+          };
+          if (remoteHost.host === "0.0.0.0") {
+            remoteHost.host = this.options.proxy.ipaddress;
+          }
+          this.setState(constants_1.SocksClientState.BoundWaitingForConnection);
+          this.emit("bound", { remoteHost, socket: this.socket });
+        } else {
+          this.setState(constants_1.SocksClientState.Established);
+          this.removeInternalSocketHandlers();
+          this.emit("established", { socket: this.socket });
+        }
+      }
+    }
+    handleSocks4IncomingConnectionResponse() {
+      const data = this.receiveBuffer.get(8);
+      if (data[1] !== constants_1.Socks4Response.Granted) {
+        this.closeSocket(`${constants_1.ERRORS.Socks4ProxyRejectedIncomingBoundConnection} - (${constants_1.Socks4Response[data[1]]})`);
+      } else {
+        const buff = smart_buffer_1.SmartBuffer.fromBuffer(data);
+        buff.readOffset = 2;
+        const remoteHost = {
+          port: buff.readUInt16BE(),
+          host: (0, helpers_1.int32ToIpv4)(buff.readUInt32BE())
+        };
+        this.setState(constants_1.SocksClientState.Established);
+        this.removeInternalSocketHandlers();
+        this.emit("established", { remoteHost, socket: this.socket });
+      }
+    }
+    sendSocks5InitialHandshake() {
+      const buff = new smart_buffer_1.SmartBuffer;
+      const supportedAuthMethods = [constants_1.Socks5Auth.NoAuth];
+      if (this.options.proxy.userId || this.options.proxy.password) {
+        supportedAuthMethods.push(constants_1.Socks5Auth.UserPass);
+      }
+      if (this.options.proxy.custom_auth_method !== undefined) {
+        supportedAuthMethods.push(this.options.proxy.custom_auth_method);
+      }
+      buff.writeUInt8(5);
+      buff.writeUInt8(supportedAuthMethods.length);
+      for (const authMethod of supportedAuthMethods) {
+        buff.writeUInt8(authMethod);
+      }
+      this.nextRequiredPacketBufferSize = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5InitialHandshakeResponse;
+      this.socket.write(buff.toBuffer());
+      this.setState(constants_1.SocksClientState.SentInitialHandshake);
+    }
+    handleInitialSocks5HandshakeResponse() {
+      const data = this.receiveBuffer.get(2);
+      if (data[0] !== 5) {
+        this.closeSocket(constants_1.ERRORS.InvalidSocks5IntiailHandshakeSocksVersion);
+      } else if (data[1] === constants_1.SOCKS5_NO_ACCEPTABLE_AUTH) {
+        this.closeSocket(constants_1.ERRORS.InvalidSocks5InitialHandshakeNoAcceptedAuthType);
+      } else {
+        if (data[1] === constants_1.Socks5Auth.NoAuth) {
+          this.socks5ChosenAuthType = constants_1.Socks5Auth.NoAuth;
+          this.sendSocks5CommandRequest();
+        } else if (data[1] === constants_1.Socks5Auth.UserPass) {
+          this.socks5ChosenAuthType = constants_1.Socks5Auth.UserPass;
+          this.sendSocks5UserPassAuthentication();
+        } else if (data[1] === this.options.proxy.custom_auth_method) {
+          this.socks5ChosenAuthType = this.options.proxy.custom_auth_method;
+          this.sendSocks5CustomAuthentication();
+        } else {
+          this.closeSocket(constants_1.ERRORS.InvalidSocks5InitialHandshakeUnknownAuthType);
+        }
+      }
+    }
+    sendSocks5UserPassAuthentication() {
+      const userId = this.options.proxy.userId || "";
+      const password = this.options.proxy.password || "";
+      const buff = new smart_buffer_1.SmartBuffer;
+      buff.writeUInt8(1);
+      buff.writeUInt8(Buffer.byteLength(userId));
+      buff.writeString(userId);
+      buff.writeUInt8(Buffer.byteLength(password));
+      buff.writeString(password);
+      this.nextRequiredPacketBufferSize = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5UserPassAuthenticationResponse;
+      this.socket.write(buff.toBuffer());
+      this.setState(constants_1.SocksClientState.SentAuthentication);
+    }
+    sendSocks5CustomAuthentication() {
+      return __awaiter(this, undefined, undefined, function* () {
+        this.nextRequiredPacketBufferSize = this.options.proxy.custom_auth_response_size;
+        this.socket.write(yield this.options.proxy.custom_auth_request_handler());
+        this.setState(constants_1.SocksClientState.SentAuthentication);
+      });
+    }
+    handleSocks5CustomAuthHandshakeResponse(data) {
+      return __awaiter(this, undefined, undefined, function* () {
+        return yield this.options.proxy.custom_auth_response_handler(data);
+      });
+    }
+    handleSocks5AuthenticationNoAuthHandshakeResponse(data) {
+      return __awaiter(this, undefined, undefined, function* () {
+        return data[1] === 0;
+      });
+    }
+    handleSocks5AuthenticationUserPassHandshakeResponse(data) {
+      return __awaiter(this, undefined, undefined, function* () {
+        return data[1] === 0;
+      });
+    }
+    handleInitialSocks5AuthenticationHandshakeResponse() {
+      return __awaiter(this, undefined, undefined, function* () {
+        this.setState(constants_1.SocksClientState.ReceivedAuthenticationResponse);
+        let authResult = false;
+        if (this.socks5ChosenAuthType === constants_1.Socks5Auth.NoAuth) {
+          authResult = yield this.handleSocks5AuthenticationNoAuthHandshakeResponse(this.receiveBuffer.get(2));
+        } else if (this.socks5ChosenAuthType === constants_1.Socks5Auth.UserPass) {
+          authResult = yield this.handleSocks5AuthenticationUserPassHandshakeResponse(this.receiveBuffer.get(2));
+        } else if (this.socks5ChosenAuthType === this.options.proxy.custom_auth_method) {
+          authResult = yield this.handleSocks5CustomAuthHandshakeResponse(this.receiveBuffer.get(this.options.proxy.custom_auth_response_size));
+        }
+        if (!authResult) {
+          this.closeSocket(constants_1.ERRORS.Socks5AuthenticationFailed);
+        } else {
+          this.sendSocks5CommandRequest();
+        }
+      });
+    }
+    sendSocks5CommandRequest() {
+      const buff = new smart_buffer_1.SmartBuffer;
+      buff.writeUInt8(5);
+      buff.writeUInt8(constants_1.SocksCommand[this.options.command]);
+      buff.writeUInt8(0);
+      if (net.isIPv4(this.options.destination.host)) {
+        buff.writeUInt8(constants_1.Socks5HostType.IPv4);
+        buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
+      } else if (net.isIPv6(this.options.destination.host)) {
+        buff.writeUInt8(constants_1.Socks5HostType.IPv6);
+        buff.writeBuffer((0, helpers_1.ipToBuffer)(this.options.destination.host));
+      } else {
+        buff.writeUInt8(constants_1.Socks5HostType.Hostname);
+        buff.writeUInt8(this.options.destination.host.length);
+        buff.writeString(this.options.destination.host);
+      }
+      buff.writeUInt16BE(this.options.destination.port);
+      this.nextRequiredPacketBufferSize = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseHeader;
+      this.socket.write(buff.toBuffer());
+      this.setState(constants_1.SocksClientState.SentFinalHandshake);
+    }
+    handleSocks5FinalHandshakeResponse() {
+      const header = this.receiveBuffer.peek(5);
+      if (header[0] !== 5 || header[1] !== constants_1.Socks5Response.Granted) {
+        this.closeSocket(`${constants_1.ERRORS.InvalidSocks5FinalHandshakeRejected} - ${constants_1.Socks5Response[header[1]]}`);
+      } else {
+        const addressType = header[3];
+        let remoteHost;
+        let buff;
+        if (addressType === constants_1.Socks5HostType.IPv4) {
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseIPv4;
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(4));
+          remoteHost = {
+            host: (0, helpers_1.int32ToIpv4)(buff.readUInt32BE()),
+            port: buff.readUInt16BE()
+          };
+          if (remoteHost.host === "0.0.0.0") {
+            remoteHost.host = this.options.proxy.ipaddress;
+          }
+        } else if (addressType === constants_1.Socks5HostType.Hostname) {
+          const hostLength = header[4];
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseHostname(hostLength);
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(5));
+          remoteHost = {
+            host: buff.readString(hostLength),
+            port: buff.readUInt16BE()
+          };
+        } else if (addressType === constants_1.Socks5HostType.IPv6) {
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseIPv6;
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(4));
+          remoteHost = {
+            host: ip_address_1.Address6.fromByteArray(Array.from(buff.readBuffer(16))).canonicalForm(),
+            port: buff.readUInt16BE()
+          };
+        }
+        this.setState(constants_1.SocksClientState.ReceivedFinalResponse);
+        if (constants_1.SocksCommand[this.options.command] === constants_1.SocksCommand.connect) {
+          this.setState(constants_1.SocksClientState.Established);
+          this.removeInternalSocketHandlers();
+          this.emit("established", { remoteHost, socket: this.socket });
+        } else if (constants_1.SocksCommand[this.options.command] === constants_1.SocksCommand.bind) {
+          this.setState(constants_1.SocksClientState.BoundWaitingForConnection);
+          this.nextRequiredPacketBufferSize = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseHeader;
+          this.emit("bound", { remoteHost, socket: this.socket });
+        } else if (constants_1.SocksCommand[this.options.command] === constants_1.SocksCommand.associate) {
+          this.setState(constants_1.SocksClientState.Established);
+          this.removeInternalSocketHandlers();
+          this.emit("established", {
+            remoteHost,
+            socket: this.socket
+          });
+        }
+      }
+    }
+    handleSocks5IncomingConnectionResponse() {
+      const header = this.receiveBuffer.peek(5);
+      if (header[0] !== 5 || header[1] !== constants_1.Socks5Response.Granted) {
+        this.closeSocket(`${constants_1.ERRORS.Socks5ProxyRejectedIncomingBoundConnection} - ${constants_1.Socks5Response[header[1]]}`);
+      } else {
+        const addressType = header[3];
+        let remoteHost;
+        let buff;
+        if (addressType === constants_1.Socks5HostType.IPv4) {
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseIPv4;
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(4));
+          remoteHost = {
+            host: (0, helpers_1.int32ToIpv4)(buff.readUInt32BE()),
+            port: buff.readUInt16BE()
+          };
+          if (remoteHost.host === "0.0.0.0") {
+            remoteHost.host = this.options.proxy.ipaddress;
+          }
+        } else if (addressType === constants_1.Socks5HostType.Hostname) {
+          const hostLength = header[4];
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseHostname(hostLength);
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(5));
+          remoteHost = {
+            host: buff.readString(hostLength),
+            port: buff.readUInt16BE()
+          };
+        } else if (addressType === constants_1.Socks5HostType.IPv6) {
+          const dataNeeded = constants_1.SOCKS_INCOMING_PACKET_SIZES.Socks5ResponseIPv6;
+          if (this.receiveBuffer.length < dataNeeded) {
+            this.nextRequiredPacketBufferSize = dataNeeded;
+            return;
+          }
+          buff = smart_buffer_1.SmartBuffer.fromBuffer(this.receiveBuffer.get(dataNeeded).slice(4));
+          remoteHost = {
+            host: ip_address_1.Address6.fromByteArray(Array.from(buff.readBuffer(16))).canonicalForm(),
+            port: buff.readUInt16BE()
+          };
+        }
+        this.setState(constants_1.SocksClientState.Established);
+        this.removeInternalSocketHandlers();
+        this.emit("established", { remoteHost, socket: this.socket });
+      }
+    }
+    get socksClientOptions() {
+      return Object.assign({}, this.options);
+    }
+  }
+  exports.SocksClient = SocksClient;
+});
+
+// ../../node_modules/.pnpm/socks@2.8.7/node_modules/socks/build/index.js
+var require_build = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __exportStar = exports && exports.__exportStar || function(m, exports2) {
+    for (var p in m)
+      if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p))
+        __createBinding(exports2, m, p);
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  __exportStar(require_socksclient(), exports);
+});
+
+// ../../node_modules/.pnpm/socks-proxy-agent@8.0.5/node_modules/socks-proxy-agent/dist/index.js
+var require_dist5 = __commonJS((exports) => {
+  var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() {
+        return m[k];
+      } };
+    }
+    Object.defineProperty(o, k2, desc);
+  } : function(o, m, k, k2) {
+    if (k2 === undefined)
+      k2 = k;
+    o[k2] = m[k];
+  });
+  var __setModuleDefault = exports && exports.__setModuleDefault || (Object.create ? function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+  } : function(o, v) {
+    o["default"] = v;
+  });
+  var __importStar = exports && exports.__importStar || function(mod) {
+    if (mod && mod.__esModule)
+      return mod;
+    var result = {};
+    if (mod != null) {
+      for (var k in mod)
+        if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k))
+          __createBinding(result, mod, k);
+    }
+    __setModuleDefault(result, mod);
+    return result;
+  };
+  var __importDefault = exports && exports.__importDefault || function(mod) {
+    return mod && mod.__esModule ? mod : { default: mod };
+  };
+  Object.defineProperty(exports, "__esModule", { value: true });
+  exports.SocksProxyAgent = undefined;
+  var socks_1 = require_build();
+  var agent_base_1 = require_dist2();
+  var debug_1 = __importDefault(require_src2());
+  var dns = __importStar(__require("dns"));
+  var net = __importStar(__require("net"));
+  var tls = __importStar(__require("tls"));
+  var url_1 = __require("url");
+  var debug = (0, debug_1.default)("socks-proxy-agent");
+  var setServernameFromNonIpHost = (options) => {
+    if (options.servername === undefined && options.host && !net.isIP(options.host)) {
+      return {
+        ...options,
+        servername: options.host
+      };
+    }
+    return options;
+  };
+  function parseSocksURL(url2) {
+    let lookup = false;
+    let type = 5;
+    const host = url2.hostname;
+    const port = parseInt(url2.port, 10) || 1080;
+    switch (url2.protocol.replace(":", "")) {
+      case "socks4":
+        lookup = true;
+        type = 4;
+        break;
+      case "socks4a":
+        type = 4;
+        break;
+      case "socks5":
+        lookup = true;
+        type = 5;
+        break;
+      case "socks":
+        type = 5;
+        break;
+      case "socks5h":
+        type = 5;
+        break;
+      default:
+        throw new TypeError(`A "socks" protocol must be specified! Got: ${String(url2.protocol)}`);
+    }
+    const proxy = {
+      host,
+      port,
+      type
+    };
+    if (url2.username) {
+      Object.defineProperty(proxy, "userId", {
+        value: decodeURIComponent(url2.username),
+        enumerable: false
+      });
+    }
+    if (url2.password != null) {
+      Object.defineProperty(proxy, "password", {
+        value: decodeURIComponent(url2.password),
+        enumerable: false
+      });
+    }
+    return { lookup, proxy };
+  }
+
+  class SocksProxyAgent extends agent_base_1.Agent {
+    constructor(uri, opts) {
+      super(opts);
+      const url2 = typeof uri === "string" ? new url_1.URL(uri) : uri;
+      const { proxy, lookup } = parseSocksURL(url2);
+      this.shouldLookup = lookup;
+      this.proxy = proxy;
+      this.timeout = opts?.timeout ?? null;
+      this.socketOptions = opts?.socketOptions ?? null;
+    }
+    async connect(req, opts) {
+      const { shouldLookup, proxy, timeout: timeout2 } = this;
+      if (!opts.host) {
+        throw new Error("No `host` defined!");
+      }
+      let { host } = opts;
+      const { port, lookup: lookupFn = dns.lookup } = opts;
+      if (shouldLookup) {
+        host = await new Promise((resolve2, reject) => {
+          lookupFn(host, {}, (err, res) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve2(res);
+            }
+          });
+        });
+      }
+      const socksOpts = {
+        proxy,
+        destination: {
+          host,
+          port: typeof port === "number" ? port : parseInt(port, 10)
+        },
+        command: "connect",
+        timeout: timeout2 ?? undefined,
+        socket_options: this.socketOptions ?? undefined
+      };
+      const cleanup = (tlsSocket) => {
+        req.destroy();
+        socket.destroy();
+        if (tlsSocket)
+          tlsSocket.destroy();
+      };
+      debug("Creating socks proxy connection: %o", socksOpts);
+      const { socket } = await socks_1.SocksClient.createConnection(socksOpts);
+      debug("Successfully created socks proxy connection");
+      if (timeout2 !== null) {
+        socket.setTimeout(timeout2);
+        socket.on("timeout", () => cleanup());
+      }
+      if (opts.secureEndpoint) {
+        debug("Upgrading socket connection to TLS");
+        const tlsSocket = tls.connect({
+          ...omit3(setServernameFromNonIpHost(opts), "host", "path", "port"),
+          socket
+        });
+        tlsSocket.once("error", (error48) => {
+          debug("Socket TLS error", error48.message);
+          cleanup(tlsSocket);
+        });
+        return tlsSocket;
+      }
+      return socket;
+    }
+  }
+  SocksProxyAgent.protocols = [
+    "socks",
+    "socks4",
+    "socks4a",
+    "socks5",
+    "socks5h"
+  ];
+  exports.SocksProxyAgent = SocksProxyAgent;
+  function omit3(obj, ...keys) {
+    const ret = {};
+    let key;
+    for (key in obj) {
+      if (!keys.includes(key)) {
+        ret[key] = obj[key];
+      }
+    }
+    return ret;
+  }
 });
 
 // ../../node_modules/.pnpm/negotiator@0.6.3/node_modules/negotiator/lib/charset.js
@@ -11127,11 +15202,11 @@ var require_mime_types = __commonJS((exports) => {
     }
     return exts[0];
   }
-  function lookup(path12) {
-    if (!path12 || typeof path12 !== "string") {
+  function lookup(path13) {
+    if (!path13 || typeof path13 !== "string") {
       return false;
     }
-    var extension2 = extname2("x." + path12).toLowerCase().substr(1);
+    var extension2 = extname2("x." + path13).toLowerCase().substr(1);
     if (!extension2) {
       return false;
     }
@@ -12029,752 +16104,6 @@ var require_parser_v3 = __commonJS((exports) => {
       var buffer = buffers[i];
       callback(decodePacket(buffer, binaryType, true), i, total);
     }
-  }
-});
-
-// ../../node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
-var require_ms = __commonJS((exports, module) => {
-  var s = 1000;
-  var m = s * 60;
-  var h = m * 60;
-  var d = h * 24;
-  var w = d * 7;
-  var y = d * 365.25;
-  module.exports = function(val, options) {
-    options = options || {};
-    var type = typeof val;
-    if (type === "string" && val.length > 0) {
-      return parse5(val);
-    } else if (type === "number" && isFinite(val)) {
-      return options.long ? fmtLong(val) : fmtShort(val);
-    }
-    throw new Error("val is not a non-empty string or a valid number. val=" + JSON.stringify(val));
-  };
-  function parse5(str) {
-    str = String(str);
-    if (str.length > 100) {
-      return;
-    }
-    var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(str);
-    if (!match) {
-      return;
-    }
-    var n = parseFloat(match[1]);
-    var type = (match[2] || "ms").toLowerCase();
-    switch (type) {
-      case "years":
-      case "year":
-      case "yrs":
-      case "yr":
-      case "y":
-        return n * y;
-      case "weeks":
-      case "week":
-      case "w":
-        return n * w;
-      case "days":
-      case "day":
-      case "d":
-        return n * d;
-      case "hours":
-      case "hour":
-      case "hrs":
-      case "hr":
-      case "h":
-        return n * h;
-      case "minutes":
-      case "minute":
-      case "mins":
-      case "min":
-      case "m":
-        return n * m;
-      case "seconds":
-      case "second":
-      case "secs":
-      case "sec":
-      case "s":
-        return n * s;
-      case "milliseconds":
-      case "millisecond":
-      case "msecs":
-      case "msec":
-      case "ms":
-        return n;
-      default:
-        return;
-    }
-  }
-  function fmtShort(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return Math.round(ms / d) + "d";
-    }
-    if (msAbs >= h) {
-      return Math.round(ms / h) + "h";
-    }
-    if (msAbs >= m) {
-      return Math.round(ms / m) + "m";
-    }
-    if (msAbs >= s) {
-      return Math.round(ms / s) + "s";
-    }
-    return ms + "ms";
-  }
-  function fmtLong(ms) {
-    var msAbs = Math.abs(ms);
-    if (msAbs >= d) {
-      return plural(ms, msAbs, d, "day");
-    }
-    if (msAbs >= h) {
-      return plural(ms, msAbs, h, "hour");
-    }
-    if (msAbs >= m) {
-      return plural(ms, msAbs, m, "minute");
-    }
-    if (msAbs >= s) {
-      return plural(ms, msAbs, s, "second");
-    }
-    return ms + " ms";
-  }
-  function plural(ms, msAbs, n, name21) {
-    var isPlural = msAbs >= n * 1.5;
-    return Math.round(ms / n) + " " + name21 + (isPlural ? "s" : "");
-  }
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/common.js
-var require_common = __commonJS((exports, module) => {
-  function setup(env) {
-    createDebug.debug = createDebug;
-    createDebug.default = createDebug;
-    createDebug.coerce = coerce2;
-    createDebug.disable = disable;
-    createDebug.enable = enable;
-    createDebug.enabled = enabled;
-    createDebug.humanize = require_ms();
-    createDebug.destroy = destroy;
-    Object.keys(env).forEach((key) => {
-      createDebug[key] = env[key];
-    });
-    createDebug.names = [];
-    createDebug.skips = [];
-    createDebug.formatters = {};
-    function selectColor(namespace) {
-      let hash2 = 0;
-      for (let i = 0;i < namespace.length; i++) {
-        hash2 = (hash2 << 5) - hash2 + namespace.charCodeAt(i);
-        hash2 |= 0;
-      }
-      return createDebug.colors[Math.abs(hash2) % createDebug.colors.length];
-    }
-    createDebug.selectColor = selectColor;
-    function createDebug(namespace) {
-      let prevTime;
-      let enableOverride = null;
-      let namespacesCache;
-      let enabledCache;
-      function debug(...args) {
-        if (!debug.enabled) {
-          return;
-        }
-        const self = debug;
-        const curr = Number(new Date);
-        const ms = curr - (prevTime || curr);
-        self.diff = ms;
-        self.prev = prevTime;
-        self.curr = curr;
-        prevTime = curr;
-        args[0] = createDebug.coerce(args[0]);
-        if (typeof args[0] !== "string") {
-          args.unshift("%O");
-        }
-        let index = 0;
-        args[0] = args[0].replace(/%([a-zA-Z%])/g, (match, format) => {
-          if (match === "%%") {
-            return "%";
-          }
-          index++;
-          const formatter = createDebug.formatters[format];
-          if (typeof formatter === "function") {
-            const val = args[index];
-            match = formatter.call(self, val);
-            args.splice(index, 1);
-            index--;
-          }
-          return match;
-        });
-        createDebug.formatArgs.call(self, args);
-        const logFn = self.log || createDebug.log;
-        logFn.apply(self, args);
-      }
-      debug.namespace = namespace;
-      debug.useColors = createDebug.useColors();
-      debug.color = createDebug.selectColor(namespace);
-      debug.extend = extend2;
-      debug.destroy = createDebug.destroy;
-      Object.defineProperty(debug, "enabled", {
-        enumerable: true,
-        configurable: false,
-        get: () => {
-          if (enableOverride !== null) {
-            return enableOverride;
-          }
-          if (namespacesCache !== createDebug.namespaces) {
-            namespacesCache = createDebug.namespaces;
-            enabledCache = createDebug.enabled(namespace);
-          }
-          return enabledCache;
-        },
-        set: (v) => {
-          enableOverride = v;
-        }
-      });
-      if (typeof createDebug.init === "function") {
-        createDebug.init(debug);
-      }
-      return debug;
-    }
-    function extend2(namespace, delimiter) {
-      const newDebug = createDebug(this.namespace + (typeof delimiter === "undefined" ? ":" : delimiter) + namespace);
-      newDebug.log = this.log;
-      return newDebug;
-    }
-    function enable(namespaces) {
-      createDebug.save(namespaces);
-      createDebug.namespaces = namespaces;
-      createDebug.names = [];
-      createDebug.skips = [];
-      const split2 = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
-      for (const ns of split2) {
-        if (ns[0] === "-") {
-          createDebug.skips.push(ns.slice(1));
-        } else {
-          createDebug.names.push(ns);
-        }
-      }
-    }
-    function matchesTemplate(search, template) {
-      let searchIndex = 0;
-      let templateIndex = 0;
-      let starIndex = -1;
-      let matchIndex = 0;
-      while (searchIndex < search.length) {
-        if (templateIndex < template.length && (template[templateIndex] === search[searchIndex] || template[templateIndex] === "*")) {
-          if (template[templateIndex] === "*") {
-            starIndex = templateIndex;
-            matchIndex = searchIndex;
-            templateIndex++;
-          } else {
-            searchIndex++;
-            templateIndex++;
-          }
-        } else if (starIndex !== -1) {
-          templateIndex = starIndex + 1;
-          matchIndex++;
-          searchIndex = matchIndex;
-        } else {
-          return false;
-        }
-      }
-      while (templateIndex < template.length && template[templateIndex] === "*") {
-        templateIndex++;
-      }
-      return templateIndex === template.length;
-    }
-    function disable() {
-      const namespaces = [
-        ...createDebug.names,
-        ...createDebug.skips.map((namespace) => "-" + namespace)
-      ].join(",");
-      createDebug.enable("");
-      return namespaces;
-    }
-    function enabled(name21) {
-      for (const skip of createDebug.skips) {
-        if (matchesTemplate(name21, skip)) {
-          return false;
-        }
-      }
-      for (const ns of createDebug.names) {
-        if (matchesTemplate(name21, ns)) {
-          return true;
-        }
-      }
-      return false;
-    }
-    function coerce2(val) {
-      if (val instanceof Error) {
-        return val.stack || val.message;
-      }
-      return val;
-    }
-    function destroy() {
-      console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-    }
-    createDebug.enable(createDebug.load());
-    return createDebug;
-  }
-  module.exports = setup;
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/browser.js
-var require_browser = __commonJS((exports, module) => {
-  exports.formatArgs = formatArgs;
-  exports.save = save;
-  exports.load = load;
-  exports.useColors = useColors;
-  exports.storage = localstorage();
-  exports.destroy = (() => {
-    let warned = false;
-    return () => {
-      if (!warned) {
-        warned = true;
-        console.warn("Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-      }
-    };
-  })();
-  exports.colors = [
-    "#0000CC",
-    "#0000FF",
-    "#0033CC",
-    "#0033FF",
-    "#0066CC",
-    "#0066FF",
-    "#0099CC",
-    "#0099FF",
-    "#00CC00",
-    "#00CC33",
-    "#00CC66",
-    "#00CC99",
-    "#00CCCC",
-    "#00CCFF",
-    "#3300CC",
-    "#3300FF",
-    "#3333CC",
-    "#3333FF",
-    "#3366CC",
-    "#3366FF",
-    "#3399CC",
-    "#3399FF",
-    "#33CC00",
-    "#33CC33",
-    "#33CC66",
-    "#33CC99",
-    "#33CCCC",
-    "#33CCFF",
-    "#6600CC",
-    "#6600FF",
-    "#6633CC",
-    "#6633FF",
-    "#66CC00",
-    "#66CC33",
-    "#9900CC",
-    "#9900FF",
-    "#9933CC",
-    "#9933FF",
-    "#99CC00",
-    "#99CC33",
-    "#CC0000",
-    "#CC0033",
-    "#CC0066",
-    "#CC0099",
-    "#CC00CC",
-    "#CC00FF",
-    "#CC3300",
-    "#CC3333",
-    "#CC3366",
-    "#CC3399",
-    "#CC33CC",
-    "#CC33FF",
-    "#CC6600",
-    "#CC6633",
-    "#CC9900",
-    "#CC9933",
-    "#CCCC00",
-    "#CCCC33",
-    "#FF0000",
-    "#FF0033",
-    "#FF0066",
-    "#FF0099",
-    "#FF00CC",
-    "#FF00FF",
-    "#FF3300",
-    "#FF3333",
-    "#FF3366",
-    "#FF3399",
-    "#FF33CC",
-    "#FF33FF",
-    "#FF6600",
-    "#FF6633",
-    "#FF9900",
-    "#FF9933",
-    "#FFCC00",
-    "#FFCC33"
-  ];
-  function useColors() {
-    if (typeof window !== "undefined" && window.process && (window.process.type === "renderer" || window.process.__nwjs)) {
-      return true;
-    }
-    if (typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/(edge|trident)\/(\d+)/)) {
-      return false;
-    }
-    let m;
-    return typeof document !== "undefined" && document.documentElement && document.documentElement.style && document.documentElement.style.WebkitAppearance || typeof window !== "undefined" && window.console && (window.console.firebug || window.console.exception && window.console.table) || typeof navigator !== "undefined" && navigator.userAgent && (m = navigator.userAgent.toLowerCase().match(/firefox\/(\d+)/)) && parseInt(m[1], 10) >= 31 || typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().match(/applewebkit\/(\d+)/);
-  }
-  function formatArgs(args) {
-    args[0] = (this.useColors ? "%c" : "") + this.namespace + (this.useColors ? " %c" : " ") + args[0] + (this.useColors ? "%c " : " ") + "+" + module.exports.humanize(this.diff);
-    if (!this.useColors) {
-      return;
-    }
-    const c = "color: " + this.color;
-    args.splice(1, 0, c, "color: inherit");
-    let index = 0;
-    let lastC = 0;
-    args[0].replace(/%[a-zA-Z%]/g, (match) => {
-      if (match === "%%") {
-        return;
-      }
-      index++;
-      if (match === "%c") {
-        lastC = index;
-      }
-    });
-    args.splice(lastC, 0, c);
-  }
-  exports.log = console.debug || console.log || (() => {});
-  function save(namespaces) {
-    try {
-      if (namespaces) {
-        exports.storage.setItem("debug", namespaces);
-      } else {
-        exports.storage.removeItem("debug");
-      }
-    } catch (error48) {}
-  }
-  function load() {
-    let r;
-    try {
-      r = exports.storage.getItem("debug") || exports.storage.getItem("DEBUG");
-    } catch (error48) {}
-    if (!r && typeof process !== "undefined" && "env" in process) {
-      r = process.env.DEBUG;
-    }
-    return r;
-  }
-  function localstorage() {
-    try {
-      return localStorage;
-    } catch (error48) {}
-  }
-  module.exports = require_common()(exports);
-  var { formatters } = module.exports;
-  formatters.j = function(v) {
-    try {
-      return JSON.stringify(v);
-    } catch (error48) {
-      return "[UnexpectedJSONParseError]: " + error48.message;
-    }
-  };
-});
-
-// ../../node_modules/.pnpm/has-flag@4.0.0/node_modules/has-flag/index.js
-var require_has_flag = __commonJS((exports, module) => {
-  module.exports = (flag, argv = process.argv) => {
-    const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
-    const position = argv.indexOf(prefix + flag);
-    const terminatorPosition = argv.indexOf("--");
-    return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
-  };
-});
-
-// ../../node_modules/.pnpm/supports-color@8.1.1/node_modules/supports-color/index.js
-var require_supports_color = __commonJS((exports, module) => {
-  var os2 = __require("os");
-  var tty = __require("tty");
-  var hasFlag = require_has_flag();
-  var { env } = process;
-  var flagForceColor;
-  if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
-    flagForceColor = 0;
-  } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
-    flagForceColor = 1;
-  }
-  function envForceColor() {
-    if ("FORCE_COLOR" in env) {
-      if (env.FORCE_COLOR === "true") {
-        return 1;
-      }
-      if (env.FORCE_COLOR === "false") {
-        return 0;
-      }
-      return env.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
-    }
-  }
-  function translateLevel(level) {
-    if (level === 0) {
-      return false;
-    }
-    return {
-      level,
-      hasBasic: true,
-      has256: level >= 2,
-      has16m: level >= 3
-    };
-  }
-  function supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
-    const noFlagForceColor = envForceColor();
-    if (noFlagForceColor !== undefined) {
-      flagForceColor = noFlagForceColor;
-    }
-    const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
-    if (forceColor === 0) {
-      return 0;
-    }
-    if (sniffFlags) {
-      if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
-        return 3;
-      }
-      if (hasFlag("color=256")) {
-        return 2;
-      }
-    }
-    if (haveStream && !streamIsTTY && forceColor === undefined) {
-      return 0;
-    }
-    const min = forceColor || 0;
-    if (env.TERM === "dumb") {
-      return min;
-    }
-    if (process.platform === "win32") {
-      const osRelease = os2.release().split(".");
-      if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
-        return Number(osRelease[2]) >= 14931 ? 3 : 2;
-      }
-      return 1;
-    }
-    if ("CI" in env) {
-      if (["TRAVIS", "CIRCLECI", "APPVEYOR", "GITLAB_CI", "GITHUB_ACTIONS", "BUILDKITE", "DRONE"].some((sign) => (sign in env)) || env.CI_NAME === "codeship") {
-        return 1;
-      }
-      return min;
-    }
-    if ("TEAMCITY_VERSION" in env) {
-      return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
-    }
-    if (env.COLORTERM === "truecolor") {
-      return 3;
-    }
-    if ("TERM_PROGRAM" in env) {
-      const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
-      switch (env.TERM_PROGRAM) {
-        case "iTerm.app":
-          return version2 >= 3 ? 3 : 2;
-        case "Apple_Terminal":
-          return 2;
-      }
-    }
-    if (/-256(color)?$/i.test(env.TERM)) {
-      return 2;
-    }
-    if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
-      return 1;
-    }
-    if ("COLORTERM" in env) {
-      return 1;
-    }
-    return min;
-  }
-  function getSupportLevel(stream, options = {}) {
-    const level = supportsColor(stream, {
-      streamIsTTY: stream && stream.isTTY,
-      ...options
-    });
-    return translateLevel(level);
-  }
-  module.exports = {
-    supportsColor: getSupportLevel,
-    stdout: getSupportLevel({ isTTY: tty.isatty(1) }),
-    stderr: getSupportLevel({ isTTY: tty.isatty(2) })
-  };
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/node.js
-var require_node2 = __commonJS((exports, module) => {
-  var tty = __require("tty");
-  var util3 = __require("util");
-  exports.init = init;
-  exports.log = log;
-  exports.formatArgs = formatArgs;
-  exports.save = save;
-  exports.load = load;
-  exports.useColors = useColors;
-  exports.destroy = util3.deprecate(() => {}, "Instance method `debug.destroy()` is deprecated and no longer does anything. It will be removed in the next major version of `debug`.");
-  exports.colors = [6, 2, 3, 4, 5, 1];
-  try {
-    const supportsColor = require_supports_color();
-    if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
-      exports.colors = [
-        20,
-        21,
-        26,
-        27,
-        32,
-        33,
-        38,
-        39,
-        40,
-        41,
-        42,
-        43,
-        44,
-        45,
-        56,
-        57,
-        62,
-        63,
-        68,
-        69,
-        74,
-        75,
-        76,
-        77,
-        78,
-        79,
-        80,
-        81,
-        92,
-        93,
-        98,
-        99,
-        112,
-        113,
-        128,
-        129,
-        134,
-        135,
-        148,
-        149,
-        160,
-        161,
-        162,
-        163,
-        164,
-        165,
-        166,
-        167,
-        168,
-        169,
-        170,
-        171,
-        172,
-        173,
-        178,
-        179,
-        184,
-        185,
-        196,
-        197,
-        198,
-        199,
-        200,
-        201,
-        202,
-        203,
-        204,
-        205,
-        206,
-        207,
-        208,
-        209,
-        214,
-        215,
-        220,
-        221
-      ];
-    }
-  } catch (error48) {}
-  exports.inspectOpts = Object.keys(process.env).filter((key) => {
-    return /^debug_/i.test(key);
-  }).reduce((obj, key) => {
-    const prop = key.substring(6).toLowerCase().replace(/_([a-z])/g, (_, k) => {
-      return k.toUpperCase();
-    });
-    let val = process.env[key];
-    if (/^(yes|on|true|enabled)$/i.test(val)) {
-      val = true;
-    } else if (/^(no|off|false|disabled)$/i.test(val)) {
-      val = false;
-    } else if (val === "null") {
-      val = null;
-    } else {
-      val = Number(val);
-    }
-    obj[prop] = val;
-    return obj;
-  }, {});
-  function useColors() {
-    return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
-  }
-  function formatArgs(args) {
-    const { namespace: name21, useColors: useColors2 } = this;
-    if (useColors2) {
-      const c = this.color;
-      const colorCode = "\x1B[3" + (c < 8 ? c : "8;5;" + c);
-      const prefix = `  ${colorCode};1m${name21} \x1B[0m`;
-      args[0] = prefix + args[0].split(`
-`).join(`
-` + prefix);
-      args.push(colorCode + "m+" + module.exports.humanize(this.diff) + "\x1B[0m");
-    } else {
-      args[0] = getDate() + name21 + " " + args[0];
-    }
-  }
-  function getDate() {
-    if (exports.inspectOpts.hideDate) {
-      return "";
-    }
-    return new Date().toISOString() + " ";
-  }
-  function log(...args) {
-    return process.stderr.write(util3.formatWithOptions(exports.inspectOpts, ...args) + `
-`);
-  }
-  function save(namespaces) {
-    if (namespaces) {
-      process.env.DEBUG = namespaces;
-    } else {
-      delete process.env.DEBUG;
-    }
-  }
-  function load() {
-    return process.env.DEBUG;
-  }
-  function init(debug) {
-    debug.inspectOpts = {};
-    const keys = Object.keys(exports.inspectOpts);
-    for (let i = 0;i < keys.length; i++) {
-      debug.inspectOpts[keys[i]] = exports.inspectOpts[keys[i]];
-    }
-  }
-  module.exports = require_common()(exports);
-  var { formatters } = module.exports;
-  formatters.o = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts).split(`
-`).map((str) => str.trim()).join(" ");
-  };
-  formatters.O = function(v) {
-    this.inspectOpts.colors = this.useColors;
-    return util3.inspect(v, this.inspectOpts);
-  };
-});
-
-// ../../node_modules/.pnpm/debug@4.4.3_supports-color@8.1.1/node_modules/debug/src/index.js
-var require_src2 = __commonJS((exports, module) => {
-  if (typeof process === "undefined" || process.type === "renderer" || false || process.__nwjs) {
-    module.exports = require_browser();
-  } else {
-    module.exports = require_node2();
   }
 });
 
@@ -13787,7 +17116,7 @@ var require_cookie = __commonJS((exports) => {
 });
 
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/constants.js
-var require_constants = __commonJS((exports, module) => {
+var require_constants4 = __commonJS((exports, module) => {
   var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
   var hasBlob = typeof Blob !== "undefined";
   if (hasBlob)
@@ -13807,7 +17136,7 @@ var require_constants = __commonJS((exports, module) => {
 
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/buffer-util.js
 var require_buffer_util = __commonJS((exports, module) => {
-  var { EMPTY_BUFFER } = require_constants();
+  var { EMPTY_BUFFER } = require_constants4();
   var FastBuffer = Buffer[Symbol.species];
   function concat(list, totalLength) {
     if (list.length === 0)
@@ -13917,10 +17246,10 @@ var require_limiter = __commonJS((exports, module) => {
 
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS((exports, module) => {
-  var zlib2 = __require("zlib");
+  var zlib3 = __require("zlib");
   var bufferUtil = require_buffer_util();
   var Limiter = require_limiter();
-  var { kStatusCode } = require_constants();
+  var { kStatusCode } = require_constants4();
   var FastBuffer = Buffer[Symbol.species];
   var TRAILER = Buffer.from([0, 0, 255, 255]);
   var kPerMessageDeflate = Symbol("permessage-deflate");
@@ -14081,8 +17410,8 @@ var require_permessage_deflate = __commonJS((exports, module) => {
       const endpoint = this._isServer ? "client" : "server";
       if (!this._inflate) {
         const key = `${endpoint}_max_window_bits`;
-        const windowBits = typeof this.params[key] !== "number" ? zlib2.Z_DEFAULT_WINDOWBITS : this.params[key];
-        this._inflate = zlib2.createInflateRaw({
+        const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._inflate = zlib3.createInflateRaw({
           ...this._options.zlibInflateOptions,
           windowBits
         });
@@ -14122,8 +17451,8 @@ var require_permessage_deflate = __commonJS((exports, module) => {
       const endpoint = this._isServer ? "server" : "client";
       if (!this._deflate) {
         const key = `${endpoint}_max_window_bits`;
-        const windowBits = typeof this.params[key] !== "number" ? zlib2.Z_DEFAULT_WINDOWBITS : this.params[key];
-        this._deflate = zlib2.createDeflateRaw({
+        const windowBits = typeof this.params[key] !== "number" ? zlib3.Z_DEFAULT_WINDOWBITS : this.params[key];
+        this._deflate = zlib3.createDeflateRaw({
           ...this._options.zlibDeflateOptions,
           windowBits
         });
@@ -14133,7 +17462,7 @@ var require_permessage_deflate = __commonJS((exports, module) => {
       }
       this._deflate[kCallback] = callback;
       this._deflate.write(data);
-      this._deflate.flush(zlib2.Z_SYNC_FLUSH, () => {
+      this._deflate.flush(zlib3.Z_SYNC_FLUSH, () => {
         if (!this._deflate) {
           return;
         }
@@ -14182,7 +17511,7 @@ var require_permessage_deflate = __commonJS((exports, module) => {
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/validation.js
 var require_validation = __commonJS((exports, module) => {
   var { isUtf8 } = __require("buffer");
-  var { hasBlob } = require_constants();
+  var { hasBlob } = require_constants4();
   var tokenChars = [
     0,
     0,
@@ -14375,7 +17704,7 @@ var require_receiver = __commonJS((exports, module) => {
     EMPTY_BUFFER,
     kStatusCode,
     kWebSocket
-  } = require_constants();
+  } = require_constants4();
   var { concat, toArrayBuffer, unmask } = require_buffer_util();
   var { isValidStatusCode, isValidUTF8 } = require_validation();
   var FastBuffer = Buffer[Symbol.species];
@@ -14752,7 +18081,7 @@ var require_sender = __commonJS((exports, module) => {
   var { Duplex } = __require("stream");
   var { randomFillSync } = __require("crypto");
   var PerMessageDeflate = require_permessage_deflate();
-  var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants();
+  var { EMPTY_BUFFER, kWebSocket, NOOP } = require_constants4();
   var { isBlob: isBlob2, isValidStatusCode } = require_validation();
   var { mask: applyMask, toBuffer } = require_buffer_util();
   var kByteLength = Symbol("kByteLength");
@@ -15103,7 +18432,7 @@ var require_sender = __commonJS((exports, module) => {
 
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/event-target.js
 var require_event_target = __commonJS((exports, module) => {
-  var { kForOnEventAttribute, kListener } = require_constants();
+  var { kForOnEventAttribute, kListener } = require_constants4();
   var kCode = Symbol("kCode");
   var kData = Symbol("kData");
   var kError = Symbol("kError");
@@ -15420,8 +18749,8 @@ var require_extension = __commonJS((exports, module) => {
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/websocket.js
 var require_websocket2 = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
-  var https2 = __require("https");
-  var http3 = __require("http");
+  var https3 = __require("https");
+  var http4 = __require("http");
   var net2 = __require("net");
   var tls = __require("tls");
   var { randomBytes, createHash } = __require("crypto");
@@ -15440,7 +18769,7 @@ var require_websocket2 = __commonJS((exports, module) => {
     kStatusCode,
     kWebSocket,
     NOOP
-  } = require_constants();
+  } = require_constants4();
   var {
     EventTarget: { addEventListener, removeEventListener }
   } = require_event_target();
@@ -15834,7 +19163,7 @@ var require_websocket2 = __commonJS((exports, module) => {
     }
     const defaultPort = isSecure ? 443 : 80;
     const key = randomBytes(16).toString("base64");
-    const request = isSecure ? https2.request : http3.request;
+    const request = isSecure ? https3.request : http4.request;
     const protocolSet = new Set;
     let perMessageDeflate;
     opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
@@ -16327,14 +19656,14 @@ var require_subprotocol = __commonJS((exports, module) => {
 // ../../node_modules/.pnpm/ws@8.18.3/node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
-  var http3 = __require("http");
+  var http4 = __require("http");
   var { Duplex } = __require("stream");
   var { createHash } = __require("crypto");
   var extension = require_extension();
   var PerMessageDeflate = require_permessage_deflate();
   var subprotocol = require_subprotocol();
   var WebSocket = require_websocket2();
-  var { GUID, kWebSocket } = require_constants();
+  var { GUID, kWebSocket } = require_constants4();
   var keyRegex = /^[+/0-9A-Za-z]{22}==$/;
   var RUNNING = 0;
   var CLOSING = 1;
@@ -16365,8 +19694,8 @@ var require_websocket_server = __commonJS((exports, module) => {
         throw new TypeError('One and only one of the "port", "server", or "noServer" options ' + "must be specified");
       }
       if (options.port != null) {
-        this._server = http3.createServer((req, res) => {
-          const body = http3.STATUS_CODES[426];
+        this._server = http4.createServer((req, res) => {
+          const body = http4.STATUS_CODES[426];
           res.writeHead(426, {
             "Content-Length": body.length,
             "Content-Type": "text/plain"
@@ -16600,7 +19929,7 @@ var require_websocket_server = __commonJS((exports, module) => {
     this.destroy();
   }
   function abortHandshake(socket, code, message, headers) {
-    message = message || http3.STATUS_CODES[code];
+    message = message || http4.STATUS_CODES[code];
     headers = {
       Connection: "close",
       "Content-Type": "text/html",
@@ -16608,7 +19937,7 @@ var require_websocket_server = __commonJS((exports, module) => {
       ...headers
     };
     socket.once("finish", socket.destroy);
-    socket.end(`HTTP/1.1 ${code} ${http3.STATUS_CODES[code]}\r
+    socket.end(`HTTP/1.1 ${code} ${http4.STATUS_CODES[code]}\r
 ` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join(`\r
 `) + `\r
 \r
@@ -17047,11 +20376,11 @@ var require_server = __commonJS((exports) => {
       this.init();
     }
     _computePath(options) {
-      let path12 = (options.path || "/engine.io").replace(/\/$/, "");
+      let path13 = (options.path || "/engine.io").replace(/\/$/, "");
       if (options.addTrailingSlash !== false) {
-        path12 += "/";
+        path13 += "/";
       }
-      return path12;
+      return path13;
     }
     upgrades(transport) {
       if (!this.opts.allowUpgrades)
@@ -17469,10 +20798,10 @@ var require_server = __commonJS((exports) => {
       }
     }
     attach(server, options = {}) {
-      const path12 = this._computePath(options);
+      const path13 = this._computePath(options);
       const destroyUpgradeTimeout = options.destroyUpgradeTimeout || 1000;
       function check2(req) {
-        return path12 === req.url.slice(0, path12.length);
+        return path13 === req.url.slice(0, path13.length);
       }
       const listeners = server.listeners("request").slice(0);
       server.removeAllListeners("request");
@@ -17480,7 +20809,7 @@ var require_server = __commonJS((exports) => {
       server.on("listening", this.init.bind(this));
       server.on("request", (req, res) => {
         if (check2(req)) {
-          debug('intercepting request for path "%s"', path12);
+          debug('intercepting request for path "%s"', path13);
           this.handleRequest(req, res);
         } else {
           let i = 0;
@@ -18195,8 +21524,8 @@ var require_userver = __commonJS((exports) => {
       return new transports_uws_1.default[transportName](req);
     }
     attach(app, options = {}) {
-      const path12 = this._computePath(options);
-      app.any(path12, this.handleRequest.bind(this)).ws(path12, {
+      const path13 = this._computePath(options);
+      app.any(path13, this.handleRequest.bind(this)).ws(path13, {
         compression: options.compression,
         idleTimeout: options.idleTimeout,
         maxBackpressure: options.maxBackpressure,
@@ -20869,7 +24198,7 @@ var require_cluster_adapter = __commonJS((exports) => {
 });
 
 // ../../node_modules/.pnpm/socket.io-adapter@2.5.6/node_modules/socket.io-adapter/dist/index.js
-var require_dist2 = __commonJS((exports) => {
+var require_dist6 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.MessageType = exports.ClusterAdapterWithHeartbeat = exports.ClusterAdapter = exports.SessionAwareAdapter = exports.Adapter = undefined;
   var in_memory_adapter_1 = require_in_memory_adapter();
@@ -20899,7 +24228,7 @@ var require_parent_namespace = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.ParentNamespace = undefined;
   var namespace_1 = require_namespace();
-  var socket_io_adapter_1 = require_dist2();
+  var socket_io_adapter_1 = require_dist6();
   var debug_1 = __importDefault(require_src2());
   var debug = (0, debug_1.default)("socket.io:parent-namespace");
 
@@ -20965,7 +24294,7 @@ var require_uws = __commonJS((exports) => {
   exports.patchAdapter = patchAdapter;
   exports.restoreAdapter = restoreAdapter;
   exports.serveFile = serveFile;
-  var socket_io_adapter_1 = require_dist2();
+  var socket_io_adapter_1 = require_dist6();
   var fs_1 = __require("fs");
   var debug_1 = __importDefault(require_src2());
   var debug = (0, debug_1.default)("socket.io:adapter-uws");
@@ -21175,7 +24504,7 @@ var require_package = __commonJS((exports, module) => {
 });
 
 // ../../node_modules/.pnpm/socket.io@4.8.3/node_modules/socket.io/dist/index.js
-var require_dist3 = __commonJS((exports, module) => {
+var require_dist7 = __commonJS((exports, module) => {
   var __dirname = "C:\\Users\\lawrence\\workspace\\smm_github\\node_modules\\.pnpm\\socket.io@4.8.3\\node_modules\\socket.io\\dist";
   var __createBinding = exports && exports.__createBinding || (Object.create ? function(o, m, k, k2) {
     if (k2 === undefined)
@@ -21219,7 +24548,7 @@ var require_dist3 = __commonJS((exports, module) => {
   var zlib_1 = __require("zlib");
   var accepts = require_accepts();
   var stream_1 = __require("stream");
-  var path12 = __require("path");
+  var path13 = __require("path");
   var engine_io_1 = require_engine_io();
   var client_1 = require_client();
   var events_1 = __require("events");
@@ -21228,7 +24557,7 @@ var require_dist3 = __commonJS((exports, module) => {
     return namespace_1.Namespace;
   } });
   var parent_namespace_1 = require_parent_namespace();
-  var socket_io_adapter_1 = require_dist2();
+  var socket_io_adapter_1 = require_dist6();
   var parser = __importStar(require_cjs3());
   var debug_1 = __importDefault(require_src2());
   var socket_1 = require_socket2();
@@ -21387,7 +24716,7 @@ var require_dist3 = __commonJS((exports, module) => {
           res.writeHeader("cache-control", "public, max-age=0");
           res.writeHeader("content-type", "application/" + (isMap2 ? "json" : "javascript") + "; charset=utf-8");
           res.writeHeader("etag", expectedEtag);
-          const filepath = path12.join(__dirname, "../client-dist/", filename);
+          const filepath = path13.join(__dirname, "../client-dist/", filename);
           (0, uws_1.serveFile)(res, filepath);
         });
       }
@@ -21443,7 +24772,7 @@ var require_dist3 = __commonJS((exports, module) => {
       Server.sendFile(filename, req, res);
     }
     static sendFile(filename, req, res) {
-      const readStream = (0, fs_1.createReadStream)(path12.join(__dirname, "../client-dist/", filename));
+      const readStream = (0, fs_1.createReadStream)(path13.join(__dirname, "../client-dist/", filename));
       const encoding = accepts(req).encodings(["br", "gzip", "deflate"]);
       const onError = (err) => {
         if (err) {
@@ -22621,7 +25950,7 @@ var require_codegen = __commonJS((exports) => {
 });
 
 // ../../node_modules/.pnpm/ajv@8.18.0/node_modules/ajv/dist/compile/util.js
-var require_util = __commonJS((exports) => {
+var require_util2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.checkStrictMode = exports.getErrorPath = exports.Type = exports.useFunc = exports.setEvaluated = exports.evaluatedPropsToName = exports.mergeEvaluated = exports.eachItem = exports.unescapeJsonPointer = exports.escapeJsonPointer = exports.escapeFragment = exports.unescapeFragment = exports.schemaRefOrVal = exports.schemaHasRulesButRef = exports.schemaHasRules = exports.checkUnknownRules = exports.alwaysValidSchema = exports.toHash = undefined;
   var codegen_1 = require_codegen();
@@ -22814,7 +26143,7 @@ var require_errors = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendErrors = exports.resetErrorsCount = exports.reportExtraError = exports.reportError = exports.keyword$DataError = exports.keywordError = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var names_1 = require_names();
   exports.keywordError = {
     message: ({ keyword }) => (0, codegen_1.str)`must pass "${keyword}" keyword validation`
@@ -23031,7 +26360,7 @@ var require_dataType = __commonJS((exports) => {
   var applicability_1 = require_applicability();
   var errors_1 = require_errors();
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var DataType;
   (function(DataType2) {
     DataType2[DataType2["Correct"] = 0] = "Correct";
@@ -23209,7 +26538,7 @@ var require_defaults = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.assignDefaults = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   function assignDefaults(it, ty) {
     const { properties, items } = it.schema;
     if (ty === "object" && properties) {
@@ -23243,9 +26572,9 @@ var require_code2 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateUnion = exports.validateArray = exports.usePattern = exports.callValidateCode = exports.schemaProperties = exports.allSchemaProperties = exports.noPropertyInData = exports.propertyInData = exports.isOwnProperty = exports.hasPropFunc = exports.reportMissingProp = exports.checkMissingProp = exports.checkReportMissingProp = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var names_1 = require_names();
-  var util_2 = require_util();
+  var util_2 = require_util2();
   function checkReportMissingProp(cxt, prop) {
     const { gen, data, it } = cxt;
     gen.if(noPropertyInData(gen, data, prop, it.opts.ownProperties), () => {
@@ -23487,7 +26816,7 @@ var require_subschema = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   function getSubschema(it, { keyword, schemaProp, schema, schemaPath, errSchemaPath, topSchemaRef }) {
     if (keyword !== undefined && schema !== undefined) {
       throw new Error('both "keyword" and "schema" passed, only one allowed');
@@ -23691,7 +27020,7 @@ var require_json_schema_traverse = __commonJS((exports, module) => {
 var require_resolve = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.getSchemaRefs = exports.resolveUrl = exports.normalizeId = exports._getFullPath = exports.getFullPath = exports.inlineRef = undefined;
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var equal = require_fast_deep_equal();
   var traverse = require_json_schema_traverse();
   var SIMPLE_INLINED = new Set([
@@ -23854,7 +27183,7 @@ var require_validate = __commonJS((exports) => {
   var codegen_1 = require_codegen();
   var names_1 = require_names();
   var resolve_1 = require_resolve();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var errors_1 = require_errors();
   function validateFunctionCode(it) {
     if (isSchemaObj(it)) {
@@ -24382,7 +27711,7 @@ var require_compile = __commonJS((exports) => {
   var validation_error_1 = require_validation_error();
   var names_1 = require_names();
   var resolve_1 = require_resolve();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var validate_1 = require_validate();
 
   class SchemaEnv {
@@ -24613,7 +27942,7 @@ var require_data = __commonJS((exports, module) => {
 });
 
 // ../../node_modules/.pnpm/fast-uri@3.1.0/node_modules/fast-uri/lib/utils.js
-var require_utils3 = __commonJS((exports, module) => {
+var require_utils4 = __commonJS((exports, module) => {
   var isUUID = RegExp.prototype.test.bind(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu);
   var isIPv4 = RegExp.prototype.test.bind(/^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)$/u);
   function stringArrayToHexStripped(input) {
@@ -24734,8 +28063,8 @@ var require_utils3 = __commonJS((exports, module) => {
     }
     return ind;
   }
-  function removeDotSegments(path12) {
-    let input = path12;
+  function removeDotSegments(path13) {
+    let input = path13;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -24869,7 +28198,7 @@ var require_utils3 = __commonJS((exports, module) => {
 
 // ../../node_modules/.pnpm/fast-uri@3.1.0/node_modules/fast-uri/lib/schemes.js
 var require_schemes = __commonJS((exports, module) => {
-  var { isUUID } = require_utils3();
+  var { isUUID } = require_utils4();
   var URN_REG = /([\da-z][\d\-a-z]{0,31}):((?:[\w!$'()*+,\-.:;=@]|%[\da-f]{2})+)/iu;
   var supportedSchemeNames = [
     "http",
@@ -24925,8 +28254,8 @@ var require_schemes = __commonJS((exports, module) => {
       wsComponent.secure = undefined;
     }
     if (wsComponent.resourceName) {
-      const [path12, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path12 && path12 !== "/" ? path12 : undefined;
+      const [path13, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path13 && path13 !== "/" ? path13 : undefined;
       wsComponent.query = query;
       wsComponent.resourceName = undefined;
     }
@@ -24985,15 +28314,15 @@ var require_schemes = __commonJS((exports, module) => {
     urnComponent.nss = (uuidComponent.uuid || "").toLowerCase();
     return urnComponent;
   }
-  var http3 = {
+  var http4 = {
     scheme: "http",
     domainHost: true,
     parse: httpParse,
     serialize: httpSerialize
   };
-  var https2 = {
+  var https3 = {
     scheme: "https",
-    domainHost: http3.domainHost,
+    domainHost: http4.domainHost,
     parse: httpParse,
     serialize: httpSerialize
   };
@@ -25022,8 +28351,8 @@ var require_schemes = __commonJS((exports, module) => {
     skipNormalize: true
   };
   var SCHEMES = {
-    http: http3,
-    https: https2,
+    http: http4,
+    https: https3,
     ws,
     wss,
     urn,
@@ -25043,7 +28372,7 @@ var require_schemes = __commonJS((exports, module) => {
 
 // ../../node_modules/.pnpm/fast-uri@3.1.0/node_modules/fast-uri/index.js
 var require_fast_uri = __commonJS((exports, module) => {
-  var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizeComponentEncoding, isIPv4, nonSimpleDomain } = require_utils3();
+  var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizeComponentEncoding, isIPv4, nonSimpleDomain } = require_utils4();
   var { SCHEMES, getSchemeHandler } = require_schemes();
   function normalize(uri, options) {
     if (typeof uri === "string") {
@@ -25334,7 +28663,7 @@ var require_core = __commonJS((exports) => {
   var codegen_2 = require_codegen();
   var resolve_1 = require_resolve();
   var dataType_1 = require_dataType();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var $dataRefSchema = require_data();
   var uri_1 = require_uri();
   var defaultRegExp = (str, flags) => new RegExp(str, flags);
@@ -25914,7 +29243,7 @@ var require_ref = __commonJS((exports) => {
   var codegen_1 = require_codegen();
   var names_1 = require_names();
   var compile_1 = require_compile();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var def = {
     keyword: "$ref",
     schemaType: "string",
@@ -26123,7 +29452,7 @@ var require_ucs2length = __commonJS((exports) => {
 var require_limitLength = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var ucs2length_1 = require_ucs2length();
   var error48 = {
     message({ keyword, schemaCode }) {
@@ -26152,7 +29481,7 @@ var require_limitLength = __commonJS((exports) => {
 var require_pattern = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var codegen_1 = require_codegen();
   var error48 = {
     message: ({ schemaCode }) => (0, codegen_1.str)`must match pattern "${schemaCode}"`,
@@ -26213,7 +29542,7 @@ var require_required = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: ({ params: { missingProperty } }) => (0, codegen_1.str)`must have required property '${missingProperty}'`,
     params: ({ params: { missingProperty } }) => (0, codegen_1._)`{missingProperty: ${missingProperty}}`
@@ -26326,7 +29655,7 @@ var require_uniqueItems = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var dataType_1 = require_dataType();
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var equal_1 = require_equal();
   var error48 = {
     message: ({ params: { i, j } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j} and ${i} are identical)`,
@@ -26389,7 +29718,7 @@ var require_uniqueItems = __commonJS((exports) => {
 var require_const = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var equal_1 = require_equal();
   var error48 = {
     message: "must be equal to constant",
@@ -26415,7 +29744,7 @@ var require_const = __commonJS((exports) => {
 var require_enum = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var equal_1 = require_equal();
   var error48 = {
     message: "must be equal to one of the allowed values",
@@ -26492,7 +29821,7 @@ var require_additionalItems = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateAdditionalItems = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: ({ params: { len } }) => (0, codegen_1.str)`must NOT have more than ${len} items`,
     params: ({ params: { len } }) => (0, codegen_1._)`{limit: ${len}}`
@@ -26542,7 +29871,7 @@ var require_items = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateTuple = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var code_1 = require_code2();
   var def = {
     keyword: "items",
@@ -26609,7 +29938,7 @@ var require_prefixItems = __commonJS((exports) => {
 var require_items2020 = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var code_1 = require_code2();
   var additionalItems_1 = require_additionalItems();
   var error48 = {
@@ -26641,7 +29970,7 @@ var require_items2020 = __commonJS((exports) => {
 var require_contains = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: ({ params: { min, max } }) => max === undefined ? (0, codegen_1.str)`must contain at least ${min} valid item(s)` : (0, codegen_1.str)`must contain at least ${min} and no more than ${max} valid item(s)`,
     params: ({ params: { min, max } }) => max === undefined ? (0, codegen_1._)`{minContains: ${min}}` : (0, codegen_1._)`{minContains: ${min}, maxContains: ${max}}`
@@ -26733,7 +30062,7 @@ var require_dependencies = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   exports.validateSchemaDeps = exports.validatePropertyDeps = exports.error = undefined;
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var code_1 = require_code2();
   exports.error = {
     message: ({ params: { property, depsCount, deps } }) => {
@@ -26817,7 +30146,7 @@ var require_dependencies = __commonJS((exports) => {
 var require_propertyNames = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: "property name must be valid",
     params: ({ params }) => (0, codegen_1._)`{propertyName: ${params.propertyName}}`
@@ -26859,7 +30188,7 @@ var require_additionalProperties = __commonJS((exports) => {
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
   var names_1 = require_names();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: "must NOT have additional properties",
     params: ({ params }) => (0, codegen_1._)`{additionalProperty: ${params.additionalProperty}}`
@@ -26961,7 +30290,7 @@ var require_properties = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var validate_1 = require_validate();
   var code_1 = require_code2();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var additionalProperties_1 = require_additionalProperties();
   var def = {
     keyword: "properties",
@@ -27016,8 +30345,8 @@ var require_patternProperties = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var code_1 = require_code2();
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
-  var util_2 = require_util();
+  var util_1 = require_util2();
+  var util_2 = require_util2();
   var def = {
     keyword: "patternProperties",
     type: "object",
@@ -27085,7 +30414,7 @@ var require_patternProperties = __commonJS((exports) => {
 // ../../node_modules/.pnpm/ajv@8.18.0/node_modules/ajv/dist/vocabularies/applicator/not.js
 var require_not = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var def = {
     keyword: "not",
     schemaType: ["object", "boolean"],
@@ -27128,7 +30457,7 @@ var require_anyOf = __commonJS((exports) => {
 var require_oneOf = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: "must match exactly one schema in oneOf",
     params: ({ params }) => (0, codegen_1._)`{passingSchemas: ${params.passing}}`
@@ -27182,7 +30511,7 @@ var require_oneOf = __commonJS((exports) => {
 // ../../node_modules/.pnpm/ajv@8.18.0/node_modules/ajv/dist/vocabularies/applicator/allOf.js
 var require_allOf = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var def = {
     keyword: "allOf",
     schemaType: "array",
@@ -27207,7 +30536,7 @@ var require_allOf = __commonJS((exports) => {
 var require_if = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var codegen_1 = require_codegen();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: ({ params }) => (0, codegen_1.str)`must match "${params.ifClause}" schema`,
     params: ({ params }) => (0, codegen_1._)`{failingKeyword: ${params.ifClause}}`
@@ -27272,7 +30601,7 @@ var require_if = __commonJS((exports) => {
 // ../../node_modules/.pnpm/ajv@8.18.0/node_modules/ajv/dist/vocabularies/applicator/thenElse.js
 var require_thenElse = __commonJS((exports) => {
   Object.defineProperty(exports, "__esModule", { value: true });
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var def = {
     keyword: ["then", "else"],
     schemaType: ["object", "boolean"],
@@ -27479,7 +30808,7 @@ var require_discriminator = __commonJS((exports) => {
   var types_1 = require_types2();
   var compile_1 = require_compile();
   var ref_error_1 = require_ref_error();
-  var util_1 = require_util();
+  var util_1 = require_util2();
   var error48 = {
     message: ({ params: { discrError, tagName } }) => discrError === types_1.DiscrError.Tag ? `tag "${tagName}" must be string` : `value of tag "${tagName}" must be in oneOf`,
     params: ({ params: { discrError, tag, tagName } }) => (0, codegen_1._)`{error: ${discrError}, tag: ${tagName}, tagValue: ${tag}}`
@@ -28044,7 +31373,7 @@ var require_limit = __commonJS((exports) => {
 });
 
 // ../../node_modules/.pnpm/ajv-formats@3.0.1_ajv@8.18.0/node_modules/ajv-formats/dist/index.js
-var require_dist4 = __commonJS((exports, module) => {
+var require_dist8 = __commonJS((exports, module) => {
   Object.defineProperty(exports, "__esModule", { value: true });
   var formats_1 = require_formats();
   var limit_1 = require_limit();
@@ -28094,7 +31423,8 @@ function sendJson(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
-    "Content-Length": Buffer.byteLength(payload, "utf8")
+    "Content-Length": Buffer.byteLength(payload, "utf8"),
+    "Cache-Control": "no-store"
   });
   res.end(payload);
 }
@@ -28165,11 +31495,349 @@ function isRequestAuthorized(authorizationHeader, auth) {
 function validatePathIsInAllowlist(filePath, allowlist) {
   return allowlist.some((allowlistItem) => filePath.startsWith(allowlistItem));
 }
+// src/nodeRenameFileExistenceProbe.ts
+import { stat } from "node:fs/promises";
+// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/flatten.mjs
+function flatten(arr, depth = 1) {
+  const result = [];
+  const flooredDepth = Math.floor(depth);
+  const recursive = (arr2, currentDepth) => {
+    for (let i = 0;i < arr2.length; i++) {
+      const item = arr2[i];
+      if (Array.isArray(item) && currentDepth < flooredDepth) {
+        recursive(item, currentDepth + 1);
+      } else {
+        result.push(item);
+      }
+    }
+  };
+  recursive(arr, 0);
+  return result;
+}
+
+// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/flattenDeep.mjs
+function flattenDeep(arr) {
+  return flatten(arr, Infinity);
+}
+// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/last.mjs
+function last(arr) {
+  return arr[arr.length - 1];
+}
+// ../../node_modules/.pnpm/slash@5.1.0/node_modules/slash/index.js
+function slash(path) {
+  const isExtendedLengthPath = path.startsWith("\\\\?\\");
+  if (isExtendedLengthPath) {
+    return path;
+  }
+  return path.replace(/\\/g, "/");
+}
+
+// ../../node_modules/.pnpm/filename-reserved-regex@4.0.0/node_modules/filename-reserved-regex/index.js
+function filenameReservedRegex() {
+  return /[<>:"/\\|?*\u0000-\u001F]|[. ]$/g;
+}
+function windowsReservedNameRegex() {
+  return /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+}
+
+// ../../node_modules/.pnpm/filenamify@7.0.1/node_modules/filenamify/filenamify.js
+var MAX_FILENAME_LENGTH = 100;
+var reRelativePath = /^\.+(\\|\/)|^\.+$/;
+var reTrailingDotsAndSpaces = /[. ]+$/;
+var reControlChars = /[\p{Control}\p{Format}\p{Zl}\p{Zp}\uFFF0-\uFFFF]/gu;
+var reControlCharsTest = /[\p{Control}\p{Format}\p{Zl}\p{Zp}\uFFF0-\uFFFF]/u;
+var isZeroWidthJoiner = (char) => char === "‍";
+var reRepeatedReservedCharacters = /([<>:"/\\|?*\u0000-\u001F]){2,}/g;
+var reReplacementReservedCharacters = /[<>:"/\\|?*\u0000-\u001F]/;
+var reUnicodeWhitespace = /[\t\n\r\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g;
+var segmenter;
+function getSegmenter() {
+  segmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  return segmenter;
+}
+function truncateFilename(filename, maxLength) {
+  if (filename.length <= maxLength) {
+    return filename;
+  }
+  const extensionIndex = filename.lastIndexOf(".");
+  if (extensionIndex === -1) {
+    return truncateByGraphemeBudget(filename, maxLength);
+  }
+  const base = filename.slice(0, extensionIndex);
+  const extension = filename.slice(extensionIndex);
+  const baseBudget = Math.max(0, maxLength - extension.length);
+  const truncatedBase = truncateByGraphemeBudget(base, baseBudget);
+  return truncatedBase.replace(/ +$/, "") + extension;
+}
+function filenamify(string, options = {}) {
+  if (typeof string !== "string") {
+    throw new TypeError("Expected a string");
+  }
+  const replacement = options.replacement ?? "!";
+  const hasReservedChars = reReplacementReservedCharacters.test(replacement);
+  const hasControlChars = [...replacement].some((char) => reControlCharsTest.test(char) && !isZeroWidthJoiner(char));
+  if (hasReservedChars || hasControlChars) {
+    throw new Error("Replacement string cannot contain reserved filename characters");
+  }
+  string = string.normalize("NFC");
+  string = string.replaceAll(reUnicodeWhitespace, " ");
+  if (replacement.length > 0) {
+    string = string.replaceAll(reRepeatedReservedCharacters, "$1");
+  }
+  string = string.replace(reTrailingDotsAndSpaces, "");
+  string = string.replace(reRelativePath, replacement);
+  string = string.replace(filenameReservedRegex(), replacement);
+  string = string.replaceAll(reControlChars, (char) => isZeroWidthJoiner(char) ? char : replacement);
+  string = string.replace(reTrailingDotsAndSpaces, "");
+  if (string.length === 0) {
+    string = replacement.replace(reTrailingDotsAndSpaces, "");
+    if (string.length === 0 && replacement.length > 0) {
+      string = "!";
+    }
+  }
+  const allowedLength = typeof options.maxLength === "number" ? options.maxLength : MAX_FILENAME_LENGTH;
+  string = truncateFilename(string, allowedLength);
+  string = string.replace(reTrailingDotsAndSpaces, "");
+  if (windowsReservedNameRegex().test(string)) {
+    string += replacement;
+  }
+  return string;
+}
+function truncateByGraphemeBudget(input, budget) {
+  if (input.length <= budget) {
+    return input;
+  }
+  let count = 0;
+  let output = "";
+  for (const { segment } of getSegmenter().segment(input)) {
+    const next = count + segment.length;
+    if (next > budget) {
+      break;
+    }
+    output += segment;
+    count = next;
+  }
+  return output;
+}
+// ../utils/src/path.ts
+var WIN_PATH_SEPARATOR = "\\";
+var POSIX_PATH_SEPARATOR = "/";
+function isNotEmpty(part) {
+  return part.trim() !== "";
+}
+function split(path) {
+  let parts = path.split(":\\").filter(isNotEmpty);
+  parts = flattenDeep(parts.map((part) => part.split("\\").filter(isNotEmpty)));
+  parts = flattenDeep(parts.map((part) => part.split("/").filter(isNotEmpty)));
+  return parts;
+}
+
+class Path {
+  static serverPlatform = null;
+  root;
+  sub;
+  unc;
+  constructor(root, sub) {
+    if (root.trim() === "") {
+      throw new Error("InvalidArgumentError: root path cannot be empty");
+    }
+    if (sub !== undefined) {
+      if (split(sub).length === 0) {
+        if (sub.length === 0) {
+          throw new Error("InvalidArgumentError: sub path cannot be empty");
+        } else {
+          throw new Error("InvalidArgumentError: invalid sub path");
+        }
+      }
+    }
+    if (sub?.trim() === "") {
+      throw new Error("InvalidArgumentError: sub path cannot be empty");
+    }
+    this.unc = root.startsWith("\\\\");
+    if (!(root.startsWith("/") || /^[A-Za-z]:/.test(root) || root.startsWith("\\\\"))) {
+      throw new Error(`InvalidArgumentError: root=${root}. root path must start with "/" for POSIX format, "C:" for Windows format, or "\\\\" for Windows UNC format`);
+    }
+    this.root = split(root);
+    this.sub = sub === undefined ? [] : split(sub);
+    if (this.root.length === 0) {
+      throw new Error("InvalidArgumentError: invalid root path");
+    }
+  }
+  _uncPath() {
+    const serverName = this.root[0];
+    const parentPath = this.root.slice(1).join(WIN_PATH_SEPARATOR);
+    const subPath = this.sub.length === 0 ? "" : WIN_PATH_SEPARATOR + this.sub.join(WIN_PATH_SEPARATOR);
+    return `\\\\${serverName}\\${parentPath}${subPath}`;
+  }
+  abs(type = "posix") {
+    if (type === "win") {
+      if (this.unc) {
+        return this._uncPath();
+      } else {
+        if (this.root[0]?.length !== 1) {
+          return this._uncPath();
+        }
+        const rootFolderPaths = this.root.slice(1).join(WIN_PATH_SEPARATOR);
+        const subpath = this.sub.length === 0 ? "" : WIN_PATH_SEPARATOR + this.sub.join(WIN_PATH_SEPARATOR);
+        return `${this.root[0]}:${WIN_PATH_SEPARATOR}${rootFolderPaths}${subpath}`;
+      }
+    } else {
+      const subpath = this.sub.length === 0 ? "" : POSIX_PATH_SEPARATOR + this.sub.join(POSIX_PATH_SEPARATOR);
+      return `${POSIX_PATH_SEPARATOR}${this.root.join(POSIX_PATH_SEPARATOR)}${subpath}`;
+    }
+  }
+  rel(type = "posix") {
+    if (type === "win") {
+      return this.sub.join(WIN_PATH_SEPARATOR);
+    } else {
+      return this.sub.join(POSIX_PATH_SEPARATOR);
+    }
+  }
+  name() {
+    return last(this.sub) || last(this.root) || "";
+  }
+  dir() {
+    return "/" + this.root.join(POSIX_PATH_SEPARATOR);
+  }
+  cd(subpath) {
+    return new Path(this.dir(), subpath);
+  }
+  platformAbsPath() {
+    return Path.isWindows() ? this.abs("win") : this.abs("posix");
+  }
+  platformRelPath() {
+    return Path.isWindows() ? this.rel("win") : this.rel("posix");
+  }
+  join(subpath) {
+    const parts = split(subpath);
+    return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), [...this.sub, ...parts].join(POSIX_PATH_SEPARATOR));
+  }
+  filename(newFileName) {
+    if (this.sub.length === 0) {
+      throw new Error("InvalidArgumentError: sub path cannot be empty");
+    } else {
+      const validName = filenamify(newFileName);
+      return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), [...this.sub.slice(0, -1), validName].join(POSIX_PATH_SEPARATOR));
+    }
+  }
+  parent() {
+    if (this.sub.length === 0) {
+      throw new Error("reaching parent folder is not allowed");
+    } else {
+      const parentSub = this.sub.slice(0, -1);
+      if (parentSub.length === 0) {
+        return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR));
+      } else {
+        return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), parentSub.join(POSIX_PATH_SEPARATOR));
+      }
+    }
+  }
+  static fromAbsolutePath(absolutePath, root) {
+    return new Path(root, absolutePath.replace(root, ""));
+  }
+  static posix(windowsPath) {
+    const p = new Path(windowsPath);
+    return p.abs("posix");
+  }
+  static win(posixPath) {
+    const p = new Path(posixPath);
+    return p.abs("win");
+  }
+  static slash(windowsPath) {
+    return slash(windowsPath);
+  }
+  static backslash(posixPath) {
+    return posixPath.replace(POSIX_PATH_SEPARATOR, WIN_PATH_SEPARATOR);
+  }
+  static setServerPlatform(platform) {
+    Path.serverPlatform = platform;
+  }
+  static resetServerPlatformForTests() {
+    Path.serverPlatform = null;
+  }
+  static getServerPlatform() {
+    return Path.serverPlatform;
+  }
+  static isWindows() {
+    if (Path.serverPlatform !== null) {
+      return Path.serverPlatform === "win32";
+    }
+    const proc = typeof globalThis !== "undefined" ? globalThis.process : undefined;
+    if (proc?.platform) {
+      return proc.platform === "win32";
+    }
+    const win = typeof globalThis !== "undefined" ? globalThis.window : undefined;
+    if (win) {
+      const electron = win.electron;
+      if (electron?.process?.platform) {
+        return electron.process.platform === "win32";
+      }
+    }
+    return false;
+  }
+  static pathSeparator() {
+    return Path.isWindows() ? WIN_PATH_SEPARATOR : POSIX_PATH_SEPARATOR;
+  }
+  static toPlatformPath(path) {
+    return Path.isWindows() ? Path.win(path) : Path.posix(path);
+  }
+  toString() {
+    return this.abs();
+  }
+}
+
+// src/nodeRenameFileExistenceProbe.ts
+function statWithTimeout(filePath, timeoutMs) {
+  return Promise.race([
+    stat(filePath),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(`stat timeout for path: ${filePath}`)), timeoutMs))
+  ]);
+}
+function createNodeRenameFileExistenceProbe(timeoutMs = 1000) {
+  return {
+    async isFile(posixPath) {
+      try {
+        const stats = await statWithTimeout(Path.toPlatformPath(posixPath), timeoutMs);
+        return stats?.isFile() ?? false;
+      } catch {
+        return false;
+      }
+    }
+  };
+}
+// src/bindAddresses.ts
+var DEFAULT_BIND_ADDRESS = "127.0.0.1";
+function resolveWebUiBindAddress() {
+  const fromEnv = process.env.WEBUI_ADDRESS?.trim();
+  return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+function resolveReverseProxyBindAddress() {
+  const fromEnv = process.env.REVERSE_PROXY_ADDRESS?.trim();
+  return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+function resolveMcpBindAddress(fallback) {
+  const fromEnv = process.env.MCP_ADDRESS?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  const fb = fallback?.trim();
+  return fb || DEFAULT_BIND_ADDRESS;
+}
+function resolveMcpAdvertisedHost(bindAddress) {
+  return resolveReverseProxyAdvertisedHost(bindAddress);
+}
+function resolveReverseProxyAdvertisedHost(bindAddress) {
+  if (bindAddress === "0.0.0.0" || bindAddress === "::") {
+    return DEFAULT_BIND_ADDRESS;
+  }
+  return bindAddress;
+}
 // src/hello.ts
 function doHello(options) {
   return {
     uptime: process.uptime(),
-    ...options
+    ...options,
+    platform: options.platform ?? process.platform
   };
 }
 // ../../node_modules/.pnpm/@ai-sdk+provider@3.0.8/node_modules/@ai-sdk/provider/dist/index.mjs
@@ -28489,7 +32157,7 @@ var UnsupportedFunctionalityError = class extends (_b14 = AISDKError, _a14 = sym
 // ../../node_modules/.pnpm/zod@4.3.6/node_modules/zod/v4/classic/external.js
 var exports_external = {};
 __export(exports_external, {
-  xor: () => xor,
+  xor: () => xor2,
   xid: () => xid2,
   void: () => _void2,
   uuidv7: () => uuidv7,
@@ -28500,7 +32168,7 @@ __export(exports_external, {
   url: () => url,
   uppercase: () => _uppercase,
   unknown: () => unknown,
-  union: () => union,
+  union: () => union2,
   undefined: () => _undefined3,
   ulid: () => ulid2,
   uint64: () => uint64,
@@ -28588,7 +32256,7 @@ __export(exports_external, {
   iso: () => exports_iso,
   ipv6: () => ipv62,
   ipv4: () => ipv42,
-  intersection: () => intersection,
+  intersection: () => intersection2,
   int64: () => int64,
   int32: () => int32,
   int: () => int,
@@ -28630,7 +32298,7 @@ __export(exports_external, {
   config: () => config,
   coerce: () => exports_coerce,
   codec: () => codec,
-  clone: () => clone,
+  clone: () => clone2,
   cidrv6: () => cidrv62,
   cidrv4: () => cidrv42,
   check: () => check,
@@ -28767,7 +32435,7 @@ __export(exports_core2, {
   createToJSONSchemaMethod: () => createToJSONSchemaMethod,
   createStandardJSONSchemaMethod: () => createStandardJSONSchemaMethod,
   config: () => config,
-  clone: () => clone,
+  clone: () => clone2,
   _xor: () => _xor,
   _xid: () => _xid,
   _void: () => _void,
@@ -29098,21 +32766,21 @@ __export(exports_util, {
   promiseAllObject: () => promiseAllObject,
   primitiveTypes: () => primitiveTypes,
   prefixIssues: () => prefixIssues,
-  pick: () => pick,
-  partial: () => partial,
+  pick: () => pick2,
+  partial: () => partial2,
   parsedType: () => parsedType,
   optionalKeys: () => optionalKeys,
-  omit: () => omit,
+  omit: () => omit2,
   objectClone: () => objectClone,
   numKeys: () => numKeys,
   nullish: () => nullish,
   normalizeParams: () => normalizeParams,
   mergeDefs: () => mergeDefs,
-  merge: () => merge,
+  merge: () => merge2,
   jsonStringifyReplacer: () => jsonStringifyReplacer,
   joinValues: () => joinValues,
   issue: () => issue,
-  isPlainObject: () => isPlainObject,
+  isPlainObject: () => isPlainObject2,
   isObject: () => isObject,
   hexToUint8Array: () => hexToUint8Array,
   getSizableOrigin: () => getSizableOrigin,
@@ -29128,7 +32796,7 @@ __export(exports_util, {
   defineLazy: () => defineLazy,
   createTransparentProxy: () => createTransparentProxy,
   cloneDef: () => cloneDef,
-  clone: () => clone,
+  clone: () => clone2,
   cleanRegex: () => cleanRegex,
   cleanEnum: () => cleanEnum,
   captureStackTrace: () => captureStackTrace,
@@ -29297,7 +32965,7 @@ var allowsEval = cached(() => {
     return false;
   }
 });
-function isPlainObject(o) {
+function isPlainObject2(o) {
   if (isObject(o) === false)
     return false;
   const ctor = o.constructor;
@@ -29314,7 +32982,7 @@ function isPlainObject(o) {
   return true;
 }
 function shallowClone(o) {
-  if (isPlainObject(o))
+  if (isPlainObject2(o))
     return { ...o };
   if (Array.isArray(o))
     return [...o];
@@ -29378,7 +33046,7 @@ var primitiveTypes = new Set(["string", "number", "bigint", "boolean", "symbol",
 function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
-function clone(inst, def, params) {
+function clone2(inst, def, params) {
   const cl = new inst._zod.constr(def ?? inst._zod.def);
   if (!def || params?.parent)
     cl._zod.parent = inst;
@@ -29456,7 +33124,7 @@ var BIGINT_FORMAT_RANGES = {
   int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
   uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
-function pick(schema, mask) {
+function pick2(schema, mask) {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
@@ -29479,9 +33147,9 @@ function pick(schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
-function omit(schema, mask) {
+function omit2(schema, mask) {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
@@ -29504,10 +33172,10 @@ function omit(schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
 function extend(schema, shape) {
-  if (!isPlainObject(shape)) {
+  if (!isPlainObject2(shape)) {
     throw new Error("Invalid input to extend: expected a plain object");
   }
   const checks = schema._zod.def.checks;
@@ -29527,10 +33195,10 @@ function extend(schema, shape) {
       return _shape;
     }
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
 function safeExtend(schema, shape) {
-  if (!isPlainObject(shape)) {
+  if (!isPlainObject2(shape)) {
     throw new Error("Invalid input to safeExtend: expected a plain object");
   }
   const def = mergeDefs(schema._zod.def, {
@@ -29540,9 +33208,9 @@ function safeExtend(schema, shape) {
       return _shape;
     }
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
-function merge(a, b) {
+function merge2(a, b) {
   const def = mergeDefs(a._zod.def, {
     get shape() {
       const _shape = { ...a._zod.def.shape, ...b._zod.def.shape };
@@ -29554,9 +33222,9 @@ function merge(a, b) {
     },
     checks: []
   });
-  return clone(a, def);
+  return clone2(a, def);
 }
-function partial(Class, schema, mask) {
+function partial2(Class, schema, mask) {
   const currDef = schema._zod.def;
   const checks = currDef.checks;
   const hasChecks = checks && checks.length > 0;
@@ -29592,7 +33260,7 @@ function partial(Class, schema, mask) {
     },
     checks: []
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
 function required(Class, schema, mask) {
   const def = mergeDefs(schema._zod.def, {
@@ -29623,7 +33291,7 @@ function required(Class, schema, mask) {
       return shape;
     }
   });
-  return clone(schema, def);
+  return clone2(schema, def);
 }
 function aborted(x, startIndex = 0) {
   if (x.aborted === true)
@@ -31312,15 +34980,15 @@ var $ZodDate = /* @__PURE__ */ $constructor("$ZodDate", (inst, def) => {
       } catch (_err) {}
     }
     const input = payload.value;
-    const isDate = input instanceof Date;
-    const isValidDate = isDate && !Number.isNaN(input.getTime());
+    const isDate2 = input instanceof Date;
+    const isValidDate = isDate2 && !Number.isNaN(input.getTime());
     if (isValidDate)
       return payload;
     payload.issues.push({
       expected: "date",
       code: "invalid_type",
       input,
-      ...isDate ? { received: "Invalid Date" } : {},
+      ...isDate2 ? { received: "Invalid Date" } : {},
       inst
     });
     return payload;
@@ -31800,7 +35468,7 @@ function mergeValues(a, b) {
   if (a instanceof Date && b instanceof Date && +a === +b) {
     return { valid: true, data: a };
   }
-  if (isPlainObject(a) && isPlainObject(b)) {
+  if (isPlainObject2(a) && isPlainObject2(b)) {
     const bKeys = Object.keys(b);
     const sharedKeys = Object.keys(a).filter((key) => bKeys.indexOf(key) !== -1);
     const newObj = { ...a, ...b };
@@ -31925,8 +35593,8 @@ var $ZodTuple = /* @__PURE__ */ $constructor("$ZodTuple", (inst, def) => {
       }
     }
     if (def.rest) {
-      const rest = input.slice(items.length);
-      for (const el of rest) {
+      const rest2 = input.slice(items.length);
+      for (const el of rest2) {
         i++;
         const result = def.rest._zod.run({
           value: el,
@@ -31954,7 +35622,7 @@ var $ZodRecord = /* @__PURE__ */ $constructor("$ZodRecord", (inst, def) => {
   $ZodType.init(inst, def);
   inst._zod.parse = (payload, ctx) => {
     const input = payload.value;
-    if (!isPlainObject(input)) {
+    if (!isPlainObject2(input)) {
       payload.issues.push({
         expected: "record",
         code: "invalid_type",
@@ -35682,11 +39350,11 @@ var capitalizeFirstCharacter = (text) => {
 };
 function getUnitTypeFromNumber(number2) {
   const abs = Math.abs(number2);
-  const last = abs % 10;
-  const last2 = abs % 100;
-  if (last2 >= 11 && last2 <= 19 || last === 0)
+  const last2 = abs % 10;
+  const last22 = abs % 100;
+  if (last22 >= 11 && last22 <= 19 || last2 === 0)
     return "many";
-  if (last === 1)
+  if (last2 === 1)
     return "one";
   return "few";
 }
@@ -38912,11 +42580,11 @@ function _intersection(Class2, left, right) {
 function _tuple(Class2, items, _paramsOrRest, _params) {
   const hasRest = _paramsOrRest instanceof $ZodType;
   const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
+  const rest2 = hasRest ? _paramsOrRest : null;
   return new Class2({
     type: "tuple",
     items,
-    rest,
+    rest: rest2,
     ...normalizeParams(params)
   });
 }
@@ -39856,30 +43524,30 @@ var tupleProcessor = (schema, ctx, _json, params) => {
     ...params,
     path: [...params.path, prefixPath, i]
   }));
-  const rest = def.rest ? process2(def.rest, ctx, {
+  const rest2 = def.rest ? process2(def.rest, ctx, {
     ...params,
     path: [...params.path, restPath, ...ctx.target === "openapi-3.0" ? [def.items.length] : []]
   }) : null;
   if (ctx.target === "draft-2020-12") {
     json.prefixItems = prefixItems;
-    if (rest) {
-      json.items = rest;
+    if (rest2) {
+      json.items = rest2;
     }
   } else if (ctx.target === "openapi-3.0") {
     json.items = {
       anyOf: prefixItems
     };
-    if (rest) {
-      json.items.anyOf.push(rest);
+    if (rest2) {
+      json.items.anyOf.push(rest2);
     }
     json.minItems = prefixItems.length;
-    if (!rest) {
+    if (!rest2) {
       json.maxItems = prefixItems.length;
     }
   } else {
     json.items = prefixItems;
-    if (rest) {
-      json.additionalItems = rest;
+    if (rest2) {
+      json.additionalItems = rest2;
     }
   }
   const { minimum, maximum } = schema._zod.bag;
@@ -40140,7 +43808,7 @@ var exports_json_schema = {};
 // ../../node_modules/.pnpm/zod@4.3.6/node_modules/zod/v4/classic/schemas.js
 var exports_schemas2 = {};
 __export(exports_schemas2, {
-  xor: () => xor,
+  xor: () => xor2,
   xid: () => xid2,
   void: () => _void2,
   uuidv7: () => uuidv7,
@@ -40149,7 +43817,7 @@ __export(exports_schemas2, {
   uuid: () => uuid2,
   url: () => url,
   unknown: () => unknown,
-  union: () => union,
+  union: () => union2,
   undefined: () => _undefined3,
   ulid: () => ulid2,
   uint64: () => uint64,
@@ -40197,7 +43865,7 @@ __export(exports_schemas2, {
   json: () => json,
   ipv6: () => ipv62,
   ipv4: () => ipv42,
-  intersection: () => intersection,
+  intersection: () => intersection2,
   int64: () => int64,
   int32: () => int32,
   int: () => int,
@@ -40454,7 +44122,7 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
     });
   };
   inst.with = inst.check;
-  inst.clone = (def2, params) => clone(inst, def2, params);
+  inst.clone = (def2, params) => clone2(inst, def2, params);
   inst.brand = () => inst;
   inst.register = (reg, meta2) => {
     reg.add(inst, meta2);
@@ -40482,8 +44150,8 @@ var ZodType = /* @__PURE__ */ $constructor("ZodType", (inst, def) => {
   inst.nullish = () => optional(nullable(inst));
   inst.nonoptional = (params) => nonoptional(inst, params);
   inst.array = () => array(inst);
-  inst.or = (arg) => union([inst, arg]);
-  inst.and = (arg) => intersection(inst, arg);
+  inst.or = (arg) => union2([inst, arg]);
+  inst.and = (arg) => intersection2(inst, arg);
   inst.transform = (tx) => pipe(inst, transform(tx));
   inst.default = (def2) => _default2(inst, def2);
   inst.prefault = (def2) => prefault(inst, def2);
@@ -40986,7 +44654,7 @@ var ZodUnion = /* @__PURE__ */ $constructor("ZodUnion", (inst, def) => {
   inst._zod.processJSONSchema = (ctx, json, params) => unionProcessor(inst, ctx, json, params);
   inst.options = def.options;
 });
-function union(options, params) {
+function union2(options, params) {
   return new ZodUnion({
     type: "union",
     options,
@@ -40999,7 +44667,7 @@ var ZodXor = /* @__PURE__ */ $constructor("ZodXor", (inst, def) => {
   inst._zod.processJSONSchema = (ctx, json, params) => unionProcessor(inst, ctx, json, params);
   inst.options = def.options;
 });
-function xor(options, params) {
+function xor2(options, params) {
   return new ZodXor({
     type: "union",
     options,
@@ -41024,7 +44692,7 @@ var ZodIntersection = /* @__PURE__ */ $constructor("ZodIntersection", (inst, def
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => intersectionProcessor(inst, ctx, json, params);
 });
-function intersection(left, right) {
+function intersection2(left, right) {
   return new ZodIntersection({
     type: "intersection",
     left,
@@ -41035,19 +44703,19 @@ var ZodTuple = /* @__PURE__ */ $constructor("ZodTuple", (inst, def) => {
   $ZodTuple.init(inst, def);
   ZodType.init(inst, def);
   inst._zod.processJSONSchema = (ctx, json, params) => tupleProcessor(inst, ctx, json, params);
-  inst.rest = (rest) => inst.clone({
+  inst.rest = (rest2) => inst.clone({
     ...inst._zod.def,
-    rest
+    rest: rest2
   });
 });
 function tuple(items, _paramsOrRest, _params) {
   const hasRest = _paramsOrRest instanceof $ZodType;
   const params = hasRest ? _params : _paramsOrRest;
-  const rest = hasRest ? _paramsOrRest : null;
+  const rest2 = hasRest ? _paramsOrRest : null;
   return new ZodTuple({
     type: "tuple",
     items,
-    rest,
+    rest: rest2,
     ...exports_util.normalizeParams(params)
   });
 }
@@ -41067,7 +44735,7 @@ function record(keyType, valueType, params) {
   });
 }
 function partialRecord(keyType, valueType, params) {
-  const k = clone(keyType);
+  const k = clone2(keyType);
   k._zod.values = undefined;
   return new ZodRecord({
     type: "record",
@@ -41499,7 +45167,7 @@ var stringbool = (...args) => _stringbool({
 }, ...args);
 function json(params) {
   const jsonSchema = lazy(() => {
-    return union([string2(params), number2(), boolean2(), _null3(), array(jsonSchema), record(string2(), jsonSchema)]);
+    return union2([string2(params), number2(), boolean2(), _null3(), array(jsonSchema), record(string2(), jsonSchema)]);
   });
   return jsonSchema;
 }
@@ -41866,9 +45534,9 @@ function convertBaseSchema(schema, ctx) {
       const items = schema.items;
       if (prefixItems && Array.isArray(prefixItems)) {
         const tupleItems = prefixItems.map((item) => convertSchema(item, ctx));
-        const rest = items && typeof items === "object" && !Array.isArray(items) ? convertSchema(items, ctx) : undefined;
-        if (rest) {
-          zodSchema = z.tuple(tupleItems).rest(rest);
+        const rest2 = items && typeof items === "object" && !Array.isArray(items) ? convertSchema(items, ctx) : undefined;
+        if (rest2) {
+          zodSchema = z.tuple(tupleItems).rest(rest2);
         } else {
           zodSchema = z.tuple(tupleItems);
         }
@@ -41880,9 +45548,9 @@ function convertBaseSchema(schema, ctx) {
         }
       } else if (Array.isArray(items)) {
         const tupleItems = items.map((item) => convertSchema(item, ctx));
-        const rest = schema.additionalItems && typeof schema.additionalItems === "object" ? convertSchema(schema.additionalItems, ctx) : undefined;
-        if (rest) {
-          zodSchema = z.tuple(tupleItems).rest(rest);
+        const rest2 = schema.additionalItems && typeof schema.additionalItems === "object" ? convertSchema(schema.additionalItems, ctx) : undefined;
+        if (rest2) {
+          zodSchema = z.tuple(tupleItems).rest(rest2);
         } else {
           zodSchema = z.tuple(tupleItems);
         }
@@ -44950,8 +48618,8 @@ class ZodTuple2 extends ZodType2 {
       });
       return INVALID;
     }
-    const rest = this._def.rest;
-    if (!rest && ctx.data.length > this._def.items.length) {
+    const rest2 = this._def.rest;
+    if (!rest2 && ctx.data.length > this._def.items.length) {
       addIssueToContext(ctx, {
         code: ZodIssueCode2.too_big,
         maximum: this._def.items.length,
@@ -44978,10 +48646,10 @@ class ZodTuple2 extends ZodType2 {
   get items() {
     return this._def.items;
   }
-  rest(rest) {
+  rest(rest2) {
     return new ZodTuple2({
       ...this._def,
-      rest
+      rest: rest2
     });
   }
 }
@@ -45997,14 +49665,14 @@ class ParseError extends Error {
     super(message), this.name = "ParseError", this.type = options.type, this.field = options.field, this.value = options.value, this.line = options.line;
   }
 }
-function noop(_arg) {}
+function noop2(_arg) {}
 function createParser(callbacks) {
   if (typeof callbacks == "function")
     throw new TypeError("`callbacks` must be an object, got a function instead. Did you mean `{onEvent: fn}`?");
-  const { onEvent = noop, onError = noop, onRetry = noop, onComment } = callbacks;
+  const { onEvent = noop2, onError = noop2, onRetry = noop2, onComment } = callbacks;
   let incompleteLine = "", isFirstChunk = true, id, data = "", eventType = "";
   function feed(newChunk) {
-    const chunk = isFirstChunk ? newChunk.replace(/^\xEF\xBB\xBF/, "") : newChunk, [complete, incomplete] = splitLines(`${incompleteLine}${chunk}`);
+    const chunk2 = isFirstChunk ? newChunk.replace(/^\xEF\xBB\xBF/, "") : newChunk, [complete, incomplete] = splitLines(`${incompleteLine}${chunk2}`);
     for (const line of complete)
       parseLine(line);
     incompleteLine = incomplete, isFirstChunk = false;
@@ -46063,19 +49731,19 @@ function createParser(callbacks) {
   }
   return { feed, reset };
 }
-function splitLines(chunk) {
+function splitLines(chunk2) {
   const lines = [];
   let incompleteLine = "", searchIndex = 0;
-  for (;searchIndex < chunk.length; ) {
-    const crIndex = chunk.indexOf("\r", searchIndex), lfIndex = chunk.indexOf(`
+  for (;searchIndex < chunk2.length; ) {
+    const crIndex = chunk2.indexOf("\r", searchIndex), lfIndex = chunk2.indexOf(`
 `, searchIndex);
     let lineEnd = -1;
-    if (crIndex !== -1 && lfIndex !== -1 ? lineEnd = Math.min(crIndex, lfIndex) : crIndex !== -1 ? crIndex === chunk.length - 1 ? lineEnd = -1 : lineEnd = crIndex : lfIndex !== -1 && (lineEnd = lfIndex), lineEnd === -1) {
-      incompleteLine = chunk.slice(searchIndex);
+    if (crIndex !== -1 && lfIndex !== -1 ? lineEnd = Math.min(crIndex, lfIndex) : crIndex !== -1 ? crIndex === chunk2.length - 1 ? lineEnd = -1 : lineEnd = crIndex : lfIndex !== -1 && (lineEnd = lfIndex), lineEnd === -1) {
+      incompleteLine = chunk2.slice(searchIndex);
       break;
     } else {
-      const line = chunk.slice(searchIndex, lineEnd);
-      lines.push(line), searchIndex = lineEnd + 1, chunk[searchIndex - 1] === "\r" && chunk[searchIndex] === `
+      const line = chunk2.slice(searchIndex, lineEnd);
+      lines.push(line), searchIndex = lineEnd + 1, chunk2[searchIndex - 1] === "\r" && chunk2[searchIndex] === `
 ` && searchIndex++;
     }
   }
@@ -46099,8 +49767,8 @@ class EventSourceParserStream extends TransformStream {
           onComment
         });
       },
-      transform(chunk) {
-        parser.feed(chunk);
+      transform(chunk2) {
+        parser.feed(chunk2);
       }
     });
   }
@@ -46113,7 +49781,7 @@ function combineHeaders(...headers) {
     ...currentHeaders != null ? currentHeaders : {}
   }), {});
 }
-async function delay(delayInMs, options) {
+async function delay2(delayInMs, options) {
   if (delayInMs == null) {
     return Promise.resolve();
   }
@@ -46297,9 +49965,9 @@ async function readResponseWithSizeLimit({
   }
   const result = new Uint8Array(totalBytes);
   let offset = 0;
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
+  for (const chunk2 of chunks) {
+    result.set(chunk2, offset);
+    offset += chunk2.length;
   }
   return result;
 }
@@ -46815,8 +50483,8 @@ function parseIntersectionDef(def, refs) {
     } else {
       let nestedSchema = schema;
       if ("additionalProperties" in schema && schema.additionalProperties === false) {
-        const { additionalProperties, ...rest } = schema;
-        nestedSchema = rest;
+        const { additionalProperties, ...rest2 } = schema;
+        nestedSchema = rest2;
       }
       mergedAllOf.push(nestedSchema);
     }
@@ -48634,9 +52302,9 @@ var GatewayLanguageModel = class {
               controller.enqueue({ type: "stream-start", warnings });
             }
           },
-          transform(chunk, controller) {
-            if (chunk.success) {
-              const streamPart = chunk.value;
+          transform(chunk2, controller) {
+            if (chunk2.success) {
+              const streamPart = chunk2.value;
               if (streamPart.type === "raw" && !options.includeRawChunks) {
                 return;
               }
@@ -48645,7 +52313,7 @@ var GatewayLanguageModel = class {
               }
               controller.enqueue(streamPart);
             } else {
-              controller.error(chunk.error);
+              controller.error(chunk2.error);
             }
           }
         })),
@@ -49730,17 +53398,17 @@ function asLanguageModelV3(model) {
 }
 function convertV2StreamToV3(stream) {
   return stream.pipeThrough(new TransformStream({
-    transform(chunk, controller) {
-      switch (chunk.type) {
+    transform(chunk2, controller) {
+      switch (chunk2.type) {
         case "finish":
           controller.enqueue({
-            ...chunk,
-            finishReason: convertV2FinishReasonToV3(chunk.finishReason),
-            usage: convertV2UsageToV3(chunk.usage)
+            ...chunk2,
+            finishReason: convertV2FinishReasonToV3(chunk2.finishReason),
+            usage: convertV2UsageToV3(chunk2.usage)
           });
           break;
         default:
-          controller.enqueue(chunk);
+          controller.enqueue(chunk2);
           break;
       }
     }
@@ -49785,26 +53453,26 @@ function getGlobalProvider() {
   var _a21;
   return (_a21 = globalThis.AI_SDK_DEFAULT_PROVIDER) != null ? _a21 : gateway;
 }
-function getTotalTimeoutMs(timeout) {
-  if (timeout == null) {
+function getTotalTimeoutMs(timeout2) {
+  if (timeout2 == null) {
     return;
   }
-  if (typeof timeout === "number") {
-    return timeout;
+  if (typeof timeout2 === "number") {
+    return timeout2;
   }
-  return timeout.totalMs;
+  return timeout2.totalMs;
 }
-function getStepTimeoutMs(timeout) {
-  if (timeout == null || typeof timeout === "number") {
+function getStepTimeoutMs(timeout2) {
+  if (timeout2 == null || typeof timeout2 === "number") {
     return;
   }
-  return timeout.stepMs;
+  return timeout2.stepMs;
 }
-function getChunkTimeoutMs(timeout) {
-  if (timeout == null || typeof timeout === "number") {
+function getChunkTimeoutMs(timeout2) {
+  if (timeout2 == null || typeof timeout2 === "number") {
     return;
   }
-  return timeout.chunkMs;
+  return timeout2.chunkMs;
 }
 var imageMediaTypeSignatures = [
   {
@@ -51082,7 +54750,7 @@ async function _retryWithExponentialBackoff(f, {
       });
     }
     if (error48 instanceof Error && APICallError.isInstance(error48) && error48.isRetryable === true && tryNumber <= maxRetries) {
-      await delay(getRetryDelayInMs({
+      await delay2(getRetryDelayInMs({
         error: error48,
         exponentialBackoffDelay: delayInMs
       }), { abortSignal });
@@ -52653,8 +56321,8 @@ var uiMessageChunkSchema = lazySchema(() => zodSchema(exports_external.union([
     messageMetadata: exports_external.unknown()
   })
 ])));
-function isDataUIMessageChunk(chunk) {
-  return chunk.type.startsWith("data-");
+function isDataUIMessageChunk(chunk2) {
+  return chunk2.type.startsWith("data-");
 }
 function isDataUIPart(part) {
   return part.type.startsWith("data-");
@@ -52709,7 +56377,7 @@ function processUIMessageStream({
   onData
 }) {
   return stream.pipeThrough(new TransformStream({
-    async transform(chunk, controller) {
+    async transform(chunk2, controller) {
       await runUpdateMessageJob(async ({ state, write }) => {
         var _a21, _b16, _c, _d;
         function getToolInvocation(toolCallId) {
@@ -52811,45 +56479,45 @@ function processUIMessageStream({
             state.message.metadata = mergedMetadata;
           }
         }
-        switch (chunk.type) {
+        switch (chunk2.type) {
           case "text-start": {
             const textPart = {
               type: "text",
               text: "",
-              providerMetadata: chunk.providerMetadata,
+              providerMetadata: chunk2.providerMetadata,
               state: "streaming"
             };
-            state.activeTextParts[chunk.id] = textPart;
+            state.activeTextParts[chunk2.id] = textPart;
             state.message.parts.push(textPart);
             write();
             break;
           }
           case "text-delta": {
-            const textPart = state.activeTextParts[chunk.id];
+            const textPart = state.activeTextParts[chunk2.id];
             if (textPart == null) {
               throw new UIMessageStreamError({
                 chunkType: "text-delta",
-                chunkId: chunk.id,
-                message: `Received text-delta for missing text part with ID "${chunk.id}". Ensure a "text-start" chunk is sent before any "text-delta" chunks.`
+                chunkId: chunk2.id,
+                message: `Received text-delta for missing text part with ID "${chunk2.id}". Ensure a "text-start" chunk is sent before any "text-delta" chunks.`
               });
             }
-            textPart.text += chunk.delta;
-            textPart.providerMetadata = (_a21 = chunk.providerMetadata) != null ? _a21 : textPart.providerMetadata;
+            textPart.text += chunk2.delta;
+            textPart.providerMetadata = (_a21 = chunk2.providerMetadata) != null ? _a21 : textPart.providerMetadata;
             write();
             break;
           }
           case "text-end": {
-            const textPart = state.activeTextParts[chunk.id];
+            const textPart = state.activeTextParts[chunk2.id];
             if (textPart == null) {
               throw new UIMessageStreamError({
                 chunkType: "text-end",
-                chunkId: chunk.id,
-                message: `Received text-end for missing text part with ID "${chunk.id}". Ensure a "text-start" chunk is sent before any "text-end" chunks.`
+                chunkId: chunk2.id,
+                message: `Received text-end for missing text part with ID "${chunk2.id}". Ensure a "text-start" chunk is sent before any "text-end" chunks.`
               });
             }
             textPart.state = "done";
-            textPart.providerMetadata = (_b16 = chunk.providerMetadata) != null ? _b16 : textPart.providerMetadata;
-            delete state.activeTextParts[chunk.id];
+            textPart.providerMetadata = (_b16 = chunk2.providerMetadata) != null ? _b16 : textPart.providerMetadata;
+            delete state.activeTextParts[chunk2.id];
             write();
             break;
           }
@@ -52857,48 +56525,48 @@ function processUIMessageStream({
             const reasoningPart = {
               type: "reasoning",
               text: "",
-              providerMetadata: chunk.providerMetadata,
+              providerMetadata: chunk2.providerMetadata,
               state: "streaming"
             };
-            state.activeReasoningParts[chunk.id] = reasoningPart;
+            state.activeReasoningParts[chunk2.id] = reasoningPart;
             state.message.parts.push(reasoningPart);
             write();
             break;
           }
           case "reasoning-delta": {
-            const reasoningPart = state.activeReasoningParts[chunk.id];
+            const reasoningPart = state.activeReasoningParts[chunk2.id];
             if (reasoningPart == null) {
               throw new UIMessageStreamError({
                 chunkType: "reasoning-delta",
-                chunkId: chunk.id,
-                message: `Received reasoning-delta for missing reasoning part with ID "${chunk.id}". Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`
+                chunkId: chunk2.id,
+                message: `Received reasoning-delta for missing reasoning part with ID "${chunk2.id}". Ensure a "reasoning-start" chunk is sent before any "reasoning-delta" chunks.`
               });
             }
-            reasoningPart.text += chunk.delta;
-            reasoningPart.providerMetadata = (_c = chunk.providerMetadata) != null ? _c : reasoningPart.providerMetadata;
+            reasoningPart.text += chunk2.delta;
+            reasoningPart.providerMetadata = (_c = chunk2.providerMetadata) != null ? _c : reasoningPart.providerMetadata;
             write();
             break;
           }
           case "reasoning-end": {
-            const reasoningPart = state.activeReasoningParts[chunk.id];
+            const reasoningPart = state.activeReasoningParts[chunk2.id];
             if (reasoningPart == null) {
               throw new UIMessageStreamError({
                 chunkType: "reasoning-end",
-                chunkId: chunk.id,
-                message: `Received reasoning-end for missing reasoning part with ID "${chunk.id}". Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`
+                chunkId: chunk2.id,
+                message: `Received reasoning-end for missing reasoning part with ID "${chunk2.id}". Ensure a "reasoning-start" chunk is sent before any "reasoning-end" chunks.`
               });
             }
-            reasoningPart.providerMetadata = (_d = chunk.providerMetadata) != null ? _d : reasoningPart.providerMetadata;
+            reasoningPart.providerMetadata = (_d = chunk2.providerMetadata) != null ? _d : reasoningPart.providerMetadata;
             reasoningPart.state = "done";
-            delete state.activeReasoningParts[chunk.id];
+            delete state.activeReasoningParts[chunk2.id];
             write();
             break;
           }
           case "file": {
             state.message.parts.push({
               type: "file",
-              mediaType: chunk.mediaType,
-              url: chunk.url
+              mediaType: chunk2.mediaType,
+              url: chunk2.url
             });
             write();
             break;
@@ -52906,10 +56574,10 @@ function processUIMessageStream({
           case "source-url": {
             state.message.parts.push({
               type: "source-url",
-              sourceId: chunk.sourceId,
-              url: chunk.url,
-              title: chunk.title,
-              providerMetadata: chunk.providerMetadata
+              sourceId: chunk2.sourceId,
+              url: chunk2.url,
+              title: chunk2.title,
+              providerMetadata: chunk2.providerMetadata
             });
             write();
             break;
@@ -52917,62 +56585,62 @@ function processUIMessageStream({
           case "source-document": {
             state.message.parts.push({
               type: "source-document",
-              sourceId: chunk.sourceId,
-              mediaType: chunk.mediaType,
-              title: chunk.title,
-              filename: chunk.filename,
-              providerMetadata: chunk.providerMetadata
+              sourceId: chunk2.sourceId,
+              mediaType: chunk2.mediaType,
+              title: chunk2.title,
+              filename: chunk2.filename,
+              providerMetadata: chunk2.providerMetadata
             });
             write();
             break;
           }
           case "tool-input-start": {
             const toolInvocations = state.message.parts.filter(isStaticToolUIPart);
-            state.partialToolCalls[chunk.toolCallId] = {
+            state.partialToolCalls[chunk2.toolCallId] = {
               text: "",
-              toolName: chunk.toolName,
+              toolName: chunk2.toolName,
               index: toolInvocations.length,
-              dynamic: chunk.dynamic,
-              title: chunk.title
+              dynamic: chunk2.dynamic,
+              title: chunk2.title
             };
-            if (chunk.dynamic) {
+            if (chunk2.dynamic) {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "input-streaming",
                 input: undefined,
-                providerExecuted: chunk.providerExecuted,
-                title: chunk.title,
-                providerMetadata: chunk.providerMetadata
+                providerExecuted: chunk2.providerExecuted,
+                title: chunk2.title,
+                providerMetadata: chunk2.providerMetadata
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "input-streaming",
                 input: undefined,
-                providerExecuted: chunk.providerExecuted,
-                title: chunk.title,
-                providerMetadata: chunk.providerMetadata
+                providerExecuted: chunk2.providerExecuted,
+                title: chunk2.title,
+                providerMetadata: chunk2.providerMetadata
               });
             }
             write();
             break;
           }
           case "tool-input-delta": {
-            const partialToolCall = state.partialToolCalls[chunk.toolCallId];
+            const partialToolCall = state.partialToolCalls[chunk2.toolCallId];
             if (partialToolCall == null) {
               throw new UIMessageStreamError({
                 chunkType: "tool-input-delta",
-                chunkId: chunk.toolCallId,
-                message: `Received tool-input-delta for missing tool call with ID "${chunk.toolCallId}". Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.`
+                chunkId: chunk2.toolCallId,
+                message: `Received tool-input-delta for missing tool call with ID "${chunk2.toolCallId}". Ensure a "tool-input-start" chunk is sent before any "tool-input-delta" chunks.`
               });
             }
-            partialToolCall.text += chunk.inputTextDelta;
+            partialToolCall.text += chunk2.inputTextDelta;
             const { value: partialArgs } = await parsePartialJson(partialToolCall.text);
             if (partialToolCall.dynamic) {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: partialToolCall.toolName,
                 state: "input-streaming",
                 input: partialArgs,
@@ -52980,7 +56648,7 @@ function processUIMessageStream({
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: partialToolCall.toolName,
                 state: "input-streaming",
                 input: partialArgs,
@@ -52991,96 +56659,96 @@ function processUIMessageStream({
             break;
           }
           case "tool-input-available": {
-            if (chunk.dynamic) {
+            if (chunk2.dynamic) {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "input-available",
-                input: chunk.input,
-                providerExecuted: chunk.providerExecuted,
-                providerMetadata: chunk.providerMetadata,
-                title: chunk.title
+                input: chunk2.input,
+                providerExecuted: chunk2.providerExecuted,
+                providerMetadata: chunk2.providerMetadata,
+                title: chunk2.title
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "input-available",
-                input: chunk.input,
-                providerExecuted: chunk.providerExecuted,
-                providerMetadata: chunk.providerMetadata,
-                title: chunk.title
+                input: chunk2.input,
+                providerExecuted: chunk2.providerExecuted,
+                providerMetadata: chunk2.providerMetadata,
+                title: chunk2.title
               });
             }
             write();
-            if (onToolCall && !chunk.providerExecuted) {
+            if (onToolCall && !chunk2.providerExecuted) {
               await onToolCall({
-                toolCall: chunk
+                toolCall: chunk2
               });
             }
             break;
           }
           case "tool-input-error": {
-            if (chunk.dynamic) {
+            if (chunk2.dynamic) {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "output-error",
-                input: chunk.input,
-                errorText: chunk.errorText,
-                providerExecuted: chunk.providerExecuted,
-                providerMetadata: chunk.providerMetadata
+                input: chunk2.input,
+                errorText: chunk2.errorText,
+                providerExecuted: chunk2.providerExecuted,
+                providerMetadata: chunk2.providerMetadata
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
-                toolName: chunk.toolName,
+                toolCallId: chunk2.toolCallId,
+                toolName: chunk2.toolName,
                 state: "output-error",
                 input: undefined,
-                rawInput: chunk.input,
-                errorText: chunk.errorText,
-                providerExecuted: chunk.providerExecuted,
-                providerMetadata: chunk.providerMetadata
+                rawInput: chunk2.input,
+                errorText: chunk2.errorText,
+                providerExecuted: chunk2.providerExecuted,
+                providerMetadata: chunk2.providerMetadata
               });
             }
             write();
             break;
           }
           case "tool-approval-request": {
-            const toolInvocation = getToolInvocation(chunk.toolCallId);
+            const toolInvocation = getToolInvocation(chunk2.toolCallId);
             toolInvocation.state = "approval-requested";
-            toolInvocation.approval = { id: chunk.approvalId };
+            toolInvocation.approval = { id: chunk2.approvalId };
             write();
             break;
           }
           case "tool-output-denied": {
-            const toolInvocation = getToolInvocation(chunk.toolCallId);
+            const toolInvocation = getToolInvocation(chunk2.toolCallId);
             toolInvocation.state = "output-denied";
             write();
             break;
           }
           case "tool-output-available": {
-            const toolInvocation = getToolInvocation(chunk.toolCallId);
+            const toolInvocation = getToolInvocation(chunk2.toolCallId);
             if (toolInvocation.type === "dynamic-tool") {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: toolInvocation.toolName,
                 state: "output-available",
                 input: toolInvocation.input,
-                output: chunk.output,
-                preliminary: chunk.preliminary,
-                providerExecuted: chunk.providerExecuted,
+                output: chunk2.output,
+                preliminary: chunk2.preliminary,
+                providerExecuted: chunk2.providerExecuted,
                 title: toolInvocation.title
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: getStaticToolName(toolInvocation),
                 state: "output-available",
                 input: toolInvocation.input,
-                output: chunk.output,
-                providerExecuted: chunk.providerExecuted,
-                preliminary: chunk.preliminary,
+                output: chunk2.output,
+                providerExecuted: chunk2.providerExecuted,
+                preliminary: chunk2.preliminary,
                 title: toolInvocation.title
               });
             }
@@ -53088,26 +56756,26 @@ function processUIMessageStream({
             break;
           }
           case "tool-output-error": {
-            const toolInvocation = getToolInvocation(chunk.toolCallId);
+            const toolInvocation = getToolInvocation(chunk2.toolCallId);
             if (toolInvocation.type === "dynamic-tool") {
               updateDynamicToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: toolInvocation.toolName,
                 state: "output-error",
                 input: toolInvocation.input,
-                errorText: chunk.errorText,
-                providerExecuted: chunk.providerExecuted,
+                errorText: chunk2.errorText,
+                providerExecuted: chunk2.providerExecuted,
                 title: toolInvocation.title
               });
             } else {
               updateToolPart({
-                toolCallId: chunk.toolCallId,
+                toolCallId: chunk2.toolCallId,
                 toolName: getStaticToolName(toolInvocation),
                 state: "output-error",
                 input: toolInvocation.input,
                 rawInput: toolInvocation.rawInput,
-                errorText: chunk.errorText,
-                providerExecuted: chunk.providerExecuted,
+                errorText: chunk2.errorText,
+                providerExecuted: chunk2.providerExecuted,
                 title: toolInvocation.title
               });
             }
@@ -53124,52 +56792,52 @@ function processUIMessageStream({
             break;
           }
           case "start": {
-            if (chunk.messageId != null) {
-              state.message.id = chunk.messageId;
+            if (chunk2.messageId != null) {
+              state.message.id = chunk2.messageId;
             }
-            await updateMessageMetadata(chunk.messageMetadata);
-            if (chunk.messageId != null || chunk.messageMetadata != null) {
+            await updateMessageMetadata(chunk2.messageMetadata);
+            if (chunk2.messageId != null || chunk2.messageMetadata != null) {
               write();
             }
             break;
           }
           case "finish": {
-            if (chunk.finishReason != null) {
-              state.finishReason = chunk.finishReason;
+            if (chunk2.finishReason != null) {
+              state.finishReason = chunk2.finishReason;
             }
-            await updateMessageMetadata(chunk.messageMetadata);
-            if (chunk.messageMetadata != null) {
+            await updateMessageMetadata(chunk2.messageMetadata);
+            if (chunk2.messageMetadata != null) {
               write();
             }
             break;
           }
           case "message-metadata": {
-            await updateMessageMetadata(chunk.messageMetadata);
-            if (chunk.messageMetadata != null) {
+            await updateMessageMetadata(chunk2.messageMetadata);
+            if (chunk2.messageMetadata != null) {
               write();
             }
             break;
           }
           case "error": {
-            onError == null || onError(new Error(chunk.errorText));
+            onError == null || onError(new Error(chunk2.errorText));
             break;
           }
           default: {
-            if (isDataUIMessageChunk(chunk)) {
-              if ((dataPartSchemas == null ? undefined : dataPartSchemas[chunk.type]) != null) {
-                const partIdx = state.message.parts.findIndex((p) => ("id" in p) && ("data" in p) && p.id === chunk.id && p.type === chunk.type);
+            if (isDataUIMessageChunk(chunk2)) {
+              if ((dataPartSchemas == null ? undefined : dataPartSchemas[chunk2.type]) != null) {
+                const partIdx = state.message.parts.findIndex((p) => ("id" in p) && ("data" in p) && p.id === chunk2.id && p.type === chunk2.type);
                 const actualPartIdx = partIdx >= 0 ? partIdx : state.message.parts.length;
                 await validateTypes({
-                  value: chunk.data,
-                  schema: dataPartSchemas[chunk.type],
+                  value: chunk2.data,
+                  schema: dataPartSchemas[chunk2.type],
                   context: {
                     field: `message.parts[${actualPartIdx}].data`,
-                    entityName: chunk.type,
-                    entityId: chunk.id
+                    entityName: chunk2.type,
+                    entityId: chunk2.id
                   }
                 });
               }
-              const dataChunk = chunk;
+              const dataChunk = chunk2;
               if (dataChunk.transient) {
                 onData == null || onData(dataChunk);
                 break;
@@ -53185,7 +56853,7 @@ function processUIMessageStream({
             }
           }
         }
-        controller.enqueue(chunk);
+        controller.enqueue(chunk2);
       });
     }
   }));
@@ -53206,17 +56874,17 @@ function handleUIMessageStreamFinish({
   }
   let isAborted2 = false;
   const idInjectedStream = stream.pipeThrough(new TransformStream({
-    transform(chunk, controller) {
-      if (chunk.type === "start") {
-        const startChunk = chunk;
+    transform(chunk2, controller) {
+      if (chunk2.type === "start") {
+        const startChunk = chunk2;
         if (startChunk.messageId == null && messageId != null) {
           startChunk.messageId = messageId;
         }
       }
-      if (chunk.type === "abort") {
+      if (chunk2.type === "abort") {
         isAborted2 = true;
       }
-      controller.enqueue(chunk);
+      controller.enqueue(chunk2);
     }
   }));
   if (onFinish == null && onStepFinish == null) {
@@ -53270,11 +56938,11 @@ function handleUIMessageStreamFinish({
     runUpdateMessageJob,
     onError
   }).pipeThrough(new TransformStream({
-    async transform(chunk, controller) {
-      if (chunk.type === "finish-step") {
+    async transform(chunk2, controller) {
+      if (chunk2.type === "finish-step") {
         await callOnStepFinish();
       }
-      controller.enqueue(chunk);
+      controller.enqueue(chunk2);
     },
     async cancel() {
       await callOnFinish();
@@ -53487,8 +57155,8 @@ function runToolsTransformation({
     }
   }
   const forwardStream = new TransformStream({
-    async transform(chunk, controller) {
-      const chunkType = chunk.type;
+    async transform(chunk2, controller) {
+      const chunkType = chunk2.type;
       switch (chunkType) {
         case "stream-start":
         case "text-start":
@@ -53504,15 +57172,15 @@ function runToolsTransformation({
         case "response-metadata":
         case "error":
         case "raw": {
-          controller.enqueue(chunk);
+          controller.enqueue(chunk2);
           break;
         }
         case "file": {
           controller.enqueue({
             type: "file",
             file: new DefaultGeneratedFileWithType({
-              data: chunk.data,
-              mediaType: chunk.mediaType
+              data: chunk2.data,
+              mediaType: chunk2.mediaType
             })
           });
           break;
@@ -53520,28 +57188,28 @@ function runToolsTransformation({
         case "finish": {
           finishChunk = {
             type: "finish",
-            finishReason: chunk.finishReason.unified,
-            rawFinishReason: chunk.finishReason.raw,
-            usage: asLanguageModelUsage(chunk.usage),
-            providerMetadata: chunk.providerMetadata
+            finishReason: chunk2.finishReason.unified,
+            rawFinishReason: chunk2.finishReason.raw,
+            usage: asLanguageModelUsage(chunk2.usage),
+            providerMetadata: chunk2.providerMetadata
           };
           break;
         }
         case "tool-approval-request": {
-          const toolCall = toolCallsByToolCallId.get(chunk.toolCallId);
+          const toolCall = toolCallsByToolCallId.get(chunk2.toolCallId);
           if (toolCall == null) {
             toolResultsStreamController.enqueue({
               type: "error",
               error: new ToolCallNotFoundForApprovalError({
-                toolCallId: chunk.toolCallId,
-                approvalId: chunk.approvalId
+                toolCallId: chunk2.toolCallId,
+                approvalId: chunk2.approvalId
               })
             });
             break;
           }
           controller.enqueue({
             type: "tool-approval-request",
-            approvalId: chunk.approvalId,
+            approvalId: chunk2.approvalId,
             toolCall
           });
           break;
@@ -53549,7 +57217,7 @@ function runToolsTransformation({
         case "tool-call": {
           try {
             const toolCall = await parseToolCall({
-              toolCall: chunk,
+              toolCall: chunk2,
               tools,
               repairToolCall,
               system,
@@ -53632,26 +57300,26 @@ function runToolsTransformation({
           break;
         }
         case "tool-result": {
-          const toolName = chunk.toolName;
-          if (chunk.isError) {
+          const toolName = chunk2.toolName;
+          if (chunk2.isError) {
             toolResultsStreamController.enqueue({
               type: "tool-error",
-              toolCallId: chunk.toolCallId,
+              toolCallId: chunk2.toolCallId,
               toolName,
-              input: toolInputs.get(chunk.toolCallId),
+              input: toolInputs.get(chunk2.toolCallId),
               providerExecuted: true,
-              error: chunk.result,
-              dynamic: chunk.dynamic
+              error: chunk2.result,
+              dynamic: chunk2.dynamic
             });
           } else {
             controller.enqueue({
               type: "tool-result",
-              toolCallId: chunk.toolCallId,
+              toolCallId: chunk2.toolCallId,
               toolName,
-              input: toolInputs.get(chunk.toolCallId),
-              output: chunk.result,
+              input: toolInputs.get(chunk2.toolCallId),
+              output: chunk2.result,
               providerExecuted: true,
-              dynamic: chunk.dynamic
+              dynamic: chunk2.dynamic
             });
           }
           break;
@@ -53671,14 +57339,14 @@ function runToolsTransformation({
     async start(controller) {
       return Promise.all([
         generatorStream.pipeThrough(forwardStream).pipeTo(new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
+          write(chunk2) {
+            controller.enqueue(chunk2);
           },
           close() {}
         })),
         toolResultsStream.pipeTo(new WritableStream({
-          write(chunk) {
-            controller.enqueue(chunk);
+          write(chunk2) {
+            controller.enqueue(chunk2);
           },
           close() {
             controller.close();
@@ -53701,7 +57369,7 @@ function streamText({
   messages,
   maxRetries,
   abortSignal,
-  timeout,
+  timeout: timeout2,
   headers,
   stopWhen = stepCountIs(1),
   experimental_output,
@@ -53731,9 +57399,9 @@ function streamText({
   _internal: { now: now2 = now, generateId: generateId2 = originalGenerateId2 } = {},
   ...settings
 }) {
-  const totalTimeoutMs = getTotalTimeoutMs(timeout);
-  const stepTimeoutMs = getStepTimeoutMs(timeout);
-  const chunkTimeoutMs = getChunkTimeoutMs(timeout);
+  const totalTimeoutMs = getTotalTimeoutMs(timeout2);
+  const stepTimeoutMs = getStepTimeoutMs(timeout2);
+  const chunkTimeoutMs = getChunkTimeoutMs(timeout2);
   const stepAbortController = stepTimeoutMs != null ? new AbortController : undefined;
   const chunkAbortController = chunkTimeoutMs != null ? new AbortController : undefined;
   return new DefaultStreamTextResult({
@@ -53760,7 +57428,7 @@ function streamText({
     providerOptions,
     prepareStep,
     includeRawChunks,
-    timeout,
+    timeout: timeout2,
     stopWhen,
     originalAbortSignal: abortSignal,
     onChunk,
@@ -53801,35 +57469,35 @@ function createOutputTransformStream(output) {
     textChunk = "";
   }
   return new TransformStream({
-    async transform(chunk, controller) {
+    async transform(chunk2, controller) {
       var _a21;
-      if (chunk.type === "finish-step" && textChunk.length > 0) {
+      if (chunk2.type === "finish-step" && textChunk.length > 0) {
         publishTextChunk({ controller });
       }
-      if (chunk.type !== "text-delta" && chunk.type !== "text-start" && chunk.type !== "text-end") {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+      if (chunk2.type !== "text-delta" && chunk2.type !== "text-start" && chunk2.type !== "text-end") {
+        controller.enqueue({ part: chunk2, partialOutput: undefined });
         return;
       }
       if (firstTextChunkId == null) {
-        firstTextChunkId = chunk.id;
-      } else if (chunk.id !== firstTextChunkId) {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        firstTextChunkId = chunk2.id;
+      } else if (chunk2.id !== firstTextChunkId) {
+        controller.enqueue({ part: chunk2, partialOutput: undefined });
         return;
       }
-      if (chunk.type === "text-start") {
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+      if (chunk2.type === "text-start") {
+        controller.enqueue({ part: chunk2, partialOutput: undefined });
         return;
       }
-      if (chunk.type === "text-end") {
+      if (chunk2.type === "text-end") {
         if (textChunk.length > 0) {
           publishTextChunk({ controller });
         }
-        controller.enqueue({ part: chunk, partialOutput: undefined });
+        controller.enqueue({ part: chunk2, partialOutput: undefined });
         return;
       }
-      text2 += chunk.text;
-      textChunk += chunk.text;
-      textProviderMetadata = (_a21 = chunk.providerMetadata) != null ? _a21 : textProviderMetadata;
+      text2 += chunk2.text;
+      textChunk += chunk2.text;
+      textProviderMetadata = (_a21 = chunk2.providerMetadata) != null ? _a21 : textProviderMetadata;
       const result = await output.parsePartialOutput({ text: text2 });
       if (result !== undefined) {
         const currentJson = JSON.stringify(result.partial);
@@ -53868,7 +57536,7 @@ var DefaultStreamTextResult = class {
     includeRawChunks,
     now: now2,
     generateId: generateId2,
-    timeout,
+    timeout: timeout2,
     stopWhen,
     originalAbortSignal,
     onChunk,
@@ -53905,10 +57573,10 @@ var DefaultStreamTextResult = class {
     let activeTextContent = {};
     let activeReasoningContent = {};
     const eventProcessor = new TransformStream({
-      async transform(chunk, controller) {
+      async transform(chunk2, controller) {
         var _a21, _b16, _c, _d;
-        controller.enqueue(chunk);
-        const { part } = chunk;
+        controller.enqueue(chunk2);
+        const { part } = chunk2;
         if (part.type === "text-delta" || part.type === "reasoning-delta" || part.type === "source" || part.type === "tool-call" || part.type === "tool-result" || part.type === "tool-input-start" || part.type === "tool-input-delta" || part.type === "raw") {
           await (onChunk == null ? undefined : onChunk({ chunk: part }));
         }
@@ -54179,7 +57847,7 @@ var DefaultStreamTextResult = class {
       }));
     }
     this.baseStream = stream.pipeThrough(createOutputTransformStream(output != null ? output : text())).pipeThrough(eventProcessor);
-    const { maxRetries, retry } = prepareRetries({
+    const { maxRetries, retry: retry2 } = prepareRetries({
       maxRetries: maxRetriesArg,
       abortSignal
     });
@@ -54236,7 +57904,7 @@ var DefaultStreamTextResult = class {
             stopSequences: callSettings.stopSequences,
             seed: callSettings.seed,
             maxRetries,
-            timeout,
+            timeout: timeout2,
             headers,
             providerOptions,
             stopWhen,
@@ -54420,7 +58088,7 @@ var DefaultStreamTextResult = class {
                 activeTools: stepActiveTools,
                 steps: [...recordedSteps],
                 providerOptions: stepProviderOptions,
-                timeout,
+                timeout: timeout2,
                 headers,
                 stopWhen,
                 output,
@@ -54434,7 +58102,7 @@ var DefaultStreamTextResult = class {
               result: { stream: stream2, response, request },
               doStreamSpan,
               startTimestampMs
-            } = await retry(() => recordSpan({
+            } = await retry2(() => recordSpan({
               name: "ai.streamText.doStream",
               attributes: selectTelemetryAttributes({
                 telemetry,
@@ -54517,11 +58185,11 @@ var DefaultStreamTextResult = class {
             };
             let activeText = "";
             self.addStream(streamWithToolResults.pipeThrough(new TransformStream({
-              async transform(chunk, controller) {
+              async transform(chunk2, controller) {
                 var _a222, _b23, _c2, _d2, _e2;
                 resetChunkTimeout();
-                if (chunk.type === "stream-start") {
-                  warnings = chunk.warnings;
+                if (chunk2.type === "stream-start") {
+                  warnings = chunk2.warnings;
                   return;
                 }
                 if (stepFirstChunk) {
@@ -54539,70 +58207,70 @@ var DefaultStreamTextResult = class {
                     warnings: warnings != null ? warnings : []
                   });
                 }
-                const chunkType = chunk.type;
+                const chunkType = chunk2.type;
                 switch (chunkType) {
                   case "tool-approval-request":
                   case "text-start":
                   case "text-end": {
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "text-delta": {
-                    if (chunk.delta.length > 0) {
+                    if (chunk2.delta.length > 0) {
                       controller.enqueue({
                         type: "text-delta",
-                        id: chunk.id,
-                        text: chunk.delta,
-                        providerMetadata: chunk.providerMetadata
+                        id: chunk2.id,
+                        text: chunk2.delta,
+                        providerMetadata: chunk2.providerMetadata
                       });
-                      activeText += chunk.delta;
+                      activeText += chunk2.delta;
                     }
                     break;
                   }
                   case "reasoning-start":
                   case "reasoning-end": {
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "reasoning-delta": {
                     controller.enqueue({
                       type: "reasoning-delta",
-                      id: chunk.id,
-                      text: chunk.delta,
-                      providerMetadata: chunk.providerMetadata
+                      id: chunk2.id,
+                      text: chunk2.delta,
+                      providerMetadata: chunk2.providerMetadata
                     });
                     break;
                   }
                   case "tool-call": {
-                    controller.enqueue(chunk);
-                    stepToolCalls.push(chunk);
+                    controller.enqueue(chunk2);
+                    stepToolCalls.push(chunk2);
                     break;
                   }
                   case "tool-result": {
-                    controller.enqueue(chunk);
-                    if (!chunk.preliminary) {
-                      stepToolOutputs.push(chunk);
+                    controller.enqueue(chunk2);
+                    if (!chunk2.preliminary) {
+                      stepToolOutputs.push(chunk2);
                     }
                     break;
                   }
                   case "tool-error": {
-                    controller.enqueue(chunk);
-                    stepToolOutputs.push(chunk);
+                    controller.enqueue(chunk2);
+                    stepToolOutputs.push(chunk2);
                     break;
                   }
                   case "response-metadata": {
                     stepResponse = {
-                      id: (_a222 = chunk.id) != null ? _a222 : stepResponse.id,
-                      timestamp: (_b23 = chunk.timestamp) != null ? _b23 : stepResponse.timestamp,
-                      modelId: (_c2 = chunk.modelId) != null ? _c2 : stepResponse.modelId
+                      id: (_a222 = chunk2.id) != null ? _a222 : stepResponse.id,
+                      timestamp: (_b23 = chunk2.timestamp) != null ? _b23 : stepResponse.timestamp,
+                      modelId: (_c2 = chunk2.modelId) != null ? _c2 : stepResponse.modelId
                     };
                     break;
                   }
                   case "finish": {
-                    stepUsage = chunk.usage;
-                    stepFinishReason = chunk.finishReason;
-                    stepRawFinishReason = chunk.rawFinishReason;
-                    stepProviderMetadata = chunk.providerMetadata;
+                    stepUsage = chunk2.usage;
+                    stepFinishReason = chunk2.finishReason;
+                    stepRawFinishReason = chunk2.rawFinishReason;
+                    stepProviderMetadata = chunk2.providerMetadata;
                     const msToFinish = now2() - startTimestampMs;
                     doStreamSpan.addEvent("ai.stream.finish");
                     doStreamSpan.setAttributes({
@@ -54612,59 +58280,59 @@ var DefaultStreamTextResult = class {
                     break;
                   }
                   case "file": {
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "source": {
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "tool-input-start": {
-                    activeToolCallToolNames[chunk.id] = chunk.toolName;
-                    const tool2 = tools == null ? undefined : tools[chunk.toolName];
+                    activeToolCallToolNames[chunk2.id] = chunk2.toolName;
+                    const tool2 = tools == null ? undefined : tools[chunk2.toolName];
                     if ((tool2 == null ? undefined : tool2.onInputStart) != null) {
                       await tool2.onInputStart({
-                        toolCallId: chunk.id,
+                        toolCallId: chunk2.id,
                         messages: stepInputMessages,
                         abortSignal,
                         experimental_context
                       });
                     }
                     controller.enqueue({
-                      ...chunk,
-                      dynamic: (_e2 = chunk.dynamic) != null ? _e2 : (tool2 == null ? undefined : tool2.type) === "dynamic",
+                      ...chunk2,
+                      dynamic: (_e2 = chunk2.dynamic) != null ? _e2 : (tool2 == null ? undefined : tool2.type) === "dynamic",
                       title: tool2 == null ? undefined : tool2.title
                     });
                     break;
                   }
                   case "tool-input-end": {
-                    delete activeToolCallToolNames[chunk.id];
-                    controller.enqueue(chunk);
+                    delete activeToolCallToolNames[chunk2.id];
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "tool-input-delta": {
-                    const toolName = activeToolCallToolNames[chunk.id];
+                    const toolName = activeToolCallToolNames[chunk2.id];
                     const tool2 = tools == null ? undefined : tools[toolName];
                     if ((tool2 == null ? undefined : tool2.onInputDelta) != null) {
                       await tool2.onInputDelta({
-                        inputTextDelta: chunk.delta,
-                        toolCallId: chunk.id,
+                        inputTextDelta: chunk2.delta,
+                        toolCallId: chunk2.id,
                         messages: stepInputMessages,
                         abortSignal,
                         experimental_context
                       });
                     }
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     break;
                   }
                   case "error": {
-                    controller.enqueue(chunk);
+                    controller.enqueue(chunk2);
                     stepFinishReason = "error";
                     break;
                   }
                   case "raw": {
                     if (includeRawChunks2) {
-                      controller.enqueue(chunk);
+                      controller.enqueue(chunk2);
                     }
                     break;
                   }
@@ -55761,46 +59429,30 @@ var frontendTools = (tools) => Object.fromEntries(Object.entries(tools).map(([na
     inputSchema: jsonSchema(tool2.parameters)
   }
 ]));
-// ../core/types/ai-tools/renameFilesTask.ts
-var BEGIN_RENAME_FILES_TASK = "begin-rename-files-task";
-var ADD_RENAME_FILE_TO_TASK = "add-rename-file-to-task";
-var END_RENAME_FILES_TASK = "end-rename-files-task";
-var BEGIN_RENAME_FILES_TASK_DESCRIPTION = "Begin a rename task V2 for batch renaming media files. " + "This tool creates a task that can be used to add multiple files for renaming. " + `Use ${ADD_RENAME_FILE_TO_TASK} to add files, then ${END_RENAME_FILES_TASK} to execute.`;
-var ADD_RENAME_FILE_TO_TASK_DESCRIPTION = "Add a file to a rename task. " + `This tool adds a single file to an existing task created by ${BEGIN_RENAME_FILES_TASK}. ` + "Provide the task ID, current file path, and new file path.";
-var END_RENAME_FILES_TASK_DESCRIPTION = "End a rename task and execute the batch rename operation. " + `This tool finalizes the task created by ${BEGIN_RENAME_FILES_TASK} and ` + "executes all pending file renames.";
-var beginRenameFilesTaskInputSchema = exports_external.object({
-  mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format")
-});
-var addRenameFileToTaskInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID from ${BEGIN_RENAME_FILES_TASK}`),
-  from: exports_external.string().describe("Current absolute path of the video file to rename (POSIX or Windows format)"),
-  to: exports_external.string().describe("New absolute path for the file (POSIX or Windows format)")
-});
-var endRenameFilesTaskInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID from ${BEGIN_RENAME_FILES_TASK}`)
+// ../types/ai-tools/createRenameEpisodePlan.ts
+var CREATE_RENAME_EPISODE_PLAN = "create-rename-episode-plan";
+var CREATE_RENAME_EPISODE_PLAN_DESCRIPTION = "Create a rename-files plan for TV episode video files with explicit from/to paths. " + "After success, tell the user to open SMM, review, and approve the plan.";
+var createRenameEpisodePlanInputSchema = exports_external.object({
+  mediaFolderPath: exports_external.string().describe("Absolute media folder path (POSIX or Windows)"),
+  files: exports_external.array(exports_external.object({
+    from: exports_external.string().describe("Current absolute video path"),
+    to: exports_external.string().describe("New absolute video path")
+  })).min(1)
 });
 
-// ../core/types/ai-tools/recognizeMediaFileTask.ts
-var BEGIN_RECOGNIZE_TASK = "begin-recognize-task";
-var ADD_RECOGNIZED_MEDIA_FILE = "add-recognized-media-file";
-var END_RECOGNIZE_TASK = "end-recognize-task";
-var BEGIN_RECOGNIZE_TASK_DESCRIPTION = "Begin a recognition task for identifying media files. " + "This tool creates a task that can be used to add media files for recognition. " + `Use ${ADD_RECOGNIZED_MEDIA_FILE} to add files, then ${END_RECOGNIZE_TASK} to execute.`;
-var ADD_RECOGNIZED_MEDIA_FILE_DESCRIPTION = "Add a recognized media file to a recognition task. " + `This tool adds a single video file to an existing task created by ${BEGIN_RECOGNIZE_TASK}. ` + "Provide the task ID, season number, episode number, and file path.";
-var END_RECOGNIZE_TASK_DESCRIPTION = "End a recognition task and execute the recognition. " + `This tool finalizes the task created by ${BEGIN_RECOGNIZE_TASK} and ` + "processes all added media files.";
-var beginRecognizeTaskInputSchema = exports_external.object({
-  mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, it can be POSIX format or Windows format")
-});
-var addRecognizedMediaFileInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID returned from ${BEGIN_RECOGNIZE_TASK}`),
-  season: exports_external.number().describe("The season number of the episode."),
-  episode: exports_external.number().describe("The episode number."),
-  path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format).")
-});
-var endRecognizeTaskInputSchema = exports_external.object({
-  taskId: exports_external.string().describe(`The task ID returned from ${BEGIN_RECOGNIZE_TASK}`)
+// ../types/ai-tools/createRecognizeEpisodePlan.ts
+var CREATE_RECOGNIZE_EPISODE_PLAN = "create-recognize-episode-plan";
+var CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION = "Create a recognize-media-file plan that maps episode video files to season/episode numbers. " + "Provide every mapping (season, episode, absolute file path) in one call. " + "After success, tell the user to open SMM, review, and approve the plan.";
+var createRecognizeEpisodePlanInputSchema = exports_external.object({
+  mediaFolderPath: exports_external.string().describe("Absolute media folder path (POSIX or Windows)"),
+  files: exports_external.array(exports_external.object({
+    season: exports_external.number().describe("The season number of the episode."),
+    episode: exports_external.number().describe("The episode number."),
+    path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format).")
+  })).min(1)
 });
 
-// ../core/types/ai-tools/getApplicationContext.ts
+// ../types/ai-tools/getApplicationContext.ts
 var GET_APPLICATION_CONTEXT = "get-app-context";
 var GET_APPLICATION_CONTEXT_DESCRIPTION = `Get SMM context:
 ` + `  * The media folder user selected/focused on SMM UI
@@ -55812,7 +59464,7 @@ var getApplicationContextOutputSchema = exports_external.object({
   error: exports_external.string().optional().describe("Error message if the operation failed")
 });
 
-// ../core/types/ai-tools/getMediaMetadata.ts
+// ../types/ai-tools/getMediaMetadata.ts
 var GET_MEDIA_METADATA = "get-media-metadata";
 var GET_MEDIA_METADATA_DESCRIPTION = "Get cached media metadata for a media folder. Returns normalized TV show " + "season/episode data and TMDB/TVDB movie information when available. " + "Use list-files-in-media-folder for raw file paths; episode-to-file mappings " + "are not included in this response.";
 var GET_MEDIA_METADATA_NOT_MANAGED = "Media folder not found. The folder path may not be correct or the folder is not managed by SMM";
@@ -55868,7 +59520,7 @@ var getMediaMetadataToolOutputSchema = getMediaMetadataDataSchema.extend({
   error: exports_external.string().optional().describe("Error message when lookup failed")
 });
 
-// ../core/types/ai-tools/getEpisodes.ts
+// ../types/ai-tools/getEpisodes.ts
 var GET_EPISODES = "get-episodes";
 var GET_EPISODES_DESCRIPTION = "Get all episodes for a TV show with their video file paths. " + "Combines TMDB or TVDB episode data (from cached metadata) with local media file paths. " + "For each episode, returns season, episode number, and video file path. " + "The video file path may be undefined if the episode has not been recognized yet.";
 var GET_EPISODES_INVALID_PATH = "Invalid path: 'mediaFolderPath' must be a non-empty string";
@@ -55893,7 +59545,7 @@ var getEpisodesToolOutputSchema = getEpisodesDataSchema.extend({
   error: exports_external.string().optional()
 });
 
-// ../core/types/ai-tools/listFilesInMediaFolder.ts
+// ../types/ai-tools/listFilesInMediaFolder.ts
 var LIST_FILES_IN_MEDIA_FOLDER = "list-files-in-media-folder";
 var LIST_FILES_IN_MEDIA_FOLDER_DESCRIPTION = "List files in a media folder by scanning the file system recursively. " + "Returns file paths in OS-native format. Use videoFileOnly to restrict to video files.";
 var LIST_FILES_IN_MEDIA_FOLDER_INVALID_PATH = "Invalid path: 'mediaFolderPath' must be a non-empty string";
@@ -55911,7 +59563,214 @@ var listFilesInMediaFolderOutputSchema = listFilesInMediaFolderDataSchema.extend
   error: exports_external.string().optional()
 });
 
-// ../core/ai-tool/systemPrompt.ts
+// ../types/ai-tools/scrape.ts
+var SCRAPE = "scrape";
+var SCRAPE_DESCRIPTION = "Start a scrape job for a managed TV show or movie folder (poster, fanart, thumbnails, nfo). " + "Returns a job id immediately; the scrape runs in the background. " + "Call get-job with the returned id to check progress and per-task status. " + `Supports TMDB and TVDB. Movie folders skip thumbnails.
+
+` + 'Example: Scrape media folder "/path/to/Show".';
+var SCRAPE_JOB_CREATED_MESSAGE = "scrape job created, use get-job tool to check job status by id.";
+var scrapeInputSchema = exports_external.object({
+  path: exports_external.string().describe("Absolute path of the managed media folder to scrape (POSIX or Windows format)"),
+  language: exports_external.string().optional().describe("Optional language code for metadata/assets (defaults to user preferMediaLanguage)")
+});
+var scrapeOutputSchema = exports_external.object({
+  id: exports_external.string().describe("Scrape job id; pass to get-job to poll status"),
+  message: exports_external.string().describe("Guidance for checking job status with get-job"),
+  error: exports_external.string().optional().describe("Error message when the scrape job could not be started")
+});
+
+// ../types/ai-tools/getJob.ts
+var GET_JOB = "get-job";
+var GET_JOB_DESCRIPTION = "Get the status of a background job by id. " + 'Supports scrape jobs (kind: "scrape" with poster/fanart/thumbnails/nfo tasks) ' + 'and import jobs (kind: "import"). ' + `Poll until status is succeeded, failed, or aborted.
+
+` + 'Example: Check job status for id "550e8400-e29b-41d4-a716-446655440000".';
+var jobStatusSchema = exports_external.enum([
+  "pending",
+  "running",
+  "succeeded",
+  "failed",
+  "aborted"
+]);
+var scrapeTaskRuntimeStatusSchema = exports_external.enum([
+  "pending",
+  "running",
+  "skipped",
+  "completed",
+  "failed"
+]);
+var scrapeJobTaskSchema = exports_external.object({
+  status: scrapeTaskRuntimeStatusSchema,
+  error: exports_external.string().optional()
+});
+var scrapeJobSchema = exports_external.object({
+  kind: exports_external.literal("scrape"),
+  id: exports_external.string(),
+  folderPath: exports_external.string(),
+  status: jobStatusSchema,
+  tasks: exports_external.object({
+    poster: scrapeJobTaskSchema,
+    fanart: scrapeJobTaskSchema,
+    thumbnails: scrapeJobTaskSchema,
+    nfo: scrapeJobTaskSchema
+  }),
+  error: exports_external.string().optional(),
+  createdAt: exports_external.number(),
+  updatedAt: exports_external.number()
+});
+var importJobSchema = exports_external.object({
+  kind: exports_external.literal("import"),
+  id: exports_external.string(),
+  folderPath: exports_external.string(),
+  type: exports_external.string(),
+  status: jobStatusSchema,
+  stage: exports_external.string().nullable(),
+  progress: exports_external.number(),
+  recognizedTitle: exports_external.string().optional(),
+  error: exports_external.string().optional(),
+  createdAt: exports_external.number(),
+  updatedAt: exports_external.number()
+});
+var jobSchema = exports_external.discriminatedUnion("kind", [
+  scrapeJobSchema,
+  importJobSchema
+]);
+var getJobInputSchema = exports_external.object({
+  id: exports_external.string().describe("Job id returned by scrape or import-folder")
+});
+var getJobOutputSchema = exports_external.object({
+  job: jobSchema.optional().describe("Job payload when found"),
+  error: exports_external.string().optional().describe("Error message when the job could not be loaded")
+});
+
+// ../types/ai-tools/tmdbCommon.ts
+var tmdbLanguageSchema = exports_external.string().optional().describe("TMDB primary translation IETF tag (e.g. zh-CN, en-US). Defaults from userConfig.preferMediaLanguage.");
+var tmdbBaseUrlSchema = exports_external.string().optional().describe("Optional TMDB API base URL override (defaults from userConfig.tmdb.host)");
+function toTmdbCoreOptions(params) {
+  const host = params.baseURL?.trim();
+  return {
+    language: params.language,
+    host: host || undefined
+  };
+}
+function formatTmdbToolError(error48) {
+  const message = error48 instanceof Error ? error48.message : String(error48);
+  return message.startsWith("Error Reason:") ? message : `Error Reason: ${message}`;
+}
+
+// ../types/ai-tools/tmdbSearch.ts
+var TMDB_SEARCH = "tmdb-search";
+var TMDB_SEARCH_DESCRIPTION = "Search TMDB (The Movie Database) for movies or TV shows by keyword. " + `Returns matching results with title, release date, overview, and TMDB ID.
+
+` + 'Example: Search TV shows matching "naruto".';
+var tmdbSearchInputSchema = exports_external.object({
+  keyword: exports_external.string().describe("Search keyword"),
+  type: exports_external.enum(["tv", "movie"]).describe("Media type to search"),
+  language: tmdbLanguageSchema,
+  baseURL: tmdbBaseUrlSchema
+});
+var tmdbSearchOutputSchema = exports_external.object({
+  results: exports_external.array(exports_external.record(exports_external.string(), exports_external.unknown())).optional(),
+  page: exports_external.number().optional(),
+  total_pages: exports_external.number().optional(),
+  total_results: exports_external.number().optional(),
+  error: exports_external.string().optional()
+});
+
+// ../types/ai-tools/tmdbGetMovie.ts
+var TMDB_GET_MOVIE = "tmdb-get-movie";
+var TMDB_GET_MOVIE_DESCRIPTION = "Retrieve detailed movie information from TMDB by TMDB ID. " + `Includes title, overview, release date, runtime, genres, poster images, and more.
+
+` + "Example: Get movie details for TMDB id 550.";
+var tmdbGetMovieInputSchema = exports_external.object({
+  id: exports_external.number().int().positive().describe("TMDB movie id"),
+  language: tmdbLanguageSchema,
+  baseURL: tmdbBaseUrlSchema
+});
+var tmdbGetMovieOutputSchema = exports_external.object({
+  error: exports_external.string().optional()
+}).passthrough();
+
+// ../types/ai-tools/tmdbGetTvShow.ts
+var TMDB_GET_TV_SHOW = "tmdb-get-tv-show";
+var TMDB_GET_TV_SHOW_DESCRIPTION = "Retrieve detailed TV show information from TMDB by TMDB ID, including seasons and episodes " + `with titles, overviews, and air dates.
+
+` + "Example: Get TV show details for TMDB id 31917.";
+var tmdbGetTvShowInputSchema = exports_external.object({
+  id: exports_external.number().int().positive().describe("TMDB TV series id"),
+  language: tmdbLanguageSchema,
+  baseURL: tmdbBaseUrlSchema
+});
+var tmdbGetTvShowOutputSchema = exports_external.object({
+  error: exports_external.string().optional()
+}).passthrough();
+
+// ../types/ai-tools/tvdbCommon.ts
+var tvdbLanguageSchema = exports_external.string().optional().describe("TVDB ISO 639-3 language code (e.g. eng, zho, yue). Defaults from userConfig.preferMediaLanguage.");
+var tvdbBaseUrlSchema = exports_external.string().optional().describe("Optional TVDB API base URL override (defaults from userConfig.tvdb.host)");
+function toTvdbCoreOptions(params) {
+  const host = params.baseURL?.trim();
+  return {
+    language: params.language,
+    host: host || undefined
+  };
+}
+function formatTvdbToolError(error48) {
+  const message = error48 instanceof Error ? error48.message : String(error48);
+  return message.startsWith("Error Reason:") ? message : `Error Reason: ${message}`;
+}
+
+// ../types/ai-tools/tvdbSearch.ts
+var TVDB_SEARCH = "tvdb-search";
+var TVDB_SEARCH_DESCRIPTION = "Search TVDB (TheTVDB) for TV series or movies by keyword. " + `Returns matching results with title, overview, and TVDB ID.
+
+` + 'Example: Search series matching "naruto".';
+var tvdbSearchInputSchema = exports_external.object({
+  keyword: exports_external.string().describe("Search keyword"),
+  type: exports_external.enum(["series", "movie"]).describe("Media type to search"),
+  language: tvdbLanguageSchema,
+  baseURL: tvdbBaseUrlSchema
+});
+var tvdbSearchOutputSchema = exports_external.object({
+  results: exports_external.array(exports_external.record(exports_external.string(), exports_external.unknown())).optional(),
+  error: exports_external.string().optional()
+});
+
+// ../types/ai-tools/tvdbGetMovie.ts
+var TVDB_GET_MOVIE = "tvdb-get-movie";
+var TVDB_GET_MOVIE_DESCRIPTION = `Retrieve movie metadata from TVDB by TVDB ID, including the localized title.
+
+` + "Example: Get movie metadata for TVDB id 7.";
+var tvdbGetMovieInputSchema = exports_external.object({
+  id: exports_external.number().int().positive().describe("TVDB movie id"),
+  language: tvdbLanguageSchema,
+  baseURL: tvdbBaseUrlSchema
+});
+var tvdbGetMovieOutputSchema = exports_external.object({ error: exports_external.string().optional() }).passthrough();
+
+// ../types/ai-tools/tvdbGetTvShow.ts
+var TVDB_GET_TV_SHOW = "tvdb-get-tv-show";
+var TVDB_GET_TV_SHOW_DESCRIPTION = `Retrieve TV series metadata from TVDB by TVDB ID, including seasons and episodes with localized titles.
+
+` + "Example: Get TV series metadata for TVDB id 42.";
+var tvdbGetTvShowInputSchema = exports_external.object({
+  id: exports_external.number().int().positive().describe("TVDB series id"),
+  language: tvdbLanguageSchema,
+  baseURL: tvdbBaseUrlSchema
+});
+var tvdbGetTvShowOutputSchema = exports_external.object({ error: exports_external.string().optional() }).passthrough();
+
+// ../types/ai-tools/tvdbGetLanguages.ts
+var TVDB_GET_LANGUAGES = "tvdb-get-languages";
+var TVDB_GET_LANGUAGES_DESCRIPTION = "Retrieve the list of TVDB supported languages (ISO 639-3 codes). Useful for picking a search language.";
+var tvdbGetLanguagesInputSchema = exports_external.object({
+  baseURL: tvdbBaseUrlSchema
+});
+var tvdbGetLanguagesOutputSchema = exports_external.object({
+  languages: exports_external.array(exports_external.record(exports_external.string(), exports_external.unknown())).optional(),
+  error: exports_external.string().optional()
+});
+
+// ../../apps/core/src/ai-tool/systemPrompt.ts
 var SYSTEM_PROMPT = `You're a helpful assistant for Simple Media Manager(SMM) software.
 SMM is a media manager that helps user to manage their TV Show, anime, movie or music.
 SMM holds multiple media folders and user can switch between them.
@@ -55939,10 +59798,8 @@ Below is the steps to recognize media file:
    If user don't tell which folder he is asking for, you should call "${GET_APPLICATION_CONTEXT}" to get the selected media folder in UI.
 2. Get episodes using "${GET_EPISODES}" tool
 3. Get local files using "${LIST_FILES_IN_MEDIA_FOLDER}" tool
-4. Call "${BEGIN_RECOGNIZE_TASK}" tool to notify AI Agent to start a recognize task
-5. iterate each episodes, find the local video file for the episode, and call "${ADD_RECOGNIZED_MEDIA_FILE}" tool to add the recognized media file to the task
+4. Call "${CREATE_RECOGNIZE_EPISODE_PLAN}" once with mediaFolderPath and a files array of season/episode/path pairs for every recognized video file
    IMPORTANT: It's OK to skip the episode if the local video file is not found.
-6. Call "${END_RECOGNIZE_TASK}" tool to notify AI Agent to end the recognize task
 
 ### Rename Files
 
@@ -55954,9 +59811,32 @@ You ONLY need to rename the video file. For image files, subtitle files, nfo fil
 
 Steps
 [ ] Call "${GET_MEDIA_METADATA}" to get the video files needs to rename
-[ ] Call "${BEGIN_RENAME_FILES_TASK}" to notify AI Agent to start a rename files task
-[ ] Call "${ADD_RENAME_FILE_TO_TASK}" to add a file to rename task, call multiple times to add multiple files
-[ ] Call "${END_RENAME_FILES_TASK}" to notify AI Agent to end the rename files task
+[ ] Call "${CREATE_RENAME_EPISODE_PLAN}" once with mediaFolderPath and a files array of from/to pairs for every video to rename
+
+### Scrape Media Artwork and NFO
+
+When user asks to scrape, download poster/fanart/thumbnails, or write NFO files for a media folder,
+use the scrape job tools:
+
+1. Resolve which media folder (ask user or call "${GET_APPLICATION_CONTEXT}").
+2. Call "${SCRAPE}" with the folder path (optional language). It returns a job id immediately.
+3. Call "${GET_JOB}" with that id to check progress. Poll until status is succeeded, failed, or aborted.
+4. Report per-task results (poster, fanart, thumbnails, nfo) from the scrape job.
+
+### TMDB Search and Details
+
+When user asks to search TMDB, find a TV show or movie on TMDB, or look up TMDB metadata by id:
+
+1. Call "${TMDB_SEARCH}" with keyword and type (\`tv\` or \`movie\`) to find candidates.
+2. Call "${TMDB_GET_TV_SHOW}" or "${TMDB_GET_MOVIE}" with the chosen TMDB id for full details (seasons/episodes for TV).
+
+### TVDB Search and Details
+
+When user asks to search TVDB, find a TV show or movie on TVDB, or look up TVDB metadata by id:
+
+1. Call "${TVDB_SEARCH}" with keyword and type (\`series\` or \`movie\`) to find candidates.
+2. Call "${TVDB_GET_TV_SHOW}" or "${TVDB_GET_MOVIE}" with the chosen TVDB id for full metadata (seasons/episodes for TV).
+3. Use "${TVDB_GET_LANGUAGES}" to discover supported ISO 639-3 language codes when needed.
 
 ## User Preferences
 
@@ -55982,7 +59862,7 @@ EpisodeName: The episode name
 Extension: The file extension, such as "mp4", "mkv", "avi", ...
 `;
 
-// ../core/types/ai-tools/isFolderExist.ts
+// ../types/ai-tools/isFolderExist.ts
 var IS_FOLDER_EXIST = "is-folder-exist";
 var IS_FOLDER_EXIST_DESCRIPTION = "Check if a folder exists in the file system. " + "Returns `{ exists, path, reason? }` where `exists` is true when " + "the path is an existing directory.";
 var IS_FOLDER_EXIST_INVALID_PATH = "Invalid path: path must be a non-empty string";
@@ -55997,7 +59877,7 @@ var isFolderExistOutputSchema = exports_external.object({
   reason: exports_external.string().optional().describe("Reason for non-existence or non-directory")
 });
 
-// ../core/types/ai-tools/getMediaFolders.ts
+// ../types/ai-tools/getMediaFolders.ts
 var GET_MEDIA_FOLDERS = "get-media-folders";
 var GET_MEDIA_FOLDERS_DESCRIPTION = "Get the list of media folders managed by SMM.";
 var getMediaFoldersInputSchema = exports_external.object({});
@@ -56008,7 +59888,7 @@ var getMediaFoldersOutputSchema = getMediaFoldersDataSchema.extend({
   error: exports_external.string().optional()
 });
 
-// ../core/types/ai-tools/renameFolder.ts
+// ../types/ai-tools/renameFolder.ts
 var RENAME_FOLDER = "rename-folder";
 var RENAME_FOLDER_DESCRIPTION = "Rename a media folder in SMM. " + "This tool accepts the source folder path and destination folder path. " + "This tool should ONLY be used to rename FOLDER, NOT FILE. " + `This tool will update media metadata accordingly.
 
@@ -56025,7 +59905,34 @@ var renameFolderOutputSchema = exports_external.object({
 });
 var RENAME_FOLDER_CANCELLED = "User cancelled the operation";
 
-// ../core/locale.ts
+// ../types/ai-tools/renameEpisodeFile.ts
+var RENAME_EPISODE_FILE = "rename-episode-file";
+var RENAME_EPISODE_FILE_DESCRIPTION = "Rename a linked TV episode video file (and same-stem associates such as subtitles) in a managed TV show folder. " + "Use ONLY for a single episode file that already has seasonNumber and episodeNumber in media metadata. " + "Do NOT use for folders (use rename-folder), movies, orphan files, or bulk renames " + `(use create-rename-episode-plan for multi-file plans).
+
+` + 'Example: Rename episode file in folder "/path/to/show" from ".../S01E01.mp4" to ".../S01E01_renamed.mp4".';
+var renameEpisodeFileInputSchema = exports_external.object({
+  mediaFolder: exports_external.string().describe("Absolute path of the managed TV show media folder (POSIX or Windows format)"),
+  from: exports_external.string().describe("Absolute current path of the linked episode video file (POSIX or Windows format)"),
+  to: exports_external.string().describe("Absolute target path for the episode video file under the same media folder (POSIX or Windows format)")
+});
+var renameEpisodeFileOutputSchema = exports_external.object({
+  renamed: exports_external.boolean().describe("True when at least one file was renamed successfully"),
+  mediaFolder: exports_external.string().describe("The media folder path after normalization"),
+  from: exports_external.string().describe("The primary source episode path after normalization"),
+  to: exports_external.string().describe("The primary destination episode path after normalization"),
+  succeeded: exports_external.array(exports_external.object({
+    from: exports_external.string(),
+    to: exports_external.string()
+  })).describe("Successful rename pairs (episode + associates)"),
+  failed: exports_external.array(exports_external.object({
+    path: exports_external.string(),
+    error: exports_external.string()
+  })).describe("Per-path failures"),
+  error: exports_external.string().optional().describe("Error or cancellation message when rename did not fully succeed")
+});
+var RENAME_EPISODE_FILE_CANCELLED = "User cancelled the operation";
+
+// ../utils/src/locale.ts
 var APP_LANGUAGE_FALLBACK = "en";
 function normalizeToAppLanguage(raw) {
   const lng = raw.trim();
@@ -56074,13 +59981,259 @@ function detectOsLocale() {
   return "";
 }
 
+// ../../apps/core/src/ai-tool/toolResult.ts
+function toolOk(data) {
+  return { ...data, error: undefined };
+}
+function toolError(reason) {
+  const message = reason.startsWith("Error Reason:") ? reason : `Error Reason: ${reason}`;
+  return { error: message };
+}
+function requireNonEmptyString(value, field) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return { error: `Invalid ${field}: must be a non-empty string` };
+  }
+  return value;
+}
+function messageFromUnknownError(error48) {
+  if (error48 instanceof Error) {
+    return error48.message;
+  }
+  if (typeof error48 === "string") {
+    return error48;
+  }
+  if (error48 === null || error48 === undefined) {
+    return "Unknown error (null/undefined thrown)";
+  }
+  try {
+    const json3 = JSON.stringify(error48);
+    if (json3 && json3 !== "{}") {
+      return json3;
+    }
+  } catch {}
+  const text2 = String(error48);
+  return text2 || "Unknown error";
+}
+function formatToolError(error48) {
+  return toolError(messageFromUnknownError(error48));
+}
+
+// src/tools/tmdb.ts
+function unavailable(message) {
+  return { error: message };
+}
+function assertNotAborted(abortSignal) {
+  if (abortSignal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+}
+async function executeTmdbSearch(params, runner, abortSignal) {
+  assertNotAborted(abortSignal);
+  const keywordCheck = requireNonEmptyString(params.keyword, "keyword");
+  if (typeof keywordCheck !== "string") {
+    return { error: keywordCheck.error };
+  }
+  if (!runner) {
+    return unavailable("tmdb-search is not available on this host");
+  }
+  try {
+    const body = await runner(keywordCheck, {
+      type: params.type,
+      ...toTmdbCoreOptions(params)
+    });
+    if (body.error) {
+      return { error: body.error };
+    }
+    return {
+      results: body.results,
+      page: body.page,
+      total_pages: body.total_pages,
+      total_results: body.total_results
+    };
+  } catch (error48) {
+    return { error: formatTmdbToolError(error48) };
+  }
+}
+async function executeTmdbGetMovie(params, runner, abortSignal) {
+  assertNotAborted(abortSignal);
+  if (!Number.isInteger(params.id) || params.id <= 0) {
+    return { error: "Invalid id: 'id' must be a positive integer" };
+  }
+  if (!runner) {
+    return unavailable("tmdb-get-movie is not available on this host");
+  }
+  try {
+    const details = await runner(params.id, toTmdbCoreOptions(params));
+    return details;
+  } catch (error48) {
+    return { error: formatTmdbToolError(error48) };
+  }
+}
+async function executeTmdbGetTvShow(params, runner, abortSignal) {
+  assertNotAborted(abortSignal);
+  if (!Number.isInteger(params.id) || params.id <= 0) {
+    return { error: "Invalid id: 'id' must be a positive integer" };
+  }
+  if (!runner) {
+    return unavailable("tmdb-get-tv-show is not available on this host");
+  }
+  try {
+    const details = await runner(params.id, toTmdbCoreOptions(params));
+    return details;
+  } catch (error48) {
+    return { error: formatTmdbToolError(error48) };
+  }
+}
+function buildTmdbSearchTool(runners, abortSignal) {
+  return {
+    description: TMDB_SEARCH_DESCRIPTION,
+    inputSchema: tmdbSearchInputSchema,
+    outputSchema: tmdbSearchOutputSchema,
+    execute: async (args) => {
+      return executeTmdbSearch(args ?? {}, runners?.searchInTmdb, abortSignal);
+    }
+  };
+}
+function buildTmdbGetMovieTool(runners, abortSignal) {
+  return {
+    description: TMDB_GET_MOVIE_DESCRIPTION,
+    inputSchema: tmdbGetMovieInputSchema,
+    outputSchema: tmdbGetMovieOutputSchema,
+    execute: async (args) => {
+      return executeTmdbGetMovie(args ?? {}, runners?.getMovieInTmdb, abortSignal);
+    }
+  };
+}
+function buildTmdbGetTvShowTool(runners, abortSignal) {
+  return {
+    description: TMDB_GET_TV_SHOW_DESCRIPTION,
+    inputSchema: tmdbGetTvShowInputSchema,
+    outputSchema: tmdbGetTvShowOutputSchema,
+    execute: async (args) => {
+      return executeTmdbGetTvShow(args ?? {}, runners?.getTvShowInTmdb, abortSignal);
+    }
+  };
+}
+
+// src/tools/tvdb.ts
+function unavailable2(message) {
+  return { error: message };
+}
+function assertNotAborted2(abortSignal) {
+  if (abortSignal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+}
+async function executeTvdbSearch(params, runner, abortSignal) {
+  assertNotAborted2(abortSignal);
+  const keywordCheck = requireNonEmptyString(params.keyword, "keyword");
+  if (typeof keywordCheck !== "string") {
+    return { error: keywordCheck.error };
+  }
+  if (!runner) {
+    return unavailable2("tvdb-search is not available on this host");
+  }
+  try {
+    const results = await runner(keywordCheck, {
+      type: params.type,
+      ...toTvdbCoreOptions(params)
+    });
+    return { results };
+  } catch (error48) {
+    return { error: formatTvdbToolError(error48) };
+  }
+}
+async function executeTvdbGetMovie(params, runner, abortSignal) {
+  assertNotAborted2(abortSignal);
+  if (!Number.isInteger(params.id) || params.id <= 0) {
+    return { error: "Invalid id: 'id' must be a positive integer" };
+  }
+  if (!runner) {
+    return unavailable2("tvdb-get-movie is not available on this host");
+  }
+  try {
+    const details = await runner(params.id, toTvdbCoreOptions(params));
+    return details;
+  } catch (error48) {
+    return { error: formatTvdbToolError(error48) };
+  }
+}
+async function executeTvdbGetTvShow(params, runner, abortSignal) {
+  assertNotAborted2(abortSignal);
+  if (!Number.isInteger(params.id) || params.id <= 0) {
+    return { error: "Invalid id: 'id' must be a positive integer" };
+  }
+  if (!runner) {
+    return unavailable2("tvdb-get-tv-show is not available on this host");
+  }
+  try {
+    const details = await runner(params.id, toTvdbCoreOptions(params));
+    return details;
+  } catch (error48) {
+    return { error: formatTvdbToolError(error48) };
+  }
+}
+async function executeTvdbGetLanguages(runner, _params = {}, abortSignal) {
+  assertNotAborted2(abortSignal);
+  if (!runner) {
+    return unavailable2("tvdb-get-languages is not available on this host");
+  }
+  try {
+    const languages = await runner(toTvdbCoreOptions(_params));
+    return { languages };
+  } catch (error48) {
+    return { error: formatTvdbToolError(error48) };
+  }
+}
+function buildTvdbSearchTool(runners, abortSignal) {
+  return {
+    description: TVDB_SEARCH_DESCRIPTION,
+    inputSchema: tvdbSearchInputSchema,
+    outputSchema: tvdbSearchOutputSchema,
+    execute: async (args) => {
+      return executeTvdbSearch(args ?? {}, runners?.searchInTvdb, abortSignal);
+    }
+  };
+}
+function buildTvdbGetMovieTool(runners, abortSignal) {
+  return {
+    description: TVDB_GET_MOVIE_DESCRIPTION,
+    inputSchema: tvdbGetMovieInputSchema,
+    outputSchema: tvdbGetMovieOutputSchema,
+    execute: async (args) => {
+      return executeTvdbGetMovie(args ?? {}, runners?.getMovieInTvdb, abortSignal);
+    }
+  };
+}
+function buildTvdbGetTvShowTool(runners, abortSignal) {
+  return {
+    description: TVDB_GET_TV_SHOW_DESCRIPTION,
+    inputSchema: tvdbGetTvShowInputSchema,
+    outputSchema: tvdbGetTvShowOutputSchema,
+    execute: async (args) => {
+      return executeTvdbGetTvShow(args ?? {}, runners?.getTvShowInTvdb, abortSignal);
+    }
+  };
+}
+function buildTvdbGetLanguagesTool(runners, abortSignal) {
+  return {
+    description: TVDB_GET_LANGUAGES_DESCRIPTION,
+    inputSchema: tvdbGetLanguagesInputSchema,
+    outputSchema: tvdbGetLanguagesOutputSchema,
+    execute: async (args) => {
+      return executeTvdbGetLanguages(runners?.getTvdbLanguages, args ?? {}, abortSignal);
+    }
+  };
+}
+
 // src/chatFs.ts
-import { readFile, writeFile, stat } from "node:fs/promises";
+import { mkdir, readFile, writeFile, stat as stat2 } from "node:fs/promises";
+import { dirname } from "node:path";
 function defaultChatFs() {
   return {
     async readJson(filePath) {
       try {
-        const contents = await readFile(filePath, "utf-8");
+        const contents = await readFile(Path.toPlatformPath(filePath), "utf-8");
         return JSON.parse(contents);
       } catch (error48) {
         if (error48.code === "ENOENT") {
@@ -56091,11 +60244,13 @@ function defaultChatFs() {
     },
     async writeJson(filePath, value) {
       const serialized = JSON.stringify(value, null, 2);
-      await writeFile(filePath, serialized, "utf-8");
+      const platformPath = Path.toPlatformPath(filePath);
+      await mkdir(dirname(platformPath), { recursive: true });
+      await writeFile(platformPath, serialized, "utf-8");
     },
     async exists(filePath) {
       try {
-        await stat(filePath);
+        await stat2(Path.toPlatformPath(filePath));
         return true;
       } catch {
         return false;
@@ -56152,287 +60307,8 @@ async function resolveSelectedMediaFolder(clientId, acknowledge) {
   }, 1000);
   return responseData?.selectedMediaMetadata?.mediaFolderPath ?? "";
 }
-// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/flatten.mjs
-function flatten(arr, depth = 1) {
-  const result = [];
-  const flooredDepth = Math.floor(depth);
-  const recursive = (arr2, currentDepth) => {
-    for (let i = 0;i < arr2.length; i++) {
-      const item = arr2[i];
-      if (Array.isArray(item) && currentDepth < flooredDepth) {
-        recursive(item, currentDepth + 1);
-      } else {
-        result.push(item);
-      }
-    }
-  };
-  recursive(arr, 0);
-  return result;
-}
 
-// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/flattenDeep.mjs
-function flattenDeep(arr) {
-  return flatten(arr, Infinity);
-}
-// ../../node_modules/.pnpm/es-toolkit@1.44.0/node_modules/es-toolkit/dist/array/last.mjs
-function last(arr) {
-  return arr[arr.length - 1];
-}
-// ../../node_modules/.pnpm/slash@5.1.0/node_modules/slash/index.js
-function slash(path) {
-  const isExtendedLengthPath = path.startsWith("\\\\?\\");
-  if (isExtendedLengthPath) {
-    return path;
-  }
-  return path.replace(/\\/g, "/");
-}
-
-// ../../node_modules/.pnpm/filename-reserved-regex@4.0.0/node_modules/filename-reserved-regex/index.js
-function filenameReservedRegex() {
-  return /[<>:"/\\|?*\u0000-\u001F]|[. ]$/g;
-}
-function windowsReservedNameRegex() {
-  return /^(con|prn|aux|nul|com\d|lpt\d)$/i;
-}
-
-// ../../node_modules/.pnpm/filenamify@7.0.1/node_modules/filenamify/filenamify.js
-var MAX_FILENAME_LENGTH = 100;
-var reRelativePath = /^\.+(\\|\/)|^\.+$/;
-var reTrailingDotsAndSpaces = /[. ]+$/;
-var reControlChars = /[\p{Control}\p{Format}\p{Zl}\p{Zp}\uFFF0-\uFFFF]/gu;
-var reControlCharsTest = /[\p{Control}\p{Format}\p{Zl}\p{Zp}\uFFF0-\uFFFF]/u;
-var isZeroWidthJoiner = (char) => char === "‍";
-var reRepeatedReservedCharacters = /([<>:"/\\|?*\u0000-\u001F]){2,}/g;
-var reReplacementReservedCharacters = /[<>:"/\\|?*\u0000-\u001F]/;
-var reUnicodeWhitespace = /[\t\n\r\u00A0\u1680\u2000-\u200A\u202F\u205F\u3000]+/g;
-var segmenter;
-function getSegmenter() {
-  segmenter ??= new Intl.Segmenter(undefined, { granularity: "grapheme" });
-  return segmenter;
-}
-function truncateFilename(filename, maxLength) {
-  if (filename.length <= maxLength) {
-    return filename;
-  }
-  const extensionIndex = filename.lastIndexOf(".");
-  if (extensionIndex === -1) {
-    return truncateByGraphemeBudget(filename, maxLength);
-  }
-  const base = filename.slice(0, extensionIndex);
-  const extension = filename.slice(extensionIndex);
-  const baseBudget = Math.max(0, maxLength - extension.length);
-  const truncatedBase = truncateByGraphemeBudget(base, baseBudget);
-  return truncatedBase.replace(/ +$/, "") + extension;
-}
-function filenamify(string4, options = {}) {
-  if (typeof string4 !== "string") {
-    throw new TypeError("Expected a string");
-  }
-  const replacement = options.replacement ?? "!";
-  const hasReservedChars = reReplacementReservedCharacters.test(replacement);
-  const hasControlChars = [...replacement].some((char) => reControlCharsTest.test(char) && !isZeroWidthJoiner(char));
-  if (hasReservedChars || hasControlChars) {
-    throw new Error("Replacement string cannot contain reserved filename characters");
-  }
-  string4 = string4.normalize("NFC");
-  string4 = string4.replaceAll(reUnicodeWhitespace, " ");
-  if (replacement.length > 0) {
-    string4 = string4.replaceAll(reRepeatedReservedCharacters, "$1");
-  }
-  string4 = string4.replace(reTrailingDotsAndSpaces, "");
-  string4 = string4.replace(reRelativePath, replacement);
-  string4 = string4.replace(filenameReservedRegex(), replacement);
-  string4 = string4.replaceAll(reControlChars, (char) => isZeroWidthJoiner(char) ? char : replacement);
-  string4 = string4.replace(reTrailingDotsAndSpaces, "");
-  if (string4.length === 0) {
-    string4 = replacement.replace(reTrailingDotsAndSpaces, "");
-    if (string4.length === 0 && replacement.length > 0) {
-      string4 = "!";
-    }
-  }
-  const allowedLength = typeof options.maxLength === "number" ? options.maxLength : MAX_FILENAME_LENGTH;
-  string4 = truncateFilename(string4, allowedLength);
-  string4 = string4.replace(reTrailingDotsAndSpaces, "");
-  if (windowsReservedNameRegex().test(string4)) {
-    string4 += replacement;
-  }
-  return string4;
-}
-function truncateByGraphemeBudget(input, budget) {
-  if (input.length <= budget) {
-    return input;
-  }
-  let count = 0;
-  let output = "";
-  for (const { segment } of getSegmenter().segment(input)) {
-    const next = count + segment.length;
-    if (next > budget) {
-      break;
-    }
-    output += segment;
-    count = next;
-  }
-  return output;
-}
-// ../core/path.ts
-var WIN_PATH_SEPARATOR = "\\";
-var POSIX_PATH_SEPARATOR = "/";
-function isNotEmpty(part) {
-  return part.trim() !== "";
-}
-function split(path) {
-  let parts = path.split(":\\").filter(isNotEmpty);
-  parts = flattenDeep(parts.map((part) => part.split("\\").filter(isNotEmpty)));
-  parts = flattenDeep(parts.map((part) => part.split("/").filter(isNotEmpty)));
-  return parts;
-}
-
-class Path {
-  root;
-  sub;
-  unc;
-  constructor(root, sub) {
-    if (root.trim() === "") {
-      throw new Error("InvalidArgumentError: root path cannot be empty");
-    }
-    if (sub !== undefined) {
-      if (split(sub).length === 0) {
-        if (sub.length === 0) {
-          throw new Error("InvalidArgumentError: sub path cannot be empty");
-        } else {
-          throw new Error("InvalidArgumentError: invalid sub path");
-        }
-      }
-    }
-    if (sub?.trim() === "") {
-      throw new Error("InvalidArgumentError: sub path cannot be empty");
-    }
-    this.unc = root.startsWith("\\\\");
-    if (!(root.startsWith("/") || /^[A-Za-z]:/.test(root) || root.startsWith("\\\\"))) {
-      throw new Error(`InvalidArgumentError: root=${root}. root path must start with "/" for POSIX format, "C:" for Windows format, or "\\\\" for Windows UNC format`);
-    }
-    this.root = split(root);
-    this.sub = sub === undefined ? [] : split(sub);
-    if (this.root.length === 0) {
-      throw new Error("InvalidArgumentError: invalid root path");
-    }
-  }
-  _uncPath() {
-    const serverName = this.root[0];
-    const parentPath = this.root.slice(1).join(WIN_PATH_SEPARATOR);
-    const subPath = this.sub.length === 0 ? "" : WIN_PATH_SEPARATOR + this.sub.join(WIN_PATH_SEPARATOR);
-    return `\\\\${serverName}\\${parentPath}${subPath}`;
-  }
-  abs(type = "posix") {
-    if (type === "win") {
-      if (this.unc) {
-        return this._uncPath();
-      } else {
-        if (this.root[0]?.length !== 1) {
-          return this._uncPath();
-        }
-        const rootFolderPaths = this.root.slice(1).join(WIN_PATH_SEPARATOR);
-        const subpath = this.sub.length === 0 ? "" : WIN_PATH_SEPARATOR + this.sub.join(WIN_PATH_SEPARATOR);
-        return `${this.root[0]}:${WIN_PATH_SEPARATOR}${rootFolderPaths}${subpath}`;
-      }
-    } else {
-      const subpath = this.sub.length === 0 ? "" : POSIX_PATH_SEPARATOR + this.sub.join(POSIX_PATH_SEPARATOR);
-      return `${POSIX_PATH_SEPARATOR}${this.root.join(POSIX_PATH_SEPARATOR)}${subpath}`;
-    }
-  }
-  rel(type = "posix") {
-    if (type === "win") {
-      return this.sub.join(WIN_PATH_SEPARATOR);
-    } else {
-      return this.sub.join(POSIX_PATH_SEPARATOR);
-    }
-  }
-  name() {
-    return last(this.sub) || last(this.root) || "";
-  }
-  dir() {
-    return "/" + this.root.join(POSIX_PATH_SEPARATOR);
-  }
-  cd(subpath) {
-    return new Path(this.dir(), subpath);
-  }
-  platformAbsPath() {
-    return Path.isWindows() ? this.abs("win") : this.abs("posix");
-  }
-  platformRelPath() {
-    return Path.isWindows() ? this.rel("win") : this.rel("posix");
-  }
-  join(subpath) {
-    const parts = split(subpath);
-    return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), [...this.sub, ...parts].join(POSIX_PATH_SEPARATOR));
-  }
-  filename(newFileName) {
-    if (this.sub.length === 0) {
-      throw new Error("InvalidArgumentError: sub path cannot be empty");
-    } else {
-      const validName = filenamify(newFileName);
-      return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), [...this.sub.slice(0, -1), validName].join(POSIX_PATH_SEPARATOR));
-    }
-  }
-  parent() {
-    if (this.sub.length === 0) {
-      throw new Error("reaching parent folder is not allowed");
-    } else {
-      const parentSub = this.sub.slice(0, -1);
-      if (parentSub.length === 0) {
-        return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR));
-      } else {
-        return new Path(POSIX_PATH_SEPARATOR + this.root.join(POSIX_PATH_SEPARATOR), parentSub.join(POSIX_PATH_SEPARATOR));
-      }
-    }
-  }
-  static fromAbsolutePath(absolutePath, root) {
-    return new Path(root, absolutePath.replace(root, ""));
-  }
-  static posix(windowsPath) {
-    const p = new Path(windowsPath);
-    return p.abs("posix");
-  }
-  static win(posixPath) {
-    const p = new Path(posixPath);
-    return p.abs("win");
-  }
-  static slash(windowsPath) {
-    return slash(windowsPath);
-  }
-  static backslash(posixPath) {
-    return posixPath.replace(POSIX_PATH_SEPARATOR, WIN_PATH_SEPARATOR);
-  }
-  static isWindows() {
-    const proc = typeof globalThis !== "undefined" ? globalThis.process : undefined;
-    if (proc?.platform) {
-      return proc.platform === "win32";
-    }
-    const win = typeof globalThis !== "undefined" ? globalThis.window : undefined;
-    if (win) {
-      const electron = win.electron;
-      if (electron?.process?.platform) {
-        return electron.process.platform === "win32";
-      }
-      const nav = win.navigator;
-      if (nav?.userAgent) {
-        return /Win/i.test(nav.userAgent);
-      }
-    }
-    return false;
-  }
-  static pathSeparator() {
-    return Path.isWindows() ? WIN_PATH_SEPARATOR : POSIX_PATH_SEPARATOR;
-  }
-  static toPlatformPath(path) {
-    return Path.isWindows() ? Path.win(path) : Path.posix(path);
-  }
-  toString() {
-    return this.abs();
-  }
-}
-
-// ../core/ai-tool/isFolderExistResult.ts
+// ../../apps/core/src/ai-tool/isFolderExistResult.ts
 function isFolderExistInvalidPath() {
   return {
     exists: false,
@@ -56469,45 +60345,8 @@ function isFolderExistCheckFailed(path, message) {
   };
 }
 
-// ../core/ai-tool/toolResult.ts
-function toolOk(data) {
-  return { ...data, error: undefined };
-}
-function toolError(reason) {
-  const message = reason.startsWith("Error Reason:") ? reason : `Error Reason: ${reason}`;
-  return { error: message };
-}
-function requireNonEmptyString(value, field) {
-  if (typeof value !== "string" || value.trim() === "") {
-    return { error: `Invalid ${field}: must be a non-empty string` };
-  }
-  return value;
-}
-function messageFromUnknownError(error48) {
-  if (error48 instanceof Error) {
-    return error48.message;
-  }
-  if (typeof error48 === "string") {
-    return error48;
-  }
-  if (error48 === null || error48 === undefined) {
-    return "Unknown error (null/undefined thrown)";
-  }
-  try {
-    const json3 = JSON.stringify(error48);
-    if (json3 && json3 !== "{}") {
-      return json3;
-    }
-  } catch {}
-  const text2 = String(error48);
-  return text2 || "Unknown error";
-}
-function formatToolError(error48) {
-  return toolError(messageFromUnknownError(error48));
-}
-
 // src/isFolderAvailable.ts
-import { stat as stat2 } from "node:fs/promises";
+import { stat as stat3 } from "node:fs/promises";
 var isFolderAvailableRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "path is required")
 });
@@ -56517,7 +60356,7 @@ async function resolveFolderExistence(folderPath) {
   }
   try {
     const normalizedPath = Path.toPlatformPath(folderPath);
-    const stats = await stat2(normalizedPath);
+    const stats = await stat3(normalizedPath);
     if (stats.isDirectory()) {
       return isFolderExistSucceeded(folderPath);
     }
@@ -56598,9 +60437,9 @@ function buildIsFolderExistTool() {
 }
 
 // src/tools/getMediaMetadata.ts
-import { stat as stat3 } from "node:fs/promises";
+import { stat as stat4 } from "node:fs/promises";
 
-// ../core/ai-tool/getMediaMetadataResponse.ts
+// ../../apps/core/src/ai-tool/getMediaMetadataResponse.ts
 function parseMediaIdString(id) {
   const n = Number.parseInt(id, 10);
   return Number.isFinite(n) ? n : 0;
@@ -56671,7 +60510,7 @@ function fillMediaMetadataResponseData(metadata, posixPath) {
 }
 
 // src/mediaMetadataCache.ts
-import { mkdir, readFile as readFile2, unlink, writeFile as writeFile2 } from "node:fs/promises";
+import { mkdir as mkdir2, readFile as readFile2, unlink, writeFile as writeFile2 } from "node:fs/promises";
 import path from "node:path";
 function metadataCacheFilePath(appDataDir, folderPathInPosix) {
   const filename = folderPathInPosix.replace(/[\/\\:?*|<>"]/g, "_");
@@ -56692,7 +60531,7 @@ async function writeMediaMetadataCache(appDataDir, mediaMetadata) {
     throw new Error("Media folder path is required");
   }
   const metadataDir = path.join(appDataDir, "metadata");
-  await mkdir(metadataDir, { recursive: true });
+  await mkdir2(metadataDir, { recursive: true });
   const filePath = metadataCacheFilePath(appDataDir, Path.posix(mediaMetadata.mediaFolderPath));
   await writeFile2(filePath, JSON.stringify(mediaMetadata, null, 2), "utf-8");
 }
@@ -56727,7 +60566,7 @@ async function executeGetMediaMetadata(params, userConfig, appDataDir, abortSign
   try {
     const normalizedPath = Path.toPlatformPath(pathCheck);
     try {
-      const stats = await stat3(normalizedPath);
+      const stats = await stat4(normalizedPath);
       if (!stats.isDirectory()) {
         return { ...baseData, error: GET_MEDIA_METADATA_NOT_DIRECTORY };
       }
@@ -56767,7 +60606,7 @@ function buildGetMediaMetadataTool(userConfig, appDataDir, abortSignal) {
   };
 }
 
-// ../core/ai-tool/buildGetEpisodesResponse.ts
+// ../../apps/core/src/ai-tool/buildGetEpisodesResponse.ts
 function createEmptyGetEpisodesData() {
   return {
     episodes: [],
@@ -56812,11 +60651,21 @@ function buildGetEpisodesResponse(metadata) {
   };
 }
 
+// src/types.ts
+var EMPTY_CORE_ROUTES_CONFIG = {
+  allowlist: []
+};
+
 // src/userConfig.ts
-import { mkdir as mkdir2, readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
+import { mkdir as mkdir3, readFile as readFile3, writeFile as writeFile3 } from "node:fs/promises";
 import path2 from "node:path";
 var DEFAULT_USER_CONFIG = {
-  folders: []
+  folders: [],
+  tmdb: {},
+  tvdb: {},
+  renameRules: [],
+  dryRun: false,
+  selectedRenameRule: "plex"
 };
 function resolveUserDataDir(config2) {
   return config2.hello?.userDataDir ?? config2.appDataDir;
@@ -56852,7 +60701,7 @@ async function writeUserConfigToDisk(config2, userConfig) {
   if (!userDataDir) {
     throw new Error("userDataDir is not configured");
   }
-  await mkdir2(userDataDir, { recursive: true });
+  await mkdir3(userDataDir, { recursive: true });
   await writeFile3(path2.join(userDataDir, "smm.json"), JSON.stringify(userConfig, null, 2), "utf-8");
 }
 
@@ -56860,7 +60709,7 @@ async function writeUserConfigToDisk(config2, userConfig) {
 var getEpisodesRequestSchema = exports_external2.object({
   mediaFolderPath: exports_external2.string().min(1, "The absolute path of the media folder is required")
 });
-async function doGetEpisodes(body, config2 = {}) {
+async function doGetEpisodes(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   const parsed = getEpisodesRequestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
@@ -56912,7 +60761,7 @@ function buildGetEpisodesTool(config2, abortSignal) {
   };
 }
 
-// ../core/ai-tool/buildGetMediaFoldersResponse.ts
+// ../../apps/core/src/ai-tool/buildGetMediaFoldersResponse.ts
 function createEmptyGetMediaFoldersData() {
   return { folders: [] };
 }
@@ -56945,7 +60794,7 @@ function buildGetMediaFoldersTool(userConfig, abortSignal) {
   };
 }
 
-// ../core/utils.ts
+// ../types/mediaFileExtensions.ts
 var extensions = {
   audioTrackFileExtensions: [".mka"],
   videoFileExtensions: [
@@ -57039,7 +60888,7 @@ var videoFileExtensions = extensions.videoFileExtensions;
 var imageFileExtensions = extensions.imageFileExtensions;
 var subtitleFileExtensions = extensions.subtitleFileExtensions;
 
-// ../core/ai-tool/buildListFilesInMediaFolderResponse.ts
+// ../../apps/core/src/ai-tool/buildListFilesInMediaFolderResponse.ts
 function createEmptyListFilesInMediaFolderData() {
   return { files: [], count: 0 };
 }
@@ -57064,7 +60913,7 @@ function buildListFilesInMediaFolderResponse(filePaths, videoFileOnly = false) {
 
 // src/listFiles.ts
 import os from "node:os";
-import { readdir, stat as stat4 } from "node:fs/promises";
+import { readdir, stat as stat5 } from "node:fs/promises";
 import path4 from "node:path";
 
 // src/resolveListFilesPath.ts
@@ -57194,7 +61043,7 @@ async function doListFiles(body, config2 = {}) {
       }
     }
     try {
-      const stats = await stat4(validatedPath);
+      const stats = await stat5(validatedPath);
       logger?.info({ requestId, validatedPath, isDirectory: stats.isDirectory(), isFile: stats.isFile() }, "[ListFiles] stat result");
       if (!stats.isDirectory()) {
         logger?.info({ requestId, validatedPath }, "[ListFiles] path is not a directory");
@@ -57226,7 +61075,7 @@ async function doListFiles(body, config2 = {}) {
         for (const item of items) {
           const fullPath = joinListFilesChildPath(dirPath, item);
           try {
-            const itemStats = await stat4(fullPath);
+            const itemStats = await stat5(fullPath);
             const isFile2 = itemStats.isFile();
             const isDirectory = itemStats.isDirectory();
             const filename = path4.basename(item);
@@ -57354,7 +61203,7 @@ function buildListFilesInMediaFolderTool(userConfig, abortSignal) {
   };
 }
 
-// ../core/ai-tool/renameFolderConfirm.ts
+// ../../apps/core/src/ai-tool/renameFolderConfirm.ts
 function getFolderBasename(folderPath) {
   const parts = Path.posix(folderPath).split("/").filter(Boolean);
   return parts[parts.length - 1] ?? Path.posix(folderPath);
@@ -57367,7 +61216,7 @@ function buildRenameFolderConfirmationMessage(from, to) {
   • Update media metadata`;
 }
 
-// ../core/ai-tool/renameFolderResult.ts
+// ../../apps/core/src/ai-tool/renameFolderResult.ts
 function renameFolderCancelled(from, to) {
   return {
     renamed: false,
@@ -57395,7 +61244,7 @@ function renameFolderSucceeded(from, to) {
 // src/renameFolder.ts
 import { rename } from "node:fs/promises";
 
-// ../core/mediaMetadata.ts
+// ../../apps/core/src/mediaMetadata.ts
 function renameFolderInMediaMetadata(mediaMetadata, from, to) {
   const fromNormalized = from.endsWith("/") ? from : from + "/";
   const toNormalized = to.endsWith("/") ? to : to + "/";
@@ -57407,14 +61256,6 @@ function renameFolderInMediaMetadata(mediaMetadata, from, to) {
     } else if (mediaFolderPathNormalized.startsWith(fromNormalized)) {
       result.mediaFolderPath = toNormalized + result.mediaFolderPath.slice(fromNormalized.length);
     }
-  }
-  if (result.files) {
-    result.files = result.files.map((file2) => {
-      if (file2.startsWith(fromNormalized)) {
-        return toNormalized + file2.slice(fromNormalized.length);
-      }
-      return file2;
-    });
   }
   if (result.mediaFiles) {
     result.mediaFiles = result.mediaFiles.map((mediaFile) => {
@@ -57434,10 +61275,6 @@ function updateMediaMetadataAfterRename(mediaMetadata, renameMappings) {
   for (const { from, to } of renameMappings) {
     renameMap.set(Path.posix(from), Path.posix(to));
   }
-  const updatedFiles = mediaMetadata.files?.map((file2) => {
-    const normalizedFile = Path.posix(file2);
-    return renameMap.get(normalizedFile) ?? file2;
-  });
   const updatedMediaFiles = mediaMetadata.mediaFiles?.map((mediaFile) => {
     const normalizedPath = Path.posix(mediaFile.absolutePath);
     const newPath = renameMap.get(normalizedPath);
@@ -57469,12 +61306,11 @@ function updateMediaMetadataAfterRename(mediaMetadata, renameMappings) {
   });
   return {
     ...mediaMetadata,
-    files: updatedFiles,
     mediaFiles: fullyUpdatedMediaFiles
   };
 }
 
-// ../core/userConfig.ts
+// ../../apps/core/src/userConfig.ts
 function renameFolderInUserConfig(userConfig, from, to) {
   const actualFromPosix = Path.posix(from);
   const actualFromWindows = Path.win(from);
@@ -57491,7 +61327,7 @@ var renameFolderRequestSchema = exports_external2.object({
   from: exports_external2.string().min(1, "Source folder path is required, in POSIX format"),
   to: exports_external2.string().min(1, "Destination folder path is required, in POSIX format")
 });
-async function doRenameFolder(body, config2 = {}) {
+async function doRenameFolder(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   try {
     const validationResult = renameFolderRequestSchema.safeParse(body);
     if (!validationResult.success) {
@@ -57609,18 +61445,245 @@ function buildRenameFolderTool(clientId, config2, abortSignal, acknowledge) {
   };
 }
 
-// ../core/plan/renamePlan.ts
-function createEmptyRenamePlan(mediaFolderPath, id, options) {
-  const planId = id ?? (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`);
+// ../../apps/core/src/ai-tool/renameEpisodeFileConfirm.ts
+function getEpisodeBasename(filePath) {
+  const parts = Path.posix(filePath).split("/").filter(Boolean);
+  return parts[parts.length - 1] ?? Path.posix(filePath);
+}
+function buildRenameEpisodeFileConfirmationMessage(from, to) {
+  return `Rename episode file "${getEpisodeBasename(from)}" to "${getEpisodeBasename(to)}"?
+
+` + `This will:
+` + `  • Rename the episode video on disk
+` + `  • Rename same-stem associated files (e.g. subtitles) in the same directory
+` + "  • Update media metadata";
+}
+
+// ../../apps/core/src/ai-tool/renameEpisodeFileResult.ts
+function renameEpisodeFileCancelled(mediaFolder, from, to) {
   return {
-    id: planId,
-    task: "rename-files",
-    status: options?.status ?? "pending",
-    creator: options?.creator ?? "app",
-    mediaFolderPath: Path.posix(mediaFolderPath),
-    files: []
+    renamed: false,
+    mediaFolder: Path.toPlatformPath(mediaFolder),
+    from: Path.toPlatformPath(from),
+    to: Path.toPlatformPath(to),
+    succeeded: [],
+    failed: [],
+    error: RENAME_EPISODE_FILE_CANCELLED
   };
 }
+function renameEpisodeFileFailed(mediaFolder, from, to, error48) {
+  return {
+    renamed: false,
+    mediaFolder: Path.toPlatformPath(mediaFolder),
+    from: Path.toPlatformPath(from),
+    to: Path.toPlatformPath(to),
+    succeeded: [],
+    failed: [],
+    error: error48
+  };
+}
+function renameEpisodeFileSucceeded(mediaFolder, from, to, succeeded, failed = []) {
+  return {
+    renamed: succeeded.length > 0,
+    mediaFolder: Path.toPlatformPath(mediaFolder),
+    from: Path.toPlatformPath(from),
+    to: Path.toPlatformPath(to),
+    succeeded: succeeded.map((p) => ({
+      from: Path.toPlatformPath(p.from),
+      to: Path.toPlatformPath(p.to)
+    })),
+    failed,
+    ...failed.length > 0 ? { error: failed.map((f) => f.error).join("; ") } : {}
+  };
+}
+
+// src/tools/renameEpisodeFile.ts
+async function executeRenameEpisodeFile(params, runner, abortSignal) {
+  if (abortSignal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+  const folderCheck = requireNonEmptyString(params.mediaFolder, "mediaFolder");
+  if (typeof folderCheck !== "string") {
+    return renameEpisodeFileFailed("", "", "", folderCheck.error);
+  }
+  const fromCheck = requireNonEmptyString(params.from, "from");
+  if (typeof fromCheck !== "string") {
+    return renameEpisodeFileFailed(folderCheck, "", "", fromCheck.error);
+  }
+  const toCheck = requireNonEmptyString(params.to, "to");
+  if (typeof toCheck !== "string") {
+    return renameEpisodeFileFailed(folderCheck, fromCheck, "", toCheck.error);
+  }
+  if (!runner) {
+    return renameEpisodeFileFailed(folderCheck, fromCheck, toCheck, "rename-episode-file is not available on this host");
+  }
+  try {
+    const result = await runner({
+      mediaFolderPath: folderCheck,
+      from: fromCheck,
+      to: toCheck
+    });
+    return renameEpisodeFileSucceeded(folderCheck, fromCheck, toCheck, result.succeeded, result.failed);
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    return renameEpisodeFileFailed(folderCheck, fromCheck, toCheck, `Error renaming episode file: ${message}`);
+  }
+}
+async function confirmRenameEpisodeFileViaSocket(clientId, from, to, acknowledge) {
+  const confirmationMessage = buildRenameEpisodeFileConfirmationMessage(from, to);
+  try {
+    const responseData = await acknowledge({
+      event: "askForConfirmation",
+      data: { message: confirmationMessage },
+      clientId
+    }, 30000);
+    const confirmed = responseData?.confirmed ?? responseData?.response === "yes";
+    if (!confirmed) {
+      return renameEpisodeFileCancelled("", from, to);
+    }
+    return null;
+  } catch (error48) {
+    return renameEpisodeFileFailed("", from, to, `Failed to get user confirmation: ${error48 instanceof Error ? error48.message : "Unknown error"}`);
+  }
+}
+function buildRenameEpisodeFileTool(clientId, runner, abortSignal, acknowledge) {
+  const ack = acknowledge ?? defaultAcknowledge;
+  return {
+    description: RENAME_EPISODE_FILE_DESCRIPTION,
+    inputSchema: renameEpisodeFileInputSchema,
+    outputSchema: renameEpisodeFileOutputSchema,
+    execute: async (args) => {
+      if (abortSignal?.aborted) {
+        throw new Error("Request was aborted");
+      }
+      const params = args ?? {};
+      const folderCheck = requireNonEmptyString(params.mediaFolder, "mediaFolder");
+      if (typeof folderCheck !== "string") {
+        return renameEpisodeFileFailed("", "", "", folderCheck.error);
+      }
+      const fromCheck = requireNonEmptyString(params.from, "from");
+      if (typeof fromCheck !== "string") {
+        return renameEpisodeFileFailed(folderCheck, "", "", fromCheck.error);
+      }
+      const toCheck = requireNonEmptyString(params.to, "to");
+      if (typeof toCheck !== "string") {
+        return renameEpisodeFileFailed(folderCheck, fromCheck, "", toCheck.error);
+      }
+      const cancelOrError = await confirmRenameEpisodeFileViaSocket(clientId, fromCheck, toCheck, ack);
+      if (cancelOrError) {
+        return {
+          ...cancelOrError,
+          mediaFolder: Path.toPlatformPath(folderCheck)
+        };
+      }
+      if (abortSignal?.aborted) {
+        throw new Error("Request was aborted");
+      }
+      return executeRenameEpisodeFile({ mediaFolder: folderCheck, from: fromCheck, to: toCheck }, runner, abortSignal);
+    }
+  };
+}
+
+// ../../apps/core/src/ai-tool/scrapeResult.ts
+function scrapeSucceeded(id) {
+  return {
+    id,
+    message: SCRAPE_JOB_CREATED_MESSAGE
+  };
+}
+function scrapeFailed(path5, error48) {
+  return {
+    id: "",
+    message: "",
+    error: path5.trim() ? `${error48} (path: ${Path.toPlatformPath(path5)})` : error48
+  };
+}
+
+// src/tools/scrape.ts
+async function executeScrape(params, runner, abortSignal) {
+  if (abortSignal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+  const pathCheck = requireNonEmptyString(params.path, "path");
+  if (typeof pathCheck !== "string") {
+    return scrapeFailed("", pathCheck.error);
+  }
+  if (!runner) {
+    return scrapeFailed(pathCheck, "scrape is not available on this host");
+  }
+  try {
+    const language = typeof params.language === "string" && params.language.trim() !== "" ? params.language : undefined;
+    const { id } = await runner(pathCheck, language !== undefined ? { language } : undefined);
+    return scrapeSucceeded(id);
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    const withPrefix = message.startsWith("Error Reason:") ? message : `Error Reason: ${message}`;
+    return scrapeFailed(pathCheck, withPrefix);
+  }
+}
+function buildScrapeTool(runner, abortSignal) {
+  return {
+    description: SCRAPE_DESCRIPTION,
+    inputSchema: scrapeInputSchema,
+    outputSchema: scrapeOutputSchema,
+    execute: async (args) => {
+      const params = args ?? {};
+      return executeScrape({
+        path: params.path,
+        language: params.language
+      }, runner, abortSignal);
+    }
+  };
+}
+
+// ../../apps/core/src/ai-tool/getJobResult.ts
+function getJobSucceeded(job) {
+  return { job };
+}
+function getJobFailed(error48) {
+  return { error: error48 };
+}
+
+// src/tools/getJob.ts
+async function executeGetJob(id, runner, abortSignal) {
+  if (abortSignal?.aborted) {
+    throw new Error("Request was aborted");
+  }
+  const idCheck = requireNonEmptyString(id, "id");
+  if (typeof idCheck !== "string") {
+    return getJobFailed(idCheck.error);
+  }
+  if (!runner) {
+    return getJobFailed("get-job is not available on this host");
+  }
+  try {
+    const job = runner(idCheck);
+    if (job == null) {
+      return getJobFailed("Error Reason: Job not found");
+    }
+    return getJobSucceeded(job);
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    const withPrefix = message.startsWith("Error Reason:") ? message : `Error Reason: ${message}`;
+    return getJobFailed(withPrefix);
+  }
+}
+function buildGetJobTool(runner, abortSignal) {
+  return {
+    description: GET_JOB_DESCRIPTION,
+    inputSchema: getJobInputSchema,
+    outputSchema: getJobOutputSchema,
+    execute: async (args) => {
+      const params = args ?? {};
+      return executeGetJob(params.id ?? "", runner, abortSignal);
+    }
+  };
+}
+
+// ../../apps/core/src/pipeline/createRenameEpisodePlan.ts
+import { randomUUID } from "node:crypto";
+
+// ../../apps/core/src/plan/renamePlan.ts
 function assertMediaFolderHasMetadata(exists, folderPath) {
   if (!exists) {
     return `Error Reason: folderPath "${Path.posix(folderPath)}" is not opened in SMM`;
@@ -57635,449 +61698,42 @@ function assertEpisodeVideoFile(metadata, fromPath) {
   }
   return;
 }
-async function prepareAppendRenameEntry(plan, entry, deps) {
-  const fromPosix = Path.posix(entry.from);
-  const toPosix = Path.posix(entry.to);
-  const candidateFiles = [...plan.files, { from: fromPosix, to: toPosix }];
-  const validationResult = await deps.validateOperations(candidateFiles, plan.mediaFolderPath);
-  if (!validationResult.isValid) {
-    return { error: `Error Reason: ${validationResult.errors.join(`
-`)}` };
-  }
-  const mm = await deps.getMediaMetadata(plan.mediaFolderPath);
-  if (!mm) {
-    return {
-      error: `Error Reason: Media metadata not found for media folder: ${plan.mediaFolderPath}`
-    };
-  }
-  const episodeError = assertEpisodeVideoFile(mm, fromPosix);
-  if (episodeError) {
-    return { error: episodeError };
-  }
-  return {
-    ...plan,
-    files: [...plan.files, { from: fromPosix, to: toPosix }]
-  };
-}
 
-// ../core/types/ai-tools/planTaskMessages.ts
-var END_PLAN_TASK_SUCCESS_MESSAGE = "Task is created successfuly. User need to go to SMM, review and approve the task.";
-var PLAN_CANCELLED_BY_USER_MESSAGE = "该任务已被用户取消, 请停止后续操作";
-
-// ../core/event-types.ts
-var RecognizeMediaFilePlanReady = {
-  event: "recognizeMediaFilePlanReady"
-};
-var RenameFilesPlanReady = {
-  event: "renameFilesPlanReady"
-};
-var USER_CONFIG_UPDATED_EVENT = "userConfigUpdated";
-var USER_CONFIG_FOLDER_RENAMED_EVENT = "userConfig.folderRenamed";
-
-// src/tools/plans.ts
-import { mkdir as mkdir3, readdir as readdir2, stat as stat5, unlink as unlink2 } from "node:fs/promises";
-import path5 from "node:path";
-import { randomUUID } from "node:crypto";
-
-// ../core/types/planCommon.ts
-function isActivePlanStatus(status) {
-  return status === "preparing" || status === "pending";
-}
-
-// src/tools/plans.ts
-function plansDir(appDataDir) {
-  return path5.join(appDataDir, "plans");
-}
-function planFilePath(appDataDir, planId) {
-  return path5.join(plansDir(appDataDir), `${planId}.plan.json`);
-}
-async function ensurePlansDirExists(appDataDir, fs) {
-  const dir = plansDir(appDataDir);
-  try {
-    const stats = await stat5(dir);
-    if (!stats.isDirectory()) {
-      throw new Error("Plans path exists but is not a directory");
-    }
-  } catch (error48) {
-    if (error48.code === "ENOENT") {
-      await mkdir3(dir, { recursive: true });
-      return;
-    }
-    throw error48;
-  }
-}
-async function beginRenamePlan(appDataDir, mediaFolderPath, fs) {
-  await ensurePlansDirExists(appDataDir, fs);
-  const plan = createEmptyRenamePlan(Path.posix(mediaFolderPath), undefined, {
-    creator: "ai",
-    status: "preparing"
-  });
-  await fs.writeJson(planFilePath(appDataDir, plan.id), plan);
-  return plan.id;
-}
-async function appendRenamePlanEntry(appDataDir, planId, from, to, fs, deps) {
-  const filePath = planFilePath(appDataDir, planId);
-  const plan = await fs.readJson(filePath) ?? null;
-  if (!plan) {
-    throw new Error(`Task with id ${planId} not found`);
-  }
-  if (plan.status === "rejected") {
-    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
-  }
-  const result = await prepareAppendRenameEntry(plan, { from, to }, deps);
-  if ("error" in result) {
-    throw new Error(result.error.replace(/^Error Reason: /, ""));
-  }
-  await fs.writeJson(filePath, result);
-}
-async function readRenamePlan(appDataDir, planId, fs) {
-  const plan = await readPlanById(appDataDir, planId, fs);
-  if (!plan || plan.task !== "rename-files") {
-    return null;
-  }
-  return plan;
-}
-async function readPlanById(appDataDir, planId, fs) {
-  const plan = await fs.readJson(planFilePath(appDataDir, planId));
-  if (!plan) {
-    return null;
-  }
-  return normalizePlanPaths(withCreatorDefault(plan));
-}
-async function beginRecognizePlan(appDataDir, mediaFolderPath, fs) {
-  await ensurePlansDirExists(appDataDir, fs);
-  const planId = randomUUID();
-  const plan = {
-    id: planId,
-    task: "recognize-media-file",
-    status: "preparing",
-    creator: "ai",
-    mediaFolderPath: Path.posix(mediaFolderPath),
-    files: []
-  };
-  await fs.writeJson(planFilePath(appDataDir, planId), plan);
-  return planId;
-}
-async function defaultValidateRecognizedFiles(files, fs) {
-  for (const file2 of files) {
-    if (!file2.path) {
-      throw new Error(`File path is empty for S${file2.season}E${file2.episode}`);
-    }
-    const platformPath = Path.toPlatformPath(Path.posix(file2.path));
-    const exists = await fs.exists(platformPath);
-    if (!exists) {
-      throw new Error(`File "${Path.posix(file2.path)}" (S${file2.season}E${file2.episode}) does not exist in the media folder`);
-    }
-  }
-}
-async function appendRecognizedFile(appDataDir, taskId, file2, fs, deps = {}) {
-  const filePath = planFilePath(appDataDir, taskId);
-  const plan = await fs.readJson(filePath) ?? null;
-  if (!plan) {
-    throw new Error(`Task with id ${taskId} not found`);
-  }
-  if (plan.status === "rejected") {
-    throw new Error(PLAN_CANCELLED_BY_USER_MESSAGE);
-  }
-  const normalizedPath = Path.posix(file2.path);
-  const validate = deps.validateFiles ?? ((files) => defaultValidateRecognizedFiles(files, fs));
-  await validate([{ ...file2, path: normalizedPath }]);
-  plan.files.push({
-    season: file2.season,
-    episode: file2.episode,
-    path: normalizedPath
-  });
-  await fs.writeJson(filePath, plan);
-}
-async function readRecognizePlan(appDataDir, taskId, fs) {
-  const plan = await readPlanById(appDataDir, taskId, fs);
-  if (!plan || plan.task !== "recognize-media-file") {
-    return null;
-  }
-  return plan;
-}
-async function listPlanFiles(appDataDir) {
-  const dir = plansDir(appDataDir);
-  try {
-    const stats = await stat5(dir);
-    if (!stats.isDirectory()) {
-      return [];
-    }
-  } catch {
-    return [];
-  }
-  const files = await readdir2(dir);
-  return files.filter((file2) => file2.endsWith(".plan.json")).map((file2) => path5.join(dir, file2));
-}
-function withCreatorDefault(plan) {
-  if (plan.creator) {
-    return plan;
-  }
-  return { ...plan, creator: "app" };
-}
-function normalizePlanPaths(plan) {
-  const mediaFolderPath = Path.posix(plan.mediaFolderPath);
-  if (plan.task === "recognize-media-file") {
-    return {
-      ...plan,
-      mediaFolderPath,
-      files: plan.files.map((f) => ({ ...f, path: Path.posix(f.path) }))
-    };
-  }
-  return {
-    ...plan,
-    mediaFolderPath,
-    files: plan.files.map((f) => ({
-      from: Path.posix(f.from),
-      to: Path.posix(f.to)
-    }))
-  };
-}
-async function createPlan(appDataDir, input, fs) {
-  await ensurePlansDirExists(appDataDir, fs);
-  const id = input.id ?? randomUUID();
-  const mediaFolderPath = Path.posix(input.mediaFolderPath);
-  const plan = input.task === "recognize-media-file" ? {
-    id,
-    task: "recognize-media-file",
-    status: "preparing",
-    creator: input.creator,
-    mediaFolderPath,
-    files: []
-  } : {
-    id,
-    task: "rename-files",
-    status: "preparing",
-    creator: input.creator,
-    mediaFolderPath,
-    files: []
-  };
-  await fs.writeJson(planFilePath(appDataDir, id), plan);
-  return plan;
-}
-async function updatePlanContent(appDataDir, id, patch, fs) {
-  const filePath = planFilePath(appDataDir, id);
-  const existing = await fs.readJson(filePath);
-  if (!existing) {
-    return null;
-  }
-  const merged = withCreatorDefault({
-    ...existing,
-    ...patch.status !== undefined ? { status: patch.status } : {},
-    ...patch.files !== undefined ? { files: patch.files } : {}
-  });
-  const updated = normalizePlanPaths(merged);
-  if (patch.status === "completed") {
-    await deletePlan(appDataDir, id);
-    return updated;
-  }
-  await fs.writeJson(filePath, updated);
-  return updated;
-}
-async function deletePlan(appDataDir, id) {
-  try {
-    await unlink2(planFilePath(appDataDir, id));
-  } catch (error48) {
-    if (error48.code !== "ENOENT") {
-      throw error48;
-    }
-  }
-}
-async function cleanPreparingPlans(appDataDir, fs, logger) {
-  const start = Date.now();
-  const plansPath = plansDir(appDataDir);
-  logger?.info({ appDataDir, plansDir: plansPath }, "[cleanup] plan cleanup: scanning for stale preparing plans");
-  const files = await listPlanFiles(appDataDir);
-  logger?.info({ plansDir: plansPath, scanned: files.length }, "[cleanup] plan cleanup: enumerated plan files");
-  let removed = 0;
-  let failed = 0;
-  for (const filePath of files) {
+// ../../apps/core/src/validations/rename/validateRenameFileExistence.ts
+async function validateSourceFilesExist(tasks, probe) {
+  const missingFiles = [];
+  for (const task of tasks) {
     try {
-      const plan = await fs.readJson(filePath);
-      if (!plan) {
-        logger?.debug({ filePath }, "[cleanup] plan cleanup: skipping unreadable plan file");
-        continue;
+      if (!await probe.isFile(task.from)) {
+        missingFiles.push(task.from);
       }
-      if (plan.status === "preparing") {
-        await unlink2(filePath);
-        removed++;
-        logger?.debug({ filePath, planId: plan.id, task: plan.task }, "[cleanup] plan cleanup: removed stale preparing plan");
-      } else {
-        logger?.debug({ filePath, planId: plan.id, status: plan.status }, "[cleanup] plan cleanup: keeping plan (not preparing)");
-      }
-    } catch (err) {
-      failed++;
-      logger?.warn({ filePath, error: err.message }, "[cleanup] plan cleanup: failed to process plan file, skipping");
+    } catch {
+      missingFiles.push(task.from);
     }
   }
-  logger?.info({
-    plansDir: plansPath,
-    scanned: files.length,
-    removed,
-    failed,
-    durationMs: Date.now() - start
-  }, "[cleanup] plan cleanup: complete");
-  return removed;
+  return {
+    isValid: missingFiles.length === 0,
+    missingFiles
+  };
 }
-async function getActivePlansForFolder(appDataDir, mediaFolderPath, fs) {
-  const target = Path.posix(mediaFolderPath);
-  const files = await listPlanFiles(appDataDir);
-  const plans = [];
-  for (const file2 of files) {
-    const plan = await fs.readJson(file2);
-    if (!plan) {
+async function validateDestFilesNotExist(tasks, probe) {
+  const existingFiles = [];
+  for (const task of tasks) {
+    try {
+      if (await probe.isFile(task.to)) {
+        existingFiles.push(task.to);
+      }
+    } catch {
       continue;
     }
-    const normalized = normalizePlanPaths(withCreatorDefault(plan));
-    if (normalized.mediaFolderPath === target && isActivePlanStatus(normalized.status)) {
-      plans.push(normalized);
-    }
   }
-  return plans;
-}
-
-// src/tools/renameFilesTask.ts
-function makeLogger(logger) {
   return {
-    info: (obj, msg) => logger?.info(obj, msg),
-    warn: (obj, msg) => logger?.warn(obj, msg),
-    error: (obj, msg) => logger?.error(obj, msg)
-  };
-}
-function buildBeginRenameFilesTaskTool(clientId, appDataDir, fs, _deps, broadcast, logger, abortSignal) {
-  const log = makeLogger(logger);
-  const emit = broadcast ?? defaultBroadcast;
-  return {
-    description: BEGIN_RENAME_FILES_TASK_DESCRIPTION,
-    toolName: BEGIN_RENAME_FILES_TASK,
-    inputSchema: beginRenameFilesTaskInputSchema,
-    execute: async (args) => {
-      if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
-      }
-      const { mediaFolderPath } = args ?? {};
-      log.info({ mediaFolderPath, clientId }, `[tool][${BEGIN_RENAME_FILES_TASK}] Starting new rename task`);
-      const folderPathInPosix = Path.posix(mediaFolderPath ?? "");
-      const metadataFilePath = metadataCacheFilePath(appDataDir, folderPathInPosix);
-      const metadataExists = await fs.exists(metadataFilePath);
-      const metadataError = assertMediaFolderHasMetadata(metadataExists, folderPathInPosix);
-      if (metadataError) {
-        log.warn({ folderPath: folderPathInPosix }, `[tool][${BEGIN_RENAME_FILES_TASK}] Media metadata not found`);
-        return toolError(metadataError.replace(/^Error Reason: /, ""));
-      }
-      try {
-        const taskId = await beginRenamePlan(appDataDir, folderPathInPosix, fs);
-        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RENAME_FILES_TASK}] Task created successfully`);
-        const fullPlanPath = planFilePath(appDataDir, taskId);
-        const planFilePathInPosix = Path.posix(fullPlanPath);
-        const data = {
-          taskId,
-          planFilePath: planFilePathInPosix
-        };
-        emit({
-          event: RenameFilesPlanReady.event,
-          data
-        });
-        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[tool][${BEGIN_RENAME_FILES_TASK}] RenameFilesPlanReady broadcast sent`);
-        return toolOk({ taskId });
-      } catch (error48) {
-        log.error({
-          mediaFolderPath: folderPathInPosix,
-          error: error48 instanceof Error ? error48.message : String(error48),
-          clientId
-        }, `[tool][${BEGIN_RENAME_FILES_TASK}] Failed to create task`);
-        return formatToolError(error48);
-      }
-    }
-  };
-}
-function buildAddRenameFileToTaskTool(clientId, appDataDir, fs, deps, logger, abortSignal) {
-  const log = makeLogger(logger);
-  return {
-    description: ADD_RENAME_FILE_TO_TASK_DESCRIPTION,
-    toolName: ADD_RENAME_FILE_TO_TASK,
-    inputSchema: addRenameFileToTaskInputSchema,
-    execute: async (args) => {
-      if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
-      }
-      const { taskId, from, to } = args ?? {};
-      const normalizedTaskId = (taskId ?? "").trim();
-      log.info({ taskId: normalizedTaskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] Adding file to task`);
-      try {
-        await appendRenamePlanEntry(appDataDir, normalizedTaskId, from ?? "", to ?? "", fs, deps);
-        log.info({ taskId: normalizedTaskId, from, to, clientId }, `[tool][${ADD_RENAME_FILE_TO_TASK}] File added successfully`);
-        return toolOk({});
-      } catch (error48) {
-        log.error({
-          taskId: normalizedTaskId,
-          from,
-          to,
-          error: error48 instanceof Error ? error48.message : String(error48),
-          clientId
-        }, `[tool][${ADD_RENAME_FILE_TO_TASK}] Failed to add file`);
-        return formatToolError(error48);
-      }
-    }
-  };
-}
-function buildEndRenameFilesTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
-  const log = makeLogger(logger);
-  const emit = broadcast ?? defaultBroadcast;
-  return {
-    description: END_RENAME_FILES_TASK_DESCRIPTION,
-    toolName: END_RENAME_FILES_TASK,
-    inputSchema: endRenameFilesTaskInputSchema,
-    execute: async (args) => {
-      if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
-      }
-      const { taskId } = args ?? {};
-      const normalizedTaskId = (taskId ?? "").trim();
-      log.info({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Ending rename task`);
-      try {
-        const task = await readRenamePlan(appDataDir, normalizedTaskId, fs);
-        if (!task) {
-          log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task not found`);
-          return toolError(`Task with id "${normalizedTaskId}" not found`);
-        }
-        if (task.status === "rejected") {
-          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] Task cancelled by user`);
-          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
-        }
-        if (task.files.length === 0) {
-          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RENAME_FILES_TASK}] No files in task`);
-          return toolError("No rename entries in task");
-        }
-        await updatePlanContent(appDataDir, task.id, { status: "pending" }, fs);
-        const fullPlanPath = planFilePath(appDataDir, task.id);
-        const planFilePathInPosix = Path.posix(fullPlanPath);
-        const data = {
-          taskId: task.id,
-          planFilePath: planFilePathInPosix
-        };
-        emit({
-          event: RenameFilesPlanReady.event,
-          data
-        });
-        log.info({ taskId: normalizedTaskId, fileCount: task.files.length, clientId }, `[tool][${END_RENAME_FILES_TASK}] Plan ready, UI notified`);
-        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
-      } catch (error48) {
-        log.error({
-          taskId: normalizedTaskId,
-          error: error48 instanceof Error ? error48.message : String(error48),
-          clientId
-        }, `[tool][${END_RENAME_FILES_TASK}] End task error`);
-        return formatToolError(error48);
-      }
-    }
+    isValid: existingFiles.length === 0,
+    existingFiles
   };
 }
 
-// src/renameFilesValidation.ts
-import { stat as stat6 } from "node:fs/promises";
-
-// ../core/validations/rename/validateChainingConflicts.ts
+// ../../apps/core/src/validations/rename/validateChainingConflicts.ts
 function validateChainingConflicts(tasks) {
   const sourcePaths = new Set;
   for (const task of tasks) {
@@ -58091,7 +61747,7 @@ function validateChainingConflicts(tasks) {
   return true;
 }
 
-// ../core/validations/rename/validateNoAbnormalPaths.ts
+// ../../apps/core/src/validations/rename/validateNoAbnormalPaths.ts
 function isPathNormal(p) {
   if (p.startsWith("../")) {
     return true;
@@ -58131,7 +61787,7 @@ function validateNoAbnormalPaths(tasks) {
   return errors4;
 }
 
-// ../core/validations/rename/validateNoDuplicatedDestFile.ts
+// ../../apps/core/src/validations/rename/validateNoDuplicatedDestFile.ts
 function validateNoDuplicatedDestFile(tasks) {
   const destPaths = new Map;
   for (let i = 0;i < tasks.length; i++) {
@@ -58143,9 +61799,9 @@ function validateNoDuplicatedDestFile(tasks) {
     destPaths.set(task.to, existing);
   }
   const duplicates = [];
-  for (const [path6, indices] of destPaths) {
+  for (const [path5, indices] of destPaths) {
     if (indices.length > 1) {
-      duplicates.push(path6);
+      duplicates.push(path5);
     }
   }
   return {
@@ -58154,7 +61810,7 @@ function validateNoDuplicatedDestFile(tasks) {
   };
 }
 
-// ../core/validations/rename/validateNoDuplicatedSourceFile.ts
+// ../../apps/core/src/validations/rename/validateNoDuplicatedSourceFile.ts
 function validateNoDuplicatedSourceFile(tasks) {
   const sourcePaths = new Map;
   for (let i = 0;i < tasks.length; i++) {
@@ -58166,9 +61822,9 @@ function validateNoDuplicatedSourceFile(tasks) {
     sourcePaths.set(task.from, existing);
   }
   const duplicates = [];
-  for (const [path6, indices] of sourcePaths) {
+  for (const [path5, indices] of sourcePaths) {
     if (indices.length > 1) {
-      duplicates.push(path6);
+      duplicates.push(path5);
     }
   }
   return {
@@ -58177,7 +61833,7 @@ function validateNoDuplicatedSourceFile(tasks) {
   };
 }
 
-// ../core/validations/rename/validateNoIdenticalSourceAndDestFile.ts
+// ../../apps/core/src/validations/rename/validateNoIdenticalSourceAndDestFile.ts
 function validateNoIdenticalSourceAndDestFile(tasks) {
   const identicals = [];
   for (const task of tasks) {
@@ -58191,7 +61847,7 @@ function validateNoIdenticalSourceAndDestFile(tasks) {
   };
 }
 
-// ../core/validations/rename/validatePathWithinMediaFolder.ts
+// ../../apps/core/src/validations/rename/validatePathWithinMediaFolder.ts
 function validatePathWithinMediaFolder(mediaFolderPath, tasks) {
   const invalidPaths = [];
   const mediaFolderObj = new Path(mediaFolderPath);
@@ -58219,7 +61875,7 @@ function validatePathWithinMediaFolder(mediaFolderPath, tasks) {
   };
 }
 
-// ../core/validations/rename/validateRenameOperationsSync.ts
+// ../../apps/core/src/validations/rename/validateRenameOperationsSync.ts
 function validateRenameOperationsSync(files, folderPathInPosix) {
   const errors4 = [];
   const normalizedTasks = [];
@@ -58312,14 +61968,12 @@ function validateRenameOperationsSync(files, folderPathInPosix) {
   };
 }
 
-// src/renameFilesValidation.ts
-async function validateRenameOperations(files, folderPathInPosix) {
+// ../../apps/core/src/validations/rename/validateRenameOperations.ts
+async function validateRenameOperations(files, folderPathInPosix, probe) {
   const normalizedTasks = [];
-  for (let i = 0;i < files.length; i++) {
-    const renameOp = files[i];
-    if (!renameOp) {
+  for (const renameOp of files) {
+    if (!renameOp)
       continue;
-    }
     normalizedTasks.push({
       from: Path.posix(renameOp.from),
       to: Path.posix(renameOp.to)
@@ -58334,13 +61988,13 @@ async function validateRenameOperations(files, folderPathInPosix) {
   }
   const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
   const errors4 = [...syncResult.errors];
-  const sourceExistResult = await validateSourceFileExist(normalizedTasks);
+  const sourceExistResult = await validateSourceFilesExist(normalizedTasks, probe);
   if (!sourceExistResult.isValid) {
     for (const missingFile of sourceExistResult.missingFiles) {
       errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
     }
   }
-  const destNotExistResult = await validateDestFileNotExist(normalizedTasks);
+  const destNotExistResult = await validateDestFilesNotExist(normalizedTasks, probe);
   if (!destNotExistResult.isValid) {
     for (const existingFile of destNotExistResult.existingFiles) {
       errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
@@ -58355,206 +62009,322 @@ async function validateRenameOperations(files, folderPathInPosix) {
   }
   return syncResult;
 }
-async function validateSourceFileExist(tasks) {
-  const missingFiles = [];
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    try {
-      const platformPath = Path.toPlatformPath(task.from);
-      const stats = await stat6(platformPath);
-      if (!stats.isFile()) {
-        missingFiles.push(task.from);
-      }
-    } catch {
-      missingFiles.push(task.from);
-    }
-  }
-  return {
-    isValid: missingFiles.length === 0,
-    missingFiles
-  };
-}
-async function validateDestFileNotExist(tasks) {
-  const existingFiles = [];
-  for (const task of tasks) {
-    if (!task)
-      continue;
-    try {
-      const platformPath = Path.toPlatformPath(task.to);
-      const stats = await statWithTimeout(platformPath);
-      if (stats.isFile()) {
-        existingFiles.push(task.to);
-      }
-    } catch {
-      continue;
-    }
-  }
-  return {
-    isValid: existingFiles.length === 0,
-    existingFiles
-  };
-}
-function statWithTimeout(filePath, timeoutMs = 1000) {
-  return Promise.race([
-    stat6(filePath),
-    new Promise((_, reject) => setTimeout(() => reject(new Error(`stat timeout for path: ${filePath}`)), timeoutMs))
-  ]);
+
+// ../types/planCommon.ts
+function isActivePlanStatus(status) {
+  return status === "preparing" || status === "pending";
 }
 
-// src/tools/renameFilesTaskDefaults.ts
-function defaultRenameFilesTaskDeps(appDataDir) {
+// ../../apps/core/src/pipeline/paths.ts
+function joinPosix(...parts) {
+  return parts.join("/");
+}
+function plansDir(appDataDir) {
+  return joinPosix(Path.posix(appDataDir), "plans");
+}
+function planFilePath(appDataDir, planId) {
+  return joinPosix(plansDir(appDataDir), `${planId}.plan.json`);
+}
+
+// ../../apps/core/src/pipeline/plans.ts
+async function writePlan(fs, appDataDir, plan) {
+  await fs.writeTextFile(planFilePath(appDataDir, plan.id), JSON.stringify(plan, null, 2));
+}
+
+// ../../apps/core/src/pipeline/createRenameEpisodePlan.ts
+function renameFileExistenceProbe(fs) {
   return {
-    validateOperations: async (files, folderPathInPosix) => {
-      return validateRenameOperations(files, folderPathInPosix);
+    isFile: async (path5) => {
+      if (fs.isFile) {
+        return fs.isFile(path5);
+      }
+      return fs.exists(path5);
+    }
+  };
+}
+async function createRenameEpisodePlanPipeline(mediaFolderPath, files, options, deps) {
+  const posixFolder = deps.normalizePosix(mediaFolderPath);
+  const mm = await deps.getMediaMetadata(posixFolder);
+  const metadataError = assertMediaFolderHasMetadata(!!mm, posixFolder);
+  if (metadataError) {
+    throw new Error(metadataError);
+  }
+  const normalizedFiles = files.map((entry) => ({
+    from: deps.normalizePosix(entry.from),
+    to: deps.normalizePosix(entry.to)
+  }));
+  const allowEmptyFiles = options?.allowEmptyFiles ?? false;
+  if (normalizedFiles.length === 0 && !allowEmptyFiles) {
+    throw new Error("No rename entries in task");
+  }
+  for (const entry of normalizedFiles) {
+    const episodeError = assertEpisodeVideoFile(mm, entry.from);
+    if (episodeError) {
+      throw new Error(episodeError);
+    }
+  }
+  if (normalizedFiles.length > 0) {
+    const validation = await validateRenameOperations(normalizedFiles, posixFolder, renameFileExistenceProbe(deps.fs));
+    if (!validation.isValid) {
+      throw new Error(validation.errors.join("; "));
+    }
+  }
+  const createId = deps.createId ?? randomUUID;
+  const id = options?.id ?? createId();
+  const plan = {
+    id,
+    task: "rename-files",
+    status: "pending",
+    creator: options?.creator ?? "app",
+    mediaFolderPath: posixFolder,
+    files: normalizedFiles
+  };
+  await writePlan(deps.fs, deps.appDataDir, plan);
+  return plan;
+}
+
+// ../types/types.ts
+var DEFAULT_AI_PROVIDERS = [
+  { name: "DeepSeek", baseURL: "https://api.deepseek.com", apiKey: "", model: "deepseek-v4-flash" },
+  { name: "OpenAI", baseURL: "https://api.openai.com/v1", apiKey: "", model: "gpt-4o" },
+  { name: "OpenRouter", baseURL: "https://openrouter.ai/api/v1", apiKey: "", model: "deepseek/deepseek-v4-flash" },
+  { name: "GLM", baseURL: "https://open.bigmodel.cn/api/paas/v4", apiKey: "", model: "GLM-4.5" },
+  { name: "Other", baseURL: "", apiKey: "", model: "" }
+];
+var DEFAULT_SELECTED_AI_PROVIDER = "DeepSeek";
+var AI_AGENT_PERMISSIONS = {
+  metadataWrite: "metadata.write"
+};
+function hasAiAgentPermission(userConfig, permission) {
+  return userConfig?.aiAgent?.permissions?.includes(permission) ?? false;
+}
+
+// ../types/ai-tools/planTaskMessages.ts
+var END_PLAN_TASK_SUCCESS_MESSAGE = "Task is created successfuly. User need to go to SMM, review and approve the task.";
+var RENAME_PLAN_AUTO_APPLIED_MESSAGE = "Rename plan applied automatically (metadata.write permission granted). No user approval needed.";
+var RECOGNIZE_PLAN_AUTO_APPLIED_MESSAGE = "Recognize plan applied automatically (metadata.write permission granted). No user approval needed.";
+
+// ../types/event-types.ts
+var RecognizeMediaFilePlanReady = {
+  event: "recognizeMediaFilePlanReady"
+};
+var RenameFilesPlanReady = {
+  event: "renameFilesPlanReady"
+};
+var MEDIA_METADATA_UPDATED_EVENT = "mediaMetadataUpdated";
+var USER_CONFIG_UPDATED_EVENT = "userConfigUpdated";
+var USER_CONFIG_FOLDER_RENAMED_EVENT = "userConfig.folderRenamed";
+
+// src/tools/chatFsPort.ts
+function unsupportedFsOperation(name21) {
+  throw new Error(`${name21} is not supported by the plan filesystem adapter`);
+}
+function createFsPort(fs) {
+  return {
+    async readTextFile(path5) {
+      const value = await fs.readJson(path5);
+      if (value === null) {
+        throw new Error(`File not found: ${path5}`);
+      }
+      return JSON.stringify(value);
     },
-    getMediaMetadata: async (folderPathInPosix) => {
-      return await readMediaMetadataCache(appDataDir, folderPathInPosix) ?? null;
+    async writeTextFile(path5, content) {
+      await fs.writeJson(path5, JSON.parse(content));
+    },
+    async writeBinaryFile() {
+      unsupportedFsOperation("writeBinaryFile");
+    },
+    exists: (path5) => fs.exists(path5),
+    isFile: (path5) => fs.exists(path5),
+    async listFiles() {
+      return unsupportedFsOperation("listFiles");
+    },
+    async listSubdirectories() {
+      return unsupportedFsOperation("listSubdirectories");
+    },
+    async deleteFile() {
+      unsupportedFsOperation("deleteFile");
+    },
+    async rename() {
+      unsupportedFsOperation("rename");
+    },
+    async mkdir() {
+      unsupportedFsOperation("mkdir");
+    }
+  };
+}
+function planPath(appDataDir, planId) {
+  return new Path(appDataDir, `plans/${planId}.plan.json`).abs("posix");
+}
+
+// src/tools/createRenameEpisodePlan.ts
+function metadataPath(appDataDir, mediaFolderPath) {
+  const filename = Path.posix(mediaFolderPath).replace(/[/\\:?*|<>"]/g, "_");
+  return new Path(appDataDir, `metadata/${filename}.json`).abs("posix");
+}
+function buildCreateRenameEpisodePlanTool(appDataDir, fs, broadcast, logger, abortSignal, extra) {
+  const emit = broadcast ?? defaultBroadcast;
+  return {
+    description: CREATE_RENAME_EPISODE_PLAN_DESCRIPTION,
+    inputSchema: createRenameEpisodePlanInputSchema,
+    execute: async (args) => {
+      if (abortSignal?.aborted) {
+        throw new Error("Request was aborted");
+      }
+      const parsed = createRenameEpisodePlanInputSchema.safeParse(args);
+      if (!parsed.success) {
+        return formatToolError(parsed.error);
+      }
+      try {
+        const plan = await createRenameEpisodePlanPipeline(parsed.data.mediaFolderPath, parsed.data.files, { creator: "ai" }, {
+          fs: createFsPort(fs),
+          appDataDir,
+          normalizePosix: Path.posix,
+          getMediaMetadata: (folder) => fs.readJson(metadataPath(appDataDir, folder))
+        });
+        if (extra?.getUserConfig && extra.applyRenameEpisodePlan) {
+          try {
+            const userConfig = await extra.getUserConfig();
+            if (hasAiAgentPermission(userConfig, AI_AGENT_PERMISSIONS.metadataWrite)) {
+              await extra.applyRenameEpisodePlan(plan);
+              emit({
+                event: MEDIA_METADATA_UPDATED_EVENT,
+                data: { folderPath: plan.mediaFolderPath }
+              });
+              logger?.info({
+                planId: plan.id,
+                folderPath: plan.mediaFolderPath,
+                fileCount: plan.files.length
+              }, `[tool][${CREATE_RENAME_EPISODE_PLAN}] Plan applied automatically`);
+              return toolOk({
+                message: RENAME_PLAN_AUTO_APPLIED_MESSAGE,
+                planId: plan.id
+              });
+            }
+          } catch (error48) {
+            logger?.warn({ planId: plan.id, error: error48 }, `[tool][${CREATE_RENAME_EPISODE_PLAN}] Auto-apply failed, plan stays pending`);
+          }
+        }
+        const data = {
+          taskId: plan.id,
+          planFilePath: planPath(appDataDir, plan.id)
+        };
+        emit({ event: RenameFilesPlanReady.event, data });
+        logger?.info({
+          planId: plan.id,
+          folderPath: plan.mediaFolderPath,
+          fileCount: plan.files.length
+        }, `[tool][${CREATE_RENAME_EPISODE_PLAN}] Plan created`);
+        return toolOk({
+          message: END_PLAN_TASK_SUCCESS_MESSAGE,
+          planId: plan.id
+        });
+      } catch (error48) {
+        return formatToolError(error48);
+      }
     }
   };
 }
 
-// src/tools/recognizeMediaFilesTask.ts
-function defaultRecognizeFilesTaskDeps(fs) {
-  return {
-    validateFiles: (files) => defaultValidateRecognizedFiles(files, fs)
+// ../../apps/core/src/pipeline/createRecognizeEpisodePlan.ts
+import { randomUUID as randomUUID2 } from "node:crypto";
+async function createRecognizeEpisodePlanPipeline(mediaFolderPath, files, options, deps) {
+  const posixFolder = deps.normalizePosix(mediaFolderPath);
+  if (files.length === 0) {
+    throw new Error("No recognize entries in task");
+  }
+  const normalizedFiles = files.map((file2) => ({
+    season: file2.season,
+    episode: file2.episode,
+    path: deps.normalizePosix(file2.path)
+  }));
+  const seenPaths = new Set;
+  const seenEpisodes = new Set;
+  for (const file2 of normalizedFiles) {
+    if (seenPaths.has(file2.path)) {
+      throw new Error(`Duplicate file path in task: ${file2.path}`);
+    }
+    seenPaths.add(file2.path);
+    const episodeKey = `${file2.season}-${file2.episode}`;
+    if (seenEpisodes.has(episodeKey)) {
+      throw new Error(`Duplicate season/episode in task: S${file2.season}E${file2.episode}`);
+    }
+    seenEpisodes.add(episodeKey);
+    if (!await deps.fs.exists(file2.path)) {
+      throw new Error(`File "${file2.path}" (S${file2.season}E${file2.episode}) does not exist in the media folder`);
+    }
+  }
+  const createId = deps.createId ?? randomUUID2;
+  const id = options?.id ?? createId();
+  const plan = {
+    id,
+    task: "recognize-media-file",
+    status: "pending",
+    creator: options?.creator ?? "app",
+    mediaFolderPath: posixFolder,
+    files: normalizedFiles
   };
+  await writePlan(deps.fs, deps.appDataDir, plan);
+  return plan;
 }
-function makeLogger2(logger) {
-  return {
-    info: (obj, msg) => logger?.info(obj, msg),
-    warn: (obj, msg) => logger?.warn(obj, msg),
-    error: (obj, msg) => logger?.error(obj, msg)
-  };
-}
-function buildBeginRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
-  const log = makeLogger2(logger);
+
+// src/tools/createRecognizeEpisodePlan.ts
+function buildCreateRecognizeEpisodePlanTool(appDataDir, fs, broadcast, logger, abortSignal, extra) {
   const emit = broadcast ?? defaultBroadcast;
   return {
-    description: BEGIN_RECOGNIZE_TASK_DESCRIPTION,
-    toolName: BEGIN_RECOGNIZE_TASK,
-    inputSchema: beginRecognizeTaskInputSchema,
+    description: CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION,
+    inputSchema: createRecognizeEpisodePlanInputSchema,
     execute: async (args) => {
       if (abortSignal?.aborted) {
         throw new Error("Request was aborted");
       }
-      const { mediaFolderPath } = args ?? {};
-      log.info({ mediaFolderPath, clientId }, `[tool][${BEGIN_RECOGNIZE_TASK}] Starting new recognition task`);
-      const folderPathInPosix = Path.posix(mediaFolderPath ?? "");
+      const parsed = createRecognizeEpisodePlanInputSchema.safeParse(args);
+      if (!parsed.success) {
+        return formatToolError(parsed.error);
+      }
       try {
-        const taskId = await beginRecognizePlan(appDataDir, folderPathInPosix, fs);
-        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId }, `[tool][${BEGIN_RECOGNIZE_TASK}] Task created successfully`);
-        const fullPlanPath = planFilePath(appDataDir, taskId);
-        const planFilePathInPosix = Path.posix(fullPlanPath);
-        const data = {
-          taskId,
-          planFilePath: planFilePathInPosix
-        };
-        emit({
-          event: RecognizeMediaFilePlanReady.event,
-          data
+        const plan = await createRecognizeEpisodePlanPipeline(parsed.data.mediaFolderPath, parsed.data.files, { creator: "ai" }, {
+          fs: createFsPort(fs),
+          appDataDir,
+          normalizePosix: Path.posix
         });
-        log.info({ taskId, mediaFolderPath: folderPathInPosix, clientId, broadcast: true }, `[DIAG] begin-recognize-task: plan created, RecognizeMediaFilePlanReady broadcast sent`);
-        return toolOk({ taskId });
-      } catch (error48) {
-        log.error({
-          mediaFolderPath: folderPathInPosix,
-          error: error48 instanceof Error ? error48.message : String(error48),
-          clientId
-        }, `[tool][${BEGIN_RECOGNIZE_TASK}] Failed to create task`);
-        return formatToolError(error48);
-      }
-    }
-  };
-}
-function buildAddRecognizedMediaFileTool(clientId, appDataDir, fs, logger, abortSignal, deps) {
-  const log = makeLogger2(logger);
-  return {
-    description: ADD_RECOGNIZED_MEDIA_FILE_DESCRIPTION,
-    toolName: ADD_RECOGNIZED_MEDIA_FILE,
-    inputSchema: addRecognizedMediaFileInputSchema,
-    execute: async (args) => {
-      if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
-      }
-      const { taskId, season, episode, path: filePath } = args ?? {};
-      const normalizedTaskId = (taskId ?? "").trim();
-      log.info({ taskId: normalizedTaskId, season, episode, path: filePath, clientId }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] Adding file to task`);
-      try {
-        const recognizedFile = {
-          season: season ?? 0,
-          episode: episode ?? 0,
-          path: filePath ?? ""
-        };
-        await appendRecognizedFile(appDataDir, normalizedTaskId, recognizedFile, fs, { validateFiles: deps?.validateFiles });
-        log.info({
-          taskId: normalizedTaskId,
-          season,
-          episode,
-          path: filePath,
-          clientId
-        }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] File added to task successfully`);
-        return toolOk({});
-      } catch (error48) {
-        log.error({
-          taskId: normalizedTaskId,
-          season,
-          episode,
-          path: filePath,
-          error: error48 instanceof Error ? error48.message : String(error48),
-          clientId
-        }, `[tool][${ADD_RECOGNIZED_MEDIA_FILE}] Failed to add file to task`);
-        return formatToolError(error48);
-      }
-    }
-  };
-}
-function buildEndRecognizeTaskTool(clientId, appDataDir, fs, broadcast, logger, abortSignal) {
-  const log = makeLogger2(logger);
-  const emit = broadcast ?? defaultBroadcast;
-  return {
-    description: END_RECOGNIZE_TASK_DESCRIPTION,
-    toolName: END_RECOGNIZE_TASK,
-    inputSchema: endRecognizeTaskInputSchema,
-    execute: async (args) => {
-      if (abortSignal?.aborted) {
-        throw new Error("Request was aborted");
-      }
-      const { taskId } = args ?? {};
-      const normalizedTaskId = (taskId ?? "").trim();
-      log.info({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Ending recognition task`);
-      try {
-        const task = await readRecognizePlan(appDataDir, normalizedTaskId, fs);
-        if (!task) {
-          log.error({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task not found`);
-          return formatToolError(`Task with id "${normalizedTaskId}" not found`);
+        if (extra?.getUserConfig && extra.applyRecognizeEpisodePlan) {
+          try {
+            const userConfig = await extra.getUserConfig();
+            if (hasAiAgentPermission(userConfig, AI_AGENT_PERMISSIONS.metadataWrite)) {
+              await extra.applyRecognizeEpisodePlan(plan);
+              emit({
+                event: MEDIA_METADATA_UPDATED_EVENT,
+                data: { folderPath: plan.mediaFolderPath }
+              });
+              logger?.info({
+                planId: plan.id,
+                folderPath: plan.mediaFolderPath,
+                fileCount: plan.files.length
+              }, `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Plan applied automatically`);
+              return toolOk({
+                message: RECOGNIZE_PLAN_AUTO_APPLIED_MESSAGE,
+                planId: plan.id
+              });
+            }
+          } catch (error48) {
+            logger?.warn({ planId: plan.id, error: error48 }, `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Auto-apply failed, plan stays pending`);
+          }
         }
-        if (task.status === "rejected") {
-          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] Task cancelled by user`);
-          return toolError(PLAN_CANCELLED_BY_USER_MESSAGE);
-        }
-        if (task.files.length === 0) {
-          log.warn({ taskId: normalizedTaskId, clientId }, `[tool][${END_RECOGNIZE_TASK}] No files in task`);
-          return formatToolError("No recognized files in task");
-        }
-        await updatePlanContent(appDataDir, task.id, { status: "pending" }, fs);
-        const fullPlanPath = planFilePath(appDataDir, task.id);
-        const planFilePathInPosix = Path.posix(fullPlanPath);
         const data = {
-          taskId: task.id,
-          planFilePath: planFilePathInPosix
+          taskId: plan.id,
+          planFilePath: planPath(appDataDir, plan.id)
         };
-        emit({
-          event: RecognizeMediaFilePlanReady.event,
-          data
+        emit({ event: RecognizeMediaFilePlanReady.event, data });
+        logger?.info({
+          planId: plan.id,
+          folderPath: plan.mediaFolderPath,
+          fileCount: plan.files.length
+        }, `[tool][${CREATE_RECOGNIZE_EPISODE_PLAN}] Plan created`);
+        return toolOk({
+          message: END_PLAN_TASK_SUCCESS_MESSAGE,
+          planId: plan.id
         });
-        log.info({
-          taskId: normalizedTaskId,
-          folderPath: task.mediaFolderPath,
-          fileCount: task.files.length,
-          clientId
-        }, `[tool][${END_RECOGNIZE_TASK}] Task completed successfully`);
-        return toolOk({ message: END_PLAN_TASK_SUCCESS_MESSAGE });
       } catch (error48) {
         return formatToolError(error48);
       }
@@ -58572,7 +62342,7 @@ function createChatTools(args) {
     allowlist: [],
     hello: {
       version: "0.0.0",
-      userDataDir: config2.appDataDir,
+      userDataDir: config2.userDataDir ?? config2.appDataDir,
       appDataDir: config2.appDataDir,
       logDir: "",
       tmpDir: "",
@@ -58583,7 +62353,8 @@ function createChatTools(args) {
     appDataDir: config2.appDataDir,
     logger
   };
-  const renameFilesTaskDeps = extra?.renameFilesTask ?? defaultRenameFilesTaskDeps(config2.appDataDir);
+  const tmdbRunners = extra?.tmdb;
+  const tvdbRunners = extra?.tvdb;
   return {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(clientId, userConfig, (cfg) => resolveAppLanguage({
       configured: cfg.applicationLanguage,
@@ -58595,12 +62366,24 @@ function createChatTools(args) {
     [GET_MEDIA_FOLDERS]: buildGetMediaFoldersTool(userConfig, abortSignal),
     [LIST_FILES_IN_MEDIA_FOLDER]: buildListFilesInMediaFolderTool(userConfig, abortSignal),
     [RENAME_FOLDER]: buildRenameFolderTool(clientId, syntheticConfig, abortSignal, acknowledge),
-    [BEGIN_RENAME_FILES_TASK]: buildBeginRenameFilesTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, broadcast, logger, abortSignal),
-    [ADD_RENAME_FILE_TO_TASK]: buildAddRenameFileToTaskTool(clientId, config2.appDataDir, fs, renameFilesTaskDeps, logger, abortSignal),
-    [END_RENAME_FILES_TASK]: buildEndRenameFilesTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
-    [BEGIN_RECOGNIZE_TASK]: buildBeginRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal),
-    [ADD_RECOGNIZED_MEDIA_FILE]: buildAddRecognizedMediaFileTool(clientId, config2.appDataDir, fs, logger, abortSignal),
-    [END_RECOGNIZE_TASK]: buildEndRecognizeTaskTool(clientId, config2.appDataDir, fs, broadcast, logger, abortSignal)
+    [RENAME_EPISODE_FILE]: buildRenameEpisodeFileTool(clientId, extra?.renameEpisodeFile, abortSignal, acknowledge),
+    [SCRAPE]: buildScrapeTool(extra?.scrapeFolder, abortSignal),
+    [GET_JOB]: buildGetJobTool(extra?.getJob, abortSignal),
+    [TMDB_SEARCH]: buildTmdbSearchTool(tmdbRunners, abortSignal),
+    [TMDB_GET_MOVIE]: buildTmdbGetMovieTool(tmdbRunners, abortSignal),
+    [TMDB_GET_TV_SHOW]: buildTmdbGetTvShowTool(tmdbRunners, abortSignal),
+    [TVDB_SEARCH]: buildTvdbSearchTool(tvdbRunners, abortSignal),
+    [TVDB_GET_MOVIE]: buildTvdbGetMovieTool(tvdbRunners, abortSignal),
+    [TVDB_GET_TV_SHOW]: buildTvdbGetTvShowTool(tvdbRunners, abortSignal),
+    [TVDB_GET_LANGUAGES]: buildTvdbGetLanguagesTool(tvdbRunners, abortSignal),
+    [CREATE_RENAME_EPISODE_PLAN]: buildCreateRenameEpisodePlanTool(config2.appDataDir, fs, broadcast, logger, abortSignal, {
+      getUserConfig: () => Promise.resolve(userConfig),
+      applyRenameEpisodePlan: extra?.applyRenameEpisodePlan
+    }),
+    [CREATE_RECOGNIZE_EPISODE_PLAN]: buildCreateRecognizeEpisodePlanTool(config2.appDataDir, fs, broadcast, logger, abortSignal, {
+      getUserConfig: () => Promise.resolve(userConfig),
+      applyRecognizeEpisodePlan: extra?.applyRecognizeEpisodePlan
+    })
   };
 }
 
@@ -58646,12 +62429,18 @@ async function doChat(config2, request, extra = {}) {
       [GET_MEDIA_FOLDERS]: tools[GET_MEDIA_FOLDERS],
       [LIST_FILES_IN_MEDIA_FOLDER]: tools[LIST_FILES_IN_MEDIA_FOLDER],
       [RENAME_FOLDER]: tools[RENAME_FOLDER],
-      [BEGIN_RENAME_FILES_TASK]: tools[BEGIN_RENAME_FILES_TASK],
-      [ADD_RENAME_FILE_TO_TASK]: tools[ADD_RENAME_FILE_TO_TASK],
-      [END_RENAME_FILES_TASK]: tools[END_RENAME_FILES_TASK],
-      [BEGIN_RECOGNIZE_TASK]: tools[BEGIN_RECOGNIZE_TASK],
-      [ADD_RECOGNIZED_MEDIA_FILE]: tools[ADD_RECOGNIZED_MEDIA_FILE],
-      [END_RECOGNIZE_TASK]: tools[END_RECOGNIZE_TASK]
+      [RENAME_EPISODE_FILE]: tools[RENAME_EPISODE_FILE],
+      [SCRAPE]: tools[SCRAPE],
+      [GET_JOB]: tools[GET_JOB],
+      [TMDB_SEARCH]: tools[TMDB_SEARCH],
+      [TMDB_GET_MOVIE]: tools[TMDB_GET_MOVIE],
+      [TMDB_GET_TV_SHOW]: tools[TMDB_GET_TV_SHOW],
+      [TVDB_SEARCH]: tools[TVDB_SEARCH],
+      [TVDB_GET_MOVIE]: tools[TVDB_GET_MOVIE],
+      [TVDB_GET_TV_SHOW]: tools[TVDB_GET_TV_SHOW],
+      [TVDB_GET_LANGUAGES]: tools[TVDB_GET_LANGUAGES],
+      [CREATE_RENAME_EPISODE_PLAN]: tools[CREATE_RENAME_EPISODE_PLAN],
+      [CREATE_RECOGNIZE_EPISODE_PLAN]: tools[CREATE_RECOGNIZE_EPISODE_PLAN]
     },
     stopWhen: stepCountIs(CHAT_STEP_LIMIT)
   });
@@ -58787,6 +62576,7 @@ async function forwardWebResponseToNode(response, res) {
   response.headers.forEach((value, key) => {
     res.setHeader(key, value);
   });
+  res.setHeader("Cache-Control", "no-store");
   if (response.body) {
     const reader = response.body.getReader();
     res.flushHeaders?.();
@@ -60260,8 +64050,8 @@ function createOpenAICompatible(options) {
   const getHeaders = () => withUserAgentSuffix(headers, `ai-sdk/openai-compatible/${VERSION4}`);
   const getCommonModelConfig = (modelType) => ({
     provider: `${providerName}.${modelType}`,
-    url: ({ path: path6 }) => {
-      const url2 = new URL(`${baseURL}${path6}`);
+    url: ({ path: path5 }) => {
+      const url2 = new URL(`${baseURL}${path5}`);
       if (options.queryParams) {
         url2.search = new URLSearchParams(options.queryParams).toString();
       }
@@ -60296,17 +64086,7 @@ function createOpenAICompatible(options) {
   provider.imageModel = createImageModel;
   return provider;
 }
-// ../core/types.ts
-var DEFAULT_AI_PROVIDERS = [
-  { name: "DeepSeek", baseURL: "https://api.deepseek.com", apiKey: "", model: "deepseek-v4-flash" },
-  { name: "OpenAI", baseURL: "https://api.openai.com/v1", apiKey: "", model: "gpt-4o" },
-  { name: "OpenRouter", baseURL: "https://openrouter.ai/api/v1", apiKey: "", model: "deepseek/deepseek-v4-flash" },
-  { name: "GLM", baseURL: "https://open.bigmodel.cn/api/paas/v4", apiKey: "", model: "GLM-4.5" },
-  { name: "Other", baseURL: "", apiKey: "", model: "" }
-];
-var DEFAULT_SELECTED_AI_PROVIDER = "DeepSeek";
-
-// ../core/configMigration.ts
+// ../../apps/core/src/configMigration.ts
 var NAME_TO_OLD_KEY = {
   DeepSeek: "deepseek",
   OpenAI: "openAI",
@@ -60350,12 +64130,361 @@ function migrateAIConfig(raw) {
   delete raw.selectedAI;
   return true;
 }
+// src/proxiedFetch.ts
+var import_http_proxy_agent = __toESM(require_dist3(), 1);
+var import_https_proxy_agent = __toESM(require_dist4(), 1);
+var import_socks_proxy_agent = __toESM(require_dist5(), 1);
+import http from "node:http";
+import https from "node:https";
+
+// src/httpContentEncoding.ts
+import zlib from "node:zlib";
+import { promisify } from "node:util";
+var gunzip = promisify(zlib.gunzip);
+var inflate = promisify(zlib.inflate);
+var brotliDecompress = promisify(zlib.brotliDecompress);
+async function decompressBody(buf, contentEncoding) {
+  if (!contentEncoding || typeof contentEncoding !== "string") {
+    return buf;
+  }
+  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
+  if (encoding === "gzip" || encoding === "x-gzip") {
+    return gunzip(buf);
+  }
+  if (encoding === "deflate") {
+    return inflate(buf);
+  }
+  if (encoding === "br") {
+    return brotliDecompress(buf);
+  }
+  return buf;
+}
+function toFetchApiStatus(statusCode) {
+  const status = statusCode ?? 502;
+  if (status === 304)
+    return 200;
+  return status;
+}
+function incomingHeadersToObject(headers) {
+  const result = {};
+  for (const [key, val] of Object.entries(headers)) {
+    if (val === undefined)
+      continue;
+    const lower = key.toLowerCase();
+    if (lower === "content-encoding" || lower === "content-length")
+      continue;
+    if (Array.isArray(val)) {
+      result[key] = val.join(", ");
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+async function nodeHttpMessageToFetchResponse(res, wireBody) {
+  const body = await decompressBody(wireBody, res.headers["content-encoding"]);
+  const headers = incomingHeadersToObject(res.headers);
+  headers["Content-Length"] = String(body.length);
+  return new Response(body, {
+    status: toFetchApiStatus(res.statusCode),
+    statusText: res.statusMessage ?? "",
+    headers
+  });
+}
+
+// src/fetchInput.ts
+function toRequest(input, init) {
+  if (input instanceof Request) {
+    return init !== undefined ? new Request(input, init) : input;
+  }
+  const url2 = typeof input === "string" ? input : input.href;
+  return new Request(url2, init);
+}
+
+// src/proxiedFetch.ts
+function isBunRuntime() {
+  return typeof globalThis.Bun !== "undefined";
+}
+function formatProxyHostForLog(proxyUrl) {
+  try {
+    const u = new URL(proxyUrl);
+    const defaultPort = u.protocol === "https:" ? "443" : u.protocol === "http:" ? "80" : "";
+    const port = u.port || defaultPort;
+    return port ? `${u.hostname}:${port}` : u.hostname;
+  } catch {
+    return "(invalid-proxy-url)";
+  }
+}
+function getOutboundProxyMode(proxyUrl, targetUrl) {
+  const proxy = new URL(proxyUrl);
+  if (proxy.protocol === "socks5:" || proxy.protocol === "socks5h:") {
+    return "socks5";
+  }
+  if (isBunRuntime()) {
+    return "bun-native";
+  }
+  if (targetUrl) {
+    const target = new URL(targetUrl);
+    if (target.protocol === "http:") {
+      return "node-forward";
+    }
+  }
+  return "node-connect";
+}
+function wrapFetchWithLogging(inner, mode, logger) {
+  return async (input, init) => {
+    const request = toRequest(input, init);
+    const target = new URL(request.url);
+    logger?.debug({
+      proxyMode: mode,
+      method: request.method,
+      targetHost: target.host,
+      targetPath: target.pathname
+    }, "[ProxiedFetch] outbound request");
+    try {
+      const response = await inner(request);
+      logger?.debug({
+        proxyMode: mode,
+        status: response.status,
+        targetHost: target.host
+      }, "[ProxiedFetch] outbound response");
+      return response;
+    } catch (err) {
+      logger?.debug({
+        proxyMode: mode,
+        targetHost: target.host,
+        err,
+        errorMessage: err instanceof Error ? err.message : String(err)
+      }, "[ProxiedFetch] outbound failed");
+      throw err;
+    }
+  };
+}
+function buildAgentRequestHeaders(request) {
+  const headers = new Headers(request.headers);
+  headers.delete("accept-encoding");
+  headers.set("Host", new URL(request.url).host);
+  return Object.fromEntries(headers.entries());
+}
+function requestViaAgent(request, agent, timeoutMessage) {
+  const url2 = new URL(request.url);
+  const method = request.method.toUpperCase();
+  const isBodyAllowed = method !== "GET" && method !== "HEAD";
+  const isHttps = url2.protocol === "https:";
+  const headers = buildAgentRequestHeaders(request);
+  return new Promise((resolve2, reject) => {
+    const requestOptions = {
+      hostname: url2.hostname,
+      port: Number(url2.port) || (isHttps ? 443 : 80),
+      path: url2.pathname + url2.search,
+      method,
+      headers,
+      agent,
+      timeout: 30000
+    };
+    const req = (isHttps ? https : http).request(requestOptions, (res) => {
+      const chunks = [];
+      res.on("data", (chunk2) => chunks.push(chunk2));
+      res.on("end", () => {
+        nodeHttpMessageToFetchResponse(res, Buffer.concat(chunks)).then(resolve2, reject);
+      });
+      res.on("error", reject);
+    });
+    req.on("error", reject);
+    req.on("timeout", () => {
+      req.destroy();
+      reject(new Error(timeoutMessage));
+    });
+    if (isBodyAllowed) {
+      request.arrayBuffer().then((buf) => {
+        req.write(Buffer.from(buf));
+        req.end();
+      }, reject);
+    } else {
+      req.end();
+    }
+  });
+}
+function httpProxyAgentRequest(request, proxyUrl) {
+  const url2 = new URL(request.url);
+  const isHttps = url2.protocol === "https:";
+  const agent = isHttps ? new import_https_proxy_agent.HttpsProxyAgent(proxyUrl) : new import_http_proxy_agent.HttpProxyAgent(proxyUrl);
+  return requestViaAgent(request, agent, isHttps ? "HTTPS proxy request timeout" : "HTTP proxy request timeout");
+}
+function socksProxyRequest(request, proxyUrl) {
+  return requestViaAgent(request, new import_socks_proxy_agent.SocksProxyAgent(proxyUrl), "SOCKS5 proxy request timeout");
+}
+function createProxiedFetch(proxyUrl, logger) {
+  const proxy = new URL(proxyUrl);
+  const isSocks = proxy.protocol === "socks5:" || proxy.protocol === "socks5h:";
+  if (isSocks) {
+    logger?.debug({
+      proxyMode: "socks5",
+      httpProxyHost: formatProxyHostForLog(proxyUrl)
+    }, "[ProxiedFetch] using outbound proxy");
+    return wrapFetchWithLogging((request) => socksProxyRequest(request, proxyUrl), "socks5", logger);
+  }
+  if (proxy.protocol !== "http:" && proxy.protocol !== "https:") {
+    throw new Error(`Unsupported proxy scheme: "${proxy.protocol}". Use http://, https://, or socks5://.`);
+  }
+  if (isBunRuntime()) {
+    logger?.debug({
+      proxyMode: "bun-native",
+      httpProxyHost: formatProxyHostForLog(proxyUrl)
+    }, "[ProxiedFetch] using outbound proxy");
+    return wrapFetchWithLogging(async (request) => {
+      const method = request.method;
+      const headers = new Headers(request.headers);
+      const body = method.toUpperCase() !== "GET" && method.toUpperCase() !== "HEAD" ? await request.arrayBuffer() : undefined;
+      return fetch(request.url, {
+        method,
+        headers,
+        body,
+        proxy: proxyUrl
+      });
+    }, "bun-native", logger);
+  }
+  logger?.debug({
+    proxyMode: "node-connect",
+    httpProxyHost: formatProxyHostForLog(proxyUrl)
+  }, "[ProxiedFetch] using outbound proxy");
+  return async (input, init) => {
+    const request = toRequest(input, init);
+    const url2 = new URL(request.url);
+    const mode = url2.protocol === "https:" ? "node-connect" : "node-forward";
+    logger?.debug({
+      proxyMode: mode,
+      method: request.method,
+      targetHost: url2.host,
+      targetPath: url2.pathname
+    }, "[ProxiedFetch] outbound request");
+    try {
+      const response = await httpProxyAgentRequest(request, proxyUrl);
+      logger?.debug({ proxyMode: mode, status: response.status, targetHost: url2.host }, "[ProxiedFetch] outbound response");
+      return response;
+    } catch (err) {
+      logger?.debug({
+        proxyMode: mode,
+        targetHost: url2.host,
+        err,
+        errorMessage: err instanceof Error ? err.message : String(err)
+      }, "[ProxiedFetch] outbound failed");
+      throw err;
+    }
+  };
+}
+
+// src/downloadImage.ts
+import { Buffer as Buffer2 } from "node:buffer";
+import { readFile as readFile4 } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+import { extname } from "node:path";
+var DEFAULT_CONTENT_TYPE = "image/jpeg";
+var EXTENSION_TO_CONTENT_TYPE = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".bmp": "image/bmp",
+  ".avif": "image/avif",
+  ".apng": "image/apng"
+};
+function getContentTypeFromExtension(ext) {
+  return EXTENSION_TO_CONTENT_TYPE[ext.toLowerCase()] ?? DEFAULT_CONTENT_TYPE;
+}
+function normalizeUrl(url2) {
+  if (url2.startsWith("//")) {
+    return `https:${url2}`;
+  }
+  return url2;
+}
+var REMOTE_IMAGE_REQUEST_HEADERS = {
+  accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+  "accept-language": "en-US,en;q=0.9",
+  "cache-control": "no-cache",
+  "sec-fetch-dest": "image",
+  "sec-fetch-mode": "no-cors",
+  "sec-fetch-site": "cross-site",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+};
+function describeFetchError(error48) {
+  if (!(error48 instanceof Error)) {
+    return String(error48);
+  }
+  const cause = error48.cause;
+  const causeCode = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined;
+  const causeMessage = cause instanceof Error ? cause.message : undefined;
+  const directCode = !causeCode && typeof error48 === "object" && "code" in error48 ? String(error48.code) : undefined;
+  const directErrno = !causeCode && typeof error48 === "object" && "errno" in error48 ? String(error48.errno) : undefined;
+  const code = causeCode ?? directCode ?? directErrno;
+  const message = causeMessage;
+  const segments = [];
+  if (code)
+    segments.push(code);
+  if (message && message !== code) {
+    segments.push(message);
+  }
+  if (segments.length > 0) {
+    return `${error48.message} (${segments.join(": ")})`;
+  }
+  return error48.message;
+}
+function resolveUrl(url2) {
+  const normalizedUrl = normalizeUrl(url2);
+  if (normalizedUrl.startsWith("file://")) {
+    const platformPath = fileURLToPath(normalizedUrl);
+    return { kind: "file", normalizedUrl, platformPath };
+  }
+  if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
+    return { kind: "http", normalizedUrl };
+  }
+  throw new Error(`Invalid image URL: ${url2}. ` + `Must be http://, https://, protocol-relative (//), or file://`);
+}
+async function doDownloadImage(url2, config2) {
+  const { allowlist, logger, fetchImpl = fetch } = config2;
+  const resolved = resolveUrl(url2);
+  logger?.info({ url: resolved.normalizedUrl, kind: resolved.kind }, "[DownloadImage] processing request");
+  if (resolved.kind === "file") {
+    const platformPath = resolved.platformPath;
+    const posixPath = Path.posix(platformPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
+    }
+    const buffer2 = await readFile4(platformPath);
+    const ext = extname(platformPath);
+    const contentType2 = getContentTypeFromExtension(ext);
+    logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
+    return { buffer: buffer2, contentType: contentType2 };
+  }
+  let response;
+  try {
+    response = await fetchImpl(resolved.normalizedUrl, {
+      method: "GET",
+      headers: REMOTE_IMAGE_REQUEST_HEADERS
+    });
+  } catch (error48) {
+    throw new Error(`Failed to download image: ${describeFetchError(error48)}`);
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
+  const arrayBuffer = await response.arrayBuffer();
+  const buffer = Buffer2.from(arrayBuffer);
+  logger?.info({ url: resolved.normalizedUrl, bytes: buffer.length, contentType }, "[DownloadImage] fetched remote image");
+  return { buffer, contentType };
+}
+
 // src/reverseProxy.ts
 var PORT_RANGE_START = 30000;
 var PORT_RANGE_END = 31000;
 var DEFAULT_ALLOWED_UPSTREAM_HOSTS = new Set([
   "api.themoviedb.org",
   "api4.thetvdb.com",
+  "mediadb.vercel.app",
   "tmdb-mcp-server.imlc.me",
   "httpbin.io",
   "api.deepseek.com",
@@ -60386,7 +64515,8 @@ var HOP_BY_HOP_RESPONSE_HEADERS = new Set([
   "content-encoding"
 ]);
 var PROXY_CONTROL_HEADERS = new Set([
-  "x-smm-proxy-upstream-baseurl"
+  "x-smm-proxy-upstream-baseurl",
+  "x-http-proxy"
 ]);
 var CONDITIONAL_REQUEST_HEADERS = new Set([
   "if-none-match",
@@ -60398,9 +64528,9 @@ function buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingSearch) {
   const base = new URL(upstreamBaseURL);
   const basePath = base.pathname.replace(/\/+$/, "");
   const normalizedPath = incomingPath.startsWith("/") ? incomingPath : `/${incomingPath}`;
-  const path6 = `${basePath}${normalizedPath}`;
+  const path5 = `${basePath}${normalizedPath}`;
   const query = incomingSearch.startsWith("?") ? incomingSearch : "";
-  return `${base.origin}${path6}${query}`;
+  return `${base.origin}${path5}${query}`;
 }
 function validateUpstreamBaseURL(headerValue, allowedUpstreamHosts) {
   let upstreamUrl;
@@ -60451,7 +64581,21 @@ function corsHeaders() {
   };
 }
 function applyCorsToBody(body, init = {}) {
-  const headers = new Headers(init.headers);
+  const headers = new Headers;
+  if (init.headers) {
+    const source = init.headers;
+    if (source instanceof Headers) {
+      source.forEach((value, key) => headers.set(key, value));
+    } else if (Array.isArray(source)) {
+      for (const [key, value] of source) {
+        headers.set(key, value);
+      }
+    } else {
+      for (const [key, value] of Object.entries(source)) {
+        headers.set(key, value);
+      }
+    }
+  }
   for (const [key, value] of Object.entries(corsHeaders())) {
     if (!headers.has(key)) {
       headers.set(key, value);
@@ -60471,29 +64615,215 @@ function noopLogger() {
     error: () => {}
   };
 }
+function buildOutboundProxyLogFields(httpProxyHeader, usingProxiedFetch, forwardUrl) {
+  const trimmed = httpProxyHeader?.trim();
+  const viaHttpProxy = Boolean(trimmed);
+  if (!viaHttpProxy) {
+    return { viaHttpProxy: false, proxyMode: "direct" };
+  }
+  const httpProxyHost = formatProxyHostForLog(trimmed);
+  if (!usingProxiedFetch) {
+    return { viaHttpProxy: true, httpProxyHost, proxyMode: "direct-fallback" };
+  }
+  return {
+    viaHttpProxy: true,
+    httpProxyHost,
+    proxyMode: getOutboundProxyMode(trimmed, forwardUrl)
+  };
+}
+var PROXY_ERROR_CODES = {
+  ENOTFOUND: {
+    message: "DNS resolution failed for upstream host",
+    code: "DNS_RESOLUTION_FAILED"
+  },
+  ECONNREFUSED: {
+    message: "Connection refused by upstream host",
+    code: "CONNECTION_REFUSED"
+  },
+  ConnectionRefused: {
+    message: "Connection refused by upstream host",
+    code: "CONNECTION_REFUSED"
+  },
+  ECONNRESET: {
+    message: "Connection was reset by upstream host",
+    code: "CONNECTION_RESET"
+  },
+  ETIMEDOUT: {
+    message: "Connection to upstream host timed out",
+    code: "CONNECTION_TIMEOUT"
+  },
+  ENETUNREACH: {
+    message: "Upstream network is unreachable",
+    code: "NETWORK_UNREACHABLE"
+  },
+  ECONNABORTED: {
+    message: "Connection was aborted",
+    code: "CONNECTION_ABORTED"
+  },
+  UND_ERR_CONNECT_TIMEOUT: {
+    message: "Connection to upstream host timed out",
+    code: "CONNECTION_TIMEOUT"
+  },
+  UND_ERR_HEADERS_TIMEOUT: {
+    message: "Upstream host did not respond with headers in time",
+    code: "HEADERS_TIMEOUT"
+  }
+};
+var TLS_ERROR_CODES = new Set([
+  "ERR_TLS_CERT_ALTNAME_INVALID",
+  "CERT_HAS_EXPIRED",
+  "DEPTH_ZERO_SELF_SIGNED_CERT",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+]);
+function extractLoggingErrorDetail(error48) {
+  if (!(error48 instanceof Error)) {
+    return { originalError: String(error48) };
+  }
+  const originalError = describeFetchError(error48);
+  let systemCode;
+  let causeMessage;
+  if (typeof error48 === "object" && "code" in error48) {
+    systemCode = String(error48.code);
+  } else if (typeof error48 === "object" && "errno" in error48) {
+    systemCode = String(error48.errno);
+  }
+  if (!systemCode) {
+    let current = error48;
+    for (let depth = 0;depth < 3; depth++) {
+      const cause = current.cause;
+      if (!(cause instanceof Error))
+        break;
+      if (!systemCode) {
+        systemCode = cause.code;
+      }
+      if (cause.message && cause.message !== error48.message) {
+        causeMessage = cause.message;
+      }
+      current = cause;
+    }
+  }
+  return { originalError, systemCode, causeMessage };
+}
+function lookupSystemCode(code) {
+  if (TLS_ERROR_CODES.has(code)) {
+    return { message: "TLS certificate validation failed for upstream host", code: "TLS_ERROR" };
+  }
+  return PROXY_ERROR_CODES[code];
+}
+function classifyProxyError(error48) {
+  if (!(error48 instanceof Error)) {
+    return { message: String(error48), code: "UPSTREAM_REQUEST_FAILED" };
+  }
+  let current = error48;
+  for (let depth = 0;depth < 3; depth++) {
+    if (!(current instanceof Error))
+      break;
+    const causeCode = current.code;
+    if (typeof causeCode === "string") {
+      const found = lookupSystemCode(causeCode);
+      if (found)
+        return found;
+    }
+    if (!causeCode) {
+      const causeErrno = current.errno;
+      if (typeof causeErrno === "string") {
+        const found = lookupSystemCode(causeErrno);
+        if (found)
+          return found;
+      }
+    }
+    current = current.cause;
+  }
+  const msg = error48.message;
+  if (msg.includes("timeout")) {
+    return { message: "Proxy request timed out", code: "PROXY_TIMEOUT" };
+  }
+  if (msg.includes("CONNECT refused")) {
+    const statusMatch = msg.match(/HTTP\/\d\.\d\s+(\d+)/);
+    return {
+      message: statusMatch ? `Proxy CONNECT tunnel refused with status ${statusMatch[1]}` : "Proxy CONNECT tunnel was refused by the proxy server",
+      code: "PROXY_CONNECT_REFUSED"
+    };
+  }
+  if (msg.includes("Unsupported proxy scheme")) {
+    return { message: msg, code: "UNSUPPORTED_PROXY_SCHEME" };
+  }
+  return { message: error48.message, code: "UPSTREAM_REQUEST_FAILED" };
+}
+function proxyErrorToProblemDetails(errInfo, status) {
+  return {
+    type: "about:blank",
+    title: status === 502 ? "Bad Gateway" : status === 400 ? "Bad Request" : "Upstream Error",
+    status,
+    detail: errInfo.message
+  };
+}
 async function handleProxyRequest(request, config2 = {}) {
   const logger = config2.logger ?? noopLogger();
-  const allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
   const fetchImpl = config2.fetchImpl ?? fetch;
+  let allowedUpstreamHosts;
+  if (config2.resolveAllowedUpstreamHosts) {
+    try {
+      allowedUpstreamHosts = await config2.resolveAllowedUpstreamHosts();
+    } catch (error48) {
+      logger.error({ err: error48, errorMessage: error48 instanceof Error ? error48.message : String(error48) }, "[Reverse Proxy] failed to resolve allowed upstream hosts, falling back to defaults");
+      allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+    }
+  } else {
+    allowedUpstreamHosts = config2.allowedUpstreamHosts ?? DEFAULT_ALLOWED_UPSTREAM_HOSTS;
+  }
   if (request.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders() });
   }
+  const httpProxyHeader = request.headers.get("X-Http-Proxy");
+  let activeFetch = fetchImpl;
+  let usingProxiedFetch = false;
+  if (httpProxyHeader?.trim() && config2.createProxiedFetch) {
+    try {
+      const proxiedFetch = config2.createProxiedFetch(httpProxyHeader, logger);
+      if (proxiedFetch) {
+        activeFetch = proxiedFetch;
+        usingProxiedFetch = true;
+      } else {
+        logger.warn({
+          httpProxyHost: formatProxyHostForLog(httpProxyHeader)
+        }, "[Reverse Proxy] createProxiedFetch returned undefined; using direct fetch");
+      }
+    } catch (error48) {
+      logger.error({
+        httpProxyHost: formatProxyHostForLog(httpProxyHeader),
+        err: error48,
+        errorMessage: error48 instanceof Error ? error48.message : String(error48)
+      }, "[Reverse Proxy] failed to create proxied fetch, falling back to direct");
+    }
+  } else if (httpProxyHeader?.trim() && !config2.createProxiedFetch) {
+    logger.warn({
+      httpProxyHost: formatProxyHostForLog(httpProxyHeader)
+    }, "[Reverse Proxy] X-Http-Proxy set but createProxiedFetch is not configured; using direct fetch");
+  }
   const upstreamBaseURL = request.headers.get("X-SMM-Proxy-Upstream-BaseURL");
   if (!upstreamBaseURL) {
-    return applyCorsToBody(JSON.stringify({ error: "Missing X-SMM-Proxy-Upstream-BaseURL header" }), { status: 400, headers: { "Content-Type": "application/json" } });
+    return applyCorsToBody(JSON.stringify({
+      type: "about:blank",
+      title: "Bad Request",
+      status: 400,
+      detail: "Missing X-SMM-Proxy-Upstream-BaseURL header"
+    }), { status: 400, headers: { "Content-Type": "application/problem+json" } });
   }
   let upstreamUrl;
   try {
     upstreamUrl = validateUpstreamBaseURL(upstreamBaseURL, allowedUpstreamHosts);
   } catch (error48) {
-    const message = error48 instanceof Error ? error48.message : "Invalid upstream base URL";
-    return applyCorsToBody(JSON.stringify({ error: message }), {
+    return applyCorsToBody(JSON.stringify({
+      type: "about:blank",
+      title: "Bad Request",
       status: 400,
-      headers: { "Content-Type": "application/json" }
-    });
+      detail: error48 instanceof Error ? error48.message : "Invalid upstream base URL"
+    }), { status: 400, headers: { "Content-Type": "application/problem+json" } });
   }
   const incomingUrl = new URL(request.url);
   const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingUrl.pathname, incomingUrl.search);
+  const proxyLogFields = buildOutboundProxyLogFields(httpProxyHeader, usingProxiedFetch, forwardUrl);
   try {
     const reqHeaders = filterRequestHeaders(request, upstreamUrl);
     const method = request.method;
@@ -60503,15 +64833,23 @@ async function handleProxyRequest(request, config2 = {}) {
       body: method !== "GET" && method !== "HEAD" ? request.body : undefined,
       ...method !== "GET" && method !== "HEAD" ? { duplex: "half" } : {}
     });
-    logger.info({ method, forwardUrl, upstreamHost: upstreamUrl.host }, "[Reverse Proxy] forwarding request");
-    const response = await fetchImpl(upstreamReq);
+    logger.info({
+      method,
+      forwardUrl,
+      upstreamHost: upstreamUrl.host,
+      incomingPath: incomingUrl.pathname,
+      upstreamBaseURL,
+      ...proxyLogFields
+    }, "[Reverse Proxy] forwarding request");
+    const response = await activeFetch(upstreamReq);
     const respHeaders = filterResponseHeaders(response);
     const respBody = await response.arrayBuffer();
     logger.info({
       method,
       forwardUrl,
       status: response.status,
-      responseBytes: respBody.byteLength
+      responseBytes: respBody.byteLength,
+      ...proxyLogFields
     }, "[Reverse Proxy] upstream response");
     return applyCorsToBody(respBody, {
       status: response.status,
@@ -60519,12 +64857,29 @@ async function handleProxyRequest(request, config2 = {}) {
       headers: respHeaders
     });
   } catch (error48) {
-    logger.error({ err: error48, method: request.method, forwardUrl }, "[Reverse Proxy] upstream request failed");
-    return applyCorsToBody(JSON.stringify({ error: "Failed to proxy request to upstream" }), { status: 502, headers: { "Content-Type": "application/json" } });
+    const errInfo = classifyProxyError(error48);
+    const errDetail = extractLoggingErrorDetail(error48);
+    logger.error({
+      err: error48,
+      errorMessage: error48 instanceof Error ? error48.message : String(error48),
+      originalError: errDetail.originalError,
+      systemCode: errDetail.systemCode,
+      causeMessage: errDetail.causeMessage,
+      method: request.method,
+      forwardUrl,
+      incomingPath: incomingUrl.pathname,
+      upstreamBaseURL,
+      ...proxyLogFields
+    }, "[Reverse Proxy] upstream request failed");
+    const problem = proxyErrorToProblemDetails(errInfo, 502);
+    return applyCorsToBody(JSON.stringify(problem), {
+      status: 502,
+      headers: { "Content-Type": "application/problem+json" }
+    });
   }
 }
 // src/reverseProxyNode.ts
-import http from "node:http";
+import http2 from "node:http";
 import net from "node:net";
 import { Readable } from "node:stream";
 function createReverseProxyRequestHandler(config2 = {}) {
@@ -60606,11 +64961,11 @@ function tryListen(port, hostname3 = "127.0.0.1") {
 async function findAvailableReverseProxyPort(reservedPorts = new Set, portRange = {
   start: PORT_RANGE_START,
   end: PORT_RANGE_END
-}) {
+}, bindAddress = resolveReverseProxyBindAddress()) {
   for (let port = portRange.start;port <= portRange.end; port++) {
     if (reservedPorts.has(port))
       continue;
-    if (await tryListen(port))
+    if (await tryListen(port, bindAddress))
       return port;
   }
   throw new Error(`Could not find an available port in range ${portRange.start}-${portRange.end}`);
@@ -60624,19 +64979,21 @@ function createReverseProxyManager(config2 = {}) {
       config2.logger?.warn({}, "[Reverse Proxy] already running");
       return;
     }
+    const bindAddress = config2.bindAddress ?? resolveReverseProxyBindAddress();
+    const advertisedHost = resolveReverseProxyAdvertisedHost(bindAddress);
     let port;
     try {
       if (typeof config2.port === "number") {
         port = config2.port;
       } else {
-        port = await findAvailableReverseProxyPort(config2.reservedPorts, config2.portRange);
+        port = await findAvailableReverseProxyPort(config2.reservedPorts, config2.portRange, bindAddress);
       }
     } catch (error48) {
       config2.logger?.error({ err: error48 }, "[Reverse Proxy] failed to find available port");
       currentUrl = null;
       return;
     }
-    const newServer = http.createServer(handler);
+    const newServer = http2.createServer(handler);
     await new Promise((resolve2, reject) => {
       newServer.once("error", (err) => {
         newServer.removeListener("listening", onListening);
@@ -60648,11 +65005,11 @@ function createReverseProxyManager(config2 = {}) {
       };
       const onError = (err) => reject(err);
       newServer.once("listening", onListening);
-      newServer.listen(port, "127.0.0.1");
+      newServer.listen(port, bindAddress);
     });
     server = newServer;
-    currentUrl = `http://127.0.0.1:${port}`;
-    config2.logger?.info({ url: currentUrl }, "[Reverse Proxy] started");
+    currentUrl = `http://${advertisedHost}:${port}`;
+    config2.logger?.info({ url: currentUrl, bindAddress }, "[Reverse Proxy] started");
   }
   async function stop() {
     if (!server)
@@ -60675,13 +65032,9 @@ function createReverseProxyManager(config2 = {}) {
 }
 // src/nodeHttpFetch.ts
 import { Readable as Readable2 } from "node:stream";
-import http2 from "node:http";
-import https from "node:https";
-import zlib from "node:zlib";
-import { promisify } from "node:util";
-var gunzip = promisify(zlib.gunzip);
-var inflate = promisify(zlib.inflate);
-var brotliDecompress = promisify(zlib.brotliDecompress);
+import http3 from "node:http";
+import https2 from "node:https";
+import zlib2 from "node:zlib";
 var HOP_BY_HOP_REQUEST_HEADERS2 = new Set([
   "connection",
   "keep-alive",
@@ -60703,22 +65056,6 @@ var STRIPPED_RESPONSE_HEADERS = new Set([
   "content-encoding",
   "content-length"
 ]);
-async function decompressBody(buf, contentEncoding) {
-  if (!contentEncoding || typeof contentEncoding !== "string") {
-    return buf;
-  }
-  const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
-  if (encoding === "gzip" || encoding === "x-gzip") {
-    return gunzip(buf);
-  }
-  if (encoding === "deflate") {
-    return inflate(buf);
-  }
-  if (encoding === "br") {
-    return brotliDecompress(buf);
-  }
-  return buf;
-}
 function buildOutgoingHeaders(request) {
   const headers = {};
   request.headers.forEach((value, key) => {
@@ -60733,7 +65070,7 @@ function buildOutgoingHeaders(request) {
   });
   return headers;
 }
-function toFetchApiStatus(statusCode) {
+function toFetchApiStatus2(statusCode) {
   const status = statusCode ?? 502;
   if (status === 304)
     return 200;
@@ -60741,7 +65078,7 @@ function toFetchApiStatus(statusCode) {
 }
 function createNodeHttpResponse(body, statusCode, statusMessage, sourceHeaders, bodyLength) {
   return new Response(body, {
-    status: toFetchApiStatus(statusCode),
+    status: toFetchApiStatus2(statusCode),
     statusText: statusMessage ?? "",
     headers: buildResponseHeaders(sourceHeaders, bodyLength)
   });
@@ -60771,11 +65108,11 @@ function decompressorFor(contentEncoding) {
     return null;
   const encoding = contentEncoding.split(",")[0]?.trim().toLowerCase();
   if (encoding === "gzip" || encoding === "x-gzip")
-    return zlib.createGunzip();
+    return zlib2.createGunzip();
   if (encoding === "deflate")
-    return zlib.createInflate();
+    return zlib2.createInflate();
   if (encoding === "br")
-    return zlib.createBrotliDecompress();
+    return zlib2.createBrotliDecompress();
   return null;
 }
 function requestViaNodeHttp(request) {
@@ -60819,7 +65156,7 @@ function requestViaNodeHttp(request) {
           method: request.method,
           headers
         };
-        const req = isHttps ? https.request(requestOptions, onResponse) : http2.request(requestOptions, onResponse);
+        const req = isHttps ? https2.request(requestOptions, onResponse) : http3.request(requestOptions, onResponse);
         req.on("error", reject);
         if (requestBody !== undefined && requestBody.length > 0) {
           req.write(requestBody);
@@ -60868,7 +65205,7 @@ function requestViaNodeHttpStreaming(request) {
           method: request.method,
           headers
         };
-        const req = isHttps ? https.request(requestOptions, onResponse) : http2.request(requestOptions, onResponse);
+        const req = isHttps ? https2.request(requestOptions, onResponse) : http3.request(requestOptions, onResponse);
         req.on("error", reject);
         if (requestBody !== undefined && requestBody.length > 0) {
           req.write(requestBody);
@@ -60882,32 +65219,32 @@ function requestViaNodeHttpStreaming(request) {
 }
 function createNodeHttpFetch() {
   return (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttp(request);
+    return requestViaNodeHttp(toRequest(input, init));
   };
 }
 function createStreamingNodeHttpFetch() {
   return (input, init) => {
-    const request = input instanceof Request ? input : new Request(input, init);
-    return requestViaNodeHttpStreaming(request);
+    return requestViaNodeHttpStreaming(toRequest(input, init));
   };
 }
 // src/writeFile.ts
-import path6 from "node:path";
+import path5 from "node:path";
 import { mkdir as mkdir4, appendFile, writeFile as writeFile4, access } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 
-// ../core/errors.ts
+// ../types/errorCodes.ts
+var ExistedFileError = "File Already Existed";
+var FileNotFoundError = "File Not Found";
+
+// ../utils/src/errors.ts
 function isError2(error48, message) {
   return error48.startsWith(`${message}:`);
 }
-var ExistedFileError = "File Already Existed";
-function existedFileError(path6) {
-  return `${ExistedFileError}: ${path6}`;
+function existedFileError(path5) {
+  return `${ExistedFileError}: ${path5}`;
 }
-var FileNotFoundError = "File Not Found";
-function fileNotFoundError(path6) {
-  return `${FileNotFoundError}: ${path6}`;
+function fileNotFoundError(path5) {
+  return `${FileNotFoundError}: ${path5}`;
 }
 
 // src/writeFile.ts
@@ -60955,7 +65292,7 @@ async function doWriteFile(body, config2, traceId = "") {
     }
     const { path: filePath, mode, data } = validationResult.data;
     logger?.debug({ traceId, filePath, mode, dataSize: data.length }, "doWriteFile: Processing write request");
-    const resolvedPath = path6.resolve(filePath);
+    const resolvedPath = path5.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: Path not in allowlist");
@@ -60966,7 +65303,7 @@ async function doWriteFile(body, config2, traceId = "") {
     const release = await acquireFileLock(resolvedPath);
     try {
       const validatedPath = resolvedPath;
-      const parentDir = path6.dirname(validatedPath);
+      const parentDir = path5.dirname(validatedPath);
       try {
         await mkdir4(parentDir, { recursive: true });
         logger?.debug({ traceId, parentDir }, "doWriteFile: Parent directory ensured");
@@ -61038,8 +65375,8 @@ async function doWriteFile(body, config2, traceId = "") {
   }
 }
 // src/readFile.ts
-import path7 from "node:path";
-import { access as access2, readFile as readFile4 } from "node:fs/promises";
+import path6 from "node:path";
+import { access as access2, readFile as readFile5 } from "node:fs/promises";
 import { constants as fsConstants2 } from "node:fs";
 var readFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required"),
@@ -61058,7 +65395,7 @@ async function checkFileIsReadable(filePath) {
     return null;
   }
   try {
-    return await readFile4(filePath, "utf-8");
+    return await readFile5(filePath, "utf-8");
   } catch {
     return null;
   }
@@ -61076,7 +65413,7 @@ async function doReadFile(body, config2) {
     const { path: filePath, requireValidPath } = validationResult.data;
     logger?.debug({ filePath, requireValidPath }, "doReadFile: processing request");
     const posixPath = Path.posix(filePath);
-    const resolvedPath = path7.posix.resolve(posixPath);
+    const resolvedPath = path6.posix.resolve(posixPath);
     if (requireValidPath === undefined || requireValidPath === true) {
       const isAllowed = validatePathIsInAllowlist(resolvedPath, allowlist);
       if (!isAllowed) {
@@ -61110,8 +65447,8 @@ async function doReadFile(body, config2) {
   }
 }
 // src/deleteFile.ts
-import path8 from "node:path";
-import { stat as stat7, unlink as unlink3 } from "node:fs/promises";
+import path7 from "node:path";
+import { stat as stat6, unlink as unlink2 } from "node:fs/promises";
 var deleteFileRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "Path is required")
 });
@@ -61127,7 +65464,7 @@ async function doDeleteFile(body, config2) {
     }
     const { path: filePath } = validationResult.data;
     logger?.debug({ filePath }, "doDeleteFile: processing request");
-    const resolvedPath = path8.resolve(filePath);
+    const resolvedPath = path7.resolve(filePath);
     const posixPath = Path.posix(resolvedPath);
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath: posixPath }, "doDeleteFile: path not in allowlist");
@@ -61137,7 +65474,7 @@ async function doDeleteFile(body, config2) {
     }
     const platformPath = Path.toPlatformPath(posixPath);
     try {
-      const fileStats = await stat7(platformPath);
+      const fileStats = await stat6(platformPath);
       if (!fileStats.isFile()) {
         logger?.info({ filePath: platformPath }, "doDeleteFile: path is not a file");
         return {
@@ -61156,7 +65493,7 @@ async function doDeleteFile(body, config2) {
       };
     }
     try {
-      await unlink3(platformPath);
+      await unlink2(platformPath);
       logger?.info({ filePath: platformPath }, "doDeleteFile: file deleted successfully");
       return { data: { path: platformPath } };
     } catch (error48) {
@@ -61183,13 +65520,87 @@ async function doDeleteFile(body, config2) {
     };
   }
 }
+// src/deleteFolder.ts
+import path8 from "node:path";
+import { rm, stat as stat7 } from "node:fs/promises";
+var deleteFolderRequestSchema = exports_external2.object({
+  path: exports_external2.string().min(1, "Path is required")
+});
+async function doDeleteFolder(body, config2) {
+  const { logger, allowlist } = config2;
+  try {
+    const validationResult = deleteFolderRequestSchema.safeParse(body);
+    if (!validationResult.success) {
+      logger?.info({ issues: validationResult.error.issues }, "doDeleteFolder: validation failed");
+      return {
+        error: `Validation Failed: ${validationResult.error.issues.map((i) => i.message).join(", ")}`
+      };
+    }
+    const { path: folderPath } = validationResult.data;
+    logger?.debug({ folderPath }, "doDeleteFolder: processing request");
+    const resolvedPath = path8.resolve(folderPath);
+    const posixPath = Path.posix(resolvedPath);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      logger?.warn({ folderPath: posixPath }, "doDeleteFolder: path not in allowlist");
+      return {
+        error: `Path "${folderPath}" is not in the allowlist`
+      };
+    }
+    const platformPath = Path.toPlatformPath(posixPath);
+    try {
+      const folderStats = await stat7(platformPath);
+      if (!folderStats.isDirectory()) {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: path is not a directory");
+        return {
+          error: `Path Is File: ${folderPath} is a file, not a directory`
+        };
+      }
+    } catch (error48) {
+      const errorCode = error48.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder already absent");
+        return { data: { path: platformPath } };
+      }
+      logger?.error({ folderPath: platformPath, error: error48 }, "doDeleteFolder: cannot access path");
+      return {
+        error: `Cannot access path: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+      };
+    }
+    try {
+      await rm(platformPath, { recursive: true, force: true });
+      logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder deleted successfully");
+      return { data: { path: platformPath } };
+    } catch (error48) {
+      const errorCode = error48.code;
+      if (errorCode === "ENOENT") {
+        logger?.info({ folderPath: platformPath }, "doDeleteFolder: folder already absent during rm");
+        return { data: { path: platformPath } };
+      }
+      if (errorCode === "EACCES" || errorCode === "EPERM") {
+        logger?.warn({ folderPath: platformPath }, "doDeleteFolder: permission denied");
+        return {
+          error: `Permission denied: Cannot delete folder ${folderPath}`
+        };
+      }
+      logger?.error({ folderPath: platformPath, error: error48 }, "doDeleteFolder: rm failed");
+      return {
+        error: `Failed to delete folder ${folderPath}: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+      };
+    }
+  } catch (error48) {
+    logger?.error({ error: error48 }, "doDeleteFolder: unexpected error");
+    return {
+      error: `Unexpected Error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
+    };
+  }
+}
 // src/listFilesInMediaFolder.ts
 var listFilesInMediaFolderRequestSchema = exports_external2.object({
   mediaFolderPath: exports_external2.string().min(1, "The absolute path of the media folder is required"),
   recursively: exports_external2.boolean().optional(),
   videoFileOnly: exports_external2.boolean().optional()
 });
-async function doListFilesInMediaFolder(body, config2 = {}) {
+async function doListFilesInMediaFolder(body, config2 = EMPTY_CORE_ROUTES_CONFIG) {
   const parsed = listFilesInMediaFolderRequestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
@@ -61227,7 +65638,7 @@ async function doListFilesInMediaFolder(body, config2 = {}) {
     };
   }
 }
-// ../core/getMediaFolder.ts
+// ../../apps/core/src/getMediaFolder.ts
 function getMediaFolder(filePath, folderPaths) {
   const filePathNorm = new Path(filePath).abs("posix").replace(/^\/[A-Za-z](?::|\/)/, "");
   for (const folder of folderPaths) {
@@ -61304,83 +65715,8 @@ async function executeBatchRenameOperations(renameMappings, _options = {}) {
 }
 
 // src/validateRenameOperations.ts
-import { stat as stat9 } from "node:fs/promises";
-async function validateSourceFileExist2(tasks) {
-  const missingFiles = [];
-  for (const task of tasks) {
-    try {
-      const platformPath = Path.toPlatformPath(task.from);
-      const stats = await stat9(platformPath);
-      if (!stats.isFile()) {
-        missingFiles.push(task.from);
-      }
-    } catch {
-      missingFiles.push(task.from);
-    }
-  }
-  return {
-    isValid: missingFiles.length === 0,
-    missingFiles
-  };
-}
-async function validateDestFileNotExist2(tasks) {
-  const existingFiles = [];
-  for (const task of tasks) {
-    try {
-      const platformPath = Path.toPlatformPath(task.to);
-      const stats = await stat9(platformPath);
-      if (stats.isFile()) {
-        existingFiles.push(task.to);
-      }
-    } catch {
-      continue;
-    }
-  }
-  return {
-    isValid: existingFiles.length === 0,
-    existingFiles
-  };
-}
 async function validateRenameOperations2(files, folderPathInPosix) {
-  const normalizedTasks = [];
-  for (const renameOp of files) {
-    if (!renameOp) {
-      continue;
-    }
-    normalizedTasks.push({
-      from: Path.posix(renameOp.from),
-      to: Path.posix(renameOp.to)
-    });
-  }
-  if (normalizedTasks.length === 0) {
-    return {
-      isValid: true,
-      errors: [],
-      validatedRenames: []
-    };
-  }
-  const syncResult = validateRenameOperationsSync(normalizedTasks, folderPathInPosix);
-  const errors4 = [...syncResult.errors];
-  const sourceExistResult = await validateSourceFileExist2(normalizedTasks);
-  if (!sourceExistResult.isValid) {
-    for (const missingFile of sourceExistResult.missingFiles) {
-      errors4.push(`Source file "${missingFile}" does not exist in the media folder`);
-    }
-  }
-  const destNotExistResult = await validateDestFileNotExist2(normalizedTasks);
-  if (!destNotExistResult.isValid) {
-    for (const existingFile of destNotExistResult.existingFiles) {
-      errors4.push(`Target file "${existingFile}" already exists in the filesystem`);
-    }
-  }
-  if (errors4.length > 0) {
-    return {
-      isValid: false,
-      errors: errors4,
-      validatedRenames: []
-    };
-  }
-  return syncResult;
+  return validateRenameOperations(files, folderPathInPosix, createNodeRenameFileExistenceProbe());
 }
 
 // src/renameFiles.ts
@@ -61390,6 +65726,7 @@ var requestSchema = exports_external2.object({
     to: exports_external2.string().min(1, "The target file path, absolute path in platform-specific format")
   })).min(1, "At least one file rename is required"),
   traceId: exports_external2.string().optional(),
+  strict: exports_external2.boolean().optional(),
   mediaFolder: exports_external2.string().optional(),
   clientId: exports_external2.string().optional()
 });
@@ -61419,21 +65756,48 @@ async function updateMediaMetadataAndBroadcast(mediaFolder, renameMappings, conf
     }
   });
 }
-async function doRenameFiles(body, config2 = {}, headerClientId) {
+function findAllowlistViolation(paths, allowlist) {
+  for (const path10 of paths) {
+    const posixPath = Path.posix(path10);
+    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
+      return path10;
+    }
+  }
+  return;
+}
+async function doRenameFiles(body, config2 = EMPTY_CORE_ROUTES_CONFIG, headerClientId) {
   const parsed = requestSchema.safeParse(body);
   if (!parsed.success) {
     const msg = parsed.error.issues.map((i) => i.message).join(", ");
     return { error: `Validation Failed: ${msg}` };
   }
-  const { files, traceId, mediaFolder: mediaFolderFromBody, clientId: clientIdFromBody } = parsed.data;
+  const {
+    files,
+    traceId,
+    strict: strictFromBody,
+    mediaFolder: mediaFolderFromBody,
+    clientId: clientIdFromBody
+  } = parsed.data;
+  const strict = strictFromBody ?? true;
   const effectiveClientId = headerClientId ?? clientIdFromBody;
   const logCtx = traceId ? { traceId } : {};
+  if (strict && !mediaFolderFromBody) {
+    return { error: "Validation Failed: mediaFolder is required when strict is true" };
+  }
   const userConfig = await readUserConfig(config2);
   const mediaFolderPath = mediaFolderFromBody ?? getMediaFolder(files[0].from, userConfig.folders ?? []);
   if (mediaFolderPath === null) {
     return { error: `Media folder not found for ${files[0].from}` };
   }
   const mediaFolderInPosix = Path.posix(mediaFolderPath);
+  const pathsToCheck = [
+    mediaFolderPath,
+    ...files.flatMap((f) => [f.from, f.to])
+  ];
+  const violatedPath = findAllowlistViolation(pathsToCheck, config2.allowlist);
+  if (violatedPath !== undefined) {
+    return { error: `Path "${violatedPath}" is not in the allowlist` };
+  }
   const validationResult = await validateRenameOperations2(files, mediaFolderInPosix);
   if (!validationResult.isValid) {
     return { error: validationResult.errors.join(", ") };
@@ -61460,6 +65824,178 @@ async function doRenameFiles(body, config2 = {}, headerClientId) {
     }
   };
 }
+// src/tools/plans.ts
+import { mkdir as mkdir6, readdir as readdir2, stat as stat9, unlink as unlink3 } from "node:fs/promises";
+import path10 from "node:path";
+import { randomUUID as randomUUID3 } from "node:crypto";
+function plansDir2(appDataDir) {
+  return path10.join(appDataDir, "plans");
+}
+function planFilePath2(appDataDir, planId) {
+  return path10.join(plansDir2(appDataDir), `${planId}.plan.json`);
+}
+async function ensurePlansDirExists(appDataDir, fs) {
+  const dir = plansDir2(appDataDir);
+  try {
+    const stats = await stat9(dir);
+    if (!stats.isDirectory()) {
+      throw new Error("Plans path exists but is not a directory");
+    }
+  } catch (error48) {
+    if (error48.code === "ENOENT") {
+      await mkdir6(dir, { recursive: true });
+      return;
+    }
+    throw error48;
+  }
+}
+async function readPlanById(appDataDir, planId, fs) {
+  const plan = await fs.readJson(planFilePath2(appDataDir, planId));
+  if (!plan) {
+    return null;
+  }
+  return normalizePlanPaths(withCreatorDefault(plan));
+}
+async function listPlanFiles(appDataDir) {
+  const dir = plansDir2(appDataDir);
+  try {
+    const stats = await stat9(dir);
+    if (!stats.isDirectory()) {
+      return [];
+    }
+  } catch {
+    return [];
+  }
+  const files = await readdir2(dir);
+  return files.filter((file2) => file2.endsWith(".plan.json")).map((file2) => path10.join(dir, file2));
+}
+function withCreatorDefault(plan) {
+  if (plan.creator) {
+    return plan;
+  }
+  return { ...plan, creator: "app" };
+}
+function normalizePlanPaths(plan) {
+  const mediaFolderPath = Path.posix(plan.mediaFolderPath);
+  if (plan.task === "recognize-media-file") {
+    return {
+      ...plan,
+      mediaFolderPath,
+      files: plan.files.map((f) => ({ ...f, path: Path.posix(f.path) }))
+    };
+  }
+  return {
+    ...plan,
+    mediaFolderPath,
+    files: plan.files.map((f) => ({
+      from: Path.posix(f.from),
+      to: Path.posix(f.to)
+    }))
+  };
+}
+async function createPlan(appDataDir, input, fs) {
+  await ensurePlansDirExists(appDataDir, fs);
+  const id = input.id ?? randomUUID3();
+  const mediaFolderPath = Path.posix(input.mediaFolderPath);
+  const plan = input.task === "recognize-media-file" ? {
+    id,
+    task: "recognize-media-file",
+    status: "preparing",
+    creator: input.creator,
+    mediaFolderPath,
+    files: []
+  } : {
+    id,
+    task: "rename-files",
+    status: "preparing",
+    creator: input.creator,
+    mediaFolderPath,
+    files: []
+  };
+  await fs.writeJson(planFilePath2(appDataDir, id), plan);
+  return plan;
+}
+async function updatePlanContent(appDataDir, id, patch, fs) {
+  const filePath = planFilePath2(appDataDir, id);
+  const existing = await fs.readJson(filePath);
+  if (!existing) {
+    return null;
+  }
+  const merged = withCreatorDefault({
+    ...existing,
+    ...patch.status !== undefined ? { status: patch.status } : {},
+    ...patch.files !== undefined ? { files: patch.files } : {}
+  });
+  const updated = normalizePlanPaths(merged);
+  if (patch.status === "completed") {
+    await deletePlan(appDataDir, id);
+    return updated;
+  }
+  await fs.writeJson(filePath, updated);
+  return updated;
+}
+async function deletePlan(appDataDir, id) {
+  try {
+    await unlink3(planFilePath2(appDataDir, id));
+  } catch (error48) {
+    if (error48.code !== "ENOENT") {
+      throw error48;
+    }
+  }
+}
+async function cleanPreparingPlans(appDataDir, fs, logger) {
+  const start = Date.now();
+  const plansPath = plansDir2(appDataDir);
+  logger?.info({ appDataDir, plansDir: plansPath }, "[cleanup] plan cleanup: scanning for stale preparing plans");
+  const files = await listPlanFiles(appDataDir);
+  logger?.info({ plansDir: plansPath, scanned: files.length }, "[cleanup] plan cleanup: enumerated plan files");
+  let removed = 0;
+  let failed = 0;
+  for (const filePath of files) {
+    try {
+      const plan = await fs.readJson(filePath);
+      if (!plan) {
+        logger?.debug({ filePath }, "[cleanup] plan cleanup: skipping unreadable plan file");
+        continue;
+      }
+      if (plan.status === "preparing") {
+        await unlink3(filePath);
+        removed++;
+        logger?.debug({ filePath, planId: plan.id, task: plan.task }, "[cleanup] plan cleanup: removed stale preparing plan");
+      } else {
+        logger?.debug({ filePath, planId: plan.id, status: plan.status }, "[cleanup] plan cleanup: keeping plan (not preparing)");
+      }
+    } catch (err) {
+      failed++;
+      logger?.warn({ filePath, error: err.message }, "[cleanup] plan cleanup: failed to process plan file, skipping");
+    }
+  }
+  logger?.info({
+    plansDir: plansPath,
+    scanned: files.length,
+    removed,
+    failed,
+    durationMs: Date.now() - start
+  }, "[cleanup] plan cleanup: complete");
+  return removed;
+}
+async function getActivePlansForFolder(appDataDir, mediaFolderPath, fs) {
+  const target = Path.posix(mediaFolderPath);
+  const files = await listPlanFiles(appDataDir);
+  const plans = [];
+  for (const file2 of files) {
+    const plan = await fs.readJson(file2);
+    if (!plan) {
+      continue;
+    }
+    const normalized = normalizePlanPaths(withCreatorDefault(plan));
+    if (normalized.mediaFolderPath === target && isActivePlanStatus(normalized.status)) {
+      plans.push(normalized);
+    }
+  }
+  return plans;
+}
+
 // src/plansApi.ts
 var getPlansRequestSchema = exports_external2.object({
   mediaFolderPath: exports_external2.string().min(1, "mediaFolderPath is required")
@@ -61557,114 +66093,11 @@ async function doUpdatePlan(body, config2 = { allowlist: [] }) {
 async function cleanupStalePlans(appDataDir, fs = defaultChatFs(), logger) {
   return cleanPreparingPlans(appDataDir, fs, logger);
 }
-// src/downloadImage.ts
-import { Buffer as Buffer2 } from "node:buffer";
-import { readFile as readFile5 } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { extname } from "node:path";
-var DEFAULT_CONTENT_TYPE = "image/jpeg";
-var EXTENSION_TO_CONTENT_TYPE = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-  ".ico": "image/x-icon",
-  ".bmp": "image/bmp",
-  ".avif": "image/avif",
-  ".apng": "image/apng"
-};
-function getContentTypeFromExtension(ext) {
-  return EXTENSION_TO_CONTENT_TYPE[ext.toLowerCase()] ?? DEFAULT_CONTENT_TYPE;
-}
-function normalizeUrl(url2) {
-  if (url2.startsWith("//")) {
-    return `https:${url2}`;
-  }
-  return url2;
-}
-var REMOTE_IMAGE_REQUEST_HEADERS = {
-  accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-  "accept-language": "en-US,en;q=0.9",
-  "cache-control": "no-cache",
-  "sec-fetch-dest": "image",
-  "sec-fetch-mode": "no-cors",
-  "sec-fetch-site": "cross-site",
-  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-};
-function describeFetchError(error48) {
-  if (!(error48 instanceof Error)) {
-    return String(error48);
-  }
-  const cause = error48.cause;
-  const causeCode = cause && typeof cause === "object" && "code" in cause ? String(cause.code) : undefined;
-  const causeMessage = cause instanceof Error ? cause.message : undefined;
-  const directCode = !causeCode && typeof error48 === "object" && "code" in error48 ? String(error48.code) : undefined;
-  const directErrno = !causeCode && typeof error48 === "object" && "errno" in error48 ? String(error48.errno) : undefined;
-  const code = causeCode ?? directCode ?? directErrno;
-  const message = causeMessage;
-  const segments = [];
-  if (code)
-    segments.push(code);
-  if (message && message !== code) {
-    segments.push(message);
-  }
-  if (segments.length > 0) {
-    return `${error48.message} (${segments.join(": ")})`;
-  }
-  return error48.message;
-}
-function resolveUrl(url2) {
-  const normalizedUrl = normalizeUrl(url2);
-  if (normalizedUrl.startsWith("file://")) {
-    const platformPath = fileURLToPath(normalizedUrl);
-    return { kind: "file", normalizedUrl, platformPath };
-  }
-  if (normalizedUrl.startsWith("http://") || normalizedUrl.startsWith("https://")) {
-    return { kind: "http", normalizedUrl };
-  }
-  throw new Error(`Invalid image URL: ${url2}. ` + `Must be http://, https://, protocol-relative (//), or file://`);
-}
-async function doDownloadImage(url2, config2) {
-  const { allowlist, logger, fetchImpl = fetch } = config2;
-  const resolved = resolveUrl(url2);
-  logger?.info({ url: resolved.normalizedUrl, kind: resolved.kind }, "[DownloadImage] processing request");
-  if (resolved.kind === "file") {
-    const platformPath = resolved.platformPath;
-    const posixPath = Path.posix(platformPath);
-    if (!validatePathIsInAllowlist(posixPath, allowlist)) {
-      throw new Error(`Permission denied: file ${platformPath} is not allowed to be read`);
-    }
-    const buffer2 = await readFile5(platformPath);
-    const ext = extname(platformPath);
-    const contentType2 = getContentTypeFromExtension(ext);
-    logger?.info({ platformPath, bytes: buffer2.length, contentType: contentType2 }, "[DownloadImage] read file");
-    return { buffer: buffer2, contentType: contentType2 };
-  }
-  let response;
-  try {
-    response = await fetchImpl(resolved.normalizedUrl, {
-      method: "GET",
-      headers: REMOTE_IMAGE_REQUEST_HEADERS
-    });
-  } catch (error48) {
-    throw new Error(`Failed to download image: ${describeFetchError(error48)}`);
-  }
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-  const contentType = response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE;
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer2.from(arrayBuffer);
-  logger?.info({ url: resolved.normalizedUrl, bytes: buffer.length, contentType }, "[DownloadImage] fetched remote image");
-  return { buffer, contentType };
-}
 // src/downloadImageAsFile.ts
 import { Buffer as Buffer3 } from "node:buffer";
 import { writeFile as writeFile5, access as access3 } from "node:fs/promises";
 import { constants as fsConstants3 } from "node:fs";
-import path10 from "node:path";
+import path11 from "node:path";
 var downloadImageAsFileRequestSchema = exports_external2.object({
   url: exports_external2.string().min(1, "url is required"),
   path: exports_external2.string().min(1, "path is required")
@@ -61699,7 +66132,7 @@ async function doDownloadImageAsFile(body, config2) {
     }
     const { url: url2, path: destPath } = validationResult.data;
     logger?.debug({ url: url2, destPath }, "[DownloadImageAsFile] processing request");
-    const posixDestPath = path10.posix.resolve(Path.posix(destPath));
+    const posixDestPath = path11.posix.resolve(Path.posix(destPath));
     if (!validatePathIsInAllowlist(posixDestPath, allowlist)) {
       logger?.warn({ destPath, posixDestPath }, "[DownloadImageAsFile] destination not in allowlist");
       return {
@@ -61770,7 +66203,7 @@ async function doDownloadImageAsFile(body, config2) {
 import { Buffer as Buffer4 } from "node:buffer";
 import { access as access4, readFile as readFile6 } from "node:fs/promises";
 import { constants as fsConstants4 } from "node:fs";
-import path11 from "node:path";
+import path12 from "node:path";
 var readImageRequestSchema = exports_external2.object({
   path: exports_external2.string().min(1, "path is required")
 });
@@ -61799,11 +66232,11 @@ var EXTENSION_TO_MIME = {
   ".tif": "image/tiff"
 };
 function isValidImageFile(filePath) {
-  const ext = path11.extname(filePath).toLowerCase();
+  const ext = path12.extname(filePath).toLowerCase();
   return VALID_IMAGE_EXTENSIONS.includes(ext);
 }
 function getImageMimeType(filePath) {
-  const ext = path11.extname(filePath).toLowerCase();
+  const ext = path12.extname(filePath).toLowerCase();
   return EXTENSION_TO_MIME[ext] ?? "image/jpeg";
 }
 async function fileExists4(filePath) {
@@ -61825,7 +66258,7 @@ async function doReadImage(body, config2) {
       };
     }
     const { path: filePath } = validationResult.data;
-    const posixPath = path11.posix.resolve(Path.posix(filePath));
+    const posixPath = path12.posix.resolve(Path.posix(filePath));
     if (!validatePathIsInAllowlist(posixPath, allowlist)) {
       logger?.warn({ filePath, posixPath }, "[ReadImage] path not in allowlist");
       return {
@@ -61862,6 +66295,375 @@ async function doReadImage(body, config2) {
       error: `Unexpected error: ${error48 instanceof Error ? error48.message : "Unknown error"}`
     };
   }
+}
+// src/discover.ts
+function discoverLog(logger, level, message, details) {
+  const payload = details ?? {};
+  const msg = `[Discover] ${message}`;
+  if (logger) {
+    logger[level](payload, msg);
+    return;
+  }
+  const line = details === undefined ? msg : `${msg} ${JSON.stringify(details)}`;
+  if (level === "error") {
+    console.error(line);
+  } else if (level === "warn") {
+    console.warn(line);
+  } else {
+    console.log(line);
+  }
+}
+var DEFAULT_DISCOVER_CONFIG_URL = "https://lawrenceching.github.io/SMM/config.json";
+var DISCOVER_TIMEOUT_MS = 1e4;
+var EMPTY_DISCOVER_CONFIG = {
+  mediaDatabases: [],
+  reverseProxies: []
+};
+var FALLBACK_MEDIA_DATABASES = [
+  {
+    type: "tmdb",
+    url: "https://mediadb.vercel.app/api/tmdb",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tmdb",
+    url: "https://1255396852-23teay8jtp.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb",
+    url: "https://mediadb.vercel.app/api/tvdb",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb",
+    url: "https://1255396852-24lotax0vl.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tmdb-asset",
+    url: "https://1255396852-19bqcvs6wn.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  },
+  {
+    type: "tvdb-asset",
+    url: "https://1255396852-2gz8ynvtkt.ap-hongkong.tencentscf.com",
+    authorizationMethod: "none"
+  }
+];
+var FALLBACK_DISCOVER_CONFIG = {
+  mediaDatabases: FALLBACK_MEDIA_DATABASES,
+  reverseProxies: []
+};
+function fallbackDiscoverConfig(logger, reason, details) {
+  discoverLog(logger, "warn", `using hardcoded fallback mediaDatabases (${reason})`, {
+    mediaDatabasesCount: FALLBACK_MEDIA_DATABASES.length,
+    ...details
+  });
+  return {
+    mediaDatabases: [...FALLBACK_MEDIA_DATABASES],
+    reverseProxies: []
+  };
+}
+function resolveDiscoverConfigUrl() {
+  const fromEnv = process.env.EXTERNAL_CONFIG_FILE_URL?.trim();
+  if (fromEnv) {
+    return { url: fromEnv, urlFromEnv: true };
+  }
+  return { url: DEFAULT_DISCOVER_CONFIG_URL, urlFromEnv: false };
+}
+function normalizeAuthorizationMethod(value) {
+  if (typeof value !== "string")
+    return "none";
+  if (value === "date-token")
+    return "date-token";
+  return "none";
+}
+function normalizeMediaDatabaseEntry(entry) {
+  const endpointUrl = (entry.baseUrl ?? entry.url ?? "").trim();
+  if (!endpointUrl)
+    return null;
+  const type = entry.type;
+  if (type !== "tmdb" && type !== "tvdb" && type !== "tmdb-asset" && type !== "tvdb-asset") {
+    return null;
+  }
+  return {
+    type,
+    url: endpointUrl,
+    authorizationMethod: normalizeAuthorizationMethod(entry.authorizationMethod)
+  };
+}
+function normalizeReverseProxyEntry(entry) {
+  const id = (entry.id ?? "").trim();
+  const url2 = (entry.url ?? "").trim();
+  if (!id || !url2)
+    return null;
+  const type = entry.type;
+  if (type !== "general")
+    return null;
+  return {
+    id,
+    type,
+    url: url2,
+    authorizationMethod: normalizeAuthorizationMethod(entry.authMethod)
+  };
+}
+function normalizeMediaDatabases(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+  const normalized = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== "object")
+      continue;
+    const entry = normalizeMediaDatabaseEntry(raw);
+    if (entry)
+      normalized.push(entry);
+  }
+  return normalized;
+}
+function normalizeReverseProxies(rawEntries) {
+  if (!Array.isArray(rawEntries)) {
+    return [];
+  }
+  const normalized = [];
+  for (const raw of rawEntries) {
+    if (!raw || typeof raw !== "object")
+      continue;
+    const entry = normalizeReverseProxyEntry(raw);
+    if (entry)
+      normalized.push(entry);
+  }
+  return normalized;
+}
+function normalizeLatestVersion(value) {
+  if (value === undefined || value === null) {
+    return {};
+  }
+  if (typeof value !== "string") {
+    return { invalidReason: `expected string, got ${typeof value}` };
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return { invalidReason: "blank string" };
+  }
+  return { latestVersion: trimmed };
+}
+function formatFetchError(error48) {
+  if (!(error48 instanceof Error)) {
+    return { message: String(error48) };
+  }
+  const cause = error48.cause;
+  return {
+    message: error48.message,
+    name: error48.name,
+    cause: cause instanceof Error ? cause.message : cause !== undefined ? String(cause) : undefined,
+    stack: error48.stack
+  };
+}
+function isAbortError2(error48) {
+  return error48 instanceof Error && error48.name === "AbortError" || typeof DOMException !== "undefined" && error48 instanceof DOMException && error48.name === "AbortError";
+}
+function isPlainObject3(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+async function readResponseBodyPreview(logger, response) {
+  try {
+    const text2 = await response.text();
+    if (!text2)
+      return;
+    return text2.length > 300 ? `${text2.slice(0, 300)}…` : text2;
+  } catch (error48) {
+    discoverLog(logger, "warn", "failed to read response body for preview", {
+      err: formatFetchError(error48)
+    });
+    return;
+  }
+}
+function logEmptyDiscoverResult(logger, url2, durationMs, body, mediaDatabases, latestVersion) {
+  const rawMediaDatabasesCount = Array.isArray(body.mediaDatabases) ? body.mediaDatabases.length : null;
+  const rawReverseProxiesCount = Array.isArray(body.reverseProxies) ? body.reverseProxies.length : null;
+  const common = {
+    url: url2,
+    durationMs,
+    latestVersion,
+    hasLatestVersionField: "latestVersion" in body,
+    rawReverseProxiesCount
+  };
+  if (rawMediaDatabasesCount === null) {
+    discoverLog(logger, "warn", "remote config missing mediaDatabases array", {
+      ...common,
+      hasMediaDatabasesField: false
+    });
+    return;
+  }
+  if (rawMediaDatabasesCount === 0) {
+    discoverLog(logger, "warn", "remote config has empty mediaDatabases array", {
+      ...common,
+      rawMediaDatabasesCount
+    });
+    return;
+  }
+  if (mediaDatabases.length === 0) {
+    discoverLog(logger, "warn", "remote config mediaDatabases entries were all filtered out during normalization", {
+      ...common,
+      rawMediaDatabasesCount,
+      normalizedMediaDatabasesCount: 0
+    });
+  }
+}
+async function doFetchDiscoverConfig(config2 = {}) {
+  const { logger, fetchImpl = fetch } = config2;
+  const { url: url2, urlFromEnv } = resolveDiscoverConfigUrl();
+  const startedAt = Date.now();
+  const controller = new AbortController;
+  const timeout2 = setTimeout(() => controller.abort(), DISCOVER_TIMEOUT_MS);
+  discoverLog(logger, "info", "fetching remote config", {
+    url: url2,
+    urlFromEnv,
+    timeoutMs: DISCOVER_TIMEOUT_MS,
+    method: "GET"
+  });
+  try {
+    let response;
+    try {
+      response = await fetchImpl(url2, {
+        method: "GET",
+        signal: controller.signal,
+        headers: { Accept: "application/json" }
+      });
+    } catch (fetchError) {
+      const durationMs2 = Date.now() - startedAt;
+      const aborted2 = isAbortError2(fetchError) || controller.signal.aborted;
+      discoverLog(logger, "error", aborted2 ? "remote config fetch aborted (timeout or cancellation)" : "failed to fetch remote config", {
+        url: url2,
+        urlFromEnv,
+        durationMs: durationMs2,
+        aborted: aborted2,
+        signalAborted: controller.signal.aborted,
+        timedOut: aborted2 && durationMs2 >= DISCOVER_TIMEOUT_MS - 50,
+        err: formatFetchError(fetchError)
+      });
+      return fallbackDiscoverConfig(logger, aborted2 ? "fetch aborted" : "fetch failed", {
+        url: url2,
+        urlFromEnv,
+        durationMs: durationMs2
+      });
+    }
+    const durationMs = Date.now() - startedAt;
+    discoverLog(logger, "info", "remote config HTTP response", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get("content-type"),
+      redirected: response.redirected,
+      responseUrl: response.url
+    });
+    if (!response.ok) {
+      const bodyPreview = await readResponseBodyPreview(logger, response);
+      discoverLog(logger, "error", "remote config returned non-OK status", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get("content-type"),
+        bodyPreview
+      });
+      return fallbackDiscoverConfig(logger, "non-OK status", {
+        url: url2,
+        status: response.status
+      });
+    }
+    let rawJson;
+    try {
+      rawJson = await response.json();
+    } catch (parseError) {
+      discoverLog(logger, "error", "remote config response is not valid JSON", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        contentType: response.headers.get("content-type"),
+        err: formatFetchError(parseError)
+      });
+      return fallbackDiscoverConfig(logger, "invalid JSON", { url: url2 });
+    }
+    if (!isPlainObject3(rawJson)) {
+      discoverLog(logger, "error", "remote config JSON root is not an object", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        rootType: rawJson === null ? "null" : Array.isArray(rawJson) ? "array" : typeof rawJson
+      });
+      return fallbackDiscoverConfig(logger, "JSON root is not an object", { url: url2 });
+    }
+    let mediaDatabases;
+    let reverseProxies;
+    let latestVersion;
+    try {
+      mediaDatabases = normalizeMediaDatabases(rawJson.mediaDatabases);
+      reverseProxies = normalizeReverseProxies(rawJson.reverseProxies);
+      const versionResult = normalizeLatestVersion(rawJson.latestVersion);
+      if (versionResult.invalidReason) {
+        discoverLog(logger, "warn", "remote config latestVersion ignored", {
+          url: url2,
+          reason: versionResult.invalidReason,
+          rawType: typeof rawJson.latestVersion
+        });
+      }
+      latestVersion = versionResult.latestVersion;
+    } catch (normalizeError) {
+      discoverLog(logger, "error", "failed to normalize remote config", {
+        url: url2,
+        urlFromEnv,
+        durationMs,
+        err: formatFetchError(normalizeError)
+      });
+      return fallbackDiscoverConfig(logger, "normalize failed", { url: url2 });
+    }
+    if (mediaDatabases.length === 0) {
+      logEmptyDiscoverResult(logger, url2, durationMs, rawJson, mediaDatabases, latestVersion);
+      const fallback = fallbackDiscoverConfig(logger, "empty mediaDatabases", {
+        url: url2
+      });
+      return {
+        mediaDatabases: fallback.mediaDatabases,
+        reverseProxies,
+        latestVersion
+      };
+    }
+    discoverLog(logger, "info", "remote config loaded", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      mediaDatabasesCount: mediaDatabases.length,
+      reverseProxiesCount: reverseProxies.length,
+      mediaDatabaseTypes: [
+        ...new Set(mediaDatabases.map((entry) => entry.type))
+      ],
+      latestVersion,
+      hasLatestVersionField: "latestVersion" in rawJson
+    });
+    return { mediaDatabases, reverseProxies, latestVersion };
+  } catch (error48) {
+    const durationMs = Date.now() - startedAt;
+    discoverLog(logger, "error", "unexpected error while loading remote config", {
+      url: url2,
+      urlFromEnv,
+      durationMs,
+      signalAborted: controller.signal.aborted,
+      err: formatFetchError(error48)
+    });
+    return fallbackDiscoverConfig(logger, "unexpected error", { url: url2, durationMs });
+  } finally {
+    clearTimeout(timeout2);
+  }
+}
+async function doFetchDiscoveredMediaDatabases(config2 = {}) {
+  const discoverConfig = await doFetchDiscoverConfig(config2);
+  return discoverConfig.mediaDatabases;
 }
 // src/routes/listFilesRoute.ts
 var emptyListFilesResponse = {
@@ -61932,9 +66734,13 @@ async function handleListFilesPost(req, res, ctx) {
 }
 
 // src/routes/helloRoute.ts
-async function handleHelloPost(req, res, ctx) {
-  if (req.method !== "POST" || ctx.url.pathname !== "/api/hello") {
+async function handleHelloGet(req, res, ctx) {
+  if (req.method !== "GET" || ctx.url.pathname !== "/api/hello") {
     return false;
+  }
+  if (ctx.config.resolveHello) {
+    sendJson(res, 200, ctx.config.resolveHello());
+    return true;
   }
   if (ctx.config.hello === undefined) {
     sendJson(res, 200, { error: "hello not configured" });
@@ -61944,6 +66750,7 @@ async function handleHelloPost(req, res, ctx) {
   sendJson(res, 200, result);
   return true;
 }
+var handleHelloPost = handleHelloGet;
 
 // src/routes/isFolderAvailableRoute.ts
 var isFolderAvailableRequestSchema2 = exports_external2.object({
@@ -62041,6 +66848,27 @@ async function handleDeleteFilePost(req, res, ctx) {
     return true;
   } catch (error48) {
     ctx.config.logger?.error({ error: error48 }, "DeleteFile POST route error");
+    sendJson(res, 400, {
+      error: "Invalid JSON body",
+      details: error48 instanceof Error ? error48.message : "Unknown error"
+    });
+    return true;
+  }
+}
+
+// src/routes/deleteFolderRoute.ts
+async function handleDeleteFolderPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/deleteFolder") {
+    return false;
+  }
+  try {
+    const rawBody = await readJsonBody(req);
+    ctx.config.logger?.info({ rawBody }, "[DeleteFolder] POST /api/deleteFolder");
+    const result = await doDeleteFolder(rawBody, ctx.config);
+    sendJson(res, 200, result);
+    return true;
+  } catch (error48) {
+    ctx.config.logger?.error({ error: error48 }, "DeleteFolder POST route error");
     sendJson(res, 400, {
       error: "Invalid JSON body",
       details: error48 instanceof Error ? error48.message : "Unknown error"
@@ -62172,8 +67000,24 @@ async function handleDownloadImageAsFilePost(req, res, ctx) {
   }
   try {
     const rawBody = await readJsonBody(req);
-    ctx.config.logger?.info({ rawBody }, "[DownloadImageAsFile] POST /api/downloadImage");
-    const result = await doDownloadImageAsFile(rawBody, ctx.config);
+    const { url: url2, path: path13, httpProxy } = rawBody;
+    ctx.config.logger?.info({ url: url2, path: path13 }, "[DownloadImageAsFile] POST /api/downloadImage");
+    const trimmedProxy = httpProxy?.trim();
+    const fetchImpl = trimmedProxy ? createProxiedFetch(trimmedProxy, ctx.config.logger) : ctx.config.fetchImpl;
+    let allowlist = ctx.config.allowlist;
+    if (ctx.config.resolveAllowlist) {
+      try {
+        allowlist = await ctx.config.resolveAllowlist();
+      } catch (error48) {
+        ctx.config.logger?.warn({ error: error48 }, "[DownloadImageAsFile] failed to resolve allowlist, falling back to static");
+        allowlist = ctx.config.allowlist;
+      }
+    }
+    const result = await doDownloadImageAsFile(rawBody, {
+      ...ctx.config,
+      allowlist,
+      fetchImpl
+    });
     sendJson(res, 200, result);
     return true;
   } catch (error48) {
@@ -62207,8 +67051,32 @@ async function handleReadImagePost(req, res, ctx) {
   }
 }
 
+// src/routes/discoverRoute.ts
+async function handleDiscoverGet(req, res, ctx) {
+  if (req.method !== "GET" || ctx.url.pathname !== "/api/discover") {
+    return false;
+  }
+  try {
+    const config2 = await doFetchDiscoverConfig({
+      logger: ctx.config.logger,
+      fetchImpl: ctx.config.fetchImpl
+    });
+    const body = { data: config2 };
+    sendJson(res, 200, body);
+    return true;
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    ctx.config.logger?.error({ error: message }, "[Discover] handleDiscoverGet unexpected throw");
+    sendJson(res, 200, { data: { ...EMPTY_DISCOVER_CONFIG } });
+    return true;
+  }
+}
+
 // src/mcp/lifecycle.ts
 function parseStartOptions(body) {
+  return parseStartOptionsFromBody(body);
+}
+function parseStartOptionsFromBody(body) {
   if (!body || typeof body !== "object") {
     return;
   }
@@ -62320,6 +67188,141 @@ async function handleMcpStatusGet(req, res, ctx) {
   return true;
 }
 
+// src/mcp/mcpServerConfig.ts
+var DEFAULT_MCP_HOST = "127.0.0.1";
+var DEFAULT_MCP_PORT = 30001;
+function mcpErrorMessage(error48) {
+  return error48 instanceof Error ? error48.message : String(error48);
+}
+function resolveMcpStartOptions(config2, options) {
+  return {
+    hostname: options?.hostname ?? config2.mcpHost ?? DEFAULT_MCP_HOST,
+    port: options?.port ?? config2.mcpPort ?? DEFAULT_MCP_PORT
+  };
+}
+async function startMcpServerWithUserConfig(manager, routesConfig, body, operation) {
+  const options = parseStartOptionsFromBody(body);
+  const userConfig = await readUserConfig(routesConfig);
+  const { hostname: hostname3, port } = resolveMcpStartOptions(userConfig, options);
+  try {
+    await manager.start({ hostname: hostname3, port });
+    const state = manager.getState();
+    if (state.status === "error") {
+      return {
+        data: state,
+        error: `Error Reason: ${state.error ?? "Failed to start MCP server"}`
+      };
+    }
+    if (operation?.persistUserConfig !== false) {
+      await writeUserConfigToDisk(routesConfig, {
+        ...userConfig,
+        enableMcpServer: true,
+        mcpHost: hostname3,
+        mcpPort: port
+      });
+    }
+    return { data: state, error: null };
+  } catch (error48) {
+    const message = mcpErrorMessage(error48);
+    const state = manager.getState();
+    return {
+      data: { ...state, status: "error", error: message },
+      error: `Error Reason: ${message}`
+    };
+  }
+}
+async function stopMcpServerWithUserConfig(manager, routesConfig, operation) {
+  const userConfig = await readUserConfig(routesConfig);
+  try {
+    await manager.stop();
+    const state = manager.getState();
+    if (state.status === "error") {
+      return {
+        data: state,
+        error: `Error Reason: ${state.error ?? "Failed to stop MCP server"}`
+      };
+    }
+    return { data: state, error: null };
+  } catch (error48) {
+    const message = mcpErrorMessage(error48);
+    return {
+      data: { status: "error", error: message },
+      error: `Error Reason: ${message}`
+    };
+  } finally {
+    if (operation?.persistUserConfig !== false) {
+      await writeUserConfigToDisk(routesConfig, {
+        ...userConfig,
+        enableMcpServer: false
+      });
+    }
+  }
+}
+async function getMcpServerStatusWithUserConfig(manager, routesConfig) {
+  const state = manager.getState();
+  if (state.status !== "running") {
+    const userConfig = await readUserConfig(routesConfig);
+    if (userConfig.enableMcpServer) {
+      await writeUserConfigToDisk(routesConfig, {
+        ...userConfig,
+        enableMcpServer: false
+      });
+    }
+  }
+  return { data: state, error: null };
+}
+
+// src/routes/mcpServerRpcRoute.ts
+async function handleMcpGetServerStatusGet(req, res, ctx) {
+  if (req.method !== "GET" || ctx.url.pathname !== "/api/get-mcp-server-status") {
+    return false;
+  }
+  const manager = ctx.config.mcp?.manager;
+  if (!manager) {
+    sendJson(res, 200, { error: "Error Reason: MCP lifecycle not configured" });
+    return true;
+  }
+  try {
+    const result = await getMcpServerStatusWithUserConfig(manager, ctx.config);
+    sendJson(res, 200, result);
+  } catch (error48) {
+    const message = error48 instanceof Error ? error48.message : String(error48);
+    sendJson(res, 200, { error: `Error Reason: ${message}` });
+  }
+  return true;
+}
+async function handleMcpStartPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/start-mcp-server") {
+    return false;
+  }
+  const manager = ctx.config.mcp?.manager;
+  if (!manager) {
+    sendJson(res, 200, { error: "Error Reason: MCP lifecycle not configured" });
+    return true;
+  }
+  const body = await readJsonBody(req);
+  const result = await startMcpServerWithUserConfig(manager, ctx.config, body, {
+    persistUserConfig: true
+  });
+  sendJson(res, 200, result);
+  return true;
+}
+async function handleMcpStopPost(req, res, ctx) {
+  if (req.method !== "POST" || ctx.url.pathname !== "/api/stop-mcp-server") {
+    return false;
+  }
+  const manager = ctx.config.mcp?.manager;
+  if (!manager) {
+    sendJson(res, 200, { error: "Error Reason: MCP lifecycle not configured" });
+    return true;
+  }
+  const result = await stopMcpServerWithUserConfig(manager, ctx.config, {
+    persistUserConfig: true
+  });
+  sendJson(res, 200, result);
+  return true;
+}
+
 // src/routes/plansRoute.ts
 async function handleGetPlansPost(req, res, ctx) {
   if (req.method !== "POST" || ctx.url.pathname !== "/api/getPlans") {
@@ -62391,7 +67394,7 @@ var coreRouteHandlers = [
   handleListFilesGet,
   handleListFilesPost,
   handleWriteFilePost,
-  handleHelloPost,
+  handleHelloGet,
   handleIsFolderAvailablePost,
   handleGetEpisodesPost,
   handleListFilesInMediaFolderPost,
@@ -62399,10 +67402,15 @@ var coreRouteHandlers = [
   handleRenameFilesPost,
   handleReadFilePost,
   handleDeleteFilePost,
+  handleDeleteFolderPost,
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
   handleReadImagePost,
+  handleDiscoverGet,
   handleChatPost,
+  handleMcpGetServerStatusGet,
+  handleMcpStartPost,
+  handleMcpStopPost,
   handleMcpStartPut,
   handleMcpStopPut,
   handleMcpStatusGet,
@@ -62436,7 +67444,7 @@ function registerCoreRoutes(server, config2) {
   server.on("request", createCoreRoutesRequestHandler(config2, { fallbackPort }));
 }
 // ../../node_modules/.pnpm/socket.io@4.8.3/node_modules/socket.io/wrapper.mjs
-var import_dist = __toESM(require_dist3(), 1);
+var import_dist = __toESM(require_dist7(), 1);
 var { Server, Namespace, Socket } = import_dist.default;
 
 // src/socketIO/connection.ts
@@ -62700,7 +67708,7 @@ var ZodMiniType = /* @__PURE__ */ $constructor("ZodMiniType", (inst, def) => {
     }, { parent: true });
   };
   inst.with = inst.check;
-  inst.clone = (_def, params) => clone(inst, _def, params);
+  inst.clone = (_def, params) => clone2(inst, _def, params);
   inst.brand = () => inst;
   inst.register = (reg, meta3) => {
     reg.add(inst, meta3);
@@ -62872,10 +67880,10 @@ var SUPPORTED_PROTOCOL_VERSIONS = [LATEST_PROTOCOL_VERSION, "2025-06-18", "2025-
 var RELATED_TASK_META_KEY = "io.modelcontextprotocol/related-task";
 var JSONRPC_VERSION = "2.0";
 var AssertObjectSchema = custom((v) => v !== null && (typeof v === "object" || typeof v === "function"));
-var ProgressTokenSchema = union([string2(), number2().int()]);
+var ProgressTokenSchema = union2([string2(), number2().int()]);
 var CursorSchema = string2();
 var TaskCreationParamsSchema = looseObject({
-  ttl: union([number2(), _null3()]).optional(),
+  ttl: union2([number2(), _null3()]).optional(),
   pollInterval: number2().optional()
 });
 var TaskMetadataSchema = object({
@@ -62909,7 +67917,7 @@ var NotificationSchema = object({
 var ResultSchema = looseObject({
   _meta: RequestMetaSchema.optional()
 });
-var RequestIdSchema = union([string2(), number2().int()]);
+var RequestIdSchema = union2([string2(), number2().int()]);
 var JSONRPCRequestSchema = object({
   jsonrpc: literal(JSONRPC_VERSION),
   id: RequestIdSchema,
@@ -62948,13 +67956,13 @@ var JSONRPCErrorResponseSchema = object({
   })
 }).strict();
 var isJSONRPCErrorResponse = (value) => JSONRPCErrorResponseSchema.safeParse(value).success;
-var JSONRPCMessageSchema = union([
+var JSONRPCMessageSchema = union2([
   JSONRPCRequestSchema,
   JSONRPCNotificationSchema,
   JSONRPCResultResponseSchema,
   JSONRPCErrorResponseSchema
 ]);
-var JSONRPCResponseSchema = union([JSONRPCResultResponseSchema, JSONRPCErrorResponseSchema]);
+var JSONRPCResponseSchema = union2([JSONRPCResultResponseSchema, JSONRPCErrorResponseSchema]);
 var EmptyResultSchema = ResultSchema.strict();
 var CancelledNotificationParamsSchema = NotificationsParamsSchema.extend({
   requestId: RequestIdSchema.optional(),
@@ -62984,7 +67992,7 @@ var ImplementationSchema = BaseMetadataSchema.extend({
   websiteUrl: string2().optional(),
   description: string2().optional()
 });
-var FormElicitationCapabilitySchema = intersection(object({
+var FormElicitationCapabilitySchema = intersection2(object({
   applyDefaults: boolean2().optional()
 }), record(string2(), unknown()));
 var ElicitationCapabilitySchema = preprocess((value) => {
@@ -62994,7 +68002,7 @@ var ElicitationCapabilitySchema = preprocess((value) => {
     }
   }
   return value;
-}, intersection(object({
+}, intersection2(object({
   form: FormElicitationCapabilitySchema.optional(),
   url: AssertObjectSchema.optional()
 }), record(string2(), unknown()).optional()));
@@ -63098,7 +68106,7 @@ var TaskStatusSchema = _enum2(["working", "input_required", "completed", "failed
 var TaskSchema = object({
   taskId: string2(),
   status: TaskStatusSchema,
-  ttl: union([number2(), _null3()]),
+  ttl: union2([number2(), _null3()]),
   createdAt: string2(),
   lastUpdatedAt: string2(),
   pollInterval: optional(number2()),
@@ -63203,7 +68211,7 @@ var ReadResourceRequestSchema = RequestSchema.extend({
   params: ReadResourceRequestParamsSchema
 });
 var ReadResourceResultSchema = ResultSchema.extend({
-  contents: array(union([TextResourceContentsSchema, BlobResourceContentsSchema]))
+  contents: array(union2([TextResourceContentsSchema, BlobResourceContentsSchema]))
 });
 var ResourceListChangedNotificationSchema = NotificationSchema.extend({
   method: literal("notifications/resources/list_changed"),
@@ -63281,14 +68289,14 @@ var ToolUseContentSchema = object({
 });
 var EmbeddedResourceSchema = object({
   type: literal("resource"),
-  resource: union([TextResourceContentsSchema, BlobResourceContentsSchema]),
+  resource: union2([TextResourceContentsSchema, BlobResourceContentsSchema]),
   annotations: AnnotationsSchema.optional(),
   _meta: record(string2(), unknown()).optional()
 });
 var ResourceLinkSchema = ResourceSchema.extend({
   type: literal("resource_link")
 });
-var ContentBlockSchema = union([
+var ContentBlockSchema = union2([
   TextContentSchema,
   ImageContentSchema,
   AudioContentSchema,
@@ -63412,7 +68420,7 @@ var SamplingMessageContentBlockSchema = discriminatedUnion("type", [
 ]);
 var SamplingMessageSchema = object({
   role: RoleSchema,
-  content: union([SamplingMessageContentBlockSchema, array(SamplingMessageContentBlockSchema)]),
+  content: union2([SamplingMessageContentBlockSchema, array(SamplingMessageContentBlockSchema)]),
   _meta: record(string2(), unknown()).optional()
 });
 var CreateMessageRequestParamsSchema = TaskAugmentedRequestParamsSchema.extend({
@@ -63441,7 +68449,7 @@ var CreateMessageResultWithToolsSchema = ResultSchema.extend({
   model: string2(),
   stopReason: optional(_enum2(["endTurn", "stopSequence", "maxTokens", "toolUse"]).or(string2())),
   role: RoleSchema,
-  content: union([SamplingMessageContentBlockSchema, array(SamplingMessageContentBlockSchema)])
+  content: union2([SamplingMessageContentBlockSchema, array(SamplingMessageContentBlockSchema)])
 });
 var BooleanSchemaSchema = object({
   type: literal("boolean"),
@@ -63491,7 +68499,7 @@ var LegacyTitledEnumSchemaSchema = object({
   enumNames: array(string2()).optional(),
   default: string2().optional()
 });
-var SingleSelectEnumSchemaSchema = union([UntitledSingleSelectEnumSchemaSchema, TitledSingleSelectEnumSchemaSchema]);
+var SingleSelectEnumSchemaSchema = union2([UntitledSingleSelectEnumSchemaSchema, TitledSingleSelectEnumSchemaSchema]);
 var UntitledMultiSelectEnumSchemaSchema = object({
   type: literal("array"),
   title: string2().optional(),
@@ -63518,9 +68526,9 @@ var TitledMultiSelectEnumSchemaSchema = object({
   }),
   default: array(string2()).optional()
 });
-var MultiSelectEnumSchemaSchema = union([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema]);
-var EnumSchemaSchema = union([LegacyTitledEnumSchemaSchema, SingleSelectEnumSchemaSchema, MultiSelectEnumSchemaSchema]);
-var PrimitiveSchemaDefinitionSchema = union([EnumSchemaSchema, BooleanSchemaSchema, StringSchemaSchema, NumberSchemaSchema]);
+var MultiSelectEnumSchemaSchema = union2([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema]);
+var EnumSchemaSchema = union2([LegacyTitledEnumSchemaSchema, SingleSelectEnumSchemaSchema, MultiSelectEnumSchemaSchema]);
+var PrimitiveSchemaDefinitionSchema = union2([EnumSchemaSchema, BooleanSchemaSchema, StringSchemaSchema, NumberSchemaSchema]);
 var ElicitRequestFormParamsSchema = TaskAugmentedRequestParamsSchema.extend({
   mode: literal("form").optional(),
   message: string2(),
@@ -63536,7 +68544,7 @@ var ElicitRequestURLParamsSchema = TaskAugmentedRequestParamsSchema.extend({
   elicitationId: string2(),
   url: string2().url()
 });
-var ElicitRequestParamsSchema = union([ElicitRequestFormParamsSchema, ElicitRequestURLParamsSchema]);
+var ElicitRequestParamsSchema = union2([ElicitRequestFormParamsSchema, ElicitRequestURLParamsSchema]);
 var ElicitRequestSchema = RequestSchema.extend({
   method: literal("elicitation/create"),
   params: ElicitRequestParamsSchema
@@ -63550,7 +68558,7 @@ var ElicitationCompleteNotificationSchema = NotificationSchema.extend({
 });
 var ElicitResultSchema = ResultSchema.extend({
   action: _enum2(["accept", "decline", "cancel"]),
-  content: preprocess((val) => val === null ? undefined : val, record(string2(), union([string2(), number2(), boolean2(), array(string2())])).optional())
+  content: preprocess((val) => val === null ? undefined : val, record(string2(), union2([string2(), number2(), boolean2(), array(string2())])).optional())
 });
 var ResourceTemplateReferenceSchema = object({
   type: literal("ref/resource"),
@@ -63561,7 +68569,7 @@ var PromptReferenceSchema = object({
   name: string2()
 });
 var CompleteRequestParamsSchema = BaseRequestParamsSchema.extend({
-  ref: union([PromptReferenceSchema, ResourceTemplateReferenceSchema]),
+  ref: union2([PromptReferenceSchema, ResourceTemplateReferenceSchema]),
   argument: object({
     name: string2(),
     value: string2()
@@ -63607,7 +68615,7 @@ var RootsListChangedNotificationSchema = NotificationSchema.extend({
   method: literal("notifications/roots/list_changed"),
   params: NotificationsParamsSchema.optional()
 });
-var ClientRequestSchema = union([
+var ClientRequestSchema = union2([
   PingRequestSchema,
   InitializeRequestSchema,
   CompleteRequestSchema,
@@ -63626,14 +68634,14 @@ var ClientRequestSchema = union([
   ListTasksRequestSchema,
   CancelTaskRequestSchema
 ]);
-var ClientNotificationSchema = union([
+var ClientNotificationSchema = union2([
   CancelledNotificationSchema,
   ProgressNotificationSchema,
   InitializedNotificationSchema,
   RootsListChangedNotificationSchema,
   TaskStatusNotificationSchema
 ]);
-var ClientResultSchema = union([
+var ClientResultSchema = union2([
   EmptyResultSchema,
   CreateMessageResultSchema,
   CreateMessageResultWithToolsSchema,
@@ -63643,7 +68651,7 @@ var ClientResultSchema = union([
   ListTasksResultSchema,
   CreateTaskResultSchema
 ]);
-var ServerRequestSchema = union([
+var ServerRequestSchema = union2([
   PingRequestSchema,
   CreateMessageRequestSchema,
   ElicitRequestSchema,
@@ -63653,7 +68661,7 @@ var ServerRequestSchema = union([
   ListTasksRequestSchema,
   CancelTaskRequestSchema
 ]);
-var ServerNotificationSchema = union([
+var ServerNotificationSchema = union2([
   CancelledNotificationSchema,
   ProgressNotificationSchema,
   LoggingMessageNotificationSchema,
@@ -63664,7 +68672,7 @@ var ServerNotificationSchema = union([
   TaskStatusNotificationSchema,
   ElicitationCompleteNotificationSchema
 ]);
-var ServerResultSchema = union([
+var ServerResultSchema = union2([
   EmptyResultSchema,
   InitializeResultSchema,
   CompleteResultSchema,
@@ -65807,7 +70815,7 @@ class Protocol {
     };
   }
 }
-function isPlainObject3(value) {
+function isPlainObject4(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function mergeCapabilities(base, additional) {
@@ -65818,7 +70826,7 @@ function mergeCapabilities(base, additional) {
     if (addValue === undefined)
       continue;
     const baseValue = result[k];
-    if (isPlainObject3(baseValue) && isPlainObject3(addValue)) {
+    if (isPlainObject4(baseValue) && isPlainObject4(addValue)) {
       result[k] = { ...baseValue, ...addValue };
     } else {
       result[k] = addValue;
@@ -65829,7 +70837,7 @@ function mergeCapabilities(base, additional) {
 
 // ../../node_modules/.pnpm/@modelcontextprotocol+sdk@1.27.0_zod@4.3.6/node_modules/@modelcontextprotocol/sdk/dist/esm/validation/ajv-provider.js
 var import_ajv = __toESM(require_ajv(), 1);
-var import_ajv_formats = __toESM(require_dist4(), 1);
+var import_ajv_formats = __toESM(require_dist8(), 1);
 function createDefaultAjvInstance() {
   const ajv = new import_ajv.default({
     strict: false,
@@ -66058,17 +71066,6 @@ class Server2 extends Protocol {
             throw new McpError(ErrorCode.InvalidParams, `Invalid task creation result: ${errorMessage}`);
           }
           return taskValidationResult.data;
-        }
-        if (typeof result === "object" && result !== null && "content" in result) {
-          const content0 = result.content?.[0];
-          console.error("[DIAG-SRV] result keys:", Object.keys(result));
-          console.error("[DIAG-SRV] content[0]:", JSON.stringify(content0));
-          console.error("[DIAG-SRV] content[0].text typeof:", typeof content0?.text);
-          if (content0?.text !== undefined) {
-            console.error("[DIAG-SRV] content[0].text length:", content0.text.length);
-          }
-        } else {
-          console.error("[DIAG-SRV] result has NO content:", JSON.stringify(result));
         }
         const validationResult = safeParse3(CallToolResultSchema, result);
         if (!validationResult.success) {
@@ -67646,264 +72643,41 @@ data:
   }
 }
 
-// src/mcp/toolHandlers/addRecognizedFile.ts
-function registerAddRecognizedFileTool(server, config2) {
-  const fs = config2.fs ?? defaultChatFs();
-  const deps = defaultRecognizeFilesTaskDeps(fs);
-  const agentTool = buildAddRecognizedMediaFileTool("mcp", config2.appDataDir, fs, config2.logger, undefined, deps);
-  const inputSchema = exports_external.object({
-    taskId: exports_external.string().describe("The task ID from begin-recognize-task"),
-    season: exports_external.number().describe("The season number of the episode"),
-    episode: exports_external.number().describe("The episode number"),
-    path: exports_external.string().describe("The absolute path of the media file (POSIX or Windows format)")
+// src/mcp/toolHandlers/createRecognizeEpisodePlan.ts
+function registerCreateRecognizeEpisodePlanTool(server, config2) {
+  const tool2 = buildCreateRecognizeEpisodePlanTool(config2.appDataDir, config2.fs ?? defaultChatFs(), config2.broadcast, config2.logger, undefined, {
+    getUserConfig: config2.getUserConfig,
+    applyRecognizeEpisodePlan: config2.applyRecognizeEpisodePlan
   });
-  server.registerTool(ADD_RECOGNIZED_MEDIA_FILE, {
-    description: agentTool.description,
-    inputSchema
+  const description = config2.toolDescriptions?.[CREATE_RECOGNIZE_EPISODE_PLAN] ?? CREATE_RECOGNIZE_EPISODE_PLAN_DESCRIPTION;
+  server.registerTool(CREATE_RECOGNIZE_EPISODE_PLAN, {
+    description,
+    inputSchema: createRecognizeEpisodePlanInputSchema
   }, async (args) => {
-    const { taskId, season, episode, path: path12 } = args ?? {};
-    if (typeof taskId !== "string" || taskId.trim() === "") {
-      return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
+    const result = await tool2.execute(args);
+    if (result.error) {
+      return createErrorResponse(result.error);
     }
-    if (typeof season !== "number" || season < 0) {
-      return createErrorResponse("Invalid season: 'season' must be a non-negative number");
-    }
-    if (typeof episode !== "number" || episode < 0) {
-      return createErrorResponse("Invalid episode: 'episode' must be a non-negative number");
-    }
-    if (typeof path12 !== "string" || path12.trim() === "") {
-      return createErrorResponse("Invalid path: 'path' must be a non-empty string");
-    }
-    try {
-      const result = await agentTool.execute({
-        taskId,
-        season,
-        episode,
-        path: Path.posix(path12)
-      });
-      if (typeof result === "object" && result !== null && "error" in result && typeof result.error === "string") {
-        return createSuccessResponse({
-          success: false,
-          error: result.error
-        });
-      }
-      return createSuccessResponse({ success: true, taskId });
-    } catch (error48) {
-      return createErrorResponse(`Error adding recognized file: ${error48 instanceof Error ? error48.message : String(error48)}`);
-    }
+    return createSuccessResponse(result);
   });
 }
 
-// src/mcp/toolHandlers/addRenameFile.ts
-import { extname as extname2 } from "node:path";
-function registerAddRenameFileTool(server, config2, deps) {
-  const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildAddRenameFileToTaskTool("mcp", config2.appDataDir, fs, deps, config2.logger, undefined);
-  const inputSchema = exports_external.object({
-    taskId: exports_external.string().describe("The task ID returned from begin-rename-task"),
-    from: exports_external.string().describe("The current absolute path of the file to rename"),
-    to: exports_external.string().describe("The new absolute path for the file")
+// src/mcp/toolHandlers/createRenameEpisodePlan.ts
+function registerCreateRenameEpisodePlanTool(server, config2) {
+  const tool2 = buildCreateRenameEpisodePlanTool(config2.appDataDir, config2.fs ?? defaultChatFs(), config2.broadcast, config2.logger, undefined, {
+    getUserConfig: config2.getUserConfig,
+    applyRenameEpisodePlan: config2.applyRenameEpisodePlan
   });
-  server.registerTool(ADD_RENAME_FILE_TO_TASK, {
-    description: agentTool.description,
-    inputSchema
+  const description = config2.toolDescriptions?.[CREATE_RENAME_EPISODE_PLAN] ?? CREATE_RENAME_EPISODE_PLAN_DESCRIPTION;
+  server.registerTool(CREATE_RENAME_EPISODE_PLAN, {
+    description,
+    inputSchema: createRenameEpisodePlanInputSchema
   }, async (args) => {
-    const { taskId, from, to } = args ?? {};
-    if (typeof taskId !== "string" || taskId.trim() === "") {
-      return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
+    const result = await tool2.execute(args);
+    if (result.error) {
+      return createErrorResponse(result.error);
     }
-    if (typeof from !== "string" || from.trim() === "") {
-      return createErrorResponse("Invalid path: 'from' must be a non-empty string");
-    }
-    if (typeof to !== "string" || to.trim() === "") {
-      return createErrorResponse("Invalid path: 'to' must be a non-empty string");
-    }
-    if (!isVideoFile2(from)) {
-      return createErrorResponse("Invalid path: 'from' must be a video file");
-    }
-    if (!isVideoFile2(to)) {
-      return createErrorResponse("Invalid path: 'to' must be a video file");
-    }
-    try {
-      const result = await agentTool.execute({
-        taskId,
-        from: Path.posix(from),
-        to: Path.posix(to)
-      });
-      if (typeof result === "object" && result !== null && "error" in result && typeof result.error === "string") {
-        const message = result.error;
-        if (message.includes("Not Episode Video File")) {
-          return createSuccessResponse({
-            success: false,
-            error: `"${from}" is not video file to any episode, you're not allowed to rename it. ` + `Call "get-episodes" tool to get the list of episode video files that needs to rename.`
-          });
-        }
-        return createSuccessResponse({ success: false, error: message });
-      }
-      return createSuccessResponse({ success: true, taskId });
-    } catch (error48) {
-      const message = error48 instanceof Error ? error48.message : String(error48);
-      if (message.includes("Not Episode Video File")) {
-        return createErrorResponse(`"${from}" is not video file to any episode, you're not allowed to rename it. ` + `Call "get-episodes" tool to get the list of episode video files that needs to rename.`);
-      }
-      return createErrorResponse(message);
-    }
-  });
-}
-function isVideoFile2(filePath) {
-  const extension = extname2(filePath).toLowerCase();
-  return videoFileExtensions.includes(extension);
-}
-
-// src/mcp/toolHandlers/beginRecognizeTask.ts
-function registerBeginRecognizeTaskTool(server, config2) {
-  const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
-  const inputSchema = exports_external.object({
-    mediaFolderPath: exports_external.string().describe("The absolute path of the media folder")
-  });
-  server.registerTool(BEGIN_RECOGNIZE_TASK, {
-    description: agentTool.description,
-    inputSchema
-  }, async (args) => {
-    const { mediaFolderPath } = args ?? {};
-    if (typeof mediaFolderPath !== "string" || mediaFolderPath.trim() === "") {
-      return createErrorResponse("Invalid path: 'mediaFolderPath' must be a non-empty string");
-    }
-    try {
-      const result = await agentTool.execute({ mediaFolderPath });
-      if (typeof result === "object" && result !== null && "error" in result) {
-        const errorResult = result;
-        if (errorResult.error) {
-          return createErrorResponse(errorResult.error);
-        }
-      }
-      if (typeof result === "object" && result !== null && "taskId" in result) {
-        return createSuccessResponse({
-          success: true,
-          taskId: result.taskId,
-          mediaFolderPath: Path.posix(mediaFolderPath)
-        });
-      }
-      return createSuccessResponse(result);
-    } catch (error48) {
-      return createErrorResponse(`Error starting recognize task: ${error48 instanceof Error ? error48.message : String(error48)}`);
-    }
-  });
-}
-
-// src/mcp/toolHandlers/beginRenameTask.ts
-function registerBeginRenameTaskTool(server, config2, deps) {
-  const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildBeginRenameFilesTaskTool("mcp", config2.appDataDir, fs, deps, config2.broadcast, config2.logger, undefined);
-  const inputSchema = exports_external.object({
-    mediaFolderPath: exports_external.string().describe("The absolute path of the media folder, in POSIX or Windows format")
-  });
-  server.registerTool(BEGIN_RENAME_FILES_TASK, {
-    description: agentTool.description,
-    inputSchema
-  }, async (args) => {
-    const { mediaFolderPath } = args ?? {};
-    if (typeof mediaFolderPath !== "string" || mediaFolderPath.trim() === "") {
-      return createErrorResponse("Invalid path: 'mediaFolderPath' must be a non-empty string");
-    }
-    try {
-      const result = await agentTool.execute({ mediaFolderPath });
-      if (typeof result === "object" && result !== null && "error" in result) {
-        const errorResult = result;
-        if (errorResult.error) {
-          return createErrorResponse(errorResult.error);
-        }
-      }
-      if (typeof result === "object" && result !== null && "taskId" in result) {
-        return createSuccessResponse({
-          success: true,
-          taskId: result.taskId,
-          mediaFolderPath: Path.posix(mediaFolderPath)
-        });
-      }
-      config2.logger?.error?.({
-        resultType: typeof result,
-        resultKeys: typeof result === "object" && result !== null ? Object.keys(result) : []
-      }, `[tool][${BEGIN_RENAME_FILES_TASK}] Unexpected agent tool result shape`);
-      return createSuccessResponse(result);
-    } catch (error48) {
-      return createErrorResponse(`Error starting rename task: ${error48 instanceof Error ? error48.message : String(error48)}`);
-    }
-  });
-}
-
-// src/mcp/toolHandlers/endRecognizeTask.ts
-function registerEndRecognizeTaskTool(server, config2) {
-  const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildEndRecognizeTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
-  const inputSchema = exports_external.object({
-    taskId: exports_external.string().describe("The task ID from begin-recognize-task")
-  });
-  server.registerTool(END_RECOGNIZE_TASK, {
-    description: agentTool.description,
-    inputSchema
-  }, async (args) => {
-    const { taskId } = args ?? {};
-    if (typeof taskId !== "string" || taskId.trim() === "") {
-      return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
-    }
-    try {
-      const result = await agentTool.execute({ taskId });
-      if (typeof result === "object" && result !== null && "error" in result) {
-        const errorResult = result;
-        if (errorResult.error) {
-          return createSuccessResponse({
-            success: false,
-            error: errorResult.error
-          });
-        }
-      }
-      return createSuccessResponse({
-        success: true,
-        taskId,
-        message: END_PLAN_TASK_SUCCESS_MESSAGE
-      });
-    } catch (error48) {
-      return createErrorResponse(`Error ending recognize task: ${error48 instanceof Error ? error48.message : String(error48)}`);
-    }
-  });
-}
-
-// src/mcp/toolHandlers/endRenameTask.ts
-function registerEndRenameTaskTool(server, config2, deps) {
-  const fs = config2.fs ?? defaultChatFs();
-  const agentTool = buildEndRenameFilesTaskTool("mcp", config2.appDataDir, fs, config2.broadcast, config2.logger, undefined);
-  const inputSchema = exports_external.object({
-    taskId: exports_external.string().describe("The task ID returned from begin-rename-task")
-  });
-  server.registerTool(END_RENAME_FILES_TASK, {
-    description: agentTool.description,
-    inputSchema
-  }, async (args) => {
-    const { taskId } = args ?? {};
-    if (typeof taskId !== "string" || taskId.trim() === "") {
-      return createErrorResponse("Invalid taskId: 'taskId' must be a non-empty string");
-    }
-    try {
-      const result = await agentTool.execute({ taskId });
-      if (typeof result === "object" && result !== null && "error" in result) {
-        const errorResult = result;
-        if (errorResult.error) {
-          return createSuccessResponse({
-            success: false,
-            error: errorResult.error
-          });
-        }
-      }
-      return createSuccessResponse({
-        success: true,
-        taskId,
-        message: END_PLAN_TASK_SUCCESS_MESSAGE
-      });
-    } catch (error48) {
-      return createErrorResponse(`Error ending rename task: ${error48 instanceof Error ? error48.message : String(error48)}`);
-    }
+    return createSuccessResponse(result);
   });
 }
 
@@ -68107,12 +72881,12 @@ function registerIsFolderExistTool(server, config2) {
     inputSchema: isFolderExistInputSchema,
     outputSchema: isFolderExistOutputSchema
   }, async (args) => {
-    const { path: path12 } = args ?? {};
-    if (typeof path12 !== "string" || path12.trim() === "") {
+    const { path: path13 } = args ?? {};
+    if (typeof path13 !== "string" || path13.trim() === "") {
       return createErrorResponse("Invalid path: 'path' must be a non-empty string");
     }
     try {
-      const result = await executeIsFolderExist(path12);
+      const result = await executeIsFolderExist(path13);
       return createSuccessResponse(result);
     } catch (error48) {
       return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
@@ -68222,6 +72996,231 @@ function registerRenameFolderTool(server, config2) {
   });
 }
 
+// src/mcp/toolHandlers/renameEpisodeFile.ts
+function registerRenameEpisodeFileTool(server, config2) {
+  const description = config2.toolDescriptions?.[RENAME_EPISODE_FILE] ?? RENAME_EPISODE_FILE_DESCRIPTION;
+  server.registerTool(RENAME_EPISODE_FILE, {
+    description,
+    inputSchema: renameEpisodeFileInputSchema,
+    outputSchema: renameEpisodeFileOutputSchema
+  }, async (args) => {
+    const params = args ?? {};
+    if (typeof params.mediaFolder !== "string" || params.mediaFolder.trim() === "") {
+      return createErrorResponse("Invalid path: 'mediaFolder' must be a non-empty string");
+    }
+    if (typeof params.from !== "string" || params.from.trim() === "") {
+      return createErrorResponse("Invalid path: 'from' must be a non-empty string");
+    }
+    if (typeof params.to !== "string" || params.to.trim() === "") {
+      return createErrorResponse("Invalid path: 'to' must be a non-empty string");
+    }
+    try {
+      if (config2.acknowledge) {
+        const confirmationMessage = buildRenameEpisodeFileConfirmationMessage(params.from, params.to);
+        const responseData = await config2.acknowledge({
+          event: "askForConfirmation",
+          data: { message: confirmationMessage },
+          clientId: "mcp"
+        }, 30000);
+        const confirmed = responseData?.confirmed ?? responseData?.response === "yes";
+        if (!confirmed) {
+          return createSuccessResponse(renameEpisodeFileCancelled(params.mediaFolder, params.from, params.to));
+        }
+      }
+      const result = await executeRenameEpisodeFile({
+        mediaFolder: params.mediaFolder,
+        from: params.from,
+        to: params.to
+      }, config2.renameEpisodeFile);
+      if (result.renamed) {
+        config2.broadcast?.({
+          event: "mediaMetadataUpdated",
+          data: {
+            folderPath: Path.posix(params.mediaFolder)
+          }
+        });
+      }
+      if (result.error && !result.renamed) {
+        return createSuccessResponse(result);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+}
+
+// src/mcp/toolHandlers/scrape.ts
+function registerScrapeTool(server, config2) {
+  const description = config2.toolDescriptions?.[SCRAPE] ?? SCRAPE_DESCRIPTION;
+  server.registerTool(SCRAPE, {
+    description,
+    inputSchema: scrapeInputSchema,
+    outputSchema: scrapeOutputSchema
+  }, async (args) => {
+    const params = args ?? {};
+    if (typeof params.path !== "string" || params.path.trim() === "") {
+      return createErrorResponse("Invalid path: 'path' must be a non-empty string");
+    }
+    try {
+      const result = await executeScrape({
+        path: params.path,
+        language: params.language
+      }, config2.scrapeFolder);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+}
+
+// src/mcp/toolHandlers/getJob.ts
+function registerGetJobTool(server, config2) {
+  const description = config2.toolDescriptions?.[GET_JOB] ?? GET_JOB_DESCRIPTION;
+  server.registerTool(GET_JOB, {
+    description,
+    inputSchema: getJobInputSchema,
+    outputSchema: getJobOutputSchema
+  }, async (args) => {
+    const params = args ?? {};
+    if (typeof params.id !== "string" || params.id.trim() === "") {
+      return createErrorResponse("Invalid id: 'id' must be a non-empty string");
+    }
+    try {
+      const result = await executeGetJob(params.id, config2.getJob);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+}
+
+// src/mcp/toolHandlers/tmdbTools.ts
+function registerTmdbTools(server, config2) {
+  const searchDescription = config2.toolDescriptions?.[TMDB_SEARCH] ?? TMDB_SEARCH_DESCRIPTION;
+  const movieDescription = config2.toolDescriptions?.[TMDB_GET_MOVIE] ?? TMDB_GET_MOVIE_DESCRIPTION;
+  const tvShowDescription = config2.toolDescriptions?.[TMDB_GET_TV_SHOW] ?? TMDB_GET_TV_SHOW_DESCRIPTION;
+  server.registerTool(TMDB_SEARCH, {
+    description: searchDescription,
+    inputSchema: tmdbSearchInputSchema,
+    outputSchema: tmdbSearchOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTmdbSearch(args ?? {}, config2.searchInTmdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+  server.registerTool(TMDB_GET_MOVIE, {
+    description: movieDescription,
+    inputSchema: tmdbGetMovieInputSchema,
+    outputSchema: tmdbGetMovieOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTmdbGetMovie(args ?? {}, config2.getMovieInTmdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+  server.registerTool(TMDB_GET_TV_SHOW, {
+    description: tvShowDescription,
+    inputSchema: tmdbGetTvShowInputSchema,
+    outputSchema: tmdbGetTvShowOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTmdbGetTvShow(args ?? {}, config2.getTvShowInTmdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+}
+
+// src/mcp/toolHandlers/tvdbTools.ts
+function registerTvdbTools(server, config2) {
+  const searchDescription = config2.toolDescriptions?.[TVDB_SEARCH] ?? TVDB_SEARCH_DESCRIPTION;
+  const movieDescription = config2.toolDescriptions?.[TVDB_GET_MOVIE] ?? TVDB_GET_MOVIE_DESCRIPTION;
+  const tvShowDescription = config2.toolDescriptions?.[TVDB_GET_TV_SHOW] ?? TVDB_GET_TV_SHOW_DESCRIPTION;
+  const languagesDescription = config2.toolDescriptions?.[TVDB_GET_LANGUAGES] ?? TVDB_GET_LANGUAGES_DESCRIPTION;
+  server.registerTool(TVDB_SEARCH, {
+    description: searchDescription,
+    inputSchema: tvdbSearchInputSchema,
+    outputSchema: tvdbSearchOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTvdbSearch(args ?? {}, config2.searchInTvdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+  server.registerTool(TVDB_GET_MOVIE, {
+    description: movieDescription,
+    inputSchema: tvdbGetMovieInputSchema,
+    outputSchema: tvdbGetMovieOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTvdbGetMovie(args ?? {}, config2.getMovieInTvdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+  server.registerTool(TVDB_GET_TV_SHOW, {
+    description: tvShowDescription,
+    inputSchema: tvdbGetTvShowInputSchema,
+    outputSchema: tvdbGetTvShowOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTvdbGetTvShow(args ?? {}, config2.getTvShowInTvdb);
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+  server.registerTool(TVDB_GET_LANGUAGES, {
+    description: languagesDescription,
+    inputSchema: tvdbGetLanguagesInputSchema,
+    outputSchema: tvdbGetLanguagesOutputSchema
+  }, async (args) => {
+    try {
+      const result = await executeTvdbGetLanguages(config2.getTvdbLanguages, args ?? {});
+      if (result.error) {
+        return createErrorResponse(result.error);
+      }
+      return createSuccessResponse(result);
+    } catch (error48) {
+      return createErrorResponse(error48 instanceof Error ? error48.message : String(error48));
+    }
+  });
+}
+
 // src/mcp/toolHandlers/staticText.ts
 var README_CONTENT = `# Simple Media Manager (SMM)
 
@@ -68280,9 +73279,7 @@ AI助手应该参考一下步骤:
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
 3. 使用 "get-episodes" 工具获取需要季集视频文件
 4. 思考重命名命名方案
-5. 使用 "begin-rename-episode-video-file-task" 工具开始重命名任务
-6. 使用 "add-rename-episode-video-file-to-task" 工具添加需要重命名的文件
-7. 使用 "end-rename-episode-video-file-task" 工具结束重命名任务
+5. 使用 "create-rename-episode-plan" 工具一次提交全部需要重命名的文件
 
 ## 文件命名规则
 
@@ -68320,9 +73317,9 @@ AI助手应该参考以下步骤:
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
 3. 使用 "list-files" 工具列出媒体目录下的所有视频文件
 4. 对比视频文件名和季集信息, 为每个视频文件确定它属于哪一季的哪一集
-5. 使用 "begin-recognize-task" 工具开始识别任务
-6. 使用 "add-recognized-file" 工具添加每个视频文件的识别结果
-7. 使用 "end-recognize-task" 工具结束识别任务
+5. 使用 "create-recognize-episode-plan" 工具一次性提交识别计划, 指定媒体文件夹路径和所有视频文件的 season/episode/path 映射
+
+**NOTE** 识别任务完成后, SMM 会在后台处理识别计划, 用户可以在 SMM UI 中查看和确认识别结果.
 `;
 var STATIC_TEXT_TOOLS = {
   "how-to-rename-episode-video-files": HOW_TO_RENAME_EPISODE_VIDEO_FILES,
@@ -68354,8 +73351,6 @@ function registerStaticTextTools(server, config2) {
 
 // src/mcp/createServer.ts
 async function createMcpStreamableHttpHandler(config2) {
-  const fs = config2.fs ?? defaultChatFs();
-  const renameFilesTaskDeps = defaultRenameFilesTaskDeps(config2.appDataDir);
   const server = new McpServer({
     name: "Simple Media Manager (SMM)",
     version: "1.0.0",
@@ -68370,16 +73365,23 @@ async function createMcpStreamableHttpHandler(config2) {
   registerIsFolderExistTool(server, config2);
   registerListFilesTool(server, config2);
   registerGetMediaMetadataTool(server, config2);
+  registerTmdbTools(server, config2);
+  registerTvdbTools(server, config2);
   registerStaticTextTools(server, config2);
   if (!config2.disabledTools?.includes(RENAME_FOLDER)) {
     registerRenameFolderTool(server, config2);
   }
-  registerBeginRenameTaskTool(server, config2, renameFilesTaskDeps);
-  registerAddRenameFileTool(server, config2, renameFilesTaskDeps);
-  registerEndRenameTaskTool(server, config2, renameFilesTaskDeps);
-  registerBeginRecognizeTaskTool(server, config2);
-  registerAddRecognizedFileTool(server, config2);
-  registerEndRecognizeTaskTool(server, config2);
+  if (!config2.disabledTools?.includes(RENAME_EPISODE_FILE)) {
+    registerRenameEpisodeFileTool(server, config2);
+  }
+  if (!config2.disabledTools?.includes(SCRAPE)) {
+    registerScrapeTool(server, config2);
+  }
+  if (!config2.disabledTools?.includes(GET_JOB)) {
+    registerGetJobTool(server, config2);
+  }
+  registerCreateRenameEpisodePlanTool(server, config2);
+  registerCreateRecognizeEpisodePlanTool(server, config2);
   registerGetEpisodeTool(server, config2);
   registerGetEpisodesTool(server, config2);
   await server.connect(new WebStandardStreamableHTTPServerTransport({}));
@@ -68404,13 +73406,29 @@ function createErrorResponse(message) {
   };
 }
 // src/mcp/index.ts
-var MCP_TOOL_NAMES = { RENAME_FOLDER };
+var MCP_TOOL_NAMES = {
+  RENAME_FOLDER,
+  RENAME_EPISODE_FILE,
+  SCRAPE,
+  GET_JOB,
+  TMDB_SEARCH,
+  TMDB_GET_MOVIE,
+  TMDB_GET_TV_SHOW
+};
 export {
   validateUpstreamBaseURL,
   validatePathIsInAllowlist,
+  stopMcpServerWithUserConfig,
+  startMcpServerWithUserConfig,
+  resolveWebUiBindAddress,
+  resolveReverseProxyBindAddress,
+  resolveReverseProxyAdvertisedHost,
+  resolveMcpBindAddress,
+  resolveMcpAdvertisedHost,
   resolveFolderExistence,
   rejectUnauthorized,
   registerCoreRoutes,
+  parseStartOptionsFromBody,
   parseBearerToken,
   migrateAIConfig,
   isRequestAuthorized,
@@ -68424,24 +73442,33 @@ export {
   handleReadFilePost,
   handleProxyRequest,
   handleMcpStopPut,
+  handleMcpStopPost,
   handleMcpStatusGet,
   handleMcpStartPut,
+  handleMcpStartPost,
+  handleMcpGetServerStatusGet,
   handleListFilesPost,
   handleListFilesInMediaFolderPost,
   handleListFilesGet,
   handleIsFolderAvailablePost,
   handleHelloPost,
+  handleHelloGet,
   handleGetPlansPost,
   handleGetEpisodesPost,
   handleDownloadImageGet,
   handleDownloadImageAsFilePost,
+  handleDiscoverGet,
+  handleDeleteFolderPost,
   handleDeleteFilePost,
   handleCreatePlanPost,
   handleCoreRoutesRequest,
   handleChatPost,
+  getMcpServerStatusWithUserConfig,
   findAvailableReverseProxyPort,
   filterResponseHeaders,
   filterRequestHeaders,
+  executeScrape,
+  executeGetJob,
   enforceCoreRoutesAuth,
   doWriteFile,
   doUpdatePlan,
@@ -68459,8 +73486,11 @@ export {
   doGetPlans,
   doGetPlanById,
   doGetEpisodes,
+  doFetchDiscoveredMediaDatabases,
+  doFetchDiscoverConfig,
   doDownloadImageAsFile,
   doDownloadImage,
+  doDeleteFolder,
   doDeleteFile,
   doCreatePlan,
   doChat,
@@ -68470,7 +73500,9 @@ export {
   createSocketIOManager,
   createReverseProxyRequestHandler,
   createReverseProxyManager,
+  createProxiedFetch,
   createOpenAICompatible,
+  createNodeRenameFileExistenceProbe,
   createNodeHttpFetch,
   createMcpStreamableHttpHandler,
   createErrorResponse,
@@ -68482,10 +73514,18 @@ export {
   checkFolderPathAvailable,
   checkFileIsReadable,
   buildUpstreamUrl,
+  buildScrapeTool,
+  buildGetJobTool,
   applyMcpLifecycleFromConfig,
   PORT_RANGE_START,
   PORT_RANGE_END,
   MCP_TOOL_NAMES,
+  FALLBACK_DISCOVER_CONFIG,
   ExistedFileError,
+  EMPTY_DISCOVER_CONFIG,
+  DISCOVER_TIMEOUT_MS,
+  DEFAULT_MCP_PORT,
+  DEFAULT_MCP_HOST,
+  DEFAULT_DISCOVER_CONFIG_URL,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS
 };

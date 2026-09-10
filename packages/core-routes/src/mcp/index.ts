@@ -29,26 +29,6 @@ export {
   type McpLifecycleResult,
   type McpStartRequestBody,
 } from "./lifecycle.ts";
-export {
-  getMcpServerStatusWithUserConfig,
-  startMcpServerWithUserConfig,
-  stopMcpServerWithUserConfig,
-  type McpServerStateResponse,
-  type McpServerOperationOptions,
-  DEFAULT_MCP_HOST,
-  DEFAULT_MCP_PORT,
-} from "./mcpServerConfig.ts";
-
-/**
- * Re-exported tool-name constants so consumers that already depend
- * on `@smm/core-routes` (e.g. `apps/cli`) can reference them
- * without resolving `@smm/core` directly.
- */
-export { RENAME_FOLDER };
-export { RENAME_EPISODE_FILE };
-export { SCRAPE };
-export { GET_JOB };
-export { TMDB_SEARCH, TMDB_GET_MOVIE, TMDB_GET_TV_SHOW };
 
 /**
  * Constants exposed to hosts that load `core-routes.js` as a

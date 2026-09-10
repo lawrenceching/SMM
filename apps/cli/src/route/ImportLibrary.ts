@@ -5,7 +5,7 @@ import { logger } from '../../lib/logger'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 
-export interface ImportLibraryResponseBody {
+interface ImportLibraryResponseBody {
   data?: { id: string }
   error?: string
 }

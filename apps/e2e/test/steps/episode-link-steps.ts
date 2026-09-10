@@ -1,11 +1,37 @@
 import { expect } from '@wdio/globals'
 import { registerStep, requiredStepArg } from '../lib/gherkin'
 
+/**
+ * Read the Video File cell for an episode row.
+ *
+ * MediaFileTable nests episode `<tr>`s inside a season wrapper `<tr>` that also
+ * contains the SxxExx id as a descendant. Prefer locating the id `<td>` then
+ * walking to its parent row (same approach as TvShowPanelCO), instead of an
+ * XPath that matches the outer wrapper (which only has one `td` and breaks
+ * `./td[2]`).
+ *
+ * Column order: `[checkbox?] [SxxExx] [video] [thumb] [sub] [nfo]`.
+ */
 async function getEpisodeVideoCellText(episodeId: string): Promise<string> {
-    const rowSelector = `//tr[.//td[contains(@class,"font-mono") and normalize-space()="${episodeId}"]]`
-    const row = await $(rowSelector)
-    const videoCell = await row.$('./td[2]')
-    return (await videoCell.getText()).trim()
+    const idCell = await $(`td=${episodeId}`)
+    await idCell.waitForDisplayed({ timeout: 10000 })
+    const row = await idCell.parentElement()
+    const cells = await row.$$('td')
+    const cellsCount = await cells.length
+    let idCellIndex = -1
+    for (let i = 0; i < cellsCount; i++) {
+        const text = (await cells[i]!.getText()).trim()
+        if (text === episodeId) {
+            idCellIndex = i
+            break
+        }
+    }
+    if (idCellIndex < 0 || idCellIndex + 1 >= cellsCount) {
+        throw new Error(
+            `Video file cell not found for episode "${episodeId}" (idCellIndex=${idCellIndex}, cells=${cellsCount})`,
+        )
+    }
+    return (await cells[idCellIndex + 1]!.getText()).trim()
 }
 
 registerStep('episode "xxx" is linked to a video file', async (_ctx, args) => {

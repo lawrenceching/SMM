@@ -15,6 +15,8 @@ import { getMediaTags } from '@/api/ffmpeg';
 import { useVideoCaptionerStatus } from '@/hooks/useVideoCaptionerStatus';
 import { useFeatures } from '@/hooks/useFeatures';
 import { convertMusicFilesToTracks } from '@/lib/music';
+import { useMediaFolderFilesQuery } from '@/hooks/useMediaFolderFilesQuery';
+import { UI_AskForFormatConverter } from '@/types/eventTypes';
 
 const NESTED_FILE_POSIX = '/path/to/music/a/b/c/d/test.mp4';
 const NESTED_FILE_PLATFORM = '/path/to/music/a/b/c/d/test.mp4';
@@ -201,6 +203,10 @@ vi.mock('@/hooks/useJobOrchestrator', () => ({
   useJobs: () => h.emptyJobRecords,
 }));
 
+vi.mock('@/hooks/useMediaFolderFilesQuery', () => ({
+  useMediaFolderFilesQuery: vi.fn(),
+}));
+
 const mockTrack: Track = {
   id: 1,
   title: 'Test Song',
@@ -239,13 +245,14 @@ describe('MusicPanel', () => {
       selectedFolder: '/media/music',
     });
     vi.mocked(useMediaMetadataQuery).mockReturnValue(mockQueryOk(mockSelectedMediaMetadata) as ReturnType<typeof useMediaMetadataQuery>);
+    vi.mocked(useMediaFolderFilesQuery).mockReturnValue({
+      data: mockSelectedMediaMetadata.files,
+    } as never);
 
     h.mockOpenFormatConverter.mockReset();
 
     vi.mocked(useDialogs).mockReturnValue({
       mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-      formatConverterDialog: [h.mockOpenFormatConverter, vi.fn()],
-      videoCompressionDialog: [h.mockOpenFormatConverter, vi.fn()],
       downloadVideoDialog: [vi.fn(), vi.fn()],
       confirmationDialog: [vi.fn(), vi.fn()],
       spinnerDialog: [vi.fn(), vi.fn()],
@@ -253,9 +260,7 @@ describe('MusicPanel', () => {
       openFolderDialog: [vi.fn(), vi.fn()],
       filePickerDialog: [vi.fn(), vi.fn()],
       mediaSearchDialog: [vi.fn(), vi.fn()],
-      renameFileDialog: [vi.fn(), vi.fn()],
       renameFolderDialog: [vi.fn(), vi.fn()],
-      scrapeDialog: [vi.fn(), vi.fn()],
     });
 
     vi.mocked(toast).mockImplementation(() => 'test-id');
@@ -402,8 +407,6 @@ describe('MusicPanel', () => {
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -411,9 +414,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -531,8 +532,6 @@ describe('MusicPanel', () => {
 
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, mockCloseConfirmation],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -540,9 +539,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       vi.spyOn(Path, 'toPlatformPath').mockImplementation((path: string) => path);
@@ -602,8 +599,6 @@ describe('MusicPanel', () => {
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -611,9 +606,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -648,8 +641,6 @@ describe('MusicPanel', () => {
 
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -657,9 +648,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -771,8 +760,6 @@ describe('MusicPanel', () => {
         mediaFilePropertyDialog: [vi.fn(() => {
           throw mockError;
         }), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [vi.fn(), vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -780,9 +767,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       renderHook(() => MusicPanel());
@@ -920,8 +905,6 @@ describe('MusicPanel', () => {
       const mockOpenConfirmation = vi.fn();
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [vi.fn(), vi.fn()],
-        videoCompressionDialog: [vi.fn(), vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [mockOpenConfirmation, vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -929,9 +912,7 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
 
       vi.mocked(moveFileToTrash).mockRejectedValue(new Error('Move to trash failed'));
@@ -1014,8 +995,6 @@ describe('MusicPanel', () => {
       );
       vi.mocked(useDialogs).mockReturnValue({
         mediaFilePropertyDialog: [vi.fn(), vi.fn()],
-        formatConverterDialog: [h.mockOpenFormatConverter, vi.fn()],
-      videoCompressionDialog: [h.mockOpenFormatConverter, vi.fn()],
         downloadVideoDialog: [vi.fn(), vi.fn()],
         confirmationDialog: [vi.fn(), vi.fn()],
         spinnerDialog: [vi.fn(), vi.fn()],
@@ -1023,35 +1002,36 @@ describe('MusicPanel', () => {
         openFolderDialog: [vi.fn(), vi.fn()],
         filePickerDialog: [vi.fn(), vi.fn()],
         mediaSearchDialog: [vi.fn(), vi.fn()],
-        renameFileDialog: [vi.fn(), vi.fn()],
         renameFolderDialog: [vi.fn(), vi.fn()],
-        scrapeDialog: [vi.fn(), vi.fn()],
       });
     });
 
     it('opens format converter with full nested path on track:formatConvert', async () => {
+      const listener = vi.fn();
+      document.addEventListener(UI_AskForFormatConverter, listener);
       renderHook(() => MusicPanel());
+      try {
+        await act(async () => {
+          document.dispatchEvent(
+            new CustomEvent('track:formatConvert', {
+              bubbles: true,
+              composed: true,
+              detail: { trackId: 0, timestamp: Date.now() },
+            }),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 0));
+        });
 
-      await act(async () => {
-        document.dispatchEvent(
-          new CustomEvent('track:formatConvert', {
-            bubbles: true,
-            composed: true,
-            detail: { trackId: 0, timestamp: Date.now() },
-          }),
-        );
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-
-      expect(h.mockOpenFormatConverter).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: NESTED_FILE_PLATFORM,
-          filePath: NESTED_FILE_PLATFORM,
-        }),
-      );
-      const arg = h.mockOpenFormatConverter.mock.calls[0]![0];
-      expect(arg.path).toContain('a/b/c/d');
-      expect(arg.path).not.toBe('test.mp4');
+        expect(listener).toHaveBeenCalledTimes(1);
+        const event = listener.mock.calls[0]?.[0] as CustomEvent<{
+          filePath?: string;
+        }>;
+        expect(event.detail.filePath).toBe(NESTED_FILE_PLATFORM);
+        expect(event.detail.filePath).toContain('a/b/c/d');
+        expect(event.detail.filePath).not.toBe('test.mp4');
+      } finally {
+        document.removeEventListener(UI_AskForFormatConverter, listener);
+      }
     });
 
     it('opens nested file with platform path on track:open', async () => {

@@ -13,7 +13,7 @@ const DEFAULT_USER_CONFIG: UserConfig = {
   selectedRenameRule: "plex",
 };
 
-export function resolveUserDataDir(config: CoreRoutesConfig): string | undefined {
+function resolveUserDataDir(config: CoreRoutesConfig): string | undefined {
   return config.hello?.userDataDir ?? config.appDataDir;
 }
 

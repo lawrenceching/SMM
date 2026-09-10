@@ -7,25 +7,17 @@ import {
   type RenameFilesPlanReadyRequestData,
 } from '@smm/types/event-types'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
+import { SelectedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRenameFilesPlan'
+import { RecognizedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRecognizeFilesPlan'
+import type { ProblemDetails } from '@smm/types'
 import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
 import { getAppDataDir } from '@/utils/config'
 import { logger } from '../../lib/logger'
 
-export interface TryToRenameEpisodesRequestBody {
-  mediaFolderPath: string
-  rule?: 'plex' | 'emby'
-}
-
-export interface TryToRenameEpisodesResponseBody {
+interface TryToRenameEpisodesResponseBody {
   data?: { plan: RenameFilesPlan }
   error?: string
-}
-
-export interface CreateRenameEpisodePlanRequestBody {
-  mediaFolderPath: string
-  files: Array<{ from: string; to: string }>
-  creator?: 'ai' | 'app'
 }
 
 export interface CreateRenameEpisodePlanResponseBody {
@@ -33,20 +25,12 @@ export interface CreateRenameEpisodePlanResponseBody {
   error?: string
 }
 
-export interface ApplyPlanRequestBody {
-  id: string
-}
-
-export interface ApplyPlanResponseBody {
+interface ApplyPlanResponseBody {
   data?: { id: string }
   error?: string
 }
 
-export interface RejectPlanRequestBody {
-  id: string
-}
-
-export interface RejectPlanResponseBody {
+interface RejectPlanResponseBody {
   data?: { plan: Plan }
   error?: string
 }
@@ -75,6 +59,34 @@ function readRenameFiles(
     return undefined
   }
   return files as Array<{ from: string; to: string }>
+}
+
+type ApplyPlanDataSelection =
+  | { kind: 'absent' }
+  | { kind: 'selected'; files: string[] }
+  | { kind: 'invalid' }
+
+function readApplyPlanData(body: unknown): ApplyPlanDataSelection {
+  if (typeof body !== 'object' || body === null || !('data' in body)) {
+    return { kind: 'absent' }
+  }
+  const data = (body as Record<string, unknown>).data
+  if (data === undefined || data === null) return { kind: 'absent' }
+  if (typeof data !== 'object') return { kind: 'invalid' }
+  const files = (data as Record<string, unknown>).files
+  if (!Array.isArray(files) || files.length === 0) return { kind: 'invalid' }
+  if (!files.every((file) => typeof file === 'string')) return { kind: 'invalid' }
+  return { kind: 'selected', files: files as string[] }
+}
+
+function problemDetails(detail: string): ProblemDetails {
+  return {
+    type: 'about:blank',
+    title: 'Bad Request',
+    status: 400,
+    detail,
+    instance: '/api/apply-plan',
+  }
 }
 
 export async function createRenameEpisodePlanFromBody(
@@ -184,9 +196,18 @@ export function handleRenameEpisodesPlan(app: Hono): void {
         return c.json(err, 200)
       }
 
+      const selection = readApplyPlanData(body)
+      if (selection.kind === 'invalid') {
+        const problem = problemDetails('data.files must be a non-empty array of strings')
+        return c.json(problem, 400, { 'Content-Type': 'application/problem+json' })
+      }
+
       const clientId = c.req.header('clientId')
       const plan = await getCore().getPlan(id)
-      await getCore().applyPlan(plan)
+      await getCore().applyPlan(
+        plan,
+        selection.kind === 'selected' ? { files: selection.files } : undefined,
+      )
 
       if (plan.task === 'rename-files') {
         broadcast({
@@ -199,6 +220,13 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const ok: ApplyPlanResponseBody = { data: { id: plan.id } }
       return c.json(ok, 200)
     } catch (error) {
+      if (
+        error instanceof SelectedFilesNotInPlanError ||
+        error instanceof RecognizedFilesNotInPlanError
+      ) {
+        const problem = problemDetails(error.message)
+        return c.json(problem, 400, { 'Content-Type': 'application/problem+json' })
+      }
       logger.error({ error }, '[POST /api/apply-plan] route error')
       const err: ApplyPlanResponseBody = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,

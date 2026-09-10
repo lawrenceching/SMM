@@ -7,18 +7,14 @@
 import {
     cleanupCore,
     setupCore,
-    updateUserConfig as updateUserConfigCore,
     type HelloPathsResolver,
-    type ResetUserConfigOption,
     type TestBedCoreCleanupOptions,
     type TestBedCoreSetupOptions,
-    type UserConfigUpdater,
 } from '../test/lib/testbed-core'
 import { runCliHello } from '../test/lib/cli-hello'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export type { ResetUserConfigOption, UserConfigUpdater }
 
 export type CliTestBedCleanupOptions = Omit<TestBedCoreCleanupOptions, 'resolveHelloPaths'> & {
     /** Path to the `smm` CLI executable. */
@@ -54,16 +50,6 @@ export async function setup(options: CliTestBedSetupOptions): Promise<void> {
     })
 }
 
-export async function updateUserConfig(
-    updateFn: UserConfigUpdater,
-    options: { binary: string },
-): Promise<void> {
-    await updateUserConfigCore(updateFn, {
-        resolveHelloPaths: cliHelloResolver(options.binary),
-    })
-}
-
-export { runCliHello }
 
 const isWindows = process.platform === 'win32'
 

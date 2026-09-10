@@ -7,7 +7,6 @@ import {
 } from "@smm/core/ai-tool/renameEpisodeFileResult";
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import {
-  RENAME_EPISODE_FILE,
   RENAME_EPISODE_FILE_DESCRIPTION,
   renameEpisodeFileInputSchema,
   renameEpisodeFileOutputSchema,
@@ -192,5 +191,3 @@ export function buildRenameEpisodeFileTool(
   };
 }
 
-/** Re-exported tool name constant for the tools registry. */
-export const RENAME_EPISODE_FILE_TOOL_NAME = RENAME_EPISODE_FILE;

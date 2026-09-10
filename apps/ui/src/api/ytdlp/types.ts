@@ -23,12 +23,12 @@ export interface Format {
     http_headers: Record<string, string>
 }
 
-export interface Thumbnail {
+interface Thumbnail {
     url: string
     id: string
 }
 
-export interface RequestedDownload {
+interface RequestedDownload {
     requested_formats: Format[]
     format: string
     format_id: string
@@ -48,7 +48,7 @@ export interface RequestedDownload {
     abr: number | null
 }
 
-export interface Version {
+interface Version {
     version: string
     current_git_head: string | null
     release_git_head: string | null

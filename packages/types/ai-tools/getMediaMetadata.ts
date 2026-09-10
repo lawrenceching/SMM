@@ -38,7 +38,7 @@ const seasonEpisodeSchema = z.object({
   ),
 })
 
-export const getMediaMetadataDataSchema = z.object({
+const getMediaMetadataDataSchema = z.object({
   mediaFolderPath: z.string().describe('The path of the media folder'),
   type: z
     .enum(['tvshow-folder', 'movie-folder', 'music-folder'])
@@ -86,42 +86,9 @@ export const getMediaMetadataToolOutputSchema = getMediaMetadataDataSchema.exten
   error: z.string().optional().describe('Error message when lookup failed'),
 })
 
-export type GetMediaMetadataInput = z.infer<typeof getMediaMetadataInputSchema>
 export type GetMediaMetadataResponseData = z.infer<typeof getMediaMetadataDataSchema>
 export type GetMediaMetadataToolOutput = z.infer<
   typeof getMediaMetadataToolOutputSchema
 >
 
-export interface GetMediaMetadataResponseTvShowEpisodeData {
-  seasonNumber: number
-  episodeNumber: number
-  episodeName: string
-}
 
-export interface GetMediaMetadataResponseTvShowSeasonData {
-  seasonNumber: number
-  seasonName: string
-  episodes: GetMediaMetadataResponseTvShowEpisodeData[]
-}
-
-export interface GetMediaMetadataResponseTvShowData {
-  source: 'TMDB' | 'TVDB'
-  id: number
-  name: string
-  seasons: GetMediaMetadataResponseTvShowSeasonData[]
-}
-
-export interface GetMediaMetadataResponseTmdbMovieData {
-  tmdbId: number
-  title: string
-  originalTitle: string
-  overview: string
-  releaseDate: string
-  posterPath: string | null
-}
-
-export interface GetMediaMetadataResponseTvdbMovieData {
-  tvdbId: number
-  name: string
-  database: 'TMDB' | 'TVDB'
-}

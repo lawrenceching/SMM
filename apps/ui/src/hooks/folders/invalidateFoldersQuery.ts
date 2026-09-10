@@ -1,8 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { isSmmV3Enabled } from '@/lib/localStorages'
 import { foldersQueryKey } from './foldersQueryKeys'
 
-export function invalidateFoldersQueryIfV3(queryClient: QueryClient): void {
-  if (!isSmmV3Enabled()) return
+/** Invalidate the folders list query (`useFoldersQuery`). */
+export function invalidateFoldersQuery(queryClient: QueryClient): void {
   void queryClient.invalidateQueries({ queryKey: foldersQueryKey })
 }

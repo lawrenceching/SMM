@@ -1,11 +1,10 @@
-import { stat } from 'node:fs/promises';
 import os from 'os';
 import type { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const shell = require('shelljs');
 
-export interface ListDrivesResponseBody {
+interface ListDrivesResponseBody {
   data: string[];
   error?: string;
 }
@@ -64,7 +63,7 @@ function isAdministrativeShare(path: string): boolean {
  * Media       Disk
  * Photos      Disk
  */
-export function _parseNetViewOutput(output: string): string[] {
+function _parseNetViewOutput(output: string): string[] {
   try {
     const shares: string[] = [];
     const lines = output.split('\n');
@@ -391,7 +390,7 @@ function networkDrives(): string[] {
 }
 
 
-export function _parseLocalDrivesOutput(output: string): string[] {
+function _parseLocalDrivesOutput(output: string): string[] {
   /**
    * Example output:
    * C:\
@@ -408,7 +407,7 @@ export function _parseLocalDrivesOutput(output: string): string[] {
  * Always assume it's in Windows
  * @returns return the drive paths. If the command fail or timeout, return an empty array.
  */
-export function localDrives(): string[] {
+function localDrives(): string[] {
 
   try {
     // Use -NoProfile to speed up PowerShell startup (skips loading profile, faster execution)

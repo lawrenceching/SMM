@@ -56,7 +56,7 @@ async function testUrl(url: string): Promise<SpeedtestResult> {
 
   const start = performance.now();
   try {
-    const response = await fetch(url, {
+    await fetch(url, {
       method: 'HEAD',
       signal: controller.signal,
       redirect: 'follow',

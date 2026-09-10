@@ -1,0 +1,142 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  "ignoreWorkspaces": [
+    "apps/ohos"
+  ],
+  "ignore": [
+    ".agents/**",
+    "apps/site/**",
+    "apps/cli/public/**",
+    "apps/electron/build/**",
+    "apps/ui/src/components/ui/**",
+    "packages/electron-common/dist/**",
+    "packages/electron-common/ohos/**"
+  ],
+  "ignoreBinaries": [
+    "hdc",
+    "pino-pretty"
+  ],
+  "ignoreDependencies": [
+    "@ai-sdk/mcp"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "ci/**/*.ts",
+        "scripts/**/*.ts",
+        "test/bin/*.ts",
+        "test/mcp-test-client/*.ts",
+        "test/utils/*.ts",
+        "test/mcp/**/*.test.ts"
+      ],
+      "ignore": [
+        "test/mcp/lib/**"
+      ]
+    },
+    "apps/cli": {
+      "entry": [
+        "scripts/**/*.ts",
+        "src/**/*.test.ts",
+        "test/**/*.test.ts"
+      ]
+    },
+    "apps/core": {
+      "entry": [
+        "src/**/*.test.ts"
+      ]
+    },
+    "apps/ui": {
+      "entry": [
+        "index.html",
+        ".storybook/**/*.{ts,tsx}",
+        "src/**/*.stories.tsx",
+        "src/**/*.test.ts",
+        "src/**/*.test.tsx"
+      ],
+      "ignoreDependencies": [
+        "@icons-pack/react-simple-icons",
+        "@radix-ui/react-accordion",
+        "@radix-ui/react-avatar",
+        "@radix-ui/react-use-controllable-state",
+        "@shikijs/transformers",
+        "@types/react-syntax-highlighter",
+        "cmdk",
+        "embla-carousel-react",
+        "harden-react-markdown",
+        "katex",
+        "react-markdown",
+        "react-syntax-highlighter",
+        "rehype-katex",
+        "remark-math",
+        "shiki",
+        "use-stick-to-bottom"
+      ]
+    },
+    "apps/e2e": {
+      "entry": [
+        "wdio.conf.test.ts",
+        "cli/**/*.test.ts",
+        "common/**/*.e2e.ts",
+        "common/**/*.template.ts",
+        "test/**/*.ts",
+        "ohos/**/*.ts",
+        "electron/**/*.ts",
+        "docker/**/*.{ts,mjs}"
+      ],
+      "ignore": [
+        "common/manual/**"
+      ],
+      "ignoreDependencies": [
+        "@wdio/html-nice-reporter",
+        "@wdio/local-runner"
+      ]
+    },
+    "apps/convex": {
+      "entry": [
+        "convex/**/*.ts"
+      ]
+    },
+    "apps/cicd": {
+      "entry": [
+        "src/**/*.ts",
+        "test/**/*.test.ts"
+      ]
+    },
+    "apps/tools": {
+      "entry": [
+        "**/*.ts"
+      ]
+    },
+    "packages/types": {
+      "entry": [
+        "**/*.test.ts"
+      ]
+    },
+    "packages/utils": {
+      "entry": [
+        "src/**/*.test.ts"
+      ]
+    },
+    "packages/core-routes": {
+      "entry": [
+        "src/**/*.test.ts"
+      ]
+    },
+    "packages/tvdb4": {
+      "entry": [
+        "src/**/*.test.ts",
+        "test/**/*.ts"
+      ]
+    },
+    "packages/electron-common": {
+      "entry": [
+        "src/**/*.test.ts"
+      ]
+    },
+    "packages/test": {
+      "ignoreIssues": {
+        "src/testFolders.ts": ["duplicates"]
+      }
+    }
+  }
+}

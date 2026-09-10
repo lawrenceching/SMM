@@ -105,9 +105,9 @@ AI助手应该参考以下步骤:
 2. 使用 "get-media-metadata" 工具获取媒体目录的媒体元数据, 主要关注电视剧的季集信息
 3. 使用 "list-files" 工具列出媒体目录下的所有视频文件
 4. 对比视频文件名和季集信息, 为每个视频文件确定它属于哪一季的哪一集
-5. 使用 "begin-recognize-task" 工具开始识别任务
-6. 使用 "add-recognized-file" 工具添加每个视频文件的识别结果
-7. 使用 "end-recognize-task" 工具结束识别任务
+5. 使用 "create-recognize-episode-plan" 工具一次性提交识别计划, 指定媒体文件夹路径和所有视频文件的 season/episode/path 映射
+
+**NOTE** 识别任务完成后, SMM 会在后台处理识别计划, 用户可以在 SMM UI 中查看和确认识别结果.
 `;
 
 const STATIC_TEXT_TOOLS = {

@@ -2,11 +2,6 @@ import type { Hono } from 'hono'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export interface TvdbHttpResponseBody {
-  data?: unknown
-  error?: string
-}
-
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
 }

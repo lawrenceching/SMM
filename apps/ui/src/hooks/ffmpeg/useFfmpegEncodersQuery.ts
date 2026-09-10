@@ -18,7 +18,7 @@ export interface FfmpegEncodersResult {
 const FFMPEG_ENCODERS_TIMEOUT_MS = 15_000;
 const STALE_TIME_MS = 60 * 60 * 1000; // 1 hour
 
-export const ffmpegEncodersQueryKey = ["ffmpeg-encoders"] as const;
+const ffmpegEncodersQueryKey = ["ffmpeg-encoders"] as const;
 
 async function fetchFfmpegEncoders(): Promise<string[]> {
   const result = await executeCmdToCompletion(

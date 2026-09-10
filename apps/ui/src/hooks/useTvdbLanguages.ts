@@ -27,7 +27,7 @@ function useTvdbRequestOptions(): GetTVDBv4ClientOverrides {
  * Fetch TVDB's full list of supported languages (ISO 639-3 records).
  * Cached for 24h.
  */
-export function useTvdbLanguages() {
+function useTvdbLanguages() {
   const options = useTvdbRequestOptions()
   return useQuery<TVDBv4LanguageRecord[] | undefined>({
     queryKey: ["tvdb", "languages"],

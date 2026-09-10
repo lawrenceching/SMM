@@ -1,93 +1,11 @@
 
 import { validateDownloadUrl } from "@smm/core/download-video-validators";
-import {
-  buildYtdlpDownloadArgs,
-  buildYtdlpInspectArgs,
-  parseYtdlpDownloadStdout,
-  validateYtdlpDownloadExtraArgs,
-} from "@smm/core/whitelistedCmd/ytdlp";
+import { buildYtdlpInspectArgs } from "@smm/core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeYtdlp } from "@/lib/ytdlp/executeYtdlp";
 
 import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
-import type { PlaylistMetadata, Thumbnail, Version, VideoMetadata } from "@/api/ytdlp/types";
-
-export interface YtdlpDownloadRequest {
-  url: string;
-  args?: string[];
-  folder?: string;
-  /** yt-dlp `-f` format selector; omit for yt-dlp default. */
-  format?: string;
-  /**
-   * When set, `--print <printArg>` is passed to yt-dlp.
-   * Default is undefined (no --print) so progress JSON stays on stdout.
-   */
-  printArg?: string;
-}
-
-export interface YtdlpDownloadResponse {
-  success?: boolean;
-  error?: string;
-  path?: string;
-}
-
-const YTDLP_DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
-
-export async function downloadYtdlpVideo(
-  request: YtdlpDownloadRequest
-): Promise<YtdlpDownloadResponse> {
-  const validation = validateDownloadUrl(request.url ?? "");
-  if (!validation.valid) {
-    return { error: validation.error };
-  }
-
-  const argsError = validateYtdlpDownloadExtraArgs(request.args);
-  if (argsError) {
-    return { error: argsError };
-  }
-
-  const folder = request.folder ?? "";
-  if (!folder) {
-    return { error: "folder is required" };
-  }
-
-  const args = buildYtdlpDownloadArgs({
-    url: request.url,
-    folder,
-    args: request.args,
-    format: request.format,
-    printArg: request.printArg,
-  });
-
-  const result = await executeYtdlp(args, {
-    timeoutMs: YTDLP_DOWNLOAD_TIMEOUT_MS,
-  });
-
-  if (!result.success) {
-    return { error: result.error };
-  }
-
-  const path = parseYtdlpDownloadStdout(result.stdout);
-  return { success: true, path };
-}
-
-export async function discoverYtdlp(): Promise<{ path?: string; error?: string }> {
-  try {
-    const { fetchDiscoverExecutables } = await import("@/api/discoverExecutables");
-    const { ytdlp } = await fetchDiscoverExecutables();
-    const path = ytdlp.configuredPath ?? ytdlp.discoveredPath;
-    if (path) {
-      return { path };
-    }
-  } catch {
-    /* fall through to probe */
-  }
-  const probe = await probeWhitelistedCommand("yt-dlp");
-  if (probe.available) {
-    return { path: probe.resolvedPath ?? "yt-dlp" };
-  }
-  return { error: probe.error ?? "yt-dlp not found" };
-}
+import type { PlaylistMetadata, VideoMetadata } from "@/api/ytdlp/types";
 
 export async function getYtdlpVersion(): Promise<{ version?: string; error?: string }> {
   const probe = await probeWhitelistedCommand("yt-dlp");
@@ -99,50 +17,6 @@ export async function getYtdlpVersion(): Promise<{ version?: string; error?: str
     return { error: result.error };
   }
   return { version: result.stdout.trim().split("\n")[0] };
-}
-
-export interface YtdlpExtractDataResponse {
-  title?: string;
-  artist?: string;
-  error?: string;
-}
-
-export async function extractYtdlpVideoData(url: string): Promise<YtdlpExtractDataResponse> {
-  if (!url) {
-    return { error: "url is required" };
-  }
-
-  const result = await executeYtdlp(
-    ["--skip-download", "--print", "title=%(title)s ___ artist=%(uploader)s", url],
-    { timeoutMs: 60_000 },
-  );
-
-  if (!result.success) {
-    return { error: result.error };
-  }
-
-  const lines = result.stdout.trim().split("\n");
-  const dataLine = lines.find((line) => line.includes("title=") && line.includes("___ artist="));
-  if (!dataLine) {
-    return { error: "failed to parse video data from output" };
-  }
-
-  const parts = dataLine.split("___");
-  let title: string | undefined;
-  let artist: string | undefined;
-  for (const part of parts) {
-    const trimmedPart = part.trim();
-    if (trimmedPart.startsWith("title=")) {
-      title = trimmedPart.substring(6).trim();
-    } else if (trimmedPart.startsWith("artist=")) {
-      artist = trimmedPart.substring(7).trim();
-    }
-  }
-
-  if (!title) {
-    return { error: "title not found in yt-dlp output" };
-  }
-  return { title, artist };
 }
 
 export interface YtdlpListFormatsRequest {
@@ -169,10 +43,10 @@ export interface ListFormatsResult {
 }
 
 /** E2E: when set, `listYtdlpFormats` throws this yt-dlp-style error without running yt-dlp. */
-export const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError";
+const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError";
 
 /** E2E: when set, `listYtdlpFormats` parses this `yt-dlp -J` stdout without running yt-dlp. */
-export const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson";
+const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson";
 
 /**
  * Runs `yt-dlp -J` and returns the parsed format list. Supports `--cookies` (manual file),
@@ -256,32 +130,6 @@ export interface BilibiliVideoMetadata {
   original_url?: string;
   extractor?: string;
   extractor_key?: string;
-}
-
-/** Parsed stdout from `yt-dlp --flat-playlist -J` on a Bilibili collection list URL. */
-export interface BilibiliCollectionMetadata {
-  uploader: string;
-  title: string;
-  description: string;
-  uploader_id: string;
-  timestamp: number;
-  thumbnail: string;
-  id: string;
-  _type: string;
-  entries: VideoMetadata[];
-  webpage_url: string;
-  original_url: string;
-  webpage_url_basename: string;
-  webpage_url_domain: string;
-  extractor: string;
-  extractor_key: string;
-  upload_date: string;
-  release_year: number | null;
-  thumbnails: Thumbnail[];
-  playlist_count: number;
-  epoch: number;
-  __files_to_move?: Record<string, unknown>;
-  _version?: Version;
 }
 
 async function collectExecuteCmdOutput(

@@ -7,7 +7,7 @@ import { changeLanguage } from "@/lib/i18n"
 import { join } from "@/lib/path"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
-import { invalidateFoldersQueryIfV3 } from "@/hooks/folders"
+import { invalidateFoldersQuery } from "@/hooks/folders"
 
 export function useSaveUserConfigMutation() {
   const queryClient = useQueryClient()
@@ -41,7 +41,7 @@ export function useSaveUserConfigMutation() {
         prevFolders.length !== config.folders.length ||
         prevFolders.some((p, i) => p !== config.folders[i])
       if (foldersChanged) {
-        invalidateFoldersQueryIfV3(queryClient)
+        invalidateFoldersQuery(queryClient)
       }
     },
   })

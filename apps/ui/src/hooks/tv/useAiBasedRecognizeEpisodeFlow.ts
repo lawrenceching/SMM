@@ -1,0 +1,112 @@
+import { useCallback, useEffect, useMemo } from "react"
+import { toast } from "sonner"
+import { handleAiRecognizeConfirm } from "@/actions/handleAiRecognizeConfirm"
+import { selectActiveAiPlan } from "@/components/tv/plans/selectActiveAppPlan"
+import { toUpdatePlanPatch, usePlansQuery, useUpdatePlanMutation } from "@/hooks/plans"
+import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
+import type { MediaMetadata } from "@smm/types"
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
+import type { AiBasedRecognizeEpisodePromptProps } from "@/components/tv/AiBasedRecognizeEpisodePrompt"
+
+export interface UseAiBasedRecognizeEpisodeFlowOptions {
+  mediaMetadata: MediaMetadata | undefined
+  beforeConfirm: (plan: RecognizeMediaFilePlan) => RecognizeMediaFilePlan
+  /** Called when an AI recognize plan is detected (e.g. switch episode table to simple layout). */
+  onFlowStart?: () => void
+}
+
+/**
+ * Cohesive AI-based recognize episode flow: surfaces AI/MCP-created recognize
+ * plans for the selected folder and drives AiBasedRecognizeEpisodePrompt. The
+ * plans query and confirm/cancel side effects live in this hook; only
+ * `beforeConfirm` (episode checkbox selection) is supplied by the panel.
+ * Rule-based (creator: 'app') plans are handled exclusively by
+ * useRuleBasedRecognizeFlow.
+ *
+ * Not gated by `isAiFeatureEnabled`: pending MCP/backend plans must always
+ * surface so the user can confirm or reject them (especially on HarmonyOS
+ * where in-app AI chat defaults off but external MCP is supported).
+ */
+export function useAiBasedRecognizeEpisodeFlow({
+  mediaMetadata,
+  beforeConfirm,
+  onFlowStart,
+}: UseAiBasedRecognizeEpisodeFlowOptions) {
+  const { data: plans = [] } = usePlansQuery(mediaMetadata?.mediaFolderPath)
+  const updatePlanMutation = useUpdatePlanMutation()
+  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
+  const mediaFolderPath = mediaMetadata?.mediaFolderPath
+
+  const plan = useMemo(
+    () =>
+      selectActiveAiPlan<RecognizeMediaFilePlan>(
+        plans,
+        mediaFolderPath,
+        "recognize-media-file",
+      ),
+    [plans, mediaFolderPath],
+  )
+
+  const onConfirm = useCallback(async () => {
+    if (!plan || !mediaMetadata?.mediaFolderPath) return
+    const preparedPlan = beforeConfirm(plan)
+    await handleAiRecognizeConfirm(
+      preparedPlan,
+      mediaMetadata,
+      persistMediaMetadata,
+      async (id, patch) => {
+        await updatePlanMutation.mutateAsync({
+          id,
+          mediaFolderPath: mediaMetadata.mediaFolderPath!,
+          patch: toUpdatePlanPatch(patch),
+        })
+      },
+    )
+  }, [
+    plan,
+    mediaMetadata,
+    beforeConfirm,
+    persistMediaMetadata,
+    updatePlanMutation,
+  ])
+
+  const onCancel = useCallback(async () => {
+    if (!plan || !mediaFolderPath) return
+    try {
+      await updatePlanMutation.mutateAsync({
+        id: plan.id,
+        mediaFolderPath,
+        patch: toUpdatePlanPatch({ status: "rejected" }),
+      })
+    } catch (error) {
+      console.error("[useAiBasedRecognizeEpisodeFlow] Error rejecting recognize plan:", error)
+      toast.error(
+        `Failed to reject recognize plan: ${error instanceof Error ? error.message : "Unknown error"}`,
+      )
+    }
+  }, [plan, mediaFolderPath, updatePlanMutation])
+
+  useEffect(() => {
+    if (plan) {
+      onFlowStart?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan?.id, onFlowStart])
+
+  const promptProps = useMemo((): AiBasedRecognizeEpisodePromptProps => ({
+    isOpen: plan !== undefined,
+    onConfirm: () => {
+      void onConfirm()
+    },
+    onCancel: () => {
+      void onCancel()
+    },
+  }), [plan, onConfirm, onCancel])
+
+  return {
+    plan,
+    onConfirm,
+    onCancel,
+    promptProps,
+  }
+}

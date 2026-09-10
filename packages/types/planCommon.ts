@@ -21,14 +21,6 @@ export type PlanStatus = "preparing" | "pending" | "completed" | "rejected";
  */
 export type PlanCreator = "app" | "ai";
 
-/**
- * Statuses for which a plan is still "active" (visible to the UI).
- * `completed` plans have their file deleted; `rejected` plans are kept
- * (with `status: "rejected"`) so a still-in-flight AI workflow can
- * detect the cancellation — see `updatePlanContent` in core-routes.
- */
-export const ACTIVE_PLAN_STATUSES: readonly PlanStatus[] = ["preparing", "pending"];
-
 export function isActivePlanStatus(status: PlanStatus): boolean {
   return status === "preparing" || status === "pending";
 }

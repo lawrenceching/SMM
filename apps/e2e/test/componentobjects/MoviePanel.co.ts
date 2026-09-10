@@ -1,12 +1,12 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
-import SearchboxCO from './Searchbox.co'
+import { SearchboxCO } from './Searchbox.co'
 
 class MoviePanelComponentObject {
 
     get table() {
-        return $('[data-testid="tvshow-episode-table"]')
+        return $('[data-testid="media-file-table"]')
     }
 
     get input() {

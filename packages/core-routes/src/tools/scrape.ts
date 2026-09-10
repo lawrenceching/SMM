@@ -1,7 +1,6 @@
 import { requireNonEmptyString } from "@smm/core/ai-tool/toolResult";
 import { scrapeFailed, scrapeSucceeded } from "@smm/core/ai-tool/scrapeResult";
 import {
-  SCRAPE,
   SCRAPE_DESCRIPTION,
   scrapeInputSchema,
   scrapeOutputSchema,
@@ -83,4 +82,3 @@ export function buildScrapeTool(
   };
 }
 
-export { SCRAPE };

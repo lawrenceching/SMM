@@ -1,48 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useCallback, useMemo, useState } from "react"
 import { toast } from "sonner"
-import {
-  applyRecognizeMediaFilePlan,
-  buildTemporaryRecognitionPlanAsync,
-} from "@/components/tv/TvShowPanelUtils"
-import { selectActiveAppPlan } from "@/components/tv/plans/selectActiveAppPlan"
-import { useCreatePlanMutation, toUpdatePlanPatch, useUpdatePlanMutation } from "@/hooks/plans"
-import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
-import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateMediaMetadataMutation"
+import { useApplyPlanMutation } from "@/hooks/plans/useApplyPlanMutation"
+import { useRejectPlanMutation } from "@/hooks/plans/useRejectPlanMutation"
+import { useTryToRecognizeEpisodesMutation } from "@/hooks/plans/useTryToRecognizeEpisodesMutation"
 import {
   isRuleBasedRecognizePlanComplete,
   isRuleBasedRecognizePlanFullyUnchanged,
 } from "@/lib/isRuleBasedRecognizePlanComplete"
-import { normalizeMediaFolderPathForQuery } from "@/lib/mediaMetadataQueryKeys"
-import { nextTraceId } from "@/lib/utils"
 import { useTranslation } from "@/lib/i18n"
-import type { Plan } from "@/api/getPlans"
 import type { MediaMetadata } from "@smm/types"
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
-import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import type { UIPlan } from "@/types/UIPlan"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 
 export interface UseRuleBasedRecognizeFlowOptions {
-  plans: UIPlan[]
   mediaMetadata: MediaMetadata | undefined
-  uiStatus: UIMediaFolderStatus | undefined
-  beforeConfirm: (plan: UIRecognizeMediaFilePlan) => UIRecognizeMediaFilePlan
 }
 
+/**
+ * Rule-based recognize flow aligned with docs/dev/recognize-episodes.md:
+ * try-to-recognize-episodes → apply-plan (data.files for selected episodes) / reject-plan.
+ */
 export function useRuleBasedRecognizeFlow({
-  plans,
   mediaMetadata,
-  uiStatus,
-  beforeConfirm,
 }: UseRuleBasedRecognizeFlowOptions) {
   const { t } = useTranslation(["components"])
-  const queryClient = useQueryClient()
+
+  const [open, setOpen] = useState(false)
+  const [plan, setPlan] = useState<RecognizeMediaFilePlan | undefined>(undefined)
+
   const mediaFolderPath = mediaMetadata?.mediaFolderPath
-  const createPlanMutation = useCreatePlanMutation()
-  const updatePlanMutation = useUpdatePlanMutation()
-  const { persistMediaMetadata } = useUpdateMediaMetadataMutation()
-  const computationRef = useRef(new Set<string>())
+  const rejectPlanMutation = useRejectPlanMutation()
+  const applyPlanMutation = useApplyPlanMutation()
+  const tryToRecognizeMutation = useTryToRecognizeEpisodesMutation()
+
+  const loading =
+    rejectPlanMutation.isPending ||
+    applyPlanMutation.isPending ||
+    tryToRecognizeMutation.isPending
 
   const recognizeFailedMessage = t("toast.recognizeFailed", {
     defaultValue: "Recognition failed. Please try again.",
@@ -52,280 +45,120 @@ export function useRuleBasedRecognizeFlow({
       "Unable to recognize any episodes. Consider using AI to recognize instead.",
   })
 
-  const plan = useMemo(
-    () =>
-      selectActiveAppPlan<UIRecognizeMediaFilePlan>(
-        plans,
-        mediaFolderPath,
-        "recognize-media-file",
-      ),
-    [plans, mediaFolderPath],
-  )
+  const reset = useCallback(() => {
+    rejectPlanMutation.reset()
+    applyPlanMutation.reset()
+    tryToRecognizeMutation.reset()
+  }, [rejectPlanMutation, applyPlanMutation, tryToRecognizeMutation])
 
-  const open = plan !== undefined
-  const loading = plan?.status === "preparing"
-
-  const tvShowTitle = mediaMetadata?.tvShow?.name ?? ""
-  const tvShowTmdbId = parseInt(mediaMetadata?.tvShow?.id ?? "0", 10)
-  const okMediaMetadata =
-    uiStatus === "ok" ? mediaMetadata : undefined
-
-  const notAllEpisodesRecognized = useMemo(() => {
-    if (
-      loading ||
-      !plan ||
-      plan.status !== "pending" ||
-      plan.task !== "recognize-media-file" ||
-      !okMediaMetadata
-    ) {
-      return false
-    }
-    return !isRuleBasedRecognizePlanComplete(plan.files, okMediaMetadata)
-  }, [loading, plan, okMediaMetadata])
-
-  const allPlanFilesUnchanged = useMemo(() => {
-    if (
-      loading ||
-      !plan ||
-      plan.status !== "pending" ||
-      plan.task !== "recognize-media-file" ||
-      !okMediaMetadata
-    ) {
-      return false
-    }
-    return isRuleBasedRecognizePlanFullyUnchanged(plan.files, okMediaMetadata)
-  }, [loading, plan, okMediaMetadata])
-
-  const removePlanFromCache = useCallback(
-    (planId: string) => {
-      if (!mediaFolderPath) return
-      console.log("[recognize] remove plan from cache", { planId, mediaFolderPath })
-      const key = plansQueryKey(normalizeMediaFolderPathForQuery(mediaFolderPath))
-      queryClient.setQueryData<Plan[]>(key, (prev) =>
-        (prev ?? []).filter((p) => p.id !== planId),
-      )
-    },
-    [mediaFolderPath, queryClient],
-  )
-
-  const failRecognizePlan = useCallback(
-    async (planId: string, message: string, reason: string) => {
-      console.warn("[recognize] fail recognize plan", { planId, reason, message })
-      toast.error(message)
-      if (!mediaFolderPath) {
-        removePlanFromCache(planId)
-        return
-      }
-      try {
-        await updatePlanMutation.mutateAsync({
-          id: planId,
-          mediaFolderPath,
-          patch: toUpdatePlanPatch({ status: "rejected" }),
-        })
-        console.log("[recognize] plan rejected", { planId })
-      } catch (error) {
-        console.error("[recognize] failed to reject plan, removing from cache", { planId, error })
-        removePlanFromCache(planId)
-      }
-    },
-    [mediaFolderPath, updatePlanMutation, removePlanFromCache],
-  )
-
-  const resumeComputation = useCallback(
-    (planId: string) => {
-      if (!mediaFolderPath || !mediaMetadata) {
+  const confirm = useCallback(
+    async (selectedEpisodeFiles?: string[]) => {
+      if (plan === undefined) {
+        console.error("Plan was confirmed but the plan is undefined")
         return
       }
 
-      const current = plans.find((p) => p.id === planId)
-      if (
-        !current ||
-        current.task !== "recognize-media-file" ||
-        current.status !== "preparing" ||
-        current.files.length > 0
-      ) {
-        return
-      }
-      if (computationRef.current.has(planId)) {
-        return
-      }
-      computationRef.current.add(planId)
-      console.log("[recognize] matching episode video files by naming rules", {
-        planId,
-        mediaFolderPath,
-        tvShow: mediaMetadata.tvShow?.name,
-      })
-
-      void buildTemporaryRecognitionPlanAsync(mediaMetadata)
-        .then(async (planData) => {
-          if (planData && planData.files.length > 0) {
-            await updatePlanMutation.mutateAsync({
-              id: planId,
-              mediaFolderPath,
-              patch: toUpdatePlanPatch({ status: "pending", files: planData.files }),
-            })
-            console.log("[recognize] recognize preview ready — user can review and confirm", {
-              planId,
-              tvShow: mediaMetadata.tvShow?.name,
-              matchedCount: planData.files.length,
-              matches: planData.files.map((f) => ({
-                episode: `S${f.season}E${f.episode}`,
-                file: f.path.split(/[/\\]/).pop(),
-              })),
-            })
-            return
-          }
-          await failRecognizePlan(planId, noRecognizedFilesMessage, "no recognized files")
-        })
-        .catch(async (err) => {
-          console.error("[recognize] episode matching failed", { planId, error: err })
-          const message =
-            err instanceof Error && err.message ? err.message : recognizeFailedMessage
-          await failRecognizePlan(planId, message, "computation error")
-        })
-        .finally(() => {
-          computationRef.current.delete(planId)
-        })
-    },
-    [
-      mediaFolderPath,
-      mediaMetadata,
-      plans,
-      updatePlanMutation,
-      failRecognizePlan,
-      noRecognizedFilesMessage,
-      recognizeFailedMessage,
-    ],
-  )
-
-  const onConfirm = useCallback(
-    async (recognizePlan: UIRecognizeMediaFilePlan) => {
-      console.log("[recognize] confirm started", {
-        planId: recognizePlan.id,
-        fileCount: recognizePlan.files.length,
-      })
-
-      if (!okMediaMetadata) {
-        console.warn("[recognize] confirm aborted: no media metadata", { planId: recognizePlan.id })
+      if (!mediaMetadata || !mediaFolderPath) {
+        console.warn("[recognize] user confirmed but media metadata missing", { plan })
         toast.error("No media metadata available")
         return
       }
 
-      if (!recognizePlan.mediaFolderPath) {
-        console.warn("[recognize] confirm aborted: invalid plan", { planId: recognizePlan.id })
-        toast.error("Plan not found or invalid")
-        return
-      }
-
       try {
-        const actualPlan = beforeConfirm(recognizePlan) as RecognizeMediaFilePlan
-        const traceId = `TvShowPanel-handleRuleBasedRecognizeConfirm-${nextTraceId()}`
-        console.log("[recognize] applying recognize plan", {
-          planId: recognizePlan.id,
-          traceId,
-          fileCount: actualPlan.files.length,
+        console.log("[recognize] POST /api/apply-plan", {
+          id: plan.id,
+          selectedCount: selectedEpisodeFiles?.length,
         })
-        await applyRecognizeMediaFilePlan(actualPlan, okMediaMetadata, persistMediaMetadata, {
-          traceId,
-        })
-        if (mediaFolderPath) {
-          await updatePlanMutation.mutateAsync({
-            id: recognizePlan.id,
-            mediaFolderPath,
-            patch: toUpdatePlanPatch({ status: "completed" }),
-          })
-        }
-        console.log("[recognize] confirm completed", { planId: recognizePlan.id, traceId })
-        toast.success(t("toolbar.recognizeEpisodesSuccess"))
-      } catch (error) {
-        console.error("[recognize] confirm failed", { planId: recognizePlan.id, error })
-        toast.error("Failed to apply recognition")
-      }
-    },
-    [okMediaMetadata, mediaFolderPath, beforeConfirm, persistMediaMetadata, updatePlanMutation, t],
-  )
-
-  const onCancel = useCallback(
-    async (planId: string) => {
-      console.log("[recognize] cancel started", { planId })
-      if (!mediaFolderPath) {
-        console.warn("[recognize] cancel aborted: no media folder path", { planId })
-        return
-      }
-      try {
-        await updatePlanMutation.mutateAsync({
-          id: planId,
+        await applyPlanMutation.mutateAsync({
+          id: plan.id,
           mediaFolderPath,
-          patch: toUpdatePlanPatch({ status: "rejected" }),
+          files: selectedEpisodeFiles,
         })
-        console.log("[recognize] cancel completed", { planId })
+
+        setOpen(false)
+        setPlan(undefined)
+        toast.success(t("toolbar.recognizeEpisodesSuccess"))
+        console.log("[recognize] recognize completed successfully", { id: plan.id })
       } catch (error) {
-        console.error("[recognize] cancel failed, removing from cache", { planId, error })
-        removePlanFromCache(planId)
+        console.error("[recognize] unexpected error while applying recognize", { id: plan.id, error })
         toast.error(recognizeFailedMessage)
       }
     },
-    [mediaFolderPath, updatePlanMutation, removePlanFromCache, recognizeFailedMessage],
+    [mediaFolderPath, plan, mediaMetadata, applyPlanMutation, recognizeFailedMessage, t],
   )
 
-  const startRecognizeFlow = useCallback(() => {
-    if (!mediaFolderPath) {
-      console.warn("[recognize] start aborted: no media folder path")
-      toast.error("No media folder path available")
+  const cancel = useCallback(async () => {
+    if (mediaFolderPath === undefined) {
+      console.error("Media folder path is undefined")
       return
     }
 
-    const planId = crypto.randomUUID()
-    console.log("[recognize] user started rule-based recognize", {
-      planId,
-      mediaFolderPath,
-      tvShow: mediaMetadata?.tvShow?.name,
-    })
+    setOpen(false)
 
-    void createPlanMutation
-      .createPlanOptimistic({
-        id: planId,
-        task: "recognize-media-file",
-        mediaFolderPath,
-        creator: "app",
-      })
-      .then(() => {
-        console.log("[recognize] recognize plan created (status=preparing), matching files next", {
-          planId,
+    if (plan && plan.status === "pending") {
+      rejectPlanMutation.mutateAsync({ id: plan.id, mediaFolderPath }) // fire and forget
+    }
+
+    setPlan(undefined)
+    reset()
+  }, [mediaFolderPath, rejectPlanMutation, plan, reset])
+
+  /** Opens RuleBasedRecognizePrompt by calling try-to-recognize-episodes. */
+  const start = useCallback(() => {
+    if (!mediaFolderPath) {
+      console.warn("[recognize] cannot start — media folder path missing")
+      toast.error("No media folder path available")
+      return
+    }
+    reset()
+    setOpen(true)
+    void tryToRecognizeMutation.mutateAsync({ mediaFolderPath })
+      .then((resp) => {
+        if (!resp.files || resp.files.length === 0) {
+          console.log("[recognize] no files recognized", { mediaFolderPath })
+          toast.error(noRecognizedFilesMessage)
+          rejectPlanMutation.mutateAsync({ id: resp.id, mediaFolderPath }) // fire and forget
+          setOpen(false)
+          return
+        }
+        console.log("[recognize] recognize preview ready", {
+          id: resp.id,
+          matchedCount: resp.files.length,
         })
+        setPlan(resp)
       })
-      .catch(async (err) => {
-        console.error("[recognize] failed to create plan", { planId, error: err })
-        const message =
-          err instanceof Error && err.message ? err.message : recognizeFailedMessage
-        toast.error(message)
-        removePlanFromCache(planId)
+      .catch((error) => {
+        console.error("[recognize] failed to create recognize plan", { mediaFolderPath, error })
+        toast.error(recognizeFailedMessage)
+        setOpen(false)
       })
   }, [
     mediaFolderPath,
-    mediaMetadata,
-    createPlanMutation,
+    reset,
+    tryToRecognizeMutation,
+    rejectPlanMutation,
+    noRecognizedFilesMessage,
     recognizeFailedMessage,
-    removePlanFromCache,
   ])
 
-  useEffect(() => {
-    if (
-      plan?.status === "preparing" &&
-      plan.files.length === 0 &&
-      mediaMetadata &&
-      mediaFolderPath
-    ) {
-      resumeComputation(plan.id)
-    }
-  }, [plan?.id, plan?.status, plan?.files.length, mediaMetadata, mediaFolderPath, resumeComputation])
+  const tvShowTitle = mediaMetadata?.tvShow?.name ?? ""
+  const tvShowTmdbId = parseInt(mediaMetadata?.tvShow?.id ?? "0", 10)
 
-  useEffect(() => {
-    if (plan?.status === "preparing" && uiStatus === "error_loading_metadata") {
-      console.warn("[recognize] metadata load error while preparing, failing plan", { planId: plan.id })
-      void failRecognizePlan(plan.id, recognizeFailedMessage, "metadata load error")
+  const notAllEpisodesRecognized = useMemo(() => {
+    if (!plan || plan.files.length === 0 || !mediaMetadata) {
+      return false
     }
-  }, [plan?.id, plan?.status, uiStatus, failRecognizePlan, recognizeFailedMessage])
+    return !isRuleBasedRecognizePlanComplete(plan.files, mediaMetadata)
+  }, [plan, mediaMetadata])
+
+  const allPlanFilesUnchanged = useMemo(() => {
+    if (!plan || plan.files.length === 0 || !mediaMetadata) {
+      return false
+    }
+    return isRuleBasedRecognizePlanFullyUnchanged(plan.files, mediaMetadata)
+  }, [plan, mediaMetadata])
+
+  const isConfirmButtonDisabled = loading || allPlanFilesUnchanged
 
   return {
     plan,
@@ -335,8 +168,9 @@ export function useRuleBasedRecognizeFlow({
     tvShowTmdbId,
     notAllEpisodesRecognized,
     allPlanFilesUnchanged,
-    onConfirm,
-    onCancel,
-    startRecognizeFlow,
+    isConfirmButtonDisabled,
+    confirm,
+    cancel,
+    start,
   }
 }

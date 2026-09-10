@@ -3,7 +3,6 @@ import { Path } from '@smm/utils/path';
 import type { MediaMetadata } from '@smm/types';
 import { broadcast } from './socketIO';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
-import { renameMediaFolderInMediaMetadata } from './mediaMetadataUtils';
 import { updateMediaMetadataAfterRename } from '@smm/core/mediaMetadata';
 import pino from 'pino';
 import { dirname } from 'path';
@@ -103,7 +102,7 @@ export async function executeBatchRenameOperations(
  * @param options Execution options
  * @returns Result with success status and optional error message
  */
-export async function executeRenameOperation(
+async function executeRenameOperation(
   from: string,
   to: string,
   options: {
@@ -334,165 +333,6 @@ export async function updateMediaMetadataAndBroadcast(
     }, `${logPrefix} Failed to update media metadata`);
     
     // Return error but don't throw - metadata update failure shouldn't fail the rename
-    return {
-      success: false,
-      error: errorMessage,
-    };
-  }
-}
-
-/**
- * Update media metadata after folder rename and broadcast the update event
- * Handles the case where the media folder itself is being renamed
- * @param mediaFolder Media folder path (POSIX format) - the folder being renamed or its parent
- * @param from Source folder path (POSIX format)
- * @param to Destination folder path (POSIX format)
- * @param options Update options
- * @returns Result with success status and optional error message
- */
-export async function updateMediaMetadataAfterFolderRename(
-  mediaFolder: string,
-  from: string,
-  to: string,
-  options: {
-    dryRun?: boolean;
-    clientId?: string;
-    logPrefix?: string;
-  } = {}
-): Promise<{ success: boolean; error?: string }> {
-  const { dryRun = false, clientId, logPrefix = '[updateMediaMetadataAfterFolderRename]' } = options;
-
-  if (dryRun) {
-    logger.info({
-      mediaFolder,
-      from,
-      to,
-      clientId
-    }, `${logPrefix} Dry run: Would update media metadata after folder rename`);
-    return { success: true };
-  }
-
-  const fromNormalized = Path.posix(from);
-  const toNormalized = Path.posix(to);
-  const mediaFolderNormalized = Path.posix(mediaFolder);
-
-  // Determine if the media folder itself is being renamed
-  const isMediaFolderRename = fromNormalized === mediaFolderNormalized;
-
-  // Find the metadata file - use the original mediaFolder path
-  const metadataFilePath = metadataCacheFilePath(mediaFolderNormalized);
-  const metadataExists = await Bun.file(metadataFilePath).exists();
-
-  if (!metadataExists) {
-    logger.debug({
-      mediaFolder: mediaFolderNormalized,
-      clientId
-    }, `${logPrefix} Media metadata file does not exist, skipping update`);
-    return { success: true }; // Not an error if metadata doesn't exist
-  }
-
-  try {
-    const mediaMetadata = await Bun.file(metadataFilePath).json() as MediaMetadata;
-
-    // Verify the mediaFolder path matches
-    if (mediaMetadata.mediaFolderPath !== mediaFolderNormalized) {
-      logger.warn({
-        providedPath: mediaFolderNormalized,
-        metadataPath: mediaMetadata.mediaFolderPath,
-        clientId
-      }, `${logPrefix} Folder path mismatch, skipping metadata update`);
-      return {
-        success: false,
-        error: `Folder path mismatch: provided "${mediaFolderNormalized}" but metadata has "${mediaMetadata.mediaFolderPath}"`,
-      };
-    }
-
-    // Update metadata with renamed folder
-    logger.info({
-      from: fromNormalized,
-      to: toNormalized,
-      isMediaFolderRename,
-      clientId
-    }, `${logPrefix} Renaming folder in media metadata: ${fromNormalized} to ${toNormalized}`);
-    
-    const updatedMediaMetadata = renameMediaFolderInMediaMetadata(
-      mediaMetadata,
-      fromNormalized,
-      toNormalized
-    );
-
-    logger.info({
-      updatedMediaMetadata,
-      clientId
-    }, `${logPrefix} Updated media metadata after folder rename`);
-
-    // If the media folder itself is being renamed, we need to move the metadata file
-    if (isMediaFolderRename) {
-      const newMetadataFilePath = metadataCacheFilePath(toNormalized);
-      
-      // Write updated metadata to new location
-      await mkdir(mediaMetadataDir, { recursive: true });
-      await Bun.write(newMetadataFilePath, JSON.stringify(updatedMediaMetadata, null, 2));
-      
-      // Remove old metadata file
-      try {
-        await Bun.file(metadataFilePath).unlink();
-        logger.info({
-          oldPath: metadataFilePath,
-          newPath: newMetadataFilePath,
-          clientId
-        }, `${logPrefix} Moved metadata file to new location`);
-      } catch (error) {
-        logger.warn({
-          oldPath: metadataFilePath,
-          error: error instanceof Error ? error.message : String(error),
-          clientId
-        }, `${logPrefix} Failed to remove old metadata file (non-critical)`);
-      }
-
-      // Broadcast with new folder path
-      broadcast({
-        event: 'mediaMetadataUpdated',
-        data: {
-          folderPath: toNormalized
-        }
-      });
-
-      logger.info({
-        from: fromNormalized,
-        to: toNormalized,
-        clientId
-      }, `${logPrefix} Broadcasted mediaMetadataUpdated event for renamed media folder`);
-    } else {
-      // Write updated metadata back to same file
-      await mkdir(mediaMetadataDir, { recursive: true });
-      await Bun.write(metadataFilePath, JSON.stringify(updatedMediaMetadata, null, 2));
-
-      // Broadcast with original media folder path
-      broadcast({
-        event: 'mediaMetadataUpdated',
-        data: {
-          folderPath: mediaFolderNormalized
-        }
-      });
-
-      logger.info({
-        mediaFolder: mediaFolderNormalized,
-        clientId
-      }, `${logPrefix} Broadcasted mediaMetadataUpdated event`);
-    }
-
-    return { success: true };
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error({
-      mediaFolder: mediaFolderNormalized,
-      from: fromNormalized,
-      to: toNormalized,
-      error: errorMessage,
-      clientId
-    }, `${logPrefix} Failed to update media metadata after folder rename`);
-    
     return {
       success: false,
       error: errorMessage,

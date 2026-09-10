@@ -8,30 +8,24 @@ import {
   FilePickerDialog,
   DownloadVideoDialog,
   MediaSearchDialog,
-  RenameFileDialog,
   TextDialog,
   RenameFolderDialog,
   OpenFolderDialog,
-  UIScrapeDialog,
-  FormatConverterDialog,
-  VideoCompressionDialog,
   MediaFilePropertyDialog,
   ExecuteCmdDialog,
   AddTestBackgroundJobDialog,
   FunctionCheckDialog,
   LogDialog,
-  useScrapeDialog,
   type DialogConfig,
   type FolderType,
   type FileItem,
-  type Task,
   type TrackProperties,
   type ExecuteCmdType,
 } from "@/components/dialogs"
 import type { SettingsTab } from "@/components/ui/config-panel"
 
 // Re-export types for backward compatibility
-export type { FolderType, FileItem, Task }
+export type { FolderType, FileItem }
 
 interface DialogContextValue {
   confirmationDialog: [
@@ -62,10 +56,6 @@ interface DialogContextValue {
     openMediaSearch: (onSelect?: (tmdbId: number) => void) => void,
     closeMediaSearch: () => void
   ]
-  renameFileDialog: [
-    openRenameFile: (onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => void,
-    closeRenameFile: () => void
-  ]
   textDialog: [
     openTextDialog: (onConfirm: (text: string) => void, options?: { initialValue?: string; title?: string; description?: string; label?: string }) => void,
     closeTextDialog: () => void
@@ -74,21 +64,9 @@ interface DialogContextValue {
     openRenameFolder: (mediaFolderPath: string, options?: { title?: string; description?: string }) => void,
     closeRenameFolder: () => void
   ]
-  scrapeDialog: [
-    openScrape: (options?: { title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }) => void,
-    closeScrape: () => void
-  ]
   mediaFilePropertyDialog: [
     openMediaFileProperty: (options: { filePath: string; track?: TrackProperties }) => void,
     closeMediaFileProperty: () => void
-  ]
-  formatConverterDialog: [
-    openFormatConverter: (track?: TrackProperties | string) => void,
-    closeFormatConverter: () => void
-  ]
-  videoCompressionDialog: [
-    openVideoCompression: (input?: { filePath?: string; title?: string; duration?: number } | string) => void,
-    closeVideoCompression: () => void
   ]
   executeCmdDialog: [
     openExecuteCmd: (initialCommand?: ExecuteCmdType) => void,
@@ -148,11 +126,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [isMediaSearchOpen, setIsMediaSearchOpen] = useState(false)
   const [mediaSearchOnSelect, setMediaSearchOnSelect] = useState<((tmdbId: number) => void) | null>(null)
 
-  // Rename file dialog state
-  const [isRenameFileOpen, setIsRenameFileOpen] = useState(false)
-  const [renameFileOnConfirm, setRenameFileOnConfirm] = useState<((newName: string) => void) | null>(null)
-  const [renameFileOptions, setRenameFileOptions] = useState<{ initialValue?: string; title?: string; description?: string; suggestions?: string[] }>({})
-
   const [isTextDialogOpen, setIsTextDialogOpen] = useState(false)
   const [textDialogOnConfirm, setTextDialogOnConfirm] = useState<((text: string) => void) | null>(null)
   const [textDialogOptions, setTextDialogOptions] = useState<{
@@ -167,24 +140,10 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [renameFolderPath, setRenameFolderPath] = useState<string | null>(null)
   const [renameFolderOptions, setRenameFolderOptions] = useState<{ title?: string; description?: string }>({})
 
-  // Scrape dialog state
-  const [isScrapeOpen, setIsScrapeOpen] = useState(false)
-  const [scrapeOptions, setScrapeOptions] = useState<{ title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }>({})
-
   // Media file property dialog state
   const [isMediaFilePropertyOpen, setIsMediaFilePropertyOpen] = useState(false)
   const [mediaFilePropertyTrack, setMediaFilePropertyTrack] = useState<TrackProperties | undefined>(undefined)
   const [mediaFilePropertyPath, setMediaFilePropertyPath] = useState<string>("")
-
-  // Format converter dialog state
-  const [isFormatConverterOpen, setIsFormatConverterOpen] = useState(false)
-  const [formatConverterTrack, setFormatConverterTrack] = useState<TrackProperties | undefined>(undefined)
-
-  // Video compression dialog state
-  const [isVideoCompressionOpen, setIsVideoCompressionOpen] = useState(false)
-  const [videoCompressionFilePath, setVideoCompressionFilePath] = useState<string | undefined>(undefined)
-  const [videoCompressionTitle, setVideoCompressionTitle] = useState<string | undefined>(undefined)
-  const [videoCompressionDuration, setVideoCompressionDuration] = useState<number | undefined>(undefined)
 
   // Execute command dialog state
   const [isExecuteCmdOpen, setIsExecuteCmdOpen] = useState(false)
@@ -307,12 +266,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const openRenameFile = useCallback((onConfirm: (newName: string) => void, options?: { initialValue?: string; title?: string; description?: string; suggestions?: string[] }) => {
-    setRenameFileOnConfirm(() => onConfirm)
-    setRenameFileOptions(options || {})
-    setIsRenameFileOpen(true)
-  }, [])
-
   const openRenameFolder = useCallback(
     (mediaFolderPath: string, options?: { title?: string; description?: string }) => {
       setRenameFolderPath(mediaFolderPath)
@@ -321,14 +274,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     },
     []
   )
-
-  const closeRenameFile = useCallback(() => {
-    setIsRenameFileOpen(false)
-    setTimeout(() => {
-      setRenameFileOnConfirm(null)
-      setRenameFileOptions({})
-    }, 200)
-  }, [])
 
   const openTextDialog = useCallback(
     (
@@ -366,32 +311,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
     }, 200)
   }, [])
 
-  const handleRenameFileConfirm = useCallback(
-    (newName: string) => {
-      renameFileOnConfirm?.(newName)
-      closeRenameFile()
-    },
-    [renameFileOnConfirm, closeRenameFile]
-  )
-
-  const openScrape = useCallback((options?: { title?: string; description?: string; mediaMetadata?: import("@smm/types").MediaMetadata }) => {
-    setScrapeOptions(options || {})
-    setIsScrapeOpen(true)
-  }, [])
-
-  const closeScrape = useCallback(() => {
-    setIsScrapeOpen(false)
-    setTimeout(() => {
-      setScrapeOptions({})
-    }, 200)
-  }, [])
-
-  const scrape = useScrapeDialog({
-    isOpen: isScrapeOpen,
-    onClose: closeScrape,
-    mediaMetadata: scrapeOptions.mediaMetadata,
-  })
-
   const openMediaFileProperty = useCallback((options: { filePath: string; track?: TrackProperties }) => {
     setMediaFilePropertyPath(options.filePath)
     setMediaFilePropertyTrack(options.track)
@@ -405,55 +324,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
       setMediaFilePropertyTrack(undefined)
     }, 200)
   }, [])
-
-  const openFormatConverter = useCallback((trackOrPath?: TrackProperties | string) => {
-    const track: TrackProperties | undefined =
-      trackOrPath === undefined
-        ? undefined
-        : typeof trackOrPath === 'string'
-          ? { id: 0, path: trackOrPath, filePath: trackOrPath, title: '' }
-          : trackOrPath
-    setFormatConverterTrack(track)
-    setIsFormatConverterOpen(true)
-  }, [])
-
-  const closeFormatConverter = useCallback(() => {
-    setIsFormatConverterOpen(false)
-    setTimeout(() => {
-      setFormatConverterTrack(undefined)
-    }, 200)
-  }, [])
-
-  const openVideoCompression = useCallback(
-    (input?: { filePath?: string; title?: string; duration?: number } | string) => {
-      if (input === undefined) {
-        setVideoCompressionFilePath(undefined)
-        setVideoCompressionTitle(undefined)
-        setVideoCompressionDuration(undefined)
-      } else if (typeof input === "string") {
-        setVideoCompressionFilePath(input)
-        setVideoCompressionTitle(undefined)
-        setVideoCompressionDuration(undefined)
-      } else {
-        setVideoCompressionFilePath(input.filePath)
-        setVideoCompressionTitle(input.title)
-        setVideoCompressionDuration(input.duration)
-      }
-      setIsVideoCompressionOpen(true)
-    },
-    [],
-  )
-
-  const closeVideoCompression = useCallback(() => {
-    setIsVideoCompressionOpen(false)
-    setTimeout(() => {
-      setVideoCompressionFilePath(undefined)
-      setVideoCompressionTitle(undefined)
-      setVideoCompressionDuration(undefined)
-    }, 200)
-  }, [])
-
-
 
   const openExecuteCmd = useCallback((initialCommand?: ExecuteCmdType) => {
     setExecuteCmdInitialCommand(initialCommand)
@@ -507,13 +377,9 @@ export function DialogProvider({ children }: DialogProviderProps) {
     filePickerDialog: [openFilePicker, closeFilePicker],
     downloadVideoDialog: [openDownloadVideo, closeDownloadVideo],
     mediaSearchDialog: [openMediaSearch, closeMediaSearch],
-    renameFileDialog: [openRenameFile, closeRenameFile],
     textDialog: [openTextDialog, closeTextDialog],
     renameFolderDialog: [openRenameFolder, closeRenameFolder],
-    scrapeDialog: [openScrape, closeScrape],
     mediaFilePropertyDialog: [openMediaFileProperty, closeMediaFileProperty],
-    formatConverterDialog: [openFormatConverter, closeFormatConverter],
-    videoCompressionDialog: [openVideoCompression, closeVideoCompression],
     executeCmdDialog: [openExecuteCmd, closeExecuteCmd],
     addTestBackgroundJobDialog: [openAddTestBackgroundJob, closeAddTestBackgroundJob],
     functionCheckDialog: [openFunctionCheck, closeFunctionCheck],
@@ -563,15 +429,6 @@ export function DialogProvider({ children }: DialogProviderProps) {
         onClose={closeMediaSearch}
         onSelect={mediaSearchOnSelect || undefined}
       />
-      <RenameFileDialog
-        isOpen={isRenameFileOpen}
-        onClose={closeRenameFile}
-        onConfirm={handleRenameFileConfirm}
-        initialValue={renameFileOptions.initialValue}
-        title={renameFileOptions.title}
-        description={renameFileOptions.description}
-        suggestions={renameFileOptions.suggestions}
-      />
       <TextDialog
         isOpen={isTextDialogOpen}
         onClose={closeTextDialog}
@@ -590,41 +447,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
           description={renameFolderOptions.description}
         />
       )}
-      <UIScrapeDialog
-        isOpen={isScrapeOpen}
-        onClose={closeScrape}
-        tasks={scrape.tasks}
-        isRunning={scrape.isRunning}
-        allTasksDone={scrape.allTasksDone}
-        showButtons={scrape.showButtons}
-        cancelDisabled={scrape.cancelDisabled}
-        canDismissIncidentally={scrape.canDismissIncidentally}
-        onCancel={scrape.handleCancel}
-        onStart={scrape.handleStart}
-      />
       <MediaFilePropertyDialog
         isOpen={isMediaFilePropertyOpen}
         onClose={closeMediaFileProperty}
         filePath={mediaFilePropertyPath}
         track={mediaFilePropertyTrack}
-      />
-      <FormatConverterDialog
-        isOpen={isFormatConverterOpen}
-        onClose={closeFormatConverter}
-        track={formatConverterTrack}
-        onOpenFilePicker={openFilePicker}
-        onSelectSource={(track: TrackProperties) => setFormatConverterTrack(track)}
-      />
-      <VideoCompressionDialog
-        isOpen={isVideoCompressionOpen}
-        onClose={closeVideoCompression}
-        filePath={videoCompressionFilePath}
-        title={videoCompressionTitle}
-        duration={videoCompressionDuration}
-        onOpenFilePicker={openFilePicker}
-        onSelectSource={(filePath: string, _name: string) => {
-          setVideoCompressionFilePath(filePath)
-        }}
       />
       <ExecuteCmdDialog
         isOpen={isExecuteCmdOpen}

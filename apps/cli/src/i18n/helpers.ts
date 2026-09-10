@@ -1,7 +1,7 @@
 import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale';
 import { getUserConfig } from '@/utils/config';
 import { getI18n } from './config';
-import logger from '../../lib/logger';
+import { logger } from '../../lib/logger';
 
 /**
  * Gets the user's preferred language for tool descriptions from global user config.
@@ -18,7 +18,7 @@ import logger from '../../lib/logger';
  * // Returns: 'zh-CN' or 'en' based on global user config
  * ```
  */
-export async function getToolLanguage(): Promise<string> {
+async function getToolLanguage(): Promise<string> {
 
   try {
     // Get user config to retrieve language preference

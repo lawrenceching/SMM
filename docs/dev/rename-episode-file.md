@@ -56,7 +56,7 @@ Core **must reject** requests where `from` is not the `absolutePath` of a TV epi
 | Piece | Location | Role today |
 |-------|----------|------------|
 | Context menu entry | `TvShowPanel` → `MediaFileTable` extra menu; also `TvShowEpisodeTable` | Opens rename dialog for an episode row |
-| Flow hook | `apps/ui/src/hooks/useRenameVideoFileFlow.ts` | Shared hook today (also used by Movie) — **TV v3 path** should call `renameEpisodeFile`; movie stays on legacy |
+| Flow hook | `apps/ui/src/hooks/useRenameVideoFileFlow.ts` | Shared hook today (also used by Movie) — **TV Core path** should call `renameEpisodeFile`; movie stays on legacy |
 | Associate expansion | `computeAssociatedFileRenames` in `apps/ui/src/components/episode-file.tsx` | Stem-based sibling renames |
 | HTTP | `POST /api/renameFiles` (`packages/core-routes`) | Generic batch rename + optional metadata update + broadcast |
 | Metadata helper | `updateMediaMetadataAfterRename` in `packages/core/mediaMetadata.ts` | Already shared — keep / call from Core |
@@ -67,7 +67,7 @@ Problem: associate discovery and orchestration live in **Layer 1**. Electron / O
 
 1. **Port** legacy **episode** rename orchestration into `apps/core` (FsPort + metadata), with episode identity checks.  
 2. Expose a **thin Internal HTTP** command that only validates and calls Core.  
-3. Point **TV** frontends (Web UI, Electron, OHOS — shared `apps/ui`) at that API under `smm.v3.enabled`.  
+3. Point **TV** frontends (Web UI, Electron, OHOS — shared `apps/ui`) at that API.  
 4. Expose the **same Core capability** to **CLI**, **MCP**, and **in-app AI tool** (shared schemas; confirmation for MCP/AI).  
 5. Leave movie rename, rule-based / AI **batch plans**, and **folder** rename out of this workstream.
 
@@ -75,7 +75,7 @@ Problem: associate discovery and orchestration live in **Layer 1**. Electron / O
 
 1. **Core** — `Core.renameEpisodeFile` with episode check + associate expansion + disk + metadata + shared rename preflight  
 2. **HTTP** — `POST /api/rename-episode-file` → Core; Socket/metadata broadcast parity with today’s `/api/renameFiles`  
-3. **UI v3 (TV only)** — episode context-menu confirm calls the new API; no client-side `computeAssociatedFileRenames` when v3 is on  
+3. **UI (TV only)** — episode context-menu confirm calls the new API; no client-side `computeAssociatedFileRenames`  
 4. **CLI** — `smm rename <from> <to>` auto-dispatches `renameFolder` vs `renameEpisodeFile` (alias: `rename-episode-file`)  
 5. **MCP + AI tool** — shared `rename-episode-file` tool schemas; MCP handler + in-app assistant tool; **user confirmation** before disk write (mirror `rename-folder`)  
 6. **Cleanup** — optional: dual paths for TV; keep generic `/api/renameFiles` for movie / plan apply until those migrate  
@@ -87,7 +87,7 @@ Problem: associate discovery and orchestration live in **Layer 1**. Electron / O
 ```
 Layer 1: Web UI / Electron / OHOS / CLI / in-app AI / MCP clients
     │
-    │  POST /api/rename-episode-file   (UI v3, in-app AI)
+    │  POST /api/rename-episode-file   (UI, in-app AI)
     │  Core.renameEpisodeFile(...)     (CLI direct; MCP via host)
     │  mediaMetadataUpdated (Socket.IO) — same as today
     ▼
@@ -103,7 +103,7 @@ Layer 2: apps/core
     updateMediaMetadataAfterRename + setMetadata
 ```
 
-Per [refactoring.md](../../refactoring.md): UI only collects intent (dialog relative path) and renders results; **no** associate math and **no** metadata rewrite in Layer 1 for the v3 path. CLI / MCP / AI must **not** reimplement associate expansion — they pass primary `from` / `to` only.
+Per [refactoring.md](../../refactoring.md): UI only collects intent (dialog relative path) and renders results; **no** associate math and **no** metadata rewrite in Layer 1 for the Core path. CLI / MCP / AI must **not** reimplement associate expansion — they pass primary `from` / `to` only.
 
 ### 2.2 App Level Architecture
 
@@ -115,7 +115,7 @@ Per [refactoring.md](../../refactoring.md): UI only collects intent (dialog rela
 | `updateMediaMetadataAfterRename` | Existing pure helper — Core must apply it after successful disk renames |
 | `POST /api/rename-episode-file` | Body → Core → `{ data }` / `{ error }`, HTTP 200 |
 | Broadcast | After success: `mediaMetadataUpdated` for the folder (parity with `/api/renameFiles`) |
-| UI TV context menu | v3 ON → new API with `{ mediaFolder, from, to }` only; v3 OFF → legacy client expand + `/api/renameFiles` |
+| UI TV context menu | always `{ mediaFolder, from, to }` only via new API |
 | CLI | `smm rename <from> <to>` auto-dispatches folder vs episode; alias `rename-episode-file` |
 | MCP tool `rename-episode-file` | Same args as HTTP; **confirm** then Core (or HTTP); omit on hosts that cannot rename files |
 | In-app AI tool `rename-episode-file` | Same schemas as MCP; UI confirmation bridge then `POST /api/rename-episode-file` |
@@ -135,8 +135,8 @@ Per [refactoring.md](../../refactoring.md): UI only collects intent (dialog rela
 | Folder type | **`tvshow-folder` only** |
 | Episode identity | `from` must equal a `mediaFiles[].absolutePath` that has `seasonNumber` and `episodeNumber` |
 | Movie | **Out of scope** — keep legacy `/api/renameFiles` |
-| Feature flag | `smm.v3.enabled` — mirror scrape / rename-folder |
-| Existing `/api/renameFiles` | Keep for movie, rule-based, AI plan apply, and v3-off TV path |
+| Feature flag | none (Core HTTP always on) |
+| Existing `/api/renameFiles` | Keep for movie, rule-based, AI plan apply |
 
 #### Prerequisites
 
@@ -385,26 +385,20 @@ sequenceDiagram
 * **Then** response is `{ error: "Error Reason: File is not a linked episode: …" }`  
 * **And** no files are renamed  
 
-### 4.3 v3 off keeps legacy path
+### 4.3 TV episode rename uses Core HTTP
 
-* **Given** `smm.v3.enabled` is false  
-* **When** the user uses TV context-menu Rename  
-* **Then** UI still expands associates and calls `POST /api/renameFiles`  
-
-### 4.4 v3 on all TV frontends
-
-* **Given** Web, Electron, or OHOS with shared UI and v3 enabled  
+* **Given** Web, Electron, or OHOS with shared UI  
 * **When** TV episode context-menu Rename confirms  
 * **Then** only `POST /api/rename-episode-file` → Core runs (no UI `computeAssociatedFileRenames`)  
 
-### 4.5 Prerequisite / validation failure
+### 4.4 Prerequisite / validation failure
 
 * **Given** an unmanaged path, movie folder, or `to` outside the media folder  
 * **When** the client calls `POST /api/rename-episode-file`  
 * **Then** response is `{ error: "Error Reason: …" }`  
 * **And** no files are renamed  
 
-### 4.6 CLI rename (unified)
+### 4.5 CLI rename (unified)
 
 * **Given** a managed TV folder with a linked episode file  
 * **When** the operator runs `smm rename <episode-from> <episode-to>`  
@@ -415,15 +409,15 @@ sequenceDiagram
 * **When** the operator runs `smm rename <folder-from> <folder-to>`  
 * **Then** Core renames the folder and rewrites metadata / user config  
 
-### 4.7 MCP / AI tool with confirmation
+### 4.6 MCP / AI tool with confirmation
 
 * **Given** MCP or in-app AI invokes `rename-episode-file`  
 * **When** the user **cancels** confirmation  
 * **Then** no files are renamed and the tool reports cancelled  
 * **When** the user **confirms**  
-* **Then** Core (or HTTP → Core) runs the same path as the UI v3 context menu  
+* **Then** Core (or HTTP → Core) runs the same path as the UI episode context menu  
 
-### 4.8 Boundary vs batch rename plan tools
+### 4.7 Boundary vs batch rename plan tools
 
 * **Given** the assistant needs to rename many files under a plex/emby-style plan  
 * **When** choosing a tool  
@@ -445,10 +439,10 @@ sequenceDiagram
 
 - **Core unit:** episode assert accepts linked `mediaFiles` entry and rejects unlinked paths / movie folders; stem associate expansion matches `computeAssociatedFileRenames` fixtures (`S01E01.en.srt` → new stem); rejects unmanaged / escape paths; preflight refuses dest-exists / missing source before any rename; metadata updated via `updateMediaMetadataAfterRename`; partial failure still writes metadata for succeeded pairs.  
 - **HTTP route tests:** success returns `data.succeeded`; validation / not-episode / not-TV errors.  
-- **UI unit:** TV context-menu flow with v3 on posts `{ mediaFolder, from, to }` to `/api/rename-episode-file` only; v3 off keeps legacy; movie panel unchanged.  
+- **UI unit:** TV context-menu flow posts `{ mediaFolder, from, to }` to `/api/rename-episode-file` only; movie panel unchanged.  
 - **CLI e2e / unit:** `smm rename` dispatches folder vs episode; reject subdirectory / unmanaged; episode success prints pairs; folder success updates `list` + metadata cache.  
 - **MCP / AI tool unit:** shared schema; cancel confirmation → no Core call; confirm → Core/HTTP invoked with primary paths only (no client-side associate list).  
-- **E2E:** `TVShow-RenameEpisodeFile.e2e.ts` must pass with v3 on against Core path (Web / Electron / OHOS / Docker as already tagged).  
+- **E2E:** `TVShow-RenameEpisodeFile.e2e.ts` must pass against Core path (Web / Electron / OHOS / Docker as already tagged).  
 
 ## 7. Compatibility notes
 
@@ -456,6 +450,6 @@ sequenceDiagram
 - Do not conflate with `buildTvShowRenameListForPlan` (moves associates into season folders).  
 - `metadata.files` is legacy; prefer disk `listFiles` inside Core for associate discovery.  
 - Until movie / plan / AI **batch** flows migrate, `/api/rename-episode-file` and `/api/renameFiles` coexist; plan tools stay on `/api/renameFiles` apply.  
-- Feature flag: same `isSmmV3Enabled()` used by folder rename and scrape UI (UI context menu only; CLI/MCP always hit Core path once implemented).  
+- Feature flag: none — folder rename and scrape UI always use Core HTTP (UI context menu; CLI/MCP always hit Core path once implemented).  
 - Legacy hook name `useRenameVideoFileFlow` may remain until refactored; the **Core/HTTP/CLI/MCP/AI contract** must still be `renameEpisodeFile` / `rename-episode-file`.  
 - Shared Zod contracts live under `packages/core/types/ai-tools/renameEpisodeFile` so MCP and in-app AI cannot drift.  

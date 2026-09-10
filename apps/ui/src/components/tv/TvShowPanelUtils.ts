@@ -1,6 +1,5 @@
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles";
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles";
-import type { MediaFileMetadata, MediaMetadata, PrimaryDatabase, TMDBEpisode, TMDBTVShowDetails, TvShowMediaMetadata } from "@smm/types";
+import { listMediaFolderFilePaths } from "@/lib/mediaFolderFiles";
+import type { MediaFileMetadata, MediaMetadata, TMDBEpisode, TvShowMediaMetadata } from "@smm/types";
 import { extname, join } from "@/lib/path";
 import { Path } from "@smm/utils/path";
 import { getFullExtensionForAssociatedFile } from "@smm/types/mediaFileExtensions";
@@ -22,11 +21,8 @@ export function mediaFolderPathEqual(a: string | undefined, b: string | undefine
 import type { FileProps } from "@/lib/types";
 import { readFile } from "@/api/readFile";
 import { parseEpisodeNfo } from "@/lib/nfo";
-import { renameFiles as renameFilesApi } from "@/api/renameFiles";
-import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/RecognizeMediaFilePlan";
-import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import { toast } from "sonner";
-import { recognizeEpisodesAsync } from "@/lib/recognizeEpisodesUi";
 import type { PersistUIMediaMetadataFn } from "@/types/persistUIMediaMetadata";
 
 export function mapTagToFileType(tag: "VID" | "SUB" | "AUD" | "NFO" | "POSTER" | ""): "file" | "video" | "subtitle" | "audio" | "nfo" | "poster" {
@@ -54,29 +50,7 @@ export function newPath(mediaFolderPath: string, videoFilePath: string, associat
     return join(mediaFolderPath, associatedRelativePath)
 }
 
-/**
- * Build FileProps[] for an episode from a video path: video file plus associated files (subtitle, nfo, poster, etc.).
- * Used when building SeasonModel preview from recognized paths (rule-based or plan-based).
- */
-export function buildFilePropsForVideoPath(
-  mediaFolderPath: string,
-  fileList: string[],
-  videoFilePath: string
-): FileProps[] {
-  if (!mediaFolderPath || fileList.length === 0) {
-    return [{ type: "video", path: videoFilePath }]
-  }
-  const associatedFiles = findAssociatedFiles(mediaFolderPath, fileList, videoFilePath)
-  return [
-    { type: "video", path: videoFilePath },
-    ...associatedFiles.map((file) => ({
-      type: mapTagToFileType(file.tag),
-      path: join(mediaFolderPath, file.path),
-    })),
-  ]
-}
-
-export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: number, episodeNumber: number): FileProps[] {
+export function buildFileProps(mm: MediaMetadata, seasonNumber: number, episodeNumber: number, folderFiles: string[]): FileProps[] {
     if(mm.mediaFolderPath === undefined) {
         console.error(`Media folder path is undefined`)
         throw new Error(`Media folder path is undefined`)
@@ -86,7 +60,7 @@ export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: n
         return [];
     }
 
-    if(mm.files === undefined || mm.files === null) {
+    if(folderFiles.length === 0) {
         return [];
     }
 
@@ -98,7 +72,7 @@ export function buildFileProps(mm: MediaMetadataWithFolderFiles, seasonNumber: n
 
     const episodeVideoFilePath = mediaFile.absolutePath
 
-    const files = findAssociatedFiles(mm.mediaFolderPath, mm.files, episodeVideoFilePath)
+    const files = findAssociatedFiles(mm.mediaFolderPath, folderFiles, episodeVideoFilePath)
 
     const fileProps: FileProps[] = [
         {
@@ -250,18 +224,47 @@ export function rebuildPlanWithSelectedEpisodes(
     }
 }
 
-export function rebuildRenamePlanWithSelectedEpisodes(
-    originalPlan: RenameFilesPlan,
-    selectedEpisodePaths: string[]
-): RenameFilesPlan {
-  
-  return {
-    ...originalPlan,
-    files: originalPlan.files.filter(file => {
-      return selectedEpisodePaths.some(path => path === file.from)
-    })
-  }
+/**
+ * RENAME flow: build the apply-plan `data.files` payload from the episode table.
+ * A rename plan only touches files that are already linked in metadata, so the
+ * table's current episode path (metadata.mediaFiles[...].absolutePath) is
+ * exactly the plan entry's `from`.
+ *
+ * Do NOT reuse this for the RECOGNIZE flow: recognize targets files that are
+ * not yet linked, whose table paths are `undefined` — the selection would
+ * silently shrink to the already-recognized files.
+ * See buildRecognizeApplySelectedFiles.
+ */
+export function buildRenameApplySelectedFiles(
+    seasonData: { episodes: { season: number; episode: number; path?: string }[] }[],
+    selectedEpisodes: { season: number; episode: number }[],
+): string[] {
+    const selectedSet = new Set(selectedEpisodes.map((e) => `${e.season}-${e.episode}`))
+    return seasonData
+        .flatMap((s) => s.episodes)
+        .flatMap((e) =>
+            e.path !== undefined && selectedSet.has(`${e.season}-${e.episode}`) ? [e.path] : [],
+        )
+}
 
+/**
+ * RECOGNIZE flow: build the apply-plan `data.files` payload from the PLAN itself.
+ * A recognize plan proposes season/episode for files that are usually NOT yet
+ * linked in metadata, so their episode-table paths are `undefined` and a
+ * table-based lookup would silently drop them from the selection. The checked
+ * (season, episode) pairs must therefore be mapped back to `plan.files[].path`,
+ * matching docs/dev/recognize-episodes.md:
+ * "data: { files } with the selected plan.files[].path entries".
+ */
+export function buildRecognizeApplySelectedFiles(
+    plan: RecognizeMediaFilePlan | undefined,
+    selectedEpisodes: { season: number; episode: number }[],
+): string[] {
+    if (plan === undefined) return []
+    const selectedSet = new Set(selectedEpisodes.map((e) => `${e.season}-${e.episode}`))
+    return plan.files
+        .filter((f) => selectedSet.has(`${f.season}-${f.episode}`))
+        .map((f) => f.path)
 }
 
 /**
@@ -270,18 +273,31 @@ export function rebuildRenamePlanWithSelectedEpisodes(
  * @param signal optional AbortSignal to cancel the operation
  * @returns return undefined if not recognizable
  */
-export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFolderFiles, signal?: AbortSignal): Promise<MediaMetadataWithFolderFiles | undefined> {
+export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadata, signal?: AbortSignal): Promise<MediaMetadata | undefined> {
 
     const mm = structuredClone(_mm)
-    
-    if(mm.files === undefined || mm.files === null) {
-        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: files is undefined or null`)
+
+    if(!mm.mediaFolderPath) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: mediaFolderPath is undefined`)
+        return undefined
+    }
+
+    let folderFiles: string[]
+    try {
+        folderFiles = await listMediaFolderFilePaths(mm.mediaFolderPath, signal)
+    } catch {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: failed to list folder files`)
+        return undefined
+    }
+
+    if(folderFiles.length === 0) {
+        console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: files is empty`)
         return undefined
     }
 
     mm.mediaFiles = mm.mediaFiles ?? [];
 
-    const nfoFilePath = mm.files.find(file => file.endsWith('/tvshow.nfo'))
+    const nfoFilePath = folderFiles.find(file => file.endsWith('/tvshow.nfo'))
     if(nfoFilePath === undefined) {
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: tvshow.nfo not found`)
         return undefined
@@ -300,7 +316,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFold
     
     mm.tvShow = buildTvShowMediaMetadataByNFO(resp.data)
 
-    const episodeNfoFiles = mm.files.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
+    const episodeNfoFiles = folderFiles.filter(file => file.endsWith('.nfo') && !file.endsWith('/tvshow.nfo'))
     if(episodeNfoFiles.length === 0) {
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: no episode NFO files found`)
         return undefined
@@ -375,7 +391,7 @@ export async function tryToRecognizeTvShowFolderByNFO(_mm: MediaMetadataWithFold
         }
 
         console.log(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: found episode S${episodeNfo.season}E${episodeNfo.episode} "${episodeNfo.originalFilename}"`)
-        const mediaFileAbsPath = mm.files.find(file => file.endsWith(episodeNfo.originalFilename!))
+        const mediaFileAbsPath = folderFiles.find(file => file.endsWith(episodeNfo.originalFilename!))
         if(mediaFileAbsPath === undefined) {
             console.error(`[TvShowPanelUtils] tryToRecognizeMediaFolderByNFO: media file not found: ${episodeNfo.originalFilename}`)
         }
@@ -672,256 +688,6 @@ export function buildTvShowMediaMetadataByNFO(tvshowNfoXml: string): TvShowMedia
 }
 
 /**
- * @deprecated, use buildTvShowMediaMetadataByNFO instead
- * @param tvshowNfoXml 
- * @returns 
- */
-export function buildTmdbTVShowDetailsByNFO(tvshowNfoXml: string): TMDBTVShowDetails | undefined {
-    const parser = new DOMParser()
-    const doc = parser.parseFromString(tvshowNfoXml, 'text/xml')
-    
-    // Check for parsing errors
-    const parseError = doc.querySelector('parsererror')
-    if (parseError) {
-        console.error(`[buildTmdbTVShowDetailsByNFO] Failed to parse XML: ${parseError.textContent}`)
-        return undefined
-    }
-    
-    const tvshow = doc.querySelector('tvshow')
-    if (!tvshow) {
-        return undefined
-    }
-    
-    // Helper function to get text content from an element
-    const getTextContent = (selector: string): string | undefined => {
-        const element = tvshow.querySelector(selector)
-        return element?.textContent?.trim() || undefined
-    }
-    
-    // Extract ID - prefer uniqueid with type="tmdb", fallback to tmdbid, then id
-    let id = 0
-    const tmdbUniqueId = tvshow.querySelector('uniqueid[type="tmdb"]')
-    if (tmdbUniqueId) {
-        const idText = tmdbUniqueId.textContent?.trim()
-        if (idText) {
-            const parsedId = parseInt(idText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Fallback to tmdbid element
-    if (id === 0) {
-        const tmdbidText = getTextContent('tmdbid')
-        if (tmdbidText) {
-            const parsedId = parseInt(tmdbidText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Fallback to id element
-    if (id === 0) {
-        const idText = getTextContent('id')
-        if (idText) {
-            const parsedId = parseInt(idText, 10)
-            if (!isNaN(parsedId)) {
-                id = parsedId
-            }
-        }
-    }
-    
-    // Extract name (title)
-    const name = getTextContent('title') || ''
-    
-    // Extract original_name (originaltitle)
-    const original_name = getTextContent('originaltitle') || ''
-    
-    // Extract overview (plot)
-    const overview = getTextContent('plot') || ''
-    
-    // Extract poster_path from thumb with aspect="poster" and no season attribute
-    let poster_path: string | null = null
-    const posterThumbs = tvshow.querySelectorAll('thumb[aspect="poster"]')
-    for (const thumb of Array.from(posterThumbs)) {
-        const seasonAttr = thumb.getAttribute('season')
-        if (!seasonAttr) {
-            const thumbUrl = thumb.textContent?.trim()
-            if (thumbUrl) {
-                poster_path = extractTmdbImagePath(thumbUrl)
-                break
-            }
-        }
-    }
-    
-    // Extract backdrop_path from fanart
-    let backdrop_path: string | null = null
-    const fanart = tvshow.querySelector('fanart')
-    if (fanart) {
-        const fanartThumb = fanart.querySelector('thumb')
-        if (fanartThumb) {
-            const fanartUrl = fanartThumb.textContent?.trim()
-            if (fanartUrl) {
-                backdrop_path = extractTmdbImagePath(fanartUrl)
-            }
-        }
-    }
-    
-    // Fallback to fanart element if fanart/thumb structure not found
-    if (!backdrop_path) {
-        const fanartUrl = getTextContent('fanart')
-        backdrop_path = extractTmdbImagePath(fanartUrl)
-    }
-    
-    // Extract first_air_date (premiered)
-    const first_air_date = getTextContent('premiered') || ''
-    
-    // Extract vote_average and vote_count from ratings
-    let vote_average = 0
-    let vote_count = 0
-    const rating = tvshow.querySelector('ratings > rating[name="themoviedb"]')
-    if (rating) {
-        const valueElement = rating.querySelector('value')
-        const votesElement = rating.querySelector('votes')
-        
-        if (valueElement) {
-            const valueText = valueElement.textContent?.trim()
-            if (valueText) {
-                const parsedValue = parseFloat(valueText)
-                if (!isNaN(parsedValue)) {
-                    vote_average = parsedValue
-                }
-            }
-        }
-        
-        if (votesElement) {
-            const votesText = votesElement.textContent?.trim()
-            if (votesText) {
-                const parsedVotes = parseInt(votesText, 10)
-                if (!isNaN(parsedVotes)) {
-                    vote_count = parsedVotes
-                }
-            }
-        }
-    }
-    
-    // Extract origin_country from country elements
-    const origin_country: string[] = []
-    const countryElements = tvshow.querySelectorAll('country')
-    for (const country of Array.from(countryElements)) {
-        const countryText = country.textContent?.trim()
-        if (countryText) {
-            origin_country.push(countryText)
-        }
-    }
-    
-    // Extract status
-    const status = getTextContent('status') || ''
-    
-    // Extract last_air_date (not directly in NFO, but we can try to infer from status or leave empty)
-    const last_air_date = ''
-    
-    // Build and return TMDBTVShowDetails
-    const tvShowDetails: TMDBTVShowDetails = {
-        // Base TMDBTVShow fields
-        id,
-        name,
-        original_name,
-        overview,
-        poster_path,
-        backdrop_path,
-        first_air_date,
-        vote_average,
-        vote_count,
-        popularity: 0, // Not available in NFO
-        genre_ids: [], // Genre names in NFO, can't map to IDs without API
-        origin_country,
-        media_type: 'tv',
-        
-        // TMDBTVShowDetails specific fields
-        number_of_seasons: 0, // Not available in NFO
-        number_of_episodes: 0, // Not available in NFO
-        seasons: [], // Not available in NFO
-        status,
-        type: '', // Not available in NFO
-        in_production: status.toLowerCase() !== 'ended', // Infer from status
-        last_air_date,
-        networks: [], // Not available in NFO
-        production_companies: [], // Not available in NFO
-    }
-    
-    return tvShowDetails
-}
-
-
-/**
- * @deprecated, use startToRenameFiles in useTvShowRenaming instead
- * @param plan 
- * @param mediaMetadata 
- * @returns 
- */
-export async function executeRenamePlan(
-  plan: RenameFilesPlan,
-  mediaMetadata: MediaMetadata,
-): Promise<void> {
-  if (!mediaMetadata || !mediaFolderPathEqual(plan.mediaFolderPath, mediaMetadata.mediaFolderPath)) {
-    toast.error("Plan does not match current media folder")
-    return
-  }
-  const mediaFolderPath = mediaMetadata.mediaFolderPath
-  if (!mediaFolderPath) {
-    toast.error("Media folder path is not available")
-    return
-  }
-  const traceId = `TvShowPanel-executeRenamePlan-${nextTraceId()}`
-
-  if (plan.files.length === 0) {
-    console.warn(`empty RenameFilesPlan, do nothing but mark plan as completed`)
-  }
-
-  try {
-    // Pass platform-specific paths so the backend can perform file system operations correctly.
-    // mediaFolder is used for metadata update and broadcast; files.from/to must be platform format.
-    const response = await renameFilesApi({
-      files: plan.files.map(({ from, to }) => ({
-        from: Path.toPlatformPath(from),
-        to: Path.toPlatformPath(to),
-      })),
-      traceId,
-      mediaFolder: Path.toPlatformPath(mediaFolderPath),
-    })
-
-    if (response.error) {
-      toast.error(response.error)
-      return
-    }
-
-    const succeededPaths = response.data?.succeeded ?? []
-    const failedPaths = response.data?.failed ?? []
-
-    if (succeededPaths.length === 0) {
-      toast.error(`Failed to rename ${failedPaths.length} file(s)`)
-      return
-    }
-
-    const successCount = succeededPaths.length
-    const errorCount = failedPaths.length
-
-    if (errorCount === 0) {
-      toast.success(`Successfully renamed ${successCount} file(s)`)
-    } else {
-      toast.warning(`Renamed ${successCount} file(s), ${errorCount} failed`)
-    }
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-    toast.error(`Failed to rename files: ${errorMessage}`)
-  }
-}
-
-/**
  * Build a temporary recognition plan from the media metadata.
  * This is used for rule-based recognition where the frontend creates
  * episode-to-file mappings using the lookup utility.
@@ -935,57 +701,6 @@ export async function executeRenamePlan(
  * @returns A partial recognition plan with file mappings, or null if no files found
  *          The caller (addTmpPlan) will add id, task, status, and tmp fields
  */
-export async function buildTemporaryRecognitionPlanAsync(
-  mediaMetadata: MediaMetadataWithFolderFiles,
-): Promise<(Partial<RecognizeMediaFilePlan> & { mediaFolderPath: string; files: RecognizedFile[] }) | null> {
-  const folderFiles = getMediaFolderFiles(mediaMetadata)
-  console.log("[recognize] build temporary plan started", {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    fileCount: folderFiles.length,
-    tvShowId: mediaMetadata.tvShow?.id,
-  })
-
-  if (!mediaMetadata.mediaFolderPath || folderFiles.length === 0 || !mediaMetadata.tvShow) {
-    console.warn("[recognize] build temporary plan aborted: missing prerequisites", {
-      hasMediaFolderPath: !!mediaMetadata.mediaFolderPath,
-      hasFiles: folderFiles.length > 0,
-      hasTvShow: !!mediaMetadata.tvShow,
-    })
-    return null
-  }
-
-  const collected = await recognizeEpisodesAsync(mediaMetadata);
-
-  console.log("[recognize] build temporary plan completed", {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    recognizedCount: collected.length,
-  })
-
-  return {
-    mediaFolderPath: mediaMetadata.mediaFolderPath,
-    files: collected.map(({ season, episode, file }) => ({
-      season,
-      episode,
-      path: file,
-    }))
-  }
-}
-
-
-
-
-export interface OnMediaFolderSelectedParams {
-  mediaMetadata: MediaMetadata
-  /** Mirrors user config; undefined means try TMDB then TVDB in recognizeMediaFolder. */
-  primaryDatabase?: PrimaryDatabase
-  openRuleBasedRecognizePrompt: (options: {
-    tvShowTitle: string
-    tvShowTmdbId: number
-    onConfirm?: () => void
-    onCancel?: () => void
-  }) => void
-  updateMediaMetadata: (path: string, metadata: MediaMetadata | ((current: MediaMetadata) => MediaMetadata), options?: { traceId?: string }) => void
-}
 
 export interface UnlinkEpisodeParams {
   season: number,
@@ -1024,4 +739,37 @@ export function unlinkEpisode(params: UnlinkEpisodeParams): void {
       console.error(`[${traceId}] Failed to unlink episode:`, error)
       toast.error(t('tvShowEpisodeTable.unlinkFailed'))
     })
+}
+/** Display title for a season row: season 0 is always Specials; empty names get Season N. */
+function seasonDisplayTitle(season: number, name: string | undefined): string {
+  if (season === 0) return 'Specials'
+  const trimmed = name?.trim() ?? ''
+  return trimmed || `Season ${season}`
+}
+
+/**
+ * Map MediaMetadata seasons into MediaFileTable seasonData rows (UI display titles).
+ */
+export function buildMediaFileTableSeasonData(
+  m: MediaMetadata,
+): import("@/components/media/UIMediaFileTable").MediaFileTableSeasonData[] {
+  if (m.type === 'tvshow-folder' || m.type === 'movie-folder') {
+    return (
+      m.tvShow?.seasons?.map((s) => ({
+        season: s.season,
+        title: seasonDisplayTitle(s.season, s.name),
+        episodes: s.episodes.map((e) => ({
+          season: s.season,
+          episode: e.episode,
+          title: e.name,
+          path: m.mediaFiles?.find(
+            (f) => f.seasonNumber === s.season && f.episodeNumber === e.episode,
+          )?.absolutePath,
+        })),
+      })) ?? []
+    )
+  }
+
+  console.warn(`Unsupported media type: ${m.type}, returned dummy MediaFileTableSeasonData`)
+  return []
 }

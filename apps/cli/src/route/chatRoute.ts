@@ -17,6 +17,8 @@ export function handleChatRequest(app: Hono, chatConfig: ChatConfig) {
     try {
       const response = await doChat(chatConfig, c.req.raw, {
         renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
+        applyRenameEpisodePlan: (plan) => getCore().applyPlan(plan),
+        applyRecognizeEpisodePlan: (plan) => getCore().applyPlan(plan),
         scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
         getJob: (id) => getCore().getJob(id),
         tmdb: {

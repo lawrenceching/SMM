@@ -1,15 +1,10 @@
 import type { UserConfig } from "@smm/types";
 import { RenameRules } from "@smm/types";
 import { migrateAIConfig } from "@smm/core/configMigration";
-import { renameFolderInUserConfig } from "@smm/core/userConfig";
 import path from "path";
 import os from "os";
-import { Mutex } from 'es-toolkit';
-import { withTimeout } from 'es-toolkit/promise';
 
-const updateMutex = new Mutex();
 
-export { renameFolderInUserConfig };
 
 const DEFAULT_USER_CONFIG: UserConfig = {
   tmdb: {
@@ -171,28 +166,3 @@ export async function getUserConfig(): Promise<UserConfig> {
     }
 }
 
-async function writeUserConfigUnderMutex(userConfig: UserConfig): Promise<void> {
-    const configPath = getUserConfigPath();
-    const file = Bun.file(configPath);
-    await file.write(JSON.stringify(userConfig, null, 2));
-}
-
-export async function writeUserConfig(userConfig: UserConfig): Promise<void> {
-    try {
-        await updateMutex.acquire();
-        await writeUserConfigUnderMutex(userConfig);
-    } finally {
-        updateMutex.release();
-    }
-}
-
-export async function safeUpdateUserConfig(userConfig: UserConfig): Promise<void> {
-    await withTimeout(async () => {
-        try {
-            await updateMutex.acquire();
-            await writeUserConfigUnderMutex(userConfig);
-        } finally {
-            updateMutex.release();
-        }
-    }, 10000);
-}

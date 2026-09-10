@@ -1,12 +1,4 @@
-export const YTDLP_FORMAT_PRESET_IDS = [
-  "default",
-  "best",
-  "1080p",
-  "720p",
-  "audio",
-] as const;
-
-export type YtdlpFormatPresetId = (typeof YTDLP_FORMAT_PRESET_IDS)[number];
+export type YtdlpFormatPresetId = "default" | "best" | "1080p" | "720p" | "audio";
 
 export interface YtdlpFormatPreset {
   id: YtdlpFormatPresetId;

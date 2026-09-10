@@ -75,22 +75,6 @@ export interface OpenFolderDialogProps {
   folderPath?: string
 }
 
-export interface DeleteTrackDialogProps {
-  /** File path relative to the media folder when possible. */
-  displayPath: string
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-export interface Task {
-  name: string
-  status: "pending" | "running" | "completed" | "failed"
-  subTasks?: Task[]
-}
-
-export type { ScrapeTaskId, ScrapeTaskStatus, ScrapeTaskView } from "@/lib/scrapeDialog"
-export type { UseScrapeDialogInput, UseScrapeDialogResult } from "../useScrapeDialog"
-
 export interface UIScrapeDialogProps {
   isOpen: boolean
   onClose: () => void
@@ -176,7 +160,7 @@ export type SubtitleTranslateTranslator = "bing" | "google" | "llm"
 export type SubtitleTranslateLayout = "target-above" | "source-above" | "target-only" | "source-only"
 
 /** Known i18n keys for ineligible subtitle translation rows (`components` namespace). */
-export type SubtitleTranslationDisabledReasonKey = "subtitleTranslationDialog.noSubtitleFile"
+type SubtitleTranslationDisabledReasonKey = "subtitleTranslationDialog.noSubtitleFile"
 
 export interface SubtitleTranslationDialogRow {
   id: string
@@ -224,7 +208,7 @@ export interface UISubtitleTranslationDialogProps {
 export type SubtitleTranslationDialogProps = Omit<UISubtitleTranslationDialogProps, "onConfirm">
 
 /** Known i18n keys for ineligible synthesize rows (`components` namespace). */
-export type SynthesizeSubtitleDisabledReasonKey =
+type SynthesizeSubtitleDisabledReasonKey =
   | "synthesizeSubtitleDialog.noSubtitleFile"
   | "synthesizeSubtitleDialog.notVideoFile"
 
@@ -273,7 +257,7 @@ export interface UISynthesizeSubtitleDialogProps {
 export type SynthesizeSubtitleDialogProps = Omit<UISynthesizeSubtitleDialogProps, "onConfirm">
 
 /** Rows for {@link UIProcessPipelineDialog} / {@link ProcessPipelineDialog}. */
-export type ProcessPipelineDisabledReasonKey = "processPipelineDialog.noMediaPath"
+type ProcessPipelineDisabledReasonKey = "processPipelineDialog.noMediaPath"
 
 export interface ProcessPipelineDialogRow {
   id: string
@@ -333,15 +317,6 @@ export interface TrackProperties {
   addedDate?: Date
   filePath?: string
   path?: string
-}
-
-export interface MediaFilePropertyDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  /** Absolute file path for reading / writing media tags. */
-  filePath: string
-  /** Optional track metadata for read-only property display. */
-  track?: TrackProperties
 }
 
 export interface FormatConverterDialogProps {

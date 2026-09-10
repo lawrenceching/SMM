@@ -2,7 +2,6 @@
   "name": "convex",
   "version": "1.1.19",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "dev": "convex dev",
     "deploy": "convex deploy -y",

@@ -38,5 +38,4 @@ export const scrapeOutputSchema = z.object({
     .describe('Error message when the scrape job could not be started'),
 })
 
-export type ScrapeInput = z.infer<typeof scrapeInputSchema>
 export type ScrapeOutput = z.infer<typeof scrapeOutputSchema>

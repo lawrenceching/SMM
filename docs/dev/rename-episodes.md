@@ -81,7 +81,6 @@ sequenceDiagram
   W->>W: invalidate useMediaMetadataQuery
 ```
 
-
 ### UC2: Switch naming rule
 
 When user click the rename button
@@ -113,6 +112,61 @@ sequenceDiagram
   W->>W: invalidate useMediaMetadataQuery
 ```
 
+
+### UC3: Rename selected episodes
+
+User want to rename only selected episodes
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant W as UI
+  participant S as Server
+  participant C as Core
+
+  U->>W: click rename button
+  W->>S: POST /api/try-to-rename-episodes
+  S->>C: tryToRenameEpisodes()
+  C->>S: plan id + data
+  S->>W: plan id + data
+  W->>U: display plan
+  U->>W: select partial episodes in UI
+  U->>W: click confirm button
+  W->>S: 1* POST /api/apply-plan with selected episode list
+  S->>C: 2* applyPlan(..., data: any)
+  W->>W: invalidate useMediaMetadataQuery
+```
+
+1*:
+```
+POST /api/apply-plan
+{
+  data: {
+    files: [
+      '/path/to/file1',
+      '/path/to/file2',
+      '/path/to/file3',
+    ]
+  }
+}
+```
+
+RenameFilesPlan maintains a list of `{from: string, to: string}`
+The "files" represent the "from" file that needs to apply.
+
+Needs to add new validatin that files are in `from` list. If some files is not in "from" list. Throw the error in ProblemDetails format.
+
+2*: How to handle applyPlan() request with selected file list.
+applyPlan() is general interface for all plan. the `data: any` argument carries selected files list.
+Core module needs to reject the original plan(because there is no partial-approved status for a plan. We cannot apply some of rename intention and mark the plan is approved/done ).
+And then create a new plan with only selected files.
+
+In disk,
+If caller apply plan without selected file list, there is ONLY one plan file.
+If caller apply plan with selected file list, there are 2 plan file, one is rejected, another one is approved.
+
+
+
 ## MCP Tool and AI Tool
 
 AI and MCP clients use a single tool, **`create-rename-episode-plan`**, instead of the former begin/add/end rename task flow.
@@ -126,23 +180,66 @@ The tool calls `Core.createRenameEpisodePlan(..., { creator: "ai" })`, writes a 
 
 HTTP surface (same Core call): `POST /api/create-rename-episode-plan`. E2e/debug helper: `POST /debug/createRenameEpisodePlan`.
 
+If user config `metadata.write` is false, then user needs to approve the plan in SMM UI. 
+
 ```mermaid
 sequenceDiagram
-  participant U as User
-  participant A as AI Agent
-  participant T as MCP Tool/AI Tool
-  participant C as Core
+  participant U as WebUI User
   participant W as UI
+  participant S as Server
+  participant C as Core
+  participant T as MCP Tool/AI Tool
+  participant A as AI Agent
+  participant AgentUser
 
-  U->>A: ask for renaming episodes
+  AgentUser->>A: ask for renaming episodes
   A->>T: create-rename-episode-plan(folder, files)
   T->>C: createRenameEpisodePlan(..., creator ai)
-  C->>T: RenameFilesPlan (pending)
-  T->>W: RenameFilesPlanReady
-  T->>A: success message (review in SMM)
-  A->>U: message to user
-  U->>W: review + confirm
-  W->>C: applyPlan()
+  C->>C: build RenameEpisodePlan
+  alt if metadata.write is true
+     C->>C: apply plan
+     C->>T: print message
+  else
+     C->>T: return
+  T->>AgentUser: print message
+  C->>S: emit PlanAddedEvent
+  S->>W: emit PlanAddedEvent
+  W->>U: show AiBasedRenameEpisodePrompt
+  U->>W: click confirm button
+  W->>S: POST /api/apply-plan
+  S->>C: applyPlan
+  C->>S: return
+  S->>W: return
+  end
+  
+```
+
+### Browser-side Pulling
+
+If browser move to background, the browser side JavaScript may pause and may not receive event push by server.
+
+To increase the robustness, we need to implement the brower-side pulling.
+There are 2 trigger points:
+1. User select folder in Sidebar
+2. Browser reactives and one folder was already selected.
+
+
+```mermaid
+sequenceDiagram
+  participant U as WebUI User
+  participant W as UI
+  participant S as Server
+  participant C as Core
+
+  U->>W: select folder or reactive browser window
+  W->>S: pull tasks
+  W->>U: show AiBasedRenameEpisodePrompt
+  U->>W: click confirm button
+  W->>S: POST /api/apply-plan
+  S->>C: applyPlan
+  C->>S: return
+  S->>W: return
+
 ```
 
 

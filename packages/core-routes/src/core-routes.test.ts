@@ -582,7 +582,7 @@ describe("POST /api/listFilesInMediaFolder", () => {
   });
 });
 
-describe("POST /api/renameFolder", () => {
+describe("POST /api/rename-folder", () => {
   async function requestRenameFolder(rawBody: string | undefined) {
     const { handleCoreRoutesRequest } = await import("../src/register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
@@ -591,7 +591,7 @@ describe("POST /api/renameFolder", () => {
     const socket = new Socket();
     const req = new IncomingMessage(socket);
     req.method = "POST";
-    req.url = "/api/renameFolder";
+    req.url = "/api/rename-folder";
     req.headers = { "content-type": "application/json" };
 
     if (rawBody !== undefined) {

@@ -1,7 +1,7 @@
 import type { ScrapeJob, ScrapeTaskRuntimeStatus } from '@smm/core'
 
 /** CLI display order; Core task id `thumbnails` is shown as `thumbnail`. */
-export const SCRAPE_TASK_LINES = [
+const SCRAPE_TASK_LINES = [
   { taskId: 'poster', label: 'poster' },
   { taskId: 'fanart', label: 'fanart' },
   { taskId: 'thumbnails', label: 'thumbnail' },

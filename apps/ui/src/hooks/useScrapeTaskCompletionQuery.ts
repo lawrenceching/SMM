@@ -1,9 +1,8 @@
 import { useQuery } from "@tanstack/react-query"
 import type { MediaMetadata } from "@smm/types"
 import { checkTaskCompletion } from "@/lib/scrapeDialog/checkTaskCompletion"
-import type { ScrapeTaskId } from "@/lib/scrapeDialog"
 
-export function scrapeTaskCompletionQueryKey(mediaFolderPath: string) {
+function scrapeTaskCompletionQueryKey(mediaFolderPath: string) {
   return ["scrape-task-completion", mediaFolderPath] as const
 }
 
@@ -20,4 +19,3 @@ export function useScrapeTaskCompletionQuery(
   })
 }
 
-export type ScrapeTaskCompletion = Record<ScrapeTaskId, boolean>

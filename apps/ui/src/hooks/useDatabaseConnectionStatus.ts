@@ -8,7 +8,6 @@ import {
   type DatabaseConnectionStatus,
 } from "@/lib/databaseConnectionCheck"
 
-export type { DatabaseConnectionStatus }
 
 const DATABASE_CONNECTION_CHECK_INTERVAL_MS = 60 * 1000
 const DATABASE_CONNECTION_STALE_MS = 50 * 1000

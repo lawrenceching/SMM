@@ -1,4 +1,3 @@
-import type { UserConfig } from "./types";
 
 export const AskForRenameFilesConfirmation = {
   event: 'askForRenameFilesConfirmation',
@@ -26,21 +25,6 @@ export interface AskForRenameFilesConfirmationResponseData {
 
 export interface AskForRenameFilesConfirmationBeginRequestData {
   mediaFolderPath: string,
-}
-
-export interface AskForRenameFilesConfirmationEndRequestData {
-  mediaFolderPath: string,
-}
-
-export interface AskForRenameFilesConfirmationAddFileResponseData {
-  /**
-   * Absolute path in POSIX format
-   */
-  from: string,
-  /**
-   * Absolute path in POSIX format
-   */
-  to: string,
 }
 
 export const RecognizeMediaFilePlanReady = {
@@ -106,11 +90,6 @@ export interface FolderContentChangedEventData {
 
 export const USER_CONFIG_UPDATED_EVENT = 'userConfigUpdated'
 
-export interface UserConfigUpdatedEventData {
-  property: keyof UserConfig,
-  old: any
-  new: any
-}
 
 export const USER_CONFIG_FOLDER_RENAMED_EVENT = 'userConfig.folderRenamed'
 

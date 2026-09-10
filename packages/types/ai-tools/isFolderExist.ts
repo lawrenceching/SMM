@@ -32,5 +32,4 @@ export const isFolderExistOutputSchema = z.object({
     .describe('Reason for non-existence or non-directory'),
 })
 
-export type IsFolderExistInput = z.infer<typeof isFolderExistInputSchema>
 export type IsFolderExistOutput = z.infer<typeof isFolderExistOutputSchema>

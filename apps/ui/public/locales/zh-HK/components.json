@@ -25,6 +25,7 @@
     "toolbar": {
       "sort": "排序",
       "filter": "篩選",
+      "sortNone": "原始順序",
       "sortAlphabetical": "按字母順序",
       "sortReverseAlphabetical": "按字母倒序",
       "filterAll": "全部類型",
@@ -63,10 +64,8 @@
     "cancel": "取消",
     "selectPlaceholder": "選擇...",
     "generating": "生成中...",
-    "aiGenerating": "AI正在生成檔案名稱...",
     "aiRenaming": "AI正在重新命名劇集，請稍候...",
     "aiReview": "AI將重新命名劇集，請查看...",
-    "aiRecognizing": "AI正在識別劇集...",
     "aiReviewEpisodes": "檢視已識別的劇集",
     "recognizePrompt": "可能是 {{tvShowTitle}} ({{tvShowTmdbId}})?",
     "recognizeReviewPrompt": "請核對",

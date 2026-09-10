@@ -186,13 +186,11 @@ CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `ge
 
 ---
 
-## Web UI（⏳ v3 迁移）
-
-Web UI 的改动需要使用 localStorage 开关 `smm.v3.enabled` 控制.
+## Web UI
 
 搜索入口：`MediaDatabaseSearchbox`（`TvShowPanelHeader` / `MovieHeaderV2`）。
 
-**目标路径**（与 Core v3 一致）：UI 调用一对一 Internal HTTP，服务端再调对应 Core 方法。不经 `BrowserNetworkPort` / `POST /api/core/fetch`。
+**路径**（与 Core 一致）：UI 调用一对一 Internal HTTP，服务端再调对应 Core 方法。不经 `BrowserNetworkPort` / `POST /api/core/fetch`。
 
 ```mermaid
 flowchart LR

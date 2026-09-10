@@ -36,6 +36,7 @@ export const USER_CONFIG_KEY_FLAGS = {
   videoCaptionerExecutablePath: true,
   useBundledFfmpegForVideoCaptioner: true,
   quickjsExecutablePath: true,
+  aiAgent: true,
 } as const satisfies { [K in keyof UserConfig]: true };
 
 export const USER_CONFIG_KEYS = Object.keys(USER_CONFIG_KEY_FLAGS) as (keyof UserConfig)[];

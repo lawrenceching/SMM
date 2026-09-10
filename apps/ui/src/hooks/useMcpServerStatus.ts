@@ -3,7 +3,7 @@ import { getMcpServerStatus, startMcpServer, stopMcpServer } from "@/api/mcp";
 import type { McpServerState } from "@/api/mcp";
 import { useRefreshUserConfig } from "@/hooks/userConfig/useRefreshUserConfig";
 
-export const mcpServerStatusQueryKey = ["mcp", "serverStatus"] as const;
+const mcpServerStatusQueryKey = ["mcp", "serverStatus"] as const;
 
 /**
  * Fetches the MCP server runtime state from the backend.
@@ -18,8 +18,6 @@ export function useMcpServerStatusQuery() {
   });
 }
 
-/** @deprecated Use {@link useMcpServerStatusQuery} */
-export const useMcpServerStatus = useMcpServerStatusQuery;
 
 function useInvalidateMcpCaches() {
   const queryClient = useQueryClient();

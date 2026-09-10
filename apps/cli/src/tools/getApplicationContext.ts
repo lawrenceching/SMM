@@ -1,13 +1,8 @@
 import { acknowledge, getFirstAvailableSocket } from '@/utils/socketIO'
-import { z } from 'zod'
-import type { ToolDefinition } from './types'
-import { createSuccessResponse, createErrorResponse } from '@/mcp/tools/mcpToolBase'
 import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale'
 import { getUserConfig } from '@/utils/config'
-import { getLocalizedToolDescription } from '@/i18n/helpers'
 import { toolOk } from '@smm/core/ai-tool/toolResult'
 import {
-  GET_APPLICATION_CONTEXT,
   GET_APPLICATION_CONTEXT_DESCRIPTION,
   getApplicationContextInputSchema,
   getApplicationContextOutputSchema,
@@ -74,27 +69,3 @@ export function getApplicationContextAgentTool(clientId: string) {
 }
 
 // ─── MCP tool (localised description) ───────────────────────────
-
-export async function getApplicationContextMcpTool(): Promise<ToolDefinition> {
-  const description = await getLocalizedToolDescription(GET_APPLICATION_CONTEXT)
-
-  return {
-    toolName: GET_APPLICATION_CONTEXT,
-    description,
-    inputSchema: getApplicationContextInputSchema,
-    outputSchema: getApplicationContextOutputSchema,
-    execute: async () => {
-      try {
-        const result = await executeGetApplicationContext()
-        return createSuccessResponse(
-          result as unknown as { [x: string]: unknown },
-        )
-      } catch (error) {
-        console.error('[getApplicationContext] MCP tool error:', error)
-        return createErrorResponse(
-          error instanceof Error ? error.message : 'Unknown error',
-        )
-      }
-    },
-  }
-}

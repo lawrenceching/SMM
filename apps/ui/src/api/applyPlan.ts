@@ -2,6 +2,8 @@ import { apiFetch } from '@/lib/apiFetch'
 
 export interface ApplyPlanRequest {
   id: string
+  /** UC3: apply only the selected "from" files of a rename-files plan. */
+  data?: { files?: string[] }
 }
 
 export interface ApplyPlanResponseBody {

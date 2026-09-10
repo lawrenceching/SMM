@@ -5,30 +5,12 @@ import { useUpdateMediaMetadataMutation } from "@/hooks/mediaMetadata/useUpdateM
 import { normalizeMediaFolderPathForQuery, mediaMetadataQueryKey } from "@/lib/mediaMetadataQueryKeys"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { Path } from "@smm/utils/path"
-import type { MediaMetadata, TMDBMovie, TMDBTVShow, TvShowMediaMetadata } from "@smm/types"
-import { useGetTmdbTvShowMutation } from "@/hooks/useGetTmdbTvShowMutation"
-import { useGetTvdbTvShowMutation } from "@/hooks/useGetTvdbTvShowMutation"
+import type { MediaMetadata, TMDBMovie, TMDBTVShow } from "@smm/types"
 import { recognizeFolderViaCore } from "@/api/recognizeFolder"
-import { isSmmV3Enabled } from "@/lib/localStorages"
-import { nextTraceId } from "@/lib/utils"
 import { toast } from "sonner"
 import type { SearchLanguage } from "@/components/MediaDatabaseSearchbox"
 import type { TVDBSearchItem } from "@/lib/tvdbSearchNormalize"
 import type { TVDBv4SearchResult } from "@smm/tvdb4"
-
-type ApplyTmdbTvShowSelectionVars = {
-  id: number
-  language?: string
-  mediaFolderPath: string
-  traceId: string
-}
-
-type ApplyTvdbTvShowSelectionVars = {
-  seriesId: number
-  language?: string
-  mediaFolderPath: string
-  traceId: string
-}
 
 export type SelectTvShowForFolderVariables =
   | {
@@ -87,45 +69,6 @@ export function useSelectTvShowForFolderMutation() {
 
   const setFolderStatus = useUIMediaFolderStore.getState().updateFolderStatus
 
-  const onMutateLegacy = useCallback(
-    (variables: { mediaFolderPath: string }) => {
-      setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "loading")
-      void updateMediaMetadata(variables.mediaFolderPath, (prev) => ({
-        ...prev,
-        tvShow: undefined,
-      }))
-    },
-    [setFolderStatus, updateMediaMetadata],
-  )
-
-  const onSuccessLegacy = useCallback(
-    (tvShow: TvShowMediaMetadata, variables: { mediaFolderPath: string }) => {
-      void updateMediaMetadata(variables.mediaFolderPath, (prev) => ({
-        ...prev,
-        tvShow,
-      }))
-      setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "ok")
-    },
-    [setFolderStatus, updateMediaMetadata],
-  )
-
-  const onErrorLegacy = useCallback((error: Error, variables: { mediaFolderPath: string }) => {
-    toast.error(error instanceof Error ? error.message : "Failed to get TV show details")
-    setFolderStatus(Path.toPlatformPath(variables.mediaFolderPath), "ok")
-  }, [setFolderStatus])
-
-  const applyTmdbTvShowSelectionMutation = useGetTmdbTvShowMutation<ApplyTmdbTvShowSelectionVars>({
-    onMutate: onMutateLegacy,
-    onSuccess: onSuccessLegacy,
-    onError: onErrorLegacy,
-  })
-
-  const applyTvdbTvShowSelectionMutation = useGetTvdbTvShowMutation<ApplyTvdbTvShowSelectionVars>({
-    onMutate: onMutateLegacy,
-    onSuccess: onSuccessLegacy,
-    onError: onErrorLegacy,
-  })
-
   const recognizeFolderMutation = useMutation({
     mutationFn: async (variables: SelectTvShowForFolderVariables) => {
       await recognizeFolderViaCore({
@@ -150,90 +93,17 @@ export function useSelectTvShowForFolderMutation() {
     },
   })
 
-  const mutateLegacy = useCallback(
-    (variables: SelectTvShowForFolderVariables) => {
-      const { database, result, searchLanguage, mediaFolderPath } = variables
-      const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
-
-      if (database === "TVDB") {
-        const selectedTvdbSearchResult = result as TVDBv4SearchResult
-        applyTvdbTvShowSelectionMutation.mutate({
-          seriesId: Number(selectedTvdbSearchResult.tvdb_id),
-          language: searchLanguage,
-          mediaFolderPath,
-          traceId,
-        })
-      } else {
-        applyTmdbTvShowSelectionMutation.mutate({
-          id: result.id,
-          language: searchLanguage,
-          mediaFolderPath,
-          traceId,
-        })
-      }
-    },
-    [applyTmdbTvShowSelectionMutation, applyTvdbTvShowSelectionMutation],
-  )
-
-  const mutateAsyncLegacy = useCallback(
-    async (variables: SelectTvShowForFolderVariables) => {
-      const { database, result, searchLanguage, mediaFolderPath } = variables
-      const traceId = `TvShowSearchResultSelected-${nextTraceId()}`
-
-      if (database === "TVDB") {
-        const selectedTvdbSearchResult = result as TVDBv4SearchResult
-        return applyTvdbTvShowSelectionMutation.mutateAsync({
-          seriesId: Number(selectedTvdbSearchResult.tvdb_id),
-          language: searchLanguage,
-          mediaFolderPath,
-          traceId,
-        })
-      }
-      return applyTmdbTvShowSelectionMutation.mutateAsync({
-        id: result.id,
-        language: searchLanguage,
-        mediaFolderPath,
-        traceId,
-      })
-    },
-    [applyTmdbTvShowSelectionMutation, applyTvdbTvShowSelectionMutation],
-  )
-
-  const mutate = useCallback(
-    (variables: SelectTvShowForFolderVariables) => {
-      if (isSmmV3Enabled()) {
-        recognizeFolderMutation.mutate(variables)
-        return
-      }
-      mutateLegacy(variables)
-    },
-    [mutateLegacy, recognizeFolderMutation],
-  )
-
-  const mutateAsync = useCallback(
-    async (variables: SelectTvShowForFolderVariables) => {
-      if (isSmmV3Enabled()) {
-        await recognizeFolderMutation.mutateAsync(variables)
-        return
-      }
-      return mutateAsyncLegacy(variables)
-    },
-    [mutateAsyncLegacy, recognizeFolderMutation],
-  )
-
   const selectTvShowForFolderMutation = useMemo(
-    () => ({ mutate, mutateAsync }),
-    [mutate, mutateAsync],
+    () => ({
+      mutate: recognizeFolderMutation.mutate,
+      mutateAsync: recognizeFolderMutation.mutateAsync,
+    }),
+    [recognizeFolderMutation],
   )
-
-  const isSelectTvShowForFolderPending =
-    recognizeFolderMutation.isPending ||
-    applyTmdbTvShowSelectionMutation.isPending ||
-    applyTvdbTvShowSelectionMutation.isPending
 
   return {
     selectTvShowForFolderMutation,
-    isSelectTvShowForFolderPending,
+    isSelectTvShowForFolderPending: recognizeFolderMutation.isPending,
     updateMediaMetadata,
   }
 }

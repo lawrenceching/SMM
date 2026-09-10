@@ -6,7 +6,7 @@ import { generateNewFileName } from "@smm/core/pipeline/renameRules"
 import { Path } from "@smm/utils/path"
 import { join, extname } from "@/lib/path"
 import { useLatest } from "react-use"
-import { useDialogs } from "@/providers/dialog-provider"
+import { askForRenameFile, askForScrape } from "@/lib/dialogRequestEvents"
 import { useFetchMediaMetadataMutation } from "@/hooks/mediaMetadata/useFetchMediaMetadataMutation"
 import { useSelectMovieForFolderMutation } from "@/hooks/movie/useSelectMovieForFolderMutation"
 import { renameFiles } from "@/api/renameFiles"
@@ -16,19 +16,29 @@ import {
   buildMovieFilesFromMediaMetadata,
   type MovieFileModel,
 } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
-import { buildMovieEpisodeTableRows, type MovieRenamePreviewData } from "@/lib/buildMovieEpisodeTableRows"
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
-import { getMediaFolderFiles } from "@/lib/mediaFolderFiles"
+import {
+  buildMovieEpisodeAssociatedFileLists,
+  buildMovieEpisodeTableRows,
+  buildMovieMediaFileTableSeasonData,
+  buildMovieMetadataFiles,
+  type MovieRenamePreviewData,
+} from "@/lib/buildMovieEpisodeTableRows"
+import type { MediaMetadata } from "@/lib/mediaFolderFiles"
+import { useMediaFolderFilesQuery } from "@/hooks/useMediaFolderFilesQuery"
 import type { UIMediaFolderStatus } from "@/types/UIMediaFolder"
-import { MovieHeaderV2 } from "./MovieHeaderV2"
-import type { EpisodeTableLayout } from "../tv/TvShowPanelHeader"
+import {
+  UI_AskForVideoCompression,
+  type OnAskForVideoCompressionEventData,
+} from "@/types/eventTypes"
+import { MediaFileTableToolbar, type EpisodeTableLayout } from "@/components/media/MediaFileTableToolbar"
+import { useMovieMediaFileTableToolbar } from "@/hooks/movie/useMovieMediaFileTableToolbar"
 import { MediaFileTable } from "../media/MediaFileTable"
 import type {
-  UIMediaFileDataContextMenuItem,
+  MediaFileTableSeasonData,
+  UIMediaFileDataRow,
   UIMediaFileTableRow,
 } from "../media/UIMediaFileTable"
 import { useRenameVideoFileFlow } from "@/hooks/useRenameVideoFileFlow"
-import { TvShowEpisodeTable, type TvShowEpisodeDataRow, type TvShowEpisodeTableRow } from "../tv/TvShowEpisodeTable"
 import { RuleBasedRenameFilePrompt } from "../RuleBasedRenameFilePrompt"
 import { MediaPanelInitializingHint } from "../MediaPanelInitializingHint"
 import type { SearchResultSelectedArgs } from "../MediaDatabaseSearchbox"
@@ -38,7 +48,6 @@ import { useSubtitleFlow } from "@/hooks/useSubtitleFlow"
 import { useTranslation } from "react-i18next"
 import Debug from 'debug'
 const debug = Debug('MoviePanel')
-export type { MovieFileModel } from "@/helpers/movie/buildMovieFilesFromMediaMetadata"
 
 interface ToolbarOption {
   value: "plex" | "emby",
@@ -91,14 +100,11 @@ function MoviePanel() {
     },
     [fetchMediaMetadata],
   )
-  const { scrapeDialog, videoCompressionDialog } = useDialogs()
-  const [openScrape] = scrapeDialog
-
   const toolbarOptions: ToolbarOption[] = [
     { value: "plex", label: "Plex" } as ToolbarOption,
     { value: "emby", label: "Emby" } as ToolbarOption,
   ]
-  const [selectedNamingRule, setSelectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
+  const [selectedNamingRule] = useState<"plex" | "emby">(toolbarOptions[0]?.value || "plex")
   const [, setIsRenaming] = useState(false)
 
   // Prompt states
@@ -108,21 +114,23 @@ function MoviePanel() {
   const [layout, setLayout] = useState<EpisodeTableLayout>("simple")
 
 
+  const { data: folderFiles = [] } = useMediaFolderFilesQuery(selectedFolder || undefined)
+
   /**
    * Frontend-processed media metadata. Adjustments here should not persist to backend.
    */
-  const mediaMetadata: MediaMetadataWithFolderFiles | undefined = useMemo(() => {
+  const mediaMetadata: MediaMetadata | undefined = useMemo(() => {
     if (!queriedMediaMetadata) {
       return undefined
     }
 
-    const clone: MediaMetadataWithFolderFiles = structuredClone(queriedMediaMetadata)
+    const clone: MediaMetadata = structuredClone(queriedMediaMetadata)
 
     // move this step to Media Folder Initialization process
-    return findMediaFilesForMovieMediaMetadata(clone)
-  }, [queriedMediaMetadata])
+    return findMediaFilesForMovieMediaMetadata(clone, folderFiles)
+  }, [queriedMediaMetadata, folderFiles])
 
-  const { isVideoCompressionEnabled, isUseMediaFileTableEnabled } = useFeatures()
+  const { isVideoCompressionEnabled } = useFeatures()
 
   const subtitleFlow = useSubtitleFlow({
     mediaMetadata,
@@ -131,18 +139,18 @@ function MoviePanel() {
   })
   const videoRenameFlow = useRenameVideoFileFlow({
     mediaFolderPath: mediaMetadata?.mediaFolderPath,
-    files: getMediaFolderFiles(mediaMetadata),
+    openRenameDialog: askForRenameFile,
   })
   const [movieFiles, setMovieFiles] = useState<MovieFileModel>({ files: [] })
   const latestMovieFiles = useLatest(movieFiles)
 
   // Merge base files with preview modifications
   useEffect(() => {
-    const model = buildMovieFilesFromMediaMetadata(mediaMetadata)
+    const model = buildMovieFilesFromMediaMetadata(mediaMetadata, folderFiles)
     if (model) {
       setMovieFiles(model)
     }
-  }, [mediaMetadata])
+  }, [mediaMetadata, folderFiles])
 
   // Compute preview mode from prompt states
   const isPreviewingForRename = useMemo(() => {
@@ -323,22 +331,61 @@ function MoviePanel() {
   }, [mediaMetadata, latestMovieFiles, refreshMediaMetadata, t])
 
   // Build table data using the movie→tv-show adapter
-  const tableData = useMemo<TvShowEpisodeTableRow[]>(() => {
+  const tableData = useMemo<UIMediaFileTableRow[]>(() => {
     if (!mediaMetadata) return []
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), {
+    return buildMovieEpisodeTableRows(mediaMetadata, folderStatus, (key: string) => t(key as any), folderFiles, {
       renamePreview: renamePreview ?? undefined,
     })
-  }, [mediaMetadata, folderStatus, t, renamePreview])
+  }, [mediaMetadata, folderStatus, t, renamePreview, folderFiles])
+
+  // MediaFileTable simple/detail/preview layouts render seasonData, not legacy `data`.
+  const seasonData = useMemo<MediaFileTableSeasonData[]>(() => {
+    if (!mediaMetadata) return []
+    return buildMovieMediaFileTableSeasonData(mediaMetadata)
+  }, [mediaMetadata])
+
+  const metadataFiles = useMemo(
+    () => (mediaMetadata ? buildMovieMetadataFiles(mediaMetadata, folderFiles) : undefined),
+    [mediaMetadata, folderFiles],
+  )
+
+  const associatedFileLists = useMemo(
+    () =>
+      mediaMetadata
+        ? buildMovieEpisodeAssociatedFileLists(mediaMetadata, folderFiles)
+        : { subtitleFiles: [], nfoFiles: [], thumbnailFiles: [] },
+    [mediaMetadata, folderFiles],
+  )
+
+  const newFilePaths = useMemo(() => {
+    if (!renamePreview?.newVideoFile) return []
+    return [{ season: 1, episode: 1, newFilePath: renamePreview.newVideoFile }]
+  }, [renamePreview])
 
   const handleVideoCompressClick = useCallback(
-    (row: TvShowEpisodeDataRow) => {
+    (row: UIMediaFileDataRow) => {
       if (!row.videoFile) return
-      const [openVideoCompression] = videoCompressionDialog
-      openVideoCompression({ filePath: row.videoFile })
+      document.dispatchEvent(
+        new CustomEvent<OnAskForVideoCompressionEventData>(UI_AskForVideoCompression, {
+          detail: { filePath: row.videoFile },
+        }),
+      )
     },
-    [videoCompressionDialog],
+    [],
   )
+
+  const mediaFileTableToolbarProps = useMovieMediaFileTableToolbar({
+    onSearchResultSelected: handleSelectResult,
+    onRenameClick: () => setIsRuleBasedRenameFilePromptOpen(true),
+    showSubtitleMenu: subtitleFlow.showSubtitleMenu,
+    ...subtitleFlow.header,
+    selectedMediaMetadata: mediaMetadata,
+    selectedMediaFolder: uiFolderRow,
+    openScrape: askForScrape,
+    episodeTableLayout: layout,
+    onEpisodeTableLayoutChange: setLayout,
+  })
 
   return (
     <div className='w-full h-full min-h-0 relative flex flex-col'>
@@ -348,43 +395,30 @@ function MoviePanel() {
       <ProcessPipelineDialog {...subtitleFlow.dialogs.pipeline} />
 
       <div className="shrink-0 px-4 pt-4">
-        <MovieHeaderV2
-          onSearchResultSelected={handleSelectResult}
-          onRenameClick={() => setIsRuleBasedRenameFilePromptOpen(true)}
-          showSubtitleMenu={subtitleFlow.showSubtitleMenu}
-          {...subtitleFlow.header}
-          selectedMediaMetadata={mediaMetadata}
-          selectedMediaFolder={uiFolderRow}
-          openScrape={openScrape}
-          episodeTableLayout={layout}
-          onEpisodeTableLayoutChange={setLayout}
-        />
+        <MediaFileTableToolbar {...mediaFileTableToolbarProps} />
       </div>
       <div className="flex-1 min-h-0 overflow-auto">
         {folderStatus === "initializing" ? (
           <MediaPanelInitializingHint />
-        ) : isUseMediaFileTableEnabled ? (
+        ) : (
           <MediaFileTable
             key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
-            data={tableData as UIMediaFileTableRow[]}
-            mediaFolderPath={mediaMetadata?.mediaFolderPath}
-            layout={isPreviewingForRename ? "simple" : layout}
-            preview={isPreviewingForRename ? "rename" : undefined}
-            extraEpisodeContextMenu={[{
-              id: "rename",
-              label: t("episodeFile.rename"),
-              onClick: videoRenameFlow.onRenameContextMenuClick,
-              disabled: (row) => !row.videoFile,
-            } satisfies UIMediaFileDataContextMenuItem]}
-          />
-        ) : (
-          <TvShowEpisodeTable
-            key={mediaMetadata?.mediaFolderPath ?? "no-folder"}
+            seasonData={seasonData}
+            metadataFiles={metadataFiles}
+            subtitleFiles={associatedFileLists.subtitleFiles}
+            nfoFiles={associatedFileLists.nfoFiles}
+            thumbnailFiles={associatedFileLists.thumbnailFiles}
+            newFilePaths={newFilePaths}
             data={tableData}
             mediaFolderPath={mediaMetadata?.mediaFolderPath}
             layout={isPreviewingForRename ? "simple" : layout}
             preview={isPreviewingForRename ? "rename" : undefined}
-            onVideoCompressContextMenuClick={isVideoCompressionEnabled ? handleVideoCompressClick : undefined}
+            contextMenuProps={{
+              renameMenuVisible: true,
+              onRenameMenuClick: videoRenameFlow.onRenameContextMenuClick,
+              videoCompressMenuVisible: isVideoCompressionEnabled,
+              onVideoCompressMenuClick: handleVideoCompressClick,
+            }}
           />
         )}
       </div>
@@ -394,7 +428,6 @@ function MoviePanel() {
         isOpen={isRuleBasedRenameFilePromptOpen}
         namingRuleOptions={toolbarOptions}
         selectedNamingRule={selectedNamingRule}
-        onNamingRuleChange={(value) => setSelectedNamingRule(value as "plex" | "emby")}
         onConfirm={handleRuleBasedRenameConfirm}
         onCancel={() => setIsRuleBasedRenameFilePromptOpen(false)}
       />

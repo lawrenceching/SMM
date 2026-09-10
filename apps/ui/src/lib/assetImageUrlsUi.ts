@@ -4,12 +4,7 @@ import {
 } from "@smm/core/pipeline/scrape/assetImageUrls";
 import type { DiscoverConfig } from "@/api/discover";
 
-export {
-  TMDB_IMAGE_HOSTS,
-  TVDB_ARTWORK_HOSTS,
-  hostSwap,
-  assetTypeForHost,
-} from "@smm/core/pipeline/scrape/assetImageUrls";
+
 
 function readDebugOverrideHost(): string | null {
   if (typeof localStorage === "undefined") return null;

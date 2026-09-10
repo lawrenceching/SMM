@@ -12,12 +12,12 @@ export interface ExecuteCmdRequest {
   tty?: boolean;
 }
 
-export interface ExecuteCmdStdoutStderrMessage {
+interface ExecuteCmdStdoutStderrMessage {
   type: 'stdout' | 'stderr';
   data: string;
 }
 
-export interface ExecuteCmdSystemMessage {
+interface ExecuteCmdSystemMessage {
   type: 'system';
   data: {
     event: 'exit' | 'error' | 'timeout';

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import type { TMDBTVShow, TMDBTVShowDetails } from '@smm/types'
-import type { UIRecognizeMediaFilePlan } from '@/types/UIRecognizeMediaFilePlan'
+import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 
 interface ToolbarOption {
   value: "plex" | "emby"
@@ -33,7 +33,7 @@ interface RuleBasedRecognizePromptData {
   tvShowTitle: string | undefined
   tvShowTmdbId: number | undefined
   planId: string | undefined
-  onConfirm: ((plan: UIRecognizeMediaFilePlan) => void) | undefined
+  onConfirm: ((plan: RecognizeMediaFilePlan) => void) | undefined
   onCancel: (() => void) | undefined
 }
 
@@ -67,7 +67,7 @@ interface TvShowPromptsState {
     tvShowTitle: string
     tvShowTmdbId: number
     planId?: string
-    onConfirm?: (plan: UIRecognizeMediaFilePlan) => void
+    onConfirm?: (plan: RecognizeMediaFilePlan) => void
     onCancel?: () => void
   }) => void
 
@@ -189,78 +189,3 @@ export const useTvShowPromptsStore = create<TvShowPromptsState>()(
     { name: 'TvShowPromptsStore' }
   )
 )
-
-export const useUseNfoPrompt = () => useTvShowPromptsStore((state) => state.useNfoPrompt)
-export const useRuleBasedRenameFilePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
-export const useRuleBasedRecognizePrompt = () => useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
-
-// Unified control hooks for prompts (legacy callers)
-export const useRuleBasedRenameFilePromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.ruleBasedRenameFilePrompt)
-  const open = useTvShowPromptsStore((state) => state.openRuleBasedRenameFilePrompt)
-  const close = useTvShowPromptsStore((state) => state.closeRuleBasedRenameFilePrompt)
-  const updateSelectedRule = useTvShowPromptsStore((state) => state.updateRuleBasedRenameFilePromptSelectedRule)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; planId?: string; toolbarOptions?: ToolbarOption[]; selectedNamingRule?: "plex" | "emby" | undefined; setSelectedNamingRule?: ((rule: "plex" | "emby") => void) | undefined; onConfirm?: (planId: string) => void; onCancel?: () => void; onNamingRulesSelected?: (rule: "plex" | "emby") => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          toolbarOptions: config.toolbarOptions || [],
-          selectedNamingRule: config.selectedNamingRule,
-          setSelectedNamingRule: config.setSelectedNamingRule || (() => {}),
-          planId: config.planId ?? '',
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-          onNamingRulesSelected: config.onNamingRulesSelected,
-        })
-      }
-    },
-    updateSelectedRule,
-  }
-}
-
-export const useRuleBasedRecognizePromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.ruleBasedRecognizePrompt)
-  const open = useTvShowPromptsStore((state) => state.openRuleBasedRecognizePrompt)
-  const close = useTvShowPromptsStore((state) => state.closeRuleBasedRecognizePrompt)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; tvShowTitle?: string; tvShowTmdbId?: number; onConfirm?: () => void; onCancel?: () => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          tvShowTitle: config.tvShowTitle!,
-          tvShowTmdbId: config.tvShowTmdbId!,
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-        })
-      }
-    }
-  }
-}
-
-export const useUseNfoPromptControl = () => {
-  const state = useTvShowPromptsStore((state) => state.useNfoPrompt)
-  const open = useTvShowPromptsStore((state) => state.openUseNfoPrompt)
-  const close = useTvShowPromptsStore((state) => state.closeUseNfoPrompt)
-
-  return {
-    states: state,
-    setState: (config: { open?: boolean; nfoData?: TMDBTVShowDetails; onConfirm?: (tmdbTvShow: TMDBTVShow) => void; onCancel?: () => void }) => {
-      if (config.open === false) {
-        close()
-      } else if (config.open === true) {
-        open({
-          nfoData: config.nfoData!,
-          onConfirm: config.onConfirm,
-          onCancel: config.onCancel,
-        })
-      }
-    }
-  }
-}

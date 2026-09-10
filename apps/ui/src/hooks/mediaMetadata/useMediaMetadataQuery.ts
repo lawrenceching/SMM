@@ -1,7 +1,6 @@
 import { skipToken, useQuery } from "@tanstack/react-query"
 import { MetadataHttpError } from "@/api/metadata"
 import { mediaMetadataReadQueryOptions } from "@/lib/mediaMetadataQueryKeys"
-import type { MediaMetadataWithFolderFiles } from "@/lib/mediaFolderFiles"
 import type { MediaMetadata } from "@smm/types"
 
 /** Query key when no folder path — `queryFn: skipToken` skips fetch; must not call `mediaMetadataReadQueryOptions("")`. */
@@ -15,7 +14,7 @@ export function useMediaMetadataQuery(path: string | undefined, _opts?: UseMedia
   const trimmed = path?.trim() ?? ""
   const readOpts = trimmed ? mediaMetadataReadQueryOptions(trimmed) : null
 
-  return useQuery<MediaMetadataWithFolderFiles | null>({
+  return useQuery<MediaMetadata | null>({
     queryKey: readOpts?.queryKey ?? noFolderMediaMetadataQueryKey,
     queryFn: readOpts
       ? async (context) => {

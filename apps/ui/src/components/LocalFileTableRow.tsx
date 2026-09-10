@@ -26,8 +26,6 @@ import { Path } from "@smm/utils/path"
 import { toast } from "sonner"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 
-export type { LocalFileTableRowData } from "./MusicFileTable"
-export type { MusicTableSelection, LocalFileTableRowFileMenu } from "@/types/music-table"
 
 export interface LocalFileTableRowProps {
   row: LocalFileTableRowData

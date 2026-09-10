@@ -2,10 +2,6 @@
   "name": "docker",
   "private": true,
   "description": "Docker image build for SMM (CLI + UI + bin)",
-  "devDependencies": {
-    "cli": "workspace:*",
-    "ui": "workspace:*"
-  },
   "scripts": {
     "test": "bun test",
     "build": "docker buildx build --progress=plain -t smm:latest -f Dockerfile ../..",

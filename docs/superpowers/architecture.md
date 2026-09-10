@@ -507,8 +507,7 @@ A separate mobile-optimized view with slide-page navigation (list → detail), d
 | `src/components/` | UI components |
 | `src/components/ui/` | Shadcn UI primitives (hand-installed) |
 | `src/components/dialogs/` | Dialog components |
-| `src/components/sidebar/` | Sidebar components |
-| `src/components/v2/` | Desktop layout (Sidebar, Toolbar, ViewSwitcher) |
+| `src/components/sidebar/` | Sidebar / desktop layout (Sidebar, Toolbar, ViewSwitcher, FolderListItem) |
 | `src/components/mobile/` | Mobile layout components |
 | `src/components/eventlisteners/` | Socket.IO event → DOM event bridge |
 | `src/components/background-jobs/` | Background job UI |

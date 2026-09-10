@@ -14,48 +14,6 @@ export interface MediaFileTableColumnLayout {
   columnVisibility: Record<MediaFileTableColumnKey, boolean>
 }
 
-const CHECKBOX_COL_CLASS = "w-10"
-const ID_COL_CLASS = "w-[100px]"
-const ICON_COL_CLASS = "w-10"
-const THUMB_DETAIL_COL_CLASS = "w-[100px]"
-const THUMB_PREVIEW_COL_CLASS = "w-[160px]"
-
-function Col({ className }: { className?: string }) {
-  return <col className={className} />
-}
-
-/** Shared `<colgroup>` for outer and nested tables (`table-fixed`). */
-export function MediaFileTableColGroup({ layout }: { layout: MediaFileTableColumnLayout }) {
-  return (
-    <colgroup>
-      {layout.showCheckboxColumn && <Col className={CHECKBOX_COL_CLASS} />}
-      {layout.showIdColumn && <Col className={ID_COL_CLASS} />}
-      {layout.isSimpleLayout ? (
-        <>
-          {layout.columnVisibility.video && <Col />}
-          {layout.showThumbnailColumn && <Col className={ICON_COL_CLASS} />}
-        </>
-      ) : (
-        <>
-          {layout.showThumbnailColumn && (
-            <Col
-              className={
-                layout.isPreviewLayout
-                  ? THUMB_PREVIEW_COL_CLASS
-                  : layout.layout === "detail"
-                    ? THUMB_DETAIL_COL_CLASS
-                    : ICON_COL_CLASS
-              }
-            />
-          )}
-          {layout.columnVisibility.video && <Col />}
-        </>
-      )}
-      {layout.columnVisibility.subtitle && <Col className={ICON_COL_CLASS} />}
-      {layout.columnVisibility.nfo && <Col className={ICON_COL_CLASS} />}
-    </colgroup>
-  )
-}
 
 const idCellClassName = "px-2 py-1 font-mono w-[100px]"
 const checkboxCellClassName = "w-10 shrink-0 px-0 py-1 text-center align-middle"
@@ -75,7 +33,7 @@ function thumbnailCellClassName(layout: MediaFileTableColumnLayout): string {
 
 /**
  * Renders table cells in the same column order for folder-file and episode rows.
- * Widths are enforced by `MediaFileTableColGroup`; cell classes mirror the header row.
+ * Column widths are fixed; cell classes mirror the header row.
  */
 export function MediaFileTableRowCells({
   layout,

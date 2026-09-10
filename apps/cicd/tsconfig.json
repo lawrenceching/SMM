@@ -13,6 +13,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "types": ["bun"]
   },
   "include": ["src/**/*", "test/**/*", "run.ts"]

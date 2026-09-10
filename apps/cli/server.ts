@@ -14,7 +14,6 @@ import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
 import { handleWriteFile } from './src/route/WriteFile';
 import { handleRenameFiles } from './src/route/RenameFiles';
 import { handleRenameFolder } from './src/route/RenameFolder';
-import { handleRenameFolderV3 } from './src/route/RenameFolderV3';
 import { handleRenameEpisodeFile } from './src/route/RenameEpisodeFile';
 import { handleGetEpisodesRoute } from './src/route/getEpisodes';
 import { handleListFilesInMediaFolderRoute } from './src/route/listFilesInMediaFolder';
@@ -45,6 +44,8 @@ import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpiso
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handlePlans } from './src/route/Plans';
 import { handleRenameEpisodesPlan } from './src/route/RenameEpisodesPlan';
+import { handleRecognizeEpisodesPlan } from './src/route/RecognizeEpisodesPlan';
+import { handleTryToRecognizeEpisodes } from './src/route/TryToRecognizeEpisodes';
 import { handleGetFolders } from './src/route/GetFolders';
 import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleImportFolder } from './src/route/ImportFolder';
@@ -268,7 +269,6 @@ export class Server {
     handleWriteFile(this.app);
     handleRenameFiles(this.app);
     handleRenameFolder(this.app);
-    handleRenameFolderV3(this.app);
     handleRenameEpisodeFile(this.app);
     handleGetEpisodesRoute(this.app);
     handleListFilesInMediaFolderRoute(this.app);
@@ -299,6 +299,8 @@ export class Server {
     handleDebugIsFolderExistToolRoute(this.app);
     handlePlans(this.app);
     handleRenameEpisodesPlan(this.app);
+    handleRecognizeEpisodesPlan(this.app);
+    handleTryToRecognizeEpisodes(this.app);
     handleGetFolders(this.app);
     handleUnimportFolder(this.app);
     handleImportFolder(this.app);

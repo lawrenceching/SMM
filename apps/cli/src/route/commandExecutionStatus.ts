@@ -6,7 +6,7 @@ import {
 } from './commandExecutionRegistry';
 import { readCommandExecutionStatusFromLog } from './commandExecutionLogStatus';
 
-export async function resolveCommandExecutionStatus(
+async function resolveCommandExecutionStatus(
   executionId: string,
 ): Promise<CommandExecutionStatus> {
   const fromRegistry = getCommandExecutionRegistryStatus(executionId);

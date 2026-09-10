@@ -6,7 +6,7 @@ import {
   type ShowFolderResult,
 } from '../cli/folderDisplay'
 
-export interface ShowFolderResponseBody {
+interface ShowFolderResponseBody {
   data?: ShowFolderResult
   error?: string
 }

@@ -3,7 +3,7 @@ import { SMM_TMDB_DEFAULT_UPSTREAM } from "./tmdb"
 /**
  * High-level classification of a TMDB fetch error.
  */
-export type TmdbErrorKind = "no-response" | "unauthorized" | "reverse-proxy" | "upstream"
+type TmdbErrorKind = "no-response" | "unauthorized" | "reverse-proxy" | "upstream"
 
 interface TmdbErrorInfo {
   kind: TmdbErrorKind
@@ -188,7 +188,7 @@ export function classifyTmdbError(
  * If the body is valid JSON, return a pretty-printed version; otherwise
  * return the raw text, truncated to 2000 characters.
  */
-export function formatResponseBodyText(bodyText: string): string {
+function formatResponseBodyText(bodyText: string): string {
   if (!bodyText) return ""
   try {
     const parsed = JSON.parse(bodyText)

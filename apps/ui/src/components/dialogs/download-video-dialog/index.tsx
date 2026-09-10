@@ -6,7 +6,7 @@ import { useDownloadVideoForm } from "../hooks/use-download-video-form"
 import { useYtdlpDownloadFlow } from "../hooks/use-ytdlp-download-flow"
 import { UIDownloadVideoDialogContent } from "../UIDownloadVideoDialogContent"
 
-export function DownloadVideoDialogContent({
+function DownloadVideoDialogContent({
   isOpen: _isOpen,
   onClose,
   onOpenFilePicker,

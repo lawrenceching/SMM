@@ -99,9 +99,6 @@ function suggestTmdbSearchLanguage(
   return undefined
 }
 
-/** @deprecated Use {@link parseTmdbSearchLanguage} */
-export const matchTmdbPrimaryTranslation = parseTmdbSearchLanguage
-
 /**
  * Maps an arbitrary locale tag to a supported app language code.
  * Returns null when the tag cannot be mapped.

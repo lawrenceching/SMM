@@ -1,46 +1,47 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { renderHook, waitFor } from "@testing-library/react"
+import { renderHook, waitFor, act } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { ReactNode } from "react"
 import { useRuleBasedRecognizeFlow } from "./useRuleBasedRecognizeFlow"
-import { buildTemporaryRecognitionPlanAsync } from "@/components/tv/TvShowPanelUtils"
-import { plansQueryKey } from "@/hooks/plans/plansQueryKeys"
-import type { UIRecognizeMediaFilePlan } from "@/types/UIRecognizeMediaFilePlan"
 import type { MediaMetadata } from "@smm/types"
+import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan"
 
-const { toastErrorMock, createPlanOptimisticMock, updatePlanMutateAsyncMock } = vi.hoisted(() => ({
-  toastErrorMock: vi.fn(),
-  createPlanOptimisticMock: vi.fn(),
-  updatePlanMutateAsyncMock: vi.fn(),
-}))
-
-vi.mock("sonner", () => ({
-  toast: {
-    error: toastErrorMock,
-    success: vi.fn(),
-  },
-}))
-
-vi.mock("@/components/tv/TvShowPanelUtils", async (importOriginal) => {
-  const mod = await importOriginal<typeof import("@/components/tv/TvShowPanelUtils")>()
+const {
+  toastErrorMock,
+  toastSuccessMock,
+  tryToRecognizeMutationMock,
+  rejectPlanMutationMock,
+  applyPlanMutationMock,
+} = vi.hoisted(() => {
+  const makeMutation = () => ({
+    mutateAsync: vi.fn(),
+    mutate: vi.fn(),
+    reset: vi.fn(),
+    isPending: false,
+  })
   return {
-    ...mod,
-    buildTemporaryRecognitionPlanAsync: vi.fn(),
+    toastErrorMock: vi.fn(),
+    toastSuccessMock: vi.fn(),
+    tryToRecognizeMutationMock: makeMutation(),
+    rejectPlanMutationMock: makeMutation(),
+    applyPlanMutationMock: makeMutation(),
   }
 })
 
-vi.mock("@/hooks/plans", () => ({
-  useCreatePlanMutation: () => ({
-    createPlanOptimistic: createPlanOptimisticMock,
-  }),
-  useUpdatePlanMutation: () => ({
-    mutateAsync: updatePlanMutateAsyncMock,
-  }),
-  toUpdatePlanPatch: (patch: unknown) => patch,
+vi.mock("sonner", () => ({
+  toast: { error: toastErrorMock, success: toastSuccessMock },
 }))
 
-vi.mock("@/hooks/mediaMetadata/useUpdateMediaMetadataMutation", () => ({
-  useUpdateMediaMetadataMutation: () => ({ persistMediaMetadata: vi.fn() }),
+vi.mock("@/hooks/plans/useTryToRecognizeEpisodesMutation", () => ({
+  useTryToRecognizeEpisodesMutation: () => tryToRecognizeMutationMock,
+}))
+
+vi.mock("@/hooks/plans/useRejectPlanMutation", () => ({
+  useRejectPlanMutation: () => rejectPlanMutationMock,
+}))
+
+vi.mock("@/hooks/plans/useApplyPlanMutation", () => ({
+  useApplyPlanMutation: () => applyPlanMutationMock,
 }))
 
 vi.mock("@/lib/i18n", () => ({
@@ -51,21 +52,37 @@ vi.mock("@/lib/i18n", () => ({
 
 describe("useRuleBasedRecognizeFlow", () => {
   const mediaFolderPath = "/storage/Users/currentUser/Download/Anime/show"
-  const preparingPlan: UIRecognizeMediaFilePlan = {
+  const pendingPlan: RecognizeMediaFilePlan = {
     id: "plan-1",
     task: "recognize-media-file",
-    status: "preparing",
+    status: "pending",
     creator: "app",
     mediaFolderPath,
-    files: [],
+    files: [
+      { season: 1, episode: 1, path: `${mediaFolderPath}/S01E01.mkv` },
+      { season: 1, episode: 2, path: `${mediaFolderPath}/S01E02.mkv` },
+    ],
   }
 
   const mediaMetadata = {
     mediaFolderPath,
     type: "tvshow-folder",
-    tvShow: { id: "123", name: "Test Show" },
-    files: ["S01E01.mkv"],
-  } as MediaMetadata
+    tvShow: {
+      id: "123",
+      name: "Test Show",
+      seasons: [
+        {
+          season: 1,
+          name: "Season 1",
+          episodes: [
+            { episode: 1, name: "E1" },
+            { episode: 2, name: "E2" },
+          ],
+        },
+      ],
+    },
+    mediaFiles: [{ absolutePath: `${mediaFolderPath}/S01E01.mkv`, seasonNumber: 1, episodeNumber: 1 }],
+  } as unknown as MediaMetadata
 
   let queryClient: QueryClient
 
@@ -73,117 +90,230 @@ describe("useRuleBasedRecognizeFlow", () => {
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   )
 
+  const renderFlow = () =>
+    renderHook(() => useRuleBasedRecognizeFlow({ mediaMetadata }), { wrapper })
+
   beforeEach(() => {
     queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     })
     vi.clearAllMocks()
-    createPlanOptimisticMock.mockResolvedValue(preparingPlan)
-    updatePlanMutateAsyncMock.mockResolvedValue(null)
+    tryToRecognizeMutationMock.mutateAsync.mockResolvedValue(pendingPlan)
+    rejectPlanMutationMock.mutateAsync.mockResolvedValue(null)
+    applyPlanMutationMock.mutateAsync.mockResolvedValue(null)
+    tryToRecognizeMutationMock.isPending = false
   })
 
-  it("shows failure toast and rejects plan when recognition computation throws", async () => {
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [preparingPlan])
-    vi.mocked(buildTemporaryRecognitionPlanAsync).mockRejectedValue(
-      new Error("lookup crashed"),
-    )
-
-    renderHook(
+  it("Start to recognize: open=true, mutation called, loading=true while pending", async () => {
+    let resolveTryToRecognize: (plan: RecognizeMediaFilePlan) => void = () => {}
+    tryToRecognizeMutationMock.mutateAsync.mockImplementation(
       () =>
-        useRuleBasedRecognizeFlow({
-          plans: [preparingPlan],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
+        new Promise<RecognizeMediaFilePlan>((resolve) => {
+          resolveTryToRecognize = resolve
         }),
-      { wrapper },
     )
+    tryToRecognizeMutationMock.isPending = true
 
-    await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith("lookup crashed")
+    const { result } = renderFlow()
+
+    act(() => {
+      result.current.start()
     })
 
-    expect(updatePlanMutateAsyncMock).toHaveBeenCalledWith({
+    expect(result.current.open).toBe(true)
+    expect(tryToRecognizeMutationMock.mutateAsync).toHaveBeenCalledWith({ mediaFolderPath })
+    expect(result.current.loading).toBe(true)
+
+    await act(async () => {
+      tryToRecognizeMutationMock.isPending = false
+      resolveTryToRecognize(pendingPlan)
+    })
+
+    expect(result.current.loading).toBe(false)
+    expect(result.current.plan).toEqual(pendingPlan)
+  })
+
+  it("Start to recognize and then cancel", async () => {
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.cancel()
+    })
+
+    expect(result.current.open).toBe(false)
+    expect(rejectPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
       id: "plan-1",
       mediaFolderPath,
-      patch: { status: "rejected" },
     })
+    expect(tryToRecognizeMutationMock.reset).toHaveBeenCalled()
+    expect(rejectPlanMutationMock.reset).toHaveBeenCalled()
+    expect(applyPlanMutationMock.reset).toHaveBeenCalled()
+    expect(result.current.plan).toBeUndefined()
   })
 
-  it("shows failure toast and rejects plan when no episodes are recognized", async () => {
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [preparingPlan])
-    vi.mocked(buildTemporaryRecognitionPlanAsync).mockResolvedValue({
+  it("Start to recognize and then confirm without selection", async () => {
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.confirm()
+    })
+
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
       mediaFolderPath,
+      files: undefined,
+    })
+    expect(result.current.open).toBe(false)
+    expect(result.current.plan).toBeUndefined()
+    expect(toastErrorMock).not.toHaveBeenCalled()
+  })
+
+  it("Confirm with selected files passes them to apply-plan", async () => {
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.confirm([`${mediaFolderPath}/S01E01.mkv`])
+    })
+
+    expect(applyPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
+      id: "plan-1",
+      mediaFolderPath,
+      files: [`${mediaFolderPath}/S01E01.mkv`],
+    })
+    expect(result.current.open).toBe(false)
+  })
+
+  it("Confirm failure keeps the prompt open and toasts", async () => {
+    applyPlanMutationMock.mutateAsync.mockRejectedValue(new Error("boom"))
+
+    const { result } = renderFlow()
+
+    await act(async () => {
+      await result.current.start()
+    })
+
+    await act(async () => {
+      await result.current.confirm()
+    })
+
+    expect(toastErrorMock).toHaveBeenCalledWith("Recognition failed. Please try again.")
+    expect(result.current.open).toBe(true)
+    expect(result.current.plan).toEqual(pendingPlan)
+  })
+
+  it("Empty recognition result: prompt closed, no-recognized-files toast, plan rejected", async () => {
+    tryToRecognizeMutationMock.mutateAsync.mockResolvedValue({
+      ...pendingPlan,
       files: [],
     })
 
-    renderHook(
-      () =>
-        useRuleBasedRecognizeFlow({
-          plans: [preparingPlan],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+    const { result } = renderFlow()
+
+    act(() => {
+      result.current.start()
+    })
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith(
         "Unable to recognize any episodes. Consider using AI to recognize instead.",
       )
     })
-
-    expect(updatePlanMutateAsyncMock).toHaveBeenCalledWith({
+    expect(rejectPlanMutationMock.mutateAsync).toHaveBeenCalledWith({
       id: "plan-1",
       mediaFolderPath,
-      patch: { status: "rejected" },
     })
+    expect(result.current.open).toBe(false)
+    expect(result.current.plan).toBeUndefined()
   })
 
-  it("shows failure toast when createPlan fails during startRecognizeFlow", async () => {
-    createPlanOptimisticMock.mockRejectedValue(new Error("create plan failed"))
+  it("Start failure: toast and prompt closed", async () => {
+    tryToRecognizeMutationMock.mutateAsync.mockRejectedValue(new Error("boom"))
 
-    const { result } = renderHook(
-      () =>
-        useRuleBasedRecognizeFlow({
-          plans: [],
-          mediaMetadata,
-          uiStatus: "ok",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
+    const { result } = renderFlow()
 
-    result.current.startRecognizeFlow()
-
-    await waitFor(() => {
-      expect(toastErrorMock).toHaveBeenCalledWith("create plan failed")
+    act(() => {
+      result.current.start()
     })
-  })
-
-  it("fails preparing plan when metadata loading errors", async () => {
-    queryClient.setQueryData(plansQueryKey(mediaFolderPath), [preparingPlan])
-
-    renderHook(
-      () =>
-        useRuleBasedRecognizeFlow({
-          plans: [preparingPlan],
-          mediaMetadata,
-          uiStatus: "error_loading_metadata",
-          beforeConfirm: (plan) => plan,
-        }),
-      { wrapper },
-    )
 
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalledWith("Recognition failed. Please try again.")
     })
+    expect(result.current.open).toBe(false)
+    expect(result.current.plan).toBeUndefined()
+  })
 
-    expect(updatePlanMutateAsyncMock).toHaveBeenCalledWith({
-      id: "plan-1",
-      mediaFolderPath,
-      patch: { status: "rejected" },
+  describe("isConfirmButtonDisabled", () => {
+    it("is false when idle with no plan", () => {
+      const { result } = renderFlow()
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true while try-to-recognize is pending", async () => {
+      let resolveTryToRecognize: (plan: RecognizeMediaFilePlan) => void = () => {}
+      tryToRecognizeMutationMock.mutateAsync.mockImplementation(
+        () =>
+          new Promise<RecognizeMediaFilePlan>((resolve) => {
+            resolveTryToRecognize = resolve
+          }),
+      )
+      tryToRecognizeMutationMock.isPending = true
+
+      const { result } = renderFlow()
+
+      act(() => {
+        result.current.start()
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
+
+      await act(async () => {
+        tryToRecognizeMutationMock.isPending = false
+        resolveTryToRecognize(pendingPlan)
+      })
+
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is false when plan has files that still need applying", async () => {
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.allPlanFilesUnchanged).toBe(false)
+      expect(result.current.isConfirmButtonDisabled).toBe(false)
+    })
+
+    it("is true when every plan file already matches mediaFiles", async () => {
+      const unchangedPlan: RecognizeMediaFilePlan = {
+        ...pendingPlan,
+        files: [
+          { season: 1, episode: 1, path: `${mediaFolderPath}/S01E01.mkv` },
+        ],
+      }
+      tryToRecognizeMutationMock.mutateAsync.mockResolvedValue(unchangedPlan)
+
+      const { result } = renderFlow()
+
+      await act(async () => {
+        await result.current.start()
+      })
+
+      expect(result.current.allPlanFilesUnchanged).toBe(true)
+      expect(result.current.isConfirmButtonDisabled).toBe(true)
     })
   })
 })

@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { parseConfig, type Config } from '../src/config.ts';
+import { parseConfig } from '../src/config.ts';
 
 describe('parseConfig', () => {
   test('accepts a minimal valid config', () => {

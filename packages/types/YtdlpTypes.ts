@@ -1,8 +1,8 @@
 /** HTTP headers object as emitted by yt-dlp (keys vary by context). */
-export type YtdlpHttpHeaders = Record<string, string>;
+type YtdlpHttpHeaders = Record<string, string>;
 
 /** Single stream / merged format entry from yt-dlp `-J` output. */
-export interface YtdlpFormat {
+interface YtdlpFormat {
     url: string;
     ext: string;
     acodec: string;
@@ -28,12 +28,12 @@ export interface YtdlpFormat {
     quality?: number;
 }
 
-export interface YtdlpThumbnail {
+interface YtdlpThumbnail {
     url: string;
     id: string;
 }
 
-export interface YtdlpVersionInfo {
+interface YtdlpVersionInfo {
     version: string;
     current_git_head: string | null;
     release_git_head: string;

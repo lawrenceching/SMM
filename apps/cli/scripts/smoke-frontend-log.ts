@@ -101,10 +101,10 @@ async function main(): Promise<void> {
   _resetRateLimiterForTests();
   const big = Array.from({ length: 51 }, (_, i) => ({ level: "info", message: `big-${i}` }));
   const r4a = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
-  const r4b = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
-  const r4c = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
-  const r4d = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
-  const r4e = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
+  await postLog({ entries: big, appVersion: "9.9.9-smoke" });
+  await postLog({ entries: big, appVersion: "9.9.9-smoke" });
+  await postLog({ entries: big, appVersion: "9.9.9-smoke" });
+  await postLog({ entries: big, appVersion: "9.9.9-smoke" });
   const r4f = await postLog({ entries: big, appVersion: "9.9.9-smoke" });
   check("first big batch → 204", r4a.status === 204, `got ${r4a.status}`);
   check("sixth big batch (12 credits > 10/s budget) → 429", r4f.status === 429, `got ${r4f.status} body=${JSON.stringify(r4f.body)}`);

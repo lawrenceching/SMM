@@ -259,15 +259,3 @@ export function resetFolderWatcherForTests(): void {
     instance = null;
   }
 }
-
-/**
- * Initialize folder watching from a list of folder paths.
- * Called during server startup.
- */
-export function initializeFolderWatcher(folderPaths: string[], debounceMs?: number): FolderWatcher {
-  const watcher = getFolderWatcher(debounceMs);
-  for (const fp of folderPaths) {
-    watcher.startWatching(fp);
-  }
-  return watcher;
-}

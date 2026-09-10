@@ -1,6 +1,6 @@
 import type { MediaMetadata } from "@smm/types"
 import { basename } from "@/lib/path"
-import type { MediaFolderListItemV2Props } from "@/components/sidebar/MediaFolderListItemV2"
+import type { FolderListItemProps } from "@/components/sidebar/FolderListItem"
 import type { UIMediaFolder, UIMediaFolderStatus } from "@/types/UIMediaFolder"
 
 function displayNameFromMetadata(metadata: MediaMetadata | undefined, path: string): string {
@@ -10,26 +10,37 @@ function displayNameFromMetadata(metadata: MediaMetadata | undefined, path: stri
   return basename(metadata.mediaFolderPath ?? path) || "未识别媒体名称"
 }
 
-function mediaTypeFromMetadata(metadata: MediaMetadata | undefined): MediaFolderListItemV2Props["mediaType"] {
-  if (!metadata?.type) return "movie"
-  if (metadata.type === "tvshow-folder") return "tvshow"
-  if (metadata.type === "music-folder") return "music"
-  if (metadata.type === "movie-folder") return "movie"
-  return "movie"
+/**
+ * Map a raw media metadata type (`*-folder`) to the plain media type used by
+ * sidebar filters and row props. Returns `undefined` for untyped folders so
+ * they are excluded from type-specific filters.
+ */
+export function mediaTypeFromMetadataType(
+  type: MediaMetadata["type"] | undefined,
+): FolderListItemProps["mediaType"] | undefined {
+  if (!type) return undefined
+  if (type === "tvshow-folder") return "tvshow"
+  if (type === "music-folder") return "music"
+  if (type === "movie-folder") return "movie"
+  return undefined
+}
+
+function mediaTypeFromMetadata(metadata: MediaMetadata | undefined): FolderListItemProps["mediaType"] {
+  return mediaTypeFromMetadataType(metadata?.type) ?? "movie"
 }
 
 function mapFolderStatusToItemStatus(
   status: UIMediaFolderStatus,
-): NonNullable<MediaFolderListItemV2Props["status"]> {
-  if (status === "updating") return "loading"
+): NonNullable<FolderListItemProps["status"]> {
+  if (status === "updating" || status === "initializing" || status === "loading") {
+    return "loading"
+  }
   if (status === "error_loading_metadata") return "folder_not_found"
   if (
     status === "idle" ||
     status === "pending_for_initialization" ||
-    status === "initializing" ||
     status === "ok" ||
-    status === "folder_not_found" ||
-    status === "loading"
+    status === "folder_not_found"
   ) {
     return status
   }
@@ -42,7 +53,7 @@ function mapFolderStatusToItemStatus(
 export function buildMediaFolderListItemPropsFromFolderAndMetadata(
   folder: UIMediaFolder,
   metadata: MediaMetadata | undefined,
-): MediaFolderListItemV2Props {
+): FolderListItemProps {
   const path = folder.path
   return {
     path,

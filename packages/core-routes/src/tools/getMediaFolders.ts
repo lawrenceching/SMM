@@ -1,5 +1,4 @@
 import {
-  GET_MEDIA_FOLDERS,
   GET_MEDIA_FOLDERS_DESCRIPTION,
   getMediaFoldersInputSchema,
   getMediaFoldersOutputSchema,
@@ -50,4 +49,3 @@ export function buildGetMediaFoldersTool(
 }
 
 /** Re-exported tool name constant for the tools registry. */
-export const GET_MEDIA_FOLDERS_TOOL_NAME = GET_MEDIA_FOLDERS;

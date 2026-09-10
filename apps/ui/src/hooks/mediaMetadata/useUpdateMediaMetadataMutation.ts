@@ -51,12 +51,11 @@ export function useUpdateMediaMetadataMutation() {
       }
       return { folderPathPosix: folder, metadata: persisted }
     },
-    onSuccess: ({ folderPathPosix, metadata }, vars) => {
+    onSuccess: ({ folderPathPosix, metadata }) => {
       setPersistedMetadataQueryData(
         queryClient,
         folderPathPosix,
         metadata,
-        vars.metadata,
       )
     },
   })

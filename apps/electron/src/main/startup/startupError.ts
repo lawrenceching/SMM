@@ -14,7 +14,7 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;")
 }
 
-export function readFileTail(filePath: string, maxBytes: number): string | null {
+function readFileTail(filePath: string, maxBytes: number): string | null {
   if (!existsSync(filePath)) {
     return null
   }
@@ -105,7 +105,7 @@ export function toCliStartupFailure(error: unknown): CliStartupFailure {
   }
 }
 
-export function buildCopyText(diagnostics: StartupDiagnostics): string {
+function buildCopyText(diagnostics: StartupDiagnostics): string {
   const { failure, cliExecutable, cliPort, processOutput, smmLogPath, smmLogTail } = diagnostics
   return [
     failure.title,

@@ -15,7 +15,7 @@ const coreRoutesLogger = {
  error: (obj: Record<string, unknown>, msg?: string) => logger.error(obj, msg),
 };
 
-export async function processIsFolderAvailable(body: IsFolderAvailableRequestBody): Promise<IsFolderAvailableResponseBody> {
+async function processIsFolderAvailable(body: IsFolderAvailableRequestBody): Promise<IsFolderAvailableResponseBody> {
  const allowlist = await buildAllowlist();
  return doIsFolderAvailableCore(body, { allowlist, logger: coreRoutesLogger });
 }

@@ -8,7 +8,7 @@ import {
     clearFolderViaBrowser,
     resolveSmmTestFolderViaBrowser,
 } from 'test/lib/browser-fs'
-import TvShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { TvShowPanelCO as TvShowPanel } from 'test/componentobjects/TVShowPanel.co'
 import { delay } from 'es-toolkit'
 import { given, then, resetStepContext, getStepContext } from 'test/lib/gherkin'
 import 'test/steps'

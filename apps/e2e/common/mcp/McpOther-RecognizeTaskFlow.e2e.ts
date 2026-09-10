@@ -3,7 +3,7 @@ import type { MediaMetadata } from '@smm/types'
 import { Path } from '@smm/utils/path'
 import mcpClient from 'test/lib/McpClient'
 import Prompts from 'test/componentobjects/Prompts'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { TvShowPanelCO as TVShowPanel } from 'test/componentobjects/TVShowPanel.co'
 import { testbedOs } from 'test/lib/e2e-platform'
 import {
   expectMediaMetadataViaBrowser,
@@ -67,7 +67,7 @@ describe('MCP Other - RecognizeTaskFlow', () => {
     }
   })
 
-  it('MCP recognize task tools should recognize episode video file via begin/add/end flow', async () => {
+  it('MCP create recognize episode plan tool should recognize an episode video file', async () => {
     const folder: TestFolder = {
       ...folder1,
       files: ['[1].mp4'],
@@ -87,25 +87,19 @@ describe('MCP Other - RecognizeTaskFlow', () => {
       return mm.mediaFiles === undefined || mm.mediaFiles.length === 0
     })
 
-    const begin = await mcpClient.beginRecognizeTask(ctx.clientCwd, ctx.mcpAddress, {
+    const created = await mcpClient.createRecognizeEpisodePlan(ctx.clientCwd, ctx.mcpAddress, {
       mediaFolderPath: folderPath,
+      files: [
+        {
+          season: 1,
+          episode: 1,
+          path: joinPlatformPath(folderPath, '[1].mp4'),
+        },
+      ],
     })
-    expect(begin.success).toBe(true)
-    expect(typeof begin.taskId).toBe('string')
-    expect(begin.taskId.length).toBeGreaterThan(0)
-
-    const add = await mcpClient.addRecognizedFile(ctx.clientCwd, ctx.mcpAddress, {
-      taskId: begin.taskId,
-      season: 1,
-      episode: 1,
-      path: joinPlatformPath(folderPath, '[1].mp4'),
-    })
-    expect(add.success).toBe(true)
-
-    const end = await mcpClient.endRecognizeTask(ctx.clientCwd, ctx.mcpAddress, {
-      taskId: begin.taskId,
-    })
-    expect(end.success).toBe(true)
+    expect(typeof created.planId).toBe('string')
+    expect(created.planId.length).toBeGreaterThan(0)
+    expect(typeof created.message).toBe('string')
 
     await Prompts.aiBasedRecognizePrompt.waitForDisplayed({ timeout: 10000 })
     await Prompts.confirmButton.click()

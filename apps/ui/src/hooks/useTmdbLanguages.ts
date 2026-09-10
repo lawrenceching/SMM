@@ -13,7 +13,7 @@ const STALE_MS = 24 * 60 * 60 * 1000
  * Fetch TMDB's primary translation list (IETF tags, e.g. ["zh-CN", "en-US"]).
  * Cached for 24h.
  */
-export function useTmdbPrimaryTranslations() {
+function useTmdbPrimaryTranslations() {
   return useQuery<string[]>({
     queryKey: ["tmdb", "primaryTranslations"],
     queryFn: () => getTmdbPrimaryTranslations(),
@@ -26,7 +26,7 @@ export function useTmdbPrimaryTranslations() {
  * Fetch TMDB's ISO 639-1 language list with English and native names.
  * Cached for 24h.
  */
-export function useTmdbLanguagesRaw() {
+function useTmdbLanguagesRaw() {
   return useQuery<TmdbLanguageEntry[]>({
     queryKey: ["tmdb", "languages"],
     queryFn: () => getTmdbLanguages(),

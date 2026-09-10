@@ -1,8 +1,8 @@
-import type { MediaMetadata, TmdbSeasonDetails, TmdbSeriesDetails, UserConfig } from "@smm/types";
+import type { MediaMetadata, TmdbSeriesDetails } from "@smm/types";
 import { describe, expect, it, vi } from "vitest";
 import type { TmdbClient } from "../../clients/TmdbClient";
 import type { DiscoverPort } from "../../ports/DiscoverPort";
-import type { FetchInit, HttpResponse, NetworkPort } from "../../ports/NetworkPort";
+import type { HttpResponse, NetworkPort } from "../../ports/NetworkPort";
 import type { FsPort } from "../../ports/FsPort";
 import { DEFAULT_USER_CONFIG } from "../userConfigHelper";
 import { resolvePosterUrl, scrapePosterTmdb } from "./scrapePosterTmdb";

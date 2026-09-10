@@ -1,4 +1,4 @@
-export type CommandExecutionPhase = 'unknown' | 'running' | 'finished';
+type CommandExecutionPhase = 'unknown' | 'running' | 'finished';
 
 export type CommandExecutionOutcome = 'success' | 'failure';
 

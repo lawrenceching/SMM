@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { cleanupStalePlans } from "./cleanup.ts";
-import { beginRecognizePlan, listPlanFiles, readPlanById, updatePlanContent } from "./tools/plans.ts";
+import { createPlan, listPlanFiles, readPlanById, updatePlanContent } from "./tools/plans.ts";
 import { defaultChatFs } from "./chatFs.ts";
 import type { CoreRoutesLogger } from "./types.ts";
 
@@ -31,8 +31,12 @@ describe("cleanupStalePlans", () => {
   });
 
   it("uses the default ChatFs when none is provided", async () => {
-    const preparingId = await beginRecognizePlan(appDataDir, "/media/a", fs);
-    const pendingId = await beginRecognizePlan(appDataDir, "/media/b", fs);
+    const preparingId = (
+      await createPlan(appDataDir, { task: "recognize-media-file", mediaFolderPath: "/media/a", creator: "ai" }, fs)
+    ).id;
+    const pendingId = (
+      await createPlan(appDataDir, { task: "recognize-media-file", mediaFolderPath: "/media/b", creator: "ai" }, fs)
+    ).id;
     await updatePlanContent(appDataDir, pendingId, { status: "pending" }, fs);
 
     expect((await listPlanFiles(appDataDir)).length).toBe(2);
@@ -48,7 +52,9 @@ describe("cleanupStalePlans", () => {
   it("accepts an explicit ChatFs override", async () => {
     const overrideDir = await mkdtemp(join(tmpdir(), "smm-cleanup-override-"));
     try {
-      const id = await beginRecognizePlan(overrideDir, "/media/c", fs);
+      const id = (
+        await createPlan(overrideDir, { task: "recognize-media-file", mediaFolderPath: "/media/c", creator: "ai" }, fs)
+      ).id;
 
       // `defaultChatFs()` reads from disk; passing the same fs we used
       // to create the plan keeps the test hermetic.
@@ -63,9 +69,13 @@ describe("cleanupStalePlans", () => {
   it("logs start, per-file decisions, and a completion summary", async () => {
     const logDir = await mkdtemp(join(tmpdir(), "smm-cleanup-logging-"));
     try {
-      const keepingId = await beginRecognizePlan(logDir, "/media/keep", fs);
+      const keepingId = (
+        await createPlan(logDir, { task: "recognize-media-file", mediaFolderPath: "/media/keep", creator: "ai" }, fs)
+      ).id;
       await updatePlanContent(logDir, keepingId, { status: "pending" }, fs);
-      const removingId = await beginRecognizePlan(logDir, "/media/drop", fs);
+      const removingId = (
+        await createPlan(logDir, { task: "recognize-media-file", mediaFolderPath: "/media/drop", creator: "ai" }, fs)
+      ).id;
 
       const info = vi.fn();
       const debug = vi.fn();
@@ -124,7 +134,9 @@ describe("cleanupStalePlans", () => {
     const logDir = await mkdtemp(join(tmpdir(), "smm-cleanup-bad-file-"));
     try {
       // One valid preparing plan + one corrupt JSON file.
-      const goodId = await beginRecognizePlan(logDir, "/media/good", fs);
+      const goodId = (
+        await createPlan(logDir, { task: "recognize-media-file", mediaFolderPath: "/media/good", creator: "ai" }, fs)
+      ).id;
       const plansPath = join(logDir, "plans");
       const corruptPath = join(plansPath, "corrupt.plan.json");
       const { writeFile } = await import("node:fs/promises");
@@ -161,7 +173,9 @@ describe("cleanupStalePlans", () => {
   it("prefixes every emitted log message with [cleanup]", async () => {
     const logDir = await mkdtemp(join(tmpdir(), "smm-cleanup-prefix-"));
     try {
-      const goodId = await beginRecognizePlan(logDir, "/media/good", fs);
+      const goodId = (
+        await createPlan(logDir, { task: "recognize-media-file", mediaFolderPath: "/media/good", creator: "ai" }, fs)
+      ).id;
       // Add a corrupt file so we exercise the warn path too.
       const plansPath = join(logDir, "plans");
       const corruptPath = join(plansPath, "corrupt.plan.json");

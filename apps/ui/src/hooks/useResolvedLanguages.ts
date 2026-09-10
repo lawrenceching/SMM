@@ -4,7 +4,7 @@ import { resolveAppLanguage, resolveMediaLanguage, type ResolveAppLanguageOption
 import { useConfig } from "@/hooks/userConfig"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 
-export function getBrowserLocale(): string {
+function getBrowserLocale(): string {
   if (typeof navigator !== "undefined") {
     return navigator.language
   }

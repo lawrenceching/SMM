@@ -10,7 +10,7 @@ export type DebugLogEvent = {
 export class DebugLog {
   private stream: fs.WriteStream | null = null;
 
-  constructor(private readonly filePath: string) {
+  constructor(filePath: string) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     this.stream = fs.createWriteStream(filePath, { flags: 'a' });
   }

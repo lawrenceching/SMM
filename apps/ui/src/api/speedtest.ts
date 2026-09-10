@@ -1,5 +1,5 @@
 import { apiFetch } from '@/lib/apiFetch';
-export interface SpeedtestResult {
+interface SpeedtestResult {
   url: string;
   timeMs: number | null;
   error?: string;

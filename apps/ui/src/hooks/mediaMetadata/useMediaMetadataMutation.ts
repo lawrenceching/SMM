@@ -25,12 +25,11 @@ export function useMediaMetadataMutation() {
 
   const createMutation = useMutation({
     mutationFn: createMetadata,
-    onSuccess: (metadata, variables) => {
+    onSuccess: (metadata) => {
       setPersistedMetadataQueryData(
         queryClient,
         requireMetadataPath(metadata),
         metadata,
-        variables,
       )
     },
   })

@@ -227,7 +227,7 @@
             '完整响应:\n' + JSON.stringify(result, null, 2);
           resultEl.className = 'ok';
 
-          document.dispatchEvent(new CustomEvent('ui.mediaFolderImported', {
+          document.dispatchEvent(new CustomEvent('ui.importFolder', {
             detail: {
               type: 'movie',
               folderPathInPlatformFormat: path,

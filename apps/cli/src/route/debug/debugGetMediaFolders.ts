@@ -14,7 +14,7 @@ const getMediaFoldersSchema = z.object({
   clientId: z.string().optional(),
 })
 
-export async function processGetMediaFolders(
+async function processGetMediaFolders(
   body: unknown,
 ): Promise<DebugGetMediaFoldersResponseBody> {
   try {

@@ -4,13 +4,7 @@ import { getCore } from '../core/getCore'
 import { broadcast } from '@/utils/socketIO'
 import { logger } from '../../lib/logger'
 
-export interface RenameEpisodeFileRequestBody {
-  mediaFolder: string
-  from: string
-  to: string
-}
-
-export interface RenameEpisodeFileResponseBody {
+interface RenameEpisodeFileResponseBody {
   data?: {
     succeeded: Array<{ from: string; to: string }>
     failed: Array<{ path: string; error: string }>

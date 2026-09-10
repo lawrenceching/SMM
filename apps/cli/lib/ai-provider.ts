@@ -1,27 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { UserConfig } from '@smm/types';
 
-export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
-
-// Get API key from environment
-function getApiKey(): string {
-  return process.env.VITE_DEEPSEEK_API_KEY || process.env.DEEPSEEK_API_KEY || 'sk-ce25f3132fbc4b599f0f26eede96d390';
-}
-
-// Create DeepSeek provider configuration (lazy initialization)
-let _deepseekProvider: ReturnType<typeof createOpenAICompatible> | null = null;
-
-export function getDeepseekProvider() {
-  if (!_deepseekProvider) {
-    _deepseekProvider = createOpenAICompatible({
-      name: 'DeepSeek',
-      baseURL: 'https://api.deepseek.com/v1',
-      apiKey: getApiKey(),
-    });
-  }
-  return _deepseekProvider;
-}
-
 /**
  * Creates an AI provider based on the user's selected AI configuration.
  * Looks up the provider by name in the aiProviders array.

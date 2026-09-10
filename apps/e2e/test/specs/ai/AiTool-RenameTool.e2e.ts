@@ -4,7 +4,7 @@ import * as path from 'node:path'
 import * as os from 'node:os'
 import Menu from '../../componentobjects/Menu'
 import { createBeforeHook, expectMediaMetadataToBe } from '../../lib/testbed'
-import TVShowPanel from 'test/componentobjects/TVShowPanel.co'
+import { TvShowPanelCO as TVShowPanel } from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
 import { type MediaMetadata } from '@smm/types'
 import { createFolderInTestFolder, folder1 } from 'test/actions/import-folders'
@@ -15,7 +15,6 @@ import { Path } from '@smm/utils/path'
 import Prompts from 'test/componentobjects/Prompts'
 
 const tmpMediaRoot = path.join(os.tmpdir(), 'smm-test-media')
-const mediaDir = path.join(tmpMediaRoot, 'media')
 
 describe('AI Assistant - Rename Tool', async () => {
 

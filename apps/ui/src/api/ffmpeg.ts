@@ -1,14 +1,5 @@
 import { Path } from "@smm/utils/path";
-import {
-  buildFfmpegConvertArgs,
-  buildFfmpegWriteTagsArgs,
-  buildFfprobeReadTagsArgs,
-  parseFfprobeTagsJson,
-  probeWhitelistedCommand,
-  type FfmpegConvertFormat,
-  type FfmpegConvertPreset,
-} from "@/lib/whitelistedCmd";
-import { apiFetch } from '@/lib/apiFetch';
+import { buildFfmpegConvertArgs, buildFfprobeReadTagsArgs, parseFfprobeTagsJson, probeWhitelistedCommand, type FfmpegConvertFormat, type FfmpegConvertPreset } from "@/lib/whitelistedCmd";
 import { executeCmdToCompletion } from "@/lib/whitelistedCmd/executeCmdToCompletion";
 import {
   classifyFfmpegConvertError,
@@ -168,7 +159,6 @@ export async function generateFfmpegScreenshots(
   return { screenshots: outputPaths };
 }
 
-export type { FfmpegConvertFormat, FfmpegConvertPreset };
 
 export interface FfmpegConvertRequest {
   inputPath: string;
@@ -252,85 +242,6 @@ export async function getMediaTags(params: FfmpegTagsRequest): Promise<FfmpegTag
     audioBitrateKbps: parsed.audioBitrateKbps,
     executionId: result.executionId,
   };
-}
-
-export interface FfmpegWriteTagsRequest {
-  path: string;
-  tags: Record<string, string>;
-}
-
-export interface FfmpegWriteTagsResponse {
-  success?: boolean;
-  error?: string;
-  executionId?: string;
-}
-
-export async function writeMediaTags(
-  params: FfmpegWriteTagsRequest
-): Promise<FfmpegWriteTagsResponse> {
-  const pathObj = new Path(params.path);
-  const absolutePath = pathObj.platformAbsPath();
-
-  // Preserve the original file extension so ffmpeg can auto-detect the output
-  // format (e.g. test.mp4 → test.smm-temp.mp4 instead of test.mp4.smm-temp).
-  const extIdx = absolutePath.lastIndexOf('.');
-  const ext = extIdx >= 0 ? absolutePath.slice(extIdx) : '';
-  const base = ext ? absolutePath.slice(0, extIdx) : absolutePath;
-  const tempFilePath = `${base}.smm-temp${ext}`;
-
-  const args = buildFfmpegWriteTagsArgs(absolutePath, tempFilePath, params.tags);
-  const result = await executeCmdToCompletion(
-    { command: "ffmpeg", args },
-    { timeoutMs: FFMPEG_CONVERT_TIMEOUT_MS }
-  );
-  const ffmpegExecutionId = result.executionId;
-
-  if (!result.success) {
-    return { error: result.error, executionId: ffmpegExecutionId };
-  }
-
-  try {
-    await (await import("@/api/moveFileToTrash")).moveFileToTrash(
-      new Path(absolutePath).platformAbsPath(),
-    );
-  } catch (error) {
-    return {
-      error: error instanceof Error ? error.message : "Failed to move original file to trash",
-      executionId: ffmpegExecutionId,
-    };
-  }
-
-  const renameResp = await apiFetch("/api/renameFiles", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      files: [{ from: tempFilePath, to: absolutePath }],
-    }),
-  });
-  const renameBody = (await renameResp.json()) as { error?: string };
-  if (!renameResp.ok || renameBody.error) {
-    return { error: renameBody.error ?? `rename failed: HTTP ${renameResp.status}`, executionId: ffmpegExecutionId };
-  }
-
-  return { success: true, executionId: ffmpegExecutionId };
-}
-
-export async function discoverFfmpeg(): Promise<{ path?: string; error?: string }> {
-  try {
-    const { fetchDiscoverExecutables } = await import("@/api/discoverExecutables");
-    const { ffmpeg } = await fetchDiscoverExecutables();
-    const path = ffmpeg.configuredPath ?? ffmpeg.discoveredPath;
-    if (path) {
-      return { path };
-    }
-  } catch {
-    /* fall through to probe */
-  }
-  const probe = await probeWhitelistedCommand("ffmpeg");
-  if (probe.available) {
-    return { path: probe.resolvedPath ?? "ffmpeg" };
-  }
-  return { error: probe.error ?? "ffmpeg not found" };
 }
 
 export async function getFfmpegVersion(): Promise<{ version?: string; error?: string }> {

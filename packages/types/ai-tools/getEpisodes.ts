@@ -28,7 +28,7 @@ export const getEpisodesInputSchema = z.object({
     ),
 })
 
-export const getEpisodesEpisodeSchema = z.object({
+const getEpisodesEpisodeSchema = z.object({
   season: z.number().describe('The season number'),
   episode: z.number().describe('The episode number'),
   videoFilePath: z
@@ -39,7 +39,7 @@ export const getEpisodesEpisodeSchema = z.object({
     ),
 })
 
-export const getEpisodesDataSchema = z.object({
+const getEpisodesDataSchema = z.object({
   episodes: z
     .array(getEpisodesEpisodeSchema)
     .describe('Array of all episodes with their video file paths'),
@@ -52,7 +52,6 @@ export const getEpisodesToolOutputSchema = getEpisodesDataSchema.extend({
   error: z.string().optional(),
 })
 
-export type GetEpisodesInput = z.infer<typeof getEpisodesInputSchema>
 export type GetEpisodesEpisode = z.infer<typeof getEpisodesEpisodeSchema>
 export type GetEpisodesResponseData = z.infer<typeof getEpisodesDataSchema>
 export type GetEpisodesToolOutput = z.infer<typeof getEpisodesToolOutputSchema>

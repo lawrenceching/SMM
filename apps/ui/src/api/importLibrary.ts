@@ -9,13 +9,13 @@ export interface ImportLibraryParams {
   traceId?: string
 }
 
-export interface ImportLibraryResponseBody {
+interface ImportLibraryResponseBody {
   data?: { id: string }
   error?: string
 }
 
 /** Layer-2 import library via Core (`POST /api/import-library`). */
-export async function importLibrary(
+async function importLibrary(
   params: ImportLibraryParams,
   signal?: AbortSignal,
 ): Promise<ImportLibraryResponseBody> {

@@ -68,9 +68,7 @@ const CONSTANT_NAME_TO_TOOL_NAME: Record<string, string> = {
   TVDB_GET_TV_SHOW: 'tvdb-get-tv-show',
   TVDB_GET_LANGUAGES: 'tvdb-get-languages',
   CREATE_RENAME_EPISODE_PLAN: 'create-rename-episode-plan',
-  BEGIN_RECOGNIZE_TASK: 'begin-recognize-task',
-  ADD_RECOGNIZED_MEDIA_FILE: 'add-recognized-media-file',
-  END_RECOGNIZE_TASK: 'end-recognize-task',
+  CREATE_RECOGNIZE_EPISODE_PLAN: 'create-recognize-episode-plan',
 }
 
 function extractBackendToolNames(source: string): Set<string> {

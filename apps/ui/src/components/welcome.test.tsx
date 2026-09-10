@@ -1,17 +1,16 @@
 import React from "react"
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent } from "@testing-library/react"
+import { UI_AskForFormatConverter } from "@/types/eventTypes"
 
 const h = vi.hoisted(() => ({
   mockOpenDownloadVideo: vi.fn(),
-  mockOpenFormatConverter: vi.fn(),
   mockUseFeatures: vi.fn(),
 }))
 
 vi.mock("@/providers/dialog-provider", () => ({
   useDialogs: () => ({
     downloadVideoDialog: [h.mockOpenDownloadVideo, vi.fn()],
-    formatConverterDialog: [h.mockOpenFormatConverter, vi.fn()],
   }),
 }))
 
@@ -36,7 +35,6 @@ const defaultFeatureFlags = {
 describe("Welcome", () => {
   beforeEach(() => {
     h.mockOpenDownloadVideo.mockReset()
-    h.mockOpenFormatConverter.mockReset()
     h.mockUseFeatures.mockReset()
     h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
   })
@@ -92,14 +90,19 @@ describe("Welcome", () => {
     expect(h.mockOpenDownloadVideo).toHaveBeenCalledTimes(1)
   })
 
-  it("invokes openFormatConverter dialog when Format Conversion card is clicked", () => {
+  it("asks the top-level FormatConverter when the Format Conversion card is clicked", () => {
     h.mockUseFeatures.mockReturnValue(defaultFeatureFlags)
+    const listener = vi.fn()
+    document.addEventListener(UI_AskForFormatConverter, listener)
+    try {
+      render(<Welcome />)
 
-    render(<Welcome />)
+      fireEvent.click(screen.getByTestId("welcome-card-format-conversion"))
 
-    fireEvent.click(screen.getByTestId("welcome-card-format-conversion"))
-
-    expect(h.mockOpenFormatConverter).toHaveBeenCalledTimes(1)
+      expect(listener).toHaveBeenCalledTimes(1)
+    } finally {
+      document.removeEventListener(UI_AskForFormatConverter, listener)
+    }
   })
 
   it("hides download and format conversion cards when HarmonyOS feature flags are off", () => {

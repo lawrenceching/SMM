@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { buildMovieEpisodeTableRows } from "./buildMovieEpisodeTableRows";
+import {
+  buildMovieEpisodeAssociatedFileLists,
+  buildMovieEpisodeTableRows,
+  buildMovieMediaFileTableSeasonData,
+  buildMovieMetadataFiles,
+} from "./buildMovieEpisodeTableRows";
 import type { MediaMetadata } from "@smm/types";
-import type { TvShowEpisodeDataRow } from "@/components/tv/TvShowEpisodeTable";
+import type { UIMediaFileDataRow } from "@/components/media/UIMediaFileTable";
 
 const t = (key: string) => key;
 
@@ -17,8 +22,8 @@ function makeMediaMetadata(overrides: Partial<MediaMetadata> = {}): MediaMetadat
 }
 
 /** Returns the last row in the array (always the episode data row). */
-function episodeRow(rows: ReturnType<typeof buildMovieEpisodeTableRows>): TvShowEpisodeDataRow {
-  return rows[rows.length - 1] as TvShowEpisodeDataRow;
+function episodeRow(rows: ReturnType<typeof buildMovieEpisodeTableRows>): UIMediaFileDataRow {
+  return rows[rows.length - 1] as UIMediaFileDataRow;
 }
 
 describe("buildMovieEpisodeTableRows", () => {
@@ -46,21 +51,21 @@ describe("buildMovieEpisodeTableRows", () => {
 
   it("returns no-video divider when mediaFolderPath is missing", () => {
     const mm = makeMediaMetadata({ mediaFolderPath: undefined });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ type: "divider" });
   });
 
   it("returns no-video divider when mediaFiles is empty", () => {
     const mm = makeMediaMetadata({ mediaFiles: [] });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ type: "divider" });
   });
 
   it("returns no-video divider when mediaFiles is undefined", () => {
     const mm = makeMediaMetadata({ mediaFiles: undefined });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ type: "divider" });
   });
@@ -71,7 +76,7 @@ describe("buildMovieEpisodeTableRows", () => {
     const mm = makeMediaMetadata({
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(2); // divider + episode
     expect(rows[0]).toMatchObject({ type: "divider", id: "movie", text: "Movie" });
     expect(rows[1].type).toBe("episode");
@@ -83,13 +88,12 @@ describe("buildMovieEpisodeTableRows", () => {
     const mm = makeMediaMetadata({
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     const row = episodeRow(rows);
     expect(row.type).toBe("episode");
     expect(row.season).toBe(1);
     expect(row.episode).toBe(1);
     expect(row.videoFile).toBe("/media/movies/TestMovie/video.mkv");
-    expect(row.checked).toBe(false);
     expect(row.episodeTitle).toBe("Test Movie");
   });
 
@@ -100,7 +104,7 @@ describe("buildMovieEpisodeTableRows", () => {
         { absolutePath: "/media/movies/TestMovie/extra.mkv" },
       ],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(episodeRow(rows).videoFile).toBe("/media/movies/TestMovie/main.mkv");
   });
 
@@ -114,7 +118,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(episodeRow(rows).subtitle).toContain("/media/movies/TestMovie/video.srt");
   });
 
@@ -126,7 +130,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(episodeRow(rows).thumbnail).toContain("video.jpg");
   });
 
@@ -140,7 +144,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(3); // poster folderFile + divider + episode
     expect(rows[0]).toMatchObject({ type: "folderFile", id: "poster", path: "/media/movies/TestMovie/poster.jpg" });
     expect(rows[1]).toMatchObject({ type: "divider", id: "movie" });
@@ -155,7 +159,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toMatchObject({ type: "folderFile", id: "fanart", path: "/media/movies/TestMovie/fanart.png" });
   });
@@ -168,7 +172,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toMatchObject({ type: "folderFile", id: "nfo", path: "/media/movies/TestMovie/movie.nfo" });
     expect(episodeRow(rows).nfo).toBe("/media/movies/TestMovie/movie.nfo");
@@ -184,7 +188,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(rows).toHaveLength(5); // 3 folderFiles + divider + episode
     expect(rows.filter((r) => r.type === "folderFile")).toHaveLength(3);
     expect(rows.filter((r) => r.type === "divider")).toHaveLength(1);
@@ -203,7 +207,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/Movie (2024)/Movie (2024).mkv" }],
     });
-    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []));
     expect(row.thumbnail).toBe("/media/movies/Movie (2024)/poster.jpg");
     expect(row.nfo).toBe("/media/movies/Movie (2024)/movie.nfo");
     expect(row.subtitle).toBeUndefined();
@@ -218,7 +222,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []));
     expect(row.thumbnail).toBe("/media/movies/TestMovie/video.jpg");
   });
 
@@ -231,7 +235,7 @@ describe("buildMovieEpisodeTableRows", () => {
       ],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []));
     expect(row.nfo).toBe("/media/movies/TestMovie/video.nfo");
   });
 
@@ -240,7 +244,7 @@ describe("buildMovieEpisodeTableRows", () => {
       files: ["/media/movies/TestMovie/video.mkv"],
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []));
     expect(row.thumbnail).toBeUndefined();
     expect(row.nfo).toBeUndefined();
     expect(row.subtitle).toBeUndefined();
@@ -259,7 +263,7 @@ describe("buildMovieEpisodeTableRows", () => {
         },
       ],
     });
-    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t));
+    const row = episodeRow(buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []));
     expect(row.subtitle).toBe("/media/movies/Movie (2024)/Movie.srt");
   });
 
@@ -269,7 +273,7 @@ describe("buildMovieEpisodeTableRows", () => {
     const mm = makeMediaMetadata({
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t, {
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? [], {
       renamePreview: {
         newVideoFile: "/media/movies/TestMovie/New Name (2024).mkv",
         newSubtitle: "/media/movies/TestMovie/New Name (2024).srt",
@@ -286,7 +290,7 @@ describe("buildMovieEpisodeTableRows", () => {
     const mm = makeMediaMetadata({
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     const row = episodeRow(rows);
     expect(row.newVideoFile).toBeUndefined();
     expect(row.newSubtitle).toBeUndefined();
@@ -297,7 +301,7 @@ describe("buildMovieEpisodeTableRows", () => {
     const mm = makeMediaMetadata({
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t, {
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? [], {
       renamePreview: {
         newVideoFile: "/media/movies/TestMovie/New Name (2024).mkv",
       },
@@ -315,7 +319,7 @@ describe("buildMovieEpisodeTableRows", () => {
       movie: { id: "456", name: "Inception", database: "TMDB" },
       mediaFiles: [{ absolutePath: "/media/movies/Inception/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(episodeRow(rows).episodeTitle).toBe("Inception");
   });
 
@@ -324,7 +328,110 @@ describe("buildMovieEpisodeTableRows", () => {
       movie: undefined,
       mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
     });
-    const rows = buildMovieEpisodeTableRows(mm, "ok", t);
+    const rows = buildMovieEpisodeTableRows(mm, "ok", t, mm.files ?? []);
     expect(episodeRow(rows).episodeTitle).toBeUndefined();
+  });
+});
+
+describe("buildMovieMediaFileTableSeasonData", () => {
+  it("returns empty when mediaFiles is empty", () => {
+    const mm = makeMediaMetadata({ mediaFiles: [] });
+    expect(buildMovieMediaFileTableSeasonData(mm)).toEqual([]);
+  });
+
+  it("returns empty when mediaFolderPath is missing", () => {
+    const mm = makeMediaMetadata({
+      mediaFolderPath: undefined,
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    expect(buildMovieMediaFileTableSeasonData(mm)).toEqual([]);
+  });
+
+  it("builds one Movie season with S01E01 from the first video file", () => {
+    const mm = makeMediaMetadata({
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    expect(buildMovieMediaFileTableSeasonData(mm)).toEqual([
+      {
+        season: 1,
+        title: "Movie",
+        episodes: [
+          {
+            season: 1,
+            episode: 1,
+            title: "Test Movie",
+            path: "/media/movies/TestMovie/video.mkv",
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("uses only the first mediaFile when multiple exist", () => {
+    const mm = makeMediaMetadata({
+      mediaFiles: [
+        { absolutePath: "/media/movies/TestMovie/main.mkv" },
+        { absolutePath: "/media/movies/TestMovie/extra.mkv" },
+      ],
+    });
+    const seasons = buildMovieMediaFileTableSeasonData(mm);
+    expect(seasons[0]?.episodes[0]?.path).toBe("/media/movies/TestMovie/main.mkv");
+  });
+});
+
+describe("buildMovieMetadataFiles", () => {
+  it("finds poster, fanart, and movie.nfo", () => {
+    const mm = makeMediaMetadata();
+    const files = [
+      "/media/movies/TestMovie/video.mkv",
+      "/media/movies/TestMovie/poster.jpg",
+      "/media/movies/TestMovie/fanart.png",
+      "/media/movies/TestMovie/movie.nfo",
+    ];
+    expect(buildMovieMetadataFiles(mm, files)).toEqual({
+      posterPath: "/media/movies/TestMovie/poster.jpg",
+      fanartPath: "/media/movies/TestMovie/fanart.png",
+      nfoPath: "/media/movies/TestMovie/movie.nfo",
+      seasonPosters: [],
+      clearlogoPath: undefined,
+      themePath: undefined,
+    });
+  });
+});
+
+describe("buildMovieEpisodeAssociatedFileLists", () => {
+  it("maps stem-matched subtitle/nfo/thumbnail to S01E01", () => {
+    const mm = makeMediaMetadata({
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    const files = [
+      "/media/movies/TestMovie/video.mkv",
+      "/media/movies/TestMovie/video.srt",
+      "/media/movies/TestMovie/video.nfo",
+      "/media/movies/TestMovie/video.jpg",
+    ];
+    expect(buildMovieEpisodeAssociatedFileLists(mm, files)).toEqual({
+      subtitleFiles: [{ season: 1, episode: 1, files: ["/media/movies/TestMovie/video.srt"] }],
+      nfoFiles: [{ season: 1, episode: 1, files: ["/media/movies/TestMovie/video.nfo"] }],
+      thumbnailFiles: [{ season: 1, episode: 1, files: ["/media/movies/TestMovie/video.jpg"] }],
+    });
+  });
+
+  it("falls back to folder-level poster and movie.nfo", () => {
+    const mm = makeMediaMetadata({
+      mediaFiles: [{ absolutePath: "/media/movies/TestMovie/video.mkv" }],
+    });
+    const files = [
+      "/media/movies/TestMovie/video.mkv",
+      "/media/movies/TestMovie/poster.jpg",
+      "/media/movies/TestMovie/movie.nfo",
+    ];
+    const lists = buildMovieEpisodeAssociatedFileLists(mm, files);
+    expect(lists.thumbnailFiles).toEqual([
+      { season: 1, episode: 1, files: ["/media/movies/TestMovie/poster.jpg"] },
+    ]);
+    expect(lists.nfoFiles).toEqual([
+      { season: 1, episode: 1, files: ["/media/movies/TestMovie/movie.nfo"] },
+    ]);
   });
 });

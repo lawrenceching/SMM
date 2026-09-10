@@ -4,6 +4,8 @@
   "exclude": ["**/*.test.ts"],
   "compilerOptions": {
     "composite": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "types": ["electron-vite/node"]
   }
 }

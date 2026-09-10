@@ -1,4 +1,3 @@
-import { Path } from '@smm/utils/path'
 import {
   buildRenameFolderConfirmationMessage,
 } from '@smm/core/ai-tool/renameFolderConfirm'
@@ -15,29 +14,13 @@ import {
   renameFolderOutputSchema,
   type RenameFolderOutput,
 } from '@smm/types/ai-tools/renameFolder'
-import type { ToolDefinition } from './types'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-} from '@/mcp/tools/mcpToolBase'
 import { acknowledge } from '@/utils/socketIO'
-import logger from '../../lib/logger'
-import { getLocalizedToolDescription } from '@/i18n/helpers'
+import { logger } from '../../lib/logger'
 import { doRenameFolder } from '@/route/RenameFolder'
 
 export interface RenameFolderParams {
   from: string
   to: string
-}
-
-function toMcpResponse(result: RenameFolderOutput) {
-  if (result.error && !result.renamed) {
-    return createSuccessResponse(result)
-  }
-  if (result.renamed) {
-    return createSuccessResponse(result)
-  }
-  return createSuccessResponse(result)
 }
 
 /**
@@ -96,23 +79,6 @@ export async function executeRenameFolder(
       fromCheck,
       toCheck,
       `Error renaming folder: ${message}`,
-    )
-  }
-}
-
-/** @deprecated Use executeRenameFolder — kept for MCP registration */
-export async function handleRenameFolder(
-  params: RenameFolderParams,
-  abortSignal?: AbortSignal,
-): Promise<
-  ReturnType<typeof createSuccessResponse> | ReturnType<typeof createErrorResponse>
-> {
-  try {
-    const result = await executeRenameFolder(params, abortSignal)
-    return toMcpResponse(result)
-  } catch (error) {
-    return createErrorResponse(
-      error instanceof Error ? error.message : 'Request was aborted',
     )
   }
 }
@@ -197,27 +163,4 @@ export function renameFolderAgentTool(
   abortSignal?: AbortSignal,
 ) {
   return createAgentRenameFolderTool(clientId, abortSignal)
-}
-
-/** @deprecated Alias of renameFolderAgentTool */
-export const createRenameFolderTool = renameFolderAgentTool
-
-export const getTool = async function (
-  abortSignal?: AbortSignal,
-): Promise<ToolDefinition> {
-  const description = await getLocalizedToolDescription(RENAME_FOLDER)
-
-  return {
-    toolName: RENAME_FOLDER,
-    description,
-    inputSchema: renameFolderInputSchema,
-    outputSchema: renameFolderOutputSchema,
-    execute: async (args: RenameFolderParams) => {
-      return handleRenameFolder(args, abortSignal)
-    },
-  }
-}
-
-export async function renameFolderMcpTool() {
-  return getTool()
 }

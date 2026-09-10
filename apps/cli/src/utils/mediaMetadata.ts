@@ -1,9 +1,6 @@
 import type { MediaMetadata } from "@smm/types"
 import { Path } from "@smm/utils/path"
 import { metadataCacheFilePath } from "../route/mediaMetadata/utils"
-import { unlink } from "fs/promises"
-import { logger } from "../../lib/logger"
-import { rename } from "fs/promises"
 
 /**
  * Find media metadata by the media folder path.
@@ -15,14 +12,14 @@ export async function findMediaMetadata(mediaFolderPath: string): Promise<MediaM
     // Convert to POSIX path format for cache file lookup
     const folderPathInPosix = Path.posix(mediaFolderPath)
     const metadataFilePath = metadataCacheFilePath(folderPathInPosix)
-    
+
     // Check if cache file exists
     const isExist = await Bun.file(metadataFilePath).exists()
-    
+
     if (!isExist) {
         return null
     }
-    
+
     // Read and parse the metadata file
     try {
         const metadata = await Bun.file(metadataFilePath).json() as MediaMetadata
@@ -31,65 +28,4 @@ export async function findMediaMetadata(mediaFolderPath: string): Promise<MediaM
         console.error(`[findMediaMetadata] Error reading metadata from file: ${metadataFilePath}`, error)
         return null
     }
-}
-
-export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<void> {
-    if(!mediaMetadata.mediaFolderPath) {
-        throw new Error('Media folder path is required')
-    }
-    const metadataFilePath = metadataCacheFilePath(mediaMetadata.mediaFolderPath)
-    logger.info({
-        metadataFilePath,
-        mediaMetadata,
-    }, '[writeMediaMetadata] Writing media metadata to file');
-    await Bun.write(metadataFilePath, JSON.stringify(mediaMetadata, null, 2))
-}
-
-export async function deleteMediaMetadataFile(mediaFolderPathInPosix: string): Promise<void> {
-    const metadataFilePath = metadataCacheFilePath(mediaFolderPathInPosix)
-    logger.info({
-        metadataFilePath,
-    }, '[deleteMediaMetadataFile] Deleting media metadata file');
-    await unlink(metadataFilePath)
-}
-
-export async function renameMediaMetadataCacheFile(
-    fromInPosix: string, 
-    toInPosix: string, 
-    traceId: { traceId: string }): Promise<void> {
-        
-    const fromFilePath = metadataCacheFilePath(fromInPosix)
-    const toFilePath = metadataCacheFilePath(toInPosix)
-    const fromExists = await Bun.file(fromFilePath).exists()
-    const toExists = await Bun.file(toFilePath).exists()
-    const fromFolderPlatform = Path.toPlatformPath(fromInPosix)
-    const toFolderPlatform = Path.toPlatformPath(toInPosix)
-    logger.info({
-        fromFolder: fromFolderPlatform,
-        toFolder: toFolderPlatform,
-        fromFilePath,
-        toFilePath,
-        fromExists,
-        toExists,
-        traceId,
-        file: "utils/mediaMetadata.ts"
-    }, 'renameMediaMetadataCacheFile: before fs.rename')
-    if (!fromExists) {
-        logger.warn({
-            fromFolder: fromFolderPlatform,
-            toFolder: toFolderPlatform,
-            fromFilePath,
-            toFilePath,
-            traceId,
-            file: "utils/mediaMetadata.ts"
-        }, 'renameMediaMetadataCacheFile: source cache file missing (ENOENT on rename); ensure metadata file name matches metadataCacheFilePath for this media folder')
-    }
-    await rename(fromFilePath, toFilePath)
-
-    logger.info({
-        fromFolder: fromFolderPlatform,
-        toFolder: toFolderPlatform,
-        traceId,
-        file: "utils/mediaMetadata.ts"
-    }, 'renamed media metadata cache file');
 }

@@ -90,6 +90,12 @@
     "checkError": "Connection failed",
     "checkChecking": "Checking..."
   },
+  "aiAgent": {
+    "title": "AI Agent",
+    "description": "Configure permissions granted to AI Assistant and MCP clients",
+    "metadataWrite": "Allow metadata writes without confirmation",
+    "metadataWriteDescription": "AI Assistant and MCP clients can update media metadata (e.g. rename folders/files) without asking for confirmation each time."
+  },
   "feedback": {
     "title": "Feedback",
     "description": "Share your feedback, report bugs, or suggest new features",
@@ -136,6 +142,7 @@
     "title": "Settings",
     "general": "General",
     "ai": "AI",
+    "aiAgent": "AI Agent",
     "mediaDatabases": "Media Databases",
     "renameRules": "Rename Rules",
     "externalApps": "External Apps",

@@ -1,7 +1,7 @@
 export { GetMediaFoldersTool } from './GetMediaFolders';
 export { GetFilesInMediaFolderTool } from './ListFilesInMediaFolder';
 export { GetMediaMetadataTool } from './GetMediaMetadata';
-export { GetApplicationContextTool, type ApplicationContextData } from './GetApplicationContext';
+export { GetApplicationContextTool} from './GetApplicationContext';
 export { IsFolderExistTool } from './IsFolderExist';
 export { GetEpisodesTool } from './GetEpisodes';
 export { RenameFolderTool } from './RenameFolder';
@@ -11,7 +11,5 @@ export { GetJobTool } from './GetJob';
 export { TmdbSearchTool } from './TmdbSearch';
 export { TmdbGetMovieTool } from './TmdbGetMovie';
 export { TmdbGetTvShowTool } from './TmdbGetTvShow';
-export { BeginRecognizeTaskTool } from './BeginRecognizeTask';
-export { AddRecognizedMediaFileTool } from './AddRecognizedMediaFile';
-export { EndRecognizeTaskTool, cleanupRecognizePlan } from './EndRecognizeTask';
+export { CreateRecognizeEpisodePlanTool } from './CreateRecognizeEpisodePlan';
 export { CreateRenameEpisodePlanTool } from './CreateRenameEpisodePlan';

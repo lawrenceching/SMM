@@ -7,7 +7,7 @@ import {
 } from 'test/lib/testbed'
 import { folder1, folder2 } from 'test/actions/import-folders'
 import Sidebar from 'test/componentobjects/Sidebar'
-import TvShowPanelCO from 'test/componentobjects/TVShowPanel.co'
+import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import env from 'test/lib/env'
 import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import MusicPanelCO from 'test/componentobjects/MusicPanel.co'

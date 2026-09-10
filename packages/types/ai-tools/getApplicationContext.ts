@@ -22,9 +22,6 @@ export const getApplicationContextOutputSchema = z.object({
     .describe('Error message if the operation failed'),
 })
 
-export type GetApplicationContextInput = z.infer<
-  typeof getApplicationContextInputSchema
->
 export type GetApplicationContextOutput = z.infer<
   typeof getApplicationContextOutputSchema
 >

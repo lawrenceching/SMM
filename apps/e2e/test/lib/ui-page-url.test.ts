@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
   DEFAULT_DOCKER_UI_ORIGIN,
-  DOCKER_UI_ORIGIN,
   HARMONYOS_UI_ORIGIN,
   resolveDockerUiOrigin,
   resolveUiPageUrl,
@@ -91,7 +90,7 @@ describe('resolveUiPageUrl', () => {
     withEnv(
       { SMM_AUTH_TOKEN: undefined, E2E_PLATFORM: 'docker', E2E_DOCKER_UI_ORIGIN: undefined },
       () => {
-        expect(resolveUiPageUrl()).toBe(DOCKER_UI_ORIGIN);
+        expect(resolveUiPageUrl()).toBe(DEFAULT_DOCKER_UI_ORIGIN);
         expect(resolveUiPageUrl(undefined, 'general')).toBe(DEFAULT_DOCKER_UI_ORIGIN);
       },
     );
@@ -115,7 +114,7 @@ describe('resolveUiPageUrl', () => {
     withEnv(
       { SMM_AUTH_TOKEN: 'ChangeMe123', E2E_PLATFORM: 'docker', E2E_DOCKER_UI_ORIGIN: undefined },
       () => {
-        expect(resolveUiPageUrl()).toBe(`${DOCKER_UI_ORIGIN}?token=ChangeMe123`);
+        expect(resolveUiPageUrl()).toBe(`${DEFAULT_DOCKER_UI_ORIGIN}?token=ChangeMe123`);
       },
     );
   });

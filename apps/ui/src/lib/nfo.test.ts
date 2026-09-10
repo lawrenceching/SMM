@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import NFO, {
+import {
+  NFO,
   buildEpisodeNfoXml,
   convertTvShowEpisodeNfoToXml,
   convertTvShowNfoToXml,

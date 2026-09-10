@@ -6,11 +6,11 @@ import { Path } from "@smm/utils/path";
 import type { MediaMetadata, MovieMediaMetadata, TvShowMediaMetadata } from "@smm/types";
 import {
   createFolderInTestFolder,
-  folder1,
+  tvShowFolder,
   folder2,
   folder3,
   folder4,
-  folder5,
+  movieFolder,
   type TestFolder,
 } from "@smm/test";
 import { NodejsFsAdapter } from "../adapters/node/NodejsFsAdapter";
@@ -86,9 +86,9 @@ async function mediaMetadataFrom(created: TestFolder): Promise<MediaMetadata> {
 
 describe("getTmdbIdFromFolderName / getTvdbIdFromFolderName", () => {
   it("parses ids from shared folder fixtures", () => {
-    expect(getTmdbIdFromFolderName(folder1.folderName)).toBe("84666");
+    expect(getTmdbIdFromFolderName(tvShowFolder.folderName)).toBe("84666");
     expect(getTvdbIdFromFolderName(folder4.folderName)).toBe("421069");
-    expect(getTvdbIdFromFolderName(folder5.folderName)).toBe("116");
+    expect(getTvdbIdFromFolderName(movieFolder.folderName)).toBe("116");
     expect(getTmdbIdFromFolderName(folder3.folderName)).toBeNull();
   });
 });
@@ -102,11 +102,11 @@ describe("recognizeMediaFolder", () => {
     rmSync(mediaDir, { recursive: true, force: true });
   });
 
-  it("recognizes TV show via tmdbid in folder name (folder1 fixture)", async () => {
+  it("recognizes TV show via tmdbid in folder name (tvShowFolder fixture)", async () => {
     const d = deps();
     (d.tmdb.getTvShowMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(tvShowFixture);
 
-    const created = createFolderInTestFolder(mediaDir, folder1);
+    const created = createFolderInTestFolder(mediaDir, tvShowFolder);
     const mm = await mediaMetadataFrom(created);
     const result = await recognizeMediaFolder(mm, d);
 
@@ -137,7 +137,7 @@ describe("recognizeMediaFolder", () => {
     (d.tmdb.getTvShowMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(tvShowFixture);
 
     const created = createFolderInTestFolder(mediaDir, {
-      ...folder1,
+      ...tvShowFolder,
       folderName: "FolderContainsTvShowNfo",
     });
     writeNfo(
@@ -162,7 +162,7 @@ describe("recognizeMediaFolder", () => {
     });
 
     const created = createFolderInTestFolder(mediaDir, {
-      ...folder1,
+      ...tvShowFolder,
       folderName: "FolderWithTvdbNfo",
     });
     writeNfo(
@@ -182,7 +182,7 @@ describe("recognizeMediaFolder", () => {
     (d.tmdb.getTvShowMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(tvShowFixture);
 
     const created = createFolderInTestFolder(mediaDir, {
-      ...folder1,
+      ...tvShowFolder,
       folderName: "NfoOverridesFolderName {tmdbid=84666}",
     });
     writeNfo(created.path!, "tvshow.nfo", `<tvshow><tmdbid>7</tmdbid></tvshow>`);
@@ -234,7 +234,7 @@ describe("recognizeMediaFolder", () => {
     (d.tvdb.searchSeries as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 
     const created = createFolderInTestFolder(mediaDir, {
-      ...folder1,
+      ...tvShowFolder,
       folderName: `Unknown-${Date.now()}`,
     });
     const mm = await mediaMetadataFrom(created);
@@ -260,11 +260,11 @@ describe("recognizeMediaFolder", () => {
     expect(d.tmdb.search).not.toHaveBeenCalled();
   });
 
-  it("recognizes movie via tvdbid in folder name (folder5 fixture)", async () => {
+  it("recognizes movie via tvdbid in folder name (movieFolder fixture)", async () => {
     const d = deps();
     (d.tvdb.getMovieMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(darkKnightMovie);
 
-    const created = createFolderInTestFolder(mediaDir, folder5);
+    const created = createFolderInTestFolder(mediaDir, movieFolder);
     const mm = await mediaMetadataFrom(created);
     const result = await recognizeMediaFolder(mm, d);
 
@@ -272,7 +272,7 @@ describe("recognizeMediaFolder", () => {
     expect(d.tvdb.getMovieMediaMetadata).toHaveBeenCalledWith(116, "eng");
   });
 
-  it("recognizes movie by exact TMDB title search (folder2 fixture)", async () => {
+  it("recognizes movie by TMDB folder name search (folder2 fixture)", async () => {
     const d = deps();
     (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
       results: [{ id: 1539104, title: folder2.folderName }],
@@ -290,6 +290,52 @@ describe("recognizeMediaFolder", () => {
     expect(d.tmdb.search).toHaveBeenCalledWith(folder2.folderName, "movie", "en-US");
   });
 
+  it("recognizes movie from first TMDB hit when localized title differs from folder name", async () => {
+    const d = deps();
+    (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
+      results: [
+        {
+          id: 1539104,
+          title: "JUJUTSU KAISEN: Execution",
+          original_title: "劇場版 呪術廻戦「渋谷事変 特別編集版」×「死滅回游 先行上映」",
+        },
+        { id: 999, title: "Unrelated Movie" },
+      ],
+    });
+
+    const created = createFolderInTestFolder(mediaDir, folder2);
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual({
+      id: "1539104",
+      name: "JUJUTSU KAISEN: Execution",
+      database: "TMDB",
+    });
+    expect(d.tmdb.search).toHaveBeenCalledWith(folder2.folderName, "movie", "en-US");
+  });
+
+  it("uses first TMDB movie result like TV search (no exact folder name match)", async () => {
+    const d = deps();
+    (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
+      results: [
+        { id: 1, title: "Wrong First Hit" },
+        { id: 1539104, title: folder2.folderName },
+      ],
+    });
+
+    const created = createFolderInTestFolder(mediaDir, folder2);
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual({
+      id: "1",
+      name: "Wrong First Hit",
+      airDate: undefined,
+      database: "TMDB",
+    });
+  });
+
   it("recognizes movie by TVDB folder name search", async () => {
     const d = deps({ primaryDatabase: "TVDB" });
     (d.tvdb.searchMovie as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -298,7 +344,7 @@ describe("recognizeMediaFolder", () => {
     (d.tvdb.getMovieMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(darkKnightMovie);
 
     const created = createFolderInTestFolder(mediaDir, {
-      ...folder5,
+      ...movieFolder,
       folderName: "The Dark Knight",
     });
     const mm = await mediaMetadataFrom(created);
@@ -306,6 +352,37 @@ describe("recognizeMediaFolder", () => {
 
     expect(result.movie).toEqual(darkKnightMovie);
     expect(d.tvdb.searchMovie).toHaveBeenCalledWith("The Dark Knight", "eng");
+  });
+
+  it("recognizes movie by TVDB search without requiring exact folder name match", async () => {
+    const capedCrusaders: MovieMediaMetadata = {
+      database: "TVDB",
+      id: "13611",
+      name: "蝙蝠侠：披风斗士归来",
+    };
+    const d = deps({ primaryDatabase: "TVDB", language: "zh-CN" });
+    (d.tvdb.searchMovie as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        objectID: "movie-13611",
+        name: "蝙蝠侠：披风斗士归来",
+        tvdb_id: "13611",
+      },
+    ]);
+    (d.tvdb.getMovieMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(capedCrusaders);
+
+    const created = createFolderInTestFolder(mediaDir, {
+      ...movieFolder,
+      folderName: "Batman Return of the Caped Crusaders",
+    });
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual(capedCrusaders);
+    expect(d.tvdb.searchMovie).toHaveBeenCalledWith(
+      "Batman Return of the Caped Crusaders",
+      "zho",
+    );
+    expect(d.tmdb.search).not.toHaveBeenCalled();
   });
 
   it("recognizes movie via movie.nfo tmdbid on disk", async () => {
@@ -388,10 +465,10 @@ describe("recognizeMediaFolder", () => {
       return tvShowFixture;
     });
     (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
-      results: [{ id: 9, name: folder1.mediaName }],
+      results: [{ id: 9, name: tvShowFolder.mediaName }],
     });
 
-    const created = createFolderInTestFolder(mediaDir, folder1);
+    const created = createFolderInTestFolder(mediaDir, tvShowFolder);
     const mm = await mediaMetadataFrom(created);
     const result = await recognizeMediaFolder(mm, d);
 

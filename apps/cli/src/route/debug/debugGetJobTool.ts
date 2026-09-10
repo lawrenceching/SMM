@@ -15,7 +15,7 @@ const getJobToolSchema = z.object({
   id: z.string().min(1, 'id is required'),
 })
 
-export async function processGetJobTool(
+async function processGetJobTool(
   body: unknown,
 ): Promise<DebugGetJobToolResponseBody> {
   try {

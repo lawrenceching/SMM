@@ -17,7 +17,7 @@ const isFolderExistToolSchema = z.object({
   clientId: z.string().optional(),
 });
 
-export async function processIsFolderExistTool(body: unknown): Promise<DebugIsFolderExistToolResponseBody> {
+async function processIsFolderExistTool(body: unknown): Promise<DebugIsFolderExistToolResponseBody> {
   try {
     const validationResult = isFolderExistToolSchema.safeParse(body ?? {});
     if (!validationResult.success) {

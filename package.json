@@ -77,13 +77,15 @@
     "changeset": "changeset",
     "changeset:version": "changeset version && pnpm i && pnpm run build:cli",
     "changeset:publish": "changeset publish",
-    "query-network-log": "bun apps/tools/query-network-log.ts"
+    "query-network-log": "bun apps/tools/query-network-log.ts",
+    "knip": "knip"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
     "@modelcontextprotocol/inspector": "^2.3.0",
-    "concurrently": "^9.2.1",
+    "@modelcontextprotocol/sdk": "^1.27.0",
     "cross-env": "^7.0.3",
+    "knip": "^6.34.0",
     "npm-run-all2": "^8.0.4"
   }
 }

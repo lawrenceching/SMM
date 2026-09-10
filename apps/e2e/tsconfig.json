@@ -21,9 +21,9 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
 
-    // Some stricter flags (disabled by default)
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
+    // Some stricter flags
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noPropertyAccessFromIndexSignature": false,
 
     // Include mocha and node types for test hooks and fs/path/os modules
@@ -42,6 +42,7 @@
       ],
       "@smm/core/FsPort": ["../core/src/ports/FsPort.ts"],
       "@smm/core/*": ["../core/src/*"],
+      "test/*": ["test/*"],
       "@smm/test": ["../../packages/test/src/index.ts"],
       "@smm/test/*": ["../../packages/test/*"]
     }
@@ -51,6 +52,9 @@
     "common/**/*.ts",
     "cli/**/*.ts",
     "scenarios/**/*.ts",
+    "ohos/**/*.ts",
+    "electron/**/*.ts",
+    "docker/**/*.{ts,mjs}",
     "wdio.conf.ts",
     "wdio.conf.test.ts"
   ],

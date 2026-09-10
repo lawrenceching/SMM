@@ -9,7 +9,6 @@
  */
 import { SYSTEM_PROMPT } from '@smm/core/ai-tool/systemPrompt'
 
-export { SYSTEM_PROMPT }
 
 /**
  * @deprecated Kept for backward compatibility — legacy import sites

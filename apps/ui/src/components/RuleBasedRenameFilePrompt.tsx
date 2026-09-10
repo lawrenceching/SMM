@@ -1,4 +1,5 @@
 import { FloatingPrompt, type FloatingPromptProps, type FloatingPromptOption } from "./FloatingPrompt"
+import { type RenameRuleName } from "@/lib/renameRules"
 import {
   Select,
   SelectContent,
@@ -17,15 +18,12 @@ export interface RuleBasedRenameFilePromptProps extends Omit<FloatingPromptProps
   /**
    * Currently selected naming rule value
    */
-  selectedNamingRule: string
-  /**
-   * Callback when the naming rule selection changes
-   */
-  onNamingRuleChange: (value: string) => void
+  selectedNamingRule: RenameRuleName
   /**
    * Callback when naming rules are selected and ready
    */
-  onNamingRulesSelected?: (rule: string) => void
+  onNamingRulesSelected?: (rule: RenameRuleName) => Promise<void>
+  loading?: boolean
 }
 
 /**
@@ -35,11 +33,11 @@ export interface RuleBasedRenameFilePromptProps extends Omit<FloatingPromptProps
 export function RuleBasedRenameFilePrompt({
   namingRuleOptions,
   selectedNamingRule,
-  onNamingRuleChange,
   onNamingRulesSelected,
   onConfirm,
   onCancel,
   isOpen = false,
+  loading = false,
   className,
   ...promptProps
 }: RuleBasedRenameFilePromptProps) {
@@ -58,9 +56,9 @@ export function RuleBasedRenameFilePrompt({
       <Select
         value={selectedNamingRule}
         onValueChange={(value) => {
-          onNamingRuleChange(value)
-          onNamingRulesSelected?.(value)
+          onNamingRulesSelected?.(value as RenameRuleName)
         }}
+        disabled={loading}
       >
         <SelectTrigger
           className="w-[200px]"

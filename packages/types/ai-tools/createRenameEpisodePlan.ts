@@ -20,6 +20,3 @@ export const createRenameEpisodePlanInputSchema = z.object({
     .min(1),
 })
 
-export type CreateRenameEpisodePlanInput = z.infer<
-  typeof createRenameEpisodePlanInputSchema
->

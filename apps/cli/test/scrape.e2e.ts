@@ -13,9 +13,8 @@ import { smm } from './helpers/smm'
 import { resetCoreForTests } from '../src/core/getCore'
 import {
   createAndImportInitializedFolder,
-  folder1,
-  movieFolder,
   tvShowFolder,
+  movieFolder,
   type TestFolder,
 } from './helpers/testFolders'
 
@@ -71,7 +70,7 @@ describe('smm scrape CLI e2e', () => {
     { timeout: SCRAPE_TIMEOUT_MS },
     async () => {
       const testFolder: TestFolder = {
-        ...folder1,
+        ...tvShowFolder,
         folderName: 'Scrape 123123',
         files: [],
       }
@@ -105,7 +104,7 @@ describe('smm scrape CLI e2e', () => {
     { timeout: SCRAPE_TIMEOUT_MS },
     async () => {
       const testFolder: TestFolder = {
-        ...folder1,
+        ...tvShowFolder,
         folderName: 'ScrapeSkipAll 123123',
         files: [],
       }
@@ -131,7 +130,7 @@ describe('smm scrape CLI e2e', () => {
     { timeout: SCRAPE_TIMEOUT_MS },
     async () => {
       const testFolder: TestFolder = {
-        ...folder1,
+        ...tvShowFolder,
         folderName: 'ScrapePartial 123123',
         files: [],
       }

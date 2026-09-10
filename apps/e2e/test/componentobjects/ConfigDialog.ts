@@ -871,7 +871,6 @@ class ConfigDialog {
     async getActiveProviderIndex(): Promise<number> {
         const count = await this.getProviderCount()
         for (let i = 0; i < count; i++) {
-            const radio = await this.getProviderRadio(i)
             // The active provider has a CircleCheck icon (which may have aria-checked or classes)
             // We check if the radio is the active one by looking at the provider card's border class
             const card = await this.getProviderCard(i)

@@ -6,7 +6,7 @@ import {
   type TmdbGetMovieOutput,
 } from '@smm/types/ai-tools/tmdbGetMovie'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
-import { getMovieInTmdb } from '@/api/tmdbV3'
+import { getMovieInTmdb } from '@/api/tmdbHttp'
 
 const tmdbGetMovieTool = tool({
   description: TMDB_GET_MOVIE_DESCRIPTION,

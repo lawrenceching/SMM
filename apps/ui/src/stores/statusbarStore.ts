@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /** App bootstrap phase — StatusBar translates this at render time. */
-export type BootstrapStatus =
+type BootstrapStatus =
   | { status: 'initializing' }
   | { status: 'ready' }
   | { status: 'error'; message: string }

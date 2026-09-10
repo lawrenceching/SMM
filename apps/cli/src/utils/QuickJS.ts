@@ -1,7 +1,5 @@
 import { getUserConfig } from "./config";
-import path from "path";
 import os from "os";
-import { execSync } from "child_process";
 import { logger } from "../../lib/logger";
 import {
   readConfiguredToolPath,
@@ -23,7 +21,7 @@ async function readQuickJSConfiguredPath(): Promise<string | undefined> {
 }
 
 /** App auto-discovery (no user config): bundled -> project bin -> install dir -> PATH. */
-export function discoverQuickjsAuto(): string | undefined {
+function discoverQuickjsAuto(): string | undefined {
   const resolved = resolveAutoToolPath("quickjs", quickjsExeName());
   if (resolved) {
     quickjsLog.debug({ resolved }, "resolved QuickJS via app auto-discovery");
@@ -50,27 +48,4 @@ export async function resolveQuickjsPathInfo(): Promise<{
   const configured = (await readQuickJSConfiguredPath()) ?? null;
   const discovered = discoverQuickjsAuto() ?? null;
   return { configuredPath: configured, discoveredPath: discovered };
-}
-
-export interface QuickjsVersionResult {
-  version?: string;
-  error?: string;
-}
-
-export async function getQuickjsVersion(): Promise<QuickjsVersionResult> {
-  const quickjsPath = await discoverQuickjs();
-
-  if (!quickjsPath) {
-    return { error: "QuickJS executable not found" };
-  }
-
-  try {
-    const version = execSync(`"${quickjsPath}" --version`, {
-      encoding: "utf-8",
-      timeout: 10000,
-    });
-    return { version: version.trim() };
-  } catch {
-    return { error: "failed to execute QuickJS" };
-  }
 }

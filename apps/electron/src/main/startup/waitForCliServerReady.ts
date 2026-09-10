@@ -2,7 +2,7 @@ import type { CliProcessMonitor } from "./cliMonitor"
 import { buildTimeoutFailure } from "./cliMonitor"
 import { CliStartupError } from "./types"
 
-export async function isServerServingHtml(port: number): Promise<boolean> {
+async function isServerServingHtml(port: number): Promise<boolean> {
   try {
     const res = await fetch(`http://127.0.0.1:${port}`, { method: "GET" })
     const contentType = res.headers.get("content-type") ?? ""
