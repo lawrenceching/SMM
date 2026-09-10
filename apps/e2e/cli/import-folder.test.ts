@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { join } from 'node:path'
 import { folder1, createFolderInTestFolder, folder2 } from '../test/actions/import-folders'
 import { setup, cleanup, bin } from './base'
 import { metadataMediaFileLine } from './helpers'
+import { Path } from '@smm/utils/path'
 import { $ } from 'bun'
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000
@@ -107,7 +109,10 @@ Type:    tvshow-folder
 
     it('import movie folder', async () => {
 
-        const testFolder = createFolderInTestFolder(folder2)
+        const testFolder = createFolderInTestFolder({
+            ...folder2,
+            folderName: '{tmdbid=1539104}',
+        })
         const folderPath = testFolder.path
 
         const ret = await $`${bin} add ${folderPath} --type movie --verbose
@@ -117,14 +122,23 @@ ${bin} metadata ${folderPath}
     `.nothrow()
 
         expect(ret.exitCode).toBe(0)
+        const movieFileLine = Path.toPlatformPath(join(folderPath!, 'movie.mkv'))
         expect(ret.text()).toContain(`${folderPath}
 Path:    ${folderPath}
 Status:  ok
 Type:    movie-folder
+Title:   JUJUTSU KAISEN: Execution
+
+    movie.mkv
 mediaFolderPath: ${folderPath}
 type: movie-folder
+movie:
+  name: JUJUTSU KAISEN: Execution
+  database: TMDB
+  id: 1539104
+  airDate: 2025-11-07
 mediaFiles:
-  (empty)`)
+  - absolutePath: ${movieFileLine}`)
     }, FIVE_MINUTES_MS)
 
     it('import music folder', async () => {
