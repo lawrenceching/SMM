@@ -17,7 +17,7 @@ export interface TestFolder {
 }
 
 /** TMDB-tagged TV show (天使降临到我身边). */
-const folder1: TestFolder = {
+export const folder1: TestFolder = {
   folderName: '天使降临到我身边！ (2019) {tmdbid=84666}',
   mediaName: '天使降临到我身边！',
   translations: {
@@ -77,7 +77,7 @@ export const folder4: TestFolder = {
 }
 
 /** TVDB-tagged movie. */
-const folder5: TestFolder = {
+export const folder5: TestFolder = {
   folderName: 'The Dark Knight {tvdbid=116}',
   mediaName: '蝙蝠侠：黑暗骑士',
   translations: {

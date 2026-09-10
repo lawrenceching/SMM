@@ -9,6 +9,6 @@ describe('MCP Prompts - HowToRecognizeEpisodeVideoFilesTool', () => {
     const r = await callTool(ctx.url, 'how-to-recognize-episode-video-files')
     expect(r.isError).toBe(false)
     expect(r.structuredContent!.text).toContain('如何使用 SMM MCP tool 识别季集视频文件')
-    expect(r.structuredContent!.text).toContain('begin-recognize-task')
+    expect(r.structuredContent!.text).toContain('create-recognize-episode-plan')
   })
 })

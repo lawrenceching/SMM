@@ -57,10 +57,15 @@ export function getTvdbIdFromFolderName(folderName: string): string | null {
   return match === null ? null : match[1]!;
 }
 
-export function resolveTvdbSeriesId(item: TVDBv4SearchResult): number | undefined {
+/** Shared TVDB search-id resolution for series and movies (same matching rules). */
+export function resolveTvdbSearchId(
+  item: TVDBv4SearchResult,
+  kind: "series" | "movie",
+): number | undefined {
   const oid = item.objectID ?? item.id;
-  if (oid.startsWith("series-")) {
-    const n = parseInt(oid.slice("series-".length), 10);
+  const prefixRe = kind === "series" ? /^series-/i : /^movie-/i;
+  if (prefixRe.test(oid)) {
+    const n = parseInt(oid.replace(prefixRe, ""), 10);
     if (Number.isFinite(n) && n > 0) return n;
   }
   const raw = item.tvdb_id;
@@ -71,18 +76,12 @@ export function resolveTvdbSeriesId(item: TVDBv4SearchResult): number | undefine
   return undefined;
 }
 
+export function resolveTvdbSeriesId(item: TVDBv4SearchResult): number | undefined {
+  return resolveTvdbSearchId(item, "series");
+}
+
 export function resolveTvdbMovieId(item: TVDBv4SearchResult): number | undefined {
-  const oid = item.objectID ?? item.id;
-  if (/^movie-/i.test(oid)) {
-    const n = parseInt(oid.replace(/^movie-/i, ""), 10);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  const raw = item.tvdb_id;
-  if (raw !== undefined) {
-    const n = parseInt(String(raw), 10);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return undefined;
+  return resolveTvdbSearchId(item, "movie");
 }
 
 function folderNameOf(mm: MediaMetadata): string {
@@ -144,6 +143,10 @@ async function recognizeByNfo(
   }
 }
 
+/**
+ * TV and movie share the same rule: take the first usable search hit.
+ * Do not require an exact folder-name / title match.
+ */
 async function searchInTmdb(
   folderName: string,
   isTvShow: boolean,
@@ -151,27 +154,29 @@ async function searchInTmdb(
   result: RecognitionResult,
 ): Promise<void> {
   try {
+    const type = isTvShow ? "tv" : "movie";
+    const body = await deps.tmdb.search(folderName, type, deps.language);
+    const first = body.results[0] as TMDBTVShow | TMDBMovie | undefined;
+    if (first === undefined) return;
+
     if (isTvShow) {
-      const body = await deps.tmdb.search(folderName, "tv", deps.language);
-      const first = body.results[0] as TMDBTVShow | undefined;
-      if (first !== undefined) {
-        const tvShow = await deps.tmdb.getTvShowMediaMetadata(first.id, deps.language);
-        if (tvShow !== undefined) result.tvShow = tvShow;
-      }
+      const tvShow = await deps.tmdb.getTvShowMediaMetadata(
+        (first as TMDBTVShow).id,
+        deps.language,
+      );
+      if (tvShow !== undefined) result.tvShow = tvShow;
     } else {
-      const body = await deps.tmdb.search(folderName, "movie", deps.language);
-      const movies = body.results as TMDBMovie[];
-      const exact = movies.find((movie) => movie.title === folderName);
-      const chosen = exact ?? movies[0];
-      if (chosen !== undefined) {
-        result.movie = movieMediaMetadataFromTmdbSearch(chosen);
-      }
+      result.movie = movieMediaMetadataFromTmdbSearch(first as TMDBMovie);
     }
   } catch {
     // recognition is best-effort; fall through to the next phase
   }
 }
 
+/**
+ * TV and movie share the same rule: walk search results in order and use the
+ * first item that resolves to metadata. No exact folder-name match.
+ */
 async function searchInTvdb(
   folderName: string,
   isTvShow: boolean,
@@ -180,37 +185,31 @@ async function searchInTvdb(
   tvdbLang: string,
 ): Promise<void> {
   try {
-    if (isTvShow) {
-      const items = await deps.tvdb.searchSeries(folderName, tvdbLang);
-      for (const item of items ?? []) {
-        try {
-          const id = resolveTvdbSeriesId(item);
-          if (id === undefined) continue;
+    const kind = isTvShow ? "series" : "movie";
+    const items = isTvShow
+      ? await deps.tvdb.searchSeries(folderName, tvdbLang)
+      : await deps.tvdb.searchMovie(folderName, tvdbLang);
+
+    for (const item of items ?? []) {
+      try {
+        const id = resolveTvdbSearchId(item, kind);
+        if (id === undefined) continue;
+
+        if (isTvShow) {
           const tvShow = await deps.tvdb.getTvShowMediaMetadata(id, tvdbLang);
           if (tvShow !== undefined) {
             result.tvShow = tvShow;
             return;
           }
-        } catch {
-          // best-effort per search result
-        }
-      }
-    } else {
-      const items = await deps.tvdb.searchMovie(folderName, tvdbLang);
-      for (const item of items ?? []) {
-        try {
-          if (item.name === folderName) {
-            const id = resolveTvdbMovieId(item);
-            if (id === undefined) continue;
-            const movie = await deps.tvdb.getMovieMediaMetadata(id, tvdbLang);
-            if (movie !== undefined) {
-              result.movie = movie;
-              return;
-            }
+        } else {
+          const movie = await deps.tvdb.getMovieMediaMetadata(id, tvdbLang);
+          if (movie !== undefined) {
+            result.movie = movie;
+            return;
           }
-        } catch {
-          // best-effort per search result
         }
+      } catch {
+        // best-effort per search result
       }
     }
   } catch {

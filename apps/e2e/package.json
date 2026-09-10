@@ -16,7 +16,8 @@
     "expect-webdriverio": "^5.6.1",
     "shelljs": "^0.10.0",
     "typescript": "^5.0.0",
-    "wdio-html-nice-reporter": "^8.1.7"
+    "wdio-html-nice-reporter": "^8.1.7",
+    "zx": "^8.8.5"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -38,7 +39,8 @@
     "wdio:other": "wdio run ./wdio.conf.ts --spec \"./common/other/*.e2e.ts\"",
     "wdio:config": "wdio run ./wdio.conf.ts --spec \"./common/config/*.e2e.ts\" --spec \"./common/httpproxy/*.e2e.ts\"",
     "wdio:ai": "wdio run ./wdio.conf.ts --spec \"./test/specs/ai/*.e2e.ts\"",
-    "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./common/mcp/*.e2e.ts\""
+    "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./common/mcp/*.e2e.ts\"",
+    "zx": "zx --verbose"
   },
   "dependencies": {
     "@smm/test": "workspace:*",

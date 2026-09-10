@@ -272,7 +272,7 @@ describe("recognizeMediaFolder", () => {
     expect(d.tvdb.getMovieMediaMetadata).toHaveBeenCalledWith(116, "eng");
   });
 
-  it("recognizes movie by exact TMDB title search (folder2 fixture)", async () => {
+  it("recognizes movie by TMDB folder name search (folder2 fixture)", async () => {
     const d = deps();
     (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
       results: [{ id: 1539104, title: folder2.folderName }],
@@ -315,7 +315,7 @@ describe("recognizeMediaFolder", () => {
     expect(d.tmdb.search).toHaveBeenCalledWith(folder2.folderName, "movie", "en-US");
   });
 
-  it("prefers exact TMDB title match over a non-matching first result", async () => {
+  it("uses first TMDB movie result like TV search (no exact folder name match)", async () => {
     const d = deps();
     (d.tmdb.search as ReturnType<typeof vi.fn>).mockResolvedValue({
       results: [
@@ -329,8 +329,9 @@ describe("recognizeMediaFolder", () => {
     const result = await recognizeMediaFolder(mm, d);
 
     expect(result.movie).toEqual({
-      id: "1539104",
-      name: folder2.folderName,
+      id: "1",
+      name: "Wrong First Hit",
+      airDate: undefined,
       database: "TMDB",
     });
   });
@@ -351,6 +352,37 @@ describe("recognizeMediaFolder", () => {
 
     expect(result.movie).toEqual(darkKnightMovie);
     expect(d.tvdb.searchMovie).toHaveBeenCalledWith("The Dark Knight", "eng");
+  });
+
+  it("recognizes movie by TVDB search without requiring exact folder name match", async () => {
+    const capedCrusaders: MovieMediaMetadata = {
+      database: "TVDB",
+      id: "13611",
+      name: "蝙蝠侠：披风斗士归来",
+    };
+    const d = deps({ primaryDatabase: "TVDB", language: "zh-CN" });
+    (d.tvdb.searchMovie as ReturnType<typeof vi.fn>).mockResolvedValue([
+      {
+        objectID: "movie-13611",
+        name: "蝙蝠侠：披风斗士归来",
+        tvdb_id: "13611",
+      },
+    ]);
+    (d.tvdb.getMovieMediaMetadata as ReturnType<typeof vi.fn>).mockResolvedValue(capedCrusaders);
+
+    const created = createFolderInTestFolder(mediaDir, {
+      ...movieFolder,
+      folderName: "Batman Return of the Caped Crusaders",
+    });
+    const mm = await mediaMetadataFrom(created);
+    const result = await recognizeMediaFolder(mm, d);
+
+    expect(result.movie).toEqual(capedCrusaders);
+    expect(d.tvdb.searchMovie).toHaveBeenCalledWith(
+      "Batman Return of the Caped Crusaders",
+      "zho",
+    );
+    expect(d.tmdb.search).not.toHaveBeenCalled();
   });
 
   it("recognizes movie via movie.nfo tmdbid on disk", async () => {

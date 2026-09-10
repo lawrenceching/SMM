@@ -236,6 +236,9 @@ importers:
       wdio-html-nice-reporter:
         specifier: ^8.1.7
         version: 8.1.7(chokidar@3.6.0)(encoding@0.1.13)
+      zx:
+        specifier: ^8.8.5
+        version: 8.8.5
 
   apps/electron:
     dependencies:
@@ -9244,6 +9247,11 @@ packages:
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
+
+  zx@8.8.5:
+    resolution: {integrity: sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA==}
+    engines: {node: '>= 12.17.0'}
+    hasBin: true
 
 snapshots:
 
@@ -18762,3 +18770,5 @@ snapshots:
       use-sync-external-store: 1.6.0(react@19.2.4)
 
   zwitch@2.0.4: {}
+
+  zx@8.8.5: {}
