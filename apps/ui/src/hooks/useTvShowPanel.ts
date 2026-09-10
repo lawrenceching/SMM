@@ -87,7 +87,7 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
     ])
 
     const subtitleFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
+        if (metadataQuery.data == null || filesQuery.data === undefined) {
             return []
         }
 
@@ -101,7 +101,7 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
     }, [metadataQuery.data, filesQuery.data])
 
     const nfoFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
+        if (metadataQuery.data == null || filesQuery.data === undefined) {
             return []
         }
 
@@ -115,7 +115,7 @@ export function useTvShowPanel(folderPath: string | undefined, plan: Plan | unde
     }, [metadataQuery.data, filesQuery.data])
 
     const thumbnailFiles: { season: number, episode: number, files: string[] }[] = useMemo(() => {
-        if (metadataQuery.data === undefined || filesQuery.data === undefined) {
+        if (metadataQuery.data == null || filesQuery.data === undefined) {
             return []
         }
 
