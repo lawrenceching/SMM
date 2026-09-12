@@ -11,6 +11,7 @@ export interface ChatRequestBody {
   messages?: unknown[];
   model?: string;
   tools?: unknown;
+  /** UI wire field (AI SDK 6 clients). Mapped to streamText instructions in doChat. */
   system?: string;
   clientId: string;
 }

@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UserConfig } from "@smm/types";
 import type { ChatConfig, ChatRequestBody } from "./chatTypes.ts";
 
-const streamTextMock = vi.fn();
-const toUIMessageStreamMock = vi.fn(() => new ReadableStream());
+const streamTextMock = vi.fn<(opts: unknown) => unknown>();
+const toUIMessageStreamMock = vi.fn<(opts: unknown) => ReadableStream>(
+  () => new ReadableStream(),
+);
 const createUIMessageStreamResponseMock = vi.fn(
   ({ stream }: { stream: ReadableStream }) =>
     new Response(stream, { status: 200 }),
@@ -13,10 +15,12 @@ vi.mock("ai", async (importOriginal) => {
   const actual = await importOriginal<typeof import("ai")>();
   return {
     ...actual,
-    streamText: (...args: unknown[]) => streamTextMock(...args),
-    toUIMessageStream: (...args: unknown[]) => toUIMessageStreamMock(...args),
-    createUIMessageStreamResponse: (...args: unknown[]) =>
-      createUIMessageStreamResponseMock(...args),
+    streamText: (opts: unknown) => streamTextMock(opts),
+    toUIMessageStream: (opts: unknown) => toUIMessageStreamMock(opts),
+    createUIMessageStreamResponse: (opts: unknown) =>
+      createUIMessageStreamResponseMock(
+        opts as Parameters<typeof createUIMessageStreamResponseMock>[0],
+      ),
     convertToModelMessages: vi.fn(async () => []),
   };
 });
@@ -121,13 +125,19 @@ describe("doChat — AI SDK 7 streamText options", () => {
     const opts = streamTextMock.mock.calls[0]![0] as {
       instructions?: string;
       system?: string;
-      stopWhen?: unknown;
+      stopWhen?: (ctx: { steps: unknown[] }) => boolean;
     };
-    expect(opts.instructions).toBe("You are a test assistant.");
+    expect(opts).toMatchObject({
+      instructions: "You are a test assistant.",
+    });
     expect(opts.system).toBeUndefined();
-    // stopWhen must be the predicate from isStepCount(100)
+    // isStepCount returns a new function each call — verify behavior, not identity
     expect(typeof opts.stopWhen).toBe("function");
-    expect(opts.stopWhen).toEqual(isStepCount(100));
+    const steps99 = Array.from({ length: 99 }, () => ({}));
+    const steps100 = Array.from({ length: 100 }, () => ({}));
+    expect(opts.stopWhen!({ steps: steps99 })).toBe(false);
+    expect(opts.stopWhen!({ steps: steps100 })).toBe(true);
+    expect(isStepCount(100)({ steps: steps100 as never[] })).toBe(true);
 
     expect(toUIMessageStreamMock).toHaveBeenCalled();
     expect(createUIMessageStreamResponseMock).toHaveBeenCalled();

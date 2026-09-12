@@ -1,6 +1,12 @@
 import { frontendTools } from "@assistant-ui/react-ai-sdk";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { streamText, convertToModelMessages, stepCountIs } from "ai";
+import {
+  streamText,
+  convertToModelMessages,
+  isStepCount,
+  toUIMessageStream,
+  createUIMessageStreamResponse,
+} from "ai";
 import { SYSTEM_PROMPT } from "@smm/core/ai-tool/systemPrompt";
 import { GET_APPLICATION_CONTEXT } from "@smm/types/ai-tools/getApplicationContext";
 import { IS_FOLDER_EXIST } from "@smm/types/ai-tools/isFolderExist";
@@ -30,7 +36,7 @@ import type { ChatToolsExtraDeps } from "./tools/index.ts";
 
 /**
  * Default `streamText` step count cap. Mirrors the original
- * `ChatTask.processChatRequest` value (`stepCountIs(100)`); multi-step
+ * `ChatTask.processChatRequest` value (`isStepCount(100)`); multi-step
  * agent loops (rename / recognize) routinely need dozens of steps.
  */
 const CHAT_STEP_LIMIT = 100;
@@ -120,11 +126,8 @@ export async function doChat(
   const result = streamText({
     model: providerForAiSdk.chatModel(model || defaultModel),
     messages: modelMessages,
-    // Fall back to the shared core system prompt if the client did
-    // not include one (matches the legacy ChatTask behavior — the
-    // UI's `AssistantChatTransport` always sends a system prompt
-    // via the assistant-ui `ModelContext`).
-    system: system || config.systemPrompt || SYSTEM_PROMPT,
+    // Wire body still uses `system` (UI AI SDK 6). Map to AI SDK 7 `instructions`.
+    instructions: system || config.systemPrompt || SYSTEM_PROMPT,
     abortSignal: request.signal,
     tools: {
       ...frontendTools(frontendToolsInput as never),
@@ -148,7 +151,7 @@ export async function doChat(
       [CREATE_RENAME_EPISODE_PLAN]: tools[CREATE_RENAME_EPISODE_PLAN],
       [CREATE_RECOGNIZE_EPISODE_PLAN]: tools[CREATE_RECOGNIZE_EPISODE_PLAN],
     },
-    stopWhen: stepCountIs(CHAT_STEP_LIMIT),
+    stopWhen: isStepCount(CHAT_STEP_LIMIT),
   });
 
   if (request.signal?.aborted) {
@@ -157,7 +160,12 @@ export async function doChat(
   }
 
   log?.debug({}, "doChat: streaming response created");
-  return result.toUIMessageStreamResponse();
+  const uiStream = toUIMessageStream({
+    stream: result.stream,
+  });
+  return createUIMessageStreamResponse({
+    stream: uiStream,
+  });
 }
 
 /**
