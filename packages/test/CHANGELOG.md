@@ -1,5 +1,13 @@
 # @smm/test
 
+## 1.2.20
+
+### Patch Changes
+
+- v1.4.12
+- Updated dependencies
+  - @smm/types@0.0.1
+
 ## 1.2.19
 
 ### Patch Changes

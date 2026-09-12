@@ -1,5 +1,18 @@
 # cli
 
+## 1.4.12
+
+### Patch Changes
+
+- v1.4.12
+- Updated dependencies
+  - @smm/core@1.4.12
+  - @smm/core-routes@1.4.12
+  - @smm/test@1.2.20
+  - @smm/tvdb4@1.3.20
+  - @smm/types@0.0.1
+  - @smm/utils@1.2.20
+
 ## 1.4.11
 
 ### Patch Changes
@@ -108,6 +121,7 @@
   the CLI. This change moves the orchestration into
   `@smm/core-routes` as `cleanupStalePlans(appDataDir, fs?, logger?)`
   so all hosts benefit.
+
   - New `packages/core-routes/src/cleanup.ts` exposes
     `cleanupStalePlans`. The CLI now calls this instead of
     `cleanPreparingPlans` directly.
@@ -157,6 +171,7 @@
   had no easy way to unwind it.
 
   The fix:
+
   - `appendRecognizedFile` in `@smm/core-routes` now runs a default
     filesystem-existence check (via `ChatFs.exists`) before writing
     the entry to the plan. Hosts can override the check through the

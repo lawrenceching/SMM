@@ -9,6 +9,7 @@ import { saveAuthToken } from '@/lib/authToken';
 import { setAuthLoginRequired } from '@/lib/authSession';
 import { useReloadAppConfig } from '@/hooks/userConfig/useReloadAppConfig';
 import { useAuthLoginRequired } from '@/hooks/useAuthLoginRequired';
+import { shouldBypassAuthLoginGate } from '@/lib/authSession';
 
 function LoginPanel() {
   const { t } = useTranslation('common');
@@ -82,6 +83,10 @@ function LoginPanel() {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const loginRequired = useAuthLoginRequired();
+
+  if (shouldBypassAuthLoginGate()) {
+    return children;
+  }
 
   if (loginRequired) {
     return <LoginPanel />;

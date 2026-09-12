@@ -18,6 +18,7 @@ import {
 } from './startup/startupError'
 import { waitForCliServerReady } from './startup/waitForCliServerReady'
 import { CliStartupError } from './startup/types'
+import { buildCliSpawnEnv } from './cliSpawnEnv'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
@@ -320,11 +321,7 @@ function startCLIProcess(port: number): CliProcessMonitor {
     stdio: 'pipe',
     detached: false,
     windowsHide: true,
-    env: {
-      ...process.env,
-      LOG_TARGET: 'file',
-      SMM_RESOURCES_PATH: process.resourcesPath,
-    },
+    env: buildCliSpawnEnv(process.env, process.resourcesPath),
   })
 
   const monitor = new CliProcessMonitor(cliProcess, cliExecutable)

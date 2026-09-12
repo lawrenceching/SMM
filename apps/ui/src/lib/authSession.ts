@@ -1,4 +1,6 @@
 import { clearAuthToken } from '@/lib/authToken';
+import { isElectron } from '@/lib/isElectron';
+import { isHarmonyOS } from '@/lib/isHarmonyOS';
 
 function isApiRequestUrl(url: string): boolean {
   if (url.startsWith('/api/')) {
@@ -10,6 +12,14 @@ function isApiRequestUrl(url: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * Desktop runtimes (Electron / HarmonyOS) never use the Docker Bearer-token
+ * login gate — API auth stays disabled for those hosts.
+ */
+export function shouldBypassAuthLoginGate(): boolean {
+  return isElectron() || isHarmonyOS();
 }
 
 let loginRequired = false;
@@ -49,6 +59,9 @@ export async function with401Suppressed<T>(fn: () => Promise<T>): Promise<T> {
 
 export function notifyUnauthorizedApiResponse(response: Response, url: string): void {
   if (suppress401Count > 0) {
+    return;
+  }
+  if (shouldBypassAuthLoginGate()) {
     return;
   }
   if (response.status !== 401) {
