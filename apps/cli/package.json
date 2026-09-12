@@ -13,7 +13,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.11",
+    "@ai-sdk/openai-compatible": "^3.0.48",
     "@hono/node-server": "^1.19.0",
     "@smm/core": "workspace:*",
     "@smm/core-routes": "workspace:*",
@@ -22,7 +22,7 @@
     "@smm/types": "workspace:*",
     "@smm/utils": "workspace:*",
     "@types/shelljs": "^0.10.0",
-    "ai": "^6.0.36",
+    "ai": "^7.0.99",
     "commander": "^15.0.0",
     "dotenv": "^17.2.3",
     "hono": "^4.10.8",
