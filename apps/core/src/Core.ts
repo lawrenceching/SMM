@@ -97,8 +97,9 @@ import { MediaMetadataHelper } from "./pipeline/mediaMetadataHelper";
 import type { PersistedMediaMetadata } from "./pipeline/mediaMetadataValidation";
 import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/metadataErrors";
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
-import { JobStore } from "./jobs/jobStore";
-import { initialScrapeTasks, type ImportJob, type ImportLibraryJob, type Job } from "./jobs/types";
+import { JobManager } from "./jobs/jobManager";
+import type { JobHandle } from "./jobs/jobHandle";
+import { initialScrapeTasks, type Job } from "./jobs/types";
 
 export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
@@ -201,7 +202,7 @@ export interface ImportLibraryOptions {
 }
 
 export class Core {
-  private readonly jobs = new JobStore();
+  private readonly jobs = new JobManager();
   private readonly fs: FsPort;
   private readonly network: NetworkPort;
   private readonly logger: LoggerPort;
@@ -870,7 +871,7 @@ export class Core {
   }
 
   /** Stages 2 and 3; both reuse the core methods of the user-triggered recognition flows. */
-  private async runImport(job: ImportJob, folderPath: string, type: FolderType): Promise<void> {
+  private async runImport(job: JobHandle, folderPath: string, type: FolderType): Promise<void> {
     this.jobs.update(job.id, { status: "running" });
     try {
       await initializeFolder(
@@ -898,7 +899,7 @@ export class Core {
   }
 
   private async runImportLibrary(
-    job: ImportLibraryJob,
+    job: JobHandle,
     libraryPath: string,
     type: FolderType,
     skipInit: boolean,
