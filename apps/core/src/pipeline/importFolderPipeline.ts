@@ -1,7 +1,7 @@
 import { Path } from "@smm/utils/path";
 import type { FolderType, MediaMetadata } from "@smm/types";
 import type { LoggerPort } from "../ports/LoggerPort";
-import type { JobStage } from "../jobs/types";
+import type { JobLogLevel, JobStage } from "../jobs/types";
 import type { MediaMetadataHelper } from "./mediaMetadataHelper";
 import type { UserConfigHelper } from "./userConfigHelper";
 import { autoRecognizeFolderPipeline, type RecognizeFolderDeps } from "./recognizeFolder";
@@ -23,6 +23,8 @@ export interface FolderInitializationDeps extends RecognizeFolderDeps {
 
 export interface FolderInitializationCallbacks {
   onStage?: (stage: JobStage, progress: number, detail?: { title?: string }) => void;
+  throwIfAborted?: () => void;
+  appendLog?: (level: JobLogLevel, message: string) => void;
 }
 
 function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
@@ -66,15 +68,26 @@ export async function initializeFolder(
 ): Promise<void> {
   const posixPath = deps.normalizePosix(folderPath);
   // Listing once up front feeds both stages and fails initialization of an unreadable folder.
+  cb.throwIfAborted?.();
   const filePaths = (await deps.fs.listFiles(posixPath)).map((file) => Path.posix(file));
   if (type !== "tvshow" && type !== "movie") return;
 
+  cb.throwIfAborted?.();
   deps.logger.info({ folderPath: posixPath, type }, "importFolder: stage=recognizeFolder");
+  cb.appendLog?.("info", "recognizing folder");
   const result = await autoRecognizeFolderPipeline(folderPath, deps, filePaths);
   const title = result.tvShow?.name ?? result.movie?.name;
+  if (title !== undefined) {
+    cb.appendLog?.("info", `recognized "${title}"`);
+  } else {
+    cb.appendLog?.("info", "recognition completed, no title");
+  }
   cb.onStage?.("recognizeFolder", 60, title !== undefined ? { title } : undefined);
 
+  cb.throwIfAborted?.();
   deps.logger.info({ folderPath: posixPath }, "importFolder: stage=recognizeEpisodes");
+  cb.appendLog?.("info", "recognizing episodes");
   await recognizeMediaFilesPipeline(folderPath, deps, filePaths);
+  cb.appendLog?.("info", "recognized episodes");
   cb.onStage?.("recognizeEpisodes", 90);
 }

@@ -99,6 +99,7 @@ import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/me
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
 import type { JobHandle } from "./jobs/jobHandle";
+import { JobAbortError } from "./jobs/jobAbortError";
 import { initialScrapeTasks, type Job, type JobLogLine } from "./jobs/types";
 
 export interface TmdbRequestOptions {
@@ -353,17 +354,21 @@ export class Core {
           mediaMetadata: this.mediaMetadata,
         });
       }
-      this.jobs.update(job.id, { stage: "persistFolder", progress: 10 });
+      job.appendLog("info", "persisted folder");
+      job.update({ stage: "persistFolder", progress: 10 });
     } catch (error) {
-      this.jobs.update(job.id, {
+      const message = error instanceof Error ? error.message : String(error);
+      job.appendLog("error", message);
+      job.update({
         status: "failed",
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       });
       return { id: job.id };
     }
 
     if (options?.skipInit === true) {
-      this.jobs.update(job.id, { status: "succeeded", progress: 100 });
+      job.appendLog("info", "skipped init");
+      job.update({ status: "succeeded", progress: 100 });
     } else {
       void this.runImport(job, path, type);
     }
@@ -893,30 +898,38 @@ export class Core {
   }
 
   /** Stages 2 and 3; both reuse the core methods of the user-triggered recognition flows. */
-  private async runImport(job: JobHandle, folderPath: string, type: FolderType): Promise<void> {
-    this.jobs.update(job.id, { status: "running" });
+  private async runImport(handle: JobHandle, folderPath: string, type: FolderType): Promise<void> {
+    handle.update({ status: "running" });
     try {
+      handle.throwIfAborted();
       await initializeFolder(
         folderPath,
         type,
         { ...(await this.createRecognitionDeps()), logger: this.logger },
         {
           onStage: (stage, progress, detail) => {
-            this.jobs.update(job.id, {
+            handle.update({
               stage,
               progress,
               ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
             });
           },
+          throwIfAborted: () => handle.throwIfAborted(),
+          appendLog: (level, message) => handle.appendLog(level, message),
         },
       );
-      this.jobs.update(job.id, { status: "succeeded", stage: null, progress: 100 });
+      handle.appendLog("info", "succeeded");
+      handle.update({ status: "succeeded", stage: null, progress: 100 });
       this.notifyMediaMetadataUpdated(folderPath);
     } catch (error) {
-      this.jobs.update(job.id, {
-        status: "failed",
-        error: error instanceof Error ? error.message : String(error),
-      });
+      if (error instanceof JobAbortError) {
+        handle.appendLog("warn", "aborted");
+        handle.update({ status: "aborted", error: "aborted" });
+        return;
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      handle.appendLog("error", message);
+      handle.update({ status: "failed", error: message });
     }
   }
 

@@ -463,6 +463,68 @@ describe("stopJob and getJobLog", () => {
   });
 });
 
+describe("importFolder job logs and abort", () => {
+  it("writes persisted folder and succeeded logs for music", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ "/m/My.Music/a.mp3": "" }),
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = await core.importFolder("/m/My.Music", "music");
+    await waitForStatus(core, id, "succeeded");
+    expect(core.getJobLog(id).map((line) => line.message)).toEqual([
+      "persisted folder",
+      "succeeded",
+    ]);
+    expect(core.getJob(id) as { logs?: unknown }).not.toHaveProperty("logs");
+  });
+
+  it("writes skipped init when skipInit is true", async () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+    expect(core.getJobLog(id).map((line) => line.message)).toEqual([
+      "persisted folder",
+      "skipped init",
+    ]);
+  });
+
+  it("aborts at the stage-2 boundary without recognizing", async () => {
+    const base = inMemoryFs({ "/m/Show/S01E01.mkv": "" });
+    const fs: FsPort = {
+      ...base,
+      listFiles: vi.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 80));
+        return base.listFiles("/m/Show");
+      }),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = await core.importFolder("/m/Show", "tvshow");
+    core.stopJob(id);
+    await waitForStatus(core, id, "aborted");
+    const job = core.getJob(id);
+    expect(job?.status).toBe("aborted");
+    expect(job?.error).toBe("aborted");
+    expect(core.getJobLog(id).map((line) => line.message)).toContain("aborted");
+    expect(await core.getFolders()).toContain("/m/Show");
+    expect(await core.getMetadata("/m/Show")).toMatchObject({
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder",
+    });
+  });
+});
+
 describe("getAppConfig", () => {
   it("returns the injected app config values", () => {
     const core = new Core({

@@ -105,6 +105,19 @@ describe("persistNewFolder (stage 1)", () => {
 });
 
 describe("initializeFolder (stages 2 and 3)", () => {
+  it("invokes throwIfAborted before recognizeFolder", async () => {
+    const { deps } = makeDeps({ "/m/Show/S01E01.mkv": "" });
+    const throwIfAborted = vi.fn(() => {
+      throw new Error("stopped");
+    });
+
+    await expect(
+      initializeFolder("/m/Show", "tvshow", deps, { throwIfAborted }),
+    ).rejects.toThrow("stopped");
+
+    expect(mockRecognizeMediaFolder).not.toHaveBeenCalled();
+  });
+
   it("skips recognition for music folders", async () => {
     const mediaDir = "/m/My.Music";
     const { deps } = makeDeps({ "/m/My.Music/a.mp3": "" });
