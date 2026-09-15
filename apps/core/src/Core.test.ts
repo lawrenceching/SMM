@@ -386,6 +386,63 @@ describe("Core", () => {
   });
 });
 
+describe("stopJob and getJobLog", () => {
+  it("getJobLog throws Job not found for unknown id", () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(() => core.getJobLog("missing")).toThrow("Job not found");
+  });
+
+  it("stopJob throws Job not found for unknown id", () => {
+    const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
+    expect(() => core.stopJob("missing")).toThrow("Job not found");
+  });
+
+  it("stopJob throws Job already finished after skipInit import succeeds", async () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+    expect(() => core.stopJob(id)).toThrow("Job already finished");
+    expect(core.getJob(id)?.status).toBe("succeeded");
+  });
+
+  it("getJobLog returns an array for an existing job", async () => {
+    const core = new Core({
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = await core.importFolder("/m/Deferred", "music", { skipInit: true });
+    await waitForStatus(core, id, "succeeded");
+    expect(Array.isArray(core.getJobLog(id))).toBe(true);
+  });
+
+  it("stopJob throws Job is not abortable for a running import-library job", async () => {
+    const base = inMemoryFs({ "/lib/A/track.mp3": "" });
+    const fs: FsPort = {
+      ...base,
+      exists: vi.fn(async () => true),
+      listSubdirectories: vi.fn(() => new Promise<string[]>(() => {})),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+    const { id } = core.importLibrary("/lib", "music");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(core.getJob(id)?.kind).toBe("import-library");
+    expect(core.getJob(id)?.status).toBe("pending");
+    expect(() => core.stopJob(id)).toThrow("Job is not abortable");
+  });
+});
+
 describe("getAppConfig", () => {
   it("returns the injected app config values", () => {
     const core = new Core({

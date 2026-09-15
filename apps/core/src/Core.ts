@@ -99,7 +99,7 @@ import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/me
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
 import type { JobHandle } from "./jobs/jobHandle";
-import { initialScrapeTasks, type Job } from "./jobs/types";
+import { initialScrapeTasks, type Job, type JobLogLine } from "./jobs/types";
 
 export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
@@ -391,6 +391,28 @@ export class Core {
 
   getJob(id: string): Job | undefined {
     return this.jobs.get(id);
+  }
+
+  getJobLog(id: string): JobLogLine[] {
+    const job = this.jobs.get(id);
+    if (job === undefined) {
+      throw new Error("Job not found");
+    }
+    return this.jobs.getLog(id) ?? [];
+  }
+
+  stopJob(id: string): void {
+    const job = this.jobs.get(id);
+    if (job === undefined) {
+      throw new Error("Job not found");
+    }
+    if (job.kind !== "import") {
+      throw new Error("Job is not abortable");
+    }
+    if (job.status !== "pending" && job.status !== "running") {
+      throw new Error("Job already finished");
+    }
+    this.jobs.requestStop(id);
   }
 
   /** Application-level config (version / userDataDir / reverseProxyUrl); never touches fs. */
