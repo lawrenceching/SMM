@@ -62,3 +62,11 @@ export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
     nfo: { status: "pending" },
   };
 }
+
+export type JobLogLevel = "info" | "warn" | "error";
+
+export interface JobLogLine {
+  ts: number;
+  level: JobLogLevel;
+  message: string;
+}

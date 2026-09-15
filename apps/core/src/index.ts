@@ -139,4 +139,7 @@ export type {
   ScrapeJobTask,
   ScrapeTaskRuntimeStatus,
 } from "./jobs/types";
+export type { JobHandle } from "./jobs/jobHandle";
+export { JobAbortError } from "./jobs/jobAbortError";
+export type { JobLogLevel, JobLogLine } from "./jobs/types";
 export type { FolderType, HelloCliBody } from "@smm/types";
