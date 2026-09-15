@@ -410,6 +410,26 @@ describe("stopJob and getJobLog", () => {
     expect(core.getJob(id)?.status).toBe("succeeded");
   });
 
+  it("stopJob requests stop for a running import without changing its status", async () => {
+    const base = inMemoryFs({ "/m/Show/S01E01.mkv": "" });
+    const fs: FsPort = {
+      ...base,
+      listFiles: vi.fn(() => new Promise<string[]>(() => {})),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = await core.importFolder("/m/Show", "tvshow");
+    expect(core.getJob(id)?.status).toBe("running");
+
+    expect(() => core.stopJob(id)).not.toThrow();
+    expect(core.getJob(id)?.status).toBe("running");
+  });
+
   it("getJobLog returns an array for an existing job", async () => {
     const core = new Core({
       fs: inMemoryFs(),
