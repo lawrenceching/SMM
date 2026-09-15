@@ -56,7 +56,15 @@ HTTP: `POST /api/import-folder` — starts Layer 2 `Core.importFolder(path, type
 
 ## GetJob
 Source Code: apps/cli/src/route/GetJob.ts
-HTTP: `POST /api/get-job` — returns an in-memory import job from `Core.getJob(id)`. Request body: `{ id: string }`. Response: `{ data: ImportJob }` or `{ error }` (`Job not found`). CLI `smm add` polls this internally until the job settles.
+HTTP: `POST /api/get-job` — returns an in-memory job from `Core.getJob(id)`. Request body: `{ id: string }`. Response: `{ data: Job }` or `{ error }` (`Job not found`). Snapshot does not include logs.
+
+## GetJobLog
+Source Code: apps/cli/src/route/GetJobLog.ts
+HTTP: `POST /api/get-job-log` — returns user-visible log lines from `Core.getJobLog(id)`. Request body: `{ id: string }`. Response: `{ data: { lines: JobLogLine[] } }` or `{ error }` (`Job not found`). CLI equivalent: `smm job log`.
+
+## StopJob
+Source Code: apps/cli/src/route/StopJob.ts
+HTTP: `POST /api/stop-job` — requests abort of a running ImportJob via `Core.stopJob(id)`. Request body: `{ id: string }`. Response: `{ data: { id } }` or `{ error }` (`Job not found` / `Job is not abortable` / `Job already finished`). Abort is cooperative at import stage boundaries. CLI equivalent: `smm job stop`.
 
 ## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
 Source Code: apps/cli/src/route/Tmdb.ts

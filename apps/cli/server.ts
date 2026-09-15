@@ -51,6 +51,8 @@ import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleImportFolder } from './src/route/ImportFolder';
 import { handleImportLibrary } from './src/route/ImportLibrary';
 import { handleGetJob } from './src/route/GetJob';
+import { handleStopJob } from './src/route/StopJob';
+import { handleGetJobLog } from './src/route/GetJobLog';
 import { handleScrape } from './src/route/Scrape';
 import { handleTmdb } from './src/route/Tmdb';
 import { handleRecognizeFolder } from './src/route/RecognizeFolder';
@@ -306,6 +308,8 @@ export class Server {
     handleImportFolder(this.app);
     handleImportLibrary(this.app);
     handleGetJob(this.app);
+    handleStopJob(this.app);
+    handleGetJobLog(this.app);
     handleScrape(this.app);
     handleTmdb(this.app);
     handleRecognizeFolder(this.app);
