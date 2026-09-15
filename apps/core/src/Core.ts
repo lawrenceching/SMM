@@ -1001,7 +1001,10 @@ export class Core {
 
         await this.waitForImportJob(childId);
         const childJob = this.jobs.get(childId);
-        if (childJob?.kind === "import" && childJob.status === "failed") {
+        if (
+          childJob?.kind === "import" &&
+          (childJob.status === "failed" || childJob.status === "aborted")
+        ) {
           currentTasks = patchImportLibraryTask(currentTasks, task.id, {
             status: "failed",
             importJobId: undefined,

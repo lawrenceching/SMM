@@ -18,28 +18,32 @@ sequenceDiagram
   participant Fs as FsPort
 
   Caller->>Core: importFolder(path, type)
-  Core->>Core: create ImportFolderJob (job is in pending status)
+  Core->>Core: JobManager.create ImportJob (pending) → JobHandle
 
   Note over Core,Fs: Stage 1
   Core->>Fs: write smm.json
   Core->>Fs: write metadata file
+  Core->>Core: appendLog "persisted folder"
   Core-->>Caller: { id }
 
   Note over Core,Fs: Start
   Core->>Core: move job to running status
+  Core->>Core: throwIfAborted (stage boundary)
 
   Note over Core,Fs: Stage 2
   Core->>Core: recognize folder
+  Core->>Core: throwIfAborted (stage boundary)
 
   Note over Core,Fs: Stage 3
   Core->>Core: recognize episode video files
 
   Note over Core,Fs: End
   Core->>Core: move job to succeeded status
+  Core->>Core: appendLog "succeeded"
 
   loop poll
     Caller->>Core: getJob(id)
-    Core-->>Caller: ImportJob
+    Core-->>Caller: ImportJob snapshot (no logs)
   end
 
   Caller->>Core: getFolders()
@@ -55,6 +59,10 @@ note: `importFolder` interface return when stage 1 completed. Caller(Web UI or C
 
 note2: core layer already provides methods to recognize folder and recognize episodes.
 `docs/dev/recognize-folder.md` and `docs/dev/recognize-episodes.md` described the process of user-triggered recognition process. The recognition process triggered by initialization share the low level recognition methods with user-triggered recognition process.
+
+note3: The ImportJob can be aborted in stage 2 or stage 3 via `stopJob(id)`. Abort is cooperative at stage boundaries (`throwIfAborted`). Failed or aborted jobs do not roll back smm.json / metadata.
+
+note4: User-visible job logs are written with `JobHandle.appendLog` and read with `getJobLog(id)`. Process logs still go to `LoggerPort`. See [Job Management](./job.md). Web UI does not call `getJobLog` / `stopJob` in this iteration.
 
 
 ## Web UI, Electron and ohos
@@ -134,4 +142,6 @@ See [test cases](./test/import-folder-test.md)
 ## References
 
 [Supported Platform](./supported-platform.md)
+[Job Management](./job.md)
 [Job Definition](../../apps/core/src/jobs/types.ts)
+[Core JobManager design](../superpowers/specs/2026-09-15-core-job-manager-design.md)

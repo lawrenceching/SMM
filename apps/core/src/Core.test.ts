@@ -90,6 +90,37 @@ function emptyNetwork(): NetworkPort {
   };
 }
 
+function titledNetwork(): NetworkPort {
+  return {
+    fetch: vi.fn(async (url: string) => {
+      if (url.includes("/tv/84666/season/1")) {
+        return jsonResponse({
+          id: 1,
+          name: "Season 1",
+          season_number: 1,
+          episodes: [],
+        });
+      }
+      if (url.includes("/tv/84666")) {
+        return jsonResponse({
+          id: 84666,
+          name: "WATATEN",
+          first_air_date: "2019-01-08",
+          seasons: [{ id: 1, name: "Season 1", season_number: 1 }],
+        });
+      }
+      if (url.includes("/movie/42")) {
+        return jsonResponse({
+          id: 42,
+          title: "The Movie",
+          release_date: "2020-01-01",
+        });
+      }
+      return jsonResponse({ results: [], page: 1, total_pages: 0, total_results: 0 });
+    }) as never,
+  };
+}
+
 async function waitForStatus(core: Core, id: string, status: string): Promise<void> {
   const started = Date.now();
   for (;;) {
@@ -340,6 +371,52 @@ describe("Core", () => {
     expect(job?.error).toContain("Library path not found");
   });
 
+  it("importLibrary fails when its child import is aborted", async () => {
+    let releaseListFiles: (() => void) | undefined;
+    const base = inMemoryFs({ "/lib/Show/S01E01.mkv": "" });
+    const fs: FsPort = {
+      ...base,
+      listFiles: vi.fn(
+        () =>
+          new Promise<string[]>((resolve) => {
+            releaseListFiles = () => {
+              void base.listFiles("/lib/Show").then(resolve);
+            };
+          }),
+      ),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = core.importLibrary("/lib", "tvshow");
+    const started = Date.now();
+    let childId: string | undefined;
+    while (childId === undefined) {
+      const job = core.getJob(id);
+      if (job?.kind === "import-library") childId = job.tasks[0]?.importJobId;
+      if (Date.now() - started > 5000) throw new Error("timeout waiting for child import");
+      if (childId === undefined) await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    core.stopJob(childId);
+    releaseListFiles?.();
+    const libraryStarted = Date.now();
+    while (core.getJob(id)?.status === "pending" || core.getJob(id)?.status === "running") {
+      if (Date.now() - libraryStarted > 5000) throw new Error("timeout waiting for library import");
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+
+    expect(core.getJob(childId)?.status).toBe("aborted");
+    const libraryJob = core.getJob(id);
+    expect(libraryJob?.status).toBe("failed");
+    if (libraryJob?.kind !== "import-library") throw new Error("expected import-library job");
+    expect(libraryJob.tasks[0]?.status).toBe("failed");
+  });
+
   it("importFolder emits mediaMetadataUpdated after persist (not on skipInit blank metadata)", async () => {
     const fs = inMemoryFs({ "/m/Show/ep.mkv": "" });
     const updated: string[] = [];
@@ -492,6 +569,51 @@ describe("importFolder job logs and abort", () => {
     expect(core.getJobLog(id).map((line) => line.message)).toEqual([
       "persisted folder",
       "skipped init",
+    ]);
+  });
+
+  it.each([
+    ["tvshow", "/m/WATATEN {tmdbid=84666}", "WATATEN", "/m/WATATEN {tmdbid=84666}/S01E01.mkv"],
+    ["movie", "/m/The Movie {tmdbid=42}", "The Movie", "/m/The Movie {tmdbid=42}/movie.mkv"],
+  ] as const)("writes the exact titled %s recognition log sequence", async (type, folder, title, file) => {
+    const core = new Core({
+      fs: inMemoryFs({ [file]: "" }),
+      network: titledNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = await core.importFolder(folder, type);
+    await waitForStatus(core, id, "succeeded");
+
+    expect(core.getJobLog(id).map((line) => line.message)).toEqual([
+      "persisted folder",
+      "recognizing folder",
+      `recognized "${title}"`,
+      "recognizing episodes",
+      "recognized episodes",
+      "succeeded",
+    ]);
+  });
+
+  it("writes the exact no-title recognition log sequence", async () => {
+    const core = new Core({
+      fs: inMemoryFs({ "/m/Unknown/S01E01.mkv": "" }),
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = await core.importFolder("/m/Unknown", "tvshow");
+    await waitForStatus(core, id, "succeeded");
+
+    expect(core.getJobLog(id).map((line) => line.message)).toEqual([
+      "persisted folder",
+      "recognizing folder",
+      "recognition completed, no title",
+      "recognizing episodes",
+      "recognized episodes",
+      "succeeded",
     ]);
   });
 

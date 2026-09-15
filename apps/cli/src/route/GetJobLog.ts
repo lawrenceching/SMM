@@ -8,6 +8,12 @@ interface GetJobLogResponseBody {
   error?: string
 }
 
+const BUSINESS_JOB_ERRORS = new Set([
+  'Job not found',
+  'Job is not abortable',
+  'Job already finished',
+])
+
 export function handleGetJobLog(app: Hono): void {
   app.post('/api/get-job-log', async (c) => {
     try {
@@ -28,10 +34,13 @@ export function handleGetJobLog(app: Hono): void {
       const lines = getCore().getJobLog(id)
       return c.json({ data: { lines } }, 200)
     } catch (error) {
-      logger.error({ error }, '[POST /api/get-job-log] route error')
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      if (!BUSINESS_JOB_ERRORS.has(message)) {
+        logger.error({ error }, '[POST /api/get-job-log] route error')
+      }
       return c.json(
         {
-          error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          error: `Error Reason: ${message}`,
         },
         200,
       )

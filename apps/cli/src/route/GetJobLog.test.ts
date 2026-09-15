@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { handleGetJobLog } from './GetJobLog'
 import { handleImportFolder } from './ImportFolder'
 import { resetCoreForTests } from '../core/getCore'
+import { logger } from '../../lib/logger'
 
 describe('POST /api/get-job-log', () => {
   let userDataDir: string
@@ -23,6 +24,7 @@ describe('POST /api/get-job-log', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     resetCoreForTests()
     if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
     else process.env.USER_DATA_DIR = prevUserDataDir
@@ -41,6 +43,7 @@ describe('POST /api/get-job-log', () => {
   })
 
   it('returns Error Reason when the job is unknown', async () => {
+    const loggerError = vi.spyOn(logger, 'error').mockImplementation(() => undefined)
     const res = await app.request('/api/get-job-log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,6 +52,7 @@ describe('POST /api/get-job-log', () => {
     expect(res.status).toBe(200)
     const json = (await res.json()) as { error?: string }
     expect(json.error).toMatch(/^Error Reason: Job not found/)
+    expect(loggerError).not.toHaveBeenCalled()
   })
 
   it('returns log lines after skipInit import', async () => {

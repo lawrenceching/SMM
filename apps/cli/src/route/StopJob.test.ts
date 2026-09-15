@@ -1,12 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
+import { NodejsFsAdapter } from '@smm/core'
 import { handleGetJob } from './GetJob'
 import { handleImportFolder } from './ImportFolder'
 import { handleStopJob } from './StopJob'
 import { resetCoreForTests } from '../core/getCore'
+import { logger } from '../../lib/logger'
 
 describe('POST /api/stop-job', () => {
   let userDataDir: string
@@ -25,6 +27,7 @@ describe('POST /api/stop-job', () => {
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     resetCoreForTests()
     if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
     else process.env.USER_DATA_DIR = prevUserDataDir
@@ -43,6 +46,7 @@ describe('POST /api/stop-job', () => {
   })
 
   it('returns Error Reason when the job is unknown', async () => {
+    const loggerError = vi.spyOn(logger, 'error').mockImplementation(() => undefined)
     const res = await app.request('/api/stop-job', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -51,9 +55,11 @@ describe('POST /api/stop-job', () => {
     expect(res.status).toBe(200)
     const json = (await res.json()) as { error?: string }
     expect(json.error).toMatch(/^Error Reason: Job not found/)
+    expect(loggerError).not.toHaveBeenCalled()
   })
 
   it('returns Job already finished for skipInit import', async () => {
+    const loggerError = vi.spyOn(logger, 'error').mockImplementation(() => undefined)
     const imported = await app.request('/api/import-folder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -68,5 +74,27 @@ describe('POST /api/stop-job', () => {
     expect(res.status).toBe(200)
     const json = (await res.json()) as { error?: string }
     expect(json.error).toMatch(/^Error Reason: Job already finished/)
+    expect(loggerError).not.toHaveBeenCalled()
+  })
+
+  it('stops a running import and returns its id', async () => {
+    vi.spyOn(NodejsFsAdapter.prototype, 'listFiles').mockImplementation(
+      () => new Promise<string[]>(() => {}),
+    )
+    const imported = await app.request('/api/import-folder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/media/Running', type: 'tvshow' }),
+    })
+    const { data } = (await imported.json()) as { data: { id: string } }
+
+    const res = await app.request('/api/stop-job', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: data.id }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ data: { id: data.id } })
   })
 })

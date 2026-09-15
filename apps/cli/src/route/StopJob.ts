@@ -7,6 +7,12 @@ interface StopJobResponseBody {
   error?: string
 }
 
+const BUSINESS_JOB_ERRORS = new Set([
+  'Job not found',
+  'Job is not abortable',
+  'Job already finished',
+])
+
 export function handleStopJob(app: Hono): void {
   app.post('/api/stop-job', async (c) => {
     try {
@@ -28,9 +34,12 @@ export function handleStopJob(app: Hono): void {
       const ok: StopJobResponseBody = { data: { id } }
       return c.json(ok, 200)
     } catch (error) {
-      logger.error({ error }, '[POST /api/stop-job] route error')
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      if (!BUSINESS_JOB_ERRORS.has(message)) {
+        logger.error({ error }, '[POST /api/stop-job] route error')
+      }
       const err: StopJobResponseBody = {
-        error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        error: `Error Reason: ${message}`,
       }
       return c.json(err, 200)
     }
