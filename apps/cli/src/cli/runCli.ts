@@ -560,9 +560,38 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       }
     })
 
-  program
-    .command('job')
-    .description('Show job status by id (scrape: four task icon lines; import: JSON)')
+  const jobCmd = program.command('job').description('Show job status, print log, or stop a job')
+
+  jobCmd
+    .command('log')
+    .description('Print job log messages')
+    .argument('<jobId>', 'Job id')
+    .action(async (jobId: string) => {
+      try {
+        const lines = getCore().getJobLog(jobId)
+        for (const line of lines) {
+          console.log(line.message)
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  jobCmd
+    .command('stop')
+    .description('Abort a running import job')
+    .argument('<jobId>', 'Job id')
+    .action(async (jobId: string) => {
+      try {
+        getCore().stopJob(jobId)
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  jobCmd
     .argument('<jobId>', 'Job id from scrape or add')
     .action(async (jobId: string) => {
       try {
