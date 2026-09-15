@@ -110,7 +110,7 @@ describe("Core", () => {
       appDataDir: "/data/smm",
     });
 
-    const { id } = core.importFolder("/m/My.Music", "music");
+    const { id } = await core.importFolder("/m/My.Music", "music");
     expect(core.getJob(id)).toBeDefined();
 
     await waitForStatus(core, id, "succeeded");
@@ -121,6 +121,36 @@ describe("Core", () => {
 
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toContain("/m/My.Music");
+  });
+
+  it("importFolder resolves only after stage 1 persisted smm.json and the metadata file", async () => {
+    const base = inMemoryFs({ "/m/Show/S01E01.mkv": "" });
+    const fs: FsPort = {
+      ...base,
+      // Slow writes make a stage 1 that is not awaited observable.
+      writeTextFile: vi.fn(async (path: string, content: string) => {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        await base.writeTextFile(path, content);
+      }),
+      // Block stage 2 so whatever is readable here must have been written by stage 1.
+      listFiles: vi.fn(() => new Promise<string[]>(() => {})),
+    };
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+    });
+
+    const { id } = await core.importFolder("/m/Show", "tvshow");
+
+    expect(core.getJob(id)?.status).toBe("running");
+    expect(await core.getFolders()).toContain("/m/Show");
+    expect(await core.getMetadata("/m/Show")).toEqual({
+      mediaFolderPath: "/m/Show",
+      type: "tvshow-folder",
+      mediaFiles: [],
+    });
   });
 
   it("marks the job failed when the pipeline throws", async () => {
@@ -138,7 +168,7 @@ describe("Core", () => {
       appDataDir: "/data/smm",
     });
 
-    const { id } = core.importFolder("/m/Broken", "tvshow");
+    const { id } = await core.importFolder("/m/Broken", "tvshow");
     await waitForStatus(core, id, "failed");
 
     const job = core.getJob(id);
@@ -146,9 +176,9 @@ describe("Core", () => {
     expect(job?.error).toContain("boom");
   });
 
-  it("invalid path produces a failed job, not a synchronous throw", async () => {
+  it("invalid path produces a failed job instead of a rejected promise", async () => {
     const core = new Core({ fs: inMemoryFs(), network: emptyNetwork(), appDataDir: "/data/smm" });
-    const { id } = core.importFolder("relative/path", "music");
+    const { id } = await core.importFolder("relative/path", "music");
     expect(id).toBeDefined();
     await waitForStatus(core, id, "failed");
     const job = core.getJob(id);
@@ -164,12 +194,12 @@ describe("Core", () => {
       appDataDir: "/data/smm",
     });
 
-    const { id } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    const { id } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
     await waitForStatus(core, id, "succeeded");
 
     expect(core.getJob(id)?.status).toBe("succeeded");
     const job = core.getJob(id);
-    expect(job?.kind === "import" ? job.stage : undefined).toBe("metadata");
+    expect(job?.kind === "import" ? job.stage : undefined).toBe("persistFolder");
     const savedConfig = JSON.parse((await fs.readTextFile(userConfigPath("/data/smm"))) as string);
     expect(savedConfig.folders).toContain("/m/Deferred");
     expect(fs.listFiles).not.toHaveBeenCalled();
@@ -323,12 +353,12 @@ describe("Core", () => {
       if (data.folderPath) updated.push(data.folderPath);
     });
 
-    const { id: fullId } = core.importFolder("/m/Show", "music");
+    const { id: fullId } = await core.importFolder("/m/Show", "music");
     await waitForStatus(core, fullId, "succeeded");
     expect(updated).toEqual(["/m/Show"]);
 
     updated.length = 0;
-    const { id: skipId } = core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
+    const { id: skipId } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
     await waitForStatus(core, skipId, "succeeded");
     expect(updated).toEqual([]);
   });

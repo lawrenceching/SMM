@@ -11,6 +11,7 @@ import type { FsPort } from "../ports/FsPort";
 import {
   recognizeMediaFolder,
   type RecognitionDeps,
+  type RecognitionResult,
   type TmdbRecognitionClient,
   type TvdbRecognitionClient,
 } from "./recognizeMediaFolder";
@@ -101,23 +102,65 @@ function candidateFromHit(
   throw new Error("Unable to recognize folder");
 }
 
-export async function tryToRecognizeFolderPipeline(
-  path: string,
-  deps: RecognizeFolderDeps,
-): Promise<RecognizeFolderCandidate> {
-  const { mm } = await loadManagedMediaMetadata(path, deps);
-  const recognitionDeps: RecognitionDeps = {
+function recognitionDepsOf(deps: RecognizeFolderDeps): RecognitionDeps {
+  return {
     fs: deps.fs,
     tmdb: deps.tmdb,
     tvdb: deps.tvdb,
     language: deps.language,
     primaryDatabase: deps.primaryDatabase,
   };
-  const result = await recognizeMediaFolder(mm, recognitionDeps);
+}
+
+/**
+ * Writes a recognition hit into the metadata cache. `mediaFiles` is reset because
+ * the file/episode links of the previous title no longer apply.
+ */
+async function persistRecognition(
+  posixPath: string,
+  type: MediaMetadata["type"],
+  hit: { tvShow?: TvShowMediaMetadata; movie?: MovieMediaMetadata },
+  deps: RecognizeFolderDeps,
+): Promise<void> {
+  const next: MediaMetadata = {
+    mediaFolderPath: posixPath,
+    type,
+    mediaFiles: [],
+    ...(hit.tvShow !== undefined ? { tvShow: hit.tvShow } : {}),
+    ...(hit.movie !== undefined ? { movie: hit.movie } : {}),
+  };
+  await deps.mediaMetadata.write(next);
+}
+
+export async function tryToRecognizeFolderPipeline(
+  path: string,
+  deps: RecognizeFolderDeps,
+): Promise<RecognizeFolderCandidate> {
+  const { mm } = await loadManagedMediaMetadata(path, deps);
+  const result = await recognizeMediaFolder(mm, recognitionDepsOf(deps));
   if (result.tvShow === undefined && result.movie === undefined) {
     throw new Error(`Unable to recognize folder: ${path}`);
   }
   return candidateFromHit(result.tvShow, result.movie);
+}
+
+/**
+ * Rule-based recognition (NFO → id in folder name → search) followed by a metadata
+ * write. Unlike {@link tryToRecognizeFolderPipeline} it persists the hit directly and
+ * leaves metadata untouched when nothing is recognized, as folder initialization needs.
+ */
+export async function autoRecognizeFolderPipeline(
+  path: string,
+  deps: RecognizeFolderDeps,
+  filePaths?: string[],
+): Promise<RecognitionResult> {
+  const { posixPath, mm } = await loadManagedMediaMetadata(path, deps);
+  const result = await recognizeMediaFolder(mm, recognitionDepsOf(deps), filePaths);
+  if (result.tvShow === undefined && result.movie === undefined) {
+    return result;
+  }
+  await persistRecognition(posixPath, mm.type, result, deps);
+  return result;
 }
 
 export async function recognizeFolderPipeline(
@@ -155,11 +198,5 @@ export async function recognizeFolderPipeline(
     throw new Error(`Failed to fetch ${options.db} movie ${options.id}`);
   }
 
-  const next: MediaMetadata = {
-    mediaFolderPath: posixPath,
-    type: mm.type,
-    mediaFiles: [],
-    ...(isTv ? { tvShow } : { movie }),
-  };
-  await deps.mediaMetadata.write(next);
+  await persistRecognition(posixPath, mm.type, isTv ? { tvShow } : { movie }, deps);
 }

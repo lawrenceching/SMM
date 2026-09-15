@@ -50,7 +50,7 @@ import {
 } from "./clients/hostPerformance";
 import { speedTestHosts } from "./clients/hostSpeedTest";
 import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
-import { createBlankMediaMetadata, ImportFolderPipeline } from "./pipeline/importFolderPipeline";
+import { initializeFolder, persistNewFolder } from "./pipeline/importFolderPipeline";
 import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
@@ -72,6 +72,7 @@ import {
   tryToRecognizeFolderPipeline,
   type RecognizeFolderCandidate,
   type RecognizeFolderDb,
+  type RecognizeFolderDeps,
 } from "./pipeline/recognizeFolder";
 import {
   createRenameEpisodePlanPipeline,
@@ -188,9 +189,9 @@ export interface ScrapeFolderHandle {
 }
 
 export interface ImportFolderOptions {
-  /** When true, only register the path in UserConfig.folders; skip recognition and metadata. */
+  /** When true, stop after stage 1: the folder is registered but never recognized. */
   skipInit?: boolean;
-  /** When true, folder is already registered (import-library prep); run init from listFiles. */
+  /** When true, stage 1 already ran elsewhere (import-library prep); start at stage 2. */
   skipRegistration?: boolean;
 }
 
@@ -323,23 +324,47 @@ export class Core {
     return getMcpServerStatusWithConfig(this.mcpServer, this.userConfig);
   }
 
-  /** Starts the import pipeline in the background; returns a job handle immediately. */
-  importFolder(path: string, type: FolderType, options?: ImportFolderOptions): ImportFolderHandle {
+  /**
+   * Runs stage 1 of folder initialization (smm.json + blank metadata file) and returns
+   * once it completed; stages 2 and 3 continue in the background. Stage 1 failures are
+   * reported on the job, never thrown. See docs/dev/import-folder.md.
+   */
+  async importFolder(
+    path: string,
+    type: FolderType,
+    options?: ImportFolderOptions,
+  ): Promise<ImportFolderHandle> {
     const folderPath = this.normalizePosix(path);
     const job = this.jobs.create({
       kind: "import",
       folderPath,
       type,
-      status: "running",
-      stage: options?.skipRegistration === true ? "listFiles" : "config",
+      status: "pending",
+      stage: null,
       progress: 0,
     });
-    if (options?.skipInit === true) {
-      void this.runImportSkipInit(job, path);
-    } else {
-      void this.runImport(job, path, type, {
-        skipRegistration: options?.skipRegistration === true,
+
+    try {
+      if (options?.skipRegistration !== true) {
+        this.logger.info({ folderPath, type }, "importFolder: stage=persistFolder");
+        await persistNewFolder(path, type, {
+          userConfig: this.userConfig,
+          mediaMetadata: this.mediaMetadata,
+        });
+      }
+      this.jobs.update(job.id, { stage: "persistFolder", progress: 10 });
+    } catch (error) {
+      this.jobs.update(job.id, {
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error),
       });
+      return { id: job.id };
+    }
+
+    if (options?.skipInit === true) {
+      this.jobs.update(job.id, { status: "succeeded", progress: 100 });
+    } else {
+      void this.runImport(job, path, type);
     }
     return { id: job.id };
   }
@@ -487,12 +512,12 @@ export class Core {
     });
   }
 
-  async tryToRecognizeFolder(path: string): Promise<RecognizeFolderCandidate> {
+  /** Shared by user-triggered recognition and by folder initialization stages 2 and 3. */
+  private async createRecognitionDeps(): Promise<RecognizeFolderDeps> {
     const config = await this.userConfig.read();
-    const language = config.preferMediaLanguage ?? "en-US";
     const { client: tmdb } = await this.createTmdbClient({});
     const { client: tvdb } = await this.createTvdbClient({}, false);
-    return tryToRecognizeFolderPipeline(path, {
+    return {
       fs: this.fs,
       appDataDir: this.getMetadataRoot(),
       userConfig: this.userConfig,
@@ -500,30 +525,20 @@ export class Core {
       normalizePosix: (p) => this.normalizePosix(p),
       tmdb,
       tvdb,
-      language,
+      language: config.preferMediaLanguage ?? "en-US",
       primaryDatabase: config.primaryDatabase,
-    });
+    };
+  }
+
+  async tryToRecognizeFolder(path: string): Promise<RecognizeFolderCandidate> {
+    return tryToRecognizeFolderPipeline(path, await this.createRecognitionDeps());
   }
 
   async recognizeFolder(
     path: string,
     options: { db: RecognizeFolderDb; id: string },
   ): Promise<void> {
-    const config = await this.userConfig.read();
-    const language = config.preferMediaLanguage ?? "en-US";
-    const { client: tmdb } = await this.createTmdbClient({});
-    const { client: tvdb } = await this.createTvdbClient({}, false);
-    await recognizeFolderPipeline(path, options, {
-      fs: this.fs,
-      appDataDir: this.getMetadataRoot(),
-      userConfig: this.userConfig,
-      mediaMetadata: this.mediaMetadata,
-      normalizePosix: (p) => this.normalizePosix(p),
-      tmdb,
-      tvdb,
-      language,
-      primaryDatabase: config.primaryDatabase,
-    });
+    await recognizeFolderPipeline(path, options, await this.createRecognitionDeps());
   }
 
   async tryToRenameFolder(path: string, rule?: RenameRuleName): Promise<RenameFilesPlan> {
@@ -854,39 +869,14 @@ export class Core {
     }
   }
 
-  private async runImportSkipInit(job: ImportJob, folderPath: string): Promise<void> {
+  /** Stages 2 and 3; both reuse the core methods of the user-triggered recognition flows. */
+  private async runImport(job: ImportJob, folderPath: string, type: FolderType): Promise<void> {
+    this.jobs.update(job.id, { status: "running" });
     try {
-      await this.userConfig.addFolder(folderPath);
-      const blankMetadata = createBlankMediaMetadata(folderPath, job.type);
-      await this.writeMetadata(blankMetadata);
-      this.jobs.update(job.id, { status: "succeeded", stage: "metadata", progress: 100 });
-    } catch (error) {
-      this.jobs.update(job.id, {
-        status: "failed",
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  private async runImport(
-    job: ImportJob,
-    folderPath: string,
-    type: FolderType,
-    options?: { skipRegistration?: boolean },
-  ): Promise<void> {
-    try {
-      const pipeline = new ImportFolderPipeline({
-        fs: this.fs,
-        network: this.network,
-        logger: this.logger,
-        appDataDir: this.getMetadataRoot(),
-        userDataDir: this.userDataDir,
-        discover: this.discover,
-        reverseProxyUrl: this.reverseProxyUrl,
-      });
-      await pipeline.run(
+      await initializeFolder(
         folderPath,
         type,
+        { ...(await this.createRecognitionDeps()), logger: this.logger },
         {
           onStage: (stage, progress, detail) => {
             this.jobs.update(job.id, {
@@ -896,7 +886,6 @@ export class Core {
             });
           },
         },
-        { skipRegistration: options?.skipRegistration === true },
       );
       this.jobs.update(job.id, { status: "succeeded", stage: null, progress: 100 });
       this.notifyMediaMetadataUpdated(folderPath);
@@ -968,7 +957,9 @@ export class Core {
           progress: importLibraryJobProgress(currentTasks),
         });
 
-        const { id: childId } = this.importFolder(task.path, type, { skipRegistration: true });
+        const { id: childId } = await this.importFolder(task.path, type, {
+          skipRegistration: true,
+        });
         currentTasks = patchImportLibraryTask(currentTasks, task.id, { importJobId: childId });
         this.jobs.update(job.id, { tasks: currentTasks });
 

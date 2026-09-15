@@ -1,8 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
+import { Path } from "@smm/utils/path";
 import type { FsPort } from "../ports/FsPort";
 import type { HttpResponse, NetworkPort } from "../ports/NetworkPort";
 import { NoopLoggerAdapter } from "../adapters/ConsoleLoggerAdapter";
-import { ImportFolderPipeline } from "./importFolderPipeline";
+import { TmdbClient } from "../clients/TmdbClient";
+import { TvdbClient } from "../clients/TvdbClient";
+import {
+  initializeFolder,
+  persistNewFolder,
+  type FolderInitializationDeps,
+} from "./importFolderPipeline";
+import { MediaMetadataHelper } from "./mediaMetadataHelper";
+import { UserConfigHelper } from "./userConfigHelper";
+import { metadataCachePath } from "./paths";
 
 function jsonResponse(body: unknown): HttpResponse {
   return {
@@ -43,8 +53,9 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
   };
 }
 
-describe("ImportFolderPipeline integration", () => {
+describe("folder initialization integration", () => {
   it("runs the real recognizeMediaFolder: preferMediaLanguage + primaryDatabase flow into recognition, and the movie branch sets mediaFiles", async () => {
+    const appDataDir = "/data/smm";
     const fs = inMemoryFs({
       "/data/smm/smm.json": JSON.stringify({ preferMediaLanguage: "en-US", primaryDatabase: "TMDB" }),
       "/m/My Film/my.video.mkv": "",
@@ -64,16 +75,30 @@ describe("ImportFolderPipeline integration", () => {
         throw new Error("unexpected url: " + url);
       },
     };
-    const pipeline = new ImportFolderPipeline({
+
+    const userConfig = new UserConfigHelper(fs, appDataDir);
+    const mediaMetadata = new MediaMetadataHelper(fs, appDataDir);
+    const config = await userConfig.read();
+    const deps: FolderInitializationDeps = {
       fs,
-      network,
+      appDataDir,
+      userConfig,
+      mediaMetadata,
+      normalizePosix: (path) => Path.posix(path),
+      tmdb: new TmdbClient(network, { reverseProxyUrl: null }),
+      tvdb: new TvdbClient(network, { reverseProxyUrl: null }),
+      language: config.preferMediaLanguage ?? "en-US",
+      primaryDatabase: config.primaryDatabase,
       logger: new NoopLoggerAdapter(),
-      appDataDir: "/data/smm",
-    });
+    };
 
-    const result = await pipeline.run("/m/My Film", "movie");
+    await persistNewFolder("/m/My Film", "movie", deps);
+    await initializeFolder("/m/My Film", "movie", deps);
 
-    expect(result.movie).toMatchObject({ id: "2", name: "My Film", database: "TMDB" });
-    expect(result.mediaFiles).toEqual([{ absolutePath: "/m/My Film/my.video.mkv" }]);
+    const cached = JSON.parse(
+      await fs.readTextFile(metadataCachePath(appDataDir, "/m/My Film")),
+    ) as Record<string, unknown>;
+    expect(cached.movie).toMatchObject({ id: "2", name: "My Film", database: "TMDB" });
+    expect(cached.mediaFiles).toEqual([{ absolutePath: "/m/My Film/my.video.mkv" }]);
   });
 });

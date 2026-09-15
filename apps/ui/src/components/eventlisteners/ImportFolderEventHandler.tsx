@@ -49,12 +49,12 @@ export function ImportFolderEventHandler() {
       })
       console.log(`[${traceId}] import-folder: started job`, { jobId })
 
-      // Once Core has accepted the job, refresh get-folders so persisted paths
-      // appear even before recognition finishes (config stage writes smm.json).
+      // import-folder returns once stage 1 persisted smm.json, so the folder is
+      // already listed here even though recognition is still running.
       invalidateFoldersQuery(queryClient)
 
       const finalJob = await pollImportFolderJob(jobId, (job) => {
-        if (job.stage === "config" || job.progress > 0) {
+        if (job.progress > 0) {
           invalidateFoldersQuery(queryClient)
         }
       })

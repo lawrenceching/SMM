@@ -45,7 +45,11 @@ export function handleImportFolder(app: Hono): void {
         return c.json(err, 200)
       }
       const skipInit = rec.skipInit === true
-      const { id } = getCore().importFolder(path, type, skipInit ? { skipInit: true } : undefined)
+      const { id } = await getCore().importFolder(
+        path,
+        type,
+        skipInit ? { skipInit: true } : undefined,
+      )
       const ok: ImportFolderResponseBody = { data: { id } }
       return c.json(ok, 200)
     } catch (error) {

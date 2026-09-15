@@ -9,7 +9,7 @@ describe("JobStore", () => {
       folderPath: "/m/My.Show",
       type: "tvshow",
       status: "running",
-      stage: "config",
+      stage: "persistFolder",
       progress: 0,
     });
 

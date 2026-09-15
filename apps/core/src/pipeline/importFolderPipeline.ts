@@ -1,45 +1,35 @@
 import { Path } from "@smm/utils/path";
 import type { FolderType, MediaMetadata } from "@smm/types";
-import type { FsPort } from "../ports/FsPort";
-import type { NetworkPort } from "../ports/NetworkPort";
 import type { LoggerPort } from "../ports/LoggerPort";
 import type { JobStage } from "../jobs/types";
-import { TmdbClient } from "../clients/TmdbClient";
-import { TvdbClient } from "../clients/TvdbClient";
-import type { DiscoverPort } from "../ports/DiscoverPort";
-import { isVideoFile, recognizeEpisodes } from "./recognizeEpisodes";
-import { recognizeMediaFolder } from "./recognizeMediaFolder";
-import { UserConfigHelper } from "./userConfigHelper";
-import { MediaMetadataHelper } from "./mediaMetadataHelper";
+import type { MediaMetadataHelper } from "./mediaMetadataHelper";
+import type { UserConfigHelper } from "./userConfigHelper";
+import { autoRecognizeFolderPipeline, type RecognizeFolderDeps } from "./recognizeFolder";
+import { recognizeMediaFilesPipeline } from "./recognizeMediaFiles";
 
-export interface ImportFolderPipelineOptions {
-  fs: FsPort;
-  network: NetworkPort;
+/** Stage 1 only needs the two stores it writes to. */
+export interface PersistNewFolderDeps {
+  userConfig: UserConfigHelper;
+  mediaMetadata: MediaMetadataHelper;
+}
+
+/**
+ * Stages 2 and 3 run the same core methods as the user-triggered recognition
+ * flows, so they take the same dependency bag plus a logger.
+ */
+export interface FolderInitializationDeps extends RecognizeFolderDeps {
   logger: LoggerPort;
-  /** Root directory holding smm.json. Defaults to appDataDir for compatibility. */
-  userDataDir?: string;
-  /** Root directory holding metadata caches. */
-  appDataDir: string;
-  /** Discover config for TMDB/TVDB host failover (UI-aligned). */
-  discover?: DiscoverPort;
-  /** Local SMM reverse proxy URL for custom media-database hosts. */
-  reverseProxyUrl?: string | null;
 }
 
-export interface ImportFolderPipelineCallbacks {
+export interface FolderInitializationCallbacks {
   onStage?: (stage: JobStage, progress: number, detail?: { title?: string }) => void;
-}
-
-export interface ImportFolderPipelineRunOptions {
-  /** Folder already has blank metadata and is listed in UserConfig (import-library prep). */
-  skipRegistration?: boolean;
 }
 
 function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
   return type === "tvshow" ? "tvshow-folder" : type === "movie" ? "movie-folder" : "music-folder";
 }
 
-/** Blank metadata created at the pipeline metadata stage (before listFiles/recognize). */
+/** Blank metadata written at stage 1, before any recognition runs. */
 export function createBlankMediaMetadata(folderPath: string, type: FolderType): MediaMetadata {
   const posixPath = Path.posix(folderPath);
   return {
@@ -49,98 +39,42 @@ export function createBlankMediaMetadata(folderPath: string, type: FolderType): 
   };
 }
 
-export class ImportFolderPipeline {
-  constructor(private readonly options: ImportFolderPipelineOptions) {}
+/**
+ * Stage 1: register the folder in smm.json and write its blank metadata file.
+ * `importFolder` returns to the caller once this stage completed.
+ */
+export async function persistNewFolder(
+  folderPath: string,
+  type: FolderType,
+  deps: PersistNewFolderDeps,
+): Promise<MediaMetadata> {
+  await deps.userConfig.addFolder(folderPath);
+  const blank = createBlankMediaMetadata(folderPath, type);
+  await deps.mediaMetadata.write(blank);
+  return blank;
+}
 
-  async run(
-    folderPath: string,
-    type: FolderType,
-    cb: ImportFolderPipelineCallbacks = {},
-    runOptions: ImportFolderPipelineRunOptions = {},
-  ): Promise<MediaMetadata> {
-    const { fs, logger, appDataDir, userDataDir, network, discover, reverseProxyUrl } = this.options;
-    const posixPath = Path.posix(folderPath);
-    const stages: JobStage[] = [];
-    const skipRegistration = runOptions.skipRegistration === true;
+/**
+ * Stages 2 and 3 of folder initialization: recognize the media folder, then
+ * recognize its episode video files. Music folders are not recognized.
+ */
+export async function initializeFolder(
+  folderPath: string,
+  type: FolderType,
+  deps: FolderInitializationDeps,
+  cb: FolderInitializationCallbacks = {},
+): Promise<void> {
+  const posixPath = deps.normalizePosix(folderPath);
+  // Listing once up front feeds both stages and fails initialization of an unreadable folder.
+  const filePaths = (await deps.fs.listFiles(posixPath)).map((file) => Path.posix(file));
+  if (type !== "tvshow" && type !== "movie") return;
 
-    const userConfigStore = new UserConfigHelper(fs, userDataDir ?? appDataDir);
-    let userConfig;
-    if (skipRegistration) {
-      userConfig = await userConfigStore.read();
-    } else {
-      logger.info({ folderPath: posixPath, type }, "importFolder: stage=config");
-      userConfig = await userConfigStore.update((config) => ({
-        ...config,
-        folders: [...new Set([...config.folders, folderPath])],
-      }));
-      stages.push("config");
-      cb.onStage?.("config", 10);
+  deps.logger.info({ folderPath: posixPath, type }, "importFolder: stage=recognizeFolder");
+  const result = await autoRecognizeFolderPipeline(folderPath, deps, filePaths);
+  const title = result.tvShow?.name ?? result.movie?.name;
+  cb.onStage?.("recognizeFolder", 60, title !== undefined ? { title } : undefined);
 
-      logger.info({ folderPath: posixPath, type }, "importFolder: stage=metadata");
-      stages.push("metadata");
-      cb.onStage?.("metadata", 25);
-    }
-
-    const mm = createBlankMediaMetadata(folderPath, type);
-
-    logger.info({ folderPath: posixPath, type }, "importFolder: stage=listFiles");
-    const listed = await fs.listFiles(posixPath);
-    const listedPosix = listed.map((f) => Path.posix(f));
-    stages.push("listFiles");
-    cb.onStage?.("listFiles", 40);
-
-    if (type === "tvshow" || type === "movie") {
-      const language = userConfig.preferMediaLanguage ?? "en-US";
-      const tmdb = new TmdbClient(network, {
-        ...userConfig.tmdb,
-        discover,
-        reverseProxyUrl,
-      });
-      const tvdb = new TvdbClient(network, {
-        ...userConfig.tvdb,
-        discover,
-        reverseProxyUrl,
-      });
-
-      logger.info({ folderPath: posixPath, language }, "importFolder: stage=recognize");
-      const result = await recognizeMediaFolder(mm, {
-        fs,
-        tmdb,
-        tvdb,
-        language,
-        primaryDatabase: userConfig.primaryDatabase,
-      }, listedPosix);
-      if (result.tvShow !== undefined) mm.tvShow = result.tvShow;
-      if (result.movie !== undefined) mm.movie = result.movie;
-      stages.push("recognize");
-      const title = result.tvShow?.name ?? result.movie?.name;
-      cb.onStage?.(
-        "recognize",
-        60,
-        title !== undefined ? { title } : undefined,
-      );
-
-      logger.info({ folderPath: posixPath }, "importFolder: stage=episodes");
-      if (type === "tvshow" && mm.tvShow !== undefined) {
-        mm.mediaFiles = recognizeEpisodes(mm, listedPosix).map((i) => ({
-          absolutePath: i.file,
-          seasonNumber: i.season,
-          episodeNumber: i.episode,
-        }));
-      } else if (type === "movie" && mm.movie !== undefined) {
-        const firstVideo = listedPosix.find(isVideoFile);
-        mm.mediaFiles = firstVideo === undefined ? [] : [{ absolutePath: firstVideo }];
-      }
-      stages.push("episodes");
-      cb.onStage?.("episodes", 80);
-    }
-
-    logger.info({ folderPath: posixPath }, "importFolder: stage=persist");
-    const mediaMetadataStore = new MediaMetadataHelper(fs, appDataDir);
-    await mediaMetadataStore.write(mm);
-    stages.push("persist");
-    cb.onStage?.("persist", 95);
-
-    return mm;
-  }
+  deps.logger.info({ folderPath: posixPath }, "importFolder: stage=recognizeEpisodes");
+  await recognizeMediaFilesPipeline(folderPath, deps, filePaths);
+  cb.onStage?.("recognizeEpisodes", 90);
 }

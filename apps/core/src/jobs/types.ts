@@ -7,7 +7,8 @@ import type { ScrapeTaskId } from "../pipeline/scrape/types";
 export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
 export type JobStatus = "pending" | "running" | "succeeded" | "failed" | "aborted";
-export type JobStage = "config" | "metadata" | "listFiles" | "recognize" | "episodes" | "persist" | null;
+/** Folder initialization stages, see docs/dev/import-folder.md. */
+export type JobStage = "persistFolder" | "recognizeFolder" | "recognizeEpisodes" | null;
 
 export interface ImportJob {
   kind: "import";
@@ -17,7 +18,7 @@ export interface ImportJob {
   status: JobStatus;
   stage: JobStage;
   progress: number;
-  /** Set after the recognize stage when a TV show or movie title is known. */
+  /** Set after the recognizeFolder stage when a TV show or movie title is known. */
   recognizedTitle?: string;
   error?: string;
   createdAt: number;

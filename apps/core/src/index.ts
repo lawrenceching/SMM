@@ -57,7 +57,14 @@ export {
   type HostPerformanceEntry,
   type HostPerformanceKind,
 } from "./clients/hostPerformance";
-export { ImportFolderPipeline, type ImportFolderPipelineCallbacks, type ImportFolderPipelineOptions } from "./pipeline/importFolderPipeline";
+export {
+  createBlankMediaMetadata,
+  initializeFolder,
+  persistNewFolder,
+  type FolderInitializationCallbacks,
+  type FolderInitializationDeps,
+  type PersistNewFolderDeps,
+} from "./pipeline/importFolderPipeline";
 export {
   UserConfigHelper,
   DEFAULT_USER_CONFIG,
@@ -80,8 +87,16 @@ export {
 } from "./pipeline/metadataErrors";
 export { recognizeMediaFolder, type RecognitionDeps, type RecognitionResult } from "./pipeline/recognizeMediaFolder";
 export { recognizeEpisodes, type RecognizedEpisode } from "./pipeline/recognizeEpisodes";
+export {
+  applyRecognizedMediaFiles,
+  recognizeMediaFiles,
+  recognizeMediaFilesPipeline,
+  type RecognizedMediaFile,
+  type RecognizeMediaFilesDeps,
+} from "./pipeline/recognizeMediaFiles";
 export { tryToRecognizeEpisodesPipeline, type TryToRecognizeEpisodesDeps } from "./pipeline/tryToRecognizeEpisodes";
 export {
+  autoRecognizeFolderPipeline,
   tryToRecognizeFolderPipeline,
   recognizeFolderPipeline,
   type RecognizeFolderDeps,

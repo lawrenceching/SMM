@@ -5,7 +5,7 @@ import type { RecognizeMediaFilePlan, RecognizedFile } from "@smm/types/Recogniz
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath } from "./paths";
 import { writePlan } from "./plans";
-import { recognizeEpisodes } from "./recognizeEpisodes";
+import { recognizeMediaFiles, type RecognizedMediaFile } from "./recognizeMediaFiles";
 import type { UserConfigHelper } from "./userConfigHelper";
 
 export interface TryToRecognizeEpisodesDeps {
@@ -63,7 +63,7 @@ export async function tryToRecognizeEpisodesPipeline(
 
   const listed = await deps.fs.listFiles(posixPath);
   const listedPosix = listed.map((file) => Path.posix(file));
-  const recognized = recognizeEpisodes(
+  const recognized = recognizeMediaFiles(
     {
       ...mediaMetadata,
       mediaFolderPath: posixPath,
@@ -71,11 +71,16 @@ export async function tryToRecognizeEpisodesPipeline(
     listedPosix,
   );
 
-  const files: RecognizedFile[] = recognized.map((item) => ({
-    season: item.season,
-    episode: item.episode,
-    path: Path.posix(item.file),
-  }));
+  const files: RecognizedFile[] = recognized
+    .filter(
+      (item): item is Required<RecognizedMediaFile> =>
+        item.season !== undefined && item.episode !== undefined,
+    )
+    .map((item) => ({
+      season: item.season,
+      episode: item.episode,
+      path: Path.posix(item.path),
+    }));
 
   const plan: RecognizeMediaFilePlan = {
     id: createId(),

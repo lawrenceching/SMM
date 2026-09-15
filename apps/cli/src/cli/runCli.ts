@@ -136,8 +136,8 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
         })
         const { id } = skipInit
-          ? core.importFolder(folder, type, { skipInit: true })
-          : core.importFolder(folder, type)
+          ? await core.importFolder(folder, type, { skipInit: true })
+          : await core.importFolder(folder, type)
         const job = await waitUntilImportSettled(core, id, {
           folder,
           type,

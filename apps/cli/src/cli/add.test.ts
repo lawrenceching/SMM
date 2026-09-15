@@ -66,7 +66,9 @@ describe('smm add', () => {
 
   it('treats --type anime as tvshow', async () => {
     const { Core } = await import('@smm/core')
-    const importFolder = vi.spyOn(Core.prototype, 'importFolder').mockReturnValue({ id: 'job-1' })
+    const importFolder = vi
+      .spyOn(Core.prototype, 'importFolder')
+      .mockResolvedValue({ id: 'job-1' })
     vi.spyOn(Core.prototype, 'getJob').mockReturnValue({
       kind: 'import',
       id: 'job-1',
@@ -108,7 +110,7 @@ describe('smm add', () => {
 
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines.some((l) => l.includes('importFolder: stage=config'))).toBe(true)
+    expect(lines.some((l) => l.includes('importFolder: stage=persistFolder'))).toBe(true)
     expect(lines.some((l) => l.includes('folderPath'))).toBe(true)
     expect(lines.some((l) => l === 'succeeded')).toBe(true)
   })

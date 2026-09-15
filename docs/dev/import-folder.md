@@ -1,49 +1,41 @@
 # Import Folder
 
 **Supported Platform** Web UI, CLI, Electron, ohos
-**Status** done
+
+
+When user import a folder, SMM starts the "Folder Initialization" process in below stages:
+1. Persist new folder
+2. Start to [Recognize Media Folder](../../AGENTS.md#核心术语), see [Recognize Folder Spec](./recognize-folder.md)
+3. Start to [Recognize Episode Video File](../../AGENTS.md#核心术语), see [Recognize Episodes Spec](./recognize-episodes.md)
+
 
 ## apps/core
-
-Layer 2 entry points used by all frontends:
-
-| Method | Role |
-|--------|------|
-| `importFolder(path, type, { skipInit? })` | Start import; returns `{ id }` immediately; runs pipeline in background |
-| `getJob(id)` | Poll in-memory import job (`status`, `stage`, `progress`, `error`) |
-| `getFolders()` | List imported folder paths from `smm.json` |
-| `getMediaMetadata(path)` | Read persisted metadata cache; used by `resolveShowFolder` for folder status |
-
-`importFolder` pipeline (`ImportFolderPipeline`):
-
-```
-config → metadata → listFiles → recognize → episodes → persist
-```
-
-- **config** — add path to `userConfig.folders`, write `smm.json`
-- **metadata** — create blank `MediaMetadata` with folder type
-- **listFiles** — list directory files via `FsPort`
-- **recognize** — tvshow/movie only (NFO → id in folder name → search); music skips
-- **episodes** — match video files to episodes (tvshow) or pick first video (movie)
-- **persist** — write metadata cache under `<appDataDir>/metadata/`
 
 ```mermaid
 sequenceDiagram
   participant Caller
   participant Core
-  participant Pipeline as ImportFolderPipeline
   participant Fs as FsPort
-  participant Net as NetworkPort
 
   Caller->>Core: importFolder(path, type)
-  Core->>Core: create job (running)
+  Core->>Core: create ImportFolderJob (job is in pending status)
+
+  Note over Core,Fs: Stage 1
+  Core->>Fs: write smm.json
+  Core->>Fs: write metadata file
   Core-->>Caller: { id }
-  Core->>Pipeline: run (background)
-  Pipeline->>Fs: read/write smm.json
-  Pipeline->>Fs: listFiles(path)
-  Pipeline->>Net: TMDB/TVDB (recognize)
-  Pipeline->>Fs: write metadata cache
-  Pipeline-->>Core: job.status = succeeded | failed
+
+  Note over Core,Fs: Start
+  Core->>Core: move job to running status
+
+  Note over Core,Fs: Stage 2
+  Core->>Core: recognize folder
+
+  Note over Core,Fs: Stage 3
+  Core->>Core: recognize episode video files
+
+  Note over Core,Fs: End
+  Core->>Core: move job to succeeded status
 
   loop poll
     Caller->>Core: getJob(id)
@@ -59,7 +51,11 @@ sequenceDiagram
   Core-->>Caller: MediaMetadata | null
 ```
 
-Folder status values (`ok` | `folder_not_found` | `error_loading_metadata`) are derived in the CLI helper `resolveShowFolder` from `getFolders()`, on-disk path check, and `getMediaMetadata()`.
+note: `importFolder` interface return when stage 1 completed. Caller(Web UI or CLI) loop to query the job status until job is succeeded, failed, or aborted.
+
+note2: core layer already provides methods to recognize folder and recognize episodes.
+`docs/dev/recognize-folder.md` and `docs/dev/recognize-episodes.md` described the process of user-triggered recognition process. The recognition process triggered by initialization share the low level recognition methods with user-triggered recognition process.
+
 
 ## Web UI, Electron and ohos
 
@@ -138,3 +134,4 @@ See [test cases](./test/import-folder-test.md)
 ## References
 
 [Supported Platform](./supported-platform.md)
+[Job Definition](../../apps/core/src/jobs/types.ts)

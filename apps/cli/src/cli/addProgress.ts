@@ -1,4 +1,4 @@
-import type { Core, FolderType, ImportJob, JobStage } from '@smm/core'
+import type { Core, FolderType, ImportJob } from '@smm/core'
 
 type AddProgressKind = 'tvshow' | 'movie'
 
@@ -8,23 +8,18 @@ function mediaKind(type: FolderType): AddProgressKind | null {
   return null
 }
 
-/** Stages at or after listFiles (recognition about to start or already running). */
-function stageAtOrAfterListFiles(stage: JobStage): boolean {
-  return (
-    stage === 'listFiles' ||
-    stage === 'recognize' ||
-    stage === 'episodes' ||
-    stage === 'persist' ||
-    stage === null
-  )
-}
+const STAGE_ORDER = ['persistFolder', 'recognizeFolder', 'recognizeEpisodes'] as const
 
-function stageAtOrAfterRecognize(stage: JobStage): boolean {
-  return stage === 'recognize' || stage === 'episodes' || stage === 'persist' || stage === null
-}
+type CompletedStage = (typeof STAGE_ORDER)[number]
 
-function stageAtOrAfterEpisodes(stage: JobStage): boolean {
-  return stage === 'episodes' || stage === 'persist' || stage === null
+/**
+ * A stage counts as reached once the job reports it (stages are reported on completion)
+ * or once the job succeeded. A null stage on an unsettled job means nothing completed yet.
+ */
+function reached(job: ImportJob, target: CompletedStage): boolean {
+  if (job.status === 'succeeded') return true
+  if (job.stage === null) return false
+  return STAGE_ORDER.indexOf(job.stage as CompletedStage) >= STAGE_ORDER.indexOf(target)
 }
 
 export interface AddProgressState {
@@ -64,36 +59,22 @@ export function emitAddProgress(
   if (job.kind !== "import") return state
   const next = { ...state }
   const kind = mediaKind(type)
-  const stage = job.stage
   const done = job.status === 'succeeded'
 
-  // config completed (progress set to 10); initial job uses stage=config with progress 0
-  if (
-    !next.imported &&
-    (job.progress >= 10 ||
-      stage === 'metadata' ||
-      stageAtOrAfterListFiles(stage) ||
-      done)
-  ) {
+  // Stage 1 persisted smm.json and the blank metadata file.
+  if (!next.imported && reached(job, 'persistFolder')) {
     log(`imported folder ${folder}`)
     next.imported = true
   }
 
-  if (kind !== null) {
-    // listFiles completed → start recognition
-    if (!next.recognizingMedia && (stage === 'listFiles' || stageAtOrAfterRecognize(stage) || done)) {
+  if (kind !== null && next.imported) {
+    // Stage 2 starts right after stage 1.
+    if (!next.recognizingMedia) {
       log(`recognizing ${kind}`)
       next.recognizingMedia = true
     }
 
-    // recognize completed
-    if (
-      !next.recognizedMedia &&
-      (stageAtOrAfterRecognize(stage) || done) &&
-      stage !== 'listFiles' &&
-      stage !== 'metadata' &&
-      stage !== 'config'
-    ) {
+    if (!next.recognizedMedia && reached(job, 'recognizeFolder')) {
       if (job.recognizedTitle) {
         log(`recognized ${kind} "${job.recognizedTitle}"`)
         next.recognizedOk = true
@@ -103,17 +84,13 @@ export function emitAddProgress(
       next.recognizedMedia = true
     }
 
-    // episodes only when a show/movie was actually recognized
-    if (
-      !next.recognizingEpisodes &&
-      next.recognizedOk &&
-      (stageAtOrAfterRecognize(stage) || done)
-    ) {
+    // Stage 3 only runs meaningfully when a show/movie was actually recognized.
+    if (!next.recognizingEpisodes && next.recognizedOk) {
       log('recognizing episodes')
       next.recognizingEpisodes = true
     }
 
-    if (!next.recognizedEpisodes && next.recognizingEpisodes && (stageAtOrAfterEpisodes(stage) || done)) {
+    if (!next.recognizedEpisodes && next.recognizingEpisodes && reached(job, 'recognizeEpisodes')) {
       log('recognized episodes')
       next.recognizedEpisodes = true
     }
