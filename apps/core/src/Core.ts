@@ -237,7 +237,9 @@ export class Core {
     this.platform = options.platform;
     this.osLocale = options.osLocale;
     this.userConfig = new UserConfigHelper(this.fs, this.userDataDir);
-    this.mediaMetadata = new MediaMetadataHelper(this.fs, this.getMetadataRoot());
+    this.mediaMetadata = new MediaMetadataHelper(this.fs, this.getMetadataRoot(), (folderPath) => {
+      this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
+    });
     this.discover = options.discover;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
@@ -277,12 +279,6 @@ export class Core {
 
   getHostPerformanceList(kind: HostPerformanceKind): readonly HostPerformanceEntry[] {
     return this.hostPerformance.get(kind);
-  }
-
-  private notifyMediaMetadataUpdated(folderPath: string): void {
-    this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, {
-      folderPath: this.normalizePosix(folderPath),
-    });
   }
 
   private requireMcpServer(): McpServerPort {
@@ -920,7 +916,6 @@ export class Core {
       );
       handle.appendLog("info", "succeeded");
       handle.update({ status: "succeeded", stage: null, progress: 100 });
-      this.notifyMediaMetadataUpdated(folderPath);
     } catch (error) {
       if (error instanceof JobAbortError) {
         handle.appendLog("warn", "aborted");

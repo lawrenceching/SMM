@@ -1,7 +1,7 @@
 # Import Library
 
 **Supported Platform** Web UI, CLI, Electron, ohos  
-**Status** wip
+**Status** done
 
 ## Core
 
@@ -20,19 +20,20 @@ sequenceDiagram
   C->>U: job id
   loop #1 prep
     C->>M: blank metadata per folder
+    C->>E: emit mediaMetadataUpdated
   end
   C->>UC: batch upsert folders
   C->>C: job → running
   loop #2 import each folder
     C->>C: task → running → importFolder
+    Note over C,M: recognition writes emit via MediaMetadataHelper
     C->>C: task → succeeded | failed
-    C->>E: emit mediaMetadataUpdated
   end
   C->>C: job → succeeded | failed
 ```
 
-- **Loop #1**: Sidebar can list folders early; blank metadata must exist before UserConfig upsert.
-- **Loop #2**: Each `importFolder` persist completion emits `mediaMetadataUpdated` (not Loop #1, not `skipInit` blank writes). Host subscribes via `core.on(...)` and forwards to Socket.IO.
+- **Loop #1**: Sidebar can list folders early; blank metadata must exist before UserConfig upsert. Each blank `MediaMetadataHelper.write` emits `mediaMetadataUpdated`.
+- **Loop #2**: Each folder runs `importFolder` (skipRegistration); further recognition writes also emit via `MediaMetadataHelper`. Host subscribes via `core.on(...)` and forwards to Socket.IO.
 
 ## CLI
 

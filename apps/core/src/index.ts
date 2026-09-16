@@ -74,6 +74,7 @@ export {
 export { validateUserConfig, validateUserConfigValue } from "./pipeline/userConfigValidation";
 export {
   MediaMetadataHelper,
+  type MediaMetadataUpdatedListener,
 } from "./pipeline/mediaMetadataHelper";
 export {
   validatePersistedMediaMetadata,

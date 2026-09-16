@@ -23,6 +23,7 @@ sequenceDiagram
   Note over Core,Fs: Stage 1
   Core->>Fs: write smm.json
   Core->>Fs: write metadata file
+  Note over Core: MediaMetadataHelper.write → mediaMetadataUpdated
   Core->>Core: appendLog "persisted folder"
   Core-->>Caller: { id }
 
@@ -32,10 +33,12 @@ sequenceDiagram
 
   Note over Core,Fs: Stage 2
   Core->>Core: recognize folder
+  Note over Core: MediaMetadataHelper.write → mediaMetadataUpdated
   Core->>Core: throwIfAborted (stage boundary)
 
   Note over Core,Fs: Stage 3
   Core->>Core: recognize episode video files
+  Note over Core: MediaMetadataHelper.write → mediaMetadataUpdated
 
   Note over Core,Fs: End
   Core->>Core: move job to succeeded status
@@ -63,6 +66,8 @@ note2: core layer already provides methods to recognize folder and recognize epi
 note3: The ImportJob can be aborted in stage 2 or stage 3 via `stopJob(id)`. Abort is cooperative at stage boundaries (`throwIfAborted`). Failed or aborted jobs do not roll back smm.json / metadata.
 
 note4: User-visible job logs are written with `JobHandle.appendLog` and read with `getJobLog(id)`. Process logs still go to `LoggerPort`. See [Job Management](./job.md). Web UI does not call `getJobLog` / `stopJob` in this iteration.
+
+note5: `mediaMetadataUpdated` is emitted by `MediaMetadataHelper` on every successful metadata cache write/move/delete (including stage-1 blank metadata). Hosts subscribe via `core.on(...)` and forward to Socket.IO.
 
 
 ## Web UI, Electron and ohos

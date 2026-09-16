@@ -417,7 +417,7 @@ describe("Core", () => {
     expect(libraryJob.tasks[0]?.status).toBe("failed");
   });
 
-  it("importFolder emits mediaMetadataUpdated after persist (not on skipInit blank metadata)", async () => {
+  it("importFolder emits mediaMetadataUpdated on every metadata write including skipInit blank", async () => {
     const fs = inMemoryFs({ "/m/Show/ep.mkv": "" });
     const updated: string[] = [];
     const core = new Core({
@@ -437,10 +437,10 @@ describe("Core", () => {
     updated.length = 0;
     const { id: skipId } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
     await waitForStatus(core, skipId, "succeeded");
-    expect(updated).toEqual([]);
+    expect(updated).toEqual(["/m/Deferred"]);
   });
 
-  it("importLibrary emits mediaMetadataUpdated once per folder after importFolder persist", async () => {
+  it("importLibrary emits mediaMetadataUpdated once per folder from blank metadata write", async () => {
     const fs = inMemoryFs({
       "/lib/Show1/a.mp3": "",
       "/lib/Show2/a.mp3": "",

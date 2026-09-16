@@ -89,6 +89,46 @@ describe("MediaMetadataHelper", () => {
     expect(await fs.exists(cache)).toBe(false);
     expect(await fs.exists(newCache)).toBe(true);
   });
+
+  it("onUpdated fires after successful write, delete, and move", async () => {
+    const fs = inMemoryFs();
+    const updated: string[] = [];
+    const helper = new MediaMetadataHelper(fs, appDataDir, (path) => updated.push(path));
+
+    await helper.write({
+      mediaFolderPath: folder,
+      type: "tvshow-folder",
+      mediaFiles: [],
+    });
+    expect(updated).toEqual([folder]);
+
+    updated.length = 0;
+    const toFolder = "/m/ShowRenamed";
+    await helper.move(folder, toFolder, {
+      mediaFolderPath: toFolder,
+      type: "tvshow-folder",
+    });
+    expect(updated).toEqual([toFolder, folder]);
+
+    updated.length = 0;
+    await helper.delete(toFolder);
+    expect(updated).toEqual([toFolder]);
+  });
+
+  it("onUpdated does not fire when createIfAbsent finds existing cache", async () => {
+    const fs = inMemoryFs({
+      [cache]: JSON.stringify({ mediaFolderPath: folder, type: "tvshow-folder" }),
+    });
+    const updated: string[] = [];
+    const helper = new MediaMetadataHelper(fs, appDataDir, (path) => updated.push(path));
+
+    const result = await helper.createIfAbsent({
+      mediaFolderPath: folder,
+      type: "tvshow-folder",
+    });
+    expect(result).toBeNull();
+    expect(updated).toEqual([]);
+  });
 });
 
 describe("validatePersistedMediaMetadata", () => {

@@ -22,7 +22,8 @@ function getSocketIOManager(): SocketIOManager {
 
 export function broadcast(message: WebSocketMessage): void {
   if (!manager) {
-    logger.error("Socket.IO instance not initialized");
+    // CLI / unit tests often have no Socket.IO; Core may still emit events.
+    logger.debug({ event: message.event }, "Socket.IO not initialized; skip broadcast");
     return;
   }
   manager.broadcast(message);
