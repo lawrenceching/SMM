@@ -57,6 +57,7 @@
     "e2e:ohos": "bun ci/run-e2e-test.ts --platform ohos --spec \"./ohos/**/*.e2e.ts\"",
     "e2e:local:tv": "bun ci/run-e2e-test.ts --spec \"./common/tv/*.e2e.ts\"",
     "e2e:ohos:tv": "bun ci/run-e2e-test.ts --platform ohos --spec \"./common/tv/*.e2e.ts\"",
+    "e2e:electron": "bun ci/run-e2e-test.ts --platform electron --spec \"./common/**/*.e2e.ts\"",
     "e2e:electron:tv": "bun ci/run-e2e-test.ts --platform electron --spec \"./common/tv/*.e2e.ts\"",
     "e2e:failover": "cross-env EXTERNAL_CONFIG_FILE_URL=\"http://localhost:8000/config.json\" bun ci/run-e2e-test.ts --spec ./common/tv/TmdbHostFailover.e2e.ts",
     "e2e:http-proxy": "bun apps/cicd/run.ts -f apps/e2e/scenarios/http-proxy-reverse-proxy.test.json",

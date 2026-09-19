@@ -1,6 +1,7 @@
 name: E2E Tests for Electron
 
-# Manual-only TV e2e against the unpacked SMM Electron binary.
+# Manual-only e2e against the unpacked SMM Electron binary.
+# Runs every spec under apps/e2e/common (TV, movie, music, config, MCP, and manual).
 # Builds on the same runner that runs the tests. No unit tests, and not a CI or release gate.
 #
 # For host / docker / CLI e2e, use the CI workflow or "E2E Tests for CLI".
@@ -209,14 +210,14 @@ jobs:
           echo "CHROMEDRIVER=${bin}" >> "${GITHUB_ENV}"
           "${bin}" --version
 
-      - name: Run Electron TV e2e
+      - name: Run Electron e2e
         id: e2e
         run: |
           set -euo pipefail
           if [ "${PLATFORM}" = "linux" ]; then
-            xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm e2e:electron:tv
+            xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm e2e:electron
           else
-            pnpm e2e:electron:tv
+            pnpm e2e:electron
           fi
 
       - name: Scan e2e logs for secret leaks
