@@ -18,4 +18,14 @@ describe('buildCliSpawnEnv', () => {
     expect(env.LOG_TARGET).toBe('file')
     expect(env.PATH).toBe('/usr/bin')
   })
+
+  it('overrides CLI_PORT so each Electron instance gets its own core-routes port', () => {
+    const env = buildCliSpawnEnv(
+      { CLI_PORT: '3001', CORE_ROUTES_PORT: '3001' },
+      '/app/resources',
+      { coreRoutesPort: 30002 },
+    )
+
+    expect(env.CLI_PORT).toBe('30002')
+  })
 })

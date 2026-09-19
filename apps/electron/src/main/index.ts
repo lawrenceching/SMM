@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler, getSmmLogDir, STARTUP_OPEN_LOG_DIR_CHANNEL } from '@smm/electron-common'
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
-import { join } from 'path'
+import { basename, join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -21,6 +21,12 @@ import { waitForCliServerReady } from './startup/waitForCliServerReady'
 import { loadUrlWithRetry } from './startup/loadUrlWithRetry'
 import { CliStartupError } from './startup/types'
 import { buildCliSpawnEnv } from './cliSpawnEnv'
+import {
+  clearSmmProcessRecord,
+  smmProcessRecordPath,
+  stopLeftoverSmmProcesses,
+  writeSmmProcessRecord,
+} from './startup/leftoverCli'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
@@ -130,6 +136,8 @@ const LOADING_HTML = `<!DOCTYPE html>
 let cliProcess: ChildProcess | null = null
 let cliStartupMonitor: CliProcessMonitor | null = null
 let cliPort: number | null = null
+let cliCoreRoutesPort: number | null = null
+const smmProcessRecordFile = smmProcessRecordPath(tmpdir())
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
 let mainWindow: BrowserWindow | null = null
@@ -184,7 +192,11 @@ function getPublicFolderPath(): string {
  * @param maxPort Maximum port number (inclusive)
  * @returns Promise that resolves to a free port number, or null if no free port is found
  */
-function findFreePort(minPort: number, maxPort: number): Promise<number | null> {
+function findFreePort(
+  minPort: number,
+  maxPort: number,
+  exclude: ReadonlySet<number> = new Set(),
+): Promise<number | null> {
   return new Promise((resolve) => {
     function tryPort(port: number): void {
       if (port > maxPort) {
@@ -192,8 +204,13 @@ function findFreePort(minPort: number, maxPort: number): Promise<number | null> 
         return
       }
 
+      if (exclude.has(port)) {
+        tryPort(port + 1)
+        return
+      }
+
       const server = createServer()
-      server.listen(port, () => {
+      server.listen(port, '127.0.0.1', () => {
         server.once('close', () => {
           resolve(port)
         })
@@ -213,8 +230,8 @@ function findFreePort(minPort: number, maxPort: number): Promise<number | null> 
  * Get a free port from the range [30000, 65535]
  * @returns Promise that resolves to a free port number
  */
-async function getFreePort(): Promise<number> {
-  const port = await findFreePort(30000, 65535)
+async function getFreePort(exclude?: ReadonlySet<number>): Promise<number> {
+  const port = await findFreePort(30000, 65535, exclude)
   if (port === null) {
     throw new Error('No free port found in range [30000, 65535]')
   }
@@ -300,7 +317,7 @@ function showStartupErrorPage(error: unknown): void {
   }
 }
 
-function startCLIProcess(port: number): CliProcessMonitor {
+function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonitor {
   if (cliProcess) {
     throw new CliStartupError({
       kind: 'spawn-failed',
@@ -320,14 +337,24 @@ function startCLIProcess(port: number): CliProcessMonitor {
   console.log(`Starting CLI from: ${cliExecutable}`)
   console.log(`Public folder path: ${publicFolder}`)
   console.log(`CLI port: ${port}`)
+  console.log(`CLI core-routes port: ${coreRoutesPort}`)
   console.log(`CLI command: ${cliExecutable} ${cliArgs.join(' ')}`)
 
   cliProcess = spawn(cliExecutable, cliArgs, {
     stdio: 'pipe',
-    detached: false,
+    // Own process group so a later launch can SIGKILL the tree if this
+    // Electron is killed before before-quit runs (Linux CI).
+    detached: process.platform !== 'win32',
     windowsHide: true,
-    env: buildCliSpawnEnv(process.env, process.resourcesPath),
+    env: buildCliSpawnEnv(process.env, process.resourcesPath, { coreRoutesPort }),
   })
+
+  if (cliProcess.pid !== undefined) {
+    writeSmmProcessRecord(smmProcessRecordFile, {
+      cliPid: cliProcess.pid,
+      electronPid: process.pid,
+    })
+  }
 
   const monitor = new CliProcessMonitor(cliProcess, cliExecutable)
   cliStartupMonitor = monitor
@@ -340,8 +367,11 @@ function startCLIProcess(port: number): CliProcessMonitor {
       `[SMM] CLI exit code=${code ?? 'null'} signal=${signal ?? 'null'} ` +
       `ready=${monitor.isReady()} quitting=${isQuitting} restarts=${cliRestartCount}/${MAX_CLI_RESTARTS}`
     console.error(line)
+    const output = monitor.getProcessOutput()
+    const outputTail =
+      output === '(no process output captured)' ? '' : `\n${output.slice(-1500)}\n`
     try {
-      appendFileSync(CLI_EXIT_LOG, `${line}\n`)
+      appendFileSync(CLI_EXIT_LOG, `${line}\n${outputTail}`)
     } catch {
       // CI diagnostics only; startup must continue if the temp file is locked.
     }
@@ -355,7 +385,7 @@ function startCLIProcess(port: number): CliProcessMonitor {
         return
       }
       try {
-        startCLIProcess(port)
+        startCLIProcess(port, coreRoutesPort)
         const win = mainWindow
         if (win && !win.isDestroyed()) {
           void loadUrlWithRetry(
@@ -458,6 +488,7 @@ async function stopCLIGracefully(): Promise<void> {
     cliProcess = null
   }
   cliStartupMonitor = null
+  clearSmmProcessRecord(smmProcessRecordFile)
   console.log('CLI executable stopped')
 }
 
@@ -709,12 +740,27 @@ app.whenReady().then(() => {
     ;(async () => {
       try {
         logBundledBinariesDiagnostics()
+        const stopped = await stopLeftoverSmmProcesses({
+          pidFilePath: smmProcessRecordFile,
+          currentPid: process.pid,
+          ci: process.env.CI === 'true',
+          platform: process.platform,
+          cliBinaryName: getCLIBinaryName(),
+          electronBinaryName: basename(process.execPath),
+        })
+        if (stopped.length > 0) {
+          console.error(`[SMM] stopped leftover processes: ${stopped.join(', ')}`)
+        }
         if (cliPort === null) {
           cliPort = await getFreePort()
           console.log(`Using CLI port: ${cliPort}`)
         }
+        if (cliCoreRoutesPort === null) {
+          cliCoreRoutesPort = await getFreePort(new Set([cliPort]))
+          console.log(`Using CLI core-routes port: ${cliCoreRoutesPort}`)
+        }
         createWindow({ showLoadingFirst: true })
-        const monitor = startCLIProcess(cliPort)
+        const monitor = startCLIProcess(cliPort, cliCoreRoutesPort)
         await waitForCliServerReady(cliPort, monitor, {
           pollIntervalMs: POLL_INTERVAL_MS,
           timeoutMs: SERVER_READY_TIMEOUT_MS,

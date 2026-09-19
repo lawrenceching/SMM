@@ -127,7 +127,14 @@ const server = new Server({
   },
 });
 
-const coreRoutesServer = await startCoreRoutesServer(authConfig);
+let coreRoutesServer: Awaited<ReturnType<typeof startCoreRoutesServer>>;
+try {
+  coreRoutesServer = await startCoreRoutesServer(authConfig);
+  await server.start();
+} catch (error) {
+  console.error('[SMM] CLI failed to start:', error);
+  process.exit(1);
+}
 
 registerGracefulShutdown({
   stopServer: async () => {
@@ -135,5 +142,3 @@ registerGracefulShutdown({
     await server.stop();
   },
 });
-
-server.start();
