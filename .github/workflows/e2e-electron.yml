@@ -175,8 +175,14 @@ jobs:
             abs="$(cygpath -m "${abs}")"
           fi
           if [ "${PLATFORM}" = "mac" ]; then
-            # Sign only the main executable. --deep fails on VideoCaptioner's Python.framework.
-            codesign --force --sign - "${abs}"
+            # Keep JIT and library-validation entitlements. A bare --sign drops them
+            # and macOS then kills the bundled CLI.
+            entitlements="apps/electron/build/entitlements.mac.plist"
+            resources="$(cd "$(dirname "${abs}")/../Resources" && pwd)"
+            if [ -f "${resources}/cli" ]; then
+              codesign --force --sign - "${resources}/cli"
+            fi
+            codesign --force --sign - --entitlements "${entitlements}" "${abs}"
           fi
 
           echo "SMM_ELECTRON_BINARY=${abs}" >> "${GITHUB_ENV}"

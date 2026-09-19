@@ -1,4 +1,4 @@
-const DEFAULT_ATTEMPTS = 5
+const DEFAULT_ATTEMPTS = 10
 const DEFAULT_DELAY_MS = 1000
 
 /** Network failure from `fetch()` inside the page. HTTP status errors do not throw this. */
@@ -34,7 +34,13 @@ export async function retryOnTransientHelloFetch<T>(
             console.warn(
                 `[E2E] /api/hello Failed to fetch (attempt ${attempt}/${attempts}), retrying`,
             )
-            await options.onRetry?.(attempt, attempts)
+            try {
+                await options.onRetry?.(attempt, attempts)
+            } catch (retryError) {
+                console.warn(
+                    `[E2E] hello retry hook failed: ${retryError instanceof Error ? retryError.message : String(retryError)}`,
+                )
+            }
             await sleep(delayMs)
         }
     }

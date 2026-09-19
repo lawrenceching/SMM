@@ -23,6 +23,8 @@ import { buildCliSpawnEnv } from './cliSpawnEnv'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
+const MAX_CLI_RESTARTS = 3
+let cliRestartCount = 0
 const CLI_SHUTDOWN_TIMEOUT_MS = 5_000
 const CLI_SHUTDOWN_FETCH_TIMEOUT_MS = 2_000
 
@@ -331,6 +333,25 @@ function startCLIProcess(port: number): CliProcessMonitor {
   cliProcess.on('exit', () => {
     if (cliProcess === monitor.process) {
       cliProcess = null
+    }
+    if (isQuitting || !monitor.isReady() || cliRestartCount >= MAX_CLI_RESTARTS) {
+      return
+    }
+    cliRestartCount += 1
+    console.error(
+      `[SMM] CLI exited after ready, restarting (${cliRestartCount}/${MAX_CLI_RESTARTS})`,
+    )
+    try {
+      startCLIProcess(port)
+      const win = mainWindow
+      if (win && !win.isDestroyed()) {
+        void loadUrlWithRetry(
+          (url) => (win.isDestroyed() ? Promise.resolve() : win.loadURL(url)),
+          `http://127.0.0.1:${port}`,
+        )
+      }
+    } catch (error) {
+      console.error('[SMM] CLI restart failed:', error)
     }
   })
 
