@@ -175,12 +175,12 @@ jobs:
             abs="$(cygpath -m "${abs}")"
           fi
           if [ "${PLATFORM}" = "mac" ]; then
-            # Keep JIT and library-validation entitlements. A bare --sign drops them
-            # and macOS then kills the bundled CLI.
             entitlements="apps/electron/build/entitlements.mac.plist"
             resources="$(cd "$(dirname "${abs}")/../Resources" && pwd)"
+            # Bun's compiled CLI needs the hardened runtime plus JIT entitlements.
+            # A bare ad-hoc signature lets macOS kill it (connection refused).
             if [ -f "${resources}/cli" ]; then
-              codesign --force --sign - "${resources}/cli"
+              codesign --force --sign - --options runtime --entitlements "${entitlements}" "${resources}/cli"
             fi
             codesign --force --sign - --entitlements "${entitlements}" "${abs}"
           fi

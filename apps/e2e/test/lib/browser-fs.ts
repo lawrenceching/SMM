@@ -110,6 +110,17 @@ async function reloadPageAfterHelloFailure(): Promise<void> {
         return
     }
     console.warn(`[E2E] hello fetch failed on "${url}", reloading`)
+    try {
+        const { readFileSync } = await import('node:fs')
+        const { tmpdir } = await import('node:os')
+        const { join } = await import('node:path')
+        const exitLog = readFileSync(join(tmpdir(), 'smm-cli-exit.log'), 'utf8').trim()
+        if (exitLog) {
+            console.warn(`[E2E] CLI exit log:\n${exitLog}`)
+        }
+    } catch {
+        // The main process only writes this file after the CLI exits.
+    }
     if (url.startsWith('http://') || url.startsWith('https://')) {
         await browser.url(url)
     }

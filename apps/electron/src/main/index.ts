@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler, getSmmLogDir, STARTUP_OPEN_LOG_DIR_CHANNEL } from '@smm/electron-common'
-import { existsSync, readdirSync } from 'fs'
+import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs'
+import { tmpdir } from 'os'
 import { join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
@@ -23,8 +24,9 @@ import { buildCliSpawnEnv } from './cliSpawnEnv'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
-const MAX_CLI_RESTARTS = 3
+const MAX_CLI_RESTARTS = 20
 let cliRestartCount = 0
+const CLI_EXIT_LOG = join(tmpdir(), 'smm-cli-exit.log')
 const CLI_SHUTDOWN_TIMEOUT_MS = 5_000
 const CLI_SHUTDOWN_FETCH_TIMEOUT_MS = 2_000
 
@@ -330,29 +332,41 @@ function startCLIProcess(port: number): CliProcessMonitor {
   const monitor = new CliProcessMonitor(cliProcess, cliExecutable)
   cliStartupMonitor = monitor
 
-  cliProcess.on('exit', () => {
+  cliProcess.on('exit', (code, signal) => {
     if (cliProcess === monitor.process) {
       cliProcess = null
     }
-    if (isQuitting || !monitor.isReady() || cliRestartCount >= MAX_CLI_RESTARTS) {
+    const line =
+      `[SMM] CLI exit code=${code ?? 'null'} signal=${signal ?? 'null'} ` +
+      `ready=${monitor.isReady()} quitting=${isQuitting} restarts=${cliRestartCount}/${MAX_CLI_RESTARTS}`
+    console.error(line)
+    try {
+      appendFileSync(CLI_EXIT_LOG, `${line}\n`)
+    } catch {
+      // CI diagnostics only; startup must continue if the temp file is locked.
+    }
+    if (isQuitting || cliRestartCount >= MAX_CLI_RESTARTS) {
       return
     }
     cliRestartCount += 1
-    console.error(
-      `[SMM] CLI exited after ready, restarting (${cliRestartCount}/${MAX_CLI_RESTARTS})`,
-    )
-    try {
-      startCLIProcess(port)
-      const win = mainWindow
-      if (win && !win.isDestroyed()) {
-        void loadUrlWithRetry(
-          (url) => (win.isDestroyed() ? Promise.resolve() : win.loadURL(url)),
-          `http://127.0.0.1:${port}`,
-        )
+    console.error(`[SMM] restarting CLI (${cliRestartCount}/${MAX_CLI_RESTARTS})`)
+    setTimeout(() => {
+      if (isQuitting || cliProcess) {
+        return
       }
-    } catch (error) {
-      console.error('[SMM] CLI restart failed:', error)
-    }
+      try {
+        startCLIProcess(port)
+        const win = mainWindow
+        if (win && !win.isDestroyed()) {
+          void loadUrlWithRetry(
+            (url) => (win.isDestroyed() ? Promise.resolve() : win.loadURL(url)),
+            `http://127.0.0.1:${port}`,
+          )
+        }
+      } catch (error) {
+        console.error('[SMM] CLI restart failed:', error)
+      }
+    }, 300)
   })
 
   console.log('CLI executable started')
@@ -642,6 +656,11 @@ app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+  try {
+    writeFileSync(CLI_EXIT_LOG, '')
+  } catch {
+    // ignore
+  }
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
