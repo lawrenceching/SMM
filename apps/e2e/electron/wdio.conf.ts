@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { electronCiAppArgs } from './electronCiAppArgs'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
 import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
 import { registerExpectExtensions } from '../test/lib/expect-extensions'
@@ -36,6 +37,7 @@ export const config: WebdriverIO.Config = {
             browserVersion: '39.2.6',
             'wdio:electronServiceOptions': {
                 appBinaryPath,
+                appArgs: electronCiAppArgs(process.env, process.platform),
             },
         },
     ],

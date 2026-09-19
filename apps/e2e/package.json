@@ -16,6 +16,7 @@
     "expect-webdriverio": "^5.6.1",
     "shelljs": "^0.10.0",
     "typescript": "^5.0.0",
+    "wdio-electron-service": "9.2.1",
     "wdio-html-nice-reporter": "^8.1.7",
     "zx": "^8.8.5"
   },
