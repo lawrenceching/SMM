@@ -128,9 +128,17 @@ async function applyViaPuppeteerViewport(size: {
   width: number
   height: number
 }): Promise<void> {
-  const puppeteerBrowser = await browser.getPuppeteer()
-  const pages = await puppeteerBrowser.pages()
-  const page = pages[0]
+  const deadline = Date.now() + 5000
+  let page: { setViewport: (viewport: { width: number; height: number; deviceScaleFactor: number }) => Promise<void> } | undefined
+  while (Date.now() <= deadline) {
+    const puppeteerBrowser = await browser.getPuppeteer()
+    const pages = await puppeteerBrowser.pages()
+    page = pages[0]
+    if (page) {
+      break
+    }
+    await new Promise((resolve) => setTimeout(resolve, 200))
+  }
   if (!page) {
     throw new Error('No Puppeteer page available for viewport override')
   }

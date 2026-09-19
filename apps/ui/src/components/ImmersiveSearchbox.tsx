@@ -8,6 +8,7 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { useTranslation } from "@/lib/i18n"
+import { formatSearchResultDate } from "@/lib/formatSearchResultDate"
 import type { PrimaryDatabase } from "@smm/types"
 
 export interface SearchLanguageOption {
@@ -15,19 +16,9 @@ export interface SearchLanguageOption {
   name: string
 }
 
-// Helper function to format date
 function formatDate(dateString: string): string {
     if (!dateString) return "N/A"
-    try {
-        const date = new Date(dateString)
-        return date.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "long",
-            day: "numeric"
-        })
-    } catch {
-        return dateString
-    }
+    return formatSearchResultDate(dateString)
 }
 
 interface ImmersiveSearchboxProps {

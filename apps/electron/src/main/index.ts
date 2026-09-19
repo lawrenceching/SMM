@@ -564,9 +564,12 @@ interface CreateWindowOptions {
 function createWindow(options: CreateWindowOptions = {}): void {
   const { showLoadingFirst = false } = options
 
+  // GitHub Electron e2e inherits CI and E2E_PLATFORM. A 900px window hides
+  // controls on macOS when Puppeteer cannot resize the viewport in time.
+  const e2eSized = process.env.CI === 'true' && process.env.E2E_PLATFORM === 'electron'
   const win = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: e2eSized ? 1920 : 900,
+    height: e2eSized ? 1080 : 670,
     minWidth: 800,
     minHeight: 600,
     show: false,
@@ -604,7 +607,7 @@ function createWindow(options: CreateWindowOptions = {}): void {
   if (cliPort === null) {
     console.error('Production mode: CLI port not allocated. Window may not load correctly.')
   }
-  win.loadURL(`http://localhost:${cliPort ?? 5173}`)
+  win.loadURL(`http://127.0.0.1:${cliPort ?? 5173}`)
 }
 
 // Disable Chromium background throttling so long-running AI streaming, timers
@@ -677,7 +680,7 @@ app.whenReady().then(() => {
         })
         monitor.markReady()
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(`http://localhost:${cliPort}`)
+          mainWindow.loadURL(`http://127.0.0.1:${cliPort}`)
         }
       } catch (error) {
         showStartupErrorPage(error)
@@ -696,7 +699,9 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
+  // macOS normally keeps the process alive. CI must exit so the next spec
+  // does not attach to a leftover app whose API is already gone.
+  if (process.platform !== 'darwin' || process.env.CI === 'true') {
     app.quit()
   }
 })

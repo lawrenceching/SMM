@@ -39,6 +39,7 @@ import {
 import { getLanguageDisplayName } from "@/lib/languageNativeNames"
 import localStorages from "@/lib/localStorages"
 import { preferMediaLanguageToTvdbCode, type TmdbSearchLanguage, type TvdbSearchLanguage, DEFAULT_TVDB_SEARCH_LANGUAGE } from "@/lib/searchLanguage"
+import { formatSearchResultDate } from "@/lib/formatSearchResultDate"
 
 /**
  * The current search language. Format depends on `database`:
@@ -51,15 +52,7 @@ export type { TVDBSearchItem }
 
 function formatDate(dateString: string | undefined): string | undefined {
   if (!dateString) return undefined
-  try {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
-  } catch {
-    return dateString
-  }
+  return formatSearchResultDate(dateString)
 }
 
 export type SearchResultSelectedArgs =
