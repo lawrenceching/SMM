@@ -17,6 +17,7 @@ export async function retryOnTransientHelloFetch<T>(
         attempts?: number
         delayMs?: number
         sleep?: (ms: number) => Promise<void>
+        onRetry?: (attempt: number, attempts: number) => void | Promise<void>
     } = {},
 ): Promise<T> {
     const attempts = options.attempts ?? DEFAULT_ATTEMPTS
@@ -33,6 +34,7 @@ export async function retryOnTransientHelloFetch<T>(
             console.warn(
                 `[E2E] /api/hello Failed to fetch (attempt ${attempt}/${attempts}), retrying`,
             )
+            await options.onRetry?.(attempt, attempts)
             await sleep(delayMs)
         }
     }

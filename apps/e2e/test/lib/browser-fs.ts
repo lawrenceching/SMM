@@ -91,7 +91,28 @@ type HelloPaths = {
 }
 
 export async function fetchHelloPathsViaBrowser(): Promise<HelloPaths> {
-    return retryOnTransientHelloFetch(() => fetchHelloPathsOnce())
+    return retryOnTransientHelloFetch(() => fetchHelloPathsOnce(), {
+        onRetry: reloadPageAfterHelloFailure,
+    })
+}
+
+async function reloadPageAfterHelloFailure(): Promise<void> {
+    if (process.env.E2E_PLATFORM !== 'electron') {
+        return
+    }
+    let url = ''
+    try {
+        url = await browser.getUrl()
+    } catch (error) {
+        console.warn(
+            `[E2E] getUrl after hello failure failed: ${error instanceof Error ? error.message : String(error)}`,
+        )
+        return
+    }
+    console.warn(`[E2E] hello fetch failed on "${url}", reloading`)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+        await browser.url(url)
+    }
 }
 
 async function fetchHelloPathsOnce(): Promise<HelloPaths> {

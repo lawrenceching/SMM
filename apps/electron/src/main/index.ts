@@ -17,6 +17,7 @@ import {
   toCliStartupFailure,
 } from './startup/startupError'
 import { waitForCliServerReady } from './startup/waitForCliServerReady'
+import { loadUrlWithRetry } from './startup/loadUrlWithRetry'
 import { CliStartupError } from './startup/types'
 import { buildCliSpawnEnv } from './cliSpawnEnv'
 
@@ -607,7 +608,7 @@ function createWindow(options: CreateWindowOptions = {}): void {
   if (cliPort === null) {
     console.error('Production mode: CLI port not allocated. Window may not load correctly.')
   }
-  win.loadURL(`http://127.0.0.1:${cliPort ?? 5173}`)
+  void loadUrlWithRetry((url) => win.loadURL(url), `http://127.0.0.1:${cliPort ?? 5173}`)
 }
 
 // Disable Chromium background throttling so long-running AI streaming, timers
@@ -680,7 +681,11 @@ app.whenReady().then(() => {
         })
         monitor.markReady()
         if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.loadURL(`http://127.0.0.1:${cliPort}`)
+          const win = mainWindow
+          await loadUrlWithRetry(
+            (url) => (win.isDestroyed() ? Promise.resolve() : win.loadURL(url)),
+            `http://127.0.0.1:${cliPort}`,
+          )
         }
       } catch (error) {
         showStartupErrorPage(error)
