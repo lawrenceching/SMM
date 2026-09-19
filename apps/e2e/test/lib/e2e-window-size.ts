@@ -45,10 +45,18 @@ export function fitE2eWindowSizeToScreen(
   }
 }
 
-/** CI/docker headless may report a tiny virtual screen (e.g. 800x600) before resize;
- *  clamping there would permanently shrink the target viewport. */
+/** Docker headless may report a tiny virtual screen (e.g. 800x600) before resize;
+ *  clamping there would permanently shrink the target viewport.
+ *  Electron CI must also keep 1920x1080: GitHub-hosted Windows desktops are
+ *  1024x720, and fitting hides controls. Local desktops still fit-to-screen. */
 export function shouldFitE2eWindowToScreen(): boolean {
-  return process.env.BUILD_ENV !== 'docker'
+  if (process.env.BUILD_ENV === 'docker') {
+    return false
+  }
+  if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'electron') {
+    return false
+  }
+  return true
 }
 
 export function resolveAppliedE2eWindowSize(

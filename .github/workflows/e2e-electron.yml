@@ -182,6 +182,27 @@ jobs:
           echo "SMM_ELECTRON_BINARY=${abs}" >> "${GITHUB_ENV}"
           echo "SMM_ELECTRON_BINARY=${abs}"
 
+      - name: Install Electron Chromedriver (linux-arm64)
+        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
+        run: |
+          set -euo pipefail
+          # Must match browserVersion in apps/e2e/electron/wdio.conf.ts.
+          version=39.2.6
+          url="https://github.com/electron/electron/releases/download/v${version}/chromedriver-v${version}-linux-arm64.zip"
+          dest="${RUNNER_TEMP}/electron-chromedriver"
+          mkdir -p "${dest}"
+          curl -fsSL -L -o "${dest}/chromedriver.zip" "${url}"
+          unzip -o "${dest}/chromedriver.zip" -d "${dest}"
+          bin="$(find "${dest}" -type f -name chromedriver | head -n 1)"
+          if [ -z "${bin}" ]; then
+            echo "::error::chromedriver binary not found in Electron release zip"
+            find "${dest}" -maxdepth 3
+            exit 1
+          fi
+          chmod +x "${bin}"
+          echo "CHROMEDRIVER=${bin}" >> "${GITHUB_ENV}"
+          "${bin}" --version
+
       - name: Run Electron TV e2e
         id: e2e
         run: |

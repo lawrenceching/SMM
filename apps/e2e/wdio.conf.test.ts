@@ -31,9 +31,13 @@ describe('fitE2eWindowSizeToScreen', () => {
 
 describe('shouldFitE2eWindowToScreen', () => {
   const originalBuildEnv = process.env.BUILD_ENV;
+  const originalCi = process.env.CI;
+  const originalPlatform = process.env.E2E_PLATFORM;
 
   beforeEach(() => {
     delete process.env.BUILD_ENV;
+    delete process.env.CI;
+    delete process.env.E2E_PLATFORM;
   });
 
   afterEach(() => {
@@ -41,6 +45,16 @@ describe('shouldFitE2eWindowToScreen', () => {
       process.env.BUILD_ENV = originalBuildEnv;
     } else {
       delete process.env.BUILD_ENV;
+    }
+    if (originalCi !== undefined) {
+      process.env.CI = originalCi;
+    } else {
+      delete process.env.CI;
+    }
+    if (originalPlatform !== undefined) {
+      process.env.E2E_PLATFORM = originalPlatform;
+    } else {
+      delete process.env.E2E_PLATFORM;
     }
   });
 
@@ -50,6 +64,25 @@ describe('shouldFitE2eWindowToScreen', () => {
   });
 
   test('fits to screen locally (headed high-DPI)', () => {
+    expect(shouldFitE2eWindowToScreen()).toBe(true);
+  });
+
+  test('keeps 1920x1080 on Electron CI so a 1024x720 runner desktop cannot hide controls', () => {
+    process.env.CI = 'true';
+    process.env.E2E_PLATFORM = 'electron';
+    expect(shouldFitE2eWindowToScreen()).toBe(false);
+  });
+
+  test('still fits locally and on non-Electron CI', () => {
+    process.env.E2E_PLATFORM = 'electron';
+    expect(shouldFitE2eWindowToScreen()).toBe(true);
+
+    delete process.env.E2E_PLATFORM;
+    process.env.CI = 'true';
+    expect(shouldFitE2eWindowToScreen()).toBe(true);
+
+    process.env.CI = '1';
+    process.env.E2E_PLATFORM = 'electron';
     expect(shouldFitE2eWindowToScreen()).toBe(true);
   });
 });

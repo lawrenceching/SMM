@@ -3,6 +3,7 @@
  * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
  */
 import type { UserConfig } from '@smm/types'
+import { retryOnTransientHelloFetch } from './retry-transient-hello-fetch'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
 
 /** Active OS for nested helpers during setup/cleanup (default `"general"`). */
@@ -90,6 +91,10 @@ type HelloPaths = {
 }
 
 export async function fetchHelloPathsViaBrowser(): Promise<HelloPaths> {
+    return retryOnTransientHelloFetch(() => fetchHelloPathsOnce())
+}
+
+async function fetchHelloPathsOnce(): Promise<HelloPaths> {
     await ensureBrowserOnUiPage()
     const authToken = process.env.SMM_AUTH_TOKEN
 

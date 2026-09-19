@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { electronCiAppArgs } from './electronCiAppArgs'
+import { resolveElectronChromedriverBinary } from './electronChromedriverBinary'
 import { WDIO_CACHE_DIR } from '../lib/wdioCacheDir'
 import { applyE2eWindowSize } from '../test/lib/e2e-window-size'
 import { registerExpectExtensions } from '../test/lib/expect-extensions'
@@ -7,6 +8,9 @@ import { registerExpectExtensions } from '../test/lib/expect-extensions'
 const DEFAULT_SMM_BINARY = String.raw`C:\Users\lawrence\AppData\Local\Programs\SMM\SMM.exe`
 
 const appBinaryPath = process.env.SMM_ELECTRON_BINARY ?? DEFAULT_SMM_BINARY
+const chromedriverBinary = resolveElectronChromedriverBinary(process.env, (candidate) =>
+    fs.existsSync(candidate),
+)
 
 if (!fs.existsSync(appBinaryPath)) {
     throw new Error(
@@ -35,6 +39,13 @@ export const config: WebdriverIO.Config = {
             // Match apps/electron's electron major so Chromedriver is resolved correctly
             // when the app under test lives outside this package.
             browserVersion: '39.2.6',
+            ...(chromedriverBinary
+                ? {
+                      'wdio:chromedriverOptions': {
+                          binary: chromedriverBinary,
+                      },
+                  }
+                : {}),
             'wdio:electronServiceOptions': {
                 appBinaryPath,
                 appArgs: electronCiAppArgs(process.env, process.platform),
