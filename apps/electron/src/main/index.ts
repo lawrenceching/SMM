@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { registerDialogIpcHandlers, registerFileAccessPersistIpcHandlers, registerExecuteChannelIpcHandlers, setExternalUrlOpenHandler, getSmmLogDir, STARTUP_OPEN_LOG_DIR_CHANNEL } from '@smm/electron-common'
 import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs'
-import { tmpdir } from 'os'
+import { homedir, tmpdir } from 'os'
 import { basename, join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
 import { createServer } from 'net'
@@ -21,6 +21,7 @@ import { waitForCliServerReady } from './startup/waitForCliServerReady'
 import { loadUrlWithRetry } from './startup/loadUrlWithRetry'
 import { CliStartupError } from './startup/types'
 import { buildCliSpawnEnv } from './cliSpawnEnv'
+import { cliUserConfigPath, readReservedMcpPort } from './reservedMcpPort'
 import {
   clearSmmProcessRecord,
   smmProcessRecordPath,
@@ -751,12 +752,20 @@ app.whenReady().then(() => {
         if (stopped.length > 0) {
           console.error(`[SMM] stopped leftover processes: ${stopped.join(', ')}`)
         }
+        const reservedMcpPort = readReservedMcpPort(
+          cliUserConfigPath({
+            platform: process.platform,
+            homedir: homedir(),
+            env: process.env,
+          }),
+        )
+        console.log(`Reserving MCP port from user config: ${reservedMcpPort}`)
         if (cliPort === null) {
-          cliPort = await getFreePort()
+          cliPort = await getFreePort(new Set([reservedMcpPort]))
           console.log(`Using CLI port: ${cliPort}`)
         }
         if (cliCoreRoutesPort === null) {
-          cliCoreRoutesPort = await getFreePort(new Set([cliPort]))
+          cliCoreRoutesPort = await getFreePort(new Set([cliPort, reservedMcpPort]))
           console.log(`Using CLI core-routes port: ${cliCoreRoutesPort}`)
         }
         createWindow({ showLoadingFirst: true })
