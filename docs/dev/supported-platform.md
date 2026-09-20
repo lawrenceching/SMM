@@ -26,6 +26,8 @@ smm
 Server is listening at http://localhost:8080
 ```
 
+In Docker distribution, container run smm executable and exports the Web UI port and MCP server port
+
 **Electron**
 
 Electron desktop app
@@ -33,8 +35,9 @@ Electron desktop app
 ```
 Electron
   |-- Main Process (node.js side)
-        |-- core (built from apps/core)
-        |-- core-routes (built from packages/core-routes)
+        |-- cli (executable binary)
+            |-- core (built from apps/core)
+            |-- core-routes (built from packages/core-routes)
   |-- UI (browser side, built from apps/ui)
 ```
 
