@@ -41,6 +41,13 @@
     "wdio:config": "wdio run ./wdio.conf.ts --spec \"./common/config/*.e2e.ts\" --spec \"./common/httpproxy/*.e2e.ts\"",
     "wdio:ai": "wdio run ./wdio.conf.ts --spec \"./test/specs/ai/*.e2e.ts\"",
     "wdio:mcp": "wdio run ./wdio.conf.ts --spec \"./common/mcp/*.e2e.ts\"",
+    "e2e:config": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/config/*.e2e.ts\"",
+    "e2e:mcp": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/mcp/*.e2e.ts\"",
+    "e2e:movie": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/movie/*.e2e.ts\"",
+    "e2e:music": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/music/*.e2e.ts\"",
+    "e2e:other": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/other/*.e2e.ts\"",
+    "e2e:tv": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tv/*.e2e.ts\"",
+    "e2e:tvdb": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tvdb/*.e2e.ts\"",
     "zx": "zx --verbose"
   },
   "dependencies": {

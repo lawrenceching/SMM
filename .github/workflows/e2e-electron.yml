@@ -1,7 +1,7 @@
 name: E2E Tests for Electron
 
 # Manual-only e2e against the unpacked SMM Electron binary.
-# Runs every spec under apps/e2e/common (TV, movie, music, config, MCP, and manual).
+# Runs the apps/e2e Electron suite scripts listed below. common/manual stays on-demand.
 # Builds on the same runner that runs the tests. No unit tests, and not a CI or release gate.
 #
 # For host / docker / CLI e2e, use the CI workflow or "E2E Tests for CLI".
@@ -215,9 +215,25 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${PLATFORM}" = "linux" ]; then
-            xvfb-run -a --server-args="-screen 0 1920x1080x24" pnpm e2e:electron
+            xvfb-run -a --server-args="-screen 0 1920x1080x24" bash -euo pipefail -c '
+              cd apps/e2e
+              pnpm e2e:config
+              pnpm e2e:mcp
+              pnpm e2e:movie
+              pnpm e2e:music
+              pnpm e2e:other
+              pnpm e2e:tv
+              pnpm e2e:tvdb
+            '
           else
-            pnpm e2e:electron
+            cd apps/e2e
+            pnpm e2e:config
+            pnpm e2e:mcp
+            pnpm e2e:movie
+            pnpm e2e:music
+            pnpm e2e:other
+            pnpm e2e:tv
+            pnpm e2e:tvdb
           fi
 
       - name: Scan e2e logs for secret leaks
