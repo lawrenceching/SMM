@@ -1,6 +1,6 @@
 import path from "path"
 import { readFileSync } from "fs"
-import type { ClientRequest, IncomingMessage } from "node:http"
+import type { IncomingMessage } from "node:http"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig, type ProxyOptions } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -17,7 +17,7 @@ const DEFAULT_UI_DEV_PORT = 8000
 
 type DiagIncomingMessage = IncomingMessage & { diagStartMs?: number }
 
-/** E2E-only. Times Vite's /api proxy separately from the CLI so a stall can be placed on one side. */
+/** Desktop e2e only. Compare with CLI `[cli-http]` lines to see which side stalled. */
 function apiProxyTiming(): Pick<ProxyOptions, "configure"> {
   if (process.env.E2E_PLATFORM !== "desktop" && process.env.DIAG_HTTP_TIMING !== "1") {
     return {}
@@ -39,35 +39,20 @@ function apiProxyTiming(): Pick<ProxyOptions, "configure"> {
 
   return {
     configure(proxy) {
-      console.log("[proxy-timing] enabled for /api (except /api/log)")
-      proxy.on("proxyReq", (proxyReq: ClientRequest, req: IncomingMessage) => {
+      proxy.on("proxyReq", (_proxyReq, req) => {
         const diagReq = req as DiagIncomingMessage
         if (!tracked(diagReq.url)) return
         inflight += 1
         diagReq.diagStartMs = Date.now()
-        const pathname = pathOf(diagReq.url)
-        console.log(`[proxy-timing] -> ${diagReq.method} ${pathname} inflight=${inflight}`)
-        proxyReq.on("socket", (socket) => {
-          const local = socket.localPort || 0
-          const remote = socket.remotePort || 0
-          console.log(
-            `[proxy-timing] socket ${diagReq.method} ${pathname} local=${local} remote=${remote}`,
-          )
-        })
+        console.log(`[proxy-timing] -> ${diagReq.method} ${pathOf(diagReq.url)} inflight=${inflight}`)
       })
-      proxy.on("proxyRes", (proxyRes: IncomingMessage, req: IncomingMessage) => {
+      proxy.on("proxyRes", (proxyRes, req) => {
         const diagReq = req as DiagIncomingMessage
-        finish(
-          diagReq,
-          `<- ${proxyRes.statusCode} ${diagReq.method} ${pathOf(diagReq.url)}`,
-        )
+        finish(diagReq, `<- ${proxyRes.statusCode} ${diagReq.method} ${pathOf(diagReq.url)}`)
       })
-      proxy.on("error", (err: Error, req: IncomingMessage) => {
+      proxy.on("error", (err, req) => {
         const diagReq = req as DiagIncomingMessage
-        finish(
-          diagReq,
-          `error ${diagReq.method} ${pathOf(diagReq.url)} ${err.message}`,
-        )
+        finish(diagReq, `error ${diagReq.method} ${pathOf(diagReq.url)} ${err.message}`)
       })
     },
   }

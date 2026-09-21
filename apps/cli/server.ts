@@ -114,31 +114,24 @@ function diagHttpTimingEnabled(): boolean {
   return process.env.DIAG_HTTP_TIMING === '1' || process.env.E2E_PLATFORM === 'desktop';
 }
 
-/**
- * Times requests at the Node HTTP server, before Hono. Compare with Vite
- * `[proxy-timing]` lines to see whether a stall is in the proxy or in the CLI.
- */
+/** Desktop e2e only. Compare with Vite `[proxy-timing]` lines to see which side stalled. */
 function attachCliHttpTiming(req: IncomingMessage, res: ServerResponse, inflight: { n: number }): void {
   const pathname = req.url?.split('?')[0] ?? '';
   if (!pathname.startsWith('/api/') || pathname === '/api/log') return;
 
   inflight.n += 1;
   const started = Date.now();
-  const id = `${started.toString(36)}-${inflight.n}`;
   let settled = false;
   const done = (kind: string) => {
     if (settled) return;
     settled = true;
     inflight.n = Math.max(0, inflight.n - 1);
-    const socket = req.socket;
     console.log(
-      `[cli-http] ${kind} ${req.method} ${pathname} dur=${Date.now() - started}ms inflight=${inflight.n} id=${id} local=${socket.localPort ?? 0} remote=${socket.remotePort ?? 0}`,
+      `[cli-http] ${kind} ${req.method} ${pathname} dur=${Date.now() - started}ms inflight=${inflight.n}`,
     );
   };
 
-  console.log(
-    `[cli-http] -> ${req.method} ${pathname} inflight=${inflight.n} id=${id} remote=${req.socket.remoteAddress ?? ''} remotePort=${req.socket.remotePort ?? 0}`,
-  );
+  console.log(`[cli-http] -> ${req.method} ${pathname} inflight=${inflight.n}`);
   res.on('finish', () => done(`<- ${res.statusCode}`));
   res.on('close', () => done('aborted'));
 }
@@ -462,12 +455,6 @@ export class Server {
     logger.info(
       `🚀 Static file server running on http://${this.webUiBindAddress === '0.0.0.0' ? 'localhost' : this.webUiBindAddress}:${this.port} (bind ${this.webUiBindAddress})`,
     );
-    if (diagHttp && this.httpServer) {
-      const server = this.httpServer;
-      console.log(
-        `[cli-http] listening port=${this.port} bind=${this.webUiBindAddress} requestTimeout=${server.requestTimeout} headersTimeout=${server.headersTimeout} keepAliveTimeout=${server.keepAliveTimeout}`,
-      );
-    }
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
 
     // Start the reverse proxy before MCP config so it's available for metadata operations

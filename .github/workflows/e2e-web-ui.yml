@@ -11,60 +11,13 @@ name: E2E Tests for Web UI
 
 on:
   workflow_dispatch:
-    inputs:
-      platforms:
-        description: 'Comma-separated platform-arch to run (empty = all). Example: win-x64'
-        required: false
-        default: ''
-        type: string
-      specs:
-        description: 'Single spec glob passed to run-e2e-test (empty = all common suites). Example: ./common/movie/*.e2e.ts'
-        required: false
-        default: ''
-        type: string
 
 permissions:
   contents: read
 
 jobs:
-  select:
-    name: Select platforms
-    runs-on: ubuntu-latest
-    outputs:
-      include: ${{ steps.set.outputs.include }}
-    steps:
-      - name: Build matrix
-        id: set
-        env:
-          PLATFORMS: ${{ inputs.platforms }}
-        run: |
-          python3 << 'PY'
-          import json, os
-          rows = [
-              {"platform": "win", "arch": "x64", "runs-on": "windows-latest", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
-              # Chrome for Testing has no win-arm64 build; use the runner's Chrome.
-              {"platform": "win", "arch": "arm64", "runs-on": "windows-11-arm", "chrome-source": "runner", "chrome-version": ""},
-              {"platform": "linux", "arch": "x64", "runs-on": "ubuntu-latest", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
-              # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
-              {"platform": "linux", "arch": "arm64", "runs-on": "ubuntu-24.04-arm", "chrome-source": "cft", "chrome-version": "153.0.8010.52"},
-              {"platform": "mac", "arch": "arm64", "runs-on": "macos-14", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
-          ]
-          wanted = {part.strip() for part in os.environ.get("PLATFORMS", "").split(",") if part.strip()}
-          if wanted:
-              rows = [row for row in rows if f"{row['platform']}-{row['arch']}" in wanted]
-          if not rows:
-              raise SystemExit(f"no platforms matched: {os.environ.get('PLATFORMS', '')}")
-          payload = json.dumps(rows)
-          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as handle:
-              handle.write("include<<EOF\n")
-              handle.write(payload)
-              handle.write("\nEOF\n")
-          print(payload)
-          PY
-
   e2e:
     name: E2E Tests for Web UI (${{ matrix.platform }}-${{ matrix.arch }})
-    needs: select
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -73,7 +26,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.select.outputs.include) }}
+        include:
+          - platform: win
+            arch: x64
+            runs-on: windows-latest
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
+          - platform: win
+            arch: arm64
+            runs-on: windows-11-arm
+            # CfT/setup-chrome cannot install a pinned Chrome on Windows ARM64.
+            chrome-source: runner
+            chrome-version: ''
+          - platform: linux
+            arch: x64
+            runs-on: ubuntu-latest
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
+          - platform: linux
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+            chrome-source: cft
+            # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
+            chrome-version: '153.0.8010.52'
+          - platform: mac
+            arch: arm64
+            runs-on: macos-14
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
 
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -152,20 +132,14 @@ jobs:
           set -euo pipefail
           # Same common suites as Electron e2e, on the desktop (Web UI) platform.
           # MCP and AI tool suites stay in their own workflows.
-          # E2E_SPECS limits the run to one glob when set from workflow_dispatch.
-          if [ -n "${E2E_SPECS}" ]; then
-            bun ci/run-e2e-test.ts --platform desktop --spec "${E2E_SPECS}"
-          else
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/config/*.e2e.ts"
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/movie/*.e2e.ts"
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/music/*.e2e.ts"
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/other/*.e2e.ts"
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/tv/*.e2e.ts"
-            bun ci/run-e2e-test.ts --platform desktop --spec "./common/tvdb/*.e2e.ts"
-          fi
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/config/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/movie/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/music/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/other/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tv/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tvdb/*.e2e.ts"
         env:
           BUILD_ENV: docker
-          E2E_SPECS: ${{ inputs.specs }}
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path || steps.runner-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
