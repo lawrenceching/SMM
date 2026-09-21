@@ -377,7 +377,7 @@ export async function getUserConfigPath(): Promise<string> {
 
 /**
  * Reset `smm.json` to defaults (optional partial override).
- * `TESTBED_V2`: browser `writeFile`; else host Node fs via `@smm/test`.
+ * `TESTBED_V2`: browser `getUserConfig` / `patchUserConfig`; else host Node fs via `@smm/test`.
  */
 export async function resetUserConfig(
     userConfigPath?: string,
@@ -502,9 +502,9 @@ export async function writeMediaMetadata(mediaMetadata: MediaMetadata): Promise<
 }
 
 /**
- * Read smm.json, apply {@link updateFn}, and write the result back.
+ * Read the user config, apply {@link updateFn}, and write the result back.
  * {@link updateFn} may be synchronous or return a Promise.
- * `TESTBED_V2`: browser readFile/writeFile; else host Node fs.
+ * `TESTBED_V2`: browser `getUserConfig` / `patchUserConfig`; else host Node fs.
  */
 export async function updateUserConfig(updateFn: UserConfigUpdater): Promise<void> {
     if (TESTBED_V2) {

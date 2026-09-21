@@ -2,7 +2,7 @@
  * Browser-protocol filesystem helpers for e2e setup/cleanup.
  * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
  */
-import type { UserConfig } from '@smm/types'
+import type { UserConfig, UserConfigPatchOperation } from '@smm/types'
 import { retryOnTransientHelloFetch } from './retry-transient-hello-fetch'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
 
@@ -610,13 +610,121 @@ export function buildDefaultUserConfig(initConfig?: Partial<UserConfig>): UserCo
     return initConfig ? { ...userConfig, ...initConfig } : userConfig
 }
 
+/** Known user-config keys. Unknown keys cannot be removed by the patch API. */
+const USER_CONFIG_KEY_FLAGS = {
+    applicationLanguage: true,
+    tmdb: true,
+    tvdb: true,
+    primaryDatabase: true,
+    preferMediaLanguage: true,
+    folders: true,
+    selectedFolder: true,
+    renameRules: true,
+    dryRun: true,
+    ai: true,
+    selectedAI: true,
+    aiProviders: true,
+    selectedAIProvider: true,
+    selectedTMDBIntance: true,
+    selectedRenameRule: true,
+    enableMcpServer: true,
+    mcpHost: true,
+    mcpPort: true,
+    anonymousTelemetryConsent: true,
+    ytdlpExecutablePath: true,
+    ytdlpProxy: true,
+    ffmpegExecutablePath: true,
+    videoCaptionerExecutablePath: true,
+    useBundledFfmpegForVideoCaptioner: true,
+    quickjsExecutablePath: true,
+    aiAgent: true,
+} as const satisfies { [K in keyof UserConfig]: true }
+
+function escapeJsonPointerToken(token: string): string {
+    return token.replace(/~/g, '~0').replace(/\//g, '~1')
+}
+
+function definedConfigFields(config: UserConfig): Record<string, unknown> {
+    const fields: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(config)) {
+        if (value !== undefined) {
+            fields[key] = value
+        }
+    }
+    return fields
+}
+
+/**
+ * Field-level patch that makes `current` match `desired`.
+ * Undefined desired fields are omitted, matching `JSON.stringify` of a full document write.
+ */
+export function buildUserConfigResetPatch(
+    current: UserConfig,
+    desired: UserConfig,
+): UserConfigPatchOperation[] {
+    const currentFields = definedConfigFields(current)
+    const desiredFields = definedConfigFields(desired)
+    const patch: UserConfigPatchOperation[] = []
+    for (const key of Object.keys(currentFields)) {
+        if (!Object.prototype.hasOwnProperty.call(USER_CONFIG_KEY_FLAGS, key)) {
+            continue
+        }
+        if (!Object.prototype.hasOwnProperty.call(desiredFields, key)) {
+            patch.push({ op: 'remove', path: `/${escapeJsonPointerToken(key)}` })
+        }
+    }
+    for (const [key, value] of Object.entries(desiredFields)) {
+        patch.push({ op: 'add', path: `/${escapeJsonPointerToken(key)}`, value })
+    }
+    return patch
+}
+
+async function postUserConfigApi<T>(
+    requestPath: '/api/getUserConfig' | '/api/patchUserConfig',
+    requestBody: unknown,
+): Promise<{ error: string | null; data: T | null }> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+    return await browser.execute(
+        async (token: string | undefined, path: string, body: unknown) => {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            }
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
+            }
+            const res = await fetch(path, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(body),
+            })
+            const payload = await res.json() as { data?: T; error?: string }
+            return {
+                error: payload.error ?? (res.ok ? null : `HTTP ${res.status}`),
+                data: payload.data ?? null,
+            }
+        },
+        authToken,
+        requestPath,
+        requestBody,
+    ) as unknown as { error: string | null; data: T | null }
+}
+
 export async function resetUserConfigViaBrowser(initConfig?: Partial<UserConfig>): Promise<string> {
     const { userDataDir } = await fetchHelloPathsViaBrowser()
     const userConfigPath = joinPlatformPath(userDataDir, 'smm.json')
-    const userConfig = buildDefaultUserConfig(initConfig)
-    await writeFileViaBrowser(userConfigPath, JSON.stringify(userConfig, null, 2))
+    const desired = buildDefaultUserConfig(initConfig)
+    const current = await postUserConfigApi<UserConfig>('/api/getUserConfig', {})
+    if (current.error || current.data === null) {
+        throw new Error(`resetUserConfigViaBrowser failed to read user config: ${current.error ?? 'no data'}`)
+    }
+    const patch = buildUserConfigResetPatch(current.data, desired)
+    const updated = await postUserConfigApi<UserConfig>('/api/patchUserConfig', { patch })
+    if (updated.error) {
+        throw new Error(`resetUserConfigViaBrowser failed to patch user config: ${updated.error}`)
+    }
     console.log(`Reset user config (v2): ${userConfigPath}`)
-    console.log(`[DIAG] resetUserConfig v2: wrote folders=${JSON.stringify(userConfig.folders)} to ${userConfigPath}`)
+    console.log(`[DIAG] resetUserConfig v2: patched folders=${JSON.stringify(desired.folders)} via /api/patchUserConfig`)
     return userConfigPath
 }
 
@@ -625,11 +733,19 @@ export async function updateUserConfigViaBrowser(
 ): Promise<void> {
     const { userDataDir } = await fetchHelloPathsViaBrowser()
     const userConfigPath = joinPlatformPath(userDataDir, 'smm.json')
-    const raw = await readFileViaBrowser(userConfigPath)
-    const current = JSON.parse(raw) as UserConfig
+    const loaded = await postUserConfigApi<UserConfig>('/api/getUserConfig', {})
+    if (loaded.error || loaded.data === null) {
+        throw new Error(`updateUserConfigViaBrowser failed to read user config: ${loaded.error ?? 'no data'}`)
+    }
+    const current = loaded.data
+    const before = structuredClone(current)
     const next = await Promise.resolve(updateFn(current))
-    const toWrite = next ?? current
-    await writeFileViaBrowser(userConfigPath, JSON.stringify(toWrite, null, 2))
+    const desired = next ?? current
+    const patch = buildUserConfigResetPatch(before, desired)
+    const updated = await postUserConfigApi<UserConfig>('/api/patchUserConfig', { patch })
+    if (updated.error) {
+        throw new Error(`updateUserConfigViaBrowser failed to patch user config: ${updated.error}`)
+    }
     console.log(`Updated user config (v2): ${userConfigPath}`)
-    console.log(`[DIAG] updateUserConfig v2: wrote folders=${JSON.stringify(toWrite.folders)} to ${userConfigPath}`)
+    console.log(`[DIAG] updateUserConfig v2: patched folders=${JSON.stringify(desired.folders)} via /api/patchUserConfig`)
 }
