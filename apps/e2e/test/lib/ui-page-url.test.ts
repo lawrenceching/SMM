@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import {
   DEFAULT_DOCKER_UI_ORIGIN,
+  DEFAULT_WEB_UI_ORIGIN,
   HARMONYOS_UI_ORIGIN,
   resolveDockerUiOrigin,
   resolveUiPageUrl,
+  resolveWebUiOrigin,
 } from './ui-page-url.ts';
 import { resolveHttpProxyProbeUrl } from './httpProxyServer.ts';
 
@@ -12,6 +14,7 @@ function withEnv(
     SMM_AUTH_TOKEN?: string | undefined;
     E2E_PLATFORM?: string | undefined;
     E2E_DOCKER_UI_ORIGIN?: string | undefined;
+    E2E_WEB_UI_ORIGIN?: string | undefined;
     E2E_HTTP_PROXY_PROBE_URL?: string | undefined;
     UI_PORT?: string | undefined;
   },
@@ -20,6 +23,7 @@ function withEnv(
   const prevToken = process.env.SMM_AUTH_TOKEN;
   const prevPlatform = process.env.E2E_PLATFORM;
   const prevOrigin = process.env.E2E_DOCKER_UI_ORIGIN;
+  const prevWebOrigin = process.env.E2E_WEB_UI_ORIGIN;
   const prevProbe = process.env.E2E_HTTP_PROXY_PROBE_URL;
   const prevUiPort = process.env.UI_PORT;
 
@@ -34,6 +38,10 @@ function withEnv(
   if ('E2E_DOCKER_UI_ORIGIN' in overrides) {
     if (overrides.E2E_DOCKER_UI_ORIGIN === undefined) delete process.env.E2E_DOCKER_UI_ORIGIN;
     else process.env.E2E_DOCKER_UI_ORIGIN = overrides.E2E_DOCKER_UI_ORIGIN;
+  }
+  if ('E2E_WEB_UI_ORIGIN' in overrides) {
+    if (overrides.E2E_WEB_UI_ORIGIN === undefined) delete process.env.E2E_WEB_UI_ORIGIN;
+    else process.env.E2E_WEB_UI_ORIGIN = overrides.E2E_WEB_UI_ORIGIN;
   }
   if ('E2E_HTTP_PROXY_PROBE_URL' in overrides) {
     if (overrides.E2E_HTTP_PROXY_PROBE_URL === undefined) {
@@ -56,6 +64,8 @@ function withEnv(
     else process.env.E2E_PLATFORM = prevPlatform;
     if (prevOrigin === undefined) delete process.env.E2E_DOCKER_UI_ORIGIN;
     else process.env.E2E_DOCKER_UI_ORIGIN = prevOrigin;
+    if (prevWebOrigin === undefined) delete process.env.E2E_WEB_UI_ORIGIN;
+    else process.env.E2E_WEB_UI_ORIGIN = prevWebOrigin;
     if (prevProbe === undefined) delete process.env.E2E_HTTP_PROXY_PROBE_URL;
     else process.env.E2E_HTTP_PROXY_PROBE_URL = prevProbe;
     if (prevUiPort === undefined) delete process.env.UI_PORT;
@@ -115,6 +125,33 @@ describe('resolveUiPageUrl', () => {
       { SMM_AUTH_TOKEN: 'ChangeMe123', E2E_PLATFORM: 'docker', E2E_DOCKER_UI_ORIGIN: undefined },
       () => {
         expect(resolveUiPageUrl()).toBe(`${DEFAULT_DOCKER_UI_ORIGIN}?token=ChangeMe123`);
+      },
+    );
+  });
+
+  test('web platform uses localhost:30000 when os is general', () => {
+    withEnv({ SMM_AUTH_TOKEN: undefined, E2E_PLATFORM: 'web', E2E_WEB_UI_ORIGIN: undefined }, () => {
+      expect(resolveUiPageUrl()).toBe(DEFAULT_WEB_UI_ORIGIN);
+      expect(resolveUiPageUrl(undefined, 'general')).toBe(DEFAULT_WEB_UI_ORIGIN);
+    });
+  });
+
+  test('web platform appends token', () => {
+    withEnv({ SMM_AUTH_TOKEN: 'ChangeMe123', E2E_PLATFORM: 'web' }, () => {
+      expect(resolveUiPageUrl()).toBe(`${DEFAULT_WEB_UI_ORIGIN}?token=ChangeMe123`);
+    });
+  });
+
+  test('E2E_WEB_UI_ORIGIN overrides default web origin', () => {
+    withEnv(
+      {
+        SMM_AUTH_TOKEN: undefined,
+        E2E_PLATFORM: 'web',
+        E2E_WEB_UI_ORIGIN: 'http://127.0.0.1:30000',
+      },
+      () => {
+        expect(resolveWebUiOrigin()).toBe('http://127.0.0.1:30000/');
+        expect(resolveUiPageUrl()).toBe('http://127.0.0.1:30000/');
       },
     );
   });

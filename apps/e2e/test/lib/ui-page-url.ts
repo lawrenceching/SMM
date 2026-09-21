@@ -17,6 +17,8 @@ export const HARMONYOS_UI_ORIGIN = 'http://127.0.0.1:18081/'
 /** Default docker UI origin (host-mapped port 30000). Override with `E2E_DOCKER_UI_ORIGIN`. */
 export const DEFAULT_DOCKER_UI_ORIGIN = 'http://localhost:30000/'
 
+/** Default web UI origin (compiled CLI static server on port 30000). Override with `E2E_WEB_UI_ORIGIN`. */
+export const DEFAULT_WEB_UI_ORIGIN = 'http://localhost:30000/'
 
 /**
  * Docker UI origin for Host Runner WDIO / wait-ready.
@@ -26,6 +28,18 @@ export function resolveDockerUiOrigin(): string {
   const fromEnv = process.env.E2E_DOCKER_UI_ORIGIN?.trim()
   if (!fromEnv) {
     return DEFAULT_DOCKER_UI_ORIGIN
+  }
+  return fromEnv.endsWith('/') ? fromEnv : `${fromEnv}/`
+}
+
+/**
+ * Web UI origin for `E2E_PLATFORM=web`.
+ * `E2E_WEB_UI_ORIGIN` wins when set (trailing slash normalized).
+ */
+export function resolveWebUiOrigin(): string {
+  const fromEnv = process.env.E2E_WEB_UI_ORIGIN?.trim()
+  if (!fromEnv) {
+    return DEFAULT_WEB_UI_ORIGIN
   }
   return fromEnv.endsWith('/') ? fromEnv : `${fromEnv}/`
 }
@@ -82,6 +96,9 @@ function defaultBaseUrlForOs(os: TestbedOs): string {
   }
   if (process.env.E2E_PLATFORM === 'docker') {
     return resolveDockerUiOrigin()
+  }
+  if (process.env.E2E_PLATFORM === 'web') {
+    return resolveWebUiOrigin()
   }
   return `http://localhost:${readUiDevServerPort()}`
 }
