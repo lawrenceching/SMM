@@ -5,6 +5,9 @@ name: E2E Tests for Web UI
 # Runs apps/e2e/common suites via bun ci/run-e2e-test.ts --platform desktop.
 # common/manual stays on-demand. AI tool and MCP tool suites have their own workflows.
 # No unit tests, and not a CI or release gate.
+#
+# Chrome on win-arm64: Chrome for Testing has no win-arm64 builds, so that matrix
+# entry uses the Google Chrome preinstalled on windows-11-arm (scheme A).
 
 on:
   workflow_dispatch:
@@ -27,18 +30,30 @@ jobs:
           - platform: win
             arch: x64
             runs-on: windows-latest
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
           - platform: win
             arch: arm64
             runs-on: windows-11-arm
+            # CfT/setup-chrome cannot install a pinned Chrome on Windows ARM64.
+            chrome-source: runner
+            chrome-version: ''
           - platform: linux
             arch: x64
             runs-on: ubuntu-latest
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
           - platform: linux
             arch: arm64
             runs-on: ubuntu-24.04-arm
+            chrome-source: cft
+            # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
+            chrome-version: '153.0.8010.52'
           - platform: mac
             arch: arm64
             runs-on: macos-14
+            chrome-source: cft
+            chrome-version: '146.0.7680.153'
 
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -83,13 +98,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
-      - name: Setup Chrome
+      - name: Setup Chrome (Chrome for Testing)
         id: setup-chrome
+        if: matrix.chrome-source == 'cft'
         uses: browser-actions/setup-chrome@v2
         with:
-          chrome-version: '146.0.7680.153'
+          chrome-version: ${{ matrix.chrome-version }}
+          # install-dependencies is Linux-only in setup-chrome; keep true for apt deps.
           install-dependencies: true
           install-chromedriver: true
+
+      - name: Use runner Chrome (Windows ARM64)
+        id: runner-chrome
+        if: matrix.chrome-source == 'runner'
+        run: |
+          set -euo pipefail
+          # windows-11-arm ships Google Chrome (ARM64). Chrome for Testing does not.
+          chrome='C:/Program Files/Google/Chrome/Application/chrome.exe'
+          if [ ! -f "${chrome}" ]; then
+            echo "::error::Preinstalled Google Chrome not found at ${chrome}"
+            ls -la 'C:/Program Files/Google/Chrome/Application/' 2>/dev/null || true
+            exit 1
+          fi
+          ver="$(powershell.exe -NoProfile -Command "(Get-Item -LiteralPath '${chrome}').VersionInfo.ProductVersion" | tr -d '\r')"
+          echo "Using runner Chrome ${ver}"
+          echo "chrome-path=${chrome}" >> "${GITHUB_OUTPUT}"
+          # Leave chromedriver unset: WDIO/Selenium Manager resolves a driver
+          # matching this Chrome (CfT has no win-arm64 chromedriver package).
 
       - name: Run Web UI e2e
         id: e2e
@@ -105,7 +140,7 @@ jobs:
           bun ci/run-e2e-test.ts --platform desktop --spec "./common/tvdb/*.e2e.ts"
         env:
           BUILD_ENV: docker
-          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path || steps.runner-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 
       - name: Scan e2e logs for secret leaks
