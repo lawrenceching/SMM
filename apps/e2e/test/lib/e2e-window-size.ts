@@ -53,6 +53,9 @@ export function shouldFitE2eWindowToScreen(): boolean {
   if (process.env.BUILD_ENV === 'docker') {
     return false
   }
+  if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'web') {
+    return false
+  }
   if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'electron') {
     return false
   }

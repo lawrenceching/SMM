@@ -1,9 +1,9 @@
 name: E2E Tests for Web UI
 
-# Manual-only e2e against Web UI (apps/ui + apps/cli as HTTP server).
+# Manual-only e2e against built Web UI (CLI serves static UI from apps/ui build).
 # Same five OS/arch runners as "E2E Tests for Electron".
-# Runs apps/e2e/common suites via bun ci/run-e2e-test.ts --platform desktop.
-# common/manual stays on-demand. AI tool and MCP tool suites have their own workflows.
+# Builds cli+ui, then runs apps/e2e/common suites via bun ci/run-e2e-test.ts --platform web.
+# Not Vite dev server. common/manual stays on-demand. AI tool and MCP tool suites have their own workflows.
 # No unit tests, and not a CI or release gate.
 #
 # Chrome on win-arm64: Chrome for Testing has no win-arm64 builds, so that matrix
@@ -126,20 +126,23 @@ jobs:
           # Leave chromedriver unset: WDIO/Selenium Manager resolves a driver
           # matching this Chrome (CfT has no win-arm64 chromedriver package).
 
+      - name: Build CLI
+        run: pnpm --filter cli run build
+
+      - name: Build UI
+        run: pnpm --filter ui run build
+
       - name: Run Web UI e2e
         id: e2e
         run: |
           set -euo pipefail
-          # Same common suites as Electron e2e, on the desktop (Web UI) platform.
-          # MCP and AI tool suites stay in their own workflows.
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/config/*.e2e.ts"
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/movie/*.e2e.ts"
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/music/*.e2e.ts"
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/other/*.e2e.ts"
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tv/*.e2e.ts"
-          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tvdb/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/config/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/movie/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/music/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/other/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/tv/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform web --spec "./common/tvdb/*.e2e.ts"
         env:
-          BUILD_ENV: docker
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path || steps.runner-chrome.outputs.chrome-path }}
           CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
 

@@ -73,6 +73,12 @@ describe('shouldFitE2eWindowToScreen', () => {
     expect(shouldFitE2eWindowToScreen()).toBe(false);
   });
 
+  test('keeps 1920x1080 on Web CI so a small runner desktop cannot clamp target', () => {
+    process.env.CI = 'true';
+    process.env.E2E_PLATFORM = 'web';
+    expect(shouldFitE2eWindowToScreen()).toBe(false);
+  });
+
   test('still fits locally and on non-Electron CI', () => {
     process.env.E2E_PLATFORM = 'electron';
     expect(shouldFitE2eWindowToScreen()).toBe(true);
