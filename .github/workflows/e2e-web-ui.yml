@@ -42,8 +42,10 @@ jobs:
           import json, os
           rows = [
               {"platform": "win", "arch": "x64", "runs-on": "windows-latest", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
+              # Chrome for Testing has no win-arm64 build; use the runner's Chrome.
               {"platform": "win", "arch": "arm64", "runs-on": "windows-11-arm", "chrome-source": "runner", "chrome-version": ""},
               {"platform": "linux", "arch": "x64", "runs-on": "ubuntu-latest", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
+              # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
               {"platform": "linux", "arch": "arm64", "runs-on": "ubuntu-24.04-arm", "chrome-source": "cft", "chrome-version": "153.0.8010.52"},
               {"platform": "mac", "arch": "arm64", "runs-on": "macos-14", "chrome-source": "cft", "chrome-version": "146.0.7680.153"},
           ]
