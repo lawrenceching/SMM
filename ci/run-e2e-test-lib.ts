@@ -10,7 +10,7 @@ export const E2E_ROOT = path.join(ROOT, 'apps/e2e');
 export const CONFIG_REL_PATH = 'artifacts/e2e/config.json';
 export const CONFIG_PATH = path.join(ROOT, CONFIG_REL_PATH);
 
-export type Platform = 'desktop' | 'ohos' | 'electron' | 'docker';
+export type Platform = 'desktop' | 'ohos' | 'electron' | 'docker' | 'web';
 
 export type ParsedArgs = {
   platform: Platform;
@@ -32,9 +32,9 @@ export type CicdConfig = {
 };
 
 export const USAGE =
-  'Usage: bun ci/run-e2e-test.ts [--platform desktop|ohos|electron|docker] [--spec <glob-or-file> ...]';
+  'Usage: bun ci/run-e2e-test.ts [--platform desktop|ohos|electron|docker|web] [--spec <glob-or-file> ...]';
 
-const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker']);
+const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker', 'web']);
 
 /** Port env keys from repo `.env.local` (see `# --- Ports ---` section). */
 export const E2E_PORT_ENV_KEYS = ['UI_PORT', 'CLI_PORT', 'PORT'] as const;
@@ -57,7 +57,7 @@ export function assignE2eLocalPortEnv(env: Record<string, string>): void {
 function parsePlatform(value: string): Platform {
   if (!PLATFORMS.has(value as Platform)) {
     throw new Error(
-      `Invalid --platform ${value} (expected desktop|ohos|electron|docker)\n${USAGE}`,
+      `Invalid --platform ${value} (expected desktop|ohos|electron|docker|web)\n${USAGE}`,
     );
   }
   return value as Platform;
@@ -146,7 +146,7 @@ export function assertSpecsMatchPlatform(platform: Platform, specs: string[]): v
     return;
   }
 
-  // desktop + docker: reject platform-exclusive ohos/electron specs
+  // desktop + docker + web: reject platform-exclusive ohos/electron specs
   const exclusive = specs.filter((s) => isOhosSpec(s) || isElectronSpec(s));
   if (exclusive.length > 0) {
     throw new Error(
@@ -159,6 +159,9 @@ export function requireSpecsForPlatform(platform: Platform, patterns: string[]):
   if (platform === 'docker' && patterns.length === 0) {
     throw new Error(`--platform docker requires at least one --spec\n${USAGE}`);
   }
+  if (platform === 'web' && patterns.length === 0) {
+    throw new Error(`--platform web requires at least one --spec\n${USAGE}`);
+  }
 }
 
 export function defaultPatternsForPlatform(platform: Platform): string[] {
@@ -166,6 +169,9 @@ export function defaultPatternsForPlatform(platform: Platform): string[] {
   if (platform === 'electron') return ['electron/**/*.e2e.ts'];
   if (platform === 'docker') {
     throw new Error(`--platform docker requires at least one --spec\n${USAGE}`);
+  }
+  if (platform === 'web') {
+    throw new Error(`--platform web requires at least one --spec\n${USAGE}`);
   }
   return ['test/specs/**/*.ts', 'common/**/*.e2e.ts'];
 }
@@ -329,6 +335,66 @@ export function dockerHttpProxyEnvForContainer(envKey: 'TMDB_HTTP_PROXY' | 'TVDB
   return raw;
 }
 
+function resolveWebCliCommand(): string {
+  const binName = process.platform === 'win32' ? 'cli.exe' : 'cli';
+  const cliBin = path.join(ROOT, 'apps', 'cli', 'dist', binName);
+  const staticDir = path.join(ROOT, 'apps', 'ui', 'dist');
+  return `"${cliBin}" --staticDir "${staticDir}" --port 30000`;
+}
+
+/**
+ * Built cli + static ui dist on fixed port 30000 (no Vite dev server).
+ * Requires explicit --spec (no default suite).
+ */
+export function buildWebConfig(specs: string[]): CicdConfig {
+  const env: Record<string, string> = {
+    E2E_PLATFORM: 'web',
+    BROWSER_LOG_ENABLED: 'true',
+    NETWORK_LOG_ENABLED: 'true',
+    SMM_AUTH_ENABLED: 'true',
+    SMM_AUTH_TOKEN: process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123',
+  };
+  if (process.env.EXTERNAL_CONFIG_FILE_URL) {
+    env.EXTERNAL_CONFIG_FILE_URL = process.env.EXTERNAL_CONFIG_FILE_URL;
+  }
+  if (process.env.E2E_WEB_UI_ORIGIN?.trim()) {
+    env.E2E_WEB_UI_ORIGIN = process.env.E2E_WEB_UI_ORIGIN.trim();
+  }
+  if (process.env.TMDB_API_KEY?.trim()) env.TMDB_API_KEY = process.env.TMDB_API_KEY.trim();
+  if (process.env.TVDB_API_KEY?.trim()) env.TVDB_API_KEY = process.env.TVDB_API_KEY.trim();
+
+  return {
+    name: 'smm-e2e-web',
+    outputDir: './artifacts/cicd',
+    env,
+    background: [
+      {
+        name: 'cli',
+        command: resolveWebCliCommand(),
+        cwd: ROOT,
+      },
+    ],
+    tasks: [
+      { name: 'wait-ready', command: 'bun ci/wait-for-web-e2e-ready.ts', cwd: ROOT },
+      ...specs.map((spec) => ({
+        name: path.posix.basename(spec),
+        command: `pnpm wdio --spec ./${normalizeSpecPath(spec)}`,
+        cwd: E2E_ROOT,
+      })),
+    ],
+    afterEach: [
+      {
+        name: 'collect-wdio-report',
+        command: 'bun ci/collect-wdio-report.ts',
+        cwd: ROOT,
+      },
+    ],
+    stopOnFailure: false,
+    keepRawTimeline: true,
+    taskTimeout: 30 * 60 * 1000,
+  };
+}
+
 export function buildDockerConfig(specs: string[]): CicdConfig {
   const env: Record<string, string> = {
     E2E_PLATFORM: 'docker',
@@ -403,5 +469,6 @@ export function buildConfig(platform: Platform, specs: string[]): CicdConfig {
   if (platform === 'ohos') return buildOhosConfig(specs);
   if (platform === 'electron') return buildElectronConfig(specs);
   if (platform === 'docker') return buildDockerConfig(specs);
+  if (platform === 'web') return buildWebConfig(specs);
   return buildDesktopConfig(specs);
 }

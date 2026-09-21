@@ -7,6 +7,7 @@
  *   bun ci/run-e2e-test.ts --platform ohos --spec ./common/tv/TVShow-Import.e2e.ts
  *   bun ci/run-e2e-test.ts --platform electron --spec ./common/tv/TVShow-Import.e2e.ts
  *   bun ci/run-e2e-test.ts --platform docker --spec ./common/movie/SearchMovie.e2e.ts
+ *   bun ci/run-e2e-test.ts --platform web --spec ./common/config/ConfigDialog-Settings.e2e.ts
  *
  * Config: artifacts/e2e/config.json
  * Logs and run summary: apps/cicd/run.ts

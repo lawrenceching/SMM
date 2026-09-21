@@ -150,3 +150,58 @@ describe('run-e2e-test docker platform', () => {
     }
   });
 });
+
+describe('run-e2e-test web platform', () => {
+  test('parseArgv accepts --platform web with --spec', () => {
+    const parsed = parseArgv([
+      '--platform',
+      'web',
+      '--spec',
+      './common/config/ConfigDialog-Settings.e2e.ts',
+    ]);
+    expect(parsed.platform).toBe('web');
+  });
+
+  test('web without --spec is rejected by requireSpecsForPlatform', () => {
+    const { platform, patterns } = parseArgv(['--platform', 'web']);
+    expect(() => requireSpecsForPlatform(platform, patterns)).toThrow(/web requires/);
+  });
+
+  test('assertSpecsMatchPlatform rejects ohos specs on web', () => {
+    expect(() => assertSpecsMatchPlatform('web', ['ohos/layout.e2e.ts'])).toThrow(
+      /ohos|platform-specific/,
+    );
+  });
+
+  test('buildConfig web uses cli --staticDir background and no Vite', () => {
+    const config = buildConfig('web', ['common/config/ConfigDialog-Settings.e2e.ts']);
+    expect(config.name).toBe('smm-e2e-web');
+    expect(config.env.E2E_PLATFORM).toBe('web');
+    expect(config.env.SMM_AUTH_ENABLED).toBe('true');
+    expect(config.env.BROWSER_LOG_ENABLED).toBe('true');
+    expect(config.env.NETWORK_LOG_ENABLED).toBe('true');
+    expect(config.background).toHaveLength(1);
+    expect(config.background[0]!.name).toBe('cli');
+    expect(config.background[0]!.command).toContain('--staticDir');
+    expect(config.background[0]!.command).toContain('--port 30000');
+    expect(config.background[0]!.command).not.toContain('dev:ui');
+    expect(config.background.some((b) => b.command.includes('dev:ui'))).toBe(false);
+    expect(config.tasks[0]!.command).toContain('wait-for-web-e2e-ready');
+    expect(
+      config.tasks.some((t) => t.command.includes('pnpm wdio') && !t.command.includes('wdio:docker')),
+    ).toBe(true);
+    expect(config.afterEach[0]!.command).toContain('collect-wdio-report');
+  });
+
+  test('buildConfig web forwards E2E_WEB_UI_ORIGIN', () => {
+    const prev = process.env.E2E_WEB_UI_ORIGIN;
+    process.env.E2E_WEB_UI_ORIGIN = 'http://127.0.0.1:30000/';
+    try {
+      const config = buildConfig('web', ['common/config/ConfigDialog-Settings.e2e.ts']);
+      expect(config.env.E2E_WEB_UI_ORIGIN).toBe('http://127.0.0.1:30000/');
+    } finally {
+      if (prev === undefined) delete process.env.E2E_WEB_UI_ORIGIN;
+      else process.env.E2E_WEB_UI_ORIGIN = prev;
+    }
+  });
+});
