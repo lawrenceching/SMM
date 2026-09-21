@@ -71,15 +71,22 @@ flowchart TD
 sequenceDiagram
   participant Browser
   participant CLI
-  participant Core
-  participant Fs as FsPort
+  participant CoreRoutes as core-routes
+  participant Fs as smm.json
 
-  Browser->>CLI: read/write user config hooks
-  CLI->>Core: getUserConfig / setUserConfig
-  Core->>Fs: smm.json
-  Core-->>CLI: UserConfig
-  CLI-->>Browser: { data } / { error }
+  Browser->>CLI: POST /api/getUserConfig
+  CLI->>CoreRoutes: doGetUserConfig()
+  CoreRoutes->>Fs: read
+  CoreRoutes-->>Browser: { data: UserConfig }
+
+  Browser->>CLI: POST /api/patchUserConfig
+  Note over Browser: JSON Patch ops, field paths only
+  CLI->>CoreRoutes: doPatchUserConfig(patch)
+  CoreRoutes->>Fs: apply patch, validate, write
+  CoreRoutes-->>Browser: { data: UserConfig }
 ```
+
+`readFile` and `writeFile` reject `smm.json`. User config is only read through `POST /api/getUserConfig` and updated through `POST /api/patchUserConfig` (RFC 6902 `add`, `remove`, `replace` on known fields). HarmonyOS uses the same handlers on the core-routes HTTP server.
 
 ## References
 

@@ -1,7 +1,6 @@
 import { type UserConfig, RenameRules, type HelloResponseBody } from "@smm/types";
 import { hello } from "@/api/hello";
-import { readFile } from "@/api/readFile";
-import { join } from "@/lib/path";
+import { fetchUserConfig } from "@/api/userConfigHttp";
 import { migrateAIConfig } from "@smm/core/configMigration";
 
 export const defaultUserConfig: UserConfig = {
@@ -49,14 +48,9 @@ export function normalizeUserConfig(raw: Partial<UserConfig>): UserConfig {
   }
 }
 
-export async function readUserConfigFromUserDataDir(userDataDir: string): Promise<UserConfig> {
-  const filePath = join(userDataDir, "smm.json")
-  const resp = await readFile(filePath)
-  if (!resp.data) {
-    return defaultUserConfig
-  }
-  const raw = JSON.parse(resp.data) as Partial<UserConfig>
-  migrateAIConfig(raw as Record<string, unknown>)
+export async function readUserConfigFromUserDataDir(_userDataDir: string): Promise<UserConfig> {
+  const raw = await fetchUserConfig()
+  migrateAIConfig(raw as unknown as Record<string, unknown>)
   return normalizeUserConfig(raw)
 }
 

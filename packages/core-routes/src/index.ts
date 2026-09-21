@@ -72,6 +72,7 @@ export {
 } from "./isFolderAvailable.ts";
 export { doListFiles } from "./listFiles.ts";
 export { doWriteFile, isError, ExistedFileError } from "./writeFile.ts";
+export { doGetUserConfig, doPatchUserConfig } from "./userConfigApi.ts";
 export {
   checkFileIsReadable,
   doReadFile,
@@ -165,6 +166,8 @@ export {
   handleGetPlansPost,
   handleCreatePlanPost,
   handleUpdatePlanPost,
+  handleGetUserConfigPost,
+  handlePatchUserConfigPost,
 } from "./register.ts";
 export type {
   SocketIOCorsConfig,

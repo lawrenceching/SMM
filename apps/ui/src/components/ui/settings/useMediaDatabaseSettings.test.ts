@@ -306,12 +306,14 @@ describe("useMediaDatabaseSettings", () => {
       expect(mockMutateAsync).toHaveBeenCalledOnce();
       const callArg = mockMutateAsync.mock.calls[0][0];
       expect(callArg.traceId).toBe("MediaDatabasesSettings-test-trace-id");
-      expect(callArg.config.tmdb.host).toBe("https://new.example.com");
-      expect(callArg.config.tmdb.apiKey).toBe("new-key");
-      expect(callArg.config.tvdb.httpProxy).toBe("http://proxy:8080");
+      const tmdb = callArg.patch.find((operation: { path: string }) => operation.path === "/tmdb");
+      const tvdb = callArg.patch.find((operation: { path: string }) => operation.path === "/tvdb");
+      expect(tmdb.value.host).toBe("https://new.example.com");
+      expect(tmdb.value.apiKey).toBe("new-key");
+      expect(tvdb.value.httpProxy).toBe("http://proxy:8080");
     });
 
-    it("preserves existing config fields in updated config", async () => {
+    it("does not include unrelated config fields in the patch", async () => {
       setupMocks({
         userConfig: {
           applicationLanguage: "en",
@@ -326,7 +328,7 @@ describe("useMediaDatabaseSettings", () => {
       });
 
       const callArg = mockMutateAsync.mock.calls[0][0];
-      expect(callArg.config.applicationLanguage).toBe("en");
+      expect(callArg.patch).toEqual([]);
     });
 
     it("does not call mutateAsync when hasUrlErrors is true", async () => {
@@ -362,13 +364,18 @@ describe("useMediaDatabaseSettings", () => {
         await result.current.onSave();
       });
 
-      const config = mockMutateAsync.mock.calls[0][0].config;
-      expect(config.tmdb.host).toBeUndefined();
-      expect(config.tmdb.apiKey).toBeUndefined();
-      expect(config.tmdb.httpProxy).toBeUndefined();
-      expect(config.tvdb.host).toBeUndefined();
-      expect(config.tvdb.apiKey).toBeUndefined();
-      expect(config.tvdb.httpProxy).toBeUndefined();
+      const tmdb = mockMutateAsync.mock.calls[0][0].patch.find(
+        (operation: { path: string }) => operation.path === "/tmdb",
+      ).value;
+      const tvdb = mockMutateAsync.mock.calls[0][0].patch.find(
+        (operation: { path: string }) => operation.path === "/tvdb",
+      ).value;
+      expect(tmdb.host).toBeUndefined();
+      expect(tmdb.apiKey).toBeUndefined();
+      expect(tmdb.httpProxy).toBeUndefined();
+      expect(tvdb.host).toBeUndefined();
+      expect(tvdb.apiKey).toBeUndefined();
+      expect(tvdb.httpProxy).toBeUndefined();
     });
   });
 

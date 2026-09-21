@@ -12,8 +12,19 @@ import { useAddMediaFolderMutation } from "./useAddMediaFolderMutation"
 const USER_DATA_DIR = "/tmp/smm-user-data"
 const NEW_FOLDER = "/media/new"
 
-vi.mock("@/api/writeFile", () => ({
-  writeFile: vi.fn().mockResolvedValue({ data: true, error: null }),
+const patchUserConfigRequest = vi.hoisted(() =>
+  vi.fn(async (patch: Array<{ value?: unknown }>) => ({
+    folders: typeof patch[0]?.value === "string" ? [patch[0].value] : [],
+    tmdb: {},
+    tvdb: {},
+    renameRules: [],
+    dryRun: false,
+    selectedRenameRule: "plex",
+  })),
+)
+
+vi.mock("@/api/userConfigHttp", () => ({
+  patchUserConfigRequest,
 }))
 
 function createWrapper(queryClient: QueryClient) {
@@ -57,6 +68,10 @@ describe("useAddMediaFolderMutation", () => {
       await result.current.mutateAsync({ traceId: "t1", folder: NEW_FOLDER })
     })
 
+    expect(patchUserConfigRequest).toHaveBeenCalledWith(
+      [{ op: "add", path: "/folders/-", value: NEW_FOLDER }],
+      "t1",
+    )
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: foldersQueryKey })
   })
 
@@ -72,6 +87,7 @@ describe("useAddMediaFolderMutation", () => {
       await result.current.mutateAsync({ traceId: "t1", folder: NEW_FOLDER })
     })
 
+    expect(patchUserConfigRequest).not.toHaveBeenCalled()
     expect(invalidateSpy).not.toHaveBeenCalled()
   })
 })

@@ -1,13 +1,13 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { AI_AGENT_PERMISSIONS, type UserConfig } from '@smm/types'
 import { defaultUserConfig, normalizeUserConfig, readUserConfigFromUserDataDir } from './readUserConfig'
-import { readFile } from './readFile'
+import { fetchUserConfig } from './userConfigHttp'
 
-vi.mock('./readFile', () => ({
-  readFile: vi.fn(),
+vi.mock('./userConfigHttp', () => ({
+  fetchUserConfig: vi.fn(),
 }))
 
-const mockReadFile = vi.mocked(readFile)
+const mockFetchUserConfig = vi.mocked(fetchUserConfig)
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -79,8 +79,8 @@ describe('normalizeUserConfig', () => {
 })
 
 describe('readUserConfigFromUserDataDir', () => {
-  it('returns defaultUserConfig when smm.json is missing', async () => {
-    mockReadFile.mockResolvedValue({ data: undefined, error: undefined })
+  it('returns defaultUserConfig when the server returns an empty document', async () => {
+    mockFetchUserConfig.mockResolvedValue({} as UserConfig)
 
     const config = await readUserConfigFromUserDataDir('/tmp/smm-data')
 
@@ -88,14 +88,15 @@ describe('readUserConfigFromUserDataDir', () => {
   })
 
   it('normalizes persisted config missing tvdb', async () => {
-    mockReadFile.mockResolvedValue({
-      data: JSON.stringify({
-        applicationLanguage: 'en',
-        tmdb: {},
-        folders: [],
-        preferMediaLanguage: 'zh-CN',
-      }),
-      error: undefined,
+    mockFetchUserConfig.mockResolvedValue({
+      applicationLanguage: 'en',
+      tmdb: {},
+      tvdb: {},
+      folders: [],
+      renameRules: [],
+      dryRun: false,
+      selectedRenameRule: 'plex',
+      preferMediaLanguage: 'zh-CN',
     })
 
     const config = await readUserConfigFromUserDataDir('/tmp/smm-data')

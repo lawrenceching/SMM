@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react"
 import { useConfig } from "@/hooks/userConfig"
 import { useSaveUserConfigMutation } from "@/hooks/userConfig"
 import { nextTraceId } from "@/lib/utils"
-import type { PrimaryDatabase } from "@smm/types"
+import type { PrimaryDatabase, UserConfigPatchOperation } from "@smm/types"
 
 function isValidUrl(value: string): boolean {
   if (!value.trim()) return true
@@ -113,24 +113,47 @@ export function useMediaDatabaseSettings(): MediaDatabasesSettingsProps {
     const traceId = `MediaDatabasesSettings-${nextTraceId()}`
     console.log(`[${traceId}] MediaDatabasesSettings: Saving media databases settings`)
 
-    const updatedConfig = {
-      ...userConfig,
-      tmdb: {
-        ...userConfig.tmdb,
-        host: tmdbHost || undefined,
-        apiKey: tmdbApiKey || undefined,
-        httpProxy: tmdbProxy || undefined,
-      },
-      tvdb: {
-        ...userConfig.tvdb,
-        host: tvdbHost || undefined,
-        apiKey: tvdbApiKey || undefined,
-        httpProxy: tvdbProxy || undefined,
-      },
-      primaryDatabase,
+    const tmdb = {
+      host: tmdbHost || undefined,
+      apiKey: tmdbApiKey || undefined,
+      httpProxy: tmdbProxy || undefined,
     }
-    await saveMutation.mutateAsync({ traceId, config: updatedConfig })
-  }, [userConfig, tmdbHost, tmdbApiKey, tmdbProxy, tvdbHost, tvdbApiKey, tvdbProxy, primaryDatabase, saveMutation, hasUrlErrors])
+    const tvdb = {
+      host: tvdbHost || undefined,
+      apiKey: tvdbApiKey || undefined,
+      httpProxy: tvdbProxy || undefined,
+    }
+    const patch: UserConfigPatchOperation[] = []
+    if (
+      tmdb.host !== (initialValues.tmdbHost || undefined) ||
+      tmdb.apiKey !== (initialValues.tmdbApiKey || undefined) ||
+      tmdb.httpProxy !== (initialValues.tmdbProxy || undefined)
+    ) {
+      patch.push({ op: "add", path: "/tmdb", value: tmdb })
+    }
+    if (
+      tvdb.host !== (initialValues.tvdbHost || undefined) ||
+      tvdb.apiKey !== (initialValues.tvdbApiKey || undefined) ||
+      tvdb.httpProxy !== (initialValues.tvdbProxy || undefined)
+    ) {
+      patch.push({ op: "add", path: "/tvdb", value: tvdb })
+    }
+    if (primaryDatabase !== initialValues.primaryDatabase) {
+      patch.push({ op: "add", path: "/primaryDatabase", value: primaryDatabase })
+    }
+    await saveMutation.mutateAsync({ traceId, patch })
+  }, [
+    initialValues,
+    tmdbHost,
+    tmdbApiKey,
+    tmdbProxy,
+    tvdbHost,
+    tvdbApiKey,
+    tvdbProxy,
+    primaryDatabase,
+    saveMutation,
+    hasUrlErrors,
+  ])
 
   const onReset = useCallback(() => {
     setTmdbHost(initialValues.tmdbHost)

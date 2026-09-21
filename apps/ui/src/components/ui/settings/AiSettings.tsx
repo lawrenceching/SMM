@@ -18,7 +18,7 @@ interface CheckState {
 }
 
 export function AiSettings() {
-  const { userConfig, setAndSaveUserConfig, appConfig } = useConfig()
+  const { userConfig, patchUserConfig, appConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
 
   const initialProviders: OpenAICompatibleConfig[] = useMemo(() => {
@@ -180,11 +180,10 @@ export function AiSettings() {
       setValidationErrors(errors)
       return
     }
-    setAndSaveUserConfig(traceId, {
-      ...userConfig,
-      aiProviders: providers,
-      selectedAIProvider: activeProviderName,
-    })
+    patchUserConfig(traceId, [
+      { op: "add", path: "/aiProviders", value: providers },
+      { op: "add", path: "/selectedAIProvider", value: activeProviderName },
+    ])
   }
 
   const canDelete = providers.length > 1

@@ -4,6 +4,9 @@ Reads a UTF-8 text file from disk, optionally validating that the path
 is inside the configured allowlist (`userDataDir`, `appDataDir`,
 `tmpDir`, and any media folder from `userConfig.folders`).
 
+Paths whose file name is `smm.json` are rejected. User config is read
+with `POST /api/getUserConfig` and updated with `POST /api/patchUserConfig`.
+
 **Implementation**:
 - `packages/core-routes/src/readFile.ts` — pure function (`doReadFile`,
  `checkFileIsReadable`).

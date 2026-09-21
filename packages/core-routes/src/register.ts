@@ -33,6 +33,7 @@ import {
   handleGetPlansPost,
   handleUpdatePlanPost,
 } from "./routes/plansRoute.ts";
+import { handleGetUserConfigPost, handlePatchUserConfigPost } from "./routes/userConfigRoute.ts";
 import { enforceCoreRoutesAuth } from "./auth.ts";
 import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
 
@@ -64,6 +65,8 @@ export const coreRouteHandlers: RouteHandler[] = [
   handleGetPlanByIdPost,
   handleCreatePlanPost,
   handleUpdatePlanPost,
+  handleGetUserConfigPost,
+  handlePatchUserConfigPost,
 ];
 
 export function createCoreRoutesRequestHandler(
@@ -129,6 +132,7 @@ export {
   handleCreatePlanPost,
   handleUpdatePlanPost,
 } from "./routes/plansRoute.ts";
+export { handleGetUserConfigPost, handlePatchUserConfigPost } from "./routes/userConfigRoute.ts";
 export {
   doGetPlans,
   doGetPlanById,

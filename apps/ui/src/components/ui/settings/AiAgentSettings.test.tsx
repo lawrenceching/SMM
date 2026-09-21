@@ -19,7 +19,7 @@ const mockSetAndSaveUserConfig = vi.fn();
 
 const mockUseConfig = vi.fn(() => ({
   userConfig: defaultUserConfig,
-  setAndSaveUserConfig: mockSetAndSaveUserConfig,
+  patchUserConfig: mockSetAndSaveUserConfig,
 }));
 
 vi.mock("@/hooks/userConfig", () => ({
@@ -42,7 +42,7 @@ describe("AiAgentSettings", () => {
     vi.clearAllMocks();
     mockUseConfig.mockImplementation(() => ({
       userConfig: defaultUserConfig,
-      setAndSaveUserConfig: mockSetAndSaveUserConfig,
+      patchUserConfig: mockSetAndSaveUserConfig,
     }));
   });
 
@@ -64,7 +64,7 @@ describe("AiAgentSettings", () => {
         ...defaultUserConfig,
         aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
       },
-      setAndSaveUserConfig: mockSetAndSaveUserConfig,
+      patchUserConfig: mockSetAndSaveUserConfig,
     });
     render(<AiAgentSettings />);
     expect(screen.getByTestId("setting-ai-agent-metadata-write")).toBeChecked();
@@ -85,9 +85,15 @@ describe("AiAgentSettings", () => {
     fireEvent.click(screen.getByTestId("settings-save-button"));
 
     expect(mockSetAndSaveUserConfig).toHaveBeenCalledTimes(1);
-    const [traceId, savedConfig] = mockSetAndSaveUserConfig.mock.calls[0];
+    const [traceId, patch] = mockSetAndSaveUserConfig.mock.calls[0];
     expect(traceId).toContain("AiAgentSettings");
-    expect(savedConfig.aiAgent.permissions).toEqual(["metadata.write"]);
+    expect(patch).toEqual([
+      {
+        op: "add",
+        path: "/aiAgent",
+        value: { permissions: ["metadata.write"] },
+      },
+    ]);
   });
 
   it("saves empty permissions when unchecked and saved", async () => {
@@ -96,13 +102,19 @@ describe("AiAgentSettings", () => {
         ...defaultUserConfig,
         aiAgent: { permissions: [AI_AGENT_PERMISSIONS.metadataWrite] },
       },
-      setAndSaveUserConfig: mockSetAndSaveUserConfig,
+      patchUserConfig: mockSetAndSaveUserConfig,
     });
     render(<AiAgentSettings />);
     fireEvent.click(screen.getByTestId("setting-ai-agent-metadata-write"));
     fireEvent.click(screen.getByTestId("settings-save-button"));
 
-    const [, savedConfig] = mockSetAndSaveUserConfig.mock.calls[0];
-    expect(savedConfig.aiAgent.permissions).toEqual([]);
+    const [, patch] = mockSetAndSaveUserConfig.mock.calls[0];
+    expect(patch).toEqual([
+      {
+        op: "add",
+        path: "/aiAgent",
+        value: { permissions: [] },
+      },
+    ]);
   });
 });

@@ -4,7 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import { AnonymousTelemetryConsentGate } from "./AnonymousTelemetryConsentGate"
 
-const setAndSaveUserConfig = vi.fn(async () => {})
+const patchUserConfig = vi.fn(async () => {})
 
 const mockUseConfig = vi.fn()
 
@@ -32,7 +32,7 @@ describe("AnonymousTelemetryConsentGate", () => {
       userConfig: { folders: [] },
       isLoading: true,
       isUserConfigLoaded: false,
-      setAndSaveUserConfig,
+      patchUserConfig,
     })
     render(<AnonymousTelemetryConsentGate />)
     expect(screen.queryByTestId("anonymous-telemetry-consent-dialog")).not.toBeInTheDocument()
@@ -43,7 +43,7 @@ describe("AnonymousTelemetryConsentGate", () => {
       userConfig: { folders: [], anonymousTelemetryConsent: undefined },
       isLoading: false,
       isUserConfigLoaded: true,
-      setAndSaveUserConfig,
+      patchUserConfig,
     })
     render(<AnonymousTelemetryConsentGate />)
     expect(screen.getByTestId("anonymous-telemetry-consent-dialog")).toBeInTheDocument()
@@ -54,7 +54,7 @@ describe("AnonymousTelemetryConsentGate", () => {
       userConfig: { folders: [], anonymousTelemetryConsent: true },
       isLoading: false,
       isUserConfigLoaded: true,
-      setAndSaveUserConfig,
+      patchUserConfig,
     })
     render(<AnonymousTelemetryConsentGate />)
     expect(screen.queryByTestId("anonymous-telemetry-consent-dialog")).not.toBeInTheDocument()
@@ -66,15 +66,17 @@ describe("AnonymousTelemetryConsentGate", () => {
       userConfig,
       isLoading: false,
       isUserConfigLoaded: true,
-      setAndSaveUserConfig,
+      patchUserConfig,
     })
     render(<AnonymousTelemetryConsentGate />)
     fireEvent.click(screen.getByTestId("anonymous-telemetry-consent-agree"))
     await waitFor(() => {
-      expect(setAndSaveUserConfig).toHaveBeenCalled()
+      expect(patchUserConfig).toHaveBeenCalled()
     })
-    const [, saved] = setAndSaveUserConfig.mock.calls[0]!
-    expect(saved.anonymousTelemetryConsent).toBe(true)
+    const [, patch] = patchUserConfig.mock.calls[0]!
+    expect(patch).toEqual([
+      { op: "add", path: "/anonymousTelemetryConsent", value: true },
+    ])
   })
 
   it("persists false on Disagree", async () => {
@@ -83,14 +85,16 @@ describe("AnonymousTelemetryConsentGate", () => {
       userConfig,
       isLoading: false,
       isUserConfigLoaded: true,
-      setAndSaveUserConfig,
+      patchUserConfig,
     })
     render(<AnonymousTelemetryConsentGate />)
     fireEvent.click(screen.getByTestId("anonymous-telemetry-consent-disagree"))
     await waitFor(() => {
-      expect(setAndSaveUserConfig).toHaveBeenCalled()
+      expect(patchUserConfig).toHaveBeenCalled()
     })
-    const [, saved] = setAndSaveUserConfig.mock.calls[0]!
-    expect(saved.anonymousTelemetryConsent).toBe(false)
+    const [, patch] = patchUserConfig.mock.calls[0]!
+    expect(patch).toEqual([
+      { op: "add", path: "/anonymousTelemetryConsent", value: false },
+    ])
   })
 })

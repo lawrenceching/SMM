@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { HelloResponseBody, UserConfig } from "@smm/types"
 import { hello } from "@/api/hello"
-import { writeFile } from "@/api/writeFile"
-import { defaultUserConfig } from "@/api/readUserConfig"
-import { join } from "@/lib/path"
+import { patchUserConfigRequest } from "@/api/userConfigHttp"
+import { defaultUserConfig, normalizeUserConfig } from "@/api/readUserConfig"
 import { helloQueryKey } from "@/lib/appQueryKeys"
 import { userConfigQueryKey } from "@/lib/userConfigQueryKeys"
 import { invalidateFoldersQuery } from "@/hooks/folders"
@@ -28,13 +27,13 @@ export function useAddMediaFolderMutation() {
       if (prev.folders.includes(folder)) {
         return { config: prev, foldersChanged: false }
       }
-      const updatedConfig: UserConfig = {
-        ...prev,
-        folders: [...new Set([...prev.folders, folder])],
-      }
-      const filePath = join(dir, "smm.json")
-      await writeFile(filePath, JSON.stringify(updatedConfig), 'overwrite', traceId)
-      return { config: updatedConfig, foldersChanged: true }
+      const saved = normalizeUserConfig(
+        await patchUserConfigRequest(
+          [{ op: "add", path: "/folders/-", value: folder }],
+          traceId,
+        ),
+      )
+      return { config: saved, foldersChanged: true }
     },
     onSuccess: ({ config, foldersChanged }) => {
       const dir = queryClient.getQueryData<HelloResponseBody>(helloQueryKey)?.userDataDir

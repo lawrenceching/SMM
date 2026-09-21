@@ -30,6 +30,7 @@ import { handleOpenFile } from './src/route/OpenFile';
 import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
 import { handleDeleteFile } from './src/route/DeleteFile';
 import { handleDeleteFolder } from './src/route/DeleteFolder';
+import { handleUserConfig } from './src/route/UserConfig';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
@@ -287,6 +288,7 @@ export class Server {
     handleMoveFileToTrash(this.app);
     handleDeleteFile(this.app);
     handleDeleteFolder(this.app);
+    handleUserConfig(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugCreateRenameEpisodePlan(this.app);

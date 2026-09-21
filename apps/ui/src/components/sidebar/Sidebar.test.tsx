@@ -51,7 +51,7 @@ vi.mock("@/hooks/mediaMetadata/useMediaMetadataQuery", () => ({
 vi.mock("@/hooks/userConfig", () => ({
   useConfig: vi.fn(() => ({
     userConfig: { folders: [] },
-    setAndSaveUserConfig: vi.fn(),
+    patchUserConfig: vi.fn(),
   })),
 }))
 

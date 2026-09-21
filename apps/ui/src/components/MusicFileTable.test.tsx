@@ -55,7 +55,7 @@ vi.mock("@/hooks/userConfig/useConfig", () => ({
     isLoading: false,
     isUserConfigLoaded: false,
     error: null,
-    setAndSaveUserConfig: () => Promise.resolve(),
+    patchUserConfig: () => Promise.resolve(),
     reload: () => {},
     refreshUserConfig: () => Promise.resolve(),
     addMediaFolderInUserConfig: () => Promise.resolve(),

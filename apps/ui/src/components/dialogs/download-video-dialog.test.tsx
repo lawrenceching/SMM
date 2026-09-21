@@ -313,7 +313,7 @@ vi.mock('@/hooks/userConfig/useConfig', () => ({
     isLoading: false,
     isUserConfigLoaded: true,
     error: null,
-    setAndSaveUserConfig: vi.fn(),
+    patchUserConfig: vi.fn(),
     reload: vi.fn(),
     refreshUserConfig: vi.fn(),
     addMediaFolderInUserConfig: vi.fn(),

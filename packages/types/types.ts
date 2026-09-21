@@ -1248,4 +1248,25 @@ export interface SetWatchedFolderResponseBody {
   error?: string
 }
 
+/** RFC 6902 operation restricted to add, remove, and replace. */
+export interface UserConfigPatchOperation {
+  op: "add" | "remove" | "replace"
+  path: string
+  value?: unknown
+}
+
+export interface GetUserConfigResponseBody {
+  data?: UserConfig
+  error?: string
+}
+
+export interface PatchUserConfigRequestBody {
+  patch: UserConfigPatchOperation[]
+}
+
+export interface PatchUserConfigResponseBody {
+  data?: UserConfig
+  error?: string
+}
+
 export type FolderType = "tvshow" | "movie" | "music"

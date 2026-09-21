@@ -14,7 +14,7 @@ export function AnonymousTelemetryConsentGate() {
     userConfig,
     isLoading,
     isUserConfigLoaded,
-    setAndSaveUserConfig,
+    patchUserConfig,
   } = useConfig()
   // Dialog visibility is derived from config state: it stays open while consent
   // is still undefined (including after a failed save) and closes once a choice
@@ -26,17 +26,18 @@ export function AnonymousTelemetryConsentGate() {
 
   const persist = useCallback(
     async (value: boolean) => {
-      const next = { ...userConfig, anonymousTelemetryConsent: value }
       const traceId = `AnonymousTelemetryConsent-${nextTraceId()}`
       try {
-        await setAndSaveUserConfig(traceId, next)
+        await patchUserConfig(traceId, [
+          { op: "add", path: "/anonymousTelemetryConsent", value },
+        ])
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         toast.error(message)
         // If consent is still unset after failure the dialog stays open so the user can retry
       }
     },
-    [setAndSaveUserConfig, userConfig],
+    [patchUserConfig],
   )
 
   const onAgree = useCallback(() => {

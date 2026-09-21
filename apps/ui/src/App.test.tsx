@@ -34,7 +34,7 @@ vi.mock("@/hooks/mediaMetadata", () => ({
 vi.mock("@/hooks/userConfig", () => ({
   useConfig: () => ({
     userConfig: { folders: ["/media/local-folder"] },
-    setAndSaveUserConfig: mockSetAndSaveUserConfig,
+    patchUserConfig: mockSetAndSaveUserConfig,
     isUserConfigLoaded: true,
   }),
 }))

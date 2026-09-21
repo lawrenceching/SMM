@@ -50,6 +50,16 @@ CLI also sweeps `{userDataDir}/temp/ytdlp-cookies-*.txt` on startup (fallback wh
 Source Code: apps/cli/src/route/GetFolders.ts
 HTTP: `POST /api/get-folders` — returns imported media folder paths via Layer 2 `Core.getFolders()` (reads `userDataDir/smm.json`). Request body: `{}` (optional). Response: `{ data: { folders: string[] } }` or `{ error }`. Used by UI `useFoldersQuery`. CLI equivalent: `smm list`.
 
+## GetUserConfig / PatchUserConfig
+Source Code: `packages/core-routes/src/userConfigApi.ts` (handlers in `packages/core-routes/src/routes/userConfigRoute.ts`). CLI shell: `apps/cli/src/route/UserConfig.ts`.
+
+User config (`{userDataDir}/smm.json`) is no longer readable or writable through `readFile` / `writeFile`.
+
+- `POST /api/getUserConfig` — request body `{}`. Response `{ data: UserConfig }` or `{ error }`. Missing file returns the default document.
+- `POST /api/patchUserConfig` — request body `{ patch: UserConfigPatchOperation[] }`. Operations are RFC 6902 `add`, `remove`, and `replace` on known UserConfig paths (for example `/ytdlpProxy`, `/folders/-`, `/aiAgent`). Root replacement, `move`, `copy`, `test`, and unknown paths are rejected. The server applies the patch with `fast-json-patch`, validates the result, and writes `smm.json`. Response `{ data: UserConfig }` or `{ error }`.
+
+Served by the Hono server and the core-routes Node `http` server.
+
 ## ImportFolder
 Source Code: apps/cli/src/route/ImportFolder.ts
 HTTP: `POST /api/import-folder` — starts Layer 2 `Core.importFolder(path, type, { skipInit? })`. Request body: `{ path: string, type: "tvshow" | "movie" | "music" | "anime", skipInit?: boolean }` (`anime` aliases `tvshow`). Response: `{ data: { id } }` (job id) or `{ error }`. Does not wait for the pipeline; poll `POST /api/get-job`. CLI equivalent: `smm add`.

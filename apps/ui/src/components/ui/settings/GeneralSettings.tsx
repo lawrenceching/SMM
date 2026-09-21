@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { SUPPORTED_APP_LANGUAGES, changeLanguage, type SupportedLanguage } from "@/lib/i18n"
 import { useTranslation } from "@/lib/i18n"
+import { setFieldPatch } from "@/lib/userConfigPatch"
 import { nextTraceId } from "@/lib/utils"
 import { useTheme } from "@/providers/theme-provider"
-import type { PreferMediaLanguage } from "@smm/types"
+import type { PreferMediaLanguage, UserConfigPatchOperation } from "@smm/types"
 import { resolveAppLanguage } from "@smm/utils/locale"
 import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import {
@@ -50,7 +51,7 @@ const PREFER_MEDIA_LANGUAGE_OPTIONS: Array<{
 
 export function GeneralSettings() {
   const { theme, setTheme } = useTheme()
-  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { userConfig, patchUserConfig } = useConfig()
   const helloQuery = useHelloQuery()
   const startMcpServerMutation = useStartMcpServerMutation()
   const stopMcpServerMutation = useStopMcpServerMutation()
@@ -132,13 +133,22 @@ export function GeneralSettings() {
     const resolvedMcpPort =
       Number.isNaN(parsedMcpPort) || parsedMcpPort <= 0 ? 30001 : parsedMcpPort
 
-    const nonMcpConfig = {
-      ...userConfig,
-      applicationLanguage: savedApplicationLanguage,
-      preferMediaLanguage: preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
-      anonymousTelemetryConsent,
+    const nonMcpPatch = [
+      setFieldPatch("/applicationLanguage", savedApplicationLanguage, userConfig.applicationLanguage),
+      setFieldPatch(
+        "/preferMediaLanguage",
+        preferMediaLanguage === PREFER_MEDIA_LANGUAGE_UNSET ? undefined : preferMediaLanguage,
+        userConfig.preferMediaLanguage,
+      ),
+      setFieldPatch(
+        "/anonymousTelemetryConsent",
+        anonymousTelemetryConsent,
+        userConfig.anonymousTelemetryConsent,
+      ),
+    ].filter((operation): operation is UserConfigPatchOperation => operation !== null)
+    if (nonMcpPatch.length > 0) {
+      await patchUserConfig(traceId, nonMcpPatch)
     }
-    await setAndSaveUserConfig(traceId, nonMcpConfig)
 
     // MCP changes go through Core APIs; Core persists MCP fields in smm.json.
     const mcpToggledOn = enableMcpServer && !initialValues.enableMcpServer

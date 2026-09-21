@@ -4,9 +4,11 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useTranslation } from "@/lib/i18n"
+import { setFieldPatch } from "@/lib/userConfigPatch"
 import { nextTraceId } from "@/lib/utils"
 import { useDialogs } from "@/providers/dialog-provider"
 import type { FileItem } from "@/components/dialogs/types"
+import type { UserConfigPatchOperation } from "@smm/types"
 import { getYtdlpVersion } from "@/api/ytdlp"
 import { getFfmpegVersion } from "@/api/ffmpeg"
 import { getQuickjsVersion } from "@/api/quickjs"
@@ -17,7 +19,7 @@ import {
 } from "@/api/discoverExecutables"
 
 export function ExternalApplicationsSettings() {
-  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { userConfig, patchUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
   const { filePickerDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
@@ -150,14 +152,19 @@ export function ExternalApplicationsSettings() {
     const traceId = `ExternalApps-${nextTraceId()}`
     console.log(`[${traceId}] ExternalApplicationsSettings: Saving`)
 
-    const updatedConfig = {
-      ...userConfig,
-      ytdlpExecutablePath: ytdlpExecutablePath || undefined,
-      ffmpegExecutablePath: ffmpegExecutablePath || undefined,
-      useBundledFfmpegForVideoCaptioner,
-      quickjsExecutablePath: quickjsExecutablePath || undefined,
+    const patch = [
+      setFieldPatch("/ytdlpExecutablePath", ytdlpExecutablePath || undefined, userConfig.ytdlpExecutablePath),
+      setFieldPatch("/ffmpegExecutablePath", ffmpegExecutablePath || undefined, userConfig.ffmpegExecutablePath),
+      setFieldPatch(
+        "/useBundledFfmpegForVideoCaptioner",
+        useBundledFfmpegForVideoCaptioner,
+        userConfig.useBundledFfmpegForVideoCaptioner,
+      ),
+      setFieldPatch("/quickjsExecutablePath", quickjsExecutablePath || undefined, userConfig.quickjsExecutablePath),
+    ].filter((operation): operation is UserConfigPatchOperation => operation !== null)
+    if (patch.length > 0) {
+      patchUserConfig(traceId, patch)
     }
-    setAndSaveUserConfig(traceId, updatedConfig)
   }
 
   return (

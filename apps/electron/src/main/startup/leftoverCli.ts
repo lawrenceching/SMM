@@ -2,7 +2,7 @@ import { execFileSync } from 'child_process'
 import { readFileSync, unlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 
-export const SMM_PROCESS_RECORD_FILENAME = 'smm-process.json'
+const SMM_PROCESS_RECORD_FILENAME = 'smm-process.json'
 
 export interface SmmProcessRecord {
   cliPid: number | null

@@ -131,4 +131,23 @@ describe("doReadFile", () => {
  expect(result.data).toBeUndefined();
  expect(result.error).toContain("Validation failed");
  });
+
+ it("rejects reading the user config file smm.json", async () => {
+ const configPath = join(dir, "smm.json");
+ await writeFile(configPath, '{"dryRun":true}', "utf-8");
+ const result = await doReadFile({ path: configPath }, { allowlist: [posixDir] });
+ expect(result.data).toBeUndefined();
+ expect(result.error).toContain("readFile");
+ });
+
+ it("rejects reading smm.json even when allowlist checks are skipped", async () => {
+ const configPath = join(dir, "smm.json");
+ await writeFile(configPath, '{"dryRun":true}', "utf-8");
+ const result = await doReadFile(
+ { path: configPath, requireValidPath: false },
+ { allowlist: [] },
+ );
+ expect(result.data).toBeUndefined();
+ expect(result.error).toContain("readFile");
+ });
 });

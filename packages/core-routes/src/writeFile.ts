@@ -6,6 +6,7 @@ import { Path } from "@smm/utils/path";
 import { existedFileError, isError, ExistedFileError } from "@smm/utils/errors";
 import type { WriteFileRequestBody, WriteFileResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
+import { isUserConfigFilePath } from "./userConfig.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 
 const writeFileRequestSchema = z.object({
@@ -67,6 +68,13 @@ export async function doWriteFile(
     }
 
     const { path: filePath, mode, data } = validationResult.data;
+
+    if (isUserConfigFilePath(filePath)) {
+      logger?.warn({ traceId, filePath }, "doWriteFile: rejected user config file");
+      return {
+        error: "User config file cannot be written via writeFile",
+      };
+    }
 
     logger?.debug(
       { traceId, filePath, mode, dataSize: data.length },

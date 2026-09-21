@@ -16,7 +16,7 @@ const defaultUserConfig = {
 
 const mockUseConfig = vi.fn(() => ({
   userConfig: defaultUserConfig,
-  setAndSaveUserConfig: vi.fn(),
+  patchUserConfig: vi.fn(),
 }));
 
 vi.mock("@/hooks/userConfig", () => ({
@@ -80,7 +80,7 @@ describe("GeneralSettings", () => {
   it("shows follow-system label when application language is not configured", () => {
     mockUseConfig.mockReturnValue({
       userConfig: { ...defaultUserConfig, applicationLanguage: undefined },
-      setAndSaveUserConfig: vi.fn(),
+      patchUserConfig: vi.fn(),
     });
 
     render(<GeneralSettings />);
@@ -99,7 +99,7 @@ describe("GeneralSettings", () => {
   it("checkbox is unchecked when consent is undefined", () => {
     mockUseConfig.mockReturnValue({
       userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: undefined },
-      setAndSaveUserConfig: vi.fn(),
+      patchUserConfig: vi.fn(),
     });
     render(<GeneralSettings />);
     expect(
@@ -110,7 +110,7 @@ describe("GeneralSettings", () => {
   it("checkbox is checked when consent is true", () => {
     mockUseConfig.mockReturnValue({
       userConfig: { ...defaultUserConfig, anonymousTelemetryConsent: true },
-      setAndSaveUserConfig: vi.fn(),
+      patchUserConfig: vi.fn(),
     });
     render(<GeneralSettings />);
     expect(

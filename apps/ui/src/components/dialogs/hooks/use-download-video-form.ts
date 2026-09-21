@@ -166,7 +166,7 @@ export function useDownloadVideoForm(
   const { textDialog: [openTextDialog] } = useDialogs()
   const { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
-  const { appConfig, userConfig, setAndSaveUserConfig } = useConfig()
+  const { appConfig, userConfig, patchUserConfig } = useConfig()
 
   // --- platform ---
   const platform = useMemo(() => {
@@ -469,15 +469,14 @@ export function useDownloadVideoForm(
         return
       }
       try {
-        await setAndSaveUserConfig(
-          `dvd-proxy-${Date.now()}`,
-          { ...userConfig, ytdlpProxy: trimmed },
-        )
+        await patchUserConfig(`dvd-proxy-${Date.now()}`, [
+          { op: "add", path: "/ytdlpProxy", value: trimmed },
+        ])
       } catch (error) {
         console.error("[useDownloadVideoForm] Failed to persist proxy:", error)
       }
     },
-    [setAndSaveUserConfig, userConfig],
+    [patchUserConfig, userConfig],
   )
 
   // --- reset ---

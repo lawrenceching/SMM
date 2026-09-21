@@ -7,7 +7,7 @@ import { nextTraceId } from "@/lib/utils"
 import { AI_AGENT_PERMISSIONS } from "@smm/types"
 
 export function AiAgentSettings() {
-  const { userConfig, setAndSaveUserConfig } = useConfig()
+  const { userConfig, patchUserConfig } = useConfig()
   const { t } = useTranslation(['settings', 'common'])
 
   const initialValues = useMemo(
@@ -32,13 +32,16 @@ export function AiAgentSettings() {
   const handleSave = async () => {
     const traceId = `AiAgentSettings-${nextTraceId()}`
     console.log(`[${traceId}] AiAgentSettings: Saving AI agent settings`)
-    await setAndSaveUserConfig(traceId, {
-      ...userConfig,
-      aiAgent: {
-        ...userConfig.aiAgent,
-        permissions: metadataWrite ? [AI_AGENT_PERMISSIONS.metadataWrite] : [],
+    await patchUserConfig(traceId, [
+      {
+        op: "add",
+        path: "/aiAgent",
+        value: {
+          ...userConfig.aiAgent,
+          permissions: metadataWrite ? [AI_AGENT_PERMISSIONS.metadataWrite] : [],
+        },
       },
-    })
+    ])
   }
 
   return (

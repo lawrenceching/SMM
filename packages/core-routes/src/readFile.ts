@@ -6,6 +6,7 @@ import { Path } from "@smm/utils/path";
 import { fileNotFoundError } from "@smm/utils/errors";
 import type { ReadFileRequestBody, ReadFileResponseBody } from "@smm/types";
 import { validatePathIsInAllowlist } from "./allowlist.ts";
+import { isUserConfigFilePath } from "./userConfig.ts";
 import type { CoreRoutesConfig } from "./types.ts";
 
 export type { ReadFileRequestBody, ReadFileResponseBody };
@@ -88,6 +89,13 @@ export async function doReadFile(
  }
 
  const { path: filePath, requireValidPath } = validationResult.data;
+
+ if (isUserConfigFilePath(filePath)) {
+ logger?.warn({ filePath }, "doReadFile: rejected user config file");
+ return {
+ error: "User config file cannot be read via readFile",
+ };
+ }
 
  logger?.debug({ filePath, requireValidPath }, "doReadFile: processing request");
 

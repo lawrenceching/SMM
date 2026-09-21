@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react"
-import type { AppConfig, UserConfig } from "@smm/types"
+import type { AppConfig, UserConfig, UserConfigPatchOperation } from "@smm/types"
 import { defaultUserConfig } from "@/api/readUserConfig"
 import { useAddMediaFolderMutation } from "./useAddMediaFolderMutation"
 import { useHelloQuery } from "./useHelloQuery"
@@ -16,7 +16,7 @@ export interface UseConfigResult {
   isLoading: boolean
   isUserConfigLoaded: boolean
   error: Error | null
-  setAndSaveUserConfig: (traceId: string, config: UserConfig) => Promise<void>
+  patchUserConfig: (traceId: string, patch: UserConfigPatchOperation[]) => Promise<void>
   reload: (callback?: ReloadCallback) => void
   refreshUserConfig: () => Promise<void>
   addMediaFolderInUserConfig: (traceId: string, folder: string) => Promise<void>
@@ -48,11 +48,11 @@ export function useConfig(): UseConfigResult {
     [helloQuery.data?.version, helloQuery.data?.userDataDir, helloQuery.data?.reverseProxyUrl],
   )
 
-  const setAndSaveUserConfig = useCallback(
-    async (traceId: string, config: UserConfig) => {
-      console.log(`[${traceId}] saveUserConfig: Starting save operation`)
-      await saveUserConfigMutation.mutateAsync({ traceId, config })
-      console.log(`[${traceId}] saveUserConfig: User config written successfully`)
+  const patchUserConfig = useCallback(
+    async (traceId: string, patch: UserConfigPatchOperation[]) => {
+      console.log(`[${traceId}] patchUserConfig: Starting save operation`)
+      await saveUserConfigMutation.mutateAsync({ traceId, patch })
+      console.log(`[${traceId}] patchUserConfig: User config patched successfully`)
     },
     [saveUserConfigMutation],
   )
@@ -90,7 +90,7 @@ export function useConfig(): UseConfigResult {
     isLoading,
     isUserConfigLoaded,
     error,
-    setAndSaveUserConfig,
+    patchUserConfig,
     reload,
     refreshUserConfig,
     addMediaFolderInUserConfig,

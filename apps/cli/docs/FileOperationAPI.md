@@ -76,21 +76,13 @@ interface WriteFileResponseBody {
 ```json
 // Request
 {
-  "path": "C:\\Users\\lawrence\\AppData\\Roaming\\SMM\\smm.json",
-  "data": "{\"applicationLanguage\":\"zh-CN\",\"tmdb\":{...}}",
+  "path": "C:\\Users\\lawrence\\AppData\\Roaming\\SMM\\temp\\note.txt",
+  "data": "hello",
   "mode": "overwrite"
 }
-
-// Response (success)
-{
-  "data": {}
-}
-
-// Response (error)
-{
-  "error": "Error Reason: Path is not in allowlist"
-}
 ```
+
+`smm.json` is rejected. Update user config with `POST /api/patchUserConfig`.
 
 ### Validations
 
