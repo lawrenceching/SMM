@@ -4,6 +4,10 @@
 import { Glob } from 'bun';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  assertWebUiArtifactsExist,
+  resolveWebUiArtifactPaths,
+} from '../apps/e2e/web-ui-artifacts.ts';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const E2E_ROOT = path.join(ROOT, 'apps/e2e');
@@ -336,9 +340,8 @@ export function dockerHttpProxyEnvForContainer(envKey: 'TMDB_HTTP_PROXY' | 'TVDB
 }
 
 function resolveWebCliCommand(): string {
-  const binName = process.platform === 'win32' ? 'cli.exe' : 'cli';
-  const cliBin = path.join(ROOT, 'apps', 'cli', 'dist', binName);
-  const staticDir = path.join(ROOT, 'apps', 'ui', 'dist');
+  assertWebUiArtifactsExist(ROOT);
+  const { cliBin, staticDir } = resolveWebUiArtifactPaths(ROOT);
   return `"${cliBin}" --staticDir "${staticDir}" --port 30000`;
 }
 

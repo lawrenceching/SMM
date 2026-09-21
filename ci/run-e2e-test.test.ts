@@ -1,4 +1,11 @@
-import { describe, expect, test } from 'bun:test';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { describe, expect, test, beforeAll } from 'bun:test';
+import {
+  assertWebUiArtifactsExist,
+  resolveWebUiArtifactPaths,
+} from '../apps/e2e/web-ui-artifacts.ts';
 import {
   assertSpecsMatchPlatform,
   assignE2eLocalPortEnv,
@@ -6,7 +13,32 @@ import {
   dockerHttpProxyEnvForContainer,
   parseArgv,
   requireSpecsForPlatform,
+  ROOT,
 } from './run-e2e-test-lib.ts';
+
+function ensureRootWebArtifactsStub(): void {
+  const { cliBin, indexHtml } = resolveWebUiArtifactPaths(ROOT);
+  fs.mkdirSync(path.dirname(cliBin), { recursive: true });
+  fs.mkdirSync(path.dirname(indexHtml), { recursive: true });
+  if (!fs.existsSync(cliBin)) fs.writeFileSync(cliBin, '');
+  if (!fs.existsSync(indexHtml)) fs.writeFileSync(indexHtml, '<html></html>');
+}
+
+describe('assertWebUiArtifactsExist', () => {
+  test('throws with build hints when CLI or UI dist is missing', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'smm-web-artifacts-'));
+    expect(() => assertWebUiArtifactsExist(root)).toThrow(/pnpm --filter cli run build/);
+
+    const { cliBin, indexHtml } = resolveWebUiArtifactPaths(root);
+    fs.mkdirSync(path.dirname(cliBin), { recursive: true });
+    fs.writeFileSync(cliBin, '');
+    expect(() => assertWebUiArtifactsExist(root)).toThrow(/pnpm --filter ui run build/);
+
+    fs.mkdirSync(path.dirname(indexHtml), { recursive: true });
+    fs.writeFileSync(indexHtml, '<html></html>');
+    expect(() => assertWebUiArtifactsExist(root)).not.toThrow();
+  });
+});
 
 describe('run-e2e-test docker platform', () => {
   test('parseArgv accepts --platform docker with --spec', () => {
@@ -152,6 +184,10 @@ describe('run-e2e-test docker platform', () => {
 });
 
 describe('run-e2e-test web platform', () => {
+  beforeAll(() => {
+    ensureRootWebArtifactsStub();
+  });
+
   test('parseArgv accepts --platform web with --spec', () => {
     const parsed = parseArgv([
       '--platform',

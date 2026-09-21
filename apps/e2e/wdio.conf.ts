@@ -13,6 +13,7 @@ import {
 } from './test/lib/networkLogCapture';
 import { redactSecretsInText } from './test/lib/artifactSecretRedact';
 import { applyE2eWindowSize } from './test/lib/e2e-window-size';
+import { shouldUseCiHeadlessChromeArgs } from './test/lib/ci-headless-chrome-args';
 
 /** Re-export for older imports; prefer `test/lib/e2e-window-size`. */
 export {
@@ -229,7 +230,7 @@ export const config: WebdriverIO.Config = {
         // 显式启用 WebDriver BiDi 协议以支持 console 事件监听
         'goog:chromeOptions': {
             ...(CHROME_BINARY ? { binary: CHROME_BINARY } : {}),
-            args: process.env.BUILD_ENV === 'docker'
+            args: shouldUseCiHeadlessChromeArgs()
                 ? [
                     '--disable-gpu',
                     '--no-sandbox',

@@ -7,6 +7,32 @@ import {
   resolveE2eWindowSize,
   shouldFitE2eWindowToScreen,
 } from './test/lib/e2e-window-size.ts';
+import { shouldUseCiHeadlessChromeArgs } from './test/lib/ci-headless-chrome-args.ts';
+
+describe('shouldUseCiHeadlessChromeArgs', () => {
+  test('true for BUILD_ENV=docker', () => {
+    expect(shouldUseCiHeadlessChromeArgs({ BUILD_ENV: 'docker' })).toBe(true);
+  });
+
+  test('true for CI web platform', () => {
+    expect(
+      shouldUseCiHeadlessChromeArgs({ CI: 'true', E2E_PLATFORM: 'web' }),
+    ).toBe(true);
+  });
+
+  test('false for local desktop and CI desktop', () => {
+    expect(shouldUseCiHeadlessChromeArgs({})).toBe(false);
+    expect(
+      shouldUseCiHeadlessChromeArgs({ CI: 'true', E2E_PLATFORM: 'desktop' }),
+    ).toBe(false);
+  });
+
+  test('CI=1 does not enable headless web args (CI must be true)', () => {
+    expect(
+      shouldUseCiHeadlessChromeArgs({ CI: '1', E2E_PLATFORM: 'web' }),
+    ).toBe(false);
+  });
+});
 
 describe('fitE2eWindowSizeToScreen', () => {
   test('clamps 1920x1080 to 4K@200% work area so window fits logical screen', () => {
