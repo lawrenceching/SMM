@@ -1,11 +1,10 @@
 name: E2E Tests for Web UI
 
 # Manual-only e2e against Web UI (apps/ui + apps/cli as HTTP server).
-# Runs common/* suites via bun ci/run-e2e-test.ts (default --platform desktop).
-# AI tool and MCP tool suites have their own workflows (placeholders for now).
+# Same five OS/arch runners as "E2E Tests for Electron".
+# Runs apps/e2e/common suites via bun ci/run-e2e-test.ts --platform desktop.
+# common/manual stays on-demand. AI tool and MCP tool suites have their own workflows.
 # No unit tests, and not a CI or release gate.
-#
-# For host e2e in PR CI, use the CI workflow. For Electron, use "E2E Tests for Electron".
 
 on:
   workflow_dispatch:
@@ -15,48 +14,42 @@ permissions:
 
 jobs:
   e2e:
-    name: ${{ matrix.name }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      SMM_AUTH_TOKEN: ChangeMe123
-      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+    name: E2E Tests for Web UI (${{ matrix.platform }}-${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Run Config and HTTP Proxy Tests
-            # Proxy-through-custom-host specs live under common/config (*WithHttpProxy).
-            spec: "./common/config/*.e2e.ts"
-            artifact_prefix: config-httpproxy
-          - name: Run Common Media Init Tests
-            spec: "./common/tv/ImportTvShowLibrary.e2e.ts ./common/tv/Initialize*.e2e.ts ./common/movie/ImportMovieLibrary.e2e.ts ./common/movie/Initialize*.e2e.ts"
-            artifact_prefix: media-folder-initialization
-          - name: Run Movie Tests
-            spec: "./common/movie/SearchMovie.e2e.ts ./common/movie/Movie-RenameVideoFile.e2e.ts"
-            artifact_prefix: movie
-          - name: Run Music Tests
-            spec: "./common/music/*.e2e.ts"
-            artifact_prefix: music
-          - name: Run Other Tests
-            spec: "./common/other/*.e2e.ts"
-            artifact_prefix: other
-          - name: Run TV Show Tests
-            spec: "./common/tv/SearchTvShow.e2e.ts ./common/tv/Scrape*.e2e.ts ./common/tv/TVShow-*.e2e.ts"
-            artifact_prefix: tv
-          - name: Run TVDB Tests
-            spec: "./common/tvdb/*.e2e.ts"
-            artifact_prefix: tvdb
+          - platform: win
+            arch: x64
+            runs-on: windows-latest
+          - platform: win
+            arch: arm64
+            runs-on: windows-11-arm
+          - platform: linux
+            arch: x64
+            runs-on: ubuntu-latest
+          - platform: linux
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - platform: mac
+            arch: arm64
+            runs-on: macos-14
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.arch }}
+      SMM_AUTH_TOKEN: ChangeMe123
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
@@ -83,11 +76,10 @@ jobs:
           fi
           exit "$missing"
 
-      - name: Build CLI
-        run: cd apps/cli && pnpm run build
-
       - name: Install CJK fonts
+        if: runner.os == 'Linux'
         run: |
+          set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y fonts-noto-cjk
 
@@ -99,15 +91,18 @@ jobs:
           install-dependencies: true
           install-chromedriver: true
 
-      - name: Run E2E tests
+      - name: Run Web UI e2e
         id: e2e
         run: |
-          args=()
-          for pattern in ${{ matrix.spec }}; do
-            args+=(--spec "$pattern")
-          done
-          # Web UI = default desktop platform (cli HTTP server + Vite UI + Chrome).
-          bun ci/run-e2e-test.ts --platform desktop "${args[@]}"
+          set -euo pipefail
+          # Same common suites as Electron e2e, on the desktop (Web UI) platform.
+          # MCP and AI tool suites stay in their own workflows.
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/config/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/movie/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/music/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/other/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tv/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform desktop --spec "./common/tvdb/*.e2e.ts"
         env:
           BUILD_ENV: docker
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
@@ -118,11 +113,11 @@ jobs:
         if: always() && steps.e2e.outcome != 'skipped'
         run: bun ci/scan_secure_data.ts --dir artifacts/cicd
 
-      - name: Upload E2E logs and reports
+      - name: Upload logs
         if: always() && steps.e2e.outcome != 'skipped' && steps.scan-secure.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: web-ui-${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
+          name: web-ui-${{ matrix.platform }}-${{ matrix.arch }}-logs-${{ github.run_id }}
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7

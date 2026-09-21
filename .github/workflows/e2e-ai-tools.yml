@@ -1,8 +1,7 @@
 name: E2E Tests for AI Tools
 
-# Placeholder for e2e against the built-in AI Agent chat window
-# (see docs/dev/supported-platform.md — AI tool).
-# Specs will live under apps/e2e/test/specs/ai/*.e2e.ts.
+# Placeholder. Same five OS/arch runners as "E2E Tests for Electron".
+# No test steps yet. See docs/dev/supported-platform.md (AI tool).
 # Manual-only; not a CI or release gate.
 
 on:
@@ -12,12 +11,29 @@ permissions:
   contents: read
 
 jobs:
-  e2e-ai:
-    name: E2E Tests for AI Tools (placeholder)
-    runs-on: ubuntu-latest
+  e2e:
+    name: E2E Tests for AI Tools (${{ matrix.platform }}-${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: win
+            arch: x64
+            runs-on: windows-latest
+          - platform: win
+            arch: arm64
+            runs-on: windows-11-arm
+          - platform: linux
+            arch: x64
+            runs-on: ubuntu-latest
+          - platform: linux
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - platform: mac
+            arch: arm64
+            runs-on: macos-14
+
     steps:
       - name: Placeholder
-        run: |
-          echo "E2E Tests for AI Tools is not implemented yet."
-          echo "Planned specs: apps/e2e/test/specs/ai/*.e2e.ts"
-          echo "See docs/dev/supported-platform.md (AI tool)."
+        run: echo "E2E Tests for AI Tools (${{ matrix.platform }}-${{ matrix.arch }}) is not implemented yet."
