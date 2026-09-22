@@ -28,4 +28,12 @@ describe('buildCliSpawnEnv', () => {
 
     expect(env.CLI_PORT).toBe('30002')
   })
+
+  it('passes SMM_STARTUP_SESSION for hang diagnostics', () => {
+    const env = buildCliSpawnEnv({}, '/app/resources', {
+      startupSession: 'electron-1-2',
+    })
+
+    expect(env.SMM_STARTUP_SESSION).toBe('electron-1-2')
+  })
 })

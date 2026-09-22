@@ -15,7 +15,11 @@ async function isServerServingHtml(port: number): Promise<boolean> {
 export async function waitForCliServerReady(
   port: number,
   monitor: CliProcessMonitor,
-  options: { pollIntervalMs: number; timeoutMs: number },
+  options: {
+    pollIntervalMs: number
+    timeoutMs: number
+    coreRoutesPort?: number
+  },
 ): Promise<void> {
   const deadline = Date.now() + options.timeoutMs
 
@@ -40,5 +44,9 @@ export async function waitForCliServerReady(
     throw new CliStartupError(monitor.buildExitFailure())
   }
 
-  throw new CliStartupError(buildTimeoutFailure(port, monitor))
+  throw new CliStartupError(
+    await buildTimeoutFailure(port, monitor, {
+      coreRoutesPort: options.coreRoutesPort,
+    }),
+  )
 }

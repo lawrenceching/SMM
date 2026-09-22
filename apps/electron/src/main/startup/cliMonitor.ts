@@ -1,8 +1,8 @@
 import type { ChildProcess } from "child_process"
 import type { CliStartupFailure } from "./types"
 
-const MAX_OUTPUT_LINES = 80
-const MAX_OUTPUT_CHARS = 16_000
+const MAX_OUTPUT_LINES = 120
+const MAX_OUTPUT_CHARS = 24_000
 
 export class CliProcessMonitor {
   private ready = false
@@ -15,6 +15,7 @@ export class CliProcessMonitor {
   constructor(
     readonly process: ChildProcess,
     readonly executablePath: string,
+    readonly startupSession?: string,
   ) {
     this.process.stdout?.on("data", (data: Buffer) => {
       const text = data.toString("utf8")
@@ -89,6 +90,16 @@ export class CliProcessMonitor {
       : combined
   }
 
+  /** Last `[SMM-STARTUP] phase=...` line from stdout, if any. */
+  getLastStartupPhase(): string | null {
+    const stdout = this.stdoutChunks.join("")
+    const matches = stdout.match(/\[SMM-STARTUP\][^\n]*/g)
+    if (!matches || matches.length === 0) {
+      return null
+    }
+    return matches[matches.length - 1] ?? null
+  }
+
   buildExitFailure(): CliStartupFailure {
     const spawnError = this.spawnError
     if (spawnError) {
@@ -98,55 +109,55 @@ export class CliProcessMonitor {
     const signal = this.exitSignal
     const code = this.exitCode
     const output = this.getProcessOutput()
+    const lastPhase = this.getLastStartupPhase()
 
+    let message = "后端进程意外退出。"
     if (signal === "SIGILL") {
-      return {
-        kind: "exited",
-        title: "无法启动后端服务",
-        message:
-          "后端程序与当前 CPU 不兼容（非法指令）。请尝试使用 baseline 版本构建，或更换 2013 年及以后的 x64 处理器。",
-        details: [
-          `CLI: ${this.executablePath}`,
-          `Signal: ${signal}`,
-          "",
-          "Process output:",
-          output,
-        ].join("\n"),
-        exitCode: code,
-        signal,
-      }
+      message = "后端进程因非法指令崩溃（可能是 CPU 架构不兼容）。"
+    } else if (code === 1) {
+      message = "后端进程启动失败并退出（exit code 1）。"
     }
 
     return {
       kind: "exited",
       title: "无法启动后端服务",
-      message: signal
-        ? `后端进程异常退出（signal: ${signal}）。`
-        : `后端进程异常退出（exit code: ${code ?? "unknown"}）。`,
+      message,
       details: [
         `CLI: ${this.executablePath}`,
-        signal ? `Signal: ${signal}` : `Exit code: ${code}`,
+        `Exit: code=${code} signal=${signal ?? "none"}`,
+        this.startupSession ? `Session: ${this.startupSession}` : null,
+        lastPhase ? `Last startup phase: ${lastPhase}` : null,
         "",
         "Process output:",
         output,
-      ].join("\n"),
+      ]
+        .filter((line): line is string => line !== null)
+        .join("\n"),
       exitCode: code,
       signal,
     }
   }
 
-  private appendOutput(chunks: string[], chunk: string): void {
-    chunks.push(chunk)
-    const combined = chunks.join("")
-    const lines = combined.split("\n")
-    if (lines.length > MAX_OUTPUT_LINES) {
-      chunks.length = 0
-      chunks.push(lines.slice(-MAX_OUTPUT_LINES).join("\n"))
-      return
+  private appendOutput(target: string[], text: string): void {
+    target.push(text)
+    let lineCount = 0
+    for (const chunk of target) {
+      for (let i = 0; i < chunk.length; i++) {
+        if (chunk[i] === "\n") {
+          lineCount++
+        }
+      }
     }
-    if (combined.length > MAX_OUTPUT_CHARS) {
-      chunks.length = 0
-      chunks.push(combined.slice(-MAX_OUTPUT_CHARS))
+    while (lineCount > MAX_OUTPUT_LINES && target.length > 1) {
+      const removed = target.shift()
+      if (!removed) {
+        break
+      }
+      for (let i = 0; i < removed.length; i++) {
+        if (removed[i] === "\n") {
+          lineCount--
+        }
+      }
     }
   }
 }
@@ -180,11 +191,34 @@ function buildSpawnFailure(
   }
 }
 
-export function buildTimeoutFailure(
+export async function probeHttpPort(port: number): Promise<string> {
+  const url = `http://127.0.0.1:${port}/`
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      signal: AbortSignal.timeout(2000),
+    })
+    const contentType = res.headers.get("content-type") ?? "(none)"
+    return `${url} → status=${res.status} content-type=${contentType}`
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    return `${url} → error=${message}`
+  }
+}
+
+export async function buildTimeoutFailure(
   port: number,
   monitor: CliProcessMonitor,
-): CliStartupFailure {
+  options?: { coreRoutesPort?: number },
+): Promise<CliStartupFailure> {
   const stillRunning = !monitor.hasExited()
+  const lastPhase = monitor.getLastStartupPhase()
+  const uiProbe = await probeHttpPort(port)
+  const coreProbe =
+    options?.coreRoutesPort !== undefined
+      ? await probeHttpPort(options.coreRoutesPort)
+      : null
+
   return {
     kind: "timeout",
     title: "无法启动后端服务",
@@ -193,13 +227,23 @@ export function buildTimeoutFailure(
       : `后端在启动过程中退出，且未在 30 秒内提供 Web 服务。`,
     details: [
       `Port: ${port}`,
+      options?.coreRoutesPort !== undefined
+        ? `Core-routes port: ${options.coreRoutesPort}`
+        : null,
       `CLI: ${monitor.executablePath}`,
+      `CLI pid: ${monitor.process.pid ?? "unknown"}`,
+      monitor.startupSession ? `Session: ${monitor.startupSession}` : null,
       monitor.hasExited()
         ? `Exit: code=${monitor.getExitCode()} signal=${monitor.getExitSignal() ?? "none"}`
         : "CLI process is still running but HTTP server did not respond.",
+      lastPhase ? `Last startup phase: ${lastPhase}` : "Last startup phase: (none captured — CLI may be stuck before first milestone)",
+      `UI probe: ${uiProbe}`,
+      coreProbe ? `Core-routes probe: ${coreProbe}` : null,
       "",
       "Process output:",
       monitor.getProcessOutput(),
-    ].join("\n"),
+    ]
+      .filter((line): line is string => line !== null)
+      .join("\n"),
   }
 }

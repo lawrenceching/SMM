@@ -13,6 +13,7 @@ import { cleanupStalePlans } from '@smm/core-routes';
 import { getAuthConfig } from '@/utils/authToken';
 import { mkdir } from 'fs/promises';
 import { logger } from './lib/logger';
+import { getStartupSessionId, startupDiag } from '@/utils/startupDiag';
 
 applyTmdbTlsDevBypassToProcessIfEnabled();
 
@@ -63,6 +64,17 @@ function parseArgs(): CommandLineArguments {
 
 // Parse command line arguments
 const args = parseArgs();
+startupDiag('parsed-args', {
+  port: args.port ?? null,
+  staticDir: args.staticDir ?? null,
+  session: getStartupSessionId(),
+  pid: process.pid,
+  platform: process.platform,
+  bunVersion:
+    typeof (globalThis as { Bun?: { version?: string } }).Bun?.version === 'string'
+      ? (globalThis as { Bun: { version: string } }).Bun.version
+      : null,
+});
 
 // Initialize directories
 const userDataDir = getUserDataDir();
@@ -70,9 +82,11 @@ const appDataDir = getAppDataDir();
 const logDir = getLogDir();
 
 // Create directories using fs/promises (optimized in Bun, simpler than Node.js)
+startupDiag('mkdir-begin');
 await mkdir(userDataDir, { recursive: true });
 await mkdir(appDataDir, { recursive: true });
 await mkdir(logDir, { recursive: true });
+startupDiag('mkdir-done');
 
 // Log startup information
 logger.info('=== Application Startup ===');
@@ -86,6 +100,7 @@ logger.info(`App data directory: ${appDataDir}`);
 logger.info(`Log directory: ${logDir}`);
 
 // Clean up old command execution log directories
+startupDiag('cleanup-begin');
 const cleaner = new CommandLogCleaner({ logDir, maxLogDirs: 100 });
 const cleanResult = await cleaner.clean();
 logger.info(
@@ -105,10 +120,14 @@ if (preparingPlansRemoved > 0) {
     '[cleanup] stale preparing plan files cleaned up on startup',
   );
 }
+startupDiag('cleanup-done', { preparingPlansRemoved });
 
 const authConfig = getAuthConfig();
 
 // Create and start the server
+startupDiag('server-construct-begin', {
+  port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
+});
 const server = new Server({
   port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
   root: args.staticDir ?? '../ui/dist',
@@ -126,12 +145,21 @@ const server = new Server({
     }
   },
 });
+startupDiag('server-construct-done');
 
 let coreRoutesServer: Awaited<ReturnType<typeof startCoreRoutesServer>>;
 try {
+  startupDiag('core-routes-start-begin');
   coreRoutesServer = await startCoreRoutesServer(authConfig);
+  startupDiag('core-routes-start-done');
+  startupDiag('ui-server-start-begin');
   await server.start();
+  startupDiag('ui-server-start-done');
 } catch (error) {
+  startupDiag('start-failed', {
+    error: error instanceof Error ? error.message : String(error),
+    code: error instanceof Error && 'code' in error ? String((error as NodeJS.ErrnoException).code) : null,
+  });
   console.error('[SMM] CLI failed to start:', error);
   process.exit(1);
 }

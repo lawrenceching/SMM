@@ -97,6 +97,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { getFolderWatcher } from './src/services/folderWatcher';
 import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
+import { startupDiag } from '@/utils/startupDiag';
 
 export interface ServerConfig {
   port?: number;
@@ -402,9 +403,15 @@ export class Server {
     // Build the reverse proxy config from userConfig (mcpPort reservation +
     // AI provider host allowlist). This must run before listen so that the
     // /api/hello route can read the proxyManager's url.
+    startupDiag('ui-build-proxy-config-begin', {
+      port: this.port,
+      bind: this.webUiBindAddress,
+      root: this.root,
+    });
     const proxyConfig = await buildReverseProxyConfig();
     this.proxyManager = createReverseProxyManager(proxyConfig);
     registerExecuteRoutes(this.app, this.proxyManager);
+    startupDiag('ui-build-proxy-config-done');
 
     // Bun.serve() (MCP on mcpPort) requires Bun's native Response.
     // @hono/node-server replaces globalThis.Response with a wrapper
@@ -446,9 +453,25 @@ export class Server {
     });
     setSocketIOManager(this.socketManager);
 
+    startupDiag('ui-listen-begin', {
+      port: this.port,
+      bind: this.webUiBindAddress,
+    });
     await new Promise<void>((resolve, reject) => {
-      this.httpServer!.once('error', reject);
+      this.httpServer!.once('error', (err) => {
+        startupDiag('ui-listen-error', {
+          port: this.port,
+          bind: this.webUiBindAddress,
+          error: err.message,
+          code: 'code' in err ? String(err.code) : null,
+        });
+        reject(err);
+      });
       this.httpServer!.listen(this.port, this.webUiBindAddress, () => resolve());
+    });
+    startupDiag('ui-listen-done', {
+      port: this.port,
+      bind: this.webUiBindAddress,
     });
 
     logger.info(`📁 Static file root: ${this.root}`);

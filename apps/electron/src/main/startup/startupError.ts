@@ -42,13 +42,29 @@ function readFileTail(filePath: string, maxBytes: number): string | null {
   }
 }
 
-export function formatSmmLogTail(raw: string): string {
+export function formatSmmLogTail(raw: string, sessionId?: string): string {
   if (!raw.trim()) {
     return "(empty log file)"
   }
 
-  return raw
-    .split("\n")
+  let lines = raw.split("\n")
+  if (sessionId) {
+    const marker = `session=${sessionId}`
+    const altMarker = `"session":"${sessionId}"`
+    let startIdx = -1
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i] ?? ""
+      if (line.includes(marker) || line.includes(altMarker) || line.includes(sessionId)) {
+        startIdx = i
+        break
+      }
+    }
+    if (startIdx >= 0) {
+      lines = lines.slice(startIdx)
+    }
+  }
+
+  return lines
     .map((line) => {
       const trimmed = line.trim()
       if (!trimmed) {
@@ -73,11 +89,13 @@ export function collectStartupDiagnostics(
     cliExecutable: string
     cliPort: number
     processOutput?: string
+    startupSession?: string
   },
 ): StartupDiagnostics {
   const smmLogPath = getSmmLogFilePath()
   const rawTail = readFileTail(smmLogPath, SMM_LOG_TAIL_MAX_BYTES)
-  const smmLogTail = rawTail === null ? null : formatSmmLogTail(rawTail)
+  const smmLogTail =
+    rawTail === null ? null : formatSmmLogTail(rawTail, options.startupSession)
 
   return {
     failure,
