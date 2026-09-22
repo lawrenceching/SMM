@@ -93,10 +93,17 @@ describe('shouldFitE2eWindowToScreen', () => {
     expect(shouldFitE2eWindowToScreen()).toBe(true);
   });
 
-  test('keeps 1920x1080 on Electron CI so a 1024x720 runner desktop cannot hide controls', () => {
+  test('keeps 1920x1080 on Electron CI Windows/Linux so a 1024x720 runner desktop cannot hide controls', () => {
     process.env.CI = 'true';
     process.env.E2E_PLATFORM = 'electron';
-    expect(shouldFitE2eWindowToScreen()).toBe(false);
+    expect(shouldFitE2eWindowToScreen({ platform: 'win32' })).toBe(false);
+    expect(shouldFitE2eWindowToScreen({ platform: 'linux' })).toBe(false);
+  });
+
+  test('fits Electron CI mac so StatusBar clicks stay inside screenAvail (menu bar + Dock)', () => {
+    process.env.CI = 'true';
+    process.env.E2E_PLATFORM = 'electron';
+    expect(shouldFitE2eWindowToScreen({ platform: 'darwin' })).toBe(true);
   });
 
   test('keeps 1920x1080 on Web CI so a small runner desktop cannot clamp target', () => {
@@ -107,7 +114,7 @@ describe('shouldFitE2eWindowToScreen', () => {
 
   test('still fits locally and on non-Electron CI', () => {
     process.env.E2E_PLATFORM = 'electron';
-    expect(shouldFitE2eWindowToScreen()).toBe(true);
+    expect(shouldFitE2eWindowToScreen({ platform: 'win32' })).toBe(true);
 
     delete process.env.E2E_PLATFORM;
     process.env.CI = 'true';
@@ -115,7 +122,7 @@ describe('shouldFitE2eWindowToScreen', () => {
 
     process.env.CI = '1';
     process.env.E2E_PLATFORM = 'electron';
-    expect(shouldFitE2eWindowToScreen()).toBe(true);
+    expect(shouldFitE2eWindowToScreen({ platform: 'linux' })).toBe(true);
   });
 });
 

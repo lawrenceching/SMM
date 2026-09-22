@@ -47,9 +47,14 @@ export function fitE2eWindowSizeToScreen(
 
 /** Docker headless may report a tiny virtual screen (e.g. 800x600) before resize;
  *  clamping there would permanently shrink the target viewport.
- *  Electron CI must also keep 1920x1080: GitHub-hosted Windows desktops are
- *  1024x720, and fitting hides controls. Local desktops still fit-to-screen. */
-export function shouldFitE2eWindowToScreen(): boolean {
+ *  Electron CI on Windows/Linux must keep 1920x1080: GitHub-hosted Windows
+ *  desktops are 1024x720, and fitting hides controls.
+ *  Electron CI on macOS must fit: menu bar + Dock shrink screenAvail (~970),
+ *  and Puppeteer viewport 1080 makes StatusBar clicks miss. */
+export function shouldFitE2eWindowToScreen(
+  options: { platform?: NodeJS.Platform } = {},
+): boolean {
+  const platform = options.platform ?? process.platform
   if (process.env.BUILD_ENV === 'docker') {
     return false
   }
@@ -57,7 +62,7 @@ export function shouldFitE2eWindowToScreen(): boolean {
     return false
   }
   if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'electron') {
-    return false
+    return platform === 'darwin'
   }
   return true
 }

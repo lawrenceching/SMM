@@ -3,8 +3,12 @@
  * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
  */
 import type { UserConfig, UserConfigPatchOperation } from '@smm/types'
+import { isElectronAppUiReadyUrl } from './electron-ui-ready'
 import { retryOnTransientHelloFetch } from './retry-transient-hello-fetch'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
+
+/** How long Electron may stay on the Loading splash before the CLI UI is ready. */
+const ELECTRON_UI_READY_TIMEOUT_MS = 60_000
 
 /** Active OS for nested helpers during setup/cleanup (default `"general"`). */
 let activeTestbedOs: TestbedOs = 'general'
@@ -45,24 +49,31 @@ export function isOnUiPageOrigin(
  * If the browser is not already on the UI origin, navigate via Page.open.
  *
  * Electron: wdio-electron-service already attached to the app window (embedded
- * CLI UI origin). Do not navigate to the Vite desktop URL.
+ * CLI UI origin). Do not navigate to the Vite desktop URL. Production startup
+ * may briefly show a `data:text/html` Loading splash — wait for http(s).
  */
 export async function ensureBrowserOnUiPage(os: TestbedOs = getActiveTestbedOs()): Promise<void> {
     if (process.env.E2E_PLATFORM === 'electron') {
-        let currentUrl = ''
+        let lastUrl = ''
         try {
-            currentUrl = await browser.getUrl()
+            await browser.waitUntil(
+                async () => {
+                    lastUrl = await browser.getUrl()
+                    return isElectronAppUiReadyUrl(lastUrl)
+                },
+                {
+                    timeout: ELECTRON_UI_READY_TIMEOUT_MS,
+                    interval: 500,
+                    timeoutMsg: `ensureBrowserOnUiPage (electron): timed out waiting for http(s) app URL`,
+                },
+            )
         } catch (error) {
             throw new Error(
-                `ensureBrowserOnUiPage (electron): getUrl failed: ${error instanceof Error ? error.message : String(error)}`,
+                `ensureBrowserOnUiPage (electron): expected http(s) app URL within ${ELECTRON_UI_READY_TIMEOUT_MS}ms, last got "${lastUrl}"`,
+                { cause: error },
             )
         }
-        if (currentUrl.startsWith('http://') || currentUrl.startsWith('https://')) {
-            return
-        }
-        throw new Error(
-            `ensureBrowserOnUiPage (electron): expected http(s) app URL, got "${currentUrl}"`,
-        )
+        return
     }
 
     const targetUrl = resolveUiPageUrl(undefined, os)

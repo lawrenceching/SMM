@@ -1,4 +1,5 @@
 import { expect, browser } from '@wdio/globals'
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { delay } from 'es-toolkit'
 import { Path } from '@smm/utils/path'
@@ -119,11 +120,34 @@ export async function setupMcpTest(): Promise<void> {
     console.log(`[setupMcpTest] check ${i}: toggle aria-checked=${isOn}`)
     if (isOn) {
       console.log(`[setupMcpTest] toggle ON at check ${i}, done`)
-      break
+      return
     }
     console.log(`[setupMcpTest] check ${i}: toggle OFF, clicking`)
+    await StatusBar.mcpSwitch.waitForClickable()
     await StatusBar.mcpSwitch.click()
     await browser.pause(1000)
+  }
+
+  const stillOff = !(await StatusBar.isMcpToggleOn())
+  if (stillOff) {
+    try {
+      const screenshotDir = path.resolve(process.cwd(), '..', '..', 'artifacts', 'cicd')
+      await fs.promises.mkdir(screenshotDir, { recursive: true })
+      const screenshotPath = path.join(
+        screenshotDir,
+        `mcp-toggle-still-off-${Date.now()}.png`,
+      )
+      await browser.saveScreenshot(screenshotPath)
+      console.warn(`[setupMcpTest] saved screenshot: ${screenshotPath}`)
+    } catch (screenshotErr) {
+      console.warn(
+        '[setupMcpTest] screenshot failed:',
+        screenshotErr instanceof Error ? screenshotErr.message : screenshotErr,
+      )
+    }
+    throw new Error(
+      '[setupMcpTest] MCP switch stayed aria-checked=false after 3 clicks; MCP server was not started',
+    )
   }
 }
 
