@@ -97,7 +97,7 @@ import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { getFolderWatcher } from './src/services/folderWatcher';
 import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
-import { startupDiag } from '@/utils/startupDiag';
+import { startupDiag, startupDiagStaticIndex } from '@/utils/startupDiag';
 
 export interface ServerConfig {
   port?: number;
@@ -473,6 +473,7 @@ export class Server {
       port: this.port,
       bind: this.webUiBindAddress,
     });
+    startupDiagStaticIndex(this.root);
 
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(

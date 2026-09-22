@@ -1,5 +1,11 @@
 import type { ChildProcess } from "child_process"
 import type { CliStartupFailure } from "./types"
+import {
+  formatProbeResult,
+  probeCliHttp,
+  probeCliUiReady,
+  type CliHttpProbeResult,
+} from "./cliReadyProbe"
 
 const MAX_OUTPUT_LINES = 120
 const MAX_OUTPUT_CHARS = 24_000
@@ -192,32 +198,37 @@ function buildSpawnFailure(
 }
 
 export async function probeHttpPort(port: number): Promise<string> {
-  const url = `http://127.0.0.1:${port}/`
-  try {
-    const res = await fetch(url, {
-      method: "GET",
-      signal: AbortSignal.timeout(2000),
-    })
-    const contentType = res.headers.get("content-type") ?? "(none)"
-    return `${url} → status=${res.status} content-type=${contentType}`
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    return `${url} → error=${message}`
-  }
+  return formatProbeResult(await probeCliHttp(port, "/"))
 }
 
 export async function buildTimeoutFailure(
   port: number,
   monitor: CliProcessMonitor,
-  options?: { coreRoutesPort?: number },
+  options?: {
+    coreRoutesPort?: number
+    lastUiProbes?: CliHttpProbeResult[]
+  },
 ): Promise<CliStartupFailure> {
   const stillRunning = !monitor.hasExited()
   const lastPhase = monitor.getLastStartupPhase()
-  const uiProbe = await probeHttpPort(port)
+
+  const uiReady =
+    options?.lastUiProbes && options.lastUiProbes.length > 0
+      ? { ready: false, probes: options.lastUiProbes }
+      : await probeCliUiReady(port)
+  const uiProbeLines = uiReady.probes.map(
+    (probe) => `UI probe: ${formatProbeResult(probe)}`,
+  )
   const coreProbe =
     options?.coreRoutesPort !== undefined
-      ? await probeHttpPort(options.coreRoutesPort)
+      ? formatProbeResult(await probeCliHttp(options.coreRoutesPort, "/"))
       : null
+
+  const nonHtmlHint = uiReady.probes.some(
+    (p) => p.status !== null && !p.isHtmlReady,
+  )
+    ? "CLI appears to be listening but did not serve text/html (see UI probe status/body). This can be a readiness false-negative (e.g. HTTP 406 JSON)."
+    : null
 
   return {
     kind: "timeout",
@@ -235,9 +246,12 @@ export async function buildTimeoutFailure(
       monitor.startupSession ? `Session: ${monitor.startupSession}` : null,
       monitor.hasExited()
         ? `Exit: code=${monitor.getExitCode()} signal=${monitor.getExitSignal() ?? "none"}`
-        : "CLI process is still running but HTTP server did not respond.",
-      lastPhase ? `Last startup phase: ${lastPhase}` : "Last startup phase: (none captured — CLI may be stuck before first milestone)",
-      `UI probe: ${uiProbe}`,
+        : "CLI process is still running but HTTP server did not respond with text/html.",
+      lastPhase
+        ? `Last startup phase: ${lastPhase}`
+        : "Last startup phase: (none captured — CLI may be stuck before first milestone)",
+      nonHtmlHint,
+      ...uiProbeLines,
       coreProbe ? `Core-routes probe: ${coreProbe}` : null,
       "",
       "Process output:",
