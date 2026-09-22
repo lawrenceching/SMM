@@ -721,10 +721,100 @@ async function postUserConfigApi<T>(
     ) as unknown as { error: string | null; data: T | null }
 }
 
+type McpLifecycleApiResult = {
+    error: string | null
+    data: { status: string } | null
+}
+
+/**
+ * Stop the runtime MCP server when it is still listening.
+ * Used by user-config reset so patching `enableMcpServer: false` also frees the MCP port
+ * (patchUserConfig alone does not call stop).
+ */
+export async function stopMcpServerIfRunningForUserConfigReset(deps: {
+    getStatus: () => Promise<McpLifecycleApiResult>
+    stop: () => Promise<{ error: string | null }>
+}): Promise<'stopped' | 'skipped'> {
+    const status = await deps.getStatus()
+    if (status.error || status.data?.status !== 'running') {
+        return 'skipped'
+    }
+    const stopped = await deps.stop()
+    if (stopped.error) {
+        throw new Error(
+            `Failed to stop MCP server during user config reset: ${stopped.error}`,
+        )
+    }
+    return 'stopped'
+}
+
+async function getMcpServerStatusViaBrowser(): Promise<McpLifecycleApiResult> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+    return await browser.execute(
+        async (token: string | undefined) => {
+            const headers: Record<string, string> = {}
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
+            }
+            const res = await fetch('/api/get-mcp-server-status', {
+                method: 'GET',
+                headers,
+            })
+            const payload = await res.json() as {
+                data?: { status: string }
+                error?: string
+            }
+            return {
+                error: payload.error ?? (res.ok ? null : `HTTP ${res.status}`),
+                data: payload.data ?? null,
+            }
+        },
+        authToken,
+    ) as unknown as McpLifecycleApiResult
+}
+
+async function stopMcpServerViaBrowser(): Promise<{ error: string | null }> {
+    await ensureBrowserOnUiPage()
+    const authToken = process.env.SMM_AUTH_TOKEN
+    return await browser.execute(
+        async (token: string | undefined) => {
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            }
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`
+            }
+            const res = await fetch('/api/stop-mcp-server', {
+                method: 'POST',
+                headers,
+            })
+            const payload = await res.json() as { error?: string }
+            return {
+                error: payload.error ?? (res.ok ? null : `HTTP ${res.status}`),
+            }
+        },
+        authToken,
+    ) as unknown as { error: string | null }
+}
+
 export async function resetUserConfigViaBrowser(initConfig?: Partial<UserConfig>): Promise<string> {
     const { userDataDir } = await fetchHelloPathsViaBrowser()
     const userConfigPath = joinPlatformPath(userDataDir, 'smm.json')
     const desired = buildDefaultUserConfig(initConfig)
+
+    // Release MCP listen port before rewriting smm.json. patchUserConfig does not stop MCP.
+    if (desired.enableMcpServer !== true) {
+        const stopResult = await stopMcpServerIfRunningForUserConfigReset({
+            getStatus: getMcpServerStatusViaBrowser,
+            stop: stopMcpServerViaBrowser,
+        })
+    console.log(`[DIAG] resetUserConfig v2: MCP stop result=${stopResult}`)
+    if (stopResult === 'stopped') {
+      console.log('[DIAG] resetUserConfig v2: MCP server was running and has been stopped (port should be free)')
+    }
+    }
+
     const current = await postUserConfigApi<UserConfig>('/api/getUserConfig', {})
     if (current.error || current.data === null) {
         throw new Error(`resetUserConfigViaBrowser failed to read user config: ${current.error ?? 'no data'}`)

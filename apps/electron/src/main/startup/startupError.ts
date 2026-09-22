@@ -2,6 +2,10 @@ import { closeSync, existsSync, openSync, readSync, statSync } from "fs"
 import { getSmmLogFilePath } from "@smm/electron-common"
 import type { CliStartupFailure, StartupDiagnostics } from "./types"
 import { CliStartupError } from "./types"
+import {
+  portStartupLogPath,
+  readPortStartupLogTail,
+} from "./portStartupDiag"
 
 const SMM_LOG_TAIL_MAX_BYTES = 64 * 1024
 
@@ -96,6 +100,8 @@ export function collectStartupDiagnostics(
   const rawTail = readFileTail(smmLogPath, SMM_LOG_TAIL_MAX_BYTES)
   const smmLogTail =
     rawTail === null ? null : formatSmmLogTail(rawTail, options.startupSession)
+  const portLogPath = portStartupLogPath()
+  const portStartupLogTail = readPortStartupLogTail()
 
   return {
     failure,
@@ -106,6 +112,8 @@ export function collectStartupDiagnostics(
       : "(no process output captured)",
     smmLogPath,
     smmLogTail,
+    portStartupLogPath: portLogPath,
+    portStartupLogTail,
   }
 }
 
@@ -124,7 +132,16 @@ export function toCliStartupFailure(error: unknown): CliStartupFailure {
 }
 
 function buildCopyText(diagnostics: StartupDiagnostics): string {
-  const { failure, cliExecutable, cliPort, processOutput, smmLogPath, smmLogTail } = diagnostics
+  const {
+    failure,
+    cliExecutable,
+    cliPort,
+    processOutput,
+    smmLogPath,
+    smmLogTail,
+    portStartupLogPath: portLogPath,
+    portStartupLogTail,
+  } = diagnostics
   return [
     failure.title,
     failure.message,
@@ -137,13 +154,25 @@ function buildCopyText(diagnostics: StartupDiagnostics): string {
     "Process output:",
     processOutput,
     "",
+    `smm-port-startup.log: ${portLogPath}`,
+    portStartupLogTail === null
+      ? "(port startup log not found)"
+      : portStartupLogTail.trim() || "(empty)",
+    "",
     `smm.log: ${smmLogPath}`,
     smmLogTail === null ? "(log file not found or not created yet)" : smmLogTail,
   ].join("\n")
 }
 
 export function getStartupErrorPageDataUrl(diagnostics: StartupDiagnostics): string {
-  const { failure, processOutput, smmLogPath, smmLogTail } = diagnostics
+  const {
+    failure,
+    processOutput,
+    smmLogPath,
+    smmLogTail,
+    portStartupLogPath: portLogPath,
+    portStartupLogTail,
+  } = diagnostics
   const copyText = buildCopyText(diagnostics)
   const logSection =
     smmLogTail === null
@@ -151,6 +180,12 @@ export function getStartupErrorPageDataUrl(diagnostics: StartupDiagnostics): str
          <p class="mono path">${escapeHtml(smmLogPath)}</p>`
       : `<p class="mono path">${escapeHtml(smmLogPath)}</p>
          <pre class="log-block">${escapeHtml(smmLogTail)}</pre>`
+  const portSection =
+    portStartupLogTail === null
+      ? `<p class="hint">端口诊断日志尚未生成。</p>
+         <p class="mono path">${escapeHtml(portLogPath)}</p>`
+      : `<p class="mono path">${escapeHtml(portLogPath)}</p>
+         <pre class="log-block">${escapeHtml(portStartupLogTail.trim() || "(empty)")}</pre>`
 
   const html = `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -287,6 +322,8 @@ export function getStartupErrorPageDataUrl(diagnostics: StartupDiagnostics): str
       <p class="error-message">${escapeHtml(failure.message)}</p>
       <div class="section-title">进程输出</div>
       <pre class="output-block mono">${escapeHtml(processOutput)}</pre>
+      <div class="section-title">smm-port-startup.log</div>
+      ${portSection}
       <div class="section-title">smm.log</div>
       ${logSection}
       <div class="actions">

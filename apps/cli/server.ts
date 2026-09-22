@@ -475,6 +475,37 @@ export class Server {
     });
     startupDiagStaticIndex(this.root);
 
+    // Detect dual-bind: leftover MCP on 0.0.0.0 may answer while Node UI listens on 127.0.0.1.
+    void (async () => {
+      try {
+        const res = await fetch(`http://127.0.0.1:${this.port}/`, {
+          method: 'GET',
+          headers: {
+            Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+          },
+          signal: AbortSignal.timeout(2000),
+        });
+        const contentType = res.headers.get('content-type');
+        let bodySnippet = '';
+        try {
+          bodySnippet = (await res.text()).replace(/\s+/g, ' ').trim().slice(0, 200);
+        } catch {
+          bodySnippet = '(read failed)';
+        }
+        startupDiag('ui-self-probe-after-listen', {
+          port: this.port,
+          status: res.status,
+          contentType,
+          bodySnippet,
+        });
+      } catch (err) {
+        startupDiag('ui-self-probe-after-listen', {
+          port: this.port,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(
       `🚀 Static file server running on http://${this.webUiBindAddress === '0.0.0.0' ? 'localhost' : this.webUiBindAddress}:${this.port} (bind ${this.webUiBindAddress})`,
@@ -486,7 +517,37 @@ export class Server {
       logger.error({ err }, 'Failed to start reverse proxy'),
     );
 
-    applyMcpConfig().catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
+    applyMcpConfig()
+      .then(async () => {
+        try {
+          const res = await fetch(`http://127.0.0.1:${this.port}/`, {
+            method: 'GET',
+            headers: {
+              Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
+            },
+            signal: AbortSignal.timeout(2000),
+          });
+          const contentType = res.headers.get('content-type');
+          let bodySnippet = '';
+          try {
+            bodySnippet = (await res.text()).replace(/\s+/g, ' ').trim().slice(0, 200);
+          } catch {
+            bodySnippet = '(read failed)';
+          }
+          startupDiag('ui-self-probe-after-mcp-config', {
+            port: this.port,
+            status: res.status,
+            contentType,
+            bodySnippet,
+          });
+        } catch (err) {
+          startupDiag('ui-self-probe-after-mcp-config', {
+            port: this.port,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      })
+      .catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
 
     getCore().runHostSpeedTests().catch((err) =>
       logger.error({ err }, "Failed to run TMDB/TVDB host speed tests"),

@@ -20,6 +20,9 @@ export interface StartupDiagnostics {
   processOutput: string
   smmLogPath: string
   smmLogTail: string | null
+  /** Electron main port/leftover diag (`tmpdir/smm-port-startup.log`). */
+  portStartupLogPath: string
+  portStartupLogTail: string | null
 }
 
 export class CliStartupError extends Error {

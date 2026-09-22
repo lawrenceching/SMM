@@ -4,7 +4,6 @@ import { appendFileSync, existsSync, readdirSync, writeFileSync } from 'fs'
 import { homedir, tmpdir } from 'os'
 import { basename, join } from 'path'
 import { spawn, ChildProcess } from 'child_process'
-import { createServer } from 'net'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { getConfigTask } from './tasks/GetConfigTask'
@@ -28,6 +27,17 @@ import {
   stopLeftoverSmmProcesses,
   writeSmmProcessRecord,
 } from './startup/leftoverCli'
+import {
+  appendPortStartupLog,
+  describeListenersOnPort,
+  formatPortOccupantProbe,
+  portStartupLogPath,
+  probePortOccupant,
+  resetPortStartupLog,
+  DEFAULT_FREE_PORT_RANGE,
+  findFreePortWithSniff,
+  logPortSniffPass,
+} from './startup/portStartupDiag'
 
 const POLL_INTERVAL_MS = 50
 const SERVER_READY_TIMEOUT_MS = 30_000
@@ -188,53 +198,36 @@ function getPublicFolderPath(): string {
 }
 
 /**
- * Find a free port from the given range, trying ports sequentially
- * @param minPort Minimum port number (inclusive)
- * @param maxPort Maximum port number (inclusive)
- * @returns Promise that resolves to a free port number, or null if no free port is found
+ * Get a free port from the range [30000, 65535], logging every sniff step.
  */
-function findFreePort(
-  minPort: number,
-  maxPort: number,
-  exclude: ReadonlySet<number> = new Set(),
-): Promise<number | null> {
-  return new Promise((resolve) => {
-    function tryPort(port: number): void {
-      if (port > maxPort) {
-        resolve(null)
-        return
-      }
-
-      if (exclude.has(port)) {
-        tryPort(port + 1)
-        return
-      }
-
-      const server = createServer()
-      server.listen(port, '127.0.0.1', () => {
-        server.once('close', () => {
-          resolve(port)
-        })
-        server.close()
-      })
-      server.on('error', () => {
-        // Port is in use, try next port
-        tryPort(port + 1)
-      })
-    }
-
-    tryPort(minPort)
+async function getFreePort(
+  exclude?: ReadonlySet<number>,
+  purpose = 'unspecified',
+): Promise<number> {
+  const excludeSet = exclude ?? new Set<number>()
+  const { min, max } = DEFAULT_FREE_PORT_RANGE
+  const { port, sniffs } = await findFreePortWithSniff(min, max, excludeSet)
+  logPortSniffPass({
+    purpose,
+    minPort: min,
+    maxPort: max,
+    exclude: excludeSet,
+    sniffs,
+    selected: port,
   })
-}
-
-/**
- * Get a free port from the range [30000, 65535]
- * @returns Promise that resolves to a free port number
- */
-async function getFreePort(exclude?: ReadonlySet<number>): Promise<number> {
-  const port = await findFreePort(30000, 65535, exclude)
   if (port === null) {
-    throw new Error('No free port found in range [30000, 65535]')
+    throw new Error(`No free port found in range [${min}, ${max}]`)
+  }
+  // After Node's 127.0.0.1 listen probe, HTTP-probe for leftover MCP on 0.0.0.0.
+  const occupant = await probePortOccupant(port)
+  appendPortStartupLog(
+    `sniff-http purpose=${purpose} ${formatPortOccupantProbe(port, occupant)}`,
+  )
+  if (occupant.kind !== 'free') {
+    appendPortStartupLog(
+      `sniff-http WARNING purpose=${purpose} port=${port} listen-probe free but HTTP occupant=${occupant.kind} ` +
+        `lsof=${describeListenersOnPort(port)}`,
+    )
   }
   return port
 }
@@ -481,10 +474,14 @@ async function stopProcessGracefully(
 async function stopCLIGracefully(): Promise<void> {
   const proc = cliProcess
   if (!proc) {
+    appendPortStartupLog('stopCLIGracefully: no cliProcess')
     return
   }
 
   const port = cliPort
+  appendPortStartupLog(
+    `stopCLIGracefully begin cliPid=${proc.pid ?? 'null'} uiPort=${port ?? 'null'}`,
+  )
   if (port !== null) {
     await stopProcessGracefully(proc, { port, label: 'CLI executable' })
   } else {
@@ -496,6 +493,7 @@ async function stopCLIGracefully(): Promise<void> {
   }
   cliStartupMonitor = null
   clearSmmProcessRecord(smmProcessRecordFile)
+  appendPortStartupLog('stopCLIGracefully done; cleared smm-process record')
   console.log('CLI executable stopped')
 }
 
@@ -699,6 +697,11 @@ app.whenReady().then(() => {
   } catch {
     // ignore
   }
+  resetPortStartupLog()
+  appendPortStartupLog(
+    `electron ready pid=${process.pid} platform=${process.platform} ` +
+      `portLog=${portStartupLogPath()} processRecord=${smmProcessRecordFile}`,
+  )
   // Set app user model id for windows
   electronApp.setAppUserModelId('com.electron')
 
@@ -755,23 +758,38 @@ app.whenReady().then(() => {
           cliBinaryName: getCLIBinaryName(),
           electronBinaryName: basename(process.execPath),
         })
+        appendPortStartupLog(
+          `leftover stop result=[${stopped.join(', ')}] recordFile=${smmProcessRecordFile} ci=${process.env.CI === 'true'}`,
+        )
         if (stopped.length > 0) {
           console.error(`[SMM] stopped leftover processes: ${stopped.join(', ')}`)
         }
-        const reservedMcpPort = readReservedMcpPort(
-          cliUserConfigPath({
-            platform: process.platform,
-            homedir: homedir(),
-            env: process.env,
-          }),
+        const configPath = cliUserConfigPath({
+          platform: process.platform,
+          homedir: homedir(),
+          env: process.env,
+        })
+        const reservedMcpPort = readReservedMcpPort(configPath)
+        appendPortStartupLog(
+          `reserve MCP port=${reservedMcpPort} from ${configPath} ` +
+            `lsof=${describeListenersOnPort(reservedMcpPort)}`,
         )
         console.log(`Reserving MCP port from user config: ${reservedMcpPort}`)
         if (cliPort === null) {
-          cliPort = await getFreePort(new Set([reservedMcpPort]))
+          cliPort = await getFreePort(new Set([reservedMcpPort]), 'ui')
+          appendPortStartupLog(
+            `Using CLI/UI port=${cliPort} lsof=${describeListenersOnPort(cliPort)}`,
+          )
           console.log(`Using CLI port: ${cliPort}`)
         }
         if (cliCoreRoutesPort === null) {
-          cliCoreRoutesPort = await getFreePort(new Set([cliPort, reservedMcpPort]))
+          cliCoreRoutesPort = await getFreePort(
+            new Set([cliPort, reservedMcpPort]),
+            'core-routes',
+          )
+          appendPortStartupLog(
+            `Using core-routes port=${cliCoreRoutesPort} lsof=${describeListenersOnPort(cliCoreRoutesPort)}`,
+          )
           console.log(`Using CLI core-routes port: ${cliCoreRoutesPort}`)
         }
         createWindow({ showLoadingFirst: true })

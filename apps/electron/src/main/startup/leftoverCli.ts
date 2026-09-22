@@ -251,11 +251,17 @@ export async function stopLeftoverSmmProcesses(options: {
   try {
     raw = readFileSync(options.pidFilePath, 'utf8')
   } catch {
+    console.error(`[SMM] leftover: no process record at ${options.pidFilePath}`)
     return []
   }
 
+  const record = parseSmmProcessRecord(raw)
+  console.error(
+    `[SMM] leftover: record=${JSON.stringify(record)} currentPid=${options.currentPid} ci=${options.ci}`,
+  )
+
   const kills = planLeftoverKills({
-    record: parseSmmProcessRecord(raw),
+    record,
     currentPid: options.currentPid,
     ci: options.ci,
     cliBinaryName: options.cliBinaryName,
@@ -268,9 +274,22 @@ export async function stopLeftoverSmmProcesses(options: {
   })
 
   for (const pid of kills) {
-    console.error(`[SMM] stopping leftover process pid=${pid}`)
+    const inspection = {
+      alive: isAlivePid(pid),
+      cmdline: readCmdline(pid, options.platform),
+      parentPid: readParentPid(pid, options.platform),
+    }
+    console.error(
+      `[SMM] stopping leftover process pid=${pid} alive=${inspection.alive} ` +
+        `ppid=${inspection.parentPid} cmdline=${JSON.stringify(inspection.cmdline)}`,
+    )
     killProcessTree(pid, options.platform)
     await waitForPidExit(pid, 2_000)
+    console.error(`[SMM] leftover pid=${pid} after-kill alive=${isAlivePid(pid)}`)
+  }
+
+  if (kills.length === 0 && record !== null) {
+    console.error('[SMM] leftover: record present but no pids selected for kill')
   }
 
   return kills
