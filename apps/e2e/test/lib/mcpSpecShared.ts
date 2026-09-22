@@ -77,15 +77,54 @@ export async function enableMcpFromStatusBarAndStoreAddress(): Promise<void> {
   console.log(`[mcpSpecShared] enableMcpFromStatusBarAndStoreAddress completed, stored address=${mcpAddress}`)
 }
 
+export type StopMcpViaStatusBarDeps = {
+  ensurePopoverOpen: () => Promise<void>
+  isOn: () => Promise<boolean>
+  clickSwitch: () => Promise<void>
+  waitUntilOff: (timeoutMs: number) => Promise<void>
+}
+
+/**
+ * Stop MCP via StatusBar when the switch is ON.
+ * CI reserves port 30001 for SMM — do not kill foreign holders; start failure is expected.
+ */
+export async function stopMcpViaStatusBarIfOn(
+  deps: StopMcpViaStatusBarDeps,
+  waitOffTimeoutMs = 10_000,
+): Promise<'skipped-already-off' | 'stopped'> {
+  await deps.ensurePopoverOpen()
+  if (!(await deps.isOn())) {
+    return 'skipped-already-off'
+  }
+  await deps.clickSwitch()
+  await deps.waitUntilOff(waitOffTimeoutMs)
+  return 'stopped'
+}
+
+async function stopMcpViaStatusBarFromUi(): Promise<'skipped-already-off' | 'stopped'> {
+  return stopMcpViaStatusBarIfOn({
+    ensurePopoverOpen: async () => {
+      await ensureMcpPopoverOpen()
+      await StatusBar.mcpSwitch.waitForDisplayed()
+    },
+    isOn: () => StatusBar.isMcpToggleOn(),
+    clickSwitch: async () => {
+      await StatusBar.mcpSwitch.waitForClickable()
+      await StatusBar.mcpSwitch.click()
+    },
+    waitUntilOff: async (timeoutMs) => {
+      await browser.waitUntil(async () => !(await StatusBar.isMcpToggleOn()), {
+        timeout: timeoutMs,
+        timeoutMsg: `Expected MCP switch aria-checked=false within ${timeoutMs}ms after stop click`,
+        interval: 200,
+      })
+    },
+  })
+}
+
 /** Turn MCP server off and clear stored URL (WDIO global `after`). */
 export async function disableMcpFromStatusBarAndClearGlobal(): Promise<void> {
-  await ensureMcpPopoverOpen()
-  await StatusBar.mcpSwitch.waitForDisplayed()
-
-  if (await StatusBar.isMcpToggleOn()) {
-    await StatusBar.mcpSwitch.click()
-    await delay(1000)
-  }
+  await stopMcpViaStatusBarFromUi()
 
   delete (globalThis as Record<string, unknown>)[SMM_MCP_GLOBAL_ADDRESS_KEY]
   delete (globalThis as Record<string, unknown>)[SMM_MCP_WORKER_FLAG_KEY]
@@ -151,8 +190,15 @@ export async function setupMcpTest(): Promise<void> {
   }
 }
 
-/** Refresh browser after MCP spec. Call from spec `afterEach` before {@link cleanup}. */
+/**
+ * Stop MCP via StatusBar (when ON), then refresh.
+ * Call from spec `afterEach` before {@link cleanup}.
+ */
 export async function cleanupMcpTest(): Promise<void> {
+  console.log('[cleanupMcpTest] stopping MCP via StatusBar if on')
+  const stopResult = await stopMcpViaStatusBarFromUi()
+  console.log(`[cleanupMcpTest] stop result=${stopResult}`)
+
   await browser.refresh()
   await StatusBar.appVersion.waitForDisplayed()
 }
