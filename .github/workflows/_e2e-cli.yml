@@ -1,10 +1,9 @@
 name: E2E Tests for CLI (reusable)
 
 # Bun:test suites under apps/e2e/cli against apps/cli/dist/cli.
-# Called by:
-#   - CI (full run, after build-cli)
-#   - E2E Tests for CLI (manual workflow_dispatch, after build-cli)
+# Called by CI (full run, after build-cli).
 # Expects artifact `cli-dist` from the caller.
+# Manual multi-platform CLI e2e lives in e2e-cli.yml (build+test on each runner).
 
 on:
   workflow_call:

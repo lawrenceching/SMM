@@ -3,7 +3,7 @@ name: CI
 # Merged from build.yml + e2e-test.yml + e2e-docker.yml + e2e-http-proxy.yml.
 # E2E groups run only after the build pipeline (test / lint / typecheck / build) succeeds.
 #
-# CLI bun:test e2e: reusable _e2e-cli.yml (also callable via "E2E Tests for CLI" workflow).
+# CLI bun:test e2e: reusable _e2e-cli.yml (ubuntu). Manual multi-platform: "E2E Tests for CLI".
 #
 # Required check names (RELEASE_REQUIRED_CHECKS) must stay stable:
 #   Run Unit Tests, Lint UI, Typecheck, Build UI, Build CLI,

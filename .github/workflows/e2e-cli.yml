@@ -1,9 +1,9 @@
 name: E2E Tests for CLI
 
-# Manual-only entry for CLI bun:test e2e (apps/e2e/cli).
-# Builds CLI, then calls reusable _e2e-cli.yml (same job used by CI).
-#
-# For full CI (unit + host/docker/http-proxy + CLI e2e), use the CI workflow.
+# Manual-only CLI bun:test e2e (apps/e2e/cli) against a freshly built apps/cli/dist/cli[.exe].
+# Same five OS/arch runners as "E2E Tests for Electron": each matrix job builds CLI on the
+# runner, then runs tests (no shared cli-dist artifact).
+# CI still uses reusable _e2e-cli.yml after its own ubuntu build-cli job.
 
 on:
   workflow_dispatch:
@@ -18,9 +18,41 @@ permissions:
   contents: read
 
 jobs:
-  build-cli:
-    name: Build CLI
-    runs-on: ubuntu-latest
+  e2e:
+    name: E2E Tests for CLI (${{ matrix.platform }}-${{ matrix.arch }})
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: win
+            arch: x64
+            runs-on: windows-latest
+          - platform: win
+            arch: arm64
+            runs-on: windows-11-arm
+          - platform: linux
+            arch: x64
+            runs-on: ubuntu-latest
+          - platform: linux
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+          - platform: mac
+            arch: arm64
+            runs-on: macos-14
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.arch }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+      TMDB_HOST: https://api.themoviedb.org/3
+      TVDB_HOST: https://api4.thetvdb.com/v4
+      USE_EMBEDDED_HTTP_PROXY: 'true'
 
     steps:
       - name: Checkout code
@@ -37,19 +69,28 @@ jobs:
       - name: Install all dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Require API key secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${TMDB_API_KEY:-}" ]; then
+            echo "::error::Secret TMDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          if [ -z "${TVDB_API_KEY:-}" ]; then
+            echo "::error::Secret TVDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          exit "$missing"
+
       - name: Build CLI
-        run: cd apps/cli && pnpm run build
+        run: pnpm --filter cli run build
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cli-dist
-          path: apps/cli/dist
-          retention-days: 7
-
-  e2e-cli:
-    needs: [build-cli]
-    uses: ./.github/workflows/_e2e-cli.yml
-    with:
-      test_filter: ${{ inputs.test_filter }}
-    secrets: inherit
+      - name: Run CLI E2E tests
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.test_filter }}" ]; then
+            bun ci/run-cli-e2e-test.ts "${{ inputs.test_filter }}"
+          else
+            bun ci/run-cli-e2e-test.ts
+          fi
