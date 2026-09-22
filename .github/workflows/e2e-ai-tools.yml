@@ -6,6 +6,7 @@ name: E2E Tests for AI Tools
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read

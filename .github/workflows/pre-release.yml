@@ -1,0 +1,91 @@
+name: Pre Release
+
+# Manual orchestration: run all "E2E Tests for XXX" platform suites in parallel
+# before tagging a release. Not a CI or release gate by itself — maintainers
+# dispatch this to validate product surfaces (CLI / Electron / Web UI / MCP /
+# AI Tools) on the five OS/arch matrices.
+#
+# Each suite still builds on its own runners (no shared artifacts).
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e-cli:
+    name: E2E Tests for CLI
+    uses: ./.github/workflows/e2e-cli.yml
+    secrets: inherit
+
+  e2e-electron:
+    name: E2E Tests for Electron
+    uses: ./.github/workflows/e2e-electron.yml
+    secrets: inherit
+
+  e2e-web-ui:
+    name: E2E Tests for Web UI
+    uses: ./.github/workflows/e2e-web-ui.yml
+    secrets: inherit
+
+  e2e-mcp-tools:
+    name: E2E Tests for MCP Tools
+    uses: ./.github/workflows/e2e-mcp-tools.yml
+    secrets: inherit
+
+  e2e-ai-tools:
+    name: E2E Tests for AI Tools
+    uses: ./.github/workflows/e2e-ai-tools.yml
+    secrets: inherit
+
+  gate:
+    name: pre-release / gate
+    needs:
+      - e2e-cli
+      - e2e-electron
+      - e2e-web-ui
+      - e2e-mcp-tools
+      - e2e-ai-tools
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all E2E suites passed
+        env:
+          CLI: ${{ needs.e2e-cli.result }}
+          ELECTRON: ${{ needs.e2e-electron.result }}
+          WEB_UI: ${{ needs.e2e-web-ui.result }}
+          MCP: ${{ needs.e2e-mcp-tools.result }}
+          AI: ${{ needs.e2e-ai-tools.result }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## Pre Release E2E"
+            echo ""
+            echo "| Suite | Result |"
+            echo "|-------|--------|"
+            echo "| CLI | ${CLI} |"
+            echo "| Electron | ${ELECTRON} |"
+            echo "| Web UI | ${WEB_UI} |"
+            echo "| MCP Tools | ${MCP} |"
+            echo "| AI Tools | ${AI} |"
+            echo ""
+            echo "**Commit:** \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          failed=0
+          for name_result in \
+            "CLI:${CLI}" \
+            "Electron:${ELECTRON}" \
+            "Web UI:${WEB_UI}" \
+            "MCP Tools:${MCP}" \
+            "AI Tools:${AI}"
+          do
+            name="${name_result%%:*}"
+            result="${name_result#*:}"
+            if [ "${result}" != "success" ]; then
+              echo "::error::${name}: ${result}"
+              failed=1
+            fi
+          done
+          exit "${failed}"

@@ -8,6 +8,7 @@ name: E2E Tests for Electron
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read

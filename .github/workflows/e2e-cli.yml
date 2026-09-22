@@ -13,6 +13,13 @@ on:
         required: false
         type: string
         default: ''
+  workflow_call:
+    inputs:
+      test_filter:
+        description: 'Optional bun test path under apps/e2e/cli (e.g. ./cli/tmdb.test.ts). Empty runs all CLI e2e tests.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
