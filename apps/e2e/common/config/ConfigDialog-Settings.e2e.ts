@@ -68,7 +68,8 @@ describe('Config Dialog Settings - General Settings', () => {
             tvdbHost: 'http://tvdb.local',
             tvdbApiKey: 'tvdb-key-for-e2e',
             enableMcpServer: true,
-            mcpHost: '127.0.0.2',
+            // Use 0.0.0.0: macOS runners lack 127.0.0.2 loopback aliases.
+            mcpHost: '0.0.0.0',
             mcpPort: '30021',
         }
 
