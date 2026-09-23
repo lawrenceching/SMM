@@ -11,7 +11,6 @@ name: E2E Tests for Web UI
 
 on:
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read

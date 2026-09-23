@@ -14,13 +14,6 @@ on:
         required: false
         type: string
         default: ''
-  workflow_call:
-    inputs:
-      test_filter:
-        description: 'Optional bun test path under apps/e2e/mcp (e.g. ./mcp/tools-list.test.ts). Empty runs all MCP e2e tests.'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: read

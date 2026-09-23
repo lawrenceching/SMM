@@ -95,7 +95,8 @@ flowchart TB
 **推荐顺序（同一版本）：**
 
 1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含三套 E2E gate）  
-2. （可选）Actions → **Pre Release**：并行跑 **E2E Tests for CLI / Electron / Web UI / MCP Tools / AI Tools**（五平台矩阵），确认 `pre-release / gate` 全绿  
+2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；五平台矩阵），确认 `pre-release / gate` 全绿  
+
 3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）  
 4. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 

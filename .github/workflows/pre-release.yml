@@ -1,7 +1,8 @@
 name: Pre Release
 
-# Manual orchestration: run all "E2E Tests for XXX" platform suites in parallel
-# before tagging a release. Not a CI or release gate by itself — maintainers
+# Manual orchestration: dispatch each "E2E Tests for XXX" workflow as its own
+# workflow_dispatch run (visible on that workflow's Actions page), wait in
+# parallel, then gate. Not a CI or release gate by itself — maintainers
 # dispatch this to validate product surfaces (CLI / Electron / Web UI / MCP /
 # AI Tools) on the five OS/arch matrices.
 #
@@ -12,32 +13,73 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   e2e-cli:
     name: E2E Tests for CLI
-    uses: ./.github/workflows/e2e-cli.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-cli.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
   e2e-electron:
     name: E2E Tests for Electron
-    uses: ./.github/workflows/e2e-electron.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-electron.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
   e2e-web-ui:
     name: E2E Tests for Web UI
-    uses: ./.github/workflows/e2e-web-ui.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-web-ui.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
   e2e-mcp-tools:
     name: E2E Tests for MCP Tools
-    uses: ./.github/workflows/e2e-mcp-tools.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-mcp-tools.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
   e2e-ai-tools:
     name: E2E Tests for AI Tools
-    uses: ./.github/workflows/e2e-ai-tools.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-ai-tools.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
   gate:
     name: pre-release / gate
@@ -71,6 +113,8 @@ jobs:
             echo "| AI Tools | ${AI} |"
             echo ""
             echo "**Commit:** \`${{ github.sha }}\`"
+            echo ""
+            echo "Each suite is a separate workflow_dispatch run on its own Actions page."
           } >> "$GITHUB_STEP_SUMMARY"
 
           failed=0
