@@ -200,6 +200,17 @@ export function UIMediaFileTableEpisodeBlock({
   )
 }
 
+function associatedFilePathForEpisode(
+  files: { season: number; episode: number; files: string[] }[] | undefined,
+  season: number,
+  episode: number,
+): string | undefined {
+  const entry = files?.find(
+    (item) => item.season === season && item.episode === episode,
+  )
+  return head(entry?.files ?? [])
+}
+
 /**
  * `detail`-layout season content block: one `MediaFileTableEpisodeDetailRow`
  * per episode (id + cover thumbnail + title/path), each wrapped with its
@@ -209,9 +220,9 @@ export function UIMediaFileTableEpisodeDetailBlock({
   season,
   items = [],
   mediaFolderPath,
-  subtitleFiles: _subtitleFiles,
-  nfoFiles: _nfoFiles,
-  thumbnailFiles: _thumbnailFiles,
+  subtitleFiles,
+  nfoFiles,
+  thumbnailFiles,
   checboxVisible = false,
   onCheck,
   selectedEpisodes,
@@ -220,31 +231,52 @@ export function UIMediaFileTableEpisodeDetailBlock({
   return (
     <table className="w-full table-fixed text-xs">
       <TableBody>
-        {season.episodes.map((episode) => (
-          <EpisodeContextMenu
-            key={`season-${season.season}-episode-${episode.episode}`}
-            episode={episode}
-            items={items}
-          >
-            <MediaFileTableEpisodeDetailRow
-              season={season.season}
-              episode={episode.episode}
-              title={episode.title}
-              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
-              isChecked={selectedEpisodes?.some(
-                (selectedEpisode) =>
-                  selectedEpisode.season === season.season &&
-                  selectedEpisode.episode === episode.episode,
-              )}
-              isCheckboxDisabled={disableCheckboxIfEpisodeVideoNotAvailable && !episode.path}
-              onCheck={
-                checboxVisible
-                  ? (isChecked) => onCheck?.(season.season, episode.episode, isChecked)
-                  : undefined
-              }
-            />
-          </EpisodeContextMenu>
-        ))}
+        {season.episodes.map((episode) => {
+          const subtitlePath = associatedFilePathForEpisode(
+            subtitleFiles,
+            season.season,
+            episode.episode,
+          )
+          const nfoPath = associatedFilePathForEpisode(
+            nfoFiles,
+            season.season,
+            episode.episode,
+          )
+          const thumbnailPath = associatedFilePathForEpisode(
+            thumbnailFiles,
+            season.season,
+            episode.episode,
+          )
+
+          return (
+            <EpisodeContextMenu
+              key={`season-${season.season}-episode-${episode.episode}`}
+              episode={episode}
+              items={items}
+            >
+              <MediaFileTableEpisodeDetailRow
+                season={season.season}
+                episode={episode.episode}
+                title={episode.title}
+                path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
+                thumbnailPath={thumbnailPath}
+                subtitlePath={subtitlePath}
+                nfoPath={nfoPath}
+                isChecked={selectedEpisodes?.some(
+                  (selectedEpisode) =>
+                    selectedEpisode.season === season.season &&
+                    selectedEpisode.episode === episode.episode,
+                )}
+                isCheckboxDisabled={disableCheckboxIfEpisodeVideoNotAvailable && !episode.path}
+                onCheck={
+                  checboxVisible
+                    ? (isChecked) => onCheck?.(season.season, episode.episode, isChecked)
+                    : undefined
+                }
+              />
+            </EpisodeContextMenu>
+          )
+        })}
       </TableBody>
     </table>
   )
@@ -259,9 +291,9 @@ export function UIMediaFileTableEpisodePreviewBlock({
   season,
   items = [],
   mediaFolderPath,
-  subtitleFiles: _subtitleFiles,
-  nfoFiles: _nfoFiles,
-  thumbnailFiles: _thumbnailFiles,
+  subtitleFiles,
+  nfoFiles,
+  thumbnailFiles,
   checboxVisible = false,
   onCheck,
   selectedEpisodes,
@@ -270,31 +302,52 @@ export function UIMediaFileTableEpisodePreviewBlock({
   return (
     <table className="w-full table-fixed text-xs">
       <TableBody>
-        {season.episodes.map((episode) => (
-          <EpisodeContextMenu
-            key={`season-${season.season}-episode-${episode.episode}`}
-            episode={episode}
-            items={items}
-          >
-            <MediaFileTableEpisodePreviewRow
-              season={season.season}
-              episode={episode.episode}
-              title={episode.title}
-              path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
-              isChecked={selectedEpisodes?.some(
-                (selectedEpisode) =>
-                  selectedEpisode.season === season.season &&
-                  selectedEpisode.episode === episode.episode,
-              )}
-              isCheckboxDisabled={disableCheckboxIfEpisodeVideoNotAvailable && !episode.path}
-              onCheck={
-                checboxVisible
-                  ? (isChecked) => onCheck?.(season.season, episode.episode, isChecked)
-                  : undefined
-              }
-            />
-          </EpisodeContextMenu>
-        ))}
+        {season.episodes.map((episode) => {
+          const subtitlePath = associatedFilePathForEpisode(
+            subtitleFiles,
+            season.season,
+            episode.episode,
+          )
+          const nfoPath = associatedFilePathForEpisode(
+            nfoFiles,
+            season.season,
+            episode.episode,
+          )
+          const thumbnailPath = associatedFilePathForEpisode(
+            thumbnailFiles,
+            season.season,
+            episode.episode,
+          )
+
+          return (
+            <EpisodeContextMenu
+              key={`season-${season.season}-episode-${episode.episode}`}
+              episode={episode}
+              items={items}
+            >
+              <MediaFileTableEpisodePreviewRow
+                season={season.season}
+                episode={episode.episode}
+                title={episode.title}
+                path={rel(mediaFolderPath, episode.path) || (episode.path ?? "")}
+                thumbnailPath={thumbnailPath}
+                subtitlePath={subtitlePath}
+                nfoPath={nfoPath}
+                isChecked={selectedEpisodes?.some(
+                  (selectedEpisode) =>
+                    selectedEpisode.season === season.season &&
+                    selectedEpisode.episode === episode.episode,
+                )}
+                isCheckboxDisabled={disableCheckboxIfEpisodeVideoNotAvailable && !episode.path}
+                onCheck={
+                  checboxVisible
+                    ? (isChecked) => onCheck?.(season.season, episode.episode, isChecked)
+                    : undefined
+                }
+              />
+            </EpisodeContextMenu>
+          )
+        })}
       </TableBody>
     </table>
   )

@@ -77,6 +77,9 @@ export interface MediaFileTablePreviewLayoutProps extends UIMediaFileTableProps 
 export function MediaFileTablePreviewLayout({
   seasonData = [],
   metadataFiles,
+  subtitleFiles,
+  nfoFiles,
+  thumbnailFiles,
   mediaFolderPath,
   checboxVisible = false,
   onCheck,
@@ -148,6 +151,9 @@ export function MediaFileTablePreviewLayout({
               <UIMediaFileTableEpisodePreviewBlock
                 season={season}
                 mediaFolderPath={mediaFolderPath}
+                subtitleFiles={subtitleFiles}
+                nfoFiles={nfoFiles}
+                thumbnailFiles={thumbnailFiles}
                 checboxVisible={checboxVisible}
                 onCheck={onCheck}
                 selectedEpisodes={selectedEpisodes}
