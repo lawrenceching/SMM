@@ -50,7 +50,7 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 
 **PR / push 到 `main` / `develop`**（改动 `apps/**`、`packages/**`、`ci/**` 等路径）会自动触发上述 workflow。
 
-若某 commit 从未跑过完整 CI（例如仅改了 docs），**Release** 会因缺少 check run 而失败。可对该 commit 手动重跑 **CI** workflow，或仅在紧急情况下使用 `skip_ci_verification`。
+若某 commit 从未跑过完整 CI（例如仅改了 docs），**Release** 会因缺少 check run 而失败。可对该 commit 手动重跑 **CI** workflow，或仅在紧急情况下使用 `skip_gates`。
 
 ### 4. Secrets（Actions）
 
@@ -93,7 +93,7 @@ flowchart TB
 
 1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含 Build / Web UI / MCP / Docker / HTTP Proxy gates）  
 2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / Docker / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；Docker 为 linux x64/arm64，其余为五平台矩阵），确认 `pre-release / gate` 全绿  
-3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish  
+3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish。紧急时可对 **Release** 使用 `skip_build` / `skip_pre_release`（及必要时 `skip_gates`）跳过编排前置步骤  
 4. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 
 ---
@@ -226,9 +226,13 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
 ## skip 选项（Release / Release Docker / Release Electron）
 
-| 选项 | 风险 | 何时使用 |
-|------|------|----------|
-| `skip_ci_verification: true` | 未确认该 commit CI 全绿即发版 | 紧急 hotfix；须在 Release 说明中注明 |
+| 选项 | 作用范围 | 风险 | 何时使用 |
+|------|----------|------|----------|
+| `skip_build: true` | 仅 **Release** 编排的 Dispatch Build | 发版前不再跑一轮全平台 Build 校验 | 紧急发版；须确认近期 Build 可信 |
+| `skip_pre_release: true` | 仅 **Release** 编排的 Dispatch Pre Release | 发版前不再跑全套产品 E2E | 偶发不稳定阻塞发版时；须人工判断风险 |
+| `skip_gates: true` | Release / Release Electron / Release Docker | 未确认该 commit 上 required CI checks 全绿即发版 | 紧急 hotfix；须在 Release 说明中注明 |
+
+`skip_build` / `skip_pre_release` **不会**跳过 Electron/Docker 子 workflow 内的产品构建与统一 `publish`。
 
 skip 为 true 时，CI summary 会记录该次选择，便于审计。
 
@@ -262,7 +266,8 @@ Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CH
 | tag 已存在则跳过 | 已有（`_ensure-release-tag.yml`） |
 | Release Docker（`release-docker.yml`） | 已有；可单独运行或由 **Release** 调用 |
 | **Release**（`release-all.yml`） | 已有；并行触发 Electron + Docker |
-| `skip_ci_verification` | 已有（所有 Release workflow） |
+| `skip_gates` | 已有（所有 Release workflow） |
+| `skip_build` / `skip_pre_release` | 已有（仅 **Release** 编排） |
 | PR/push 触发单元测试 + lint + typecheck + 构建 | 已有（`ci.yml`） |
 | PR/push 触发 Web UI + MCP E2E（win-x64），且仅在 build 全绿后 | 已有（`ci.yml`，dispatch + gate） |
 | E2E **gate** 汇总 job | 已有（`web-ui-e2e / gate`、`mcp-tools-e2e / gate`；Docker / HTTP Proxy 见独立 workflow） |
