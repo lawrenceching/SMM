@@ -22,12 +22,12 @@ type NotificationInstance = {
 
 describe("showPlanReadyNotification", () => {
   let NotificationMock: ReturnType<typeof vi.fn> & { permission: NotificationPermission }
-  let lastInstance: NotificationInstance | undefined
+  let createdNotifications: NotificationInstance[]
   let focusMock: ReturnType<typeof vi.fn>
   let originalHiddenDescriptor: PropertyDescriptor | undefined
 
   beforeEach(() => {
-    lastInstance = undefined
+    createdNotifications = []
     focusMock = vi.fn()
     vi.stubGlobal("focus", focusMock)
     Object.defineProperty(window, "focus", { configurable: true, value: focusMock })
@@ -37,7 +37,7 @@ describe("showPlanReadyNotification", () => {
         this.title = title
         this.options = options
         this.onclick = null
-        lastInstance = this
+        createdNotifications.push(this)
       }),
       { permission: "granted" as NotificationPermission },
     )
@@ -58,8 +58,10 @@ describe("showPlanReadyNotification", () => {
     if (originalHiddenDescriptor) {
       Object.defineProperty(document, "hidden", originalHiddenDescriptor)
     } else {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete (document as { hidden?: boolean }).hidden
+      Object.defineProperty(document, "hidden", {
+        configurable: true,
+        get: () => false,
+      })
     }
   })
 
@@ -103,6 +105,7 @@ describe("showPlanReadyNotification", () => {
   it("focuses the window when the notification is clicked", () => {
     showPlanReadyNotification("task-1")
 
+    const lastInstance = createdNotifications.at(-1)
     expect(lastInstance).toBeDefined()
     lastInstance!.onclick?.call(lastInstance as unknown as Notification, new Event("click"))
 
