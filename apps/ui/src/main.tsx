@@ -20,6 +20,7 @@ import { MediaLibraryImportedEventHandler } from './components/eventlisteners/Me
 import { FixedDelayBackgroundJobHandler } from './components/eventlisteners/FixedDelayBackgroundJobHandler.tsx'
 import { RenameFilesPlanReadyEventListener } from './components/eventlisteners/RenameFilesPlanReadyEventListener.tsx'
 import { RecognizeMediaFilePlanReadyEventListener } from './components/eventlisteners/RecognizeMediaFilePlanReadyEventListener.tsx'
+import { PlanReadyNotificationListener } from './components/eventlisteners/PlanReadyNotificationListener.tsx'
 import { UserConfigUpdatedEventListener } from './components/eventlisteners/UserConfigUpdatedEventListener.tsx'
 import { MediaMetadataUpdatedEventListener } from './components/eventlisteners/MediaMetadataUpdatedEventListener.tsx'
 import { FolderContentChangedEventListener } from './components/eventlisteners/FolderContentChangedEventListener.tsx'
@@ -148,6 +149,7 @@ function EventListeners() {
       <PingEventListener />
       <RenameFilesPlanReadyEventListener />
       <RecognizeMediaFilePlanReadyEventListener />
+      <PlanReadyNotificationListener />
       <UserConfigUpdatedEventListener />
       <MediaMetadataUpdatedEventListener />
       <ImportFolderEventHandler />

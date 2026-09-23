@@ -34,6 +34,12 @@
     "tokenRequired": "请输入 auth token。",
     "invalidToken": "Auth token 无效，请检查后重试。",
     "signIn": "登录"
+  },
+  "planReady": {
+    "notification": {
+      "title": "SMM",
+      "body": "有计划需要审批"
+    }
   }
 }
 

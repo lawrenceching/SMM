@@ -39,6 +39,12 @@ interface CommonResources {
     invalidToken: string
     signIn: string
   }
+  planReady: {
+    notification: {
+      title: string
+      body: string
+    }
+  }
 }
 
 interface ComponentsResources {

@@ -34,6 +34,12 @@
     "tokenRequired": "Auth token is required.",
     "invalidToken": "Invalid auth token. Check the value and try again.",
     "signIn": "Sign in"
+  },
+  "planReady": {
+    "notification": {
+      "title": "SMM",
+      "body": "A plan is waiting for your approval"
+    }
   }
 }
 
