@@ -19,7 +19,7 @@ permissions:
 jobs:
   e2e:
     name: E2E Tests for AI Tools (${{ matrix.platform }}-${{ matrix.arch }})
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false

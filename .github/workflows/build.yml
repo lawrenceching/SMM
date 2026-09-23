@@ -24,7 +24,7 @@ jobs:
   build:
     name: Build (${{ matrix.platform }}-${{ matrix.arch }})
     # Pad with commas so "win" does not match "win-x64".
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
