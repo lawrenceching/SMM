@@ -1,5 +1,13 @@
 # SMM
 
+## 1.4.13
+
+### Patch Changes
+
+- v1.4.13
+- Updated dependencies
+  - @smm/electron-common@1.3.21
+
 ## 1.4.12
 
 ### Patch Changes

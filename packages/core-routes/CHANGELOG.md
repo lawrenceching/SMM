@@ -1,5 +1,15 @@
 # @smm/core-routes
 
+## 1.4.13
+
+### Patch Changes
+
+- v1.4.13
+- Updated dependencies
+  - @smm/core@1.4.13
+  - @smm/types@0.0.2
+  - @smm/utils@1.2.21
+
 ## 1.4.12
 
 ### Patch Changes
@@ -65,7 +75,6 @@
   Previously `/api/discover` lived only in the CLI Hono server. OHOS routes
   `/api/*` through `core-routes`, so discover returned 404 and folder
   initialization failed with `Discover request failed: 404 Not Found`.
-
   - New `doFetchDiscoverConfig` / `doFetchDiscoveredMediaDatabases`
   - New `handleDiscoverGet` registered on the core-routes request handler
   - CLI `handleDiscover` now delegates to `@smm/core-routes/discover`
@@ -121,7 +130,6 @@
   the CLI. This change moves the orchestration into
   `@smm/core-routes` as `cleanupStalePlans(appDataDir, fs?, logger?)`
   so all hosts benefit.
-
   - New `packages/core-routes/src/cleanup.ts` exposes
     `cleanupStalePlans`. The CLI now calls this instead of
     `cleanPreparingPlans` directly.
@@ -171,7 +179,6 @@
   had no easy way to unwind it.
 
   The fix:
-
   - `appendRecognizedFile` in `@smm/core-routes` now runs a default
     filesystem-existence check (via `ChatFs.exists`) before writing
     the entry to the plan. Hosts can override the check through the

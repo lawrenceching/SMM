@@ -1,5 +1,16 @@
 # ui
 
+## 1.4.13
+
+### Patch Changes
+
+- v1.4.13
+- Updated dependencies
+  - @smm/core@1.4.13
+  - @smm/tvdb4@1.3.21
+  - @smm/types@0.0.2
+  - @smm/utils@1.2.21
+
 ## 1.4.12
 
 ### Patch Changes
@@ -123,7 +134,6 @@
   had no easy way to unwind it.
 
   The fix:
-
   - `appendRecognizedFile` in `@smm/core-routes` now runs a default
     filesystem-existence check (via `ChatFs.exists`) before writing
     the entry to the plan. Hosts can override the check through the
