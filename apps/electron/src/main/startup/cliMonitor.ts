@@ -197,10 +197,6 @@ function buildSpawnFailure(
   }
 }
 
-export async function probeHttpPort(port: number): Promise<string> {
-  return formatProbeResult(await probeCliHttp(port, "/"))
-}
-
 export async function buildTimeoutFailure(
   port: number,
   monitor: CliProcessMonitor,

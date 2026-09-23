@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process'
  * Line prefix: `[SMM-PORT]` (also mirrored to console.error).
  */
 
-export const PORT_STARTUP_LOG_BASENAME = 'smm-port-startup.log'
+const PORT_STARTUP_LOG_BASENAME = 'smm-port-startup.log'
 
 export function portStartupLogPath(tmpDir: string = tmpdir()): string {
   return join(tmpDir, PORT_STARTUP_LOG_BASENAME)

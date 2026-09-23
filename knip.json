@@ -79,13 +79,15 @@
         "cli/**/*.test.ts",
         "common/**/*.e2e.ts",
         "common/**/*.template.ts",
+        "mcp/**/*.test.ts",
         "test/**/*.ts",
         "ohos/**/*.ts",
         "electron/**/*.ts",
         "docker/**/*.{ts,mjs}"
       ],
       "ignore": [
-        "common/manual/**"
+        "common/manual/**",
+        "mcp/lib/**"
       ],
       "ignoreDependencies": [
         "@wdio/html-nice-reporter",

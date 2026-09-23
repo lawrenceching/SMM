@@ -9,7 +9,7 @@
 
 export const CLI_UI_READY_ACCEPT = "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"
 
-export const CLI_UI_READY_PATHS = ["/", "/index.html"] as const
+const CLI_UI_READY_PATHS = ["/", "/index.html"] as const
 
 const BODY_SNIPPET_MAX = 400
 
