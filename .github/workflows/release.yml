@@ -25,8 +25,8 @@ on:
         description: 'Release notes (optional)'
         required: false
         type: string
-      skip_ci_verification:
-        description: 'Skip CI gate verification (maintainer emergency only)'
+      skip_gates:
+        description: 'Skip Verify CI gates (maintainer emergency only)'
         required: false
         default: false
         type: boolean
@@ -61,7 +61,7 @@ on:
         required: false
         type: string
         default: ''
-      skip_ci_verification:
+      skip_gates:
         required: false
         type: boolean
         default: false
@@ -82,7 +82,7 @@ jobs:
     name: Verify CI gates
     uses: ./.github/workflows/_verify-ci-gates.yml
     with:
-      skip: ${{ inputs.skip_verify_ci || inputs.skip_ci_verification }}
+      skip: ${{ inputs.skip_verify_ci || inputs.skip_gates }}
     secrets: inherit
 
   ensure-tag:
