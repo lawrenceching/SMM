@@ -21,10 +21,43 @@ permissions:
   contents: read
 
 jobs:
+  resolve-matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter platforms
+        id: filter
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"win","arch":"x64","runs-on":"windows-latest","build_command":"build:win"},
+            {"platform":"win","arch":"arm64","runs-on":"windows-11-arm","build_command":"build:win"},
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest","build_command":"build:linux"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm","build_command":"build:linux"},
+            {"platform":"mac","arch":"arm64","runs-on":"macos-14","build_command":"build:mac"}
+          ]
+          EOF
+          )"
+          {
+            echo "include<<EOF"
+            echo "${include}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Resolved matrix: ${include}"
+
   build:
     name: Build (${{ matrix.platform }}-${{ matrix.arch }})
-    # Pad with commas so "win" does not match "win-x64".
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
+    needs: [resolve-matrix]
+    if: ${{ needs.resolve-matrix.outputs.include != '[]' }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -33,27 +66,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: win
-            arch: x64
-            runs-on: windows-latest
-            build_command: build:win
-          - platform: win
-            arch: arm64
-            runs-on: windows-11-arm
-            build_command: build:win
-          - platform: linux
-            arch: x64
-            runs-on: ubuntu-latest
-            build_command: build:linux
-          - platform: linux
-            arch: arm64
-            runs-on: ubuntu-24.04-arm
-            build_command: build:linux
-          - platform: mac
-            arch: arm64
-            runs-on: macos-14
-            build_command: build:mac
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.include) }}
 
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -122,13 +135,17 @@ jobs:
 
   gate:
     name: build / gate
-    needs: [build]
+    needs: [resolve-matrix, build]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require selected Build matrix jobs passed
         run: |
           set -euo pipefail
+          if [ "${{ needs.resolve-matrix.outputs.include }}" = "[]" ]; then
+            echo "::error::No platforms selected (empty matrix)"
+            exit 1
+          fi
           if [ "${{ needs.build.result }}" != "success" ]; then
             echo "::error::build matrix: ${{ needs.build.result }}"
             exit 1

@@ -19,9 +19,43 @@ permissions:
   contents: read
 
 jobs:
+  resolve-matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter platforms
+        id: filter
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"win","arch":"x64","runs-on":"windows-latest"},
+            {"platform":"win","arch":"arm64","runs-on":"windows-11-arm"},
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm"},
+            {"platform":"mac","arch":"arm64","runs-on":"macos-14"}
+          ]
+          EOF
+          )"
+          {
+            echo "include<<EOF"
+            echo "${include}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Resolved matrix: ${include}"
+
   e2e:
     name: E2E Tests for Electron (${{ matrix.platform }}-${{ matrix.arch }})
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
+    needs: [resolve-matrix]
+    if: ${{ needs.resolve-matrix.outputs.include != '[]' }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -30,22 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: win
-            arch: x64
-            runs-on: windows-latest
-          - platform: win
-            arch: arm64
-            runs-on: windows-11-arm
-          - platform: linux
-            arch: x64
-            runs-on: ubuntu-latest
-          - platform: linux
-            arch: arm64
-            runs-on: ubuntu-24.04-arm
-          - platform: mac
-            arch: arm64
-            runs-on: macos-14
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.include) }}
 
     env:
       PLATFORM: ${{ matrix.platform }}

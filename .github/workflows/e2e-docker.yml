@@ -21,9 +21,40 @@ permissions:
   contents: read
 
 jobs:
+  resolve-matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter platforms
+        id: filter
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest","docker-platform":"linux/amd64","chrome-version":"146.0.7680.153"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm","docker-platform":"linux/arm64","chrome-version":"153.0.8010.52"}
+          ]
+          EOF
+          )"
+          {
+            echo "include<<EOF"
+            echo "${include}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Resolved matrix: ${include}"
+
   e2e:
     name: E2E Tests for Docker (${{ matrix.platform }}-${{ matrix.arch }})
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
+    needs: [resolve-matrix]
+    if: ${{ needs.resolve-matrix.outputs.include != '[]' }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -32,18 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: linux
-            arch: x64
-            runs-on: ubuntu-latest
-            docker-platform: linux/amd64
-            chrome-version: '146.0.7680.153'
-          - platform: linux
-            arch: arm64
-            runs-on: ubuntu-24.04-arm
-            docker-platform: linux/arm64
-            # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
-            chrome-version: '153.0.8010.52'
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.include) }}
 
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -167,13 +187,17 @@ jobs:
 
   gate:
     name: docker-platform-e2e / gate
-    needs: [e2e]
+    needs: [resolve-matrix, e2e]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require selected Docker E2E matrix jobs passed
         run: |
           set -euo pipefail
+          if [ "${{ needs.resolve-matrix.outputs.include }}" = "[]" ]; then
+            echo "::error::No platforms selected (empty matrix)"
+            exit 1
+          fi
           if [ "${{ needs.e2e.result }}" != "success" ]; then
             echo "::error::docker e2e matrix: ${{ needs.e2e.result }}"
             exit 1

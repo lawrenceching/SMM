@@ -22,9 +22,43 @@ permissions:
   contents: read
 
 jobs:
+  resolve-matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter platforms
+        id: filter
+        env:
+          PLATFORMS: ${{ inputs.platforms }}
+        run: |
+          set -euo pipefail
+          include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"win","arch":"x64","runs-on":"windows-latest","chrome-source":"cft","chrome-version":"146.0.7680.153"},
+            {"platform":"win","arch":"arm64","runs-on":"windows-11-arm","chrome-source":"runner","chrome-version":""},
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest","chrome-source":"cft","chrome-version":"146.0.7680.153"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm","chrome-source":"cft","chrome-version":"153.0.8010.52"},
+            {"platform":"mac","arch":"arm64","runs-on":"macos-14","chrome-source":"cft","chrome-version":"146.0.7680.153"}
+          ]
+          EOF
+          )"
+          {
+            echo "include<<EOF"
+            echo "${include}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "Resolved matrix: ${include}"
+
   e2e:
     name: E2E Tests for Web UI (${{ matrix.platform }}-${{ matrix.arch }})
-    if: ${{ inputs.platforms == '' || contains(format(',{0},', inputs.platforms), format(',{0}-{1},', matrix.platform, matrix.arch)) || contains(format(',{0},', inputs.platforms), format(', {0}-{1},', matrix.platform, matrix.arch)) }}
+    needs: [resolve-matrix]
+    if: ${{ needs.resolve-matrix.outputs.include != '[]' }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -33,34 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - platform: win
-            arch: x64
-            runs-on: windows-latest
-            chrome-source: cft
-            chrome-version: '146.0.7680.153'
-          - platform: win
-            arch: arm64
-            runs-on: windows-11-arm
-            # CfT/setup-chrome cannot install a pinned Chrome on Windows ARM64.
-            chrome-source: runner
-            chrome-version: ''
-          - platform: linux
-            arch: x64
-            runs-on: ubuntu-latest
-            chrome-source: cft
-            chrome-version: '146.0.7680.153'
-          - platform: linux
-            arch: arm64
-            runs-on: ubuntu-24.04-arm
-            chrome-source: cft
-            # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
-            chrome-version: '153.0.8010.52'
-          - platform: mac
-            arch: arm64
-            runs-on: macos-14
-            chrome-source: cft
-            chrome-version: '146.0.7680.153'
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.include) }}
 
     env:
       PLATFORM: ${{ matrix.platform }}
@@ -169,13 +176,17 @@ jobs:
 
   gate:
     name: web-ui-e2e / gate
-    needs: [e2e]
+    needs: [resolve-matrix, e2e]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require selected Web UI E2E matrix jobs passed
         run: |
           set -euo pipefail
+          if [ "${{ needs.resolve-matrix.outputs.include }}" = "[]" ]; then
+            echo "::error::No platforms selected (empty matrix)"
+            exit 1
+          fi
           if [ "${{ needs.e2e.result }}" != "success" ]; then
             echo "::error::web-ui e2e matrix: ${{ needs.e2e.result }}"
             exit 1
