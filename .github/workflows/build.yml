@@ -8,11 +8,18 @@ name: Build
 # Triggered manually or via workflow_dispatch from CI / Release.
 # Input `platforms`: comma-separated keys (e.g. win-x64). Empty = all five.
 
+run-name: "Build «parent:${{ inputs.parent_run_id || 'manual' }}»"
+
 on:
   workflow_dispatch:
     inputs:
       platforms:
         description: 'Comma-separated platform-arch keys to run (win-x64,win-arm64,linux-x64,linux-arm64,mac-arm64). Empty = all.'
+        required: false
+        type: string
+        default: ''
+      parent_run_id:
+        description: 'Parent Actions run id when dispatched by an orchestrator (reuse correlation)'
         required: false
         type: string
         default: ''

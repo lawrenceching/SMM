@@ -94,6 +94,8 @@ flowchart TB
 1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含 Build / Web UI / MCP / Docker / HTTP Proxy gates）  
 2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / Docker / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；Docker 为 linux x64/arm64，其余为五平台矩阵），确认 `pre-release / gate` 全绿  
 3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish。紧急时可对 **Release** 使用 `skip_build` / `skip_pre_release`（及必要时 `skip_gates`）跳过编排前置步骤  
+
+**Dispatch 复用：** `ci/dispatch-and-wait-workflow.sh` 在 Actions 内会带上 `parent_run_id=<当前 run id>`。子 workflow（Build / Pre Release / 各 E2E）的 `run-name` 含 `«parent:<id>»`。若同一父 run 重试失败 job，且该父 run 已派过的同 SHA 子 run 已成功（或仍在跑），会**复用**该子 run，而不会再开一轮。手动触发且无 `parent_run_id` 的 run 不会被误用。全新再点一次 **Release**（新的 run id）不会复用上一轮的子 run，可用 `skip_build` / `skip_pre_release`。
 4. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 
 ---

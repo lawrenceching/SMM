@@ -8,8 +8,16 @@ name: Pre Release
 #
 # Each suite still builds on its own runners (no shared artifacts).
 
+run-name: "Pre Release «parent:${{ inputs.parent_run_id || 'manual' }}»"
+
 on:
   workflow_dispatch:
+    inputs:
+      parent_run_id:
+        description: 'Parent Actions run id when dispatched by an orchestrator (reuse correlation)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read

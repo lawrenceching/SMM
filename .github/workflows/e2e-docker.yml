@@ -8,11 +8,18 @@ name: E2E Tests for Docker
 #
 # Input `platforms`: comma-separated keys (linux-x64,linux-arm64). Empty = both.
 
+run-name: "E2E Docker «parent:${{ inputs.parent_run_id || 'manual' }}»"
+
 on:
   workflow_dispatch:
     inputs:
       platforms:
         description: 'Comma-separated platform-arch keys to run (linux-x64,linux-arm64). Empty = both.'
+        required: false
+        type: string
+        default: ''
+      parent_run_id:
+        description: 'Parent Actions run id when dispatched by an orchestrator (reuse correlation)'
         required: false
         type: string
         default: ''
