@@ -7,8 +7,6 @@ export const RELEASE_REQUIRED_CHECKS = [
   'build / gate',
   'web-ui-e2e / gate',
   'mcp-tools-e2e / gate',
-  'docker-e2e / gate',
-  'http-proxy-e2e / gate',
 ] as const;
 
 export type ReleaseRequiredCheck = (typeof RELEASE_REQUIRED_CHECKS)[number];

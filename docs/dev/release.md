@@ -47,8 +47,6 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 | 多平台 Build（CI 仅 win-x64） | **Build** | `build / gate` |
 | Web UI E2E（CI 仅 win-x64） | **E2E Tests for Web UI** | `web-ui-e2e / gate` |
 | MCP Tools E2E（CI 仅 win-x64） | **E2E Tests for MCP Tools** | `mcp-tools-e2e / gate` |
-| Docker E2E | **CI** | `docker-e2e / gate` |
-| HTTP Proxy E2E | **CI** | `http-proxy-e2e / gate` |
 
 **PR / push 到 `main` / `develop`**（改动 `apps/**`、`packages/**`、`ci/**` 等路径）会自动触发上述 workflow。
 
@@ -145,7 +143,7 @@ flowchart TB
 
 ### 操作
 
-1. 确认目标 commit 上 **CI** 的 **docker-e2e / gate** 已通过（见上文）  
+1. 确认目标 commit 上 **CI** 的 required checks 已通过（见上文）；Docker 专项 E2E 可选手动跑 **E2E Tests for Docker**  
 2. Actions → **Release Docker**（`.github/workflows/release-docker.yml`）  
 3. 填写输入：
 
@@ -190,7 +188,7 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 对**同一 commit**、**同一 `tag_name`**：
 
 ```text
-1. CI workflow 手动重跑（docker-e2e gate 全绿）
+1. CI workflow 手动重跑（required checks 全绿）
 2. Actions → Release（推荐）或分别跑 Release Electron / Release Docker
 ```
 
@@ -266,8 +264,8 @@ Required checks 列表见 `ci/verify-check-runs-lib.ts` → `RELEASE_REQUIRED_CH
 | **Release**（`release-all.yml`） | 已有；并行触发 Electron + Docker |
 | `skip_ci_verification` | 已有（所有 Release workflow） |
 | PR/push 触发单元测试 + lint + typecheck + 构建 | 已有（`ci.yml`） |
-| PR/push 触发 E2E（host / docker / http-proxy），且仅在 build 全绿后 | 已有（`ci.yml`，`needs` 门禁） |
-| E2E **gate** 汇总 job | 已有（三套 E2E gate job） |
+| PR/push 触发 Web UI + MCP E2E（win-x64），且仅在 build 全绿后 | 已有（`ci.yml`，dispatch + gate） |
+| E2E **gate** 汇总 job | 已有（`web-ui-e2e / gate`、`mcp-tools-e2e / gate`；Docker / HTTP Proxy 见独立 workflow） |
 | 发版前 **Verify CI gates**（不重跑测试） | 已有（`ci/verify-check-runs.ts`） |
 | Reusable build-docker-push / ensure-release-tag | 已有 |
 | Build Docker（multi-arch → Hub） | 已有（调用 `_build-docker-push.yml`） |

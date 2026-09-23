@@ -4,7 +4,7 @@ name: E2E Tests for Docker
 # Linux only: x64 (amd64) and arm64 runners. Builds the image on the same
 # runner that runs the tests, then exercises apps/e2e/common suites via
 # bun ci/run-e2e-test.ts --platform docker.
-# Not a CI or release gate by itself — CI still has its own docker-e2e jobs.
+# Not a CI or release gate by itself — run manually or via pre-release dispatch.
 #
 # Input `platforms`: comma-separated keys (linux-x64,linux-arm64). Empty = both.
 
