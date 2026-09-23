@@ -29,8 +29,18 @@ on:
         description: 'Release notes (optional)'
         required: false
         type: string
-      skip_ci_verification:
-        description: 'Skip CI gate verification for both products (maintainer emergency only)'
+      skip_build:
+        description: 'Skip Dispatch Build (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+      skip_pre_release:
+        description: 'Skip Dispatch Pre Release (maintainer emergency only)'
+        required: false
+        default: false
+        type: boolean
+      skip_gates:
+        description: 'Skip Verify CI gates for both products (maintainer emergency only)'
         required: false
         default: false
         type: boolean
@@ -55,11 +65,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Dispatch Build (all platforms) and wait
+        if: ${{ !inputs.skip_build }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           bash ci/dispatch-and-wait-workflow.sh build.yml \
             "${{ github.ref_name }}" "${{ github.sha }}"
+
+      - name: Note skipped Build dispatch
+        if: ${{ inputs.skip_build }}
+        run: |
+          echo "::warning::skip_build was enabled; Dispatch Build was skipped."
+          echo "- **skip_build**: enabled (Dispatch Build skipped)" >> "$GITHUB_STEP_SUMMARY"
 
   dispatch-pre-release:
     name: Dispatch Pre Release
@@ -71,18 +88,25 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Dispatch Pre Release and wait
+        if: ${{ !inputs.skip_pre_release }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           bash ci/dispatch-and-wait-workflow.sh pre-release.yml \
             "${{ github.ref_name }}" "${{ github.sha }}"
 
+      - name: Note skipped Pre Release dispatch
+        if: ${{ inputs.skip_pre_release }}
+        run: |
+          echo "::warning::skip_pre_release was enabled; Dispatch Pre Release was skipped."
+          echo "- **skip_pre_release**: enabled (Dispatch Pre Release skipped)" >> "$GITHUB_STEP_SUMMARY"
+
   verify-ci:
     name: Verify CI gates
     needs: [dispatch-pre-release]
     uses: ./.github/workflows/_verify-ci-gates.yml
     with:
-      skip: ${{ inputs.skip_ci_verification }}
+      skip: ${{ inputs.skip_gates }}
     secrets: inherit
 
   release-electron:
@@ -95,7 +119,7 @@ jobs:
       draft: ${{ inputs.draft }}
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
-      skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_gates: ${{ inputs.skip_gates }}
       skip_verify_ci: true
       skip_final_publish: true
     secrets: inherit
@@ -110,7 +134,7 @@ jobs:
       draft: ${{ inputs.draft }}
       prerelease: ${{ inputs.prerelease }}
       body: ${{ inputs.body }}
-      skip_ci_verification: ${{ inputs.skip_ci_verification }}
+      skip_gates: ${{ inputs.skip_gates }}
       skip_verify_ci: true
       skip_final_publish: true
       force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
@@ -256,13 +280,19 @@ jobs:
             echo ""
             echo "**Tag:** \`${TAG}\`"
             echo "**Commit:** \`${SHA}\`"
-            if [ "${SKIP_CI}" = "true" ]; then
+            echo ""
+            echo "### Skip options"
+            if [ "${SKIP_BUILD}" = "true" ] || [ "${SKIP_PRE_RELEASE}" = "true" ] || [ "${SKIP_GATES}" = "true" ]; then
               echo ""
-              echo "::warning::skip_ci_verification was enabled for this run."
-              echo "- **skip_ci_verification**: enabled"
+              echo "::warning::One or more Release skip options were enabled for this run."
             fi
+            echo "- **skip_build**: ${SKIP_BUILD}"
+            echo "- **skip_pre_release**: ${SKIP_PRE_RELEASE}"
+            echo "- **skip_gates**: ${SKIP_GATES}"
           } >> "$GITHUB_STEP_SUMMARY"
         env:
           TAG: ${{ inputs.tag_name }}
           SHA: ${{ github.sha }}
-          SKIP_CI: ${{ inputs.skip_ci_verification }}
+          SKIP_BUILD: ${{ inputs.skip_build }}
+          SKIP_PRE_RELEASE: ${{ inputs.skip_pre_release }}
+          SKIP_GATES: ${{ inputs.skip_gates }}
