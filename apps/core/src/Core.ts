@@ -549,7 +549,11 @@ export class Core {
       normalizePosix: (p) => this.normalizePosix(p),
       tmdb,
       tvdb,
-      language: config.preferMediaLanguage ?? "en-US",
+      language: resolveMediaLanguage({
+        preferMediaLanguage: config.preferMediaLanguage,
+        configured: config.applicationLanguage,
+        osLocale: this.osLocale ?? detectOsLocale(),
+      }),
       primaryDatabase: config.primaryDatabase,
     };
   }

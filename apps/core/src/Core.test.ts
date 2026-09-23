@@ -1935,6 +1935,52 @@ describe("tryToRecognizeFolder / recognizeFolder", () => {
     };
   }
 
+  /** Returns Chinese titles only when the request asks for zh-CN. */
+  function languageSensitiveTmdbNetwork(): NetworkPort {
+    return {
+      fetch: vi.fn(async (url: string) => {
+        const chinese = url.includes("language=zh-CN");
+        if (url.includes("/tv/84666/season/")) {
+          return jsonResponse({
+            ...season84666,
+            name: chinese ? "第一季" : "Season 1",
+            episodes: [
+              {
+                id: 1,
+                name: chinese ? "第一集" : "Pilot",
+                episode_number: 1,
+                season_number: 1,
+              },
+            ],
+          });
+        }
+        if (url.includes("/tv/84666")) {
+          return jsonResponse({
+            ...series84666,
+            name: chinese ? "中文标题" : "English Title",
+          });
+        }
+        return jsonResponse({ results: [], page: 1, total_pages: 0, total_results: 0 });
+      }) as never,
+    };
+  }
+
+  function blankTvShowFs(folder: string, config: Record<string, unknown> = {}): FsPort {
+    return inMemoryFs({
+      [userConfigPath("/data/smm")]: JSON.stringify({
+        folders: [folder],
+        tmdb: {},
+        tvdb: {},
+        ...config,
+      }),
+      [metadataCachePath("/data/smm", folder)]: JSON.stringify({
+        mediaFolderPath: folder,
+        type: "tvshow-folder",
+        mediaFiles: [],
+      }),
+    });
+  }
+
   it("tryToRecognizeFolder returns candidate from folder tmdbid", async () => {
     const folder = "/m/Show {tmdbid=84666}";
     const fs = inMemoryFs({
@@ -1977,6 +2023,57 @@ describe("tryToRecognizeFolder / recognizeFolder", () => {
     const mm = await core.getMetadata(folder);
     expect(mm?.tvShow?.id).toBe("84666");
     expect(mm?.mediaFiles).toEqual([]);
+  });
+
+  it("recognizeFolder stores Chinese titles when preferMediaLanguage follows the OS locale", async () => {
+    const folder = "/m/Show";
+    const core = new Core({
+      fs: blankTvShowFs(folder),
+      network: languageSensitiveTmdbNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+      osLocale: "zh-CN",
+    });
+
+    await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
+
+    const mm = await core.getMetadata(folder);
+    expect(mm?.tvShow?.name).toBe("中文标题");
+    expect(mm?.tvShow?.seasons?.[0]?.episodes?.[0]?.name).toBe("第一集");
+  });
+
+  it("recognizeFolder keeps an explicit preferMediaLanguage ahead of the OS locale", async () => {
+    const folder = "/m/Show";
+    const core = new Core({
+      fs: blankTvShowFs(folder, { preferMediaLanguage: "en-US" }),
+      network: languageSensitiveTmdbNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+      osLocale: "zh-CN",
+    });
+
+    await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
+
+    const mm = await core.getMetadata(folder);
+    expect(mm?.tvShow?.name).toBe("English Title");
+    expect(mm?.tvShow?.seasons?.[0]?.episodes?.[0]?.name).toBe("Pilot");
+  });
+
+  it("recognizeFolder follows applicationLanguage when preferMediaLanguage is unset", async () => {
+    const folder = "/m/Show";
+    const core = new Core({
+      fs: blankTvShowFs(folder, { applicationLanguage: "zh-CN" }),
+      network: languageSensitiveTmdbNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+      osLocale: "en-US",
+    });
+
+    await core.recognizeFolder(folder, { db: "tmdb", id: "84666" });
+
+    const mm = await core.getMetadata(folder);
+    expect(mm?.tvShow?.name).toBe("中文标题");
+    expect(mm?.tvShow?.seasons?.[0]?.episodes?.[0]?.name).toBe("第一集");
   });
 });
 
