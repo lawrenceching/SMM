@@ -2,14 +2,16 @@
 # Dispatch a workflow_dispatch workflow in this repo and wait until it finishes.
 #
 # Usage (from repo root, with GH_TOKEN / GITHUB_TOKEN set):
-#   bash ci/dispatch-and-wait-workflow.sh <workflow-file> <ref> <expected-sha>
+#   bash ci/dispatch-and-wait-workflow.sh <workflow-file> <ref> <expected-sha> [gh workflow run args...]
 #
+# Extra args are forwarded to `gh workflow run` (e.g. -f platforms=win-x64).
 # Writes the child run URL to GITHUB_STEP_SUMMARY when available.
 set -euo pipefail
 
 WORKFLOW_FILE="${1:?workflow file required (e.g. e2e-cli.yml)}"
 REF="${2:?git ref required (branch or tag name)}"
 EXPECTED_SHA="${3:?expected head sha required}"
+shift 3
 
 if [ -z "${GH_TOKEN:-${GITHUB_TOKEN:-}}" ]; then
   echo "::error::GH_TOKEN or GITHUB_TOKEN is required"
@@ -17,13 +19,13 @@ if [ -z "${GH_TOKEN:-${GITHUB_TOKEN:-}}" ]; then
 fi
 export GH_TOKEN="${GH_TOKEN:-$GITHUB_TOKEN}"
 
-echo "Dispatching ${WORKFLOW_FILE} on ref ${REF} (prefer headSha ${EXPECTED_SHA})"
+echo "Dispatching ${WORKFLOW_FILE} on ref ${REF} (prefer headSha ${EXPECTED_SHA})${*:+ (extra: $*)}"
 
 # Allow small clock skew when matching createdAt.
 export BEFORE_EPOCH=$(($(date -u +%s) - 30))
 export EXPECTED_SHA
 
-gh workflow run "${WORKFLOW_FILE}" --ref "${REF}"
+gh workflow run "${WORKFLOW_FILE}" --ref "${REF}" "$@"
 
 # jq: normalize GitHub timestamps → epoch (jq 1.6+).
 pick_by_sha='

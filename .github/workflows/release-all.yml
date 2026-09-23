@@ -1,7 +1,8 @@
 name: Release
 
-# Orchestrates Electron + Docker release workflows in parallel (same commit / tag).
-# Both sub-workflows run build-only; a single publish job pushes the Docker image
+# Orchestrates Build → Pre Release → Electron + Docker release (same commit / tag).
+# Build and Pre Release are dispatched as independent workflow runs. Both release
+# sub-workflows run build-only; a single publish job pushes the Docker image
 # and publishes the GitHub Release only after every build has succeeded.
 on:
   workflow_dispatch:
@@ -42,10 +43,43 @@ on:
 permissions:
   contents: write
   packages: write
+  actions: write
 
 jobs:
+  dispatch-build:
+    name: Dispatch Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch Build (all platforms) and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash ci/dispatch-and-wait-workflow.sh build.yml \
+            "${{ github.ref_name }}" "${{ github.sha }}"
+
+  dispatch-pre-release:
+    name: Dispatch Pre Release
+    needs: [dispatch-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch Pre Release and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash ci/dispatch-and-wait-workflow.sh pre-release.yml \
+            "${{ github.ref_name }}" "${{ github.sha }}"
+
   verify-ci:
     name: Verify CI gates
+    needs: [dispatch-pre-release]
     uses: ./.github/workflows/_verify-ci-gates.yml
     with:
       skip: ${{ inputs.skip_ci_verification }}
@@ -53,7 +87,7 @@ jobs:
 
   release-electron:
     name: Release Electron
-    needs: verify-ci
+    needs: [verify-ci]
     uses: ./.github/workflows/release.yml
     with:
       tag_name: ${{ inputs.tag_name }}
@@ -68,7 +102,7 @@ jobs:
 
   release-docker:
     name: Release Docker
-    needs: verify-ci
+    needs: [verify-ci]
     uses: ./.github/workflows/release-docker.yml
     with:
       tag_name: ${{ inputs.tag_name }}

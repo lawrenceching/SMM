@@ -1,14 +1,12 @@
 /**
  * GitHub check run names required before release.
- * Must match job `name:` values in CI workflows.
+ * Must match job `name:` values across CI and dispatched workflows.
  */
 export const RELEASE_REQUIRED_CHECKS = [
-  'Run Unit Tests',
   'Lint UI',
-  'Typecheck',
-  'Build UI',
-  'Build CLI',
-  'host-e2e / gate',
+  'build / gate',
+  'web-ui-e2e / gate',
+  'mcp-tools-e2e / gate',
   'docker-e2e / gate',
   'http-proxy-e2e / gate',
 ] as const;

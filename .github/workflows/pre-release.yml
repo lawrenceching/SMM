@@ -4,7 +4,7 @@ name: Pre Release
 # workflow_dispatch run (visible on that workflow's Actions page), wait in
 # parallel, then gate. Not a CI or release gate by itself — maintainers
 # dispatch this to validate product surfaces (CLI / Electron / Web UI / MCP /
-# AI Tools) on the five OS/arch matrices.
+# AI Tools / Docker) on their platform matrices.
 #
 # Each suite still builds on its own runners (no shared artifacts).
 
@@ -55,6 +55,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash ci/dispatch-and-wait-workflow.sh e2e-web-ui.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
+  e2e-docker:
+    name: E2E Tests for Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-docker.yml "${{ github.ref_name }}" "${{ github.sha }}"
+
   e2e-mcp-tools:
     name: E2E Tests for MCP Tools
     runs-on: ubuntu-latest
@@ -87,6 +100,7 @@ jobs:
       - e2e-cli
       - e2e-electron
       - e2e-web-ui
+      - e2e-docker
       - e2e-mcp-tools
       - e2e-ai-tools
     if: always()
@@ -97,6 +111,7 @@ jobs:
           CLI: ${{ needs.e2e-cli.result }}
           ELECTRON: ${{ needs.e2e-electron.result }}
           WEB_UI: ${{ needs.e2e-web-ui.result }}
+          DOCKER: ${{ needs.e2e-docker.result }}
           MCP: ${{ needs.e2e-mcp-tools.result }}
           AI: ${{ needs.e2e-ai-tools.result }}
         run: |
@@ -109,6 +124,7 @@ jobs:
             echo "| CLI | ${CLI} |"
             echo "| Electron | ${ELECTRON} |"
             echo "| Web UI | ${WEB_UI} |"
+            echo "| Docker | ${DOCKER} |"
             echo "| MCP Tools | ${MCP} |"
             echo "| AI Tools | ${AI} |"
             echo ""
@@ -122,6 +138,7 @@ jobs:
             "CLI:${CLI}" \
             "Electron:${ELECTRON}" \
             "Web UI:${WEB_UI}" \
+            "Docker:${DOCKER}" \
             "MCP Tools:${MCP}" \
             "AI Tools:${AI}"
           do

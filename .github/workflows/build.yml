@@ -1,13 +1,21 @@
 name: Build
 
-# Manual-only multi-platform build validation (same five OS/arch runners as
-# "E2E Tests for Electron"). On each runner: unit tests, typecheck, knip
-# (hard gate), then produce UI web assets, CLI binary, and Electron installers.
-# Not a CI or release gate — maintainers dispatch this to verify packaging
-# across platforms. Uploads artifacts for inspection (no GitHub Release).
+# Multi-platform build validation (same five OS/arch runners as
+# "E2E Tests for Electron"). On each selected runner: unit tests, typecheck,
+# knip (hard gate), then produce UI web assets, CLI binary, and Electron
+# installers. Upload artifacts for inspection (no GitHub Release).
+#
+# Triggered manually or via workflow_dispatch from CI / Release.
+# Input `platforms`: comma-separated keys (e.g. win-x64). Empty = all five.
 
 on:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Comma-separated platform-arch keys to run (win-x64,win-arm64,linux-x64,linux-arm64,mac-arm64). Empty = all.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -15,6 +23,8 @@ permissions:
 jobs:
   build:
     name: Build (${{ matrix.platform }}-${{ matrix.arch }})
+    # Pad with commas so "win" does not match "win-x64".
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -109,3 +119,18 @@ jobs:
             apps/electron/dist/*.deb
           if-no-files-found: error
           retention-days: 7
+
+  gate:
+    name: build / gate
+    needs: [build]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected Build matrix jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.build.result }}" != "success" ]; then
+            echo "::error::build matrix: ${{ needs.build.result }}"
+            exit 1
+          fi
+          echo "Build matrix passed."

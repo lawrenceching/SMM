@@ -1,14 +1,12 @@
 name: CI
 
-# Merged from build.yml + e2e-test.yml + e2e-docker.yml + e2e-http-proxy.yml.
-# E2E groups run only after the build pipeline (test / lint / typecheck / build) succeeds.
+# Orchestrates multi-platform Build (win-x64) then parallel Web UI + MCP Tools
+# E2E (win-x64), and keeps Docker / HTTP Proxy E2E in this workflow.
 #
-# CLI bun:test e2e: reusable _e2e-cli.yml (ubuntu). Manual multi-platform: "E2E Tests for CLI".
-#
-# Required check names (RELEASE_REQUIRED_CHECKS) must stay stable:
-#   Run Unit Tests, Lint UI, Typecheck, Build UI, Build CLI,
-#   host-e2e / gate, docker-e2e / gate, http-proxy-e2e / gate
-#   (cli-e2e / gate is optional for release until added to RELEASE_REQUIRED_CHECKS)
+# Required check names (RELEASE_REQUIRED_CHECKS) must stay stable — see
+# ci/verify-check-runs-lib.ts:
+#   Lint UI, build / gate, web-ui-e2e / gate, mcp-tools-e2e / gate,
+#   docker-e2e / gate, http-proxy-e2e / gate
 on:
   push:
     branches: [ main, develop ]
@@ -20,8 +18,9 @@ on:
       - 'pnpm-lock.yaml'
       - 'knip.json'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/_e2e-cli.yml'
-      - '.github/workflows/e2e-cli.yml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-web-ui.yml'
+      - '.github/workflows/e2e-mcp-tools.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
@@ -32,39 +31,16 @@ on:
       - 'pnpm-lock.yaml'
       - 'knip.json'
       - '.github/workflows/ci.yml'
-      - '.github/workflows/_e2e-cli.yml'
-      - '.github/workflows/e2e-cli.yml'
+      - '.github/workflows/build.yml'
+      - '.github/workflows/e2e-web-ui.yml'
+      - '.github/workflows/e2e-mcp-tools.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
-  # ------------------------------------------------------------------
-  # Build pipeline
-  # ------------------------------------------------------------------
-  test:
-    name: Run Unit Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run all tests
-        run: pnpm -r test
-
   lint-ui:
     name: Lint UI
     runs-on: ubuntu-latest
@@ -82,231 +58,68 @@ jobs:
       - name: Lint UI
         run: cd apps/ui && pnpm run lint
 
-  typecheck:
-    name: Typecheck
+  dispatch-build:
+    name: Dispatch Build
     runs-on: ubuntu-latest
-
+    timeout-minutes: 360
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-  # Advisory report of unused files/exports/dependencies (knip).
-  # Not a gate: continue-on-error keeps the workflow green until the
-  # existing findings are triaged (see docs/superpowers/specs/2026-09-07-unused-code-detection-design.md).
-  knip:
-    name: Knip (unused code report)
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run knip
-        run: pnpm knip
-
-  build-ui:
-    name: Build UI
-    needs: [test, lint-ui, typecheck]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build UI
-        run: cd apps/ui && pnpm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ui-dist
-          path: apps/ui/dist
-          retention-days: 7
-
-  build-cli:
-    name: Build CLI
-    needs: [test, typecheck]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build CLI
-        run: cd apps/cli && pnpm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: cli-dist
-          path: apps/cli/dist
-          retention-days: 7
-
-  # ------------------------------------------------------------------
-  # Host E2E (was e2e-test.yml)
-  # ------------------------------------------------------------------
-  e2e-host:
-    name: ${{ matrix.name }}
-    needs: [test, lint-ui, typecheck, build-ui, build-cli]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    env:
-      SMM_AUTH_TOKEN: ChangeMe123
-      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Run AI Tests
-            spec: "./test/specs/ai/*.e2e.ts"
-            artifact_prefix: ai
-          - name: Run Config and HTTP Proxy Tests
-            # Proxy-through-custom-host specs live under common/config (*WithHttpProxy).
-            # common/httpproxy/* was removed in 78ad8f00.
-            spec: "./common/config/*.e2e.ts"
-            artifact_prefix: config-httpproxy
-          - name: Run MCP Tests
-            spec: "./common/mcp/*.e2e.ts"
-            artifact_prefix: mcp
-          - name: Run Common Media Init Tests
-            spec: "./common/tv/ImportTvShowLibrary.e2e.ts ./common/tv/Initialize*.e2e.ts ./common/movie/ImportMovieLibrary.e2e.ts ./common/movie/Initialize*.e2e.ts"
-            artifact_prefix: media-folder-initialization
-          - name: Run Movie Tests
-            spec: "./common/movie/SearchMovie.e2e.ts ./common/movie/Movie-RenameVideoFile.e2e.ts"
-            artifact_prefix: movie
-          - name: Run Music Tests
-            spec: "./common/music/*.e2e.ts"
-            artifact_prefix: music
-          - name: Run Other Tests
-            spec: "./common/other/*.e2e.ts"
-            artifact_prefix: other
-          - name: Run TV Show Tests
-            spec: "./common/tv/SearchTvShow.e2e.ts ./common/tv/Scrape*.e2e.ts ./common/tv/TVShow-*.e2e.ts"
-            artifact_prefix: tv
-          - name: Run TVDB Tests
-            spec: "./common/tvdb/*.e2e.ts"
-            artifact_prefix: tvdb
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install all dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install CJK fonts
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y fonts-noto-cjk
-
-      - name: Setup Chrome
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v2
-        with:
-          chrome-version: '146.0.7680.153'
-          install-dependencies: true
-          install-chromedriver: true
-
-      - name: Run E2E tests
-        id: e2e
-        run: |
-          args=()
-          for pattern in ${{ matrix.spec }}; do
-            args+=(--spec "$pattern")
-          done
-          bun ci/run-e2e-test.ts "${args[@]}"
+      - name: Dispatch Build (win-x64) and wait
         env:
-          BUILD_ENV: docker
-          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
-          CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
-
-      - name: Scan e2e logs for secret leaks
-        id: scan-secure
-        if: always() && steps.e2e.outcome != 'skipped'
-        run: bun ci/scan_secure_data.ts --dir artifacts/cicd
-
-      - name: Upload E2E logs and reports
-        if: always() && steps.e2e.outcome != 'skipped' && steps.scan-secure.outcome == 'success'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_prefix }}-logs-${{ github.run_id }}
-          path: artifacts/cicd/
-          if-no-files-found: ignore
-          retention-days: 7
-
-  e2e-host-gate:
-    name: host-e2e / gate
-    needs: [e2e-host]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require all host E2E jobs passed
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          DISPATCH_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: |
-          set -euo pipefail
-          if [ "${{ needs.e2e-host.result }}" != "success" ]; then
-            echo "::error::e2e matrix: ${{ needs.e2e-host.result }}"
-            exit 1
-          fi
-          echo "All host E2E jobs passed."
+          bash ci/dispatch-and-wait-workflow.sh build.yml \
+            "${DISPATCH_REF}" "${DISPATCH_SHA}" \
+            -f platforms=win-x64
+
+  dispatch-e2e-web-ui:
+    name: Dispatch E2E Tests for Web UI
+    needs: [dispatch-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch Web UI E2E (win-x64) and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          DISPATCH_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash ci/dispatch-and-wait-workflow.sh e2e-web-ui.yml \
+            "${DISPATCH_REF}" "${DISPATCH_SHA}" \
+            -f platforms=win-x64
+
+  dispatch-e2e-mcp-tools:
+    name: Dispatch E2E Tests for MCP Tools
+    needs: [dispatch-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch MCP Tools E2E (win-x64) and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISPATCH_REF: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
+          DISPATCH_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          bash ci/dispatch-and-wait-workflow.sh e2e-mcp-tools.yml \
+            "${DISPATCH_REF}" "${DISPATCH_SHA}" \
+            -f platforms=win-x64
 
   # ------------------------------------------------------------------
   # Docker E2E (was e2e-docker.yml)
   # ------------------------------------------------------------------
   build-image:
     name: Build smm:latest (amd64)
-    needs: [test, lint-ui, typecheck, build-ui, build-cli]
+    needs: [dispatch-build]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -505,7 +318,7 @@ jobs:
   # ------------------------------------------------------------------
   e2e-http-proxy:
     name: HTTP Proxy (${{ matrix.platform }}-${{ matrix.arch }})
-    needs: [test, lint-ui, typecheck, build-ui, build-cli]
+    needs: [dispatch-build]
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 20
     strategy:
@@ -587,11 +400,3 @@ jobs:
             exit 1
           fi
           echo "All HTTP Proxy E2E jobs passed."
-
-  # ------------------------------------------------------------------
-  # CLI E2E (bun:test under apps/e2e/cli) — reusable _e2e-cli.yml
-  # ------------------------------------------------------------------
-  e2e-cli:
-    needs: [build-cli]
-    uses: ./.github/workflows/_e2e-cli.yml
-    secrets: inherit

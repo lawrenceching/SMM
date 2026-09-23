@@ -11,6 +11,12 @@ name: E2E Tests for Web UI
 
 on:
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Comma-separated platform-arch keys to run (win-x64,win-arm64,linux-x64,linux-arm64,mac-arm64). Empty = all.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -18,6 +24,7 @@ permissions:
 jobs:
   e2e:
     name: E2E Tests for Web UI (${{ matrix.platform }}-${{ matrix.arch }})
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 180
     defaults:
@@ -159,3 +166,18 @@ jobs:
           path: artifacts/cicd/
           if-no-files-found: ignore
           retention-days: 7
+
+  gate:
+    name: web-ui-e2e / gate
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected Web UI E2E matrix jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::web-ui e2e matrix: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "Web UI E2E matrix passed."

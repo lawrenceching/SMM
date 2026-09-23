@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: ''
+      platforms:
+        description: 'Comma-separated platform-arch keys to run (win-x64,win-arm64,linux-x64,linux-arm64,mac-arm64). Empty = all.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -20,6 +25,7 @@ permissions:
 jobs:
   e2e:
     name: E2E Tests for CLI (${{ matrix.platform }}-${{ matrix.arch }})
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 30
     defaults:

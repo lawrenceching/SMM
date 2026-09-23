@@ -3,7 +3,7 @@
  *
  * Usage:
  *   bun ci/verify-check-runs.ts [--sha <commit>] [--preset release]
- *   bun ci/verify-check-runs.ts [--sha <commit>] --check "Run Unit Tests" --check "Lint UI"
+ *   bun ci/verify-check-runs.ts [--sha <commit>] --check "Lint UI" --check "build / gate"
  *
  * Environment: GITHUB_TOKEN, GITHUB_REPOSITORY
  */

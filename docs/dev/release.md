@@ -17,7 +17,7 @@
 | **Git tag** | 如 `v1.2.3`，标记发布对应的 commit |
 | **GitHub Release** | 与 tag 关联的发布页，可含 Electron 附件与 Release 说明 |
 | **Docker 镜像 tag** | Hub 上 `lawrenceching/smm:v1.2.3` 与 `lawrenceching/smm:latest` |
-| **e2e-gate** | 各 E2E workflow 末尾汇总 job；全 matrix 通过才为 success（如 `host-e2e / gate`） |
+| **e2e-gate** | 各 E2E workflow 末尾汇总 job；所选 matrix 通过才为 success（如 `web-ui-e2e / gate`、`docker-e2e / gate`） |
 | **Verify CI gates** | 发版 workflow 第一步：校验该 commit 上 PR/push CI 已全部通过，**不重跑**测试 |
 
 Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布的一方创建 tag 与 Release；后发布的一方检测到 tag 已存在则**跳过建 tag**，只补充产物（安装包或 Docker 镜像 / Release 说明）。
@@ -43,11 +43,10 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 
 | 检查项 | Workflow | Job 名称 |
 |--------|----------|----------|
-| 单元测试 | **CI** | `Run Unit Tests` |
 | Lint | **CI** | `Lint UI` |
-| Typecheck | **CI** | `Typecheck` |
-| 构建 UI/CLI | **CI** | `Build UI`、`Build CLI` |
-| Host E2E | **CI** | `host-e2e / gate` |
+| 多平台 Build（CI 仅 win-x64） | **Build** | `build / gate` |
+| Web UI E2E（CI 仅 win-x64） | **E2E Tests for Web UI** | `web-ui-e2e / gate` |
+| MCP Tools E2E（CI 仅 win-x64） | **E2E Tests for MCP Tools** | `mcp-tools-e2e / gate` |
 | Docker E2E | **CI** | `docker-e2e / gate` |
 | HTTP Proxy E2E | **CI** | `http-proxy-e2e / gate` |
 
@@ -94,10 +93,9 @@ flowchart TB
 
 **推荐顺序（同一版本）：**
 
-1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含三套 E2E gate）  
-2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；五平台矩阵），确认 `pre-release / gate` 全绿  
-
-3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）  
+1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含 Build / Web UI / MCP / Docker / HTTP Proxy gates）  
+2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / Docker / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；Docker 为 linux x64/arm64，其余为五平台矩阵），确认 `pre-release / gate` 全绿  
+3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish  
 4. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
 
 ---

@@ -1,0 +1,181 @@
+name: E2E Tests for Docker
+
+# Manual (or dispatched) e2e against a locally built `smm:latest` image.
+# Linux only: x64 (amd64) and arm64 runners. Builds the image on the same
+# runner that runs the tests, then exercises apps/e2e/common suites via
+# bun ci/run-e2e-test.ts --platform docker.
+# Not a CI or release gate by itself — CI still has its own docker-e2e jobs.
+#
+# Input `platforms`: comma-separated keys (linux-x64,linux-arm64). Empty = both.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Comma-separated platform-arch keys to run (linux-x64,linux-arm64). Empty = both.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E Tests for Docker (${{ matrix.platform }}-${{ matrix.arch }})
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux
+            arch: x64
+            runs-on: ubuntu-latest
+            docker-platform: linux/amd64
+            chrome-version: '146.0.7680.153'
+          - platform: linux
+            arch: arm64
+            runs-on: ubuntu-24.04-arm
+            docker-platform: linux/arm64
+            # 146.0.7680.153 has no linux-arm64 Chrome-for-Testing artifact.
+            chrome-version: '153.0.8010.52'
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.arch }}
+      SMM_AUTH_TOKEN: ChangeMe123
+      TMDB_HTTP_PROXY: http://http-proxy:8990
+      TVDB_HTTP_PROXY: http://http-proxy:8990
+      E2E_HTTP_PROXY_PROBE_URL: http://127.0.0.1:8990
+      E2E_DOCKER_UI_ORIGIN: http://localhost:30000/
+      # Config server runs on the host; smm container reaches it via host.docker.internal
+      EXTERNAL_CONFIG_FILE_URL: http://host.docker.internal:8000/config.json
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+      TMDB_HOST: ${{ secrets.TMDB_HOST }}
+      TVDB_HOST: ${{ secrets.TVDB_HOST }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require API key secrets
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${TMDB_API_KEY:-}" ]; then
+            echo "::error::Secret TMDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          if [ -z "${TVDB_API_KEY:-}" ]; then
+            echo "::error::Secret TVDB_API_KEY is empty. Add it under Settings → Secrets and variables → Actions."
+            missing=1
+          fi
+          exit "$missing"
+
+      - name: Install CJK fonts
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: Setup Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v2
+        with:
+          chrome-version: ${{ matrix.chrome-version }}
+          install-dependencies: true
+          install-chromedriver: true
+
+      # docker driver shares the host image store so assemble can FROM
+      # locally --load'ed intermediate tags (smm-cli-build, etc.).
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
+      - name: Build intermediate Docker images
+        run: |
+          set -euo pipefail
+          PLATFORM="${{ matrix.docker-platform }}"
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
+
+      - name: Assemble smm:latest
+        run: |
+          set -euo pipefail
+          docker buildx build --load --platform "${{ matrix.docker-platform }}" \
+            -t smm:latest -f apps/docker/Dockerfile .
+
+      - name: Run Docker e2e
+        id: e2e
+        run: |
+          set -euo pipefail
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/config/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/mcp/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/movie/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/music/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/other/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/tv/*.e2e.ts"
+          bun ci/run-e2e-test.ts --platform docker --spec "./common/tvdb/*.e2e.ts"
+        env:
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROMEDRIVER: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+
+      - name: Scan e2e logs for secret leaks
+        id: scan-secure
+        if: always() && steps.e2e.outcome != 'skipped'
+        run: bun ci/scan_secure_data.ts --dir artifacts/cicd
+
+      - name: Upload logs
+        if: always() && steps.e2e.outcome != 'skipped' && steps.scan-secure.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-${{ matrix.platform }}-${{ matrix.arch }}-logs-${{ github.run_id }}
+          path: artifacts/cicd/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  gate:
+    name: docker-platform-e2e / gate
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected Docker E2E matrix jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::docker e2e matrix: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "Docker E2E matrix passed."

@@ -14,6 +14,11 @@ on:
         required: false
         type: string
         default: ''
+      platforms:
+        description: 'Comma-separated platform-arch keys to run (win-x64,win-arm64,linux-x64,linux-arm64,mac-arm64). Empty = all.'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -21,6 +26,7 @@ permissions:
 jobs:
   e2e:
     name: E2E Tests for MCP Tools (${{ matrix.platform }}-${{ matrix.arch }})
+    if: ${{ inputs.platforms == '' || contains(format(',{0},', replace(inputs.platforms, ' ', '')), format(',{0}-{1},', matrix.platform, matrix.arch)) }}
     runs-on: ${{ matrix.runs-on }}
     timeout-minutes: 30
     defaults:
@@ -81,3 +87,18 @@ jobs:
           else
             bun ci/run-mcp-e2e-test.ts
           fi
+
+  gate:
+    name: mcp-tools-e2e / gate
+    needs: [e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected MCP Tools E2E matrix jobs passed
+        run: |
+          set -euo pipefail
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::mcp-tools e2e matrix: ${{ needs.e2e.result }}"
+            exit 1
+          fi
+          echo "MCP Tools E2E matrix passed."
