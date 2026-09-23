@@ -88,6 +88,15 @@
     "check": "检查",
     "checkSuccess": "连接成功",
     "checkError": "连接失败",
+    "checkErrorAuthentication": "身份验证失败，您的 API 密钥无效。",
+    "checkErrorRateLimit": "AI 提供商请求过于频繁，请稍后再试。",
+    "checkErrorNetwork": "网络连接失败，请检查网络与 AI 提供商设置。",
+    "checkErrorTimeout": "连接检查超时，请稍后重试。",
+    "checkErrorServer": "AI 提供商服务器错误，请稍后重试。",
+    "checkErrorMissingModel": "请填写模型名称。",
+    "checkErrorMissingApiKey": "请填写 API 密钥。",
+    "checkErrorMissingBaseUrl": "请填写基础 URL。",
+    "checkErrorReverseProxyUnavailable": "反向代理不可用，请重启后端服务。",
     "checkChecking": "检查中..."
   },
   "aiAgent": {

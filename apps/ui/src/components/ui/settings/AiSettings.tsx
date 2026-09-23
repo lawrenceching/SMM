@@ -10,6 +10,7 @@ import type { OpenAICompatibleConfig } from "@smm/types"
 import { useTranslation } from "@/lib/i18n"
 import { nextTraceId } from "@/lib/utils"
 import { checkAiConnection } from "@/api/checkAiConnection"
+import { localizeAiConnectionError } from "@/lib/aiConnectionError"
 import { Trash2, Plus, CircleCheck, Circle } from "lucide-react"
 
 interface CheckState {
@@ -167,7 +168,7 @@ export function AiSettings() {
         ...prev,
         [index]: {
           status: 'error',
-          message: err instanceof Error ? err.message : t('ai.checkError'),
+          message: localizeAiConnectionError(err, (key) => t(key)),
         }
       }))
     }

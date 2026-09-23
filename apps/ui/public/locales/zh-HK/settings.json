@@ -88,6 +88,15 @@
     "check": "檢查",
     "checkSuccess": "連接成功",
     "checkError": "連接失敗",
+    "checkErrorAuthentication": "身份驗證失敗，您的 API 金鑰無效。",
+    "checkErrorRateLimit": "AI 提供商請求過於頻繁，請稍後再試。",
+    "checkErrorNetwork": "網絡連接失敗，請檢查網絡與 AI 提供商設定。",
+    "checkErrorTimeout": "連接檢查逾時，請稍後重試。",
+    "checkErrorServer": "AI 提供商伺服器錯誤，請稍後重試。",
+    "checkErrorMissingModel": "請填寫模型名稱。",
+    "checkErrorMissingApiKey": "請填寫 API 金鑰。",
+    "checkErrorMissingBaseUrl": "請填寫基礎 URL。",
+    "checkErrorReverseProxyUnavailable": "反向代理不可用，請重啟後端服務。",
     "checkChecking": "檢查中..."
   },
   "aiAgent": {
