@@ -160,10 +160,13 @@ function EventListeners() {
   )
 }
 
-function AppSwitcher() {
-  // Establish WebSocket connection at the switcher level so it persists across view changes
-  useWebSocket();
+/** Sole owner of the Socket.IO client connection for the UI. */
+function SocketBridge() {
+  useWebSocket()
+  return <></>
+}
 
+function AppSwitcher() {
   const { isMobileLayoutEnabled } = useFeatures()
 
   // On mobile (when feature flag is enabled), use AppNavigation
@@ -171,6 +174,7 @@ function AppSwitcher() {
     return (
       <>
         <AppNavigation />
+        <SocketBridge />
         <WebSocketHandlers />
         <EventListeners />
       </>
@@ -181,6 +185,7 @@ function AppSwitcher() {
   return (
     <>
       <App />
+      <SocketBridge />
       <WebSocketHandlers />
       <EventListeners />
     </>
