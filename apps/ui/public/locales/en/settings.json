@@ -88,6 +88,15 @@
     "check": "Check",
     "checkSuccess": "Connected successfully",
     "checkError": "Connection failed",
+    "checkErrorAuthentication": "Authentication failed. Your API key is invalid.",
+    "checkErrorRateLimit": "AI provider rate limit exceeded. Please try again later.",
+    "checkErrorNetwork": "Network connection failed. Please check your network and AI provider settings.",
+    "checkErrorTimeout": "Connection check timed out. Please try again later.",
+    "checkErrorServer": "AI provider server error. Please try again later.",
+    "checkErrorMissingModel": "Model is required.",
+    "checkErrorMissingApiKey": "API key is required.",
+    "checkErrorMissingBaseUrl": "Base URL is required.",
+    "checkErrorReverseProxyUnavailable": "Reverse proxy is not available. Please restart the backend.",
     "checkChecking": "Checking..."
   },
   "aiAgent": {

@@ -1103,6 +1103,15 @@ interface SettingsResources {
     checkChecking: string
     checkSuccess: string
     checkError: string
+    checkErrorAuthentication: string
+    checkErrorRateLimit: string
+    checkErrorNetwork: string
+    checkErrorTimeout: string
+    checkErrorServer: string
+    checkErrorMissingModel: string
+    checkErrorMissingApiKey: string
+    checkErrorMissingBaseUrl: string
+    checkErrorReverseProxyUnavailable: string
   }
   aiAgent: {
     title: string
