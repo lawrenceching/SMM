@@ -3,8 +3,6 @@ import { useEffect, useRef, useCallback } from "react"
 import { io, Socket } from "socket.io-client"
 import { useWebSocketStore, type WebSocketStatus } from "@/stores/webSocketStore"
 
-export type { WebSocketStatus }
-
 export interface WebSocketMessage {
   event: string
   data?: any
