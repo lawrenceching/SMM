@@ -146,7 +146,7 @@ importers:
   apps/convex:
     dependencies:
       convex:
-        specifier: ^1.1.21
+        specifier: ^1.1.22
         version: 1.39.1(react@19.2.4)
 
   apps/core:
