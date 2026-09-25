@@ -14,6 +14,8 @@ export interface SocketIOManager {
   getFirstActiveConnection: () => string | null
   isClientConnected: (clientId: string) => boolean
   getConnectedClientIds: () => string[]
+  /** Disconnects clients without closing the attached HTTP server. */
+  drain: () => Promise<void>
 }
 
 export interface WebSocketMessage {

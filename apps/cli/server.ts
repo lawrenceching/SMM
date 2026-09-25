@@ -501,15 +501,14 @@ export class Server {
     await this.proxyManager?.stop();
     getFolderWatcher().stopAllWatching();
 
+    await this.socketManager?.drain();
     await new Promise<void>((resolve, reject) => {
-      this.socketManager?.io.close(() => {
-        this.httpServer!.close((err) => {
-          if (err) {
-            reject(err);
-            return;
-          }
-          resolve();
-        });
+      this.httpServer!.close((err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve();
       });
     });
 

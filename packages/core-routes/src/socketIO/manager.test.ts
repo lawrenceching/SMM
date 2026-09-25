@@ -99,4 +99,54 @@ describe("createSocketIOManager", () => {
 
     await expect(broadcastReceived).resolves.toEqual(payload);
   });
+
+  it("drain disconnects clients without closing the HTTP server", async () => {
+    server = http.createServer((_req, res) => {
+      res.writeHead(404);
+      res.end();
+    });
+
+    const manager = createSocketIOManager(server, {
+      cors: { origin: "*", methods: ["GET", "POST"] },
+    });
+
+    await new Promise<void>((resolve) => {
+      server!.listen(0, "127.0.0.1", () => resolve());
+    });
+
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("expected server to listen on a port");
+    }
+
+    const clientId = "drain-client";
+    await new Promise<void>((resolve) => {
+      client = ioClient(`http://127.0.0.1:${address.port}`, {
+        transports: ["websocket"],
+        path: "/socket.io/",
+      });
+      client.on("hello", () => {
+        client!.emit("userAgent", { userAgent: "vitest", clientId });
+        resolve();
+      });
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(manager.isClientConnected(clientId)).toBe(true);
+
+    const clientDisconnected = new Promise<void>((resolve) => {
+      client!.once("disconnect", () => resolve());
+    });
+
+    await manager.drain();
+
+    expect(server.listening).toBe(true);
+    expect(manager.getConnectedClientIds()).not.toContain(clientId);
+    await clientDisconnected;
+
+    await new Promise<void>((resolve, reject) => {
+      server!.close((err) => (err ? reject(err) : resolve()));
+    });
+    server = null;
+  });
 });

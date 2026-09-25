@@ -29,4 +29,9 @@ export interface SocketIOManager {
   getFirstActiveConnection(): string | null;
   isClientConnected(clientId: string): boolean;
   getConnectedClientIds(): string[];
+  /**
+   * Disconnects all Socket.IO clients and closes the Engine.IO layer.
+   * Does not close the attached HTTP server — the host owns that lifecycle.
+   */
+  drain(): Promise<void>;
 }

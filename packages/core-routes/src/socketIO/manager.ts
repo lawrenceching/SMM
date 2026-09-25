@@ -34,5 +34,11 @@ export function createSocketIOManager(
     getFirstActiveConnection: messaging.getFirstActiveConnection,
     isClientConnected: messaging.isClientConnected,
     getConnectedClientIds: messaging.getConnectedClientIds,
+    async drain(): Promise<void> {
+      // Prefer disconnectSockets + engine.close over io.close(): the latter
+      // also closes the attached HTTP server, which the host owns separately.
+      io.disconnectSockets(true);
+      io.engine.close();
+    },
   };
 }
