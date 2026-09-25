@@ -66,7 +66,7 @@ describe("cleanupStalePlans", () => {
     }
   });
 
-  it("logs start, per-file decisions, and a completion summary", async () => {
+  it("logs scan/enumeration at debug and a completion summary at info", async () => {
     const logDir = await mkdtemp(join(tmpdir(), "smm-cleanup-logging-"));
     try {
       const keepingId = (
@@ -86,19 +86,11 @@ describe("cleanupStalePlans", () => {
       const removed = await cleanupStalePlans(logDir, fs, testLogger);
       expect(removed).toBe(1);
 
-      // Lifecycle: scan start, enumeration, completion summary.
       const infoMessages = info.mock.calls.map((c) => c[1] ?? "");
-      expect(infoMessages).toEqual(
-        expect.arrayContaining([
-          "[cleanup] plan cleanup: scanning for stale preparing plans",
-          "[cleanup] plan cleanup: enumerated plan files",
-          "[cleanup] plan cleanup: complete",
-        ]),
-      );
+      expect(infoMessages).toEqual(["clean up plan succeeded"]);
 
-      // The completion summary carries the counts operators need.
       const summaryCall = info.mock.calls.find(
-        (c) => c[1] === "[cleanup] plan cleanup: complete",
+        (c) => c[1] === "clean up plan succeeded",
       );
       expect(summaryCall?.[0]).toMatchObject({
         scanned: 2,
@@ -109,20 +101,19 @@ describe("cleanupStalePlans", () => {
         "number",
       );
 
-      // Per-file decisions show up at debug level.
       const debugMessages = debug.mock.calls.map((c) => c[1] ?? "");
       expect(debugMessages).toEqual(
         expect.arrayContaining([
+          "[cleanup] plan cleanup: scanning for stale preparing plans",
+          "[cleanup] plan cleanup: enumerated plan files",
           "[cleanup] plan cleanup: removed stale preparing plan",
           "[cleanup] plan cleanup: keeping plan (not preparing)",
         ]),
       );
 
-      // No errors / warnings in the happy path.
       expect(warn).not.toHaveBeenCalled();
       expect(error).not.toHaveBeenCalled();
 
-      // Sanity check: the cleanup really happened.
       expect(await readPlanById(logDir, removingId, fs)).toBeNull();
       expect((await readPlanById(logDir, keepingId, fs))?.status).toBe("pending");
     } finally {
@@ -162,7 +153,7 @@ describe("cleanupStalePlans", () => {
 
       // The summary reports the failure count.
       const summaryCall = (testLogger.info as ReturnType<typeof vi.fn>).mock.calls.find(
-        (c) => c[1] === "[cleanup] plan cleanup: complete",
+        (c) => c[1] === "clean up plan succeeded",
       );
       expect(summaryCall?.[0]).toMatchObject({ scanned: 2, removed: 1, failed: 1 });
     } finally {
@@ -170,13 +161,35 @@ describe("cleanupStalePlans", () => {
     }
   });
 
-  it("prefixes every emitted log message with [cleanup]", async () => {
+  it("logs clean up plan failed because … and rethrows on unexpected errors", async () => {
+    const error = vi.fn();
+    const info = vi.fn();
+    const debug = vi.fn().mockImplementation(() => {
+      throw new Error("disk full");
+    });
+    const testLogger: CoreRoutesLogger = {
+      info,
+      debug,
+      warn: vi.fn(),
+      error,
+    };
+
+    await expect(cleanupStalePlans(appDataDir, fs, testLogger)).rejects.toThrow(
+      "disk full",
+    );
+    expect(error).toHaveBeenCalledWith(
+      { error: "disk full" },
+      "clean up plan failed because disk full",
+    );
+    expect(info).not.toHaveBeenCalled();
+  });
+
+  it("prefixes debug and warn cleanup detail messages with [cleanup]", async () => {
     const logDir = await mkdtemp(join(tmpdir(), "smm-cleanup-prefix-"));
     try {
       const goodId = (
         await createPlan(logDir, { task: "recognize-media-file", mediaFolderPath: "/media/good", creator: "ai" }, fs)
       ).id;
-      // Add a corrupt file so we exercise the warn path too.
       const plansPath = join(logDir, "plans");
       const corruptPath = join(plansPath, "corrupt.plan.json");
       const { writeFile } = await import("node:fs/promises");
@@ -189,24 +202,21 @@ describe("cleanupStalePlans", () => {
       const testLogger: CoreRoutesLogger = { info, debug, warn, error };
 
       await cleanupStalePlans(logDir, fs, testLogger);
-      void goodId; // referenced for the side-effect of plan creation
+      void goodId;
 
-      // Collect every msg string the function emitted across all levels.
-      const allMessages = [
-        ...info.mock.calls,
+      const detailMessages = [
         ...debug.mock.calls,
         ...warn.mock.calls,
-        ...error.mock.calls,
       ]
         .map((c) => c[1] ?? "")
         .filter(Boolean);
 
-      // Every emitted message must start with the [cleanup] tag so
-      // operators can `grep '[cleanup]'` the unified log stream.
-      expect(allMessages.length).toBeGreaterThan(0);
-      for (const msg of allMessages) {
+      expect(detailMessages.length).toBeGreaterThan(0);
+      for (const msg of detailMessages) {
         expect(msg.startsWith("[cleanup] ")).toBe(true);
       }
+
+      expect(info.mock.calls.map((c) => c[1])).toEqual(["clean up plan succeeded"]);
     } finally {
       await rm(logDir, { recursive: true, force: true });
     }

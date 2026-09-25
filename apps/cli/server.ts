@@ -77,7 +77,6 @@ import { handleSpeedtest } from './src/route/speedtest';
 import { handleDiscover } from './src/route/discover';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
-import { logApplicationConfig } from '@/startup/applicationConfig';
 import { getCore } from '@/core/getCore';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -455,21 +454,13 @@ export class Server {
 
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(
-      `🚀 Static file server running on http://${this.webUiBindAddress === '0.0.0.0' ? 'localhost' : this.webUiBindAddress}:${this.port} (bind ${this.webUiBindAddress})`,
+      `🚀 Static file server running on http://${this.webUiBindAddress}:${this.port}`,
     );
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
 
     await this.proxyManager.start();
 
     await applyMcpConfig();
-
-    logApplicationConfig({
-      reverseProxyUrl: this.proxyManager.url,
-      uiPort: this.port,
-      uiBind: this.webUiBindAddress,
-      staticRoot: this.root,
-      auth: this.auth,
-    });
 
     getCore().runHostSpeedTests().catch((err) =>
       logger.error({ err }, "Failed to run TMDB/TVDB host speed tests"),

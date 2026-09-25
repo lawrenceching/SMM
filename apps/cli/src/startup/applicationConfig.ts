@@ -1,26 +1,23 @@
 import type { CoreRoutesAuthConfig } from "@smm/core-routes";
-import { buildHelloHttpResponse } from "@/cli/helloHttp";
-import { resolveCoreRoutesPort } from "@/coreRoutesPort";
+import { getCore } from "@/core/getCore";
 import { logger } from "../../lib/logger";
 
 export interface ApplicationConfigLogContext {
-  reverseProxyUrl: string | null;
   uiPort: number;
   uiBind: string;
   staticRoot: string;
   auth?: CoreRoutesAuthConfig;
 }
 
-/** Flat snapshot aligned with GET /api/hello plus UI listen settings (no user config). */
+/**
+ * Flat startup snapshot for diagnosis (paths, version, UI listen settings).
+ * reverseProxyUrl / coreRoutesPort are logged by their own startup messages.
+ */
 export function buildApplicationConfigLogFields(
   ctx: ApplicationConfigLogContext,
 ): Record<string, unknown> {
-  const hello = buildHelloHttpResponse(
-    ctx.reverseProxyUrl,
-    resolveCoreRoutesPort(),
-  );
   return {
-    ...hello,
+    ...getCore().hello(),
     uiPort: ctx.uiPort,
     uiBind: ctx.uiBind,
     staticRoot: ctx.staticRoot,

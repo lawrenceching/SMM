@@ -191,7 +191,7 @@ sequenceDiagram
 [x] Build
     `pnpm run build` 成功生成 `smm-cli-build:latest` / `smm-ui-build:latest` / `smm:latest`
 [x] Runtime
-    `docker run --rm smm:latest`，CLI 成功启动（输出包含 `Static file server running on http://localhost:30000`、`Socket.IO server available` 等）
+    `docker run --rm smm:latest`，CLI 成功启动（输出包含 `Static file server running on http://0.0.0.0:30000`、`Socket.IO server available` 等）
 [x] Layout
     容器内 `/app/cli` 与 `/app/public/index.html` + `/app/public/assets/` 全部存在
 [ ] 3pp layout —— 暂不适用（按用户决策不在本改动内）

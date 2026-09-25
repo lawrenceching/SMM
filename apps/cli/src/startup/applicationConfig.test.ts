@@ -17,9 +17,8 @@ vi.mock("@/core/getCore", () => ({
 }));
 
 describe("buildApplicationConfigLogFields", () => {
-  it("flattens hello, HTTP bootstrap, and UI listen fields without nesting", () => {
+  it("flattens hello and UI listen fields without reverseProxyUrl or coreRoutesPort", () => {
     const fields = buildApplicationConfigLogFields({
-      reverseProxyUrl: "http://127.0.0.1:30002",
       uiPort: 30000,
       uiBind: "127.0.0.1",
       staticRoot: "/ui/dist",
@@ -28,13 +27,14 @@ describe("buildApplicationConfigLogFields", () => {
 
     expect(fields).toMatchObject({
       version: "9.9.9-test",
-      coreRoutesPort: expect.any(Number),
-      reverseProxyUrl: "http://127.0.0.1:30002",
+      userDataDir: "/cfg",
       uiPort: 30000,
       uiBind: "127.0.0.1",
       staticRoot: "/ui/dist",
       authEnabled: true,
     });
+    expect(fields).not.toHaveProperty("reverseProxyUrl");
+    expect(fields).not.toHaveProperty("coreRoutesPort");
     expect(fields).not.toHaveProperty("ui");
     expect(fields).not.toHaveProperty("mcp");
     expect(fields).not.toHaveProperty("token");

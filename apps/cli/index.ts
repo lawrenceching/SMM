@@ -9,9 +9,11 @@ import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
 import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
 import { startCoreRoutesServer, stopCoreRoutesServer } from './src/coreRoutesServer';
-import { cleanupStalePlans } from '@smm/core-routes';
+import { cleanupStalePlans, resolveWebUiBindAddress } from '@smm/core-routes';
 import { getAuthConfig } from '@/utils/authToken';
+import { logApplicationConfig } from '@/startup/applicationConfig';
 import { mkdir } from 'fs/promises';
+import path from 'path';
 import { logger } from './lib/logger';
 
 applyTmdbTlsDevBypassToProcessIfEnabled();
@@ -61,6 +63,17 @@ function parseArgs(): CommandLineArguments {
 // Parse command line arguments
 const args = parseArgs();
 
+const uiPort = args.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 30000);
+const staticRoot = path.resolve(args.staticDir ?? '../ui/dist');
+const authConfig = getAuthConfig();
+
+logApplicationConfig({
+  uiPort,
+  uiBind: resolveWebUiBindAddress(),
+  staticRoot,
+  auth: authConfig,
+});
+
 // Initialize directories
 const userDataDir = getUserDataDir();
 const appDataDir = getAppDataDir();
@@ -89,11 +102,9 @@ try {
   throw error;
 }
 
-const authConfig = getAuthConfig();
-
 const server = new Server({
-  port: args.port ?? (process.env.PORT ? parseInt(process.env.PORT) : 30000),
-  root: args.staticDir ?? '../ui/dist',
+  port: uiPort,
+  root: staticRoot,
   auth: authConfig,
   beforeStop: async () => {
     const result = await cookiesCleaner.cleanAll();

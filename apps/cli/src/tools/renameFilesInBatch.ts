@@ -6,10 +6,8 @@ import { validateRenameOperations as validateRenameOperationsShared } from '@smm
 import type { RenameFileExistenceProbe } from '@smm/core/validations/rename/validateRenameFileExistence';
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
-import pino from 'pino';
+import { logger } from '../../lib/logger';
 import { askForRenameFilesConfirmation } from '@/events/askForRenameFilesConfirmation';
-
-const logger = pino();
 
 interface RenameFile {
   from: string;

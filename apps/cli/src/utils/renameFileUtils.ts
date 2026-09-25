@@ -4,10 +4,8 @@ import type { MediaMetadata } from '@smm/types';
 import { broadcast } from './socketIO';
 import { metadataCacheFilePath, mediaMetadataDir } from '../route/mediaMetadata/utils';
 import { updateMediaMetadataAfterRename } from '@smm/core/mediaMetadata';
-import pino from 'pino';
+import { logger } from '../../lib/logger';
 import { dirname } from 'path';
-
-const logger = pino();
 
 async function directoryExists(dirPath: string): Promise<boolean> {
   try {

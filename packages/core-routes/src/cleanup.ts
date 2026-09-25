@@ -20,9 +20,9 @@ import { cleanPreparingPlans } from "./tools/plans.ts";
  *   `userDataDir` on Electron, or `getAppDataDir()` on cli).
  * @param fs Optional `ChatFs` override. Defaults to `defaultChatFs()`
  *   which is `node:fs/promises`-backed and works on both Bun and Node.
- * @param logger Optional structured logger. When provided, the function
- *   logs scan start, per-file decisions, and a completion summary so
- *   operators can trace what was cleaned up and why.
+ * @param logger Optional structured logger. When provided, logs scan /
+ *   enumeration at debug, `clean up plan succeeded` at info, and
+ *   `clean up plan failed because …` at error if cleanup throws.
  * @returns The number of `preparing` plan files that were deleted.
  */
 export async function cleanupStalePlans(

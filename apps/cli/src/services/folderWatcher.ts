@@ -2,9 +2,7 @@ import { existsSync, watch, type FSWatcher } from 'fs';
 import { broadcast } from '../utils/socketIO';
 import { FOLDER_CONTENT_CHANGED_EVENT } from '@smm/types/event-types';
 import { Path } from '@smm/utils/path';
-import pino from 'pino';
-
-const logger = pino();
+import { logger } from '../../lib/logger';
 
 /** Default debounce delay in ms */
 const DEFAULT_DEBOUNCE_MS = 500;

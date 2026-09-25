@@ -242,9 +242,8 @@ async function deletePlan(
  * These are plans that were created but never completed or rejected,
  * typically left over from a previous session that was interrupted.
  *
- * Log messages emitted by this function are prefixed with `[cleanup]`
- * so operators can `grep '[cleanup]'` the unified log stream to see
- * every cleanup-related event across cli + ohos hosts.
+ * Detail logs (scan / per-file) use the `[cleanup]` prefix for grepping.
+ * The INFO success / ERROR failure lines use plain operator-facing wording.
  *
  * @returns The number of deleted plan files.
  */
@@ -255,65 +254,72 @@ export async function cleanPreparingPlans(
 ): Promise<number> {
   const start = Date.now();
   const plansPath = plansDir(appDataDir);
-  logger?.info(
-    { appDataDir, plansDir: plansPath },
-    "[cleanup] plan cleanup: scanning for stale preparing plans",
-  );
 
-  const files = await listPlanFiles(appDataDir);
-  logger?.info(
-    { plansDir: plansPath, scanned: files.length },
-    "[cleanup] plan cleanup: enumerated plan files",
-  );
+  try {
+    logger?.debug(
+      { appDataDir, plansDir: plansPath },
+      "[cleanup] plan cleanup: scanning for stale preparing plans",
+    );
 
-  let removed = 0;
-  let failed = 0;
-  for (const filePath of files) {
-    try {
-      const plan = await fs.readJson<AnyPlan>(filePath);
-      if (!plan) {
-        logger?.debug(
-          { filePath },
-          "[cleanup] plan cleanup: skipping unreadable plan file",
+    const files = await listPlanFiles(appDataDir);
+    logger?.debug(
+      { plansDir: plansPath, scanned: files.length },
+      "[cleanup] plan cleanup: enumerated plan files",
+    );
+
+    let removed = 0;
+    let failed = 0;
+    for (const filePath of files) {
+      try {
+        const plan = await fs.readJson<AnyPlan>(filePath);
+        if (!plan) {
+          logger?.debug(
+            { filePath },
+            "[cleanup] plan cleanup: skipping unreadable plan file",
+          );
+          continue;
+        }
+        if (plan.status === "preparing") {
+          await unlink(filePath);
+          removed++;
+          logger?.debug(
+            { filePath, planId: plan.id, task: plan.task },
+            "[cleanup] plan cleanup: removed stale preparing plan",
+          );
+        } else {
+          logger?.debug(
+            { filePath, planId: plan.id, status: plan.status },
+            "[cleanup] plan cleanup: keeping plan (not preparing)",
+          );
+        }
+      } catch (err) {
+        failed++;
+        logger?.warn(
+          { filePath, error: (err as Error).message },
+          "[cleanup] plan cleanup: failed to process plan file, skipping",
         );
-        continue;
+        // Continue processing the remaining files so a single bad file
+        // doesn't block cleanup of the others.
       }
-      if (plan.status === "preparing") {
-        await unlink(filePath);
-        removed++;
-        logger?.debug(
-          { filePath, planId: plan.id, task: plan.task },
-          "[cleanup] plan cleanup: removed stale preparing plan",
-        );
-      } else {
-        logger?.debug(
-          { filePath, planId: plan.id, status: plan.status },
-          "[cleanup] plan cleanup: keeping plan (not preparing)",
-        );
-      }
-    } catch (err) {
-      failed++;
-      logger?.warn(
-        { filePath, error: (err as Error).message },
-        "[cleanup] plan cleanup: failed to process plan file, skipping",
-      );
-      // Continue processing the remaining files so a single bad file
-      // doesn't block cleanup of the others.
     }
+
+    logger?.info(
+      {
+        plansDir: plansPath,
+        scanned: files.length,
+        removed,
+        failed,
+        durationMs: Date.now() - start,
+      },
+      "clean up plan succeeded",
+    );
+
+    return removed;
+  } catch (err) {
+    const reason = err instanceof Error ? err.message : String(err);
+    logger?.error({ error: reason }, `clean up plan failed because ${reason}`);
+    throw err;
   }
-
-  logger?.info(
-    {
-      plansDir: plansPath,
-      scanned: files.length,
-      removed,
-      failed,
-      durationMs: Date.now() - start,
-    },
-    "[cleanup] plan cleanup: complete",
-  );
-
-  return removed;
 }
 
 /**
