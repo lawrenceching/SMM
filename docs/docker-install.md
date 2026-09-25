@@ -37,7 +37,7 @@ This starts SMM with **no persistent config**. Settings and imported folders are
 
 ```bash
 docker run -d \
-  --name smm \
+  --name lawrenceching/smm \
   --restart unless-stopped \
   -p 30000:30000 \
   -e SMM_AUTH_TOKEN=change-me-to-a-long-random-secret \

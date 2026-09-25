@@ -3,9 +3,9 @@ name: Release Electron
 on:
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Git tag for the release (e.g. v1.2.3)'
-        required: true
+      version_override:
+        description: 'Override semver (optional; default: apps/electron/package.json version)'
+        required: false
         type: string
       release_name:
         description: 'Release title (optional)'
@@ -43,8 +43,14 @@ on:
   workflow_call:
     inputs:
       tag_name:
-        required: true
+        description: 'Git tag from orchestrator (e.g. v1.2.3); when set, skip package.json resolve'
+        required: false
         type: string
+        default: ''
+      version_override:
+        required: false
+        type: string
+        default: ''
       release_name:
         required: false
         type: string
@@ -78,8 +84,47 @@ permissions:
   contents: write
 
 jobs:
+  resolve-version:
+    name: Resolve release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      git_tag: ${{ steps.resolve.outputs.git_tag }}
+      docker_tag: ${{ steps.resolve.outputs.docker_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve version
+        id: resolve
+        env:
+          TAG_NAME: ${{ inputs.tag_name || '' }}
+          OVERRIDE: ${{ inputs.version_override || '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TAG_NAME}" ]; then
+            VERSION="${TAG_NAME#v}"
+            {
+              echo "version=${VERSION}"
+              echo "git_tag=${TAG_NAME}"
+              echo "docker_tag=${VERSION}"
+            } >> "$GITHUB_OUTPUT"
+            echo "Using orchestrator tag_name=${TAG_NAME} (version=${VERSION})"
+          elif [ -n "${OVERRIDE}" ]; then
+            bun ci/resolve-release-version.ts --product electron --override "${OVERRIDE}" >> "$GITHUB_OUTPUT"
+          else
+            bun ci/resolve-release-version.ts --product electron >> "$GITHUB_OUTPUT"
+          fi
+          echo "Resolved: $(grep -E '^(version|git_tag|docker_tag)=' "$GITHUB_OUTPUT" | tr '\n' ' ')"
+
   verify-ci:
     name: Verify CI gates
+    needs: resolve-version
     uses: ./.github/workflows/_verify-ci-gates.yml
     with:
       skip: ${{ inputs.skip_verify_ci || inputs.skip_gates }}
@@ -87,10 +132,10 @@ jobs:
 
   ensure-tag:
     name: Ensure release tag
-    needs: verify-ci
+    needs: [verify-ci, resolve-version]
     uses: ./.github/workflows/_ensure-release-tag.yml
     with:
-      tag_name: ${{ inputs.tag_name }}
+      tag_name: ${{ needs.resolve-version.outputs.git_tag }}
       target_sha: ${{ github.sha }}
     permissions:
       contents: write
@@ -424,6 +469,7 @@ jobs:
   release-electron:
     name: Create GitHub Release (Electron installers)
     needs:
+      - resolve-version
       - ensure-tag
       - build-electron-linux-x64
       - build-electron-linux-arm64
@@ -445,9 +491,9 @@ jobs:
         if: ${{ !inputs.skip_final_publish && needs.ensure-tag.outputs.tag_exists != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag_name }}
+          tag_name: ${{ needs.resolve-version.outputs.git_tag }}
           target_commitish: ${{ github.sha }}
-          name: ${{ (inputs.release_name != '' && inputs.release_name) || inputs.tag_name }}
+          name: ${{ (inputs.release_name != '' && inputs.release_name) || needs.resolve-version.outputs.git_tag }}
           draft: ${{ inputs.draft }}
           prerelease: ${{ inputs.prerelease }}
           body: ${{ inputs.body }}
@@ -460,6 +506,7 @@ jobs:
         if: ${{ !inputs.skip_final_publish && needs.ensure-tag.outputs.tag_exists == 'true' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.resolve-version.outputs.git_tag }}
         run: |
           set -euo pipefail
           shopt -s globstar nullglob
@@ -468,5 +515,5 @@ jobs:
             echo "::error::No Electron artifacts found in dist/"
             exit 1
           fi
-          gh release upload "${{ inputs.tag_name }}" "${files[@]}" --clobber
-          echo "Uploaded Electron assets to existing Release ${{ inputs.tag_name }}."
+          gh release upload "${TAG}" "${files[@]}" --clobber
+          echo "Uploaded Electron assets to existing Release ${TAG}."

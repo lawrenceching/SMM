@@ -1,5 +1,6 @@
 {
   "name": "docker",
+  "version": "1.4.15",
   "private": true,
   "description": "Docker image build for SMM (CLI + UI + bin)",
   "scripts": {

@@ -1,5 +1,11 @@
 # @smm/e2e-test-base-image
 
+## 1.2.23
+
+### Patch Changes
+
+- v1.4.15
+
 ## 1.2.22
 
 ### Patch Changes

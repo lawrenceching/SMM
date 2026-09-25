@@ -14,9 +14,9 @@
 
 | 术语 | 含义 |
 |------|------|
-| **Git tag** | 如 `v1.2.3`，标记发布对应的 commit |
+| **Git tag** | 如 `v1.2.3`，由 `package.json` 的 `version` 自动生成（`v` + semver） |
 | **GitHub Release** | 与 tag 关联的发布页，可含 Electron 附件与 Release 说明 |
-| **Docker 镜像 tag** | Hub 上 `lawrenceching/smm:v1.2.3` 与 `lawrenceching/smm:latest` |
+| **Docker 镜像 tag** | Hub 上 `lawrenceching/smm:1.2.3`（**无**前缀 `v`）与 `lawrenceching/smm:latest` |
 | **e2e-gate** | 各 E2E workflow 末尾汇总 job；所选 matrix 通过才为 success（如 `web-ui-e2e / gate`、`docker-e2e / gate`） |
 | **Verify CI gates** | 发版 workflow 第一步：校验该 commit 上 PR/push CI 已全部通过，**不重跑**测试 |
 
@@ -34,8 +34,14 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 
 ### 2. 版本号
 
-- Git tag 建议与 `apps/electron/package.json` 的 `version` 对齐，格式 **`v` + semver**（如 `v1.2.3`）。  
-- Docker Hub 使用相同字符串 tag：`lawrenceching/smm:v1.2.3`（与 Git tag 一致，便于对照）。
+- 发版前在目标 commit 上 bump：
+  - Electron：`apps/electron/package.json` → `version`（如 `1.2.3`）
+  - Docker：`apps/docker/package.json` → `version`（须与 Electron **相同**）
+- CI（`ci/resolve-release-version.ts`）自动推导：
+  - **Git tag / GitHub Release**：`v` + semver（如 `v1.2.3`）
+  - **Docker Hub tag**：裸 semver（如 `lawrenceching/smm:1.2.3`，**无**前缀 `v`）
+- Release workflow **不再要求**手填 `tag_name`。紧急时可填可选输入 `version_override`（semver，可带或不带 `v`）。
+- 联合发版（**Release**）若两边 `version` 不一致，resolve 步骤会立即失败。
 
 ### 3. 质量门禁（发版默认要求）
 
@@ -73,6 +79,7 @@ flowchart TB
   end
 
   subgraph release [Release workflow]
+    R[resolve-version: 读 package.json]
     V[Verify CI gates 校验 check runs]
     C[ensure-release-tag: tag 不存在则创建 防竞态]
     F[Release Electron 5× 平台构建 + 上传安装包]
@@ -81,7 +88,8 @@ flowchart TB
   end
 
   A --> B
-  B --> V
+  B --> R
+  R --> V
   V --> C
   C --> F
   C --> G
@@ -91,9 +99,9 @@ flowchart TB
 
 **推荐顺序（同一版本）：**
 
-1. 合并到 `main` 后等待 **CI** workflow 在 PR/push 上全绿（含 Build / Web UI / MCP / Docker / HTTP Proxy gates）  
+1. 在 `main` 上 bump `apps/electron/package.json` 与 `apps/docker/package.json` 的 `version` 并合并；等待 **CI** workflow 在 PR/push 上全绿（含 Build / Web UI / MCP / Docker / HTTP Proxy gates）  
 2. （可选）Actions → **Pre Release**：以独立 `workflow_dispatch` 并行触发 **E2E Tests for CLI / Electron / Web UI / Docker / MCP Tools / AI Tools**（各 suite 在对应 workflow 页面有独立 run；Docker 为 linux x64/arm64，其余为五平台矩阵），确认 `pre-release / gate` 全绿  
-3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish。紧急时可对 **Release** 使用 `skip_build` / `skip_pre_release`（及必要时 `skip_gates`）跳过编排前置步骤  
+3. Actions → **Release**（或单独 **Release Electron** / **Release Docker**）：依次 dispatch **Build**（全平台）→ **Pre Release**，再跑原有 Electron/Docker 发版与 publish。紧急时可对 **Release** 使用 `skip_build` / `skip_pre_release`（及必要时 `skip_gates`）跳过编排前置步骤；一般**无需**再填版本号（可选 `version_override`）  
 
 **Dispatch 复用：** `ci/dispatch-and-wait-workflow.sh` 在 Actions 内会带上 `parent_run_id=<当前 run id>`。子 workflow（Build / Pre Release / 各 E2E）的 `run-name` 含 `«parent:<id>»`。若同一父 run 重试失败 job，且该父 run 已派过的同 SHA 子 run 已成功（或仍在跑），会**复用**该子 run，而不会再开一轮。手动触发且无 `parent_run_id` 的 run 不会被误用。全新再点一次 **Release**（新的 run id）不会复用上一轮的子 run，可用 `skip_build` / `skip_pre_release`。
 4. 默认 **Verify CI gates** 通过后才开始构建；两个子 workflow 的 `ensure-tag` 并发创建/复用 tag（防竞态）；**所有构建成功后才统一发布**镜像与 Release 页
@@ -113,7 +121,7 @@ flowchart TB
 
    | 输入 | 说明 |
    |------|------|
-   | `tag_name` | 如 `v1.2.3`（必填） |
+   | `version_override` | 可选；默认读 `apps/electron/package.json` 的 `version` |
    | `release_name` | Release 标题（可选） |
    | `draft` | 是否草稿 |
    | `prerelease` | 是否预发布 |
@@ -124,11 +132,12 @@ flowchart TB
 
 ### CI 行为（目标）
 
-1. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
-2. **ensure-release-tag**：若 `tag_name` 不存在 → 创建 tag；已存在 → 跳过（并发防竞态）
-3. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64（构建依赖前置检查通过）
-4. 若 tag **新建**：`action-gh-release` 创建 Release 并上传各平台安装包  
-5. 若 tag **已存在**：跳过建 tag，向**已有 Release** 上传/更新 Electron 资产（不覆盖 Docker 相关说明）
+1. **resolve-version**：从 `apps/electron/package.json`（或 `version_override`）得到 `git_tag`（`v` + semver）
+2. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
+3. **ensure-release-tag**：若 `git_tag` 不存在 → 创建 tag；已存在 → 跳过（并发防竞态）
+4. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64（构建依赖前置检查通过）
+5. 若 tag **新建**：`action-gh-release` 创建 Release 并上传各平台安装包  
+6. 若 tag **已存在**：跳过建 tag，向**已有 Release** 上传/更新 Electron 资产（不覆盖 Docker 相关说明）
 
 ### 发版后验证
 
@@ -151,9 +160,8 @@ flowchart TB
 
    | 输入 | 默认 | 说明 |
    |------|------|------|
-   | `tag_name` | — | 如 `v1.2.3`（必填） |
-   | `skip_unit_tests` | `false` | `true` 时跳过 `pnpm -r test`（仅维护者紧急使用） |
-   | `skip_e2e_tests` | `false` | `true` 时跳过 e2e-gate 校验；默认必须已通过 gate |
+   | `version_override` | （空） | 可选；默认读 `apps/docker/package.json` 的 `version` |
+   | `skip_gates` | `false` | `true` 时跳过 Verify CI gates（仅维护者紧急使用） |
    | `draft` / `prerelease` / `body` | 同 Electron | 用于 GitHub Release（新建或更新说明） |
 
 4. 选择发版 **ref**  
@@ -161,24 +169,25 @@ flowchart TB
 
 ### CI 行为（目标）
 
-1. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
-2. **ensure-release-tag**：tag 不存在 → 创建；已存在 → 跳过（并发创建已做防竞态处理）
-3. **build-push-docker**（reusable **build-docker-push**）：multi-arch 构建，推送
+1. **resolve-version**：从 `apps/docker/package.json` 得到 `git_tag`（`v1.2.3`）与 `docker_tag`（`1.2.3`）
+2. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
+3. **ensure-release-tag**：tag 不存在 → 创建；已存在 → 跳过（并发创建已做防竞态处理）
+4. **build-push-docker**（reusable **build-docker-push**）：multi-arch 构建，推送
    - `lawrenceching/smm:latest`
    - `lawrenceching/smm:<git-sha>`
-   - `lawrenceching/smm:<tag_name>`（如 `v1.2.3`）
+   - `lawrenceching/smm:<docker_tag>`（如 `1.2.3`，无前缀 `v`）
    - 通过 **Release** 编排（build-only）时：本 workflow 只推中间镜像，最终镜像由 orchestrator 的 `publish` 统一推送
-4. **release-github**
+5. **release-github**
    - 单独运行：tag 不存在 → 创建 Release，`body` 含 Docker 拉取说明；tag 已存在 → 追加/更新 Docker 段
    - 通过 **Release** 编排时：本 job 跳过，统一由 orchestrator 的 `publish` 发布
 
 ### 发版后验证
 
 ```bash
-docker pull lawrenceching/smm:v1.2.3
-docker buildx imagetools inspect lawrenceching/smm:v1.2.3
+docker pull lawrenceching/smm:1.2.3
+docker buildx imagetools inspect lawrenceching/smm:1.2.3
 # 应包含 linux/amd64 与 linux/arm64
-docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
+docker run --rm -p 30000:30000 lawrenceching/smm:1.2.3
 ```
 
 用户安装说明见 [docker-install.md](../docker-install.md)。
@@ -187,14 +196,14 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
 ## 场景 C：同一版本同时提供 Electron + Docker（常见）
 
-对**同一 commit**、**同一 `tag_name`**：
+对**同一 commit**、两边 `package.json` **相同 `version`**：
 
 ```text
-1. CI workflow 手动重跑（required checks 全绿）
+1. bump apps/electron + apps/docker version 并合并；CI required checks 全绿
 2. Actions → Release（推荐）或分别跑 Release Electron / Release Docker
 ```
 
-**Release** workflow 会**并行**触发 Electron 与 Docker 两个子 workflow，共用同一组输入（`tag_name`、`body` 等）。两个子 workflow 都以 **build-only** 方式运行（`skip_final_publish=true`）：Electron 侧构建 5 个平台安装包并上传产物，Docker 侧构建并推送中间镜像（不推送最终 `lawrenceching/smm`）。待**所有构建都成功**后，由 orchestrator 的 `publish` job 统一推送 `lawrenceching/smm`（`latest` / `<sha>` / `<tag>`）并创建/更新 GitHub Release 页面（安装包 + Docker 说明）。
+**Release** workflow 会先 **resolve-version**（两边 version 必须一致），再**并行**触发 Electron 与 Docker 两个子 workflow。两个子 workflow 都以 **build-only** 方式运行（`skip_final_publish=true`）：Electron 侧构建 5 个平台安装包并上传产物，Docker 侧构建并推送中间镜像（不推送最终 `lawrenceching/smm`）。待**所有构建都成功**后，由 orchestrator 的 `publish` job 统一推送 `lawrenceching/smm`（`latest` / `<sha>` / `<docker_tag>`）并创建/更新 GitHub Release 页面（安装包 + Docker 说明）。
 
 - 任一子 workflow 的前置检查（`verify-ci` / `ensure-tag`）或构建失败 → 对应构建跳过，`publish` 不运行，整个 Release 快速失败。
 - Git tag 由两个子 workflow 的 `ensure-tag` 并发创建，已做防竞态处理。
@@ -208,7 +217,7 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
   ```text
   ## Docker
-  docker pull lawrenceching/smm:v1.2.3
+  docker pull lawrenceching/smm:1.2.3
   详见 https://github.com/lawrenceching/SMM/blob/v1.2.3/docs/docker-install.md
   ```
 
@@ -218,11 +227,11 @@ docker run --rm -p 30000:30000 lawrenceching/smm:v1.2.3
 
 | 情况 | Git tag | GitHub Release | Electron 资产 | Docker 镜像 |
 |------|---------|----------------|---------------|-------------|
-| 首次发 `v1.2.3` | 创建 | 创建 | 上传 | 推送 `v1.2.3` |
+| 首次发 `v1.2.3` | 创建 | 创建 | 上传 | 推送 `1.2.3`（无 `v`） |
 | tag 已存在，补 Electron | 跳过 | 已存在，仅 upload | 上传 | — |
-| tag 已存在，补 Docker | 跳过 | 已存在，edit body | — | 推送 `v1.2.3` |
+| tag 已存在，补 Docker | 跳过 | 已存在，edit body | — | 推送 `1.2.3`（无 `v`） |
 
-**不要**为 Electron 与 Docker 使用不同 tag 表示同一版本；用户与文档都假设 **`vX.Y.Z` 一一对应**。
+**不要**为 Electron 与 Docker 使用不同 Git tag 表示同一版本；两边 `package.json` 的 `version` 必须一致，Git tag 为 `v` + 该 version。
 
 ---
 

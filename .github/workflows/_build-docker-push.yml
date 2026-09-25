@@ -4,7 +4,7 @@ on:
   workflow_call:
     inputs:
       semver_tag:
-        description: 'Optional semver tag for lawrenceching/smm (e.g. v1.2.3)'
+        description: 'Optional semver tag for lawrenceching/smm (no leading v, e.g. 1.2.3)'
         required: false
         type: string
         default: ''

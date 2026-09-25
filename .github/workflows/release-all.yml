@@ -4,12 +4,15 @@ name: Release
 # Build and Pre Release are dispatched as independent workflow runs. Both release
 # sub-workflows run build-only; a single publish job pushes the Docker image
 # and publishes the GitHub Release only after every build has succeeded.
+#
+# Version comes from apps/electron + apps/docker package.json (must match),
+# unless version_override is set. Git tag = v${version}; Docker Hub tag = ${version}.
 on:
   workflow_dispatch:
     inputs:
-      tag_name:
-        description: 'Git tag for the release (e.g. v1.2.3)'
-        required: true
+      version_override:
+        description: 'Override semver (optional; default: matching electron/docker package.json versions)'
+        required: false
         type: string
       release_name:
         description: 'Release title (optional)'
@@ -56,8 +59,38 @@ permissions:
   actions: write
 
 jobs:
+  resolve-version:
+    name: Resolve release version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      git_tag: ${{ steps.resolve.outputs.git_tag }}
+      docker_tag: ${{ steps.resolve.outputs.docker_tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Resolve version (electron + docker must match)
+        id: resolve
+        env:
+          OVERRIDE: ${{ inputs.version_override || '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "${OVERRIDE}" ]; then
+            bun ci/resolve-release-version.ts --product all --override "${OVERRIDE}" >> "$GITHUB_OUTPUT"
+          else
+            bun ci/resolve-release-version.ts --product all >> "$GITHUB_OUTPUT"
+          fi
+          echo "Resolved git_tag=$(grep '^git_tag=' "$GITHUB_OUTPUT" | cut -d= -f2-) docker_tag=$(grep '^docker_tag=' "$GITHUB_OUTPUT" | cut -d= -f2-)"
+
   dispatch-build:
     name: Dispatch Build
+    needs: [resolve-version]
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
@@ -111,10 +144,10 @@ jobs:
 
   release-electron:
     name: Release Electron
-    needs: [verify-ci]
+    needs: [verify-ci, resolve-version]
     uses: ./.github/workflows/release.yml
     with:
-      tag_name: ${{ inputs.tag_name }}
+      tag_name: ${{ needs.resolve-version.outputs.git_tag }}
       release_name: ${{ inputs.release_name }}
       draft: ${{ inputs.draft }}
       prerelease: ${{ inputs.prerelease }}
@@ -126,10 +159,10 @@ jobs:
 
   release-docker:
     name: Release Docker
-    needs: [verify-ci]
+    needs: [verify-ci, resolve-version]
     uses: ./.github/workflows/release-docker.yml
     with:
-      tag_name: ${{ inputs.tag_name }}
+      tag_name: ${{ needs.resolve-version.outputs.git_tag }}
       release_name: ${{ inputs.release_name }}
       draft: ${{ inputs.draft }}
       prerelease: ${{ inputs.prerelease }}
@@ -142,7 +175,7 @@ jobs:
 
   publish:
     name: Publish release
-    needs: [release-electron, release-docker]
+    needs: [release-electron, release-docker, resolve-version]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -180,7 +213,7 @@ jobs:
       - name: Assemble and push lawrenceching/smm
         env:
           PLATFORMS: linux/amd64,linux/arm64
-          SEMVER_TAG: ${{ inputs.tag_name }}
+          SEMVER_TAG: ${{ needs.resolve-version.outputs.docker_tag }}
         run: |
           set -euo pipefail
           tags=(
@@ -209,10 +242,11 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ inputs.tag_name }}
+          TAG: ${{ needs.resolve-version.outputs.git_tag }}
+          DOCKER_TAG: ${{ needs.resolve-version.outputs.docker_tag }}
           REPO: ${{ github.repository }}
           USER_BODY: ${{ inputs.body }}
-          RELEASE_TITLE: ${{ (inputs.release_name != '' && inputs.release_name) || inputs.tag_name }}
+          RELEASE_TITLE: ${{ (inputs.release_name != '' && inputs.release_name) || needs.resolve-version.outputs.git_tag }}
           IS_DRAFT: ${{ inputs.draft }}
           IS_PRERELEASE: ${{ inputs.prerelease }}
         run: |
@@ -224,7 +258,7 @@ jobs:
             '## Docker' \
             '' \
             '```bash' \
-            "docker pull lawrenceching/smm:${TAG}" \
+            "docker pull lawrenceching/smm:${DOCKER_TAG}" \
             '```' \
             '' \
             "Multi-arch (\`linux/amd64\`, \`linux/arm64\`). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md).")"
@@ -264,7 +298,7 @@ jobs:
 
   summary:
     name: Release summary
-    needs: [release-electron, release-docker, publish]
+    needs: [release-electron, release-docker, publish, resolve-version]
     runs-on: ubuntu-latest
     steps:
       - name: Write workflow summary
@@ -278,7 +312,8 @@ jobs:
             echo "| Docker | ${{ needs.release-docker.result }} |"
             echo "| Publish | ${{ needs.publish.result }} |"
             echo ""
-            echo "**Tag:** \`${TAG}\`"
+            echo "**Git tag:** \`${TAG}\`"
+            echo "**Docker tag:** \`lawrenceching/smm:${DOCKER_TAG}\`"
             echo "**Commit:** \`${SHA}\`"
             echo ""
             echo "### Skip options"
@@ -291,7 +326,8 @@ jobs:
             echo "- **skip_gates**: ${SKIP_GATES}"
           } >> "$GITHUB_STEP_SUMMARY"
         env:
-          TAG: ${{ inputs.tag_name }}
+          TAG: ${{ needs.resolve-version.outputs.git_tag }}
+          DOCKER_TAG: ${{ needs.resolve-version.outputs.docker_tag }}
           SHA: ${{ github.sha }}
           SKIP_BUILD: ${{ inputs.skip_build }}
           SKIP_PRE_RELEASE: ${{ inputs.skip_pre_release }}
