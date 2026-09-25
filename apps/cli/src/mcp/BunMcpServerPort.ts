@@ -38,11 +38,24 @@ export class BunMcpServerPort implements McpServerPort {
 
     const bindHostname = resolveMcpBindAddress(options.hostname);
     const handler = await getMcpStreamableHttpHandler();
-    this.mcpServer = Bun.serve({
-      hostname: bindHostname,
-      port: options.port,
-      fetch: handler,
-    });
+    try {
+      this.mcpServer = Bun.serve({
+        hostname: bindHostname,
+        port: options.port,
+        fetch: handler,
+      });
+    } catch (err) {
+      const code =
+        err instanceof Error && "code" in err
+          ? String((err as NodeJS.ErrnoException).code)
+          : null;
+      if (code === "EADDRINUSE") {
+        throw new Error(
+          `MCP port ${options.port} is already in use (stop the other SMM/CLI process or change mcpPort in smm.json)`,
+        );
+      }
+      throw err;
+    }
 
     const advertisedHost = resolveMcpAdvertisedHost(
       this.mcpServer.hostname ?? bindHostname,

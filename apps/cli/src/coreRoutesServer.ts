@@ -10,8 +10,6 @@ import { buildHelloHttpResponse } from "@/cli/helloHttp";
 import { logger } from "../lib/logger";
 import { broadcast } from "@/utils/socketIO";
 import { resolveCoreRoutesPort } from "@/coreRoutesPort";
-import { startupDiag } from "@/utils/startupDiag";
-
 function createCoreRoutesLogger(): CoreRoutesLogger {
   return {
     debug: (obj, msg) => logger.debug(obj, msg),
@@ -25,12 +23,7 @@ export async function startCoreRoutesServer(
   auth?: CoreRoutesAuthConfig,
 ): Promise<http.Server> {
   const port = resolveCoreRoutesPort();
-  startupDiag("core-routes-build-allowlist-begin", { port });
   const allowlist = await buildAllowlist();
-  startupDiag("core-routes-build-allowlist-done", {
-    port,
-    allowlistSize: allowlist.length,
-  });
   const appDataDir = getAppDataDir();
   const handler = createCoreRoutesRequestHandler(
     {
@@ -47,19 +40,12 @@ export async function startCoreRoutesServer(
 
   const server = http.createServer(handler);
 
-  startupDiag("core-routes-listen-begin", { port });
   await new Promise<void>((resolve, reject) => {
     server.once("error", (err) => {
-      startupDiag("core-routes-listen-error", {
-        port,
-        error: err.message,
-        code: "code" in err ? String(err.code) : null,
-      });
       reject(err);
     });
     server.listen(port, () => resolve());
   });
-  startupDiag("core-routes-listen-done", { port });
 
   logger.info(`core-routes HTTP server running on http://localhost:${port}`);
   return server;

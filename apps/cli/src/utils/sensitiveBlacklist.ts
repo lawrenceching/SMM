@@ -1,6 +1,6 @@
 import os from "node:os";
 import { readFile } from "node:fs/promises";
-import { Writable } from "node:stream";
+import { Transform, type Writable } from "node:stream";
 import { getUserConfigPath } from "./config";
 
 const PLACEHOLDER = "******";
@@ -92,16 +92,20 @@ type InnerLike = {
 };
 
 export function wrapWithMasking(inner: InnerLike): NodeJS.WritableStream {
-  const wrapped = new Writable({
+  const transform = new Transform({
     decodeStrings: false,
-    write(chunk: Buffer | string, encoding: BufferEncoding, cb: (err?: Error | null) => void) {
+    transform(chunk: Buffer | string, _encoding: BufferEncoding, cb) {
       const text = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
-      const masked = maskSensitive(text);
-      inner.write.call(inner, masked, encoding, (err) => cb(err ?? null));
+      cb(null, maskSensitive(text));
     },
   });
-  // Swallow unhandled inner errors so they don't crash the process. Node
-  // still forwards the failure to the wrap's write callback via `cb`.
-  inner.on?.("error", () => {});
-  return wrapped;
+
+  const innerWritable = inner as unknown as Writable;
+  transform.pipe(innerWritable);
+
+  inner.on?.("error", (err) => {
+    transform.destroy(err);
+  });
+
+  return transform;
 }

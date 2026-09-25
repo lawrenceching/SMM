@@ -205,7 +205,7 @@ describe("wrapWithMasking", () => {
     });
   }));
 
-  it("passes empty string through unchanged", () => new Promise<void>((resolve) => {
+  it("passes whitespace-only chunks through unchanged", () => new Promise<void>((resolve) => {
     const writes: string[] = [];
     const inner = new Writable({
       write(chunk, _enc, cb) {
@@ -216,43 +216,45 @@ describe("wrapWithMasking", () => {
     const wrapped = wrapWithMasking(inner);
     addSensitiveString("secret");
 
-    wrapped.write("", () => {
-      expect(writes).toEqual([""]);
+    wrapped.write(" ", () => {
+      expect(writes).toEqual([" "]);
       resolve();
     });
   }));
 
-  it("preserves the encoding argument on the inner write", () => new Promise<void>((resolve) => {
-    let receivedEncoding: BufferEncoding | undefined;
+  it("masks multiple consecutive writes", () => new Promise<void>((resolve) => {
+    const writes: string[] = [];
     const inner = new Writable({
-      decodeStrings: false,
-      write(_chunk, encoding, cb) {
-        receivedEncoding = encoding;
+      write(chunk, _enc, cb) {
+        writes.push(chunk.toString());
         cb();
       },
     });
     const wrapped = wrapWithMasking(inner);
+    addSensitiveString("secret");
 
-    wrapped.write("payload", "utf-8", () => {
-      expect(receivedEncoding).toBe("utf-8");
-      resolve();
+    wrapped.write("one secret", () => {
+      wrapped.write("two secret", () => {
+        expect(writes).toEqual(["one ******", "two ******"]);
+        resolve();
+      });
     });
   }));
 
-  it("propagates underlying write errors via the callback", () => new Promise<void>((resolve) => {
+  it("propagates underlying write errors to the wrapped stream", () => new Promise<void>((resolve) => {
     const inner = new Writable({
       write(_chunk, _enc, cb) {
         cb(new Error("boom"));
       },
     });
     const wrapped = wrapWithMasking(inner);
-    // Suppress uncaught error from the Writable (we test via the callback).
-    wrapped.on("error", () => {});
 
-    wrapped.write("data", (err) => {
+    wrapped.on("error", (err) => {
       expect(err).toBeInstanceOf(Error);
-      expect((err as Error).message).toBe("boom");
+      expect(err.message).toBe("boom");
       resolve();
     });
+
+    wrapped.write("data");
   }));
 });

@@ -303,7 +303,6 @@ function showStartupErrorPage(error: unknown): void {
     cliExecutable: getCLIExecutablePath(),
     cliPort: cliPort ?? 0,
     processOutput: cliStartupMonitor?.getProcessOutput(),
-    startupSession: cliStartupMonitor?.startupSession,
   })
 
   console.error('Production startup failed:', failure.details)
@@ -329,12 +328,10 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
 
   const publicFolder = getPublicFolderPath()
   const cliArgs = ['--staticDir', publicFolder, '--port', port.toString()]
-  const startupSession = `electron-${process.pid}-${Date.now()}`
   console.log(`Starting CLI from: ${cliExecutable}`)
   console.log(`Public folder path: ${publicFolder}`)
   console.log(`CLI port: ${port}`)
   console.log(`CLI core-routes port: ${coreRoutesPort}`)
-  console.log(`CLI startup session: ${startupSession}`)
   console.log(`CLI command: ${cliExecutable} ${cliArgs.join(' ')}`)
 
   cliProcess = spawn(cliExecutable, cliArgs, {
@@ -345,7 +342,6 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
     windowsHide: true,
     env: buildCliSpawnEnv(process.env, process.resourcesPath, {
       coreRoutesPort,
-      startupSession,
     }),
   })
 
@@ -356,7 +352,7 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
     })
   }
 
-  const monitor = new CliProcessMonitor(cliProcess, cliExecutable, startupSession)
+  const monitor = new CliProcessMonitor(cliProcess, cliExecutable)
   cliStartupMonitor = monitor
 
   cliProcess.on('exit', (code, signal) => {

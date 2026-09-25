@@ -16,17 +16,13 @@ describe("formatSmmLogTail", () => {
     expect(formatSmmLogTail(raw)).toBe("[INFO] server started\nplain line")
   })
 
-  it("filters to lines from the given startup session", () => {
+  it("filters to lines from the given session id", () => {
     const raw = [
       '{"level":30,"msg":"old run"}',
-      '[SMM-STARTUP] session=electron-1-9 phase=parsed-args',
-      '{"level":30,"msg":"[SMM-STARTUP] ui-listen-done","session":"electron-1-9"}',
+      '{"level":30,"msg":"cleanup job succeeded","session":"electron-1-9"}',
     ].join("\n")
     expect(formatSmmLogTail(raw, "electron-1-9")).toBe(
-      [
-        "[SMM-STARTUP] session=electron-1-9 phase=parsed-args",
-        "[INFO] [SMM-STARTUP] ui-listen-done",
-      ].join("\n"),
+      ['[INFO] cleanup job succeeded'].join("\n"),
     )
   })
 })

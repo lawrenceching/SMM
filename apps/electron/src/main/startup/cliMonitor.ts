@@ -21,7 +21,6 @@ export class CliProcessMonitor {
   constructor(
     readonly process: ChildProcess,
     readonly executablePath: string,
-    readonly startupSession?: string,
   ) {
     this.process.stdout?.on("data", (data: Buffer) => {
       const text = data.toString("utf8")
@@ -96,14 +95,25 @@ export class CliProcessMonitor {
       : combined
   }
 
-  /** Last `[SMM-STARTUP] phase=...` line from stdout, if any. */
-  getLastStartupPhase(): string | null {
+  /** Last pino `msg` from JSON lines on stdout, if any. */
+  getLastPinoLogMessage(): string | null {
     const stdout = this.stdoutChunks.join("")
-    const matches = stdout.match(/\[SMM-STARTUP\][^\n]*/g)
-    if (!matches || matches.length === 0) {
-      return null
+    let last: string | null = null
+    for (const line of stdout.split("\n")) {
+      const trimmed = line.trim()
+      if (!trimmed.startsWith("{")) {
+        continue
+      }
+      try {
+        const entry = JSON.parse(trimmed) as { msg?: string }
+        if (typeof entry.msg === "string") {
+          last = entry.msg
+        }
+      } catch {
+        // not JSON
+      }
     }
-    return matches[matches.length - 1] ?? null
+    return last
   }
 
   buildExitFailure(): CliStartupFailure {
@@ -115,7 +125,7 @@ export class CliProcessMonitor {
     const signal = this.exitSignal
     const code = this.exitCode
     const output = this.getProcessOutput()
-    const lastPhase = this.getLastStartupPhase()
+    const lastLogMessage = this.getLastPinoLogMessage()
 
     let message = "后端进程意外退出。"
     if (signal === "SIGILL") {
@@ -131,8 +141,7 @@ export class CliProcessMonitor {
       details: [
         `CLI: ${this.executablePath}`,
         `Exit: code=${code} signal=${signal ?? "none"}`,
-        this.startupSession ? `Session: ${this.startupSession}` : null,
-        lastPhase ? `Last startup phase: ${lastPhase}` : null,
+        lastLogMessage ? `Last log message: ${lastLogMessage}` : null,
         "",
         "Process output:",
         output,
@@ -206,7 +215,7 @@ export async function buildTimeoutFailure(
   },
 ): Promise<CliStartupFailure> {
   const stillRunning = !monitor.hasExited()
-  const lastPhase = monitor.getLastStartupPhase()
+  const lastLogMessage = monitor.getLastPinoLogMessage()
 
   const uiReady =
     options?.lastUiProbes && options.lastUiProbes.length > 0
@@ -239,13 +248,12 @@ export async function buildTimeoutFailure(
         : null,
       `CLI: ${monitor.executablePath}`,
       `CLI pid: ${monitor.process.pid ?? "unknown"}`,
-      monitor.startupSession ? `Session: ${monitor.startupSession}` : null,
       monitor.hasExited()
         ? `Exit: code=${monitor.getExitCode()} signal=${monitor.getExitSignal() ?? "none"}`
         : "CLI process is still running but HTTP server did not respond with text/html.",
-      lastPhase
-        ? `Last startup phase: ${lastPhase}`
-        : "Last startup phase: (none captured — CLI may be stuck before first milestone)",
+      lastLogMessage
+        ? `Last log message: ${lastLogMessage}`
+        : "Last log message: (none captured on stdout)",
       nonHtmlHint,
       ...uiProbeLines,
       coreProbe ? `Core-routes probe: ${coreProbe}` : null,

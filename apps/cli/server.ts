@@ -77,6 +77,7 @@ import { handleSpeedtest } from './src/route/speedtest';
 import { handleDiscover } from './src/route/discover';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
+import { logApplicationConfig } from '@/startup/applicationConfig';
 import { getCore } from '@/core/getCore';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
@@ -97,8 +98,6 @@ import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { getFolderWatcher } from './src/services/folderWatcher';
 import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
-import { startupDiag, startupDiagStaticIndex } from '@/utils/startupDiag';
-
 export interface ServerConfig {
   port?: number;
   root?: string;
@@ -403,15 +402,9 @@ export class Server {
     // Build the reverse proxy config from userConfig (mcpPort reservation +
     // AI provider host allowlist). This must run before listen so that the
     // /api/hello route can read the proxyManager's url.
-    startupDiag('ui-build-proxy-config-begin', {
-      port: this.port,
-      bind: this.webUiBindAddress,
-      root: this.root,
-    });
     const proxyConfig = await buildReverseProxyConfig();
     this.proxyManager = createReverseProxyManager(proxyConfig);
     registerExecuteRoutes(this.app, this.proxyManager);
-    startupDiag('ui-build-proxy-config-done');
 
     // Bun.serve() (MCP on mcpPort) requires Bun's native Response.
     // @hono/node-server replaces globalThis.Response with a wrapper
@@ -453,58 +446,12 @@ export class Server {
     });
     setSocketIOManager(this.socketManager);
 
-    startupDiag('ui-listen-begin', {
-      port: this.port,
-      bind: this.webUiBindAddress,
-    });
     await new Promise<void>((resolve, reject) => {
       this.httpServer!.once('error', (err) => {
-        startupDiag('ui-listen-error', {
-          port: this.port,
-          bind: this.webUiBindAddress,
-          error: err.message,
-          code: 'code' in err ? String(err.code) : null,
-        });
         reject(err);
       });
       this.httpServer!.listen(this.port, this.webUiBindAddress, () => resolve());
     });
-    startupDiag('ui-listen-done', {
-      port: this.port,
-      bind: this.webUiBindAddress,
-    });
-    startupDiagStaticIndex(this.root);
-
-    // Detect dual-bind: leftover MCP on 0.0.0.0 may answer while Node UI listens on 127.0.0.1.
-    void (async () => {
-      try {
-        const res = await fetch(`http://127.0.0.1:${this.port}/`, {
-          method: 'GET',
-          headers: {
-            Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-          },
-          signal: AbortSignal.timeout(2000),
-        });
-        const contentType = res.headers.get('content-type');
-        let bodySnippet = '';
-        try {
-          bodySnippet = (await res.text()).replace(/\s+/g, ' ').trim().slice(0, 200);
-        } catch {
-          bodySnippet = '(read failed)';
-        }
-        startupDiag('ui-self-probe-after-listen', {
-          port: this.port,
-          status: res.status,
-          contentType,
-          bodySnippet,
-        });
-      } catch (err) {
-        startupDiag('ui-self-probe-after-listen', {
-          port: this.port,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      }
-    })();
 
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(
@@ -512,42 +459,17 @@ export class Server {
     );
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
 
-    // Start the reverse proxy before MCP config so it's available for metadata operations
-    this.proxyManager.start().catch((err) =>
-      logger.error({ err }, 'Failed to start reverse proxy'),
-    );
+    await this.proxyManager.start();
 
-    applyMcpConfig()
-      .then(async () => {
-        try {
-          const res = await fetch(`http://127.0.0.1:${this.port}/`, {
-            method: 'GET',
-            headers: {
-              Accept: 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.8',
-            },
-            signal: AbortSignal.timeout(2000),
-          });
-          const contentType = res.headers.get('content-type');
-          let bodySnippet = '';
-          try {
-            bodySnippet = (await res.text()).replace(/\s+/g, ' ').trim().slice(0, 200);
-          } catch {
-            bodySnippet = '(read failed)';
-          }
-          startupDiag('ui-self-probe-after-mcp-config', {
-            port: this.port,
-            status: res.status,
-            contentType,
-            bodySnippet,
-          });
-        } catch (err) {
-          startupDiag('ui-self-probe-after-mcp-config', {
-            port: this.port,
-            error: err instanceof Error ? err.message : String(err),
-          });
-        }
-      })
-      .catch((err) => logger.error({ err }, "Failed to apply MCP config on startup"));
+    await applyMcpConfig();
+
+    logApplicationConfig({
+      reverseProxyUrl: this.proxyManager.url,
+      uiPort: this.port,
+      uiBind: this.webUiBindAddress,
+      staticRoot: this.root,
+      auth: this.auth,
+    });
 
     getCore().runHostSpeedTests().catch((err) =>
       logger.error({ err }, "Failed to run TMDB/TVDB host speed tests"),

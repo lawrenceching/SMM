@@ -7,14 +7,11 @@
  * be the UI `--port`: a leftover CLI keeps the default core-routes port 3001,
  * and the next instance exits before it can serve HTML.
  *
- * `startupSession` is a permanent correlation id echoed by CLI `[SMM-STARTUP]`
- * milestones so Startup Error / smm.log can be filtered across flaky CI runs
- * (listen hang vs readiness probe false-negative).
  */
 export function buildCliSpawnEnv(
   processEnv: NodeJS.ProcessEnv,
   resourcesPath: string,
-  options?: { coreRoutesPort?: number; startupSession?: string },
+  options?: { coreRoutesPort?: number },
 ): NodeJS.ProcessEnv {
   return {
     ...processEnv,
@@ -23,9 +20,6 @@ export function buildCliSpawnEnv(
     SMM_AUTH_ENABLED: 'false',
     ...(options?.coreRoutesPort !== undefined
       ? { CLI_PORT: String(options.coreRoutesPort) }
-      : {}),
-    ...(options?.startupSession
-      ? { SMM_STARTUP_SESSION: options.startupSession }
       : {}),
   }
 }

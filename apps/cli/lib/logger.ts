@@ -49,10 +49,11 @@ async function createLogger() {
       base: null,
     }, destination);
   } else {
-    // Console logging (default). Use an explicit stdout destination so we
-    // can apply the same masking wrapper as the file branch — keeps
-    // console output consistent with what's persisted to disk.
-    const destination = wrapWithMasking(pino.destination(1));
+    // Console logging (default). sync: true so dev (`bun run index.ts`) sees
+    // startup lines (cleanup job, MCP server) immediately, not only on exit.
+    const destination = wrapWithMasking(
+      pino.destination({ dest: 1, sync: true }),
+    );
     return pino({
       level: logLevel,
       base: null,
