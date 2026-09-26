@@ -12,7 +12,7 @@
  * Config: artifacts/e2e/config.json
  * Logs and run summary: apps/cicd/run.ts
  *
- * Loads repo `.env.local` (including `UI_PORT` / `CLI_PORT`) before starting services.
+ * Loads repo `.env.local` (including `VITE_PORT` / `HTTP_PORT`) before starting services.
  */
 import { $ } from 'bun';
 import * as fs from 'node:fs';

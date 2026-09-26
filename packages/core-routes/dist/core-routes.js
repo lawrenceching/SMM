@@ -31139,9 +31139,12 @@ function createNodeRenameFileExistenceProbe(timeoutMs = 1000) {
 }
 // src/bindAddresses.ts
 var DEFAULT_BIND_ADDRESS = "127.0.0.1";
-function resolveWebUiBindAddress() {
-  const fromEnv = process.env.WEBUI_ADDRESS?.trim();
+function resolveHttpBindAddress() {
+  const fromEnv = process.env.HTTP_ADDRESS?.trim() || process.env.WEBUI_ADDRESS?.trim();
   return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+function resolveWebUiBindAddress() {
+  return resolveHttpBindAddress();
 }
 function resolveReverseProxyBindAddress() {
   const fromEnv = process.env.REVERSE_PROXY_ADDRESS?.trim();
@@ -62733,7 +62736,7 @@ async function runNodeChat(chatConfig, req, res) {
   const webRequest = await nodeRequestToWebRequest(req);
   let response;
   try {
-    response = await doChat(chatConfig, webRequest);
+    response = await doChat(chatConfig, webRequest, chatConfig.toolsExtra ?? {});
   } catch (error) {
     if (error instanceof Error && (error.name === "AbortError" || error.message === "Request aborted")) {
       sendJson(res, 499, { error: "Request was aborted" });
@@ -68223,38 +68226,52 @@ async function handlePatchUserConfigPost(req, res, ctx) {
   }
 }
 
-// src/register.ts
-var coreRouteHandlers = [
-  handleListFilesGet,
-  handleListFilesPost,
-  handleWriteFilePost,
-  handleHelloGet,
-  handleIsFolderAvailablePost,
-  handleGetEpisodesPost,
-  handleListFilesInMediaFolderPost,
-  handleRenameFolderPost,
-  handleRenameFilesPost,
-  handleReadFilePost,
-  handleDeleteFilePost,
-  handleDeleteFolderPost,
-  handleDownloadImageGet,
-  handleDownloadImageAsFilePost,
-  handleReadImagePost,
-  handleDiscoverGet,
-  handleChatPost,
-  handleMcpGetServerStatusGet,
-  handleMcpStartPost,
-  handleMcpStopPost,
-  handleMcpStartPut,
-  handleMcpStopPut,
-  handleMcpStatusGet,
-  handleGetPlansPost,
-  handleGetPlanByIdPost,
-  handleCreatePlanPost,
-  handleUpdatePlanPost,
-  handleGetUserConfigPost,
-  handlePatchUserConfigPost
+// src/coreRouteTable.ts
+var coreRoutes = [
+  { method: "GET", path: "/api/listFiles", handle: handleListFilesGet },
+  { method: "POST", path: "/api/listFiles", handle: handleListFilesPost },
+  { method: "POST", path: "/api/writeFile", handle: handleWriteFilePost },
+  { method: "GET", path: "/api/hello", handle: handleHelloGet },
+  { method: "POST", path: "/api/isFolderAvailable", handle: handleIsFolderAvailablePost },
+  { method: "POST", path: "/api/getEpisodes", handle: handleGetEpisodesPost },
+  {
+    method: "POST",
+    path: "/api/listFilesInMediaFolder",
+    handle: handleListFilesInMediaFolderPost
+  },
+  { method: "POST", path: "/api/rename-folder", handle: handleRenameFolderPost },
+  { method: "POST", path: "/api/renameFiles", handle: handleRenameFilesPost },
+  { method: "POST", path: "/api/readFile", handle: handleReadFilePost },
+  { method: "POST", path: "/api/deleteFile", handle: handleDeleteFilePost },
+  { method: "POST", path: "/api/deleteFolder", handle: handleDeleteFolderPost },
+  { method: "GET", path: "/api/image", handle: handleDownloadImageGet },
+  { method: "POST", path: "/api/downloadImage", handle: handleDownloadImageAsFilePost },
+  { method: "POST", path: "/api/readImage", handle: handleReadImagePost },
+  { method: "GET", path: "/api/discover", handle: handleDiscoverGet },
+  { method: "POST", path: "/api/chat", handle: handleChatPost },
+  { method: "GET", path: "/api/get-mcp-server-status", handle: handleMcpGetServerStatusGet },
+  { method: "POST", path: "/api/start-mcp-server", handle: handleMcpStartPost },
+  { method: "POST", path: "/api/stop-mcp-server", handle: handleMcpStopPost },
+  { method: "PUT", path: "/api/mcp/start", handle: handleMcpStartPut },
+  { method: "PUT", path: "/api/mcp/stop", handle: handleMcpStopPut },
+  { method: "GET", path: "/api/mcp/status", handle: handleMcpStatusGet },
+  { method: "POST", path: "/api/getPlans", handle: handleGetPlansPost },
+  { method: "POST", path: "/api/getPlanById", handle: handleGetPlanByIdPost },
+  { method: "POST", path: "/api/createPlan", handle: handleCreatePlanPost },
+  { method: "POST", path: "/api/updatePlan", handle: handleUpdatePlanPost },
+  { method: "POST", path: "/api/getUserConfig", handle: handleGetUserConfigPost },
+  { method: "POST", path: "/api/patchUserConfig", handle: handlePatchUserConfigPost }
 ];
+var coreRouteKeySet = new Set(coreRoutes.map((route) => coreRouteKey(route.method, route.path)));
+function coreRouteKey(method, path) {
+  return `${method.toUpperCase()} ${path}`;
+}
+function isCoreRoute(method, pathname) {
+  return coreRouteKeySet.has(coreRouteKey(method, pathname));
+}
+var coreRouteHandlers = coreRoutes.map((route) => route.handle);
+
+// src/register.ts
 function createCoreRoutesRequestHandler(config, options = {}) {
   const fallbackPort = options.fallbackPort ?? 3001;
   return (req, res) => {
@@ -68267,13 +68284,17 @@ async function handleCoreRoutesRequest(req, res, config, fallbackPort = 3001) {
     return;
   }
   const ctx = { config, url };
-  for (const handler of coreRouteHandlers) {
-    const handled = await handler(req, res, ctx);
+  const method = req.method ?? "GET";
+  for (const route of coreRoutes) {
+    if (route.method !== method || route.path !== url.pathname) {
+      continue;
+    }
+    const handled = await route.handle(req, res, ctx);
     if (handled) {
       return;
     }
   }
-  sendJson(res, 404, { error: `Not found: ${req.method ?? "UNKNOWN"} ${url.pathname}` });
+  sendJson(res, 404, { error: `Not found: ${method} ${url.pathname}` });
 }
 function registerCoreRoutes(server, config) {
   const fallbackPort = typeof server.address() === "object" && server.address() !== null ? server.address().port : 3001;
@@ -74277,6 +74298,8 @@ export {
   cleanPreparingPlans,
   cleanupStalePlans,
   coreRouteHandlers,
+  coreRouteKey,
+  coreRoutes,
   createChatTools,
   createCoreRoutesRequestHandler,
   createErrorResponse,
@@ -74355,6 +74378,7 @@ export {
   handleUpdatePlanPost,
   handleWriteFilePost,
   isAuthTokenValid,
+  isCoreRoute,
   isError3 as isError,
   isRequestAuthorized,
   migrateAIConfig,
@@ -74363,6 +74387,7 @@ export {
   registerCoreRoutes,
   rejectUnauthorized,
   resolveFolderExistence,
+  resolveHttpBindAddress,
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,
   resolveReverseProxyAdvertisedHost,

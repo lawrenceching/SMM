@@ -1077,11 +1077,8 @@ export interface HelloHttpResponseBody extends HelloCliBody {
    */
   reverseProxyUrl: string | null;
   /**
-   * Port that the core-routes Node `http` server is listening on.
-   * The UI uses this to call endpoints that live on core-routes
-   * (e.g. `POST /api/isFolderAvailable`) when the UI's origin is
-   * the Hono Bun server (cli port 30000) instead of the core-routes
-   * Node server.
+   * Port of the unified HTTP server (static UI + API).
+   * Same value as `HTTP_PORT` / `--port` on the desktop CLI.
    */
   coreRoutesPort: number;
   /** Error message when the hello task fails (e.g. validation, server error). */

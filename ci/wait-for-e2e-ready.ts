@@ -10,16 +10,16 @@ import { fileURLToPath } from 'node:url';
 import * as path from 'node:path';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const DEFAULT_CLI_PORT = 30000;
+const DEFAULT_HTTP_PORT = 30000;
 const CLI_AUTH_TOKEN = 'ChangeMe123';
 
-function resolveMainCliPort(): number {
-  const raw = process.env.PORT?.trim();
+function resolveMainHttpPort(): number {
+  const raw = process.env.HTTP_PORT?.trim();
   if (!raw) {
-    return DEFAULT_CLI_PORT;
+    return DEFAULT_HTTP_PORT;
   }
   const port = Number.parseInt(raw, 10);
-  return Number.isFinite(port) && port > 0 ? port : DEFAULT_CLI_PORT;
+  return Number.isFinite(port) && port > 0 ? port : DEFAULT_HTTP_PORT;
 }
 
 async function waitForHttp(
@@ -67,8 +67,8 @@ async function waitForHttp(
 async function main(): Promise<void> {
   loadEnvLocal(ROOT);
 
-  const cliPort = resolveMainCliPort();
-  const cliReadyUrl = `http://localhost:${cliPort}/api/hello`;
+  const httpPort = resolveMainHttpPort();
+  const cliReadyUrl = `http://localhost:${httpPort}/api/hello`;
   console.log(`[wait-for-e2e-ready] waiting for CLI (${cliReadyUrl})`);
   await waitForHttp(cliReadyUrl, {
     method: 'GET',

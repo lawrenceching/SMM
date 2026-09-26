@@ -5,32 +5,15 @@ import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { getRequestListener } from '@hono/node-server';
 import path from 'path';
-import { setSocketIOManager, acknowledge, broadcast } from './src/utils/socketIO.ts';
-import { handleChatRequest as handleChatRequestCoreRoutes } from './src/route/chatRoute';
-import { handleReadFile } from './src/route/ReadFile';
-import { createAIProvider } from './lib/ai-provider.ts';
-import { getUserConfig, getAppDataDir, getUserDataDir } from './src/utils/config.ts';
-import { handleIsFolderAvailable } from './src/route/IsFolderAvailable';
-import { handleWriteFile } from './src/route/WriteFile';
-import { handleRenameFiles } from './src/route/RenameFiles';
-import { handleRenameFolder } from './src/route/RenameFolder';
+import { setSocketIOManager } from './src/utils/socketIO.ts';
 import { handleRenameEpisodeFile } from './src/route/RenameEpisodeFile';
-import { handleGetEpisodesRoute } from './src/route/getEpisodes';
-import { handleListFilesInMediaFolderRoute } from './src/route/listFilesInMediaFolder';
 import { handleValidateRenameOperationsRoute } from './src/route/validateRenameOperations';
-import { handleReadImage } from './src/route/ReadImage';
-import { handleListFiles } from './src/route/ListFiles';
 import { handleListDrives } from './src/route/ListDrives';
-import { handleDownloadImage } from './src/route/DownloadImage';
 import { handleRenameFilesInMediaMetadata } from '@/route/mediaMetadata/renameFilesInMediaMetadata';
 import { handleMatchMediaFilesToEpisodeRequest } from './src/route/ai';
-import { handleDownloadImageAsFileRequest } from './src/route/downloadImageAsFileBridge';
 import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
 import { handleOpenFile } from './src/route/OpenFile';
 import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
-import { handleDeleteFile } from './src/route/DeleteFile';
-import { handleDeleteFolder } from './src/route/DeleteFolder';
-import { handleUserConfig } from './src/route/UserConfig';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
@@ -43,7 +26,6 @@ import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesT
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
-import { handlePlans } from './src/route/Plans';
 import { handleRenameEpisodesPlan } from './src/route/RenameEpisodesPlan';
 import { handleRecognizeEpisodesPlan } from './src/route/RecognizeEpisodesPlan';
 import { handleTryToRecognizeEpisodes } from './src/route/TryToRecognizeEpisodes';
@@ -72,12 +54,12 @@ import { registerExecuteRoutes } from './src/route/execute';
 import { handleCommandLog } from './src/route/commandLog';
 import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
-import { handleMcpRoutes } from './src/route/Mcp';
 import { handleSpeedtest } from './src/route/speedtest';
-import { handleDiscover } from './src/route/discover';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
+import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
 import { applyMcpConfig } from '@/mcp/mcpServerManager';
 import { getCore } from '@/core/getCore';
+import { getUserConfig } from './src/utils/config.ts';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
@@ -85,18 +67,20 @@ import {
   createReverseProxyManager,
   createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  isCoreRoute,
   isRequestAuthorized,
-  resolveWebUiBindAddress,
+  resolveHttpBindAddress,
   type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
   type ReverseProxyConfig,
   type ReverseProxyManager,
   type SocketIOManager,
 } from '@smm/core-routes';
+import { createCliCoreRoutesHandler, type HelloResolverHolder } from './src/coreRoutesServer';
+import { buildHelloHttpResponse } from './src/cli/helloHttp';
 import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { getFolderWatcher } from './src/services/folderWatcher';
-import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
 export interface ServerConfig {
   port?: number;
   root?: string;
@@ -157,8 +141,8 @@ export class Server {
   private auth?: CoreRoutesAuthConfig;
 
   constructor(config: ServerConfig = {}) {
-    this.port = config.port ?? parseInt(process.env.PORT || '3000');
-    this.webUiBindAddress = resolveWebUiBindAddress();
+    this.port = config.port ?? parseInt(process.env.HTTP_PORT || process.env.PORT || '30000', 10);
+    this.webUiBindAddress = resolveHttpBindAddress();
     const rootPath = config.root ?? './public';
     this.root = path.resolve(rootPath);
     this.beforeStop = config.beforeStop;
@@ -278,42 +262,17 @@ export class Server {
       return next();
     });
 
-    // Register route handlers
-    // /api/chat is implemented in @smm/core-routes (post-migration);
-    // the Hono shell here is a thin adapter that wires the cli-specific
-    // AI provider factory, user-config reader, and Socket.IO helpers.
-    handleChatRequestCoreRoutes(this.app, {
-      appDataDir: getAppDataDir(),
-      userDataDir: getUserDataDir(),
-      logger: createSocketIOLogger(),
-      createAIProvider: (userConfig) => createAIProvider(userConfig),
-      getUserConfig: () => getUserConfig(),
-      acknowledge: (message, timeoutMs) => acknowledge(message as never, timeoutMs),
-      broadcast: (message) => broadcast(message as never),
-    });
-    handleReadFile(this.app);
-    handleIsFolderAvailable(this.app);
+    // Platform-specific CLI routes (not in core-routes — ohos does not reuse these).
+    // Shared public APIs are dispatched to createCliCoreRoutesHandler via isCoreRoute.
     handleSetWatchedFolder(this.app);
-    handleWriteFile(this.app);
-    handleRenameFiles(this.app);
-    handleRenameFolder(this.app);
     handleRenameEpisodeFile(this.app);
-    handleGetEpisodesRoute(this.app);
-    handleListFilesInMediaFolderRoute(this.app);
     handleValidateRenameOperationsRoute(this.app);
-    handleReadImage(this.app);
-    handleDownloadImage(this.app);
-    handleListFiles(this.app);
     handleListDrives(this.app);
     handleRenameFilesInMediaMetadata(this.app);
     handleMatchMediaFilesToEpisodeRequest(this.app);
-    handleDownloadImageAsFileRequest(this.app);
     handleOpenInFileManagerRequest(this.app);
     handleOpenFile(this.app);
     handleMoveFileToTrash(this.app);
-    handleDeleteFile(this.app);
-    handleDeleteFolder(this.app);
-    handleUserConfig(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugCreateRenameEpisodePlan(this.app);
@@ -326,7 +285,6 @@ export class Server {
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
-    handlePlans(this.app);
     handleRenameEpisodesPlan(this.app);
     handleRecognizeEpisodesPlan(this.app);
     handleTryToRecognizeEpisodes(this.app);
@@ -354,12 +312,9 @@ export class Server {
     handleCommandLog(this.app);
     handleCommandExecutionStatus(this.app);
     handleLog(this.app);
-    handleMcpRoutes(this.app);
     handleSpeedtest(this.app);
-    handleDiscover(this.app);
     handleShutdown(this.app);
-    // /api/hello and /api/execute are registered in start() once the
-    // reverse proxy manager is available.
+    // /api/execute is registered in start() once the reverse proxy manager is available.
 
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)
@@ -405,6 +360,16 @@ export class Server {
     this.proxyManager = createReverseProxyManager(proxyConfig);
     registerExecuteRoutes(this.app, this.proxyManager);
 
+    const helloHolder: HelloResolverHolder = {
+      resolve: () =>
+        buildHelloHttpResponse(this.proxyManager?.url ?? null, this.port),
+    };
+    const coreRoutesHandler = await createCliCoreRoutesHandler(
+      this.port,
+      helloHolder,
+      this.auth,
+    );
+
     // Bun.serve() (MCP on mcpPort) requires Bun's native Response.
     // @hono/node-server replaces globalThis.Response with a wrapper
     // by default; disable that so MCP Streamable HTTP works.
@@ -416,6 +381,7 @@ export class Server {
 
     this.httpServer = http.createServer((req: IncomingMessage, res: ServerResponse) => {
       const url = req.url?.split('?')[0] ?? '';
+      const method = req.method ?? 'GET';
 
       if (url.startsWith('/socket.io/')) {
         return;
@@ -432,6 +398,11 @@ export class Server {
       setShutdownRequestIPResolver((_req) => ({
         address: req.socket.remoteAddress ?? '127.0.0.1',
       }));
+
+      // Shared public APIs → core-routes; cli-only APIs + static → Hono.
+      if (isCoreRoute(method, url)) {
+        return coreRoutesHandler(req, res);
+      }
 
       return honoListener(req, res);
     });
@@ -454,7 +425,7 @@ export class Server {
 
     logger.info(`📁 Static file root: ${this.root}`);
     logger.info(
-      `🚀 Static file server running on http://${this.webUiBindAddress}:${this.port}`,
+      `🚀 HTTP server (static + API) running on http://${this.webUiBindAddress}:${this.port}`,
     );
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
 

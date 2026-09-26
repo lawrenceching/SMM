@@ -51,7 +51,7 @@ function parseEnvPort(raw: string | undefined): number | undefined {
 export function readUiDevServerPort(
   viteConfigPath: string = DEFAULT_UI_VITE_CONFIG,
 ): number {
-  const fromEnv = parseEnvPort(process.env.UI_PORT);
+  const fromEnv = parseEnvPort(process.env.VITE_PORT);
   if (fromEnv !== undefined) {
     return fromEnv;
   }

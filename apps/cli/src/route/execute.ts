@@ -1,15 +1,12 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { buildHelloHttpResponse } from '../cli/helloHttp';
-import { resolveCoreRoutesPort } from '@/coreRoutesPort';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
 import type { ReverseProxyManager } from '@smm/core-routes';
 
 /**
  * Zod schema for /api/execute request body validation.
  *
- * Note: the bootstrap handshake ("hello") is exposed at GET /api/hello,
- * not through this /api/execute orchestration endpoint.
+ * Note: the bootstrap handshake ("hello") is GET /api/hello on core-routes.
  */
 const executeRequestSchema = z.object({
   name: z.enum(['system', 'GetSelectedMediaMetadata'], {
@@ -19,27 +16,15 @@ const executeRequestSchema = z.object({
 });
 
 /**
- * Register /api/hello and /api/execute routes on the given Hono app.
+ * Register /api/execute on the given Hono app (cli-specific orchestration).
  *
- * GET /api/hello — Application bootstrap handshake. Returns environment
- *   paths, version, reverse-proxy URL and OS locale.
- *
- * POST /api/execute — Special orchestration route for multiple user tasks.
- *   Currently dispatches `name: "GetSelectedMediaMetadata"`. The previous
- *   `name: "hello"` task has been moved to /api/hello.
+ * GET /api/hello is served by core-routes on the unified HTTP server.
  */
-export function registerExecuteRoutes(app: Hono, proxyManager: ReverseProxyManager): void {
-  app.get('/api/hello', async (c) => {
-    const result = buildHelloHttpResponse(proxyManager.url, resolveCoreRoutesPort());
-    return c.json(result);
-  });
-
-  // POST /api/execute - Special orchestration route for multiple tasks
+export function registerExecuteRoutes(app: Hono, _proxyManager: ReverseProxyManager): void {
   app.post('/api/execute', async (c) => {
     try {
       const rawBody = await c.req.json();
 
-      // Validate request body with Zod
       const validationResult = executeRequestSchema.safeParse(rawBody);
 
       if (!validationResult.success) {
@@ -54,13 +39,11 @@ export function registerExecuteRoutes(app: Hono, proxyManager: ReverseProxyManag
 
       const body = validationResult.data;
 
-      // Execute task based on name
       if (body.name === 'GetSelectedMediaMetadata') {
         const result = await executeGetSelectedMediaMetadataTask();
         return c.json(result);
       }
 
-      // Handle other task names (e.g., 'system')
       return c.json({
         error: `Task "${body.name}" is not yet implemented`
       }, 501);

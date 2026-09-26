@@ -3,23 +3,23 @@ import { getCore } from "@/core/getCore";
 import { logger } from "../../lib/logger";
 
 export interface ApplicationConfigLogContext {
-  uiPort: number;
-  uiBind: string;
+  httpPort: number;
+  httpBind: string;
   staticRoot: string;
   auth?: CoreRoutesAuthConfig;
 }
 
 /**
- * Flat startup snapshot for diagnosis (paths, version, UI listen settings).
- * reverseProxyUrl / coreRoutesPort are logged by their own startup messages.
+ * Flat startup snapshot for diagnosis (paths, version, HTTP listen settings).
+ * reverseProxyUrl is logged by its own startup message.
  */
 export function buildApplicationConfigLogFields(
   ctx: ApplicationConfigLogContext,
 ): Record<string, unknown> {
   return {
     ...getCore().hello(),
-    uiPort: ctx.uiPort,
-    uiBind: ctx.uiBind,
+    httpPort: ctx.httpPort,
+    httpBind: ctx.httpBind,
     staticRoot: ctx.staticRoot,
     authEnabled: ctx.auth?.enabled ?? false,
   };

@@ -15,6 +15,7 @@ export {
 export { validatePathIsInAllowlist } from "./allowlist.ts";
 export { createNodeRenameFileExistenceProbe } from "./nodeRenameFileExistenceProbe.ts";
 export {
+  resolveHttpBindAddress,
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,
   resolveReverseProxyAdvertisedHost,
@@ -144,6 +145,9 @@ export {
 } from "./discover.ts";
 export {
   coreRouteHandlers,
+  coreRoutes,
+  coreRouteKey,
+  isCoreRoute,
   createCoreRoutesRequestHandler,
   handleCoreRoutesRequest,
   registerCoreRoutes,
@@ -169,6 +173,7 @@ export {
   handleGetUserConfigPost,
   handlePatchUserConfigPost,
 } from "./register.ts";
+export type { CoreRoute } from "./register.ts";
 export type {
   SocketIOCorsConfig,
   SocketIOConfig,

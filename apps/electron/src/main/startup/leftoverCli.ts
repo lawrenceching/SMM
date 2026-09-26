@@ -73,7 +73,7 @@ export function parseLinuxPpid(statusText: string): number | null {
 }
 
 /**
- * A leftover CLI from a killed Electron process keeps port 3001 and the UI port.
+ * A leftover CLI from a killed Electron process keeps the HTTP port.
  * In CI, also stop the previous Electron so it cannot restart that CLI.
  * Outside CI, only an orphaned CLI (reparented to init) is stopped.
  */

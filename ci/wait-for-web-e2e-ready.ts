@@ -1,15 +1,36 @@
 /**
- * Polls host-served SMM (cli --staticDir) until /api/hello responds.
- * Used as the first apps/cicd task for --platform web (no Vite UI wait).
+ * Polls the Vite page server (`VITE_PORT`) and the unified CLI HTTP server
+ * (`HTTP_PORT`) until both respond, or exits 1 on timeout.
  *
- * Base origin: `E2E_WEB_UI_ORIGIN` (default `http://localhost:30000/`).
+ * Used as the first apps/cicd task for --platform web. A failure here stops
+ * later spec tasks (`stopOnFailure`).
  */
-function resolveReadyUrl(): string {
-  const origin = (process.env.E2E_WEB_UI_ORIGIN?.trim() || 'http://localhost:30000/').replace(
-    /\/?$/,
-    '/',
-  );
-  return new URL('api/hello', origin).toString();
+import { readUiDevServerPort } from './read-ui-dev-port.ts';
+
+const DEFAULT_HTTP_PORT = 30000;
+
+function parsePositivePort(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) {
+    return fallback;
+  }
+  const trimmed = raw.trim();
+  if (trimmed === '') {
+    return fallback;
+  }
+  const port = Number.parseInt(trimmed, 10);
+  return Number.isFinite(port) && port > 0 ? port : fallback;
+}
+
+/** Vite dev server and unified HTTP `/api/hello` URLs for the web e2e gate. */
+export function resolveWebReadyUrls(
+  env: Record<string, string | undefined> = process.env,
+): { viteUrl: string; httpUrl: string } {
+  const vitePort = parsePositivePort(env.VITE_PORT, readUiDevServerPort());
+  const httpPort = parsePositivePort(env.HTTP_PORT, DEFAULT_HTTP_PORT);
+  return {
+    viteUrl: `http://127.0.0.1:${vitePort}/`,
+    httpUrl: `http://127.0.0.1:${httpPort}/api/hello`,
+  };
 }
 
 async function waitForHttp(
@@ -56,16 +77,20 @@ async function waitForHttp(
 
 async function main(): Promise<void> {
   const token = process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123';
-  const readyUrl = resolveReadyUrl();
-  console.log('[wait-for-web-e2e-ready] waiting for', readyUrl);
-  await waitForHttp(readyUrl, {
+  const { viteUrl, httpUrl } = resolveWebReadyUrls();
+  console.log('[wait-for-web-e2e-ready] waiting for Vite', viteUrl);
+  await waitForHttp(viteUrl);
+  console.log('[wait-for-web-e2e-ready] waiting for HTTP', httpUrl);
+  await waitForHttp(httpUrl, {
     method: 'GET',
     headers: { Authorization: `Bearer ${token}` },
   });
   console.log('[wait-for-web-e2e-ready] ready');
 }
 
-main().catch((error) => {
-  console.error('[wait-for-web-e2e-ready] failed:', error);
-  process.exit(1);
-});
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error('[wait-for-web-e2e-ready] failed:', error);
+    process.exit(1);
+  });
+}

@@ -39,7 +39,7 @@ services:
       - 'host.docker.internal:host-gateway'
     environment:
       SMM_AUTH_TOKEN: ${SMM_AUTH_TOKEN:-ChangeMe123}
-      WEBUI_ADDRESS: '0.0.0.0'
+      HTTP_ADDRESS: '0.0.0.0'
       REVERSE_PROXY_ADDRESS: '0.0.0.0'
       MCP_ADDRESS: '0.0.0.0'
       # Optional; TmdbHostFailover — host runner serves config, container uses host.docker.internal

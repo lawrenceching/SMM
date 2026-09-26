@@ -1,6 +1,7 @@
 import type { UserConfig } from "@smm/types";
 import type { WebSocketMessage } from "./socketIO/types.ts";
 import type { CoreRoutesLogger } from "./types.ts";
+import type { ChatToolsExtraDeps } from "./chatToolsExtra.ts";
 
 /**
  * Per-request shape sent by the UI's `AssistantChatTransport` and any
@@ -115,4 +116,10 @@ export interface ChatConfig {
    * Defaults to `appDataDir` when omitted.
    */
   userDataDir?: string;
+  /**
+   * Host-injected Core runners for chat tools (rename / scrape / TMDB / …).
+   * Passed through to {@link doChat} when serving `POST /api/chat` on
+   * the node:http core-routes handler.
+   */
+  toolsExtra?: ChatToolsExtraDeps;
 }

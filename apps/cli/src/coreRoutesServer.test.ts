@@ -23,10 +23,19 @@ vi.mock("@/cli/helloHttp", () => ({
 
 vi.mock("@/utils/socketIO", () => ({
   broadcast: vi.fn(),
+  acknowledge: vi.fn(),
 }));
 
-vi.mock("@/coreRoutesPort", () => ({
-  resolveCoreRoutesPort: vi.fn(() => 0),
+vi.mock("../lib/ai-provider", () => ({
+  createAIProvider: vi.fn(),
+}));
+
+vi.mock("@/mcp/bunMcpLifecycleManager", () => ({
+  getBunMcpLifecycleManager: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), getStatus: vi.fn() })),
+}));
+
+vi.mock("@/core/getCore", () => ({
+  getCore: vi.fn(() => ({})),
 }));
 
 vi.mock("../lib/logger", () => ({
@@ -38,9 +47,9 @@ vi.mock("../lib/logger", () => ({
   },
 }));
 
-import { startCoreRoutesServer, stopCoreRoutesServer } from "./coreRoutesServer";
+import { createCliCoreRoutesHandler } from "./coreRoutesServer";
 
-describe("startCoreRoutesServer", () => {
+describe("createCliCoreRoutesHandler", () => {
   let previousUserDataDir: string | undefined;
   let previousAppDataDir: string | undefined;
 
@@ -59,16 +68,17 @@ describe("startCoreRoutesServer", () => {
     vi.clearAllMocks();
   });
 
-  it("passes Core's appDataDir to the shared plan routes", async () => {
-    const server = await startCoreRoutesServer();
+  it("passes Core's appDataDir and chat/mcp to the shared handler", async () => {
+    const helloHolder = { resolve: () => ({}) as never };
+    await createCliCoreRoutesHandler(30000, helloHolder);
 
-    try {
-      const config = createCoreRoutesRequestHandler.mock.calls[0]?.[0] as {
-        appDataDir: string;
-      };
-      expect(config.appDataDir).toBe("/metadata/app-data");
-    } finally {
-      await stopCoreRoutesServer(server);
-    }
+    const config = createCoreRoutesRequestHandler.mock.calls[0]?.[0] as {
+      appDataDir: string;
+      chat: unknown;
+      mcp: unknown;
+    };
+    expect(config.appDataDir).toBe("/metadata/app-data");
+    expect(config.chat).toBeDefined();
+    expect(config.mcp).toBeDefined();
   });
 });

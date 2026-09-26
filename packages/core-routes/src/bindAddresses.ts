@@ -1,12 +1,19 @@
 const DEFAULT_BIND_ADDRESS = "127.0.0.1";
 
 /**
- * Hostname/IP for the main Web UI / API server (e.g. port 30000).
- * Env: `WEBUI_ADDRESS` — defaults to `127.0.0.1` (localhost only).
+ * Hostname/IP for the unified HTTP server (static UI + API).
+ * Env: `HTTP_ADDRESS` — defaults to `127.0.0.1` (localhost only).
+ * Legacy: `WEBUI_ADDRESS` is still read when `HTTP_ADDRESS` is unset.
  */
-export function resolveWebUiBindAddress(): string {
-  const fromEnv = process.env.WEBUI_ADDRESS?.trim();
+export function resolveHttpBindAddress(): string {
+  const fromEnv =
+    process.env.HTTP_ADDRESS?.trim() || process.env.WEBUI_ADDRESS?.trim();
   return fromEnv || DEFAULT_BIND_ADDRESS;
+}
+
+/** @deprecated Use {@link resolveHttpBindAddress} */
+export function resolveWebUiBindAddress(): string {
+  return resolveHttpBindAddress();
 }
 
 /**

@@ -147,7 +147,6 @@ const LOADING_HTML = `<!DOCTYPE html>
 let cliProcess: ChildProcess | null = null
 let cliStartupMonitor: CliProcessMonitor | null = null
 let cliPort: number | null = null
-let cliCoreRoutesPort: number | null = null
 const smmProcessRecordFile = smmProcessRecordPath(tmpdir())
 let cliDevProcess: ChildProcess | null = null
 let uiDevProcess: ChildProcess | null = null
@@ -311,7 +310,7 @@ function showStartupErrorPage(error: unknown): void {
   }
 }
 
-function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonitor {
+function startCLIProcess(port: number): CliProcessMonitor {
   if (cliProcess) {
     throw new CliStartupError({
       kind: 'spawn-failed',
@@ -330,8 +329,7 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
   const cliArgs = ['--staticDir', publicFolder, '--port', port.toString()]
   console.log(`Starting CLI from: ${cliExecutable}`)
   console.log(`Public folder path: ${publicFolder}`)
-  console.log(`CLI port: ${port}`)
-  console.log(`CLI core-routes port: ${coreRoutesPort}`)
+  console.log(`CLI HTTP port: ${port}`)
   console.log(`CLI command: ${cliExecutable} ${cliArgs.join(' ')}`)
 
   cliProcess = spawn(cliExecutable, cliArgs, {
@@ -341,7 +339,7 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
     detached: process.platform !== 'win32',
     windowsHide: true,
     env: buildCliSpawnEnv(process.env, process.resourcesPath, {
-      coreRoutesPort,
+      httpPort: port,
     }),
   })
 
@@ -381,7 +379,7 @@ function startCLIProcess(port: number, coreRoutesPort: number): CliProcessMonito
         return
       }
       try {
-        startCLIProcess(port, coreRoutesPort)
+        startCLIProcess(port)
         const win = mainWindow
         if (win && !win.isDestroyed()) {
           void loadUrlWithRetry(
@@ -772,28 +770,17 @@ app.whenReady().then(() => {
         )
         console.log(`Reserving MCP port from user config: ${reservedMcpPort}`)
         if (cliPort === null) {
-          cliPort = await getFreePort(new Set([reservedMcpPort]), 'ui')
+          cliPort = await getFreePort(new Set([reservedMcpPort]), 'http')
           appendPortStartupLog(
-            `Using CLI/UI port=${cliPort} lsof=${describeListenersOnPort(cliPort)}`,
+            `Using HTTP port=${cliPort} lsof=${describeListenersOnPort(cliPort)}`,
           )
-          console.log(`Using CLI port: ${cliPort}`)
-        }
-        if (cliCoreRoutesPort === null) {
-          cliCoreRoutesPort = await getFreePort(
-            new Set([cliPort, reservedMcpPort]),
-            'core-routes',
-          )
-          appendPortStartupLog(
-            `Using core-routes port=${cliCoreRoutesPort} lsof=${describeListenersOnPort(cliCoreRoutesPort)}`,
-          )
-          console.log(`Using CLI core-routes port: ${cliCoreRoutesPort}`)
+          console.log(`Using CLI HTTP port: ${cliPort}`)
         }
         createWindow({ showLoadingFirst: true })
-        const monitor = startCLIProcess(cliPort, cliCoreRoutesPort)
+        const monitor = startCLIProcess(cliPort)
         await waitForCliServerReady(cliPort, monitor, {
           pollIntervalMs: POLL_INTERVAL_MS,
           timeoutMs: SERVER_READY_TIMEOUT_MS,
-          coreRoutesPort: cliCoreRoutesPort,
         })
         monitor.markReady()
         if (mainWindow && !mainWindow.isDestroyed()) {

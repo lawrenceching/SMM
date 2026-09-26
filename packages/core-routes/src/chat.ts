@@ -294,7 +294,7 @@ async function runNodeChat(
 
   let response: Response;
   try {
-    response = await doChat(chatConfig, webRequest);
+    response = await doChat(chatConfig, webRequest, chatConfig.toolsExtra ?? {});
   } catch (error) {
     if (
       error instanceof Error &&

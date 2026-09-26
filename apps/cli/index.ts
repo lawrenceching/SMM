@@ -8,10 +8,10 @@ import { getUserDataDir, getLogDir, getAppDataDir } from '@/utils/config';
 import { CommandLogCleaner } from '@/utils/CommandLogCleaner';
 import { YtdlpCookiesCleaner } from '@/utils/YtdlpCookiesCleaner';
 import { registerGracefulShutdown } from '@/utils/gracefulShutdown';
-import { startCoreRoutesServer, stopCoreRoutesServer } from './src/coreRoutesServer';
-import { cleanupStalePlans, resolveWebUiBindAddress } from '@smm/core-routes';
+import { cleanupStalePlans, resolveHttpBindAddress } from '@smm/core-routes';
 import { getAuthConfig } from '@/utils/authToken';
 import { logApplicationConfig } from '@/startup/applicationConfig';
+import { resolveHttpPort } from '@/httpPort';
 import { mkdir } from 'fs/promises';
 import path from 'path';
 import { logger } from './lib/logger';
@@ -63,13 +63,14 @@ function parseArgs(): CommandLineArguments {
 // Parse command line arguments
 const args = parseArgs();
 
-const uiPort = args.port ?? (process.env.PORT ? parseInt(process.env.PORT, 10) : 30000);
+const httpPort = args.port ?? resolveHttpPort();
 const staticRoot = path.resolve(args.staticDir ?? '../ui/dist');
 const authConfig = getAuthConfig();
+const httpBind = resolveHttpBindAddress();
 
 logApplicationConfig({
-  uiPort,
-  uiBind: resolveWebUiBindAddress(),
+  httpPort,
+  httpBind,
   staticRoot,
   auth: authConfig,
 });
@@ -103,7 +104,7 @@ try {
 }
 
 const server = new Server({
-  port: uiPort,
+  port: httpPort,
   root: staticRoot,
   auth: authConfig,
   beforeStop: async () => {
@@ -120,9 +121,7 @@ const server = new Server({
   },
 });
 
-let coreRoutesServer: Awaited<ReturnType<typeof startCoreRoutesServer>>;
 try {
-  coreRoutesServer = await startCoreRoutesServer(authConfig);
   await server.start();
 } catch (error) {
   logger.error({ err: error }, 'CLI failed to start');
@@ -131,7 +130,6 @@ try {
 
 registerGracefulShutdown({
   stopServer: async () => {
-    await stopCoreRoutesServer(coreRoutesServer);
     await server.stop();
   },
 });

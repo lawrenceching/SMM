@@ -147,38 +147,38 @@ describe('run-e2e-test docker platform', () => {
 
 
 
-  test('buildConfig desktop forwards UI_PORT and CLI_PORT from process.env', () => {
-    const prevUi = process.env.UI_PORT;
-    const prevCli = process.env.CLI_PORT;
-    const prevPort = process.env.PORT;
-    process.env.UI_PORT = '8081';
-    process.env.CLI_PORT = '8082';
-    process.env.PORT = '30000';
+  test('buildConfig desktop forwards VITE_PORT and HTTP_PORT from process.env', () => {
+    const prevVite = process.env.VITE_PORT;
+    const prevHttp = process.env.HTTP_PORT;
+    process.env.VITE_PORT = '8081';
+    process.env.HTTP_PORT = '8082';
     try {
       const config = buildConfig('desktop', ['common/mcp/McpOther-RenameTaskFlow.e2e.ts']);
-      expect(config.env.UI_PORT).toBe('8081');
-      expect(config.env.CLI_PORT).toBe('8082');
-      expect(config.env.PORT).toBe('30000');
+      expect(config.env.VITE_PORT).toBe('8081');
+      expect(config.env.HTTP_PORT).toBe('8082');
     } finally {
-      if (prevUi === undefined) delete process.env.UI_PORT;
-      else process.env.UI_PORT = prevUi;
-      if (prevCli === undefined) delete process.env.CLI_PORT;
-      else process.env.CLI_PORT = prevCli;
-      if (prevPort === undefined) delete process.env.PORT;
-      else process.env.PORT = prevPort;
+      if (prevVite === undefined) delete process.env.VITE_PORT;
+      else process.env.VITE_PORT = prevVite;
+      if (prevHttp === undefined) delete process.env.HTTP_PORT;
+      else process.env.HTTP_PORT = prevHttp;
     }
   });
 
   test('assignE2eLocalPortEnv skips empty values', () => {
-    const prevUi = process.env.UI_PORT;
-    process.env.UI_PORT = '   ';
+    const prevVite = process.env.VITE_PORT;
+    const prevHttp = process.env.HTTP_PORT;
+    process.env.VITE_PORT = '   ';
+    delete process.env.HTTP_PORT;
     try {
       const env: Record<string, string> = {};
       assignE2eLocalPortEnv(env);
-      expect(env.UI_PORT).toBeUndefined();
+      expect(env.VITE_PORT).toBeUndefined();
+      expect(env.HTTP_PORT).toBeUndefined();
     } finally {
-      if (prevUi === undefined) delete process.env.UI_PORT;
-      else process.env.UI_PORT = prevUi;
+      if (prevVite === undefined) delete process.env.VITE_PORT;
+      else process.env.VITE_PORT = prevVite;
+      if (prevHttp === undefined) delete process.env.HTTP_PORT;
+      else process.env.HTTP_PORT = prevHttp;
     }
   });
 });
@@ -210,23 +210,49 @@ describe('run-e2e-test web platform', () => {
   });
 
   test('buildConfig web uses cli --staticDir background and no Vite', () => {
-    const config = buildConfig('web', ['common/config/ConfigDialog-Settings.e2e.ts']);
-    expect(config.name).toBe('smm-e2e-web');
-    expect(config.env.E2E_PLATFORM).toBe('web');
-    expect(config.env.SMM_AUTH_ENABLED).toBe('true');
-    expect(config.env.BROWSER_LOG_ENABLED).toBe('true');
-    expect(config.env.NETWORK_LOG_ENABLED).toBe('true');
-    expect(config.background).toHaveLength(1);
-    expect(config.background[0]!.name).toBe('cli');
-    expect(config.background[0]!.command).toContain('--staticDir');
-    expect(config.background[0]!.command).toContain('--port 30000');
-    expect(config.background[0]!.command).not.toContain('dev:ui');
-    expect(config.background.some((b) => b.command.includes('dev:ui'))).toBe(false);
-    expect(config.tasks[0]!.command).toContain('wait-for-web-e2e-ready');
-    expect(
-      config.tasks.some((t) => t.command.includes('pnpm wdio') && !t.command.includes('wdio:docker')),
-    ).toBe(true);
-    expect(config.afterEach[0]!.command).toContain('collect-wdio-report');
+    const prevHttp = process.env.HTTP_PORT;
+    delete process.env.HTTP_PORT;
+    try {
+      const config = buildConfig('web', ['common/config/ConfigDialog-Settings.e2e.ts']);
+      expect(config.name).toBe('smm-e2e-web');
+      expect(config.env.E2E_PLATFORM).toBe('web');
+      expect(config.env.SMM_AUTH_ENABLED).toBe('true');
+      expect(config.env.BROWSER_LOG_ENABLED).toBe('true');
+      expect(config.env.NETWORK_LOG_ENABLED).toBe('true');
+      expect(config.background).toHaveLength(1);
+      expect(config.background[0]!.name).toBe('cli');
+      expect(config.background[0]!.command).toContain('--staticDir');
+      expect(config.background[0]!.command).toContain('--port 30000');
+      expect(config.background[0]!.command).not.toContain('dev:ui');
+      expect(config.background.some((b) => b.command.includes('dev:ui'))).toBe(false);
+      expect(config.tasks[0]!.command).toContain('wait-for-web-e2e-ready');
+      expect(
+        config.tasks.some((t) => t.command.includes('pnpm wdio') && !t.command.includes('wdio:docker')),
+      ).toBe(true);
+      expect(config.afterEach[0]!.command).toContain('collect-wdio-report');
+      expect(config.stopOnFailure).toBe(true);
+    } finally {
+      if (prevHttp === undefined) delete process.env.HTTP_PORT;
+      else process.env.HTTP_PORT = prevHttp;
+    }
+  });
+
+  test('buildConfig web forwards VITE_PORT and HTTP_PORT and listens on HTTP_PORT', () => {
+    const prevVite = process.env.VITE_PORT;
+    const prevHttp = process.env.HTTP_PORT;
+    process.env.VITE_PORT = '8081';
+    process.env.HTTP_PORT = '8082';
+    try {
+      const config = buildConfig('web', ['common/config/ConfigDialog-Settings.e2e.ts']);
+      expect(config.env.VITE_PORT).toBe('8081');
+      expect(config.env.HTTP_PORT).toBe('8082');
+      expect(config.background[0]!.command).toContain('--port 8082');
+    } finally {
+      if (prevVite === undefined) delete process.env.VITE_PORT;
+      else process.env.VITE_PORT = prevVite;
+      if (prevHttp === undefined) delete process.env.HTTP_PORT;
+      else process.env.HTTP_PORT = prevHttp;
+    }
   });
 
   test('buildConfig web forwards E2E_WEB_UI_ORIGIN', () => {

@@ -200,7 +200,7 @@ git commit -m "feat(ci): add wait-for-web-e2e-ready for --platform web"
 - Modify: `ci/run-e2e-test.ts` (file header usage comment only)
 
 **Interfaces:**
-- Consumes: `Platform`, `ROOT`, `E2E_ROOT`, `normalizeSpecPath`, `assignE2eLocalPortEnv` (optional; web uses fixed 30000 — do **not** require UI_PORT)
+- Consumes: `Platform`, `ROOT`, `E2E_ROOT`, `normalizeSpecPath`, `assignE2eLocalPortEnv` (optional; web uses fixed 30000 — do **not** require `VITE_PORT`)
 - Produces:
   - `Platform` includes `'web'`
   - `buildWebConfig(specs: string[]): CicdConfig`

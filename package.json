@@ -16,7 +16,7 @@
     "videocaptioner_version": "1.0.0"
   },
   "scripts": {
-    "dev": "cross-env SMM_AUTH_TOKEN=ChangeMe123 UI_PORT=8081 CLI_PORT=8082 npm-run-all2 --parallel dev:ui dev:cli",
+    "dev": "cross-env SMM_AUTH_TOKEN=ChangeMe123 VITE_PORT=8081 HTTP_PORT=8082 npm-run-all2 --parallel dev:ui dev:cli",
     "dev:ui": "pnpm --filter ui dev",
     "dev:cli": "cross-env SMM_AUTH_ENABLED=true SMM_AUTH_TOKEN=ChangeMe123 pnpm --filter cli dev",
     "e2e:cli": "cross-env SMM_AUTH_ENABLED=true SMM_AUTH_TOKEN=ChangeMe123 pnpm --filter cli start",

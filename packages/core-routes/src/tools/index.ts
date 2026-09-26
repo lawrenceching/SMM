@@ -1,6 +1,4 @@
 import type { UserConfig } from "@smm/types";
-import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
-import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import { resolveAppLanguage, detectOsLocale } from "@smm/utils/locale";
 import { GET_APPLICATION_CONTEXT } from "@smm/types/ai-tools/getApplicationContext";
 import { IS_FOLDER_EXIST } from "@smm/types/ai-tools/isFolderExist";
@@ -41,6 +39,7 @@ import {
 import type { CoreRoutesConfig } from "../types.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatConfig, ChatFs } from "../chatTypes.ts";
+import type { ChatToolsExtraDeps } from "../chatToolsExtra.ts";
 import { defaultAcknowledge } from "./acknowledge.ts";
 import { defaultBroadcast } from "./broadcast.ts";
 import { buildGetApplicationContextTool } from "./getApplicationContext.ts";
@@ -52,18 +51,17 @@ import { buildListFilesInMediaFolderTool } from "./listFilesInMediaFolder.ts";
 import { buildRenameFolderTool } from "./renameFolder.ts";
 import {
   buildRenameEpisodeFileTool,
-  type RenameEpisodeFileRunner,
 } from "./renameEpisodeFile.ts";
 import {
   buildScrapeTool,
-  type ScrapeFolderRunner,
 } from "./scrape.ts";
 import {
   buildGetJobTool,
-  type GetJobRunner,
 } from "./getJob.ts";
 import { buildCreateRenameEpisodePlanTool } from "./createRenameEpisodePlan.ts";
 import { buildCreateRecognizeEpisodePlanTool } from "./createRecognizeEpisodePlan.ts";
+
+export type { ChatToolsExtraDeps } from "../chatToolsExtra.ts";
 
 /**
  * The chat tools registered in `streamText({ tools })`, keyed by
@@ -95,28 +93,6 @@ export interface ChatTools {
   [CREATE_RECOGNIZE_EPISODE_PLAN]: ReturnType<
     typeof buildCreateRecognizeEpisodePlanTool
   >;
-}
-
-/**
- * Extra dependencies the host (cli / ohos) injects so the chat
- * tools can run inside core-routes. Optional override for rename
- * host-specific Core runners.
- */
-export interface ChatToolsExtraDeps {
-  /** Host Core runner for single-episode rename (Bun cli / Electron). */
-  renameEpisodeFile?: RenameEpisodeFileRunner;
-  /** Host Core runner for scrape job start. */
-  scrapeFolder?: ScrapeFolderRunner;
-  /** Host Core runner for job status lookup. */
-  getJob?: GetJobRunner;
-  /** Host Core runners for TMDB query tools. */
-  tmdb?: TmdbToolRunners;
-  /** Host Core runners for TVDB query tools. */
-  tvdb?: TvdbToolRunners;
-  /** Host Core runner for applying AI rename plans (Bun cli / Electron). */
-  applyRenameEpisodePlan?: (plan: RenameFilesPlan) => Promise<void>;
-  /** Host Core runner for applying AI recognize plans (Bun cli / Electron). */
-  applyRecognizeEpisodePlan?: (plan: RecognizeMediaFilePlan) => Promise<void>;
 }
 
 export interface CreateChatToolsArgs {

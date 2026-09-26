@@ -1,73 +1,17 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type http from "node:http";
 import { createRequestUrl, sendJson } from "./http.ts";
-import { handleListFilesGet, handleListFilesPost } from "./routes/listFilesRoute.ts";
-import { handleHelloGet } from "./routes/helloRoute.ts";
-import { handleIsFolderAvailablePost } from "./routes/isFolderAvailableRoute.ts";
-import { handleReadFilePost } from "./routes/readFileRoute.ts";
-import { handleWriteFilePost } from "./routes/writeFileRoute.ts";
-import { handleDeleteFilePost } from "./routes/deleteFileRoute.ts";
-import { handleDeleteFolderPost } from "./routes/deleteFolderRoute.ts";
-import { handleGetEpisodesPost } from "./routes/getEpisodesRoute.ts";
-import { handleListFilesInMediaFolderPost } from "./routes/listFilesInMediaFolderRoute.ts";
-import { handleRenameFolderPost } from "./routes/renameFolderRoute.ts";
-import { handleRenameFilesPost } from "./routes/renameFilesRoute.ts";
-import { handleDownloadImageGet } from "./routes/downloadImageRoute.ts";
-import { handleDownloadImageAsFilePost } from "./routes/downloadImageAsFileRoute.ts";
-import { handleReadImagePost } from "./routes/readImageRoute.ts";
-import { handleDiscoverGet } from "./routes/discoverRoute.ts";
-import { handleChatPost } from "./chat.ts";
-import {
-  handleMcpStartPut,
-  handleMcpStatusGet,
-  handleMcpStopPut,
-} from "./routes/mcpLifecycleRoute.ts";
-import {
-  handleMcpGetServerStatusGet,
-  handleMcpStartPost,
-  handleMcpStopPost,
-} from "./routes/mcpServerRpcRoute.ts";
-import {
-  handleCreatePlanPost,
-  handleGetPlanByIdPost,
-  handleGetPlansPost,
-  handleUpdatePlanPost,
-} from "./routes/plansRoute.ts";
-import { handleGetUserConfigPost, handlePatchUserConfigPost } from "./routes/userConfigRoute.ts";
+import { coreRoutes } from "./coreRouteTable.ts";
 import { enforceCoreRoutesAuth } from "./auth.ts";
-import type { CoreRoutesConfig, RouteContext, RouteHandler } from "./types.ts";
+import type { CoreRoutesConfig, RouteContext } from "./types.ts";
 
-export const coreRouteHandlers: RouteHandler[] = [
-  handleListFilesGet,
-  handleListFilesPost,
-  handleWriteFilePost,
-  handleHelloGet,
-  handleIsFolderAvailablePost,
-  handleGetEpisodesPost,
-  handleListFilesInMediaFolderPost,
-  handleRenameFolderPost,
-  handleRenameFilesPost,
-  handleReadFilePost,
-  handleDeleteFilePost,
-  handleDeleteFolderPost,
-  handleDownloadImageGet,
-  handleDownloadImageAsFilePost,
-  handleReadImagePost,
-  handleDiscoverGet,
-  handleChatPost,
-  handleMcpGetServerStatusGet,
-  handleMcpStartPost,
-  handleMcpStopPost,
-  handleMcpStartPut,
-  handleMcpStopPut,
-  handleMcpStatusGet,
-  handleGetPlansPost,
-  handleGetPlanByIdPost,
-  handleCreatePlanPost,
-  handleUpdatePlanPost,
-  handleGetUserConfigPost,
-  handlePatchUserConfigPost,
-];
+export {
+  coreRouteHandlers,
+  coreRoutes,
+  coreRouteKey,
+  isCoreRoute,
+  type CoreRoute,
+} from "./coreRouteTable.ts";
 
 export function createCoreRoutesRequestHandler(
   config: CoreRoutesConfig,
@@ -91,15 +35,19 @@ export async function handleCoreRoutesRequest(
     return;
   }
   const ctx: RouteContext = { config, url };
+  const method = req.method ?? "GET";
 
-  for (const handler of coreRouteHandlers) {
-    const handled = await handler(req, res, ctx);
+  for (const route of coreRoutes) {
+    if (route.method !== method || route.path !== url.pathname) {
+      continue;
+    }
+    const handled = await route.handle(req, res, ctx);
     if (handled) {
       return;
     }
   }
 
-  sendJson(res, 404, { error: `Not found: ${req.method ?? "UNKNOWN"} ${url.pathname}` });
+  sendJson(res, 404, { error: `Not found: ${method} ${url.pathname}` });
 }
 
 export function registerCoreRoutes(server: http.Server, config: CoreRoutesConfig): void {

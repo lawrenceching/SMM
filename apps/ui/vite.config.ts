@@ -14,8 +14,42 @@ const pkg = JSON.parse(
 ) as { version: string }
 
 const DEFAULT_UI_DEV_PORT = 8000
+const DEFAULT_HTTP_PORT = 30000
 
 type DiagIncomingMessage = IncomingMessage & { diagStartMs?: number }
+
+function parsePositivePort(raw: string | undefined, fallback: number): number {
+  if (raw === undefined) {
+    return fallback
+  }
+  const trimmed = raw.trim()
+  if (trimmed === "") {
+    return fallback
+  }
+  const port = Number.parseInt(trimmed, 10)
+  if (!Number.isFinite(port) || port <= 0) {
+    return fallback
+  }
+  return port
+}
+
+/** Vite page port (`VITE_PORT`). Independent of the CLI HTTP server. */
+function resolveUiDevPort(raw: string | undefined = process.env.VITE_PORT): number {
+  return parsePositivePort(raw, DEFAULT_UI_DEV_PORT)
+}
+
+/**
+ * Unified CLI HTTP port for Vite proxy / executeCmd bypass.
+ * Env: `HTTP_PORT` (default 30000).
+ */
+function resolveHttpDevPort(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  return parsePositivePort(env.HTTP_PORT, DEFAULT_HTTP_PORT)
+}
+
+const httpDevPort = resolveHttpDevPort()
+const httpDevOrigin = `http://localhost:${httpDevPort}`
 
 /** Desktop e2e only. Compare with CLI `[cli-http]` lines to see which side stalled. */
 function apiProxyTiming(): Pick<ProxyOptions, "configure"> {
@@ -58,27 +92,14 @@ function apiProxyTiming(): Pick<ProxyOptions, "configure"> {
   }
 }
 
-function resolveUiDevPort(raw: string | undefined = process.env.UI_PORT): number {
-  if (raw === undefined) {
-    return DEFAULT_UI_DEV_PORT
-  }
-  const trimmed = raw.trim()
-  if (trimmed === "") {
-    return DEFAULT_UI_DEV_PORT
-  }
-  const port = Number.parseInt(trimmed, 10)
-  if (!Number.isFinite(port) || port <= 0) {
-    return DEFAULT_UI_DEV_PORT
-  }
-  return port
-}
-
 // https://vite.dev/config/
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
   envPrefix: ["VITE_", "TEST_"],
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
+    // Default CLI origin when VITE_DEV_CLI_URL is unset (executeCmd streaming bypass).
+    "import.meta.env.VITE_HTTP_PORT": JSON.stringify(String(httpDevPort)),
   },
   plugins: [
     react({
@@ -92,7 +113,7 @@ export default defineConfig({
     port: resolveUiDevPort(),
     proxy: {
       '/api': {
-        target: 'http://localhost:30000',
+        target: httpDevOrigin,
         changeOrigin: true,
         // Long-running streams (yt-dlp download, ffmpeg); default proxy idle timeout can drop ~30s connections.
         proxyTimeout: 0,
@@ -100,16 +121,16 @@ export default defineConfig({
       },
       // CLI TMDB L7 reverse proxy (see apps/cli/src/route/TmdbProxy.ts)
       '/tmdb': {
-        target: 'http://localhost:30000',
+        target: httpDevOrigin,
         changeOrigin: true,
       },
       '/tvdb': {
-        target: 'http://localhost:30000',
+        target: httpDevOrigin,
         changeOrigin: true,
       },
       // Socket.IO endpoint (HTTP long-polling and WebSocket upgrade)
       '/socket.io': {
-        target: 'http://localhost:30000',
+        target: httpDevOrigin,
         ws: true,
         changeOrigin: true,
       },

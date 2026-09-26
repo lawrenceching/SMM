@@ -17,10 +17,10 @@ vi.mock("@/core/getCore", () => ({
 }));
 
 describe("buildApplicationConfigLogFields", () => {
-  it("flattens hello and UI listen fields without reverseProxyUrl or coreRoutesPort", () => {
+  it("flattens hello and HTTP listen fields without reverseProxyUrl or coreRoutesPort", () => {
     const fields = buildApplicationConfigLogFields({
-      uiPort: 30000,
-      uiBind: "127.0.0.1",
+      httpPort: 30000,
+      httpBind: "127.0.0.1",
       staticRoot: "/ui/dist",
       auth: { enabled: true, token: "secret" },
     });
@@ -28,8 +28,8 @@ describe("buildApplicationConfigLogFields", () => {
     expect(fields).toMatchObject({
       version: "9.9.9-test",
       userDataDir: "/cfg",
-      uiPort: 30000,
-      uiBind: "127.0.0.1",
+      httpPort: 30000,
+      httpBind: "127.0.0.1",
       staticRoot: "/ui/dist",
       authEnabled: true,
     });

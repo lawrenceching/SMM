@@ -40,15 +40,12 @@ export const USAGE =
 
 const PLATFORMS = new Set<Platform>(['desktop', 'ohos', 'electron', 'docker', 'web']);
 
-/** Port env keys from repo `.env.local` (see `# --- Ports ---` section). */
-export const E2E_PORT_ENV_KEYS = ['UI_PORT', 'CLI_PORT', 'PORT'] as const;
+/** Canonical port env keys for e2e / cicd (Vite page + unified CLI HTTP). */
+export const E2E_PORT_ENV_KEYS = ['VITE_PORT', 'HTTP_PORT'] as const;
 
 export type E2ePortEnvKey = (typeof E2E_PORT_ENV_KEYS)[number];
 
-/**
- * Forward dev-server port overrides into cicd task/background env.
- * Values come from `loadEnvLocal()` in run-e2e-test.ts (or the caller's shell).
- */
+/** Forward `VITE_PORT` / `HTTP_PORT` into cicd task/background env. */
 export function assignE2eLocalPortEnv(env: Record<string, string>): void {
   for (const key of E2E_PORT_ENV_KEYS) {
     const value = process.env[key]?.trim();
@@ -339,14 +336,25 @@ export function dockerHttpProxyEnvForContainer(envKey: 'TMDB_HTTP_PROXY' | 'TVDB
   return raw;
 }
 
+function resolveWebListenPort(): number {
+  const raw = process.env.HTTP_PORT?.trim();
+  if (!raw) {
+    return 30000;
+  }
+  const port = Number.parseInt(raw, 10);
+  return Number.isFinite(port) && port > 0 ? port : 30000;
+}
+
 function resolveWebCliCommand(): string {
   assertWebUiArtifactsExist(ROOT);
   const { cliBin, staticDir } = resolveWebUiArtifactPaths(ROOT);
-  return `"${cliBin}" --staticDir "${staticDir}" --port 30000`;
+  return `"${cliBin}" --staticDir "${staticDir}" --port ${resolveWebListenPort()}`;
 }
 
 /**
- * Built cli + static ui dist on fixed port 30000 (no Vite dev server).
+ * Built cli + static ui dist on `HTTP_PORT` (default 30000). No Vite process is started.
+ * `wait-for-web-e2e-ready` still requires both `VITE_PORT` and `HTTP_PORT` to respond;
+ * if either is down, the run stops before specs (`stopOnFailure`).
  * Requires explicit --spec (no default suite).
  */
 export function buildWebConfig(specs: string[]): CicdConfig {
@@ -365,6 +373,7 @@ export function buildWebConfig(specs: string[]): CicdConfig {
   }
   if (process.env.TMDB_API_KEY?.trim()) env.TMDB_API_KEY = process.env.TMDB_API_KEY.trim();
   if (process.env.TVDB_API_KEY?.trim()) env.TVDB_API_KEY = process.env.TVDB_API_KEY.trim();
+  assignE2eLocalPortEnv(env);
 
   return {
     name: 'smm-e2e-web',
@@ -392,7 +401,7 @@ export function buildWebConfig(specs: string[]): CicdConfig {
         cwd: ROOT,
       },
     ],
-    stopOnFailure: false,
+    stopOnFailure: true,
     keepRawTimeline: true,
     taskTimeout: 30 * 60 * 1000,
   };

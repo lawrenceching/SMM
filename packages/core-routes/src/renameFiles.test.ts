@@ -236,6 +236,11 @@ describe("doRenameFiles Linux-like userDataDir vs appDataDir", () => {
 });
 
 describe("handleRenameFilesPost route", () => {
+  // register.ts pulls AI SDK / chat deps; preload to avoid 5s import flake under parallel test.
+  beforeAll(async () => {
+    await import("./register.ts");
+  }, 30_000);
+
   it("returns 404 for unknown path", async () => {
     const { handleCoreRoutesRequest } = await import("./register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
@@ -245,6 +250,7 @@ describe("handleRenameFilesPost route", () => {
     const req = new IncomingMessage(socket);
     req.method = "POST";
     req.url = "/api/unknown";
+    req.push(null);
 
     let statusCode = 0;
     let body = "";
