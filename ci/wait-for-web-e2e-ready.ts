@@ -1,12 +1,11 @@
 /**
- * Polls the Vite page server (`VITE_PORT`) and the unified CLI HTTP server
- * (`HTTP_PORT`) until both respond, or exits 1 on timeout.
+ * Polls the unified CLI HTTP server (`HTTP_PORT`) until the static page and
+ * `/api/hello` respond, or exits 1 on timeout.
  *
- * Used as the first apps/cicd task for --platform web. A failure here stops
- * later spec tasks (`stopOnFailure`).
+ * Used as the first apps/cicd task for --platform web (smm binary server mode).
+ * Web e2e does not start Vite, so this gate never waits on `VITE_PORT`.
+ * A failure here stops later spec tasks (`stopOnFailure`).
  */
-import { readUiDevServerPort } from './read-ui-dev-port.ts';
-
 const DEFAULT_HTTP_PORT = 30000;
 
 function parsePositivePort(raw: string | undefined, fallback: number): number {
@@ -21,14 +20,13 @@ function parsePositivePort(raw: string | undefined, fallback: number): number {
   return Number.isFinite(port) && port > 0 ? port : fallback;
 }
 
-/** Vite dev server and unified HTTP `/api/hello` URLs for the web e2e gate. */
+/** Unified HTTP page + `/api/hello` URLs for the web e2e gate (no Vite). */
 export function resolveWebReadyUrls(
   env: Record<string, string | undefined> = process.env,
-): { viteUrl: string; httpUrl: string } {
-  const vitePort = parsePositivePort(env.VITE_PORT, readUiDevServerPort());
+): { pageUrl: string; httpUrl: string } {
   const httpPort = parsePositivePort(env.HTTP_PORT, DEFAULT_HTTP_PORT);
   return {
-    viteUrl: `http://127.0.0.1:${vitePort}/`,
+    pageUrl: `http://127.0.0.1:${httpPort}/`,
     httpUrl: `http://127.0.0.1:${httpPort}/api/hello`,
   };
 }
@@ -77,9 +75,9 @@ async function waitForHttp(
 
 async function main(): Promise<void> {
   const token = process.env.SMM_AUTH_TOKEN ?? 'ChangeMe123';
-  const { viteUrl, httpUrl } = resolveWebReadyUrls();
-  console.log('[wait-for-web-e2e-ready] waiting for Vite', viteUrl);
-  await waitForHttp(viteUrl);
+  const { pageUrl, httpUrl } = resolveWebReadyUrls();
+  console.log('[wait-for-web-e2e-ready] waiting for page', pageUrl);
+  await waitForHttp(pageUrl);
   console.log('[wait-for-web-e2e-ready] waiting for HTTP', httpUrl);
   await waitForHttp(httpUrl, {
     method: 'GET',

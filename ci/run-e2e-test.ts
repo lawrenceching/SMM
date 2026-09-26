@@ -1,5 +1,18 @@
 /**
  * E2E test runner: writes apps/cicd config and runs WebdriverIO.
+ * 
+ * Platfroms:
+ *   default(not provided): dev env, run vite server in apps/ui, and run backend server in apps/cli
+ *   web: run smm binary executable in server mode
+ *   ohos: test the web UI address which is running on the ohos device.
+ *         Test script assumes the server is up and running
+ *   electron: test the SMM electron executable.
+ *   docker: test the web UI address which is running on the docker container.
+ * 
+ * wait-ready task needs to check if the target address is available.
+ * Specially, in default platform, wait-ready needs to the VITE_PORT and HTTP_PORT are available.
+ * 
+ * See docs/dev/supported-platform.md
  *
  * Usage (from repo root):
  *   bun ci/run-e2e-test.ts --spec ./test/specs/hello.e2e.ts

@@ -353,8 +353,8 @@ function resolveWebCliCommand(): string {
 
 /**
  * Built cli + static ui dist on `HTTP_PORT` (default 30000). No Vite process is started.
- * `wait-for-web-e2e-ready` still requires both `VITE_PORT` and `HTTP_PORT` to respond;
- * if either is down, the run stops before specs (`stopOnFailure`).
+ * `wait-for-web-e2e-ready` polls that unified HTTP port (page + `/api/hello`) only —
+ * not `VITE_PORT`. If the server is down, the run stops before specs (`stopOnFailure`).
  * Requires explicit --spec (no default suite).
  */
 export function buildWebConfig(specs: string[]): CicdConfig {
