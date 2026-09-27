@@ -16,8 +16,13 @@ const DEFAULT_USER_CONFIG: UserConfig = {
 
 const fileLocks = new Map<string, Promise<void>>();
 
+/**
+ * Resolve the directory that owns `smm.json`.
+ * Prefer explicit `userDataDir` (and hello.userDataDir) over `appDataDir`
+ * so Linux XDG hosts do not silently write config into the data dir.
+ */
 export function resolveUserDataDir(config: CoreRoutesConfig): string | undefined {
-  return config.hello?.userDataDir ?? config.appDataDir;
+  return config.userDataDir ?? config.hello?.userDataDir ?? config.appDataDir;
 }
 
 export function userConfigFilePath(userDataDir: string): string {

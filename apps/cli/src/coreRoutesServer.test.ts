@@ -81,4 +81,19 @@ describe("createCliCoreRoutesHandler", () => {
     expect(config.chat).toBeDefined();
     expect(config.mcp).toBeDefined();
   });
+
+  it("passes userDataDir separately so smm.json matches Core on Linux XDG hosts", async () => {
+    const helloHolder = { resolve: () => ({}) as never };
+    await createCliCoreRoutesHandler(30000, helloHolder);
+
+    const config = createCoreRoutesRequestHandler.mock.calls[0]?.[0] as {
+      userDataDir: string;
+      appDataDir: string;
+      chat: { userDataDir: string; appDataDir: string };
+    };
+    expect(config.userDataDir).toBe("/core/user-data");
+    expect(config.appDataDir).toBe("/metadata/app-data");
+    expect(config.chat.userDataDir).toBe("/core/user-data");
+    expect(config.chat.appDataDir).toBe("/metadata/app-data");
+  });
 });

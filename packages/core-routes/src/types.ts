@@ -35,6 +35,12 @@ export interface CoreRoutesConfig {
   /** When set, GET /api/hello calls this instead of doHello(config.hello). */
   resolveHello?: () => HelloHttpResponseBody;
   /**
+   * Directory that owns `smm.json` (user config). Must match Core's
+   * `userDataDir` so patch/getUserConfig and get-folders stay in sync.
+   * On Linux XDG hosts this differs from {@link appDataDir}.
+   */
+  userDataDir?: string;
+  /**
    * POSIX or platform-specific app-data directory where media metadata
    * cache files live (e.g. `{appDataDir}/metadata/{sanitized-folder}.json`).
    *

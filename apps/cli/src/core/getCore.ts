@@ -5,12 +5,10 @@ import {
   StaticDiscoverAdapter,
   type LoggerPort,
 } from '@smm/core'
-import { detectOsLocale } from '@smm/utils/locale'
-import { getUserDataDir, getAppDataDir, getTmpDir, getLogDir } from '@/utils/config'
-import { APP_VERSION } from '@/version'
 import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
 import { wireCoreEvents } from './wireCoreEvents'
+import { buildCliHostRuntimeConfig } from '@/hostRuntimeConfig'
 
 let instance: Core | undefined
 
@@ -21,19 +19,19 @@ export interface GetCoreOptions {
 /** Lazy singleton with separate application-data and user-config roots. */
 export function getCore(options?: GetCoreOptions): Core {
   if (!instance) {
-    const appDataDir = getAppDataDir()
+    const host = buildCliHostRuntimeConfig()
     instance = new Core({
       fs: new NodejsFsAdapter(),
       network: new NodejsNetworkPort(),
       logger: options?.logger ?? new NoopLoggerAdapter(),
-      appDataDir,
-      userDataDir: getUserDataDir(),
-      version: APP_VERSION,
-      reportedAppDataDir: appDataDir,
-      tmpDir: getTmpDir(),
-      logDir: getLogDir(),
-      platform: process.platform,
-      osLocale: detectOsLocale(),
+      appDataDir: host.appDataDir,
+      userDataDir: host.userDataDir,
+      version: host.version,
+      reportedAppDataDir: host.appDataDir,
+      tmpDir: host.tmpDir,
+      logDir: host.logDir,
+      platform: host.platform,
+      osLocale: host.osLocale,
       discover: new StaticDiscoverAdapter(),
       mcpServer: getBunMcpServerPort(),
     })

@@ -7,6 +7,22 @@ export interface AppConfig {
     reverseProxyUrl: string | null;
 }
 
+/**
+ * Platform-constructed runtime paths/version shared by Core and core-routes.
+ * `smm.json` always lives under {@link HostRuntimeConfig.userDataDir}.
+ * On Linux XDG, `userDataDir` (~/.config/smm) may differ from
+ * `appDataDir` (~/.local/share/smm); hosts must pass both consistently.
+ */
+export interface HostRuntimeConfig {
+  version: string
+  userDataDir: string
+  appDataDir: string
+  tmpDir: string
+  logDir: string
+  platform: string
+  osLocale: string
+}
+
 
 export type LanguageCode = 'zh-CN' | 'zh-HK' | 'zh-TW' | 'en'
 

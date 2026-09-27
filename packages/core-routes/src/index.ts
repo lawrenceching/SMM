@@ -75,6 +75,11 @@ export { doListFiles } from "./listFiles.ts";
 export { doWriteFile, isError, ExistedFileError } from "./writeFile.ts";
 export { doGetUserConfig, doPatchUserConfig } from "./userConfigApi.ts";
 export {
+  resolveUserDataDir,
+  resolveAppDataDir,
+  userConfigFilePath,
+} from "./userConfig.ts";
+export {
   checkFileIsReadable,
   doReadFile,
   type ReadFileRequestBody,

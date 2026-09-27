@@ -5,14 +5,16 @@ import {
   type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
 } from "@smm/core-routes";
+import type { HostRuntimeConfig } from "@smm/types";
 import { buildAllowlist } from "@/utils/buildAllowlist";
-import { getAppDataDir, getUserDataDir, getUserConfig } from "@/utils/config";
+import { getUserConfig } from "@/utils/config";
 import { buildHelloHttpResponse } from "@/cli/helloHttp";
 import { logger } from "../lib/logger";
 import { acknowledge, broadcast } from "@/utils/socketIO";
 import { createAIProvider } from "../lib/ai-provider";
 import { getBunMcpLifecycleManager } from "@/mcp/bunMcpLifecycleManager";
 import { getCore } from "@/core/getCore";
+import { buildCliHostRuntimeConfig } from "@/hostRuntimeConfig";
 
 function createCoreRoutesLogger(): CoreRoutesLogger {
   return {
@@ -23,10 +25,10 @@ function createCoreRoutesLogger(): CoreRoutesLogger {
   };
 }
 
-function buildCliChatConfig(): ChatConfig {
+function buildCliChatConfig(host: HostRuntimeConfig): ChatConfig {
   return {
-    appDataDir: getAppDataDir(),
-    userDataDir: getUserDataDir(),
+    appDataDir: host.appDataDir,
+    userDataDir: host.userDataDir,
     logger: createCoreRoutesLogger(),
     createAIProvider: (userConfig) => createAIProvider(userConfig),
     getUserConfig: () => getUserConfig(),
@@ -67,7 +69,7 @@ export async function createCliCoreRoutesHandler(
   auth?: CoreRoutesAuthConfig,
 ): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
   const allowlist = await buildAllowlist();
-  const appDataDir = getAppDataDir();
+  const host = buildCliHostRuntimeConfig();
 
   return createCoreRoutesRequestHandler(
     {
@@ -75,10 +77,11 @@ export async function createCliCoreRoutesHandler(
       resolveAllowlist: buildAllowlist,
       logger: createCoreRoutesLogger(),
       resolveHello: () => helloHolder.resolve(),
-      appDataDir,
+      userDataDir: host.userDataDir,
+      appDataDir: host.appDataDir,
       broadcast: (message) => broadcast(message),
       auth,
-      chat: buildCliChatConfig(),
+      chat: buildCliChatConfig(host),
       mcp: { manager: getBunMcpLifecycleManager() },
     },
     { fallbackPort: httpPort },
