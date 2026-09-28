@@ -89,8 +89,7 @@ describe('resolveAuthToken', () => {
 
     expect(token).toMatch(/^[0-9a-f]{64}$/);
     expect(logger.info).toHaveBeenCalledWith(
-      { token },
-      'SMM_AUTH_TOKEN was not set; generated auth token (set SMM_AUTH_TOKEN to use a fixed value)',
+      `SMM_AUTH_TOKEN was not set, SMM generated auth token: ${token}`,
     );
   });
 

@@ -18,8 +18,7 @@ export function resolveAuthToken(): string {
 
   resolvedToken = randomBytes(32).toString('hex');
   logger.info(
-    { token: resolvedToken },
-    'SMM_AUTH_TOKEN was not set; generated auth token (set SMM_AUTH_TOKEN to use a fixed value)',
+    `SMM_AUTH_TOKEN was not set, SMM generated auth token: ${resolvedToken}`,
   );
   return resolvedToken;
 }

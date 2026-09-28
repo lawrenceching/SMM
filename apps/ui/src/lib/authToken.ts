@@ -28,6 +28,11 @@ export function initAuthTokenFromUrl(): void {
     return;
   }
   saveAuthToken(fromQuery);
+
+  const url = new URL(window.location.href);
+  url.searchParams.delete('token');
+  const next = `${url.pathname}${url.search}${url.hash}`;
+  window.history.replaceState(window.history.state, '', next);
 }
 
 export function saveAuthToken(token: string): void {

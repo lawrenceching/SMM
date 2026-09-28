@@ -14,11 +14,24 @@ describe('authToken', () => {
     vi.restoreAllMocks();
   });
 
-  it('persists URL token to localStorage', () => {
+  it('persists URL token to localStorage and strips token from the URL', () => {
     window.history.replaceState({}, '', '/?token=from-query');
     initAuthTokenFromUrl();
     expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBe('from-query');
     expect(getAuthToken()).toBe('from-query');
+    expect(new URLSearchParams(window.location.search).has('token')).toBe(false);
+  });
+
+  it('preserves other query params and hash when stripping token', () => {
+    window.history.replaceState({}, '', '/app?foo=1&token=secret&bar=2#section');
+    initAuthTokenFromUrl();
+    expect(localStorage.getItem(AUTH_TOKEN_STORAGE_KEY)).toBe('secret');
+    expect(window.location.pathname).toBe('/app');
+    expect(window.location.hash).toBe('#section');
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('foo')).toBe('1');
+    expect(params.get('bar')).toBe('2');
+    expect(params.has('token')).toBe(false);
   });
 
   it('prefers URL token over localStorage', () => {

@@ -123,6 +123,9 @@ const server = new Server({
 
 try {
   await server.start();
+  logger.info(
+    `SMM is up and running, please open "http://127.0.0.1:${httpPort}?token=${authConfig.token}" in browser`,
+  );
 } catch (error) {
   logger.error({ err: error }, 'CLI failed to start');
   process.exit(1);
