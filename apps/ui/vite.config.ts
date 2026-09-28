@@ -119,7 +119,12 @@ export default defineConfig({
         proxyTimeout: 0,
         ...apiProxyTiming(),
       },
-      // CLI TMDB L7 reverse proxy (see apps/cli/src/route/TmdbProxy.ts)
+      // CLI TMDB/TVDB/AI L7 reverse proxy (path-mounted on the CLI HTTP server)
+      '/proxy': {
+        target: httpDevOrigin,
+        changeOrigin: true,
+      },
+      // Legacy Vite paths kept for older local workflows; prefer `/proxy`.
       '/tmdb': {
         target: httpDevOrigin,
         changeOrigin: true,

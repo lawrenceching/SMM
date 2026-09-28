@@ -1,7 +1,6 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
-import type { ReverseProxyManager } from '@smm/core-routes';
 
 /**
  * Zod schema for /api/execute request body validation.
@@ -20,7 +19,7 @@ const executeRequestSchema = z.object({
  *
  * GET /api/hello is served by core-routes on the unified HTTP server.
  */
-export function registerExecuteRoutes(app: Hono, _proxyManager: ReverseProxyManager): void {
+export function registerExecuteRoutes(app: Hono): void {
   app.post('/api/execute', async (c) => {
     try {
       const rawBody = await c.req.json();

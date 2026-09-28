@@ -63,17 +63,19 @@ import { getUserConfig } from './src/utils/config.ts';
 import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
+  buildReverseProxyPublicUrl,
   createProxiedFetch,
-  createReverseProxyManager,
   createSocketIOManager,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+  handleProxyRequest,
   isCoreRoute,
   isRequestAuthorized,
   resolveHttpBindAddress,
+  resolveReverseProxyAdvertisedHost,
+  REVERSE_PROXY_MOUNT_PATH,
   type CoreRoutesAuthConfig,
   type CoreRoutesLogger,
   type ReverseProxyConfig,
-  type ReverseProxyManager,
   type SocketIOManager,
 } from '@smm/core-routes';
 import { createCliCoreRoutesHandler, type HelloResolverHolder } from './src/coreRoutesServer';
@@ -135,7 +137,8 @@ export class Server {
   private webUiBindAddress: string;
   private root: string;
   private socketManager: SocketIOManager | null = null;
-  private proxyManager: ReverseProxyManager | null = null;
+  private proxyConfig: ReverseProxyConfig | null = null;
+  private reverseProxyUrl: string | null = null;
   private beforeStop?: () => Promise<void>;
   private stopping = false;
   private auth?: CoreRoutesAuthConfig;
@@ -180,7 +183,8 @@ export class Server {
       }, 'request completed');
     });
 
-    this.proxyManager = null;
+    this.proxyConfig = null;
+    this.reverseProxyUrl = null;
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -314,7 +318,12 @@ export class Server {
     handleLog(this.app);
     handleSpeedtest(this.app);
     handleShutdown(this.app);
-    // /api/execute is registered in start() once the reverse proxy manager is available.
+    // /api/execute is registered in start() once reverse-proxy config is available.
+
+    // Path-mounted L7 reverse proxy (TMDB/TVDB/AI). Must be registered before
+    // the static catch-all so `/proxy` is not served as a static file miss.
+    this.app.all('/proxy', (c) => this.dispatchMountedProxy(c));
+    this.app.all('/proxy/*', (c) => this.dispatchMountedProxy(c));
 
     // Serve static files from the configured root directory
     // Files will be accessible at the root path (e.g., /index.html serves public/index.html)
@@ -347,22 +356,39 @@ export class Server {
     });
   }
 
+  private async dispatchMountedProxy(c: {
+    req: { raw: Request };
+    json: (body: unknown, status?: number) => Response;
+  }): Promise<Response> {
+    if (!this.proxyConfig) {
+      return c.json({ error: 'Reverse proxy is not ready' }, 503);
+    }
+    return handleProxyRequest(c.req.raw, this.proxyConfig);
+  }
+
   async start(): Promise<void> {
     if (this.httpServer) {
       logger.warn('Server is already running.');
       return;
     }
 
-    // Build the reverse proxy config from userConfig (mcpPort reservation +
-    // AI provider host allowlist). This must run before listen so that the
-    // /api/hello route can read the proxyManager's url.
+    // Build reverse proxy config (allowlist + outbound HTTP proxy) before listen
+    // so /proxy and /api/hello can use it immediately.
     const proxyConfig = await buildReverseProxyConfig();
-    this.proxyManager = createReverseProxyManager(proxyConfig);
-    registerExecuteRoutes(this.app, this.proxyManager);
+    this.proxyConfig = {
+      ...proxyConfig,
+      stripPathPrefix: REVERSE_PROXY_MOUNT_PATH,
+    };
+    registerExecuteRoutes(this.app);
+
+    const advertisedHost = resolveReverseProxyAdvertisedHost(this.webUiBindAddress);
+    this.reverseProxyUrl = buildReverseProxyPublicUrl(
+      `http://${advertisedHost}:${this.port}`,
+    );
 
     const helloHolder: HelloResolverHolder = {
       resolve: () =>
-        buildHelloHttpResponse(this.proxyManager?.url ?? null, this.port),
+        buildHelloHttpResponse(this.reverseProxyUrl, this.port),
     };
     const coreRoutesHandler = await createCliCoreRoutesHandler(
       this.port,
@@ -428,8 +454,7 @@ export class Server {
       `🚀 HTTP server (static + API) running on http://${this.webUiBindAddress}:${this.port}`,
     );
     logger.info(`🔌 Socket.IO server available at http://localhost:${this.port}/socket.io/`);
-
-    await this.proxyManager.start();
+    logger.info(`[Reverse Proxy] mounted at ${this.reverseProxyUrl}`);
 
     await applyMcpConfig();
 
@@ -460,7 +485,8 @@ export class Server {
       return;
     }
 
-    await this.proxyManager?.stop();
+    this.proxyConfig = null;
+    this.reverseProxyUrl = null;
     getFolderWatcher().stopAllWatching();
 
     await this.socketManager?.drain();
@@ -502,8 +528,6 @@ export class Server {
 
 /**
  * Build the reverse proxy config from the current user config:
- * - reservedPorts: the configured MCP server port (default 30001) so the
- *   proxy scan does not collide with it.
  * - resolveAllowedUpstreamHosts: a dynamic resolver that reads the latest
  *   user config on each request to build the allowlist. This ensures that
  *   custom TMDB/TVDB hosts and AI provider hosts are always up-to-date.
@@ -512,18 +536,6 @@ export class Server {
  * defaults so the rest of the CLI can serve requests.
  */
 async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
-  const reservedPorts = new Set<number>();
-
-  try {
-    const userConfig = await getUserConfig();
-    const configuredMcpPort = Number(userConfig.mcpPort ?? 30001);
-    if (Number.isFinite(configuredMcpPort)) {
-      reservedPorts.add(configuredMcpPort);
-    }
-  } catch (err) {
-    logger.warn({ err }, 'Failed to load user config for reverse proxy reserved ports');
-  }
-
   // Dynamic resolver: reads the latest user config on each request
   const resolveAllowedUpstreamHosts = async (): Promise<ReadonlySet<string>> => {
     const allowedUpstreamHosts = new Set<string>(DEFAULT_ALLOWED_UPSTREAM_HOSTS);
@@ -560,7 +572,6 @@ async function buildReverseProxyConfig(): Promise<ReverseProxyConfig> {
   };
 
   return {
-    reservedPorts,
     resolveAllowedUpstreamHosts,
     logger,
     createProxiedFetch,

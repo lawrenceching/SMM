@@ -41,6 +41,7 @@ export {
   type GetJobRunner,
 } from "./tools/getJob.ts";
 export {
+  buildReverseProxyPublicUrl,
   buildUpstreamUrl,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
   filterRequestHeaders,
@@ -48,6 +49,8 @@ export {
   handleProxyRequest,
   PORT_RANGE_END,
   PORT_RANGE_START,
+  REVERSE_PROXY_MOUNT_PATH,
+  stripMountPathPrefix,
   validateUpstreamBaseURL,
   type ReverseProxyConfig,
   type ReverseProxyLogger,

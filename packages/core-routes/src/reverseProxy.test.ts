@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  buildReverseProxyPublicUrl,
   buildUpstreamUrl,
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
   filterRequestHeaders,
@@ -7,6 +8,8 @@ import {
   handleProxyRequest,
   PORT_RANGE_END,
   PORT_RANGE_START,
+  REVERSE_PROXY_MOUNT_PATH,
+  stripMountPathPrefix,
   validateUpstreamBaseURL,
   type ReverseProxyConfig,
 } from "./reverseProxy.ts";
@@ -69,6 +72,31 @@ describe("buildUpstreamUrl", () => {
   it("preserves upstream base path (e.g. /api/tmdb)", () => {
     const result = buildUpstreamUrl("https://mediadb.vercel.app/api/tmdb", "/search/tv", "");
     expect(result).toBe("https://mediadb.vercel.app/api/tmdb/search/tv");
+  });
+});
+
+describe("stripMountPathPrefix", () => {
+  it("strips /proxy from nested paths", () => {
+    expect(stripMountPathPrefix("/proxy/3/search/movie", "/proxy")).toBe("/3/search/movie");
+  });
+
+  it("returns / when pathname equals the prefix", () => {
+    expect(stripMountPathPrefix("/proxy", "/proxy")).toBe("/");
+  });
+
+  it("is a no-op when prefix does not match", () => {
+    expect(stripMountPathPrefix("/api/hello", "/proxy")).toBe("/api/hello");
+  });
+});
+
+describe("buildReverseProxyPublicUrl", () => {
+  it("appends the mount path to the public origin", () => {
+    expect(buildReverseProxyPublicUrl("http://127.0.0.1:30000")).toBe(
+      "http://127.0.0.1:30000/proxy",
+    );
+    expect(buildReverseProxyPublicUrl("http://127.0.0.1:30000/")).toBe(
+      `http://127.0.0.1:30000${REVERSE_PROXY_MOUNT_PATH}`,
+    );
   });
 });
 
@@ -218,6 +246,20 @@ describe("handleProxyRequest", () => {
     const forwardedReq: Request = mockFetch.mock.calls[0]![0];
     expect(forwardedReq.url).toBe("https://httpbin.io/get");
     expect(forwardedReq.method).toBe("GET");
+  });
+
+  it("strips mount path prefix before forwarding", async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const request = makeProxyRequest("/proxy/3/search/movie?query=x", "https://api.themoviedb.org");
+    const response = await handleProxyRequest(request, {
+      logger: silentLogger,
+      stripPathPrefix: REVERSE_PROXY_MOUNT_PATH,
+    });
+
+    expect(response.status).toBe(200);
+    const forwardedReq: Request = mockFetch.mock.calls[0]![0];
+    expect(forwardedReq.url).toBe("https://api.themoviedb.org/3/search/movie?query=x");
   });
 
   it("accepts SMM-managed TMDB upstream and forwards with base path", async () => {

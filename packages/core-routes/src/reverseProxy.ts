@@ -23,6 +23,43 @@ export const PORT_RANGE_START = 30000;
 export const PORT_RANGE_END = 31000;
 
 /**
+ * Path prefix on the unified HTTP server where the reverse proxy is mounted
+ * (e.g. `http://host:30000/proxy/...`). Stripped before forwarding upstream.
+ */
+export const REVERSE_PROXY_MOUNT_PATH = "/proxy";
+
+/**
+ * Build the public reverse-proxy base URL advertised via hello / app config.
+ * `publicOrigin` is the main HTTP origin (no trailing slash), e.g. `http://127.0.0.1:30000`.
+ */
+export function buildReverseProxyPublicUrl(publicOrigin: string): string {
+  const origin = publicOrigin.replace(/\/+$/, "");
+  return `${origin}${REVERSE_PROXY_MOUNT_PATH}`;
+}
+
+/**
+ * Strip a mount prefix from an incoming pathname. Returns `/` when the path
+ * is exactly the prefix. No-op when prefix is empty or does not match.
+ */
+export function stripMountPathPrefix(
+  pathname: string,
+  stripPathPrefix: string | undefined,
+): string {
+  const prefix = stripPathPrefix?.trim();
+  if (!prefix || prefix === "/") {
+    return pathname;
+  }
+  const normalizedPrefix = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
+  if (pathname === normalizedPrefix) {
+    return "/";
+  }
+  if (pathname.startsWith(`${normalizedPrefix}/`)) {
+    return pathname.slice(normalizedPrefix.length) || "/";
+  }
+  return pathname;
+}
+
+/**
  * Default upstream host allowlist. Mirrors the original SMM CLI reverse proxy
  * configuration: TMDB, TVDB, the SMM-managed MCP upstream, httpbin (test) and
  * a few AI provider hosts used by the summarize feature.
@@ -126,6 +163,13 @@ export interface ReverseProxyConfig {
     proxyUrl: string,
     logger?: ReverseProxyLogger,
   ) => FetchLike | undefined;
+
+  /**
+   * When the proxy is mounted under a path on the main HTTP server (e.g.
+   * {@link REVERSE_PROXY_MOUNT_PATH}), strip this prefix from the incoming
+   * pathname before joining with the upstream base URL.
+   */
+  stripPathPrefix?: string;
 }
 
 export function buildUpstreamUrl(
@@ -553,9 +597,13 @@ export async function handleProxyRequest(
   }
 
   const incomingUrl = new URL(request.url);
+  const incomingPath = stripMountPathPrefix(
+    incomingUrl.pathname,
+    config.stripPathPrefix,
+  );
   const forwardUrl = buildUpstreamUrl(
     upstreamBaseURL,
-    incomingUrl.pathname,
+    incomingPath,
     incomingUrl.search,
   );
   const proxyLogFields = buildOutboundProxyLogFields(
@@ -581,7 +629,8 @@ export async function handleProxyRequest(
         method,
         forwardUrl,
         upstreamHost: upstreamUrl.host,
-        incomingPath: incomingUrl.pathname,
+        incomingPath,
+        rawIncomingPath: incomingUrl.pathname,
         upstreamBaseURL,
         ...proxyLogFields,
       },
@@ -620,7 +669,8 @@ export async function handleProxyRequest(
         causeMessage: errDetail.causeMessage,
         method: request.method,
         forwardUrl,
-        incomingPath: incomingUrl.pathname,
+        incomingPath,
+        rawIncomingPath: incomingUrl.pathname,
         upstreamBaseURL,
         ...proxyLogFields,
       },

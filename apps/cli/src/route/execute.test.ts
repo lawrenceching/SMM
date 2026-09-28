@@ -9,14 +9,6 @@ vi.mock('../../tasks/GetSelectedMediaMetadataTask', () => ({
   })),
 }));
 
-function makeProxyManager(url: string | null) {
-  return {
-    url,
-    start: async () => {},
-    stop: async () => {},
-  };
-}
-
 describe('/api/execute — orchestration route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,7 +16,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('routes name="GetSelectedMediaMetadata" to its task handler', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager(null));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -37,7 +29,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('returns 501 for unknown task names', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager(null));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -50,7 +42,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('returns 400 Zod error when name="hello" is sent (removed from enum)', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager(null));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -65,7 +57,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('returns 400 Zod error when name is missing', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager(null));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,7 +68,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('returns 400 when request body is not valid JSON', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager(null));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/execute', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -89,7 +81,7 @@ describe('/api/execute — orchestration route', () => {
 
   it('does not register /api/hello (served by core-routes)', async () => {
     const app = new Hono();
-    registerExecuteRoutes(app, makeProxyManager('http://127.0.0.1:30001'));
+    registerExecuteRoutes(app);
     const res = await app.request('/api/hello', { method: 'GET' });
     expect(res.status).toBe(404);
   });

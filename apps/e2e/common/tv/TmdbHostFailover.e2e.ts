@@ -21,8 +21,10 @@ import { testbedOs } from 'test/lib/e2e-platform'
  * Serves a discover config whose first TMDB host is unreachable so the app
  * must fail over to the second host. Must match EXTERNAL_CONFIG_FILE_URL
  * (see root package.json `e2e:failover`).
+ *
+ * Port 18000 avoids Windows Hyper-V excluded ranges that often cover 8000.
  */
-const CONFIG_SERVER_ADDRESS = 'http://localhost:8000'
+const CONFIG_SERVER_ADDRESS = 'http://localhost:18000'
 
 /**
  * @supports local, Electron, HarmonyOS, Docker

@@ -118,34 +118,13 @@ Electron 桌面应用, 主要目录结构:
 ## 代码改动
 
 **Post Change** run build and typecheck script after code change
-**Pre Commit** run build, typecheck, and unit tests before commit
 
-
-## 常用命令
-
-```bash
-# 开发
-pnpm dev              # 同时启动 ui 和 cli 开发服务器
-pnpm dev:ui           # 启动 ui 开发服务器
-pnpm dev:cli          # 启动 cli 开发服务器
-pnpm dev:electron     # 启动 Electron 开发模式
-
-# 构建
-pnpm build            # 构建 cli 和 ui
-pnpm build:electron   # 构建 Electron 应用
-
-# 测试
-pnpm test             # 运行所有测试
-pnpm test:core        # 运行 core 测试
-pnpm test:cli         # 运行 cli 测试
-pnpm test:ui          # 运行 ui 测试
-pnpm test:e2e         # 运行 e2e 测试
-
-# 类型检查
-pnpm typecheck        # 运行所有类型检查
-
-# CI
-pnpm ci               # 构建 + 测试 + 类型检查
+**Pre Commit** run below commands before git commit, and fix the errors
+```
+pnpm knip
+pnpm typecheck
+pnpm build
+pnpm test
 ```
 
 ## 发版

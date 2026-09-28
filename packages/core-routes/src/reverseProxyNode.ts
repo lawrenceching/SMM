@@ -26,8 +26,8 @@ import {
 /**
  * Create a Node `http` request handler that forwards to
  * {@link handleProxyRequest}. Use with `http.createServer(handler)` or
- * compose into an existing server (e.g. mount on `/tmdb` and `/tvdb` paths
- * in the HarmonyOS Electron main process).
+ * compose into an existing server (e.g. mount on `/proxy` on the HarmonyOS
+ * main HTTP server with `stripPathPrefix: "/proxy"`).
  */
 export function createReverseProxyRequestHandler(
   config: ReverseProxyConfig = {},

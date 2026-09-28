@@ -117,12 +117,13 @@ export async function startMainHttpServer(): Promise<void> {
   const {
     createCoreRoutesRequestHandler,
     createProxiedFetch,
-    createReverseProxyManager,
     createReverseProxyRequestHandler,
     createSocketIOManager,
     DEFAULT_ALLOWED_UPSTREAM_HOSTS,
+    REVERSE_PROXY_MOUNT_PATH,
     applyMcpLifecycleFromConfig,
   } = coreRoutesModule as typeof coreRoutesModule & {
+    REVERSE_PROXY_MOUNT_PATH?: string
     applyMcpLifecycleFromConfig?: (
       manager: unknown,
       getUserConfig: () => Promise<import("@smm/types").UserConfig>,
@@ -209,21 +210,18 @@ export async function startMainHttpServer(): Promise<void> {
     return allowedUpstreamHosts
   }
 
+  const mountPath = REVERSE_PROXY_MOUNT_PATH ?? "/proxy"
   const reverseProxyConfig = {
     resolveAllowedUpstreamHosts,
     logger: proxyLogger,
     fetchImpl: nodeHttpFetch,
     createProxiedFetch,
+    stripPathPrefix: mountPath,
   }
 
-  const reverseProxyManager = createReverseProxyManager(reverseProxyConfig)
-  try {
-    await reverseProxyManager.start()
-    reverseProxyUrl = reverseProxyManager.url
-    console.log(`[main] reverse proxy listening on ${reverseProxyUrl}`)
-  } catch (err) {
-    console.error("[main] failed to start reverse proxy:", err)
-  }
+  // Path-mounted on the main HTTP server — no dedicated reverse-proxy port.
+  reverseProxyUrl = `${MAIN_HTTP_ORIGIN}${mountPath}`
+  console.log(`[main] reverse proxy mounted at ${reverseProxyUrl}`)
 
   const allowlist = buildCoreRoutesAllowlist()
   console.log("[main] core-routes allowlist:", allowlist)
@@ -377,7 +375,10 @@ export async function startMainHttpServer(): Promise<void> {
       return
     }
 
-    if (url.startsWith("/tmdb/") || url.startsWith("/tvdb/")) {
+    if (
+      url === mountPath ||
+      url.startsWith(`${mountPath}/`)
+    ) {
       reverseProxyHandler(req, res)
       return
     }

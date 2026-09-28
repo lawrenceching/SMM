@@ -17,8 +17,11 @@ export function resolveWebUiBindAddress(): string {
 }
 
 /**
- * Hostname/IP for the reverse proxy HTTP server (e.g. port 30002).
- * Env: `REVERSE_PROXY_ADDRESS` — defaults to `127.0.0.1` (localhost only).
+ * Hostname/IP formerly used for a dedicated reverse-proxy listen socket.
+ * Env: `REVERSE_PROXY_ADDRESS` — defaults to `127.0.0.1`.
+ *
+ * The reverse proxy is now path-mounted on the main HTTP server (`/proxy`);
+ * this helper remains for advertised-host resolution and legacy env compatibility.
  */
 export function resolveReverseProxyBindAddress(): string {
   const fromEnv = process.env.REVERSE_PROXY_ADDRESS?.trim();
