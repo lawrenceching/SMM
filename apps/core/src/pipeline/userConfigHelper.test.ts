@@ -101,6 +101,38 @@ describe("UserConfigHelper", () => {
 
     expect(updated.folders).toEqual(["/m/A"]);
   });
+
+  it("addFolder skips writing when the folder is already present", async () => {
+    const files = new Map<string, string>([
+      [userConfigPath("/data/smm"), JSON.stringify({ folders: ["/m/A"] })],
+    ]);
+    let writeCount = 0;
+    const fs: FsPort = {
+      readTextFile: async (path: string) => {
+        const v = files.get(path);
+        if (v === undefined) throw new Error("ENOENT: " + path);
+        return v;
+      },
+      writeTextFile: async (path: string, content: string) => {
+        writeCount += 1;
+        files.set(path, content);
+      },
+      writeBinaryFile: async () => {},
+      exists: async (path: string) => files.has(path),
+      listFiles: async () => [],
+      deleteFile: async (path: string) => {
+        files.delete(path);
+      },
+      rename: async () => {},
+      mkdir: async () => {},
+      listSubdirectories: async () => [],
+    };
+    const store = new UserConfigHelper(fs, "/data/smm");
+
+    await store.addFolder("/m/A");
+
+    expect(writeCount).toBe(0);
+  });
 });
 
 describe("validateUserConfigValue", () => {

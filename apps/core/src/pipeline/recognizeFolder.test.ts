@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../ports/FsPort";
 import { metadataCachePath, userConfigPath } from "./paths";
-import { UserConfigHelper } from "./userConfigHelper";
-import { MediaMetadataHelper } from "./mediaMetadataHelper";
 import {
   recognizeFolderPipeline,
   tryToRecognizeFolderPipeline,
@@ -33,11 +31,7 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
 }
 
 function deps(partial: Partial<RecognizeFolderDeps> & { fs: FsPort; appDataDir: string }): RecognizeFolderDeps {
-  const userConfig = new UserConfigHelper(partial.fs, partial.appDataDir);
-  const mediaMetadata = new MediaMetadataHelper(partial.fs, partial.appDataDir);
   return {
-    userConfig,
-    mediaMetadata,
     normalizePosix: (p) => p.replace(/\\/g, "/"),
     language: "en-US",
     tmdb: {

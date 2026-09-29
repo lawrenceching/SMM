@@ -79,10 +79,15 @@ export class UserConfigHelper {
     if (typeof folderPath !== "string" || !folderPath.trim()) {
       throw new Error("folder path must be a non-empty string")
     }
-    return this.update((config) => ({
-      ...config,
-      folders: [...new Set([...config.folders, folderPath])],
-    }))
+    return this.update((config) => {
+      if (config.folders.includes(folderPath)) {
+        return config
+      }
+      return {
+        ...config,
+        folders: [...config.folders, folderPath],
+      }
+    })
   }
 
   async update(mutator: (config: UserConfigData) => UserConfigData): Promise<UserConfigData> {

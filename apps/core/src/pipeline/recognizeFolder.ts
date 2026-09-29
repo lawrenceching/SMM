@@ -15,8 +15,8 @@ import {
   type TmdbRecognitionClient,
   type TvdbRecognitionClient,
 } from "./recognizeMediaFolder";
-import type { UserConfigHelper } from "./userConfigHelper";
-import type { MediaMetadataHelper } from "./mediaMetadataHelper";
+import { UserConfigHelper } from "./userConfigHelper";
+import { MediaMetadataHelper } from "./mediaMetadataHelper";
 
 export type RecognizeFolderDb = "tmdb" | "tvdb";
 
@@ -30,14 +30,25 @@ export interface RecognizeFolderCandidate {
 
 export interface RecognizeFolderDeps {
   fs: FsPort;
+  /** Metadata cache root (`MediaMetadataHelper`). */
   appDataDir: string;
-  userConfig: UserConfigHelper;
-  mediaMetadata: MediaMetadataHelper;
+  /** smm.json root (`UserConfigHelper`); defaults to {@link appDataDir}. */
+  userDataDir?: string;
   normalizePosix: (path: string) => string;
   tmdb: TmdbRecognitionClient;
   tvdb: TvdbRecognitionClient;
   language: string;
   primaryDatabase?: PrimaryDatabase;
+  /** Forwarded to {@link MediaMetadataHelper} so Core can emit mediaMetadataUpdated. */
+  onMediaMetadataUpdated?: (folderPath: string) => void;
+}
+
+function userConfigOf(deps: RecognizeFolderDeps): UserConfigHelper {
+  return new UserConfigHelper(deps.fs, deps.userDataDir ?? deps.appDataDir);
+}
+
+function mediaMetadataOf(deps: RecognizeFolderDeps): MediaMetadataHelper {
+  return new MediaMetadataHelper(deps.fs, deps.appDataDir, deps.onMediaMetadataUpdated);
 }
 
 function isManaged(folders: string[], mediaFolderPath: string): boolean {
@@ -54,11 +65,11 @@ async function loadManagedMediaMetadata(
   deps: RecognizeFolderDeps,
 ): Promise<{ posixPath: string; mm: MediaMetadata }> {
   const posixPath = deps.normalizePosix(path);
-  const config = await deps.userConfig.read();
+  const config = await userConfigOf(deps).read();
   if (!isManaged(config.folders ?? [], path)) {
     throw new Error(`${posixPath} is not managed by SMM`);
   }
-  const mm = await deps.mediaMetadata.read(posixPath);
+  const mm = await mediaMetadataOf(deps).read(posixPath);
   if (!mm) {
     throw new Error(`Media metadata not found: ${path}`);
   }
@@ -129,7 +140,7 @@ async function persistRecognition(
     ...(hit.tvShow !== undefined ? { tvShow: hit.tvShow } : {}),
     ...(hit.movie !== undefined ? { movie: hit.movie } : {}),
   };
-  await deps.mediaMetadata.write(next);
+  await mediaMetadataOf(deps).write(next);
 }
 
 export async function tryToRecognizeFolderPipeline(

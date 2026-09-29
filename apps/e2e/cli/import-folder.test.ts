@@ -143,7 +143,7 @@ mediaFiles:
   - absolutePath: ${movieFileLine}`)
     }, FIVE_MINUTES_MS)
 
-    it('import music folder', async () => {
+    it.only('import music folder', async () => {
 
         const testFolder = createFolderInTestFolder({
             folderName: 'BilibiliMusic',

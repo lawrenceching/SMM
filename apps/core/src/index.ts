@@ -57,14 +57,24 @@ export {
   type HostPerformanceEntry,
   type HostPerformanceKind,
 } from "./clients/hostPerformance";
+export type { AppContext, PlatformPorts } from "./types";
 export {
   createBlankMediaMetadata,
   initializeFolder,
   persistNewFolder,
+  recognizeImportedEpisodes,
+  recognizeImportedFolder,
   type FolderInitializationCallbacks,
   type FolderInitializationDeps,
+  type MediaMetadataUpdatedHandler,
   type PersistNewFolderDeps,
+  type RecognizeImportedEpisodesRequest,
+  type RecognizeImportedFolderRequest,
 } from "./pipeline/importFolderPipeline";
+export {
+  createRecognitionDeps,
+  type CreateRecognitionDepsInput,
+} from "./pipeline/createRecognitionDeps";
 export {
   UserConfigHelper,
   DEFAULT_USER_CONFIG,

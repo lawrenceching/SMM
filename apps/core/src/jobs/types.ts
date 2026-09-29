@@ -5,6 +5,7 @@ import type {
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
 import type { FsPort } from "../ports/FsPort";
 import type { LoggerPort } from "../ports/LoggerPort";
+import type { AppContext, PlatformPorts } from "../types";
 
 export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
@@ -75,34 +76,60 @@ export interface JobLogLine {
 
 
 export interface JobOptions {
-  name: string,
-  logDir: string,
-  join: (...args: string[]) => string,
-  printLogToConsole: boolean,
-  fs: FsPort,
-  logger: LoggerPort
+  id: string;
+  logDir: string;
+  join: (...args: string[]) => string;
+  printLogToConsole: boolean;
+  context: AppContext;
+  ports: PlatformPorts;
+  type: string;
 }
 
 export abstract class AbstractJob {
 
-  readonly name: string;
+  readonly id: string;
+  readonly logDir: string;
   readonly logFilePath: string;
   readonly printLogToConsole: boolean;
+  readonly context: AppContext;
+  readonly ports: PlatformPorts;
   readonly fs: FsPort;
   readonly logger: LoggerPort;
+  readonly type: string;
+  private _progress: number = 0;
 
-  constructor({ name, logDir, join, printLogToConsole, fs, logger }: JobOptions) {
-    this.name = name
-    this.logFilePath = join(logDir, `${this.name}.log`);
+  constructor({ id: id, logDir, join, printLogToConsole, context, ports, type }: JobOptions) {
+    this.id = id;
+    this.logDir = logDir;
+    this.logFilePath = join(logDir, `${this.id}.log`);
     this.printLogToConsole = printLogToConsole ?? false;
-    this.fs = fs
-    this.logger = logger
+    this.context = context;
+    this.ports = ports;
+    this.fs = ports.fs;
+    this.logger = ports.logger;
+    this.type = type;
+  }
+
+  protected setProgress(progress: number): void {
+    if(progress < 0) {
+      progress = 0;
+    }
+    if(progress > 100) {
+      progress = 100;
+    }
+    this._progress = progress;
+  }
+
+  public progress(): number {
+    return this._progress;
   }
 
   async start(): Promise<void> {
-    await this.log(`${this.name} started`);
+    await this.log(`${this.id} started`);
+    this.setProgress(0);
     await this.run();
-    await this.log(`${this.name} completed`);
+    this.setProgress(100);
+    await this.log(`${this.id} completed`);
   }
 
   abstract run(): Promise<void>;
@@ -111,10 +138,21 @@ export abstract class AbstractJob {
 
   abstract status(): Promise<JobStatus>;
 
+  /** Appends a job log line to the log file (and optionally the console). */
   async log(message: string): Promise<void> {
-    await this.fs.writeTextFile(this.logFilePath, message);
-    if(this.printLogToConsole) {
-      this.logger.info({}, `[${this.name}] ${message}`);
+    if (this.printLogToConsole) {
+      this.logger.info({}, `[${this.id}] ${message}`);
+    }
+    if (!this.logDir) return;
+    try {
+      let prev = "";
+      if (await this.fs.exists(this.logFilePath)) {
+        prev = await this.fs.readTextFile(this.logFilePath);
+      }
+      const prefix = prev.length === 0 || prev.endsWith("\n") ? prev : `${prev}\n`;
+      await this.fs.writeTextFile(this.logFilePath, `${prefix}${message}\n`);
+    } catch (error) {
+      this.logger.warn({ err: error, name: this.id }, "job: failed to write job log file");
     }
   }
 }

@@ -3,8 +3,6 @@ import { Path } from "@smm/utils/path";
 import type { FsPort } from "../ports/FsPort";
 import type { HttpResponse, NetworkPort } from "../ports/NetworkPort";
 import { NoopLoggerAdapter } from "../adapters/ConsoleLoggerAdapter";
-import { TmdbClient } from "../clients/TmdbClient";
-import { TvdbClient } from "../clients/TvdbClient";
 import {
   initializeFolder,
   persistNewFolder,
@@ -78,21 +76,17 @@ describe("folder initialization integration", () => {
 
     const userConfig = new UserConfigHelper(fs, appDataDir);
     const mediaMetadata = new MediaMetadataHelper(fs, appDataDir);
-    const config = await userConfig.read();
     const deps: FolderInitializationDeps = {
       fs,
+      network,
       appDataDir,
-      userConfig,
-      mediaMetadata,
+      userDataDir: appDataDir,
+      osLocale: "en-US",
       normalizePosix: (path) => Path.posix(path),
-      tmdb: new TmdbClient(network, { reverseProxyUrl: null }),
-      tvdb: new TvdbClient(network, { reverseProxyUrl: null }),
-      language: config.preferMediaLanguage ?? "en-US",
-      primaryDatabase: config.primaryDatabase,
       logger: new NoopLoggerAdapter(),
     };
 
-    await persistNewFolder("/m/My Film", "movie", deps);
+    await persistNewFolder("/m/My Film", "movie", { userConfig, mediaMetadata });
     await initializeFolder("/m/My Film", "movie", deps);
 
     const cached = JSON.parse(

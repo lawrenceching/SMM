@@ -28,13 +28,15 @@
     "test:watch": "vitest --watch"
   },
   "dependencies": {
+    "@smm/tvdb4": "workspace:*",
     "@smm/types": "workspace:*",
     "@smm/utils": "workspace:*",
-    "@smm/tvdb4": "workspace:*",
-    "es-toolkit": "^1.42.0"
+    "es-toolkit": "^1.42.0",
+    "p-queue": "^9.3.3"
   },
   "devDependencies": {
     "@smm/test": "workspace:*",
+    "@vitest/coverage-v8": "^4.0.18",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }

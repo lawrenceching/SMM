@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolderType } from "@smm/types";
 import type { FsPort } from "../ports/FsPort";
 import type { LoggerPort } from "../ports/LoggerPort";
+import type { NetworkPort } from "../ports/NetworkPort";
 import { JobAbortError } from "./jobAbortError";
 import type { JobHandle } from "./jobHandle";
 import { ImportFolderJob, type ImportFolderJobOptions } from "./ImportFolderJob";
@@ -9,12 +10,17 @@ import {
   IMPORT_FOLDER_COMPLETED,
   startedImportFolderMessage,
 } from "./importFolderLog";
-import { initializeFolder, persistNewFolder } from "../pipeline/importFolderPipeline";
+import {
+  persistNewFolder,
+  recognizeImportedEpisodes,
+  recognizeImportedFolder,
+} from "../pipeline/importFolderPipeline";
 import type { JobLogLevel, JobStatus } from "./types";
 
 vi.mock("../pipeline/importFolderPipeline", () => ({
   persistNewFolder: vi.fn(async () => ({})),
-  initializeFolder: vi.fn(async () => {}),
+  recognizeImportedFolder: vi.fn(async () => {}),
+  recognizeImportedEpisodes: vi.fn(async () => {}),
 }));
 
 function createFsMock() {
@@ -30,7 +36,7 @@ function createFsMock() {
     }),
     writeBinaryFile: vi.fn(),
     exists: vi.fn(async (path: string) => files.has(path)),
-    listFiles: vi.fn(),
+    listFiles: vi.fn(async () => ["/media/Show/S01E01.mkv"]),
     listSubdirectories: vi.fn(),
     deleteFile: vi.fn(),
     rename: vi.fn(),
@@ -71,19 +77,28 @@ function createJob(
   const logger = createLoggerMock();
   const { handle, logs, updates } = createHandle();
   let status: JobStatus = "pending";
+  const network = { fetch: vi.fn() } satisfies NetworkPort;
   const job = new ImportFolderJob({
-    name: "job-m1abc-0",
+    id: "job-m1abc-0",
     logDir: "/logs",
     join: (...parts: string[]) => parts.join("/"),
     printLogToConsole: false,
-    fs,
-    logger,
     folderPath: "/media/Show",
     type: "tvshow" satisfies FolderType,
     handle,
     userConfig: {} as ImportFolderJobOptions["userConfig"],
     mediaMetadata: {} as ImportFolderJobOptions["mediaMetadata"],
-    recognitionDeps: vi.fn(async () => ({}) as Awaited<ReturnType<ImportFolderJobOptions["recognitionDeps"]>>),
+    context: {
+      appDataDir: "/data/smm",
+      userDataDir: "/data/smm",
+      osLocale: "en-US",
+    },
+    ports: {
+      fs,
+      network,
+      logger,
+      normalizePosix: (path) => path,
+    },
     readStatus: () => status,
     ...overrides,
   });
@@ -94,13 +109,15 @@ describe("ImportFolderJob", () => {
   beforeEach(() => {
     vi.mocked(persistNewFolder).mockReset();
     vi.mocked(persistNewFolder).mockResolvedValue({} as Awaited<ReturnType<typeof persistNewFolder>>);
-    vi.mocked(initializeFolder).mockReset();
-    vi.mocked(initializeFolder).mockResolvedValue(undefined);
+    vi.mocked(recognizeImportedFolder).mockReset();
+    vi.mocked(recognizeImportedFolder).mockResolvedValue(undefined);
+    vi.mocked(recognizeImportedEpisodes).mockReset();
+    vi.mocked(recognizeImportedEpisodes).mockResolvedValue(undefined);
   });
 
   it("sets name and logFilePath from options", () => {
-    const { job } = createJob({ name: "job-abc", logDir: "/var/log" });
-    expect(job.name).toBe("job-abc");
+    const { job } = createJob({ id: "job-abc", logDir: "/var/log" });
+    expect(job.id).toBe("job-abc");
     expect(job.logFilePath).toBe("/var/log/job-abc.log");
   });
 
@@ -129,27 +146,23 @@ describe("ImportFolderJob", () => {
 
     await expect(job.persistFolder()).resolves.toBe(false);
 
-    expect(logs.at(-1)).toEqual({ level: "error", message: "disk full" });
+    expect(logs.at(-1)).toEqual({ level: "info", message: "disk full" });
     expect(updates.at(-1)).toEqual({ status: "failed", error: "disk full" });
   });
 
-  it("skipRegistration does not persist the folder", async () => {
-    const { job } = createJob({ skipRegistration: true });
-    await job.persistFolder();
-    expect(vi.mocked(persistNewFolder)).not.toHaveBeenCalled();
-  });
-
   it("run appends recognition lines and Completed, then marks succeeded", async () => {
-    vi.mocked(initializeFolder).mockImplementation(async (_path, _type, _deps, cb) => {
-      await cb?.appendLog?.("info", "Started to recognize folder");
-      await cb?.appendLog?.("info", "Recognized folder: My Show");
-      cb?.onStage?.("recognizeFolder", 60, { title: "My Show" });
-      await cb?.appendLog?.("info", "Started to recognize episodes");
-      await cb?.appendLog?.(
+    vi.mocked(recognizeImportedFolder).mockImplementation(async (req) => {
+      await req.appendLog?.("info", "Started to recognize folder");
+      await req.appendLog?.("info", "Recognized folder: My Show");
+      req.onStage?.("recognizeFolder", 60, { title: "My Show" });
+    });
+    vi.mocked(recognizeImportedEpisodes).mockImplementation(async (req) => {
+      await req.appendLog?.("info", "Started to recognize episodes");
+      await req.appendLog?.(
         "info",
         "Recognized episode files: 1 files are recognized, didn't recognize files for 1 episodes",
       );
-      cb?.onStage?.("recognizeEpisodes", 90);
+      req.onStage?.("recognizeEpisodes", 90);
     });
     const { job, logs, updates, files } = createJob();
 
@@ -180,10 +193,18 @@ describe("ImportFolderJob", () => {
     );
   });
 
+  it("run for music skips recognition steps", async () => {
+    const { job, logs, updates } = createJob({ type: "music" });
+
+    await job.run();
+
+    expect(recognizeImportedFolder).not.toHaveBeenCalled();
+    expect(recognizeImportedEpisodes).not.toHaveBeenCalled();
+    expect(logs.map((line) => line.message)).toEqual([IMPORT_FOLDER_COMPLETED]);
+    expect(updates.at(-1)).toEqual({ status: "succeeded", stage: null, progress: 100 });
+  });
+
   it("run logs aborted when recognition is stopped", async () => {
-    vi.mocked(initializeFolder).mockImplementation(async (_path, _type, _deps, cb) => {
-      cb?.throwIfAborted?.();
-    });
     const { job, handle, logs, updates } = createJob();
     vi.mocked(handle.throwIfAborted).mockImplementation(() => {
       throw new JobAbortError("m1abc-0");
@@ -191,7 +212,7 @@ describe("ImportFolderJob", () => {
 
     await job.run();
 
-    expect(logs.at(-1)).toEqual({ level: "warn", message: "aborted" });
+    expect(logs.at(-1)).toEqual({ level: "info", message: "aborted" });
     expect(updates.at(-1)).toEqual({ status: "aborted", error: "aborted" });
   });
 

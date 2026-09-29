@@ -132,32 +132,16 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         .makeOptionMandatory(),
     )
     .option('-v, --verbose', 'Print detailed logs')
+    // TODO:
     .option('--skip-init', 'Only register the folder in UserConfig; skip recognition and metadata')
     .action(async (folder: string, opts: { type: string; verbose?: boolean; skipInit?: boolean }) => {
       try {
         const type = resolveFolderType(opts.type)
         const verbose = Boolean(opts.verbose)
-        const skipInit = Boolean(opts.skipInit)
         const core = getCore({
           logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
         })
-        const { id } = skipInit
-          ? await core.importFolder(folder, type, { skipInit: true })
-          : await core.importFolder(folder, type)
-        const job = await waitUntilImportSettled(core, id, {
-          folder,
-          type,
-          timeoutMs: IMPORT_WAIT_TIMEOUT_MS,
-          progress: !skipInit,
-        })
-        if (job.status !== 'succeeded') {
-          console.error(job.error ?? `Import failed with status ${job.status}`)
-          exitCode = 1
-          return
-        }
-        if (skipInit) {
-          console.log(`imported folder ${folder}`)
-        }
+        await core.importFolder(folder, type, true);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         console.error(message)

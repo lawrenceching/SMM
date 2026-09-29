@@ -51,6 +51,7 @@ import {
 import { speedTestHosts } from "./clients/hostSpeedTest";
 import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 import { ImportFolderJob } from "./jobs/ImportFolderJob";
+import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
@@ -192,8 +193,6 @@ export interface ScrapeFolderHandle {
 export interface ImportFolderOptions {
   /** When true, stop after stage 1: the folder is registered but never recognized. */
   skipInit?: boolean;
-  /** When true, stage 1 already ran elsewhere (import-library prep); start at stage 2. */
-  skipRegistration?: boolean;
 }
 
 export interface ImportLibraryOptions {
@@ -202,7 +201,6 @@ export interface ImportLibraryOptions {
 }
 
 export class Core {
-  private readonly jobs = new JobManager();
   private readonly fs: FsPort;
   private readonly network: NetworkPort;
   private readonly logger: LoggerPort;
@@ -321,6 +319,20 @@ export class Core {
     return getMcpServerStatusWithConfig(this.mcpServer, this.userConfig);
   }
 
+  private get jobManager(): JobManager {
+    return new JobManager(
+      { concurrency: 1 }, 
+      {
+        fs: this.fs,
+        network: this.network,
+        logger: this.logger,
+        normalizePosix: (p) => this.normalizePosix(p),
+        discover: this.discover,
+        hostPerformance: this.hostPerformance,
+      }
+    )
+  }
+
   /**
    * Runs stage 1 of folder initialization (smm.json + blank metadata file) and returns
    * once it completed; stages 2 and 3 continue in the background. Stage 1 failures are
@@ -329,56 +341,64 @@ export class Core {
   async importFolder(
     path: string,
     type: FolderType,
-    options?: ImportFolderOptions,
+    wait?: boolean
   ): Promise<ImportFolderHandle> {
-    const folderPath = this.normalizePosix(path);
-    const handle = this.jobs.create({
+    const handle = this.jobManager.create({
       kind: "import",
-      folderPath,
+      folderPath: path,
       type,
       status: "pending",
       stage: null,
       progress: 0,
     });
     const job = new ImportFolderJob({
-      name: `job-${handle.id}`,
+      id: `job-${handle.id}`,
       logDir: this.logDir ?? "",
       join: (dir, file) => (dir ? new Path(Path.posix(dir)).join(file).abs("posix") : file),
       printLogToConsole: false,
-      fs: this.fs,
-      logger: this.logger,
-      folderPath,
-      sourcePath: path,
+      folderPath: path,
       type,
       handle,
-      skipRegistration: options?.skipRegistration === true,
       userConfig: this.userConfig,
       mediaMetadata: this.mediaMetadata,
-      recognitionDeps: async () => ({
-        ...(await this.createRecognitionDeps()),
+      context: {
+        appDataDir: this.getMetadataRoot(),
+        userDataDir: this.userDataDir,
+        osLocale: this.osLocale ?? "",
+      },
+      ports: {
+        fs: this.fs,
+        network: this.network,
         logger: this.logger,
-      }),
+        normalizePosix: (p) => this.normalizePosix(p),
+        discover: this.discover,
+        hostPerformance: this.hostPerformance,
+      },
+      onMediaMetadataUpdated: (folderPath) => {
+        this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
+      },
       readStatus: () => {
-        const current = this.jobs.get(handle.id);
+        const current = this.jobManager.get(handle.id);
         return current?.status ?? "pending";
       },
     });
 
-    const persisted = await job.persistFolder();
-    if (!persisted) return { id: handle.id };
-
-    if (options?.skipInit === true) {
-      await job.finishSkipInit();
+    if(!!wait) {
+      this.jobManager.submit(job, () => {
+        resolve(true);
+      });
+      
     } else {
-      void job.run();
+      this.jobManager.submit(job, () => {});
     }
-    return { id: handle.id };
+
+    return { id: job.id };
   }
 
   /** Imports every immediate subfolder of a library directory via {@link importFolder}. */
   importLibrary(path: string, type: FolderType, options?: ImportLibraryOptions): ImportLibraryHandle {
     const libraryPath = this.normalizePosix(path);
-    const job = this.jobs.create({
+    const job = this.jobManager.create({
       kind: "import-library",
       libraryPath,
       type,
@@ -395,19 +415,19 @@ export class Core {
   }
 
   getJob(id: string): Job | undefined {
-    return this.jobs.get(id);
+    return this.jobManager.get(id);
   }
 
   getJobLog(id: string): JobLogLine[] {
-    const job = this.jobs.get(id);
+    const job = this.jobManager.get(id);
     if (job === undefined) {
       throw new Error("Job not found");
     }
-    return this.jobs.getLog(id) ?? [];
+    return this.jobManager.getLog(id) ?? [];
   }
 
   stopJob(id: string): void {
-    const job = this.jobs.get(id);
+    const job = this.jobManager.get(id);
     if (job === undefined) {
       throw new Error("Job not found");
     }
@@ -417,7 +437,7 @@ export class Core {
     if (job.status !== "pending" && job.status !== "running") {
       throw new Error("Job already finished");
     }
-    this.jobs.requestStop(id);
+    this.jobManager.requestStop(id);
   }
 
   /** Application-level config (version / userDataDir / reverseProxyUrl); never touches fs. */
@@ -542,24 +562,19 @@ export class Core {
 
   /** Shared by user-triggered recognition and by folder initialization stages 2 and 3. */
   private async createRecognitionDeps(): Promise<RecognizeFolderDeps> {
-    const config = await this.userConfig.read();
-    const { client: tmdb } = await this.createTmdbClient({});
-    const { client: tvdb } = await this.createTvdbClient({}, false);
-    return {
+    return createRecognitionDeps({
       fs: this.fs,
+      network: this.network,
       appDataDir: this.getMetadataRoot(),
-      userConfig: this.userConfig,
-      mediaMetadata: this.mediaMetadata,
+      userDataDir: this.userDataDir,
       normalizePosix: (p) => this.normalizePosix(p),
-      tmdb,
-      tvdb,
-      language: resolveMediaLanguage({
-        preferMediaLanguage: config.preferMediaLanguage,
-        configured: config.applicationLanguage,
-        osLocale: this.osLocale ?? detectOsLocale(),
-      }),
-      primaryDatabase: config.primaryDatabase,
-    };
+      osLocale: this.osLocale,
+      discover: this.discover,
+      hostPerformance: this.hostPerformance,
+      onMediaMetadataUpdated: (folderPath) => {
+        this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
+      },
+    });
   }
 
   async tryToRecognizeFolder(path: string): Promise<RecognizeFolderCandidate> {
@@ -638,7 +653,7 @@ export class Core {
   async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {
     const scrapeDeps = this.createScrapeDeps();
     const prepared = await prepareScrapeFolder(path, options, scrapeDeps);
-    const job = this.jobs.create({
+    const job = this.jobManager.create({
       kind: "scrape",
       folderPath: prepared.posixPath,
       status: "running",
@@ -869,16 +884,16 @@ export class Core {
     try {
       await runPreparedScrape(prepared, deps, {
         onTaskStart: (taskId) => {
-          const current = this.jobs.get(jobId);
+          const current = this.jobManager.get(jobId);
           if (current?.kind !== "scrape") return;
-          this.jobs.update(jobId, {
+          this.jobManager.update(jobId, {
             tasks: { ...current.tasks, [taskId]: { status: "running" } },
           });
         },
         onTaskDone: (taskId, result) => {
-          const current = this.jobs.get(jobId);
+          const current = this.jobManager.get(jobId);
           if (current?.kind !== "scrape") return;
-          this.jobs.update(jobId, {
+          this.jobManager.update(jobId, {
             tasks: {
               ...current.tasks,
               [taskId]: {
@@ -889,12 +904,12 @@ export class Core {
           });
         },
       });
-      const finalJob = this.jobs.get(jobId);
+      const finalJob = this.jobManager.get(jobId);
       if (finalJob?.kind !== "scrape") return;
       const anyFailed = Object.values(finalJob.tasks).some((t) => t.status === "failed");
-      this.jobs.update(jobId, { status: anyFailed ? "failed" : "succeeded" });
+      this.jobManager.update(jobId, { status: anyFailed ? "failed" : "succeeded" });
     } catch (error) {
-      this.jobs.update(jobId, {
+      this.jobManager.update(jobId, {
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
       });
@@ -915,7 +930,7 @@ export class Core {
       const existing = await this.getFolders();
       const toImport = dedupLibraryFolders(subdirs, existing);
       const tasks = createImportLibraryTasks(job.id, toImport);
-      this.jobs.update(job.id, { tasks });
+      this.jobManager.update(job.id, { tasks });
       this.logger.info(
         { jobId: job.id, libraryPath, folderCount: toImport.length, folderPaths: toImport },
         "importLibrary: folders discovered",
@@ -941,7 +956,7 @@ export class Core {
           status: "succeeded" as const,
           importJobId: undefined,
         }));
-        this.jobs.update(job.id, {
+        this.jobManager.update(job.id, {
           status: "succeeded",
           progress: 100,
           tasks: succeededTasks,
@@ -949,26 +964,24 @@ export class Core {
         return;
       }
 
-      this.jobs.update(job.id, { status: "running" });
+      this.jobManager.update(job.id, { status: "running" });
       let currentTasks = tasks;
 
       for (const task of tasks) {
         currentTasks = patchImportLibraryTask(currentTasks, task.id, {
           status: "running",
         });
-        this.jobs.update(job.id, {
+        this.jobManager.update(job.id, {
           tasks: currentTasks,
           progress: importLibraryJobProgress(currentTasks),
         });
 
-        const { id: childId } = await this.importFolder(task.path, type, {
-          skipRegistration: true,
-        });
+        const { id: childId } = await this.importFolder(task.path, type);
         currentTasks = patchImportLibraryTask(currentTasks, task.id, { importJobId: childId });
-        this.jobs.update(job.id, { tasks: currentTasks });
+        this.jobManager.update(job.id, { tasks: currentTasks });
 
         await this.waitForImportJob(childId);
-        const childJob = this.jobs.get(childId);
+        const childJob = this.jobManager.get(childId);
         if (
           childJob?.kind === "import" &&
           (childJob.status === "failed" || childJob.status === "aborted")
@@ -977,7 +990,7 @@ export class Core {
             status: "failed",
             importJobId: undefined,
           });
-          this.jobs.update(job.id, { tasks: currentTasks });
+          this.jobManager.update(job.id, { tasks: currentTasks });
           throw new Error(childJob.error ?? `Failed to import folder: ${task.path}`);
         }
 
@@ -985,13 +998,13 @@ export class Core {
           status: "succeeded",
           importJobId: undefined,
         });
-        this.jobs.update(job.id, {
+        this.jobManager.update(job.id, {
           tasks: currentTasks,
           progress: importLibraryJobProgress(currentTasks),
         });
       }
 
-      this.jobs.update(job.id, {
+      this.jobManager.update(job.id, {
         status: "succeeded",
         progress: 100,
         tasks: currentTasks,
@@ -1000,7 +1013,7 @@ export class Core {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error({ jobId: job.id, libraryPath, error: message }, "importLibrary: job failed");
-      this.jobs.update(job.id, {
+      this.jobManager.update(job.id, {
         status: "failed",
         error: message,
       });
@@ -1009,7 +1022,7 @@ export class Core {
 
   private async waitForImportJob(id: string): Promise<void> {
     for (;;) {
-      const job = this.jobs.get(id);
+      const job = this.jobManager.get(id);
       if (job?.kind === "import" && job.status !== "pending" && job.status !== "running") {
         return;
       }

@@ -62,3 +62,9 @@ export const bin = join(
     'dist',
     `cli${isWindows ? '.exe' : ''}`,
 )
+
+const warning = `This test targets the CLI binary at ${bin}.
+Please rebuild the CLI if you make some changes.
+Run "pnpm --filter cli run build".
+`
+console.warn(warning)
