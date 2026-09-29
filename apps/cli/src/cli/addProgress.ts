@@ -119,15 +119,31 @@ export async function waitUntilImportSettled(
   const log = options.log ?? console.log
   const emitProgress = options.progress !== false
   let progress = createAddProgressState()
+  let printedLogs = 0
   const deadline = Date.now() + options.timeoutMs
+
+  const emitLogs = () => {
+    let lines: { message: string }[] = []
+    try {
+      lines = core.getJobLog(id)
+    } catch (error) {
+      if (!(error instanceof Error) || error.message !== 'Job not found') throw error
+    }
+    for (const line of lines.slice(printedLogs)) {
+      log(line.message)
+    }
+    printedLogs = lines.length
+  }
 
   for (;;) {
     const job = core.getJob(id)
     if (job?.kind === 'import') {
+      emitLogs()
       if (emitProgress) {
         progress = emitAddProgress(progress, job, options.folder, options.type, log)
       }
       if (job.status !== 'pending' && job.status !== 'running') {
+        emitLogs()
         return job
       }
     }

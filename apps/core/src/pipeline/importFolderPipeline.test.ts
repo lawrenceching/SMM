@@ -3,6 +3,12 @@ import { Path } from "@smm/utils/path";
 import type { FsPort } from "../ports/FsPort";
 import { NoopLoggerAdapter } from "../adapters/ConsoleLoggerAdapter";
 import {
+  recognizedEpisodeFilesMessage,
+  recognizedFolderMessage,
+  STARTED_RECOGNIZE_EPISODES,
+  STARTED_RECOGNIZE_FOLDER,
+} from "../jobs/importFolderLog";
+import {
   initializeFolder,
   persistNewFolder,
   type FolderInitializationDeps,
@@ -184,6 +190,46 @@ describe("initializeFolder (stages 2 and 3)", () => {
     expect(cached.mediaFiles).toEqual([
       { absolutePath: "/m/My.Show/S01E01.mkv", seasonNumber: 1, episodeNumber: 1 },
       { absolutePath: "/m/My.Show/S01E02.mkv", seasonNumber: 1, episodeNumber: 2 },
+    ]);
+  });
+
+  it("logs how many episode files were recognized and how many episodes were not", async () => {
+    const mediaDir = "/m/My.Show";
+    const { deps } = makeDeps({
+      "/m/My.Show/S01E01.mkv": "",
+      "/m/My.Show/notes.txt": "",
+    });
+    await persistNewFolder(mediaDir, "tvshow", deps);
+    mockRecognizeMediaFolder.mockResolvedValue({
+      tvShow: {
+        database: "TMDB",
+        id: "1",
+        name: "My Show",
+        seasons: [
+          {
+            season: 1,
+            name: "Season 1",
+            episodes: [
+              { season: 1, episode: 1, name: "E1" },
+              { season: 1, episode: 2, name: "E2" },
+            ],
+          },
+        ],
+      },
+    });
+
+    const messages: string[] = [];
+    await initializeFolder(mediaDir, "tvshow", deps, {
+      appendLog: (_level, message) => {
+        messages.push(message);
+      },
+    });
+
+    expect(messages).toEqual([
+      STARTED_RECOGNIZE_FOLDER,
+      recognizedFolderMessage("My Show"),
+      STARTED_RECOGNIZE_EPISODES,
+      recognizedEpisodeFilesMessage(1, 1),
     ]);
   });
 

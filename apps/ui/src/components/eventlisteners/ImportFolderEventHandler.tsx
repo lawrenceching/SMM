@@ -14,8 +14,24 @@ import {
   normalizeMediaFolderPathForQuery,
 } from "@/lib/mediaMetadataQueryKeys"
 import { nextTraceId } from "@/lib/utils"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { UI_ImportFolderEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes"
+import type { ImportFolderBackgroundJob, JobStatus } from "@/types/background-jobs"
+
+function toJobStatus(status: string): JobStatus {
+  if (
+    status === "pending" ||
+    status === "running" ||
+    status === "failed" ||
+    status === "succeeded" ||
+    status === "aborted" ||
+    status === "stopped"
+  ) {
+    return status
+  }
+  return "running"
+}
 
 export function ImportFolderEventHandler() {
   const queryClient = useQueryClient()
@@ -40,23 +56,46 @@ export function ImportFolderEventHandler() {
       setSelectedFolder(folderPathInPlatformFormat)
     }
 
+    let jobId: string | undefined
     try {
       await persistHarmonyOSFileAccess([folderPathInPlatformFormat])
-      const jobId = await importFolderMutation.mutateAsync({
+      jobId = await importFolderMutation.mutateAsync({
         path: folderPathInPlatformFormat,
         type,
         traceId,
       })
       console.log(`[${traceId}] import-folder: started job`, { jobId })
 
+      const backgroundJob: ImportFolderBackgroundJob = {
+        id: jobId,
+        name: folderPathInPlatformFormat,
+        status: "running",
+        progress: 10,
+        type: "import-folder",
+        data: {
+          folder: folderPathInPlatformFormat,
+          folderType: type,
+          logRelativePath: `job-${jobId}.log`,
+        },
+      }
+      useBackgroundJobsStore.getState().addJob(backgroundJob)
+
       // import-folder returns once stage 1 persisted smm.json, so the folder is
       // already listed here even though recognition is still running.
       invalidateFoldersQuery(queryClient)
 
       const finalJob = await pollImportFolderJob(jobId, (job) => {
+        useBackgroundJobsStore.getState().updateJob(jobId as string, {
+          status: toJobStatus(job.status),
+          progress: job.progress,
+        })
         if (job.progress > 0) {
           invalidateFoldersQuery(queryClient)
         }
+      })
+      useBackgroundJobsStore.getState().updateJob(jobId, {
+        status: toJobStatus(finalJob.status),
+        progress: finalJob.progress,
       })
 
       if (finalJob.status !== "succeeded") {
@@ -78,6 +117,12 @@ export function ImportFolderEventHandler() {
       console.log(`[${traceId}] import-folder: succeeded`, { jobId, status: show.status })
     } catch (error) {
       console.error(`[${traceId}] import-folder: failed`, error)
+      if (jobId) {
+        const current = useBackgroundJobsStore.getState().jobs.find((job) => job.id === jobId)
+        if (current && (current.status === "running" || current.status === "pending")) {
+          useBackgroundJobsStore.getState().updateJob(jobId, { status: "failed" })
+        }
+      }
       upsertFolder({
         path: folderPathInPlatformFormat,
         status: "error_loading_metadata",

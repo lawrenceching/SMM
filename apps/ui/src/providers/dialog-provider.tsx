@@ -81,7 +81,7 @@ interface DialogContextValue {
     closeFunctionCheck: () => void
   ]
   logDialog: [
-    openLogDialog: (options: { executionId: string; jobTitle: string; isRunning?: boolean }) => void,
+    openLogDialog: (options: { executionId: string; jobTitle: string; isRunning?: boolean; jobLogId?: string }) => void,
     closeLogDialog: () => void
   ]
 }
@@ -157,6 +157,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
   const [logDialogExecutionId, setLogDialogExecutionId] = useState('')
   const [logDialogJobTitle, setLogDialogJobTitle] = useState('')
   const [logDialogIsRunning, setLogDialogIsRunning] = useState(false)
+  const [logDialogJobLogId, setLogDialogJobLogId] = useState('')
 
   const openConfirmation = useCallback((dialogConfig: DialogConfig) => {
     setConfirmationConfig(dialogConfig)
@@ -353,10 +354,11 @@ export function DialogProvider({ children }: DialogProviderProps) {
     setIsFunctionCheckOpen(false)
   }, [])
 
-  const openLogDialog = useCallback((options: { executionId: string; jobTitle: string; isRunning?: boolean }) => {
+  const openLogDialog = useCallback((options: { executionId: string; jobTitle: string; isRunning?: boolean; jobLogId?: string }) => {
     setLogDialogExecutionId(options.executionId)
     setLogDialogJobTitle(options.jobTitle)
     setLogDialogIsRunning(options.isRunning ?? false)
+    setLogDialogJobLogId(options.jobLogId ?? '')
     setIsLogDialogOpen(true)
   }, [])
 
@@ -366,6 +368,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
       setLogDialogExecutionId('')
       setLogDialogJobTitle('')
       setLogDialogIsRunning(false)
+      setLogDialogJobLogId('')
     }, 200)
   }, [])
 
@@ -474,6 +477,7 @@ export function DialogProvider({ children }: DialogProviderProps) {
         executionId={logDialogExecutionId}
         jobTitle={logDialogJobTitle}
         isRunning={logDialogIsRunning}
+        jobLogId={logDialogJobLogId}
       />
     </DialogContext.Provider>
   )

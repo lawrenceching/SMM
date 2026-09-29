@@ -48,6 +48,7 @@ vi.mock("@/hooks/folders", async (importOriginal) => {
 })
 
 import { ImportFolderEventHandler } from "./ImportFolderEventHandler"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { useUIMediaFolderStore } from "@/stores/uiMediaFolderStore"
 import { UI_ImportFolderEvent, type OnMediaFolderImportedEventData } from "@/types/eventTypes"
 
@@ -78,6 +79,7 @@ describe("ImportFolderEventHandler", () => {
       selectedFolder: "",
       selectedFolders: [],
     })
+    useBackgroundJobsStore.setState({ jobs: [] })
   })
 
   it("upserts initializing folder and POSTs /api/import-folder", async () => {
@@ -136,6 +138,19 @@ describe("ImportFolderEventHandler", () => {
         { path: folderPath, status: "ok", type: "tvshow-folder" },
       ])
     })
+
+    expect(useBackgroundJobsStore.getState().jobs).toEqual([
+      expect.objectContaining({
+        id: "core-job-1",
+        type: "import-folder",
+        status: "succeeded",
+        data: {
+          folder: folderPath,
+          folderType: "tvshow",
+          logRelativePath: "job-core-job-1.log",
+        },
+      }),
+    ])
 
     expect(invalidateFoldersQueryMock).toHaveBeenCalled()
   })
@@ -239,5 +254,10 @@ describe("ImportFolderEventHandler", () => {
       expect(useUIMediaFolderStore.getState().folders[0]?.status).toBe("error_loading_metadata")
     })
     expect(showFolderViaCoreMock).not.toHaveBeenCalled()
+    expect(useBackgroundJobsStore.getState().jobs[0]).toMatchObject({
+      id: "core-job-1",
+      type: "import-folder",
+      status: "failed",
+    })
   })
 })

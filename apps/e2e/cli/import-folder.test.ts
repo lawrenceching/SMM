@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { folder1, createFolderInTestFolder, folder2 } from '../test/actions/import-folders'
 import { setup, cleanup, bin } from './base'
 import { metadataMediaFileLine } from './helpers'
@@ -166,4 +168,76 @@ type: music-folder
 mediaFiles:
   (empty)`)
     }, FIVE_MINUTES_MS)
+
+    it('smm add prints the import job log, and job list / job log can read it', async () => {
+        const testFolder = createFolderInTestFolder({
+            folderName: 'JobLogMusic',
+            files: ['01.mp3'],
+            type: 'music',
+        })
+        await expectImportJobLog(testFolder.path!, 'music', [
+            'Completed',
+        ])
+    }, FIVE_MINUTES_MS)
+
+    it('smm add prints the tvshow import job log, and job list / job log can read it', async () => {
+        const testFolder = createFolderInTestFolder(folder1)
+        await expectImportJobLog(testFolder.path!, 'tvshow', [
+            'Started to recognize folder',
+            'Recognized folder: WATATEN!: an Angel Flew Down to Me',
+            'Started to recognize episodes',
+            "Recognized episode files: 3 files are recognized, didn't recognize files for 10 episodes",
+            'Completed',
+        ])
+    }, FIVE_MINUTES_MS)
+
+    it('smm add prints the movie import job log, and job list / job log can read it', async () => {
+        const testFolder = createFolderInTestFolder({
+            ...folder2,
+            folderName: '{tmdbid=1539104}',
+        })
+        await expectImportJobLog(testFolder.path!, 'movie', [
+            'Started to recognize folder',
+            'Recognized folder: JUJUTSU KAISEN: Execution',
+            'Started to recognize episodes',
+            "Recognized episode files: 1 files are recognized, didn't recognize files for 0 episodes",
+            'Completed',
+        ])
+    }, FIVE_MINUTES_MS)
 })
+
+async function expectImportJobLog(folderPath: string, type: string, lines: string[]): Promise<void> {
+    const logDir = mkdtempSync(join(tmpdir(), 'smm-e2e-job-logs-'))
+    const prevLogDir = process.env.LOG_DIR
+    process.env.LOG_DIR = logDir
+    const started = `Started to import folder: ${Path.posix(folderPath)}, type: ${type}`
+    const expected = [started, ...lines]
+    try {
+        const added = await $`${bin} add ${folderPath} --type ${type}`.nothrow()
+        expect(added.exitCode).toBe(0)
+        for (const line of expected) {
+            expect(added.text()).toContain(line)
+        }
+
+        const listed = await $`${bin} job list`.nothrow()
+        expect(listed.exitCode).toBe(0)
+        const ids = listed.text().split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+        expect(ids.length).toBeGreaterThan(0)
+
+        let matched = false
+        for (const id of ids) {
+            const logged = await $`${bin} job log ${id}`.nothrow()
+            expect(logged.exitCode).toBe(0)
+            if (!logged.text().includes(started)) continue
+            for (const line of expected) {
+                expect(logged.text()).toContain(line)
+            }
+            matched = true
+        }
+        expect(matched).toBe(true)
+    } finally {
+        if (prevLogDir === undefined) delete process.env.LOG_DIR
+        else process.env.LOG_DIR = prevLogDir
+        rmSync(logDir, { recursive: true, force: true })
+    }
+}

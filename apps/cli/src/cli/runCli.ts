@@ -31,6 +31,12 @@ import {
 } from './planFormat'
 import { Path } from '@smm/utils/path'
 import { confirmRecognizeCandidate } from './recognizeConfirm'
+import { getLogDir } from '../utils/config'
+import {
+  listPersistedImportJobIds,
+  persistedJobLogLines,
+  readPersistedJobLog,
+} from './persistedJobLog'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -563,14 +569,43 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
   const jobCmd = program.command('job').description('Show job status, print log, or stop a job')
 
   jobCmd
+    .command('list')
+    .description('List import jobs that have a log file')
+    .action(async () => {
+      try {
+        const ids = await listPersistedImportJobIds(getLogDir())
+        for (const id of ids) {
+          console.log(id)
+        }
+      } catch (error) {
+        console.error(error instanceof Error ? error.message : String(error))
+        exitCode = 1
+      }
+    })
+
+  jobCmd
     .command('log')
     .description('Print job log messages')
     .argument('<jobId>', 'Job id')
     .action(async (jobId: string) => {
       try {
-        const lines = getCore().getJobLog(jobId)
-        for (const line of lines) {
-          console.log(line.message)
+        let messages: string[] | undefined
+        try {
+          messages = getCore().getJobLog(jobId).map((line) => line.message)
+        } catch (error) {
+          if (!(error instanceof Error) || error.message !== 'Job not found') throw error
+        }
+        if (messages === undefined) {
+          const text = await readPersistedJobLog(jobId)
+          if (text === null) {
+            console.error(`Job not found: ${jobId}`)
+            exitCode = 1
+            return
+          }
+          messages = persistedJobLogLines(text)
+        }
+        for (const message of messages) {
+          console.log(message)
         }
       } catch (error) {
         console.error(error instanceof Error ? error.message : String(error))

@@ -12,6 +12,7 @@ export interface BackgroundJobsPopoverListProps {
     executionId: string
     jobTitle: string
     isRunning: boolean
+    jobLogId?: string
   }) => void
   stopAllJobs: () => Promise<void>
 }

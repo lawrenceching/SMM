@@ -10,6 +10,7 @@ export interface FailedCommandsListProps {
     executionId: string
     jobTitle: string
     isRunning: boolean
+    jobLogId?: string
   }) => void
 }
 

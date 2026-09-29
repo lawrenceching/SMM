@@ -3,6 +3,7 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { Path } from '@smm/utils/path'
 import { getCore, resetCoreForTests } from '../core/getCore'
 
 describe('smm job', () => {
@@ -50,7 +51,39 @@ describe('smm job', () => {
     const code = await runCli(['node', 'smm', 'job', 'log', id])
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => String(c[0]))
-    expect(lines).toEqual(['persisted folder', 'skipped init'])
+    expect(lines).toEqual([
+      `Started to import folder: ${Path.posix(mediaFolder)}, type: music`,
+      'Completed',
+    ])
+  })
+
+  it('lists a finished import and prints its log after the process is gone', async () => {
+    const logDir = mkdtempSync(join(tmpdir(), 'smm-job-logs-'))
+    const prevLogDir = process.env.LOG_DIR
+    process.env.LOG_DIR = logDir
+    try {
+      writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
+      resetCoreForTests()
+      const { id } = await getCore().importFolder(mediaFolder, 'music', { skipInit: true })
+      resetCoreForTests()
+
+      const { runCli } = await import('./runCli')
+      const listCode = await runCli(['node', 'smm', 'job', 'list'])
+      expect(listCode).toBe(0)
+      expect(logSpy.mock.calls.map((c) => String(c[0]))).toContain(id)
+
+      logSpy.mockClear()
+      const logCode = await runCli(['node', 'smm', 'job', 'log', id])
+      expect(logCode).toBe(0)
+      expect(logSpy.mock.calls.map((c) => String(c[0]))).toEqual([
+        `Started to import folder: ${Path.posix(mediaFolder)}, type: music`,
+        'Completed',
+      ])
+    } finally {
+      if (prevLogDir === undefined) delete process.env.LOG_DIR
+      else process.env.LOG_DIR = prevLogDir
+      rmSync(logDir, { recursive: true, force: true })
+    }
   })
 
   it('exits 1 for smm job log with unknown id', async () => {

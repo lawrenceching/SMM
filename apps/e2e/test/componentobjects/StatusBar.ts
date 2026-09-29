@@ -98,6 +98,13 @@ class StatusBar {
     }
 
     /**
+     * Get the log button for a specific job by ID
+     */
+    backgroundJobLogButton(jobId: string) {
+        return $(`[data-testid="background-job-${jobId}-log-button"]`)
+    }
+
+    /**
      * Get job status badge by job ID
      */
     backgroundJobStatusBadge(jobId: string) {

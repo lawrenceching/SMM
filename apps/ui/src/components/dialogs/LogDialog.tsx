@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useCommandLogQuery } from '@/hooks/useCommandLogQuery'
+import { useJobLogQuery } from '@/hooks/useJobLogQuery'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { getJobExecutionId } from '@/components/background-jobs/backgroundJobsPopoverJobUtils'
 import {
@@ -21,6 +22,10 @@ export type LogDialogProps = {
   jobTitle: string
   /** When true, poll the log endpoint while the job is still running. */
   isRunning?: boolean
+  /**
+   * When set, load `${logDir}/job-${jobLogId}.log` instead of a command log.
+   */
+  jobLogId?: string
 }
 
 export function LogDialog({
@@ -29,17 +34,20 @@ export function LogDialog({
   executionId,
   jobTitle,
   isRunning = false,
+  jobLogId = '',
 }: LogDialogProps) {
   const { t } = useTranslation('components')
   const [passiveEnded, setPassiveEnded] = useState(false)
-  const jobForExecution = useBackgroundJobsStore((s) =>
-    executionId ? s.jobs.find((j) => getJobExecutionId(j) === executionId) : undefined,
-  )
+  const useJobFile = jobLogId.length > 0
+  const jobForExecution = useBackgroundJobsStore((s) => {
+    if (useJobFile) return s.jobs.find((j) => j.id === jobLogId)
+    return executionId ? s.jobs.find((j) => getJobExecutionId(j) === executionId) : undefined
+  })
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPassiveEnded(false)
-  }, [executionId, open])
+  }, [executionId, jobLogId, open])
 
   const jobStillRunning =
     jobForExecution != null
@@ -48,11 +56,17 @@ export function LogDialog({
 
   const effectiveIsRunning = jobStillRunning && !passiveEnded
 
-  const query = useCommandLogQuery({
+  const commandQuery = useCommandLogQuery({
     executionId,
-    enabled: open && executionId.length > 0,
+    enabled: open && !useJobFile && executionId.length > 0,
     isRunning: effectiveIsRunning,
   })
+  const jobFileQuery = useJobLogQuery({
+    jobId: jobLogId,
+    enabled: open && useJobFile,
+    isRunning: effectiveIsRunning,
+  })
+  const query = useJobFile ? jobFileQuery : commandQuery
 
   const bodyText = query.data?.text ?? ''
 

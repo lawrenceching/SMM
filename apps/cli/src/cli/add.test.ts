@@ -3,6 +3,7 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { Path } from '@smm/utils/path'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('smm add', () => {
@@ -97,6 +98,8 @@ describe('smm add', () => {
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
     expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(true)
+    expect(lines).toContain(`Started to import folder: ${Path.posix(mediaFolder)}, type: music`)
+    expect(lines).toContain('Completed')
     expect(lines.some((l) => l === 'succeeded')).toBe(true)
     expect(lines.some((l) => l.includes('importFolder: stage='))).toBe(false)
     expect(lines.some((l) => l.includes('"folderPath"'))).toBe(false)
@@ -125,7 +128,11 @@ describe('smm add', () => {
     }
     expect(config.folders).toContain(mediaFolder)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines).toEqual([`imported folder ${mediaFolder}`])
+    expect(lines).toEqual([
+      `Started to import folder: ${Path.posix(mediaFolder)}, type: tvshow`,
+      'Completed',
+      `imported folder ${mediaFolder}`,
+    ])
     expect(lines.some((l) => l === 'succeeded')).toBe(false)
     expect(lines.some((l) => l.includes('recognizing'))).toBe(false)
   })

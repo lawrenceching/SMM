@@ -3,6 +3,7 @@ import {
   isDownloadVideoJob,
   isFfmpegConvertBackgroundJob,
   isFfmpegWriteTagsBackgroundJob,
+  isImportFolderBackgroundJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
@@ -34,4 +35,9 @@ export function canOpenCommandLog(job: BackgroundJob): boolean {
   }
   const id = getJobExecutionId(job)
   return typeof id === 'string' && id.length > 0
+}
+
+/** Import-folder logs are read from `${logDir}/job-${jobId}.log`. */
+export function canOpenJobFileLog(job: BackgroundJob): boolean {
+  return isImportFolderBackgroundJob(job) && job.id.length > 0
 }

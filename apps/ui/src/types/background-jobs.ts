@@ -5,6 +5,7 @@ import type {
   FfmpegCompressOptions,
   FfmpegConvertImageOptions,
 } from '@smm/core/whitelistedCmd/constants'
+import type { FolderType } from '@smm/types'
 
 export type JobStatus = 'pending' | 'running' | 'failed' | 'succeeded' | 'aborted' | 'stopped';
 
@@ -283,6 +284,20 @@ export interface FfmpegWriteTagsBackgroundJob extends BackgroundJobBase {
   data: FfmpegWriteTagsBackgroundJobData
 }
 
+/** Folder import tracked in the status bar. Logs live in `${logDir}/job-${id}.log`. */
+interface ImportFolderBackgroundJobData {
+  /** Folder path in platform format, as the user imported it. */
+  folder: string
+  folderType: FolderType | 'anime'
+  /** Relative to logDir, e.g. `job-${id}.log`. */
+  logRelativePath: string
+}
+
+export interface ImportFolderBackgroundJob extends BackgroundJobBase {
+  type: 'import-folder'
+  data: ImportFolderBackgroundJobData
+}
+
 export type BackgroundJob =
   | GenericBackgroundJob
   | TestDelayBackgroundJob
@@ -293,6 +308,7 @@ export type BackgroundJob =
   | ProcessBackgroundJob
   | FfmpegConvertBackgroundJob
   | FfmpegWriteTagsBackgroundJob
+  | ImportFolderBackgroundJob
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
@@ -328,4 +344,8 @@ export function isFfmpegConvertBackgroundJob(job: BackgroundJob): job is FfmpegC
 
 export function isFfmpegWriteTagsBackgroundJob(job: BackgroundJob): job is FfmpegWriteTagsBackgroundJob {
   return job.type === 'ffmpeg-write-tags'
+}
+
+export function isImportFolderBackgroundJob(job: BackgroundJob): job is ImportFolderBackgroundJob {
+  return job.type === 'import-folder'
 }

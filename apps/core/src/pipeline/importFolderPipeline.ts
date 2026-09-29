@@ -4,7 +4,14 @@ import type { LoggerPort } from "../ports/LoggerPort";
 import type { JobLogLevel, JobStage } from "../jobs/types";
 import type { MediaMetadataHelper } from "./mediaMetadataHelper";
 import type { UserConfigHelper } from "./userConfigHelper";
+import {
+  recognizedEpisodeFilesMessage,
+  recognizedFolderMessage,
+  STARTED_RECOGNIZE_EPISODES,
+  STARTED_RECOGNIZE_FOLDER,
+} from "../jobs/importFolderLog";
 import { autoRecognizeFolderPipeline, type RecognizeFolderDeps } from "./recognizeFolder";
+import { buildEpisodes } from "./recognizeEpisodes";
 import { recognizeMediaFilesPipeline } from "./recognizeMediaFiles";
 
 /** Stage 1 only needs the two stores it writes to. */
@@ -24,7 +31,7 @@ export interface FolderInitializationDeps extends RecognizeFolderDeps {
 export interface FolderInitializationCallbacks {
   onStage?: (stage: JobStage, progress: number, detail?: { title?: string }) => void;
   throwIfAborted?: () => void;
-  appendLog?: (level: JobLogLevel, message: string) => void;
+  appendLog?: (level: JobLogLevel, message: string) => void | Promise<void>;
 }
 
 function mediaMetadataType(type: FolderType): MediaMetadata["type"] {
@@ -74,20 +81,25 @@ export async function initializeFolder(
 
   cb.throwIfAborted?.();
   deps.logger.info({ folderPath: posixPath, type }, "importFolder: stage=recognizeFolder");
-  cb.appendLog?.("info", "recognizing folder");
+  await cb.appendLog?.("info", STARTED_RECOGNIZE_FOLDER);
   const result = await autoRecognizeFolderPipeline(folderPath, deps, filePaths);
   const title = result.tvShow?.name ?? result.movie?.name;
   if (title !== undefined) {
-    cb.appendLog?.("info", `recognized "${title}"`);
-  } else {
-    cb.appendLog?.("info", "recognition completed, no title");
+    await cb.appendLog?.("info", recognizedFolderMessage(title));
   }
   cb.onStage?.("recognizeFolder", 60, title !== undefined ? { title } : undefined);
 
   cb.throwIfAborted?.();
   deps.logger.info({ folderPath: posixPath }, "importFolder: stage=recognizeEpisodes");
-  cb.appendLog?.("info", "recognizing episodes");
-  await recognizeMediaFilesPipeline(folderPath, deps, filePaths);
-  cb.appendLog?.("info", "recognized episodes");
+  await cb.appendLog?.("info", STARTED_RECOGNIZE_EPISODES);
+  const recognized = await recognizeMediaFilesPipeline(folderPath, deps, filePaths);
+  const metadata = await deps.mediaMetadata.read(posixPath);
+  const totalEpisodes = metadata === null ? 0 : buildEpisodes(metadata).length;
+  const recognizedEpisodes = recognized.filter((file) => file.episode !== undefined).length;
+  const unrecognizedEpisodes = Math.max(0, totalEpisodes - recognizedEpisodes);
+  await cb.appendLog?.(
+    "info",
+    recognizedEpisodeFilesMessage(recognized.length, unrecognizedEpisodes),
+  );
   cb.onStage?.("recognizeEpisodes", 90);
 }

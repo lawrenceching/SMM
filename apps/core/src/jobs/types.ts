@@ -3,6 +3,8 @@ import type {
   ImportLibraryJob as ImportLibraryJobPayload,
 } from "@smm/types/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
+import type { FsPort } from "../ports/FsPort";
+import type { LoggerPort } from "../ports/LoggerPort";
 
 export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
@@ -69,4 +71,50 @@ export interface JobLogLine {
   ts: number;
   level: JobLogLevel;
   message: string;
+}
+
+
+export interface JobOptions {
+  name: string,
+  logDir: string,
+  join: (...args: string[]) => string,
+  printLogToConsole: boolean,
+  fs: FsPort,
+  logger: LoggerPort
+}
+
+export abstract class AbstractJob {
+
+  readonly name: string;
+  readonly logFilePath: string;
+  readonly printLogToConsole: boolean;
+  readonly fs: FsPort;
+  readonly logger: LoggerPort;
+
+  constructor({ name, logDir, join, printLogToConsole, fs, logger }: JobOptions) {
+    this.name = name
+    this.logFilePath = join(logDir, `${this.name}.log`);
+    this.printLogToConsole = printLogToConsole ?? false;
+    this.fs = fs
+    this.logger = logger
+  }
+
+  async start(): Promise<void> {
+    await this.log(`${this.name} started`);
+    await this.run();
+    await this.log(`${this.name} completed`);
+  }
+
+  abstract run(): Promise<void>;
+
+  abstract abort(): Promise<void>;
+
+  abstract status(): Promise<JobStatus>;
+
+  async log(message: string): Promise<void> {
+    await this.fs.writeTextFile(this.logFilePath, message);
+    if(this.printLogToConsole) {
+      this.logger.info({}, `[${this.name}] ${message}`);
+    }
+  }
 }

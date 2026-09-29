@@ -50,7 +50,7 @@ import {
 } from "./clients/hostPerformance";
 import { speedTestHosts } from "./clients/hostSpeedTest";
 import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
-import { initializeFolder, persistNewFolder } from "./pipeline/importFolderPipeline";
+import { ImportFolderJob } from "./jobs/ImportFolderJob";
 import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
@@ -99,7 +99,6 @@ import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/me
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
 import type { JobHandle } from "./jobs/jobHandle";
-import { JobAbortError } from "./jobs/jobAbortError";
 import { initialScrapeTasks, type Job, type JobLogLine } from "./jobs/types";
 
 export interface TmdbRequestOptions {
@@ -333,7 +332,7 @@ export class Core {
     options?: ImportFolderOptions,
   ): Promise<ImportFolderHandle> {
     const folderPath = this.normalizePosix(path);
-    const job = this.jobs.create({
+    const handle = this.jobs.create({
       kind: "import",
       folderPath,
       type,
@@ -341,34 +340,39 @@ export class Core {
       stage: null,
       progress: 0,
     });
+    const job = new ImportFolderJob({
+      name: `job-${handle.id}`,
+      logDir: this.logDir ?? "",
+      join: (dir, file) => (dir ? new Path(Path.posix(dir)).join(file).abs("posix") : file),
+      printLogToConsole: false,
+      fs: this.fs,
+      logger: this.logger,
+      folderPath,
+      sourcePath: path,
+      type,
+      handle,
+      skipRegistration: options?.skipRegistration === true,
+      userConfig: this.userConfig,
+      mediaMetadata: this.mediaMetadata,
+      recognitionDeps: async () => ({
+        ...(await this.createRecognitionDeps()),
+        logger: this.logger,
+      }),
+      readStatus: () => {
+        const current = this.jobs.get(handle.id);
+        return current?.status ?? "pending";
+      },
+    });
 
-    try {
-      if (options?.skipRegistration !== true) {
-        this.logger.info({ folderPath, type }, "importFolder: stage=persistFolder");
-        await persistNewFolder(path, type, {
-          userConfig: this.userConfig,
-          mediaMetadata: this.mediaMetadata,
-        });
-      }
-      job.appendLog("info", "persisted folder");
-      job.update({ stage: "persistFolder", progress: 10 });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      job.appendLog("error", message);
-      job.update({
-        status: "failed",
-        error: message,
-      });
-      return { id: job.id };
-    }
+    const persisted = await job.persistFolder();
+    if (!persisted) return { id: handle.id };
 
     if (options?.skipInit === true) {
-      job.appendLog("info", "skipped init");
-      job.update({ status: "succeeded", progress: 100 });
+      await job.finishSkipInit();
     } else {
-      void this.runImport(job, path, type);
+      void job.run();
     }
-    return { id: job.id };
+    return { id: handle.id };
   }
 
   /** Imports every immediate subfolder of a library directory via {@link importFolder}. */
@@ -894,41 +898,6 @@ export class Core {
         status: "failed",
         error: error instanceof Error ? error.message : String(error),
       });
-    }
-  }
-
-  /** Stages 2 and 3; both reuse the core methods of the user-triggered recognition flows. */
-  private async runImport(handle: JobHandle, folderPath: string, type: FolderType): Promise<void> {
-    handle.update({ status: "running" });
-    try {
-      handle.throwIfAborted();
-      await initializeFolder(
-        folderPath,
-        type,
-        { ...(await this.createRecognitionDeps()), logger: this.logger },
-        {
-          onStage: (stage, progress, detail) => {
-            handle.update({
-              stage,
-              progress,
-              ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
-            });
-          },
-          throwIfAborted: () => handle.throwIfAborted(),
-          appendLog: (level, message) => handle.appendLog(level, message),
-        },
-      );
-      handle.appendLog("info", "succeeded");
-      handle.update({ status: "succeeded", stage: null, progress: 100 });
-    } catch (error) {
-      if (error instanceof JobAbortError) {
-        handle.appendLog("warn", "aborted");
-        handle.update({ status: "aborted", error: "aborted" });
-        return;
-      }
-      const message = error instanceof Error ? error.message : String(error);
-      handle.appendLog("error", message);
-      handle.update({ status: "failed", error: message });
     }
   }
 

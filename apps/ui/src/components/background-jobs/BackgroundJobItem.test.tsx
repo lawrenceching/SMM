@@ -76,6 +76,7 @@ vi.mock('@/lib/i18n', () => ({
       if (key === 'statusBar.backgroundJobs.jobNames.synthesize') return 'Synthesize'
       if (key === 'statusBar.backgroundJobs.jobNames.process') return 'Process'
       if (key === 'statusBar.backgroundJobs.jobNames.importMediaLibrary') return 'Importing Media Library'
+      if (key === 'statusBar.backgroundJobs.jobNames.initializeMediaFolder') return `Initializing ${opts?.name ?? ''}`
       if (key === 'statusBar.backgroundJobs.jobNames.typedJob') {
         return `${opts?.type}: ${opts?.detail}`
       }
@@ -207,6 +208,48 @@ describe('BackgroundJobItem — context menu (Stop All)', () => {
     expect(screen.getByTestId('background-job-job-1-abort-button')).toBeInTheDocument()
     fireEvent.click(screen.getByTestId('background-job-job-1-abort-button'))
     expect(stopJob).toHaveBeenCalledWith('job-1')
+  })
+})
+
+describe('BackgroundJobItem — import folder log', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockProgress = null
+    mockFfmpegProgress = null
+  })
+
+  it('shows a log button that opens the job log file', () => {
+    const job: BackgroundJob = {
+      id: 'core-job-1',
+      name: '/media/Show',
+      status: 'running',
+      progress: 40,
+      type: 'import-folder',
+      data: {
+        folder: '/media/Show',
+        folderType: 'tvshow',
+        logRelativePath: 'job-core-job-1.log',
+      },
+    }
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    expect(screen.getByTestId('background-job-core-job-1-name')).toHaveTextContent('Initializing Show')
+    fireEvent.click(screen.getByTestId('background-job-core-job-1-log-button'))
+    expect(openLogDialog).toHaveBeenCalledWith({
+      executionId: '',
+      jobLogId: 'core-job-1',
+      jobTitle: 'Initializing Show',
+      isRunning: true,
+    })
   })
 })
 

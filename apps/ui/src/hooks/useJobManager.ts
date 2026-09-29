@@ -7,7 +7,8 @@ import { useTranslation } from '@/lib/i18n'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import type { BackgroundJob } from '@/types/background-jobs'
 import { clearTestDelayJobTimers, stopTestDelayJob } from '@/lib/testDelayJobRunner'
-import { isGenericBackgroundJob, isTestDelayBackgroundJob } from '@/types/background-jobs'
+import { stopJobViaCore } from '@/api/stopJob'
+import { isGenericBackgroundJob, isImportFolderBackgroundJob, isTestDelayBackgroundJob } from '@/types/background-jobs'
 
 export interface UseJobManagerResult {
   jobs: BackgroundJob[]
@@ -64,6 +65,13 @@ export function useJobManager(): UseJobManagerResult {
         void stopTestDelayJob(id)
         return
       }
+      if (job && isImportFolderBackgroundJob(job)) {
+        void stopJobViaCore(id).catch((error: unknown) => {
+          console.error('[import-folder] stop job failed', error)
+        })
+        useBackgroundJobsStore.getState().abortJob(id)
+        return
+      }
       orchestrator.stopJob(id)
     },
     [orchestrator],
@@ -80,6 +88,10 @@ export function useJobManager(): UseJobManagerResult {
       }
       if (job && isTestDelayBackgroundJob(job)) {
         clearTestDelayJobTimers(id)
+      }
+      if (job && isImportFolderBackgroundJob(job)) {
+        useBackgroundJobsStore.getState().removeJob(id)
+        return
       }
       await orchestrator.removeJob(id)
     },
@@ -117,6 +129,10 @@ export function useJobManager(): UseJobManagerResult {
         }
         if (isTestDelayBackgroundJob(job)) {
           await stopTestDelayJob(job.id)
+          return
+        }
+        if (isImportFolderBackgroundJob(job)) {
+          useBackgroundJobsStore.getState().abortJob(job.id)
           return
         }
         await orchestrator.markPendingAsAborted(job.id)

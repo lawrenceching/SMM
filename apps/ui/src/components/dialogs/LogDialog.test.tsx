@@ -55,6 +55,37 @@ describe('LogDialog', () => {
     expect(globalThis.fetch).toHaveBeenCalled()
   })
 
+  it('loads an import-folder log from the job log file', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({
+        'X-Log-Truncated': 'false',
+        'X-Log-Total-Bytes': '9',
+        'X-Log-Read-Offset': '0',
+        'X-Log-Read-Limit': '9',
+      }),
+      text: async () => 'Completed',
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderWithClient(
+      <LogDialog
+        open
+        onOpenChange={() => {}}
+        executionId=""
+        jobLogId="core-job-1"
+        jobTitle="Initializing Show"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Completed')).toBeInTheDocument()
+    })
+    const url = String(fetchMock.mock.calls[0]?.[0])
+    expect(url).toContain('/api/job-log-file/core-job-1')
+    expect(url).not.toContain('/api/command-log/')
+  })
+
   it('selects all log text on Ctrl+A when focus is outside the log area', async () => {
     renderWithClient(
       <LogDialog

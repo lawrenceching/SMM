@@ -70,8 +70,8 @@ describe('POST /api/get-job-log', () => {
     expect(res.status).toBe(200)
     const json = (await res.json()) as { data?: { lines: { message: string }[] } }
     expect(json.data?.lines.map((l) => l.message)).toEqual([
-      'persisted folder',
-      'skipped init',
+      'Started to import folder: /media/A, type: music',
+      'Completed',
     ])
   })
 })

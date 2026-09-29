@@ -1,10 +1,23 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { Path } from "@smm/utils/path";
 import type { TmdbSeasonDetails, TmdbSeriesDetails } from "@smm/types";
 import type { FsPort } from "./ports/FsPort";
 import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
+import { NodejsFsAdapter } from "./adapters/node/NodejsFsAdapter";
 import { Core } from "./Core";
+import {
+  IMPORT_FOLDER_COMPLETED,
+  importJobLogPosixPath,
+  recognizedEpisodeFilesMessage,
+  recognizedFolderMessage,
+  STARTED_RECOGNIZE_EPISODES,
+  STARTED_RECOGNIZE_FOLDER,
+  startedImportFolderMessage,
+} from "./jobs/importFolderLog";
 import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
 
 function inMemoryFs(seed: Record<string, string> = {}): FsPort {
@@ -551,8 +564,8 @@ describe("importFolder job logs and abort", () => {
     const { id } = await core.importFolder("/m/My.Music", "music");
     await waitForStatus(core, id, "succeeded");
     expect(core.getJobLog(id).map((line) => line.message)).toEqual([
-      "persisted folder",
-      "succeeded",
+      startedImportFolderMessage("/m/My.Music", "music"),
+      IMPORT_FOLDER_COMPLETED,
     ]);
     expect(core.getJob(id) as { logs?: unknown }).not.toHaveProperty("logs");
   });
@@ -567,8 +580,8 @@ describe("importFolder job logs and abort", () => {
     const { id } = await core.importFolder("/m/Deferred", "tvshow", { skipInit: true });
     await waitForStatus(core, id, "succeeded");
     expect(core.getJobLog(id).map((line) => line.message)).toEqual([
-      "persisted folder",
-      "skipped init",
+      startedImportFolderMessage("/m/Deferred", "tvshow"),
+      IMPORT_FOLDER_COMPLETED,
     ]);
   });
 
@@ -586,13 +599,14 @@ describe("importFolder job logs and abort", () => {
     const { id } = await core.importFolder(folder, type);
     await waitForStatus(core, id, "succeeded");
 
+    const recognizedFiles = type === "movie" ? 1 : 0;
     expect(core.getJobLog(id).map((line) => line.message)).toEqual([
-      "persisted folder",
-      "recognizing folder",
-      `recognized "${title}"`,
-      "recognizing episodes",
-      "recognized episodes",
-      "succeeded",
+      startedImportFolderMessage(folder, type),
+      STARTED_RECOGNIZE_FOLDER,
+      recognizedFolderMessage(title),
+      STARTED_RECOGNIZE_EPISODES,
+      recognizedEpisodeFilesMessage(recognizedFiles, 0),
+      IMPORT_FOLDER_COMPLETED,
     ]);
   });
 
@@ -608,12 +622,11 @@ describe("importFolder job logs and abort", () => {
     await waitForStatus(core, id, "succeeded");
 
     expect(core.getJobLog(id).map((line) => line.message)).toEqual([
-      "persisted folder",
-      "recognizing folder",
-      "recognition completed, no title",
-      "recognizing episodes",
-      "recognized episodes",
-      "succeeded",
+      startedImportFolderMessage("/m/Unknown", "tvshow"),
+      STARTED_RECOGNIZE_FOLDER,
+      STARTED_RECOGNIZE_EPISODES,
+      recognizedEpisodeFilesMessage(0, 0),
+      IMPORT_FOLDER_COMPLETED,
     ]);
   });
 
@@ -638,12 +651,62 @@ describe("importFolder job logs and abort", () => {
     const job = core.getJob(id);
     expect(job?.status).toBe("aborted");
     expect(job?.error).toBe("aborted");
-    expect(core.getJobLog(id).map((line) => line.message)).toContain("aborted");
+    expect(core.getJobLog(id).map((line) => line.message)).toEqual([
+      startedImportFolderMessage("/m/Show", "tvshow"),
+      "aborted",
+    ]);
     expect(await core.getFolders()).toContain("/m/Show");
     expect(await core.getMetadata("/m/Show")).toMatchObject({
       mediaFolderPath: "/m/Show",
       type: "tvshow-folder",
     });
+  });
+});
+
+describe("importFolder job log file", () => {
+  it("appends the same lines to logDir/job-${id}.log", async () => {
+    const logDir = "/tmp/smm-logs";
+    const fs = inMemoryFs({ "/m/My.Music/a.mp3": "" });
+    const core = new Core({
+      fs,
+      network: emptyNetwork(),
+      logger: new NoopLoggerAdapter(),
+      appDataDir: "/data/smm",
+      logDir,
+    });
+    const { id } = await core.importFolder("/m/My.Music", "music");
+    await waitForStatus(core, id, "succeeded");
+    const text = await fs.readTextFile(importJobLogPosixPath(logDir, id));
+    expect(text).toBe(
+      [
+        startedImportFolderMessage("/m/My.Music", "music"),
+        IMPORT_FOLDER_COMPLETED,
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("writes job-${id}.log at the platform logDir the CLI reads", async () => {
+    const root = await mkdtemp(join(tmpdir(), "smm-import-log-"));
+    const appDataDir = join(root, "data");
+    const logDir = join(root, "logs");
+    try {
+      const core = new Core({
+        fs: new NodejsFsAdapter(),
+        network: emptyNetwork(),
+        logger: new NoopLoggerAdapter(),
+        appDataDir,
+        userDataDir: appDataDir,
+        logDir,
+      });
+      const { id } = await core.importFolder(join(root, "music"), "music", { skipInit: true });
+      const text = await readFile(join(logDir, `job-${id}.log`), "utf8");
+      expect(text).toContain("Started to import folder:");
+      expect(text).toContain("type: music");
+      expect(text.trimEnd().endsWith(IMPORT_FOLDER_COMPLETED)).toBe(true);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });
 

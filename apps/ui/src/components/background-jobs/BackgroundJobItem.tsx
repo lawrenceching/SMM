@@ -17,11 +17,11 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
-import { isDownloadVideoJob, isFfmpegConvertBackgroundJob } from '@/types/background-jobs'
+import { isDownloadVideoJob, isFfmpegConvertBackgroundJob, isImportFolderBackgroundJob } from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
 import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/i18n'
-import { canOpenCommandLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
+import { canOpenCommandLog, canOpenJobFileLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
 import { useYtdlpDownloadProgressQuery } from '@/hooks/useYtdlpDownloadProgressQuery'
 import { useFfmpegProgressQuery } from '@/hooks/useFfmpegProgressQuery'
 
@@ -127,6 +127,11 @@ function getJobDisplayName(job: BackgroundJob, t: TFunction<'components'>): stri
       }
       return typeLabel
     }
+    case 'import-folder': {
+      const folder = job.data.folder
+      const name = folder.split(/[/\\]/).filter(Boolean).pop() ?? folder
+      return t('statusBar.backgroundJobs.jobNames.initializeMediaFolder', { name })
+    }
     default:
       return job.name
   }
@@ -140,6 +145,7 @@ export interface BackgroundJobItemProps {
     executionId: string
     jobTitle: string
     isRunning: boolean
+    jobLogId?: string
   }) => void
   /**
    * Abort every pending and running job in the popover. Invoked from
@@ -282,7 +288,7 @@ export function BackgroundJobItem({
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-2">
-              {canOpenCommandLog(job) && (
+              {(canOpenCommandLog(job) || canOpenJobFileLog(job)) && (
                 <Button
                   data-testid={`background-job-${job.id}-log-button`}
                   type="button"
@@ -291,6 +297,15 @@ export function BackgroundJobItem({
                   className="gap-1"
                   aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: displayName })}
                   onClick={() => {
+                    if (isImportFolderBackgroundJob(job)) {
+                      openLogDialog({
+                        executionId: '',
+                        jobLogId: job.id,
+                        jobTitle: displayName,
+                        isRunning: job.status === 'running',
+                      })
+                      return
+                    }
                     const id = getJobExecutionId(job)
                     if (!id) return
                     openLogDialog({

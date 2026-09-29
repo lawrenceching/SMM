@@ -33,10 +33,15 @@ vi.mock('@/stores/backgroundJobsStore', () => ({
 
 const mockStopTestDelayJob = vi.fn().mockResolvedValue(undefined)
 const mockClearTestDelayJobTimers = vi.fn()
+const mockStopJobViaCore = vi.fn().mockResolvedValue(undefined)
 
 vi.mock('@/lib/testDelayJobRunner', () => ({
   stopTestDelayJob: (...args: unknown[]) => mockStopTestDelayJob(...args),
   clearTestDelayJobTimers: (...args: unknown[]) => mockClearTestDelayJobTimers(...args),
+}))
+
+vi.mock('@/api/stopJob', () => ({
+  stopJobViaCore: (...args: unknown[]) => mockStopJobViaCore(...args),
 }))
 
 import { useJobOrchestratorContext } from '@/components/JobOrchestratorProvider'
@@ -117,6 +122,31 @@ describe('useJobManager', () => {
     })
 
     expect(mockStopTestDelayJob).toHaveBeenCalledWith('td1')
+    expect(mockOrchestratorStopJob).not.toHaveBeenCalled()
+  })
+
+  it('stopJob aborts an import-folder job on the server and in the store', () => {
+    const importJob: BackgroundJob = {
+      id: 'imp-1',
+      name: '/media/Show',
+      status: 'running',
+      progress: 20,
+      type: 'import-folder',
+      data: {
+        folder: '/media/Show',
+        folderType: 'tvshow',
+        logRelativePath: 'job-imp-1.log',
+      },
+    }
+    setupStore([importJob])
+
+    const { result } = renderHook(() => useJobManager())
+    act(() => {
+      result.current.stopJob('imp-1')
+    })
+
+    expect(mockStopJobViaCore).toHaveBeenCalledWith('imp-1')
+    expect(mockAbortJob).toHaveBeenCalledWith('imp-1')
     expect(mockOrchestratorStopJob).not.toHaveBeenCalled()
   })
 
