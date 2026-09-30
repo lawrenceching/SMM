@@ -83,6 +83,11 @@ export interface JobOptions {
   context: AppContext;
   ports: PlatformPorts;
   type: string;
+  callbacks?: Callbacks;
+}
+
+export interface Callbacks {
+  onLog?(message: string): void;
 }
 
 export abstract class AbstractJob {
@@ -97,8 +102,13 @@ export abstract class AbstractJob {
   readonly logger: LoggerPort;
   readonly type: string;
   private _progress: number = 0;
+  private _status: JobStatus = "pending";
+  protected requestToAbort: boolean = false;
+  private aborted: boolean = false;
+  private options: JobOptions
 
-  constructor({ id: id, logDir, join, printLogToConsole, context, ports, type }: JobOptions) {
+  constructor(options: JobOptions) {
+    const { id: id, logDir, join, printLogToConsole, context, ports, type } = options;
     this.id = id;
     this.logDir = logDir;
     this.logFilePath = join(logDir, `${this.id}.log`);
@@ -108,6 +118,7 @@ export abstract class AbstractJob {
     this.fs = ports.fs;
     this.logger = ports.logger;
     this.type = type;
+    this.options = options;
   }
 
   protected setProgress(progress: number): void {
@@ -125,6 +136,11 @@ export abstract class AbstractJob {
   }
 
   async start(): Promise<void> {
+
+    if(this.aborted) {
+      throw new Error("Job already aborted")
+    }
+
     await this.log(`${this.id} started`);
     this.setProgress(0);
     await this.run();
@@ -136,10 +152,25 @@ export abstract class AbstractJob {
 
   abstract abort(): Promise<void>;
 
-  abstract status(): Promise<JobStatus>;
+  protected setStatus(status: JobStatus): void {
+    this._status = status;
+  }
+
+  get status(): JobStatus {
+    return this._status;
+  };
+
+  /**
+   * Mark the aborted flag to true.
+   * The job will try it's best to abort the operation, but it's not guaranteed.
+   */
+  tryAbort(): void {
+    this.requestToAbort = true;
+  }
 
   /** Appends a job log line to the log file (and optionally the console). */
   async log(message: string): Promise<void> {
+    this.options.callbacks?.onLog?.(message);
     if (this.printLogToConsole) {
       this.logger.info({}, `[${this.id}] ${message}`);
     }

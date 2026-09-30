@@ -42,11 +42,15 @@ const network: NetworkPort = {
 
 function createCore(fs: FsPort): Core {
   return new Core({
-    fs,
-    network,
-    appDataDir: "/data/internal",
-    userDataDir: "/data/config",
-    reportedAppDataDir: "/data/reported",
+    context: {
+      appDataDir: "/data/internal",
+      userDataDir: "/data/config",
+      reportedAppDataDir: "/data/reported",
+    },
+    ports: {
+      fs,
+      network,
+    },
   });
 }
 

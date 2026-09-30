@@ -5,7 +5,7 @@ import type { MediaMetadata } from '@smm/types'
 import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { formatHelloLines } from './helloFormat'
-import { waitUntilImportSettled } from './addProgress'
+import { createAddProgressState, emitAddProgress } from './addProgress'
 import { waitUntilLibraryImportSettled } from './addlibProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
@@ -37,7 +37,8 @@ import {
   persistedJobLogLines,
   readPersistedJobLog,
 } from './persistedJobLog'
-
+import { Tail } from 'tail'
+import { add } from './commands/add'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
 
@@ -135,18 +136,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     // TODO:
     .option('--skip-init', 'Only register the folder in UserConfig; skip recognition and metadata')
     .action(async (folder: string, opts: { type: string; verbose?: boolean; skipInit?: boolean }) => {
-      try {
-        const type = resolveFolderType(opts.type)
-        const verbose = Boolean(opts.verbose)
-        const core = getCore({
-          logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
-        })
-        await core.importFolder(folder, type, true);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await add(folder, opts)
     })
 
   program

@@ -20,8 +20,6 @@ export interface ImportFolderJobOptions extends JobOptions, PersistNewFolderDeps
   /** Caller path used in log lines, the job record, persist, and recognition. */
   folderPath: string;
   type: FolderType;
-  handle: JobHandle;
-  readStatus: () => JobStatus;
   onMediaMetadataUpdated?: (folderPath: string) => void;
 }
 
@@ -37,9 +35,7 @@ interface Step {
 export class ImportFolderJob extends AbstractJob {
   private readonly folderPath: string;
   private readonly folderType: FolderType;
-  private readonly handle: JobHandle;
   private readonly persistDeps: PersistNewFolderDeps;
-  private readonly readStatus: () => JobStatus;
   private readonly onMediaMetadataUpdated: ((folderPath: string) => void) | undefined;
 
   /** Cached for recognition steps within a single `run()`. */
@@ -52,12 +48,10 @@ export class ImportFolderJob extends AbstractJob {
     });
     this.folderPath = options.folderPath;
     this.folderType = options.type;
-    this.handle = options.handle;
     this.persistDeps = {
       userConfig: options.userConfig,
       mediaMetadata: options.mediaMetadata,
     };
-    this.readStatus = options.readStatus;
     this.onMediaMetadataUpdated = options.onMediaMetadataUpdated;
   }
 
@@ -75,7 +69,6 @@ export class ImportFolderJob extends AbstractJob {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await this.log(message);
-      this.handle.update({ status: "failed", error: message });
       return false;
     }
   }
@@ -83,7 +76,6 @@ export class ImportFolderJob extends AbstractJob {
   /** Marks a skipInit import finished without recognition. */
   async finishSkipInit(): Promise<void> {
     await this.log(IMPORT_FOLDER_COMPLETED);
-    this.handle.update({ status: "succeeded", progress: 100 });
   }
 
   /**
@@ -91,48 +83,54 @@ export class ImportFolderJob extends AbstractJob {
    * Music has no further steps; tvshow/movie recognize folder then episodes.
    */
   override async run(): Promise<void> {
+    this.setStatus("running");
     const steps = this.steps();
 
-    this.handle.update({ status: "running" });
     try {
-      this.handle.throwIfAborted();
-      const posixPath = this.ports.normalizePosix(this.folderPath);
-      this.filePaths = (await this.fs.listFiles(posixPath)).map((file) => Path.posix(file));
+
+      const msg = `Started to import folder: ${this.folderPath}, type: ${this.folderType}`
+      this.logger.info({}, msg);
+      this.log(msg);
+      
+      this.filePaths = (await this.fs.listFiles(this.folderPath)).map((file) => Path.posix(file));
+
+      if(this.requestToAbort) {
+        this.setStatus("aborted");
+        return;
+      }
 
       for (const step of steps) {
-        this.handle.throwIfAborted();
         this.logger.info({ step: step.name, folderPath: this.folderPath }, "importFolder: step");
         await step.run(this);
         this.setProgress(this.progress() + 100 / steps.length);
+        if(this.requestToAbort) {
+          this.setStatus("aborted");
+          return;
+        }
       }
 
       await this.log(IMPORT_FOLDER_COMPLETED);
-      this.handle.update({ status: "succeeded", stage: null, progress: 100 });
+      this.setStatus("succeeded");
     } catch (error) {
+      this.setStatus("failed");
       if (error instanceof JobAbortError) {
         await this.log("aborted");
-        this.handle.update({ status: "aborted", error: "aborted" });
+
         return;
       }
       const message = error instanceof Error ? error.message : String(error);
       await this.log(message);
-      this.handle.update({ status: "failed", error: message });
     } finally {
       this.filePaths = [];
     }
   }
 
   override async abort(): Promise<void> {
-    this.handle.requestStop();
   }
 
-  override async status(): Promise<JobStatus> {
-    return this.readStatus();
-  }
 
   /** Also mirrors lines into the in-memory job log via {@link JobHandle.appendLog}. */
   override async log(message: string): Promise<void> {
-    this.handle.appendLog("info", message);
     await super.log(message);
   }
 
@@ -146,7 +144,6 @@ export class ImportFolderJob extends AbstractJob {
           "importFolder: stage=persistFolder",
         );
         await persistNewFolder(job.folderPath, job.folderType, job.persistDeps);
-        job.handle.update({ stage: "persistFolder", progress: 10 });
       },
     };
 
@@ -158,7 +155,6 @@ export class ImportFolderJob extends AbstractJob {
           const req: RecognizeImportedFolderRequest = {
             folderPath: job.folderPath,
             filePaths: job.filePaths,
-            ...job.stageCallbacks(),
           };
           await recognizeImportedFolder(req, job.context, job.ports, job.onMediaMetadataUpdated);
         },
@@ -169,7 +165,6 @@ export class ImportFolderJob extends AbstractJob {
           const req: RecognizeImportedEpisodesRequest = {
             folderPath: job.folderPath,
             filePaths: job.filePaths,
-            ...job.stageCallbacks(),
           };
           await recognizeImportedEpisodes(req, job.context, job.ports, job.onMediaMetadataUpdated);
         },
@@ -183,20 +178,4 @@ export class ImportFolderJob extends AbstractJob {
       : stepsForMusic;
   }
 
-  private stageCallbacks(): Pick<
-    RecognizeImportedFolderRequest,
-    "onStage" | "throwIfAborted" | "appendLog"
-  > {
-    return {
-      onStage: (stage, progress, detail) => {
-        this.handle.update({
-          stage,
-          progress,
-          ...(detail?.title !== undefined ? { recognizedTitle: detail.title } : {}),
-        });
-      },
-      throwIfAborted: () => this.handle.throwIfAborted(),
-      appendLog: (_level, message) => this.log(message),
-    };
-  }
 }

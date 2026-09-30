@@ -13,6 +13,8 @@ import type {
 } from "./types";
 import type { LoggerPort } from "src/ports/LoggerPort";
 import type { PlatformPorts } from "src/types";
+import { withTimeout } from 'es-toolkit/promise';
+
 
 let seq = 0;
 
@@ -37,39 +39,15 @@ interface JobRecord {
   abortRequested: boolean;
 }
 
-class JobHandleImpl implements JobHandle {
-  constructor(
-    readonly id: string,
-    private readonly manager: JobManager,
-  ) {}
-
-
-  appendLog(level: JobLogLevel, message: string): void {
-    this.manager.appendLog(this.id, level, message);
-  }
-
-  requestStop(): void {
-    this.manager.requestStop(this.id);
-  }
-
-  throwIfAborted(): void {
-    this.manager.throwIfAborted(this.id);
-  }
-
-  update(patch: JobPatch): void {
-    this.manager.update(this.id, patch);
-  }
-}
-
 interface JobManagerOptions {
   concurrency: number;
+  timeoutMs: number;
 }
 
 export class JobManager {
-  private readonly records = new Map<string, JobRecord>();
 
   private jobs: Map<string, AbstractJob> = new Map();
-  private _queue: PQueue;
+  private _queue: PQueue | undefined;
   /**
    * The job id to Promise map
    * The promise will be resolved when the job is completed
@@ -81,7 +59,6 @@ export class JobManager {
     private readonly ports: PlatformPorts
   ) {
   }
-
 
   private get queue(): PQueue {
     if(this._queue === undefined) {
@@ -115,68 +92,34 @@ export class JobManager {
     });
   
     this.queue.add(async () => {
-      try {
-        this.ports.logger.info({}, `JobManager started job: type=${job.type} id=${job.id}`);
-        await job.start();
-        resolve();
-      } catch(error) {
-        this.ports.logger.error({ error }, `Job ${job.id} failed`);
-        reject(error);
-      } finally {
-        this.ports.logger.info({}, `JobManager completed job: type=${job.type} id=${job.id}`);
-        callback();
-      }
+      
+      await withTimeout(async () => {
+
+        try {
+          this.ports.logger.info({}, `JobManager started job: type=${job.type} id=${job.id}`);
+          await withTimeout(() => job.start(), this.options.timeoutMs);
+          resolve();
+        } catch (error) {
+          this.ports.logger.error({ error }, `Job ${job.id} failed`);
+          reject(error);
+        } finally {
+          this.ports.logger.info({}, `JobManager completed job: type=${job.type} id=${job.id}`);
+          callback();
+        }
+
+      }, this.options.timeoutMs)
       
     })
     
   }
 
-  create(init: ImportJobInit): JobHandle;
-  create(init: ImportLibraryJobInit): JobHandle;
-  create(init: ScrapeJobInit): JobHandle;
-  create(init: JobInit): JobHandle {
-    const now = Date.now();
-    const job = { id: nextJobId(), createdAt: now, updatedAt: now, ...init } as Job;
-    this.records.set(job.id, { job, logs: [], abortRequested: false });
-    return new JobHandleImpl(job.id, this);
-  }
-
-  update(id: string, patch: JobPatch): void {
-    const record = this.records.get(id);
-    if (record === undefined) return;
-    if (isTerminal(record.job.status)) return;
-    Object.assign(record.job, patch, { updatedAt: Date.now() });
-  }
-
-  get(id: string): Job | undefined {
-    const record = this.records.get(id);
-    return record === undefined ? undefined : structuredClone(record.job);
-  }
-
-  getLog(id: string): JobLogLine[] | undefined {
-    const record = this.records.get(id);
-    return record === undefined ? undefined : structuredClone(record.logs);
-  }
-
-  appendLog(id: string, level: JobLogLevel, message: string): void {
-    const record = this.records.get(id);
-    if (record === undefined) return;
-    if (isTerminal(record.job.status)) return;
-    record.logs.push({ ts: Date.now(), level, message });
-    record.job.updatedAt = Date.now();
-  }
-
-  requestStop(id: string): void {
-    const record = this.records.get(id);
-    if (record === undefined) return;
-    record.abortRequested = true;
-    record.job.updatedAt = Date.now();
-  }
-
-  throwIfAborted(id: string): void {
-    const record = this.records.get(id);
-    if (record?.abortRequested === true) {
-      throw new JobAbortError();
+  tryAbort(id: string): void {
+    if(this.jobs.has(id)) {
+      this.jobs.get(id)?.tryAbort();
     }
+  }
+
+  getJob(id: string): AbstractJob | undefined {
+    return this.jobs.get(id);
   }
 }

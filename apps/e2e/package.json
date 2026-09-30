@@ -48,6 +48,7 @@
     "e2e:other": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/other/*.e2e.ts\"",
     "e2e:tv": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tv/*.e2e.ts\"",
     "e2e:tvdb": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tvdb/*.e2e.ts\"",
+    "test:cli": "cd cli && bun test",
     "zx": "zx --verbose"
   },
   "dependencies": {

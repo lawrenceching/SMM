@@ -42,12 +42,16 @@ describe("Core host speed tests", () => {
   it("leaves performance lists empty when speed tests are not run (CLI)", async () => {
     const fetch = vi.fn(async () => jsonOk());
     const core = new Core({
+    context: {
+      appDataDir: "/data/smm",
+    },
+    ports: {
       fs: inMemoryFs(),
       network: { fetch },
       logger: new NoopLoggerAdapter(),
-      appDataDir: "/data/smm",
       discover: new StaticDiscoverAdapter(),
-    });
+    },
+  });
 
     expect(core.getHostPerformanceList("tmdb")).toEqual([]);
     expect(fetch).not.toHaveBeenCalled();
@@ -61,12 +65,16 @@ describe("Core host speed tests", () => {
       },
     };
     const core = new Core({
+    context: {
+      appDataDir: "/data/smm",
+    },
+    ports: {
       fs: inMemoryFs(),
       network,
       logger: new NoopLoggerAdapter(),
-      appDataDir: "/data/smm",
       discover: new StaticDiscoverAdapter(),
-    });
+    },
+  });
 
     await core.runHostSpeedTests();
 

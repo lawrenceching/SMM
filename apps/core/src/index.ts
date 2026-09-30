@@ -57,7 +57,7 @@ export {
   type HostPerformanceEntry,
   type HostPerformanceKind,
 } from "./clients/hostPerformance";
-export type { AppContext, PlatformPorts } from "./types";
+export type { AppContext, AppContextInput, PlatformPorts, PlatformPortsInput } from "./types";
 export {
   createBlankMediaMetadata,
   initializeFolder,

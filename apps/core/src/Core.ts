@@ -100,7 +100,8 @@ import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/me
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
 import type { JobHandle } from "./jobs/jobHandle";
-import { initialScrapeTasks, type Job, type JobLogLine } from "./jobs/types";
+import { AbstractJob, initialScrapeTasks, type Callbacks, type Job, type JobLogLine } from "./jobs/types";
+import type { AppContextInput, PlatformPortsInput } from "./types";
 
 export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
@@ -149,29 +150,8 @@ export type {
 };
 
 export interface CoreOptions {
-  fs: FsPort;
-  network: NetworkPort;
-  logger?: LoggerPort;
-  /** Root directory holding application data such as metadata and plans. */
-  appDataDir: string;
-  /** App version string (e.g. "1.3.8"); getAppConfig() falls back to "". */
-  version?: string;
-  /** Reverse proxy base URL; getAppConfig() falls back to null. */
-  reverseProxyUrl?: string | null;
-  /** userDataDir reported by getAppConfig(); falls back to appDataDir. */
-  userDataDir?: string;
-  /** Hello appDataDir; may differ from smm.json root on Linux. Falls back to appDataDir. */
-  reportedAppDataDir?: string;
-  /** Tmp dir for hello bootstrap. */
-  tmpDir?: string;
-  /** Log dir for hello bootstrap. */
-  logDir?: string;
-  /** CLI process platform for hello bootstrap. Falls back to process.platform. */
-  platform?: string;
-  /** OS locale for hello bootstrap. Falls back to detectOsLocale(). */
-  osLocale?: string;
-  /** Discover hosts for TMDB/TVDB failover. */
-  discover?: DiscoverPort;
+  context: AppContextInput;
+  ports: PlatformPortsInput;
   /** When true, run host speed tests in the background after construction. */
   enableHostSpeedTest?: boolean;
   /** MCP HTTP runtime (injected by CLI / OHOS host). */
@@ -221,23 +201,24 @@ export class Core {
   private readonly hostPerformance = new HostPerformanceStore();
 
   constructor(options: CoreOptions) {
-    this.fs = options.fs;
-    this.network = options.network;
-    this.logger = options.logger ?? new NoopLoggerAdapter();
-    this.appDataDir = options.appDataDir;
-    this.version = options.version ?? "";
-    this.reverseProxyUrl = options.reverseProxyUrl ?? null;
-    this.userDataDir = options.userDataDir ?? options.appDataDir;
-    this.reportedAppDataDir = options.reportedAppDataDir;
-    this.tmpDir = options.tmpDir;
-    this.logDir = options.logDir;
-    this.platform = options.platform;
-    this.osLocale = options.osLocale;
+    const { context, ports } = options;
+    this.fs = ports.fs;
+    this.network = ports.network;
+    this.logger = ports.logger ?? new NoopLoggerAdapter();
+    this.appDataDir = context.appDataDir;
+    this.version = context.version ?? "";
+    this.reverseProxyUrl = context.reverseProxyUrl ?? null;
+    this.userDataDir = context.userDataDir ?? context.appDataDir;
+    this.reportedAppDataDir = context.reportedAppDataDir;
+    this.tmpDir = context.tmpDir;
+    this.logDir = context.logDir;
+    this.platform = context.platform;
+    this.osLocale = context.osLocale;
     this.userConfig = new UserConfigHelper(this.fs, this.userDataDir);
     this.mediaMetadata = new MediaMetadataHelper(this.fs, this.getMetadataRoot(), (folderPath) => {
       this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
     });
-    this.discover = options.discover;
+    this.discover = ports.discover;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
       void this.runHostSpeedTests();
@@ -319,18 +300,27 @@ export class Core {
     return getMcpServerStatusWithConfig(this.mcpServer, this.userConfig);
   }
 
+  private _jobManager: JobManager | undefined;
   private get jobManager(): JobManager {
-    return new JobManager(
-      { concurrency: 1 }, 
-      {
-        fs: this.fs,
-        network: this.network,
-        logger: this.logger,
-        normalizePosix: (p) => this.normalizePosix(p),
-        discover: this.discover,
-        hostPerformance: this.hostPerformance,
-      }
-    )
+    if(this._jobManager === undefined) {
+      this._jobManager = new JobManager(
+        // TODO: add app config
+        { concurrency: 1, timeoutMs: 5 * 60 * 1000 }, 
+        {
+          fs: this.fs,
+          network: this.network,
+          logger: this.logger,
+          normalizePosix: (p) => this.normalizePosix(p),
+          discover: this.discover,
+          hostPerformance: this.hostPerformance,
+        }
+      )
+    }
+    return this._jobManager;
+  }
+
+  async waitForJobUntilCompleted(id: string): Promise<void> {
+    return this.jobManager.waitForJobUntilCompleted(id);
   }
 
   /**
@@ -341,24 +331,16 @@ export class Core {
   async importFolder(
     path: string,
     type: FolderType,
-    wait?: boolean
+    callbacks: Callbacks
   ): Promise<ImportFolderHandle> {
-    const handle = this.jobManager.create({
-      kind: "import",
-      folderPath: path,
-      type,
-      status: "pending",
-      stage: null,
-      progress: 0,
-    });
+
     const job = new ImportFolderJob({
-      id: `job-${handle.id}`,
+      id: Date.now().toString(),
       logDir: this.logDir ?? "",
       join: (dir, file) => (dir ? new Path(Path.posix(dir)).join(file).abs("posix") : file),
       printLogToConsole: false,
       folderPath: path,
       type,
-      handle,
       userConfig: this.userConfig,
       mediaMetadata: this.mediaMetadata,
       context: {
@@ -377,67 +359,46 @@ export class Core {
       onMediaMetadataUpdated: (folderPath) => {
         this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
       },
-      readStatus: () => {
-        const current = this.jobManager.get(handle.id);
-        return current?.status ?? "pending";
-      },
+      callbacks,
     });
 
-    if(!!wait) {
-      this.jobManager.submit(job, () => {
-        resolve(true);
-      });
-      
-    } else {
-      this.jobManager.submit(job, () => {});
-    }
-
+    this.jobManager.submit(job, () => {});
     return { id: job.id };
   }
 
   /** Imports every immediate subfolder of a library directory via {@link importFolder}. */
   importLibrary(path: string, type: FolderType, options?: ImportLibraryOptions): ImportLibraryHandle {
-    const libraryPath = this.normalizePosix(path);
-    const job = this.jobManager.create({
-      kind: "import-library",
-      libraryPath,
-      type,
-      status: "pending",
-      progress: 0,
-      tasks: [],
-    });
-    void this.runImportLibrary(job, path, type, options?.skipInit === true);
-    this.logger.info(
-      { jobId: job.id, libraryPath, type, skipInit: options?.skipInit === true },
-      "importLibrary: job created",
-    );
-    return { id: job.id };
+    // const libraryPath = this.normalizePosix(path);
+    // const job = this.jobManager.create({
+    //   kind: "import-library",
+    //   libraryPath,
+    //   type,
+    //   status: "pending",
+    //   progress: 0,
+    //   tasks: [],
+    // });
+    // void this.runImportLibrary(job, path, type, options?.skipInit === true);
+    // this.logger.info(
+    //   { jobId: job.id, libraryPath, type, skipInit: options?.skipInit === true },
+    //   "importLibrary: job created",
+    // );
+    // return { id: job.id };
   }
 
-  getJob(id: string): Job | undefined {
-    return this.jobManager.get(id);
+  getJob(id: string): AbstractJob | undefined {
+    return this.jobManager.getJob(id);
   }
 
-  getJobLog(id: string): JobLogLine[] {
-    const job = this.jobManager.get(id);
-    if (job === undefined) {
+  async getJobLog(id: string): Promise<string> {
+    const job = this.getJob(id);
+    if(job === undefined) {
       throw new Error("Job not found");
     }
-    return this.jobManager.getLog(id) ?? [];
+    return await this.fs.readTextFile(job.logFilePath);
   }
 
   stopJob(id: string): void {
-    const job = this.jobManager.get(id);
-    if (job === undefined) {
-      throw new Error("Job not found");
-    }
-    if (job.kind !== "import") {
-      throw new Error("Job is not abortable");
-    }
-    if (job.status !== "pending" && job.status !== "running") {
-      throw new Error("Job already finished");
-    }
-    this.jobManager.requestStop(id);
+    this.jobManager.tryAbort(id);
   }
 
   /** Application-level config (version / userDataDir / reverseProxyUrl); never touches fs. */
@@ -651,16 +612,16 @@ export class Core {
   }
 
   async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {
-    const scrapeDeps = this.createScrapeDeps();
-    const prepared = await prepareScrapeFolder(path, options, scrapeDeps);
-    const job = this.jobManager.create({
-      kind: "scrape",
-      folderPath: prepared.posixPath,
-      status: "running",
-      tasks: initialScrapeTasks(),
-    });
-    void this.runScrape(job.id, prepared, scrapeDeps);
-    return { id: job.id };
+    // const scrapeDeps = this.createScrapeDeps();
+    // const prepared = await prepareScrapeFolder(path, options, scrapeDeps);
+    // const job = this.jobManager.create({
+    //   kind: "scrape",
+    //   folderPath: prepared.posixPath,
+    //   status: "running",
+    //   tasks: initialScrapeTasks(),
+    // });
+    // void this.runScrape(job.id, prepared, scrapeDeps);
+    // return { id: job.id };
   }
 
   /**
@@ -1021,12 +982,12 @@ export class Core {
   }
 
   private async waitForImportJob(id: string): Promise<void> {
-    for (;;) {
-      const job = this.jobManager.get(id);
-      if (job?.kind === "import" && job.status !== "pending" && job.status !== "running") {
-        return;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
+    // for (;;) {
+    //   const job = this.jobManager.get(id);
+    //   if (job?.kind === "import" && job.status !== "pending" && job.status !== "running") {
+    //     return;
+    //   }
+    //   await new Promise((resolve) => setTimeout(resolve, 20));
+    // }
   }
 }
