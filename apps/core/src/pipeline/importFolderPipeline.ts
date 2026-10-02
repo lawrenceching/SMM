@@ -159,6 +159,8 @@ export async function initializeFolder(
     appDataDir: portsAndCtx.appDataDir,
     userDataDir: portsAndCtx.userDataDir,
     osLocale: portsAndCtx.osLocale,
+    tmpDir: "",
+    logDir: "",
   };
   const ports: PlatformPorts = {
     fs: portsAndCtx.fs,

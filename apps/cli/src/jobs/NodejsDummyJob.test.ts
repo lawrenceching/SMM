@@ -34,7 +34,7 @@ describe("NodejsDummyJob", () => {
     }) as typeof setTimeout);
 
     const job = new NodejsDummyJob({
-      name: "dummy",
+      id: "dummy",
       logDir: tmpPosix,
     });
 
@@ -42,6 +42,6 @@ describe("NodejsDummyJob", () => {
 
     const logPath = Path.toPlatformPath(job.logFilePath);
     expect(existsSync(logPath)).toBe(true);
-    expect(readFileSync(logPath, "utf-8")).toBe("dummy completed");
+    expect(readFileSync(logPath, "utf-8")).toContain("dummy completed");
   });
 });

@@ -75,6 +75,7 @@ function createInMemoryFs(initialText: Record<string, string> = {}): FsPort & {
 } {
   const textFiles = new Map<string, string>(Object.entries(initialText));
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     textFiles,
     readTextFile: vi.fn(async (path) => textFiles.get(path) ?? ""),
     writeTextFile: vi.fn(async (path, content) => {

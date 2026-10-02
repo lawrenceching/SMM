@@ -13,6 +13,7 @@ function createInMemoryFs(): FsPort & {
   const binaryFiles = new Map<string, Uint8Array>();
   const mkdirCalls: string[] = [];
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     binaryFiles,
     mkdirCalls,
     readTextFile: vi.fn(),

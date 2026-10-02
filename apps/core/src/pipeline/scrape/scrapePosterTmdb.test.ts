@@ -60,6 +60,7 @@ function createInMemoryFs(initialFiles: Record<string, Uint8Array | string> = {}
   }
 
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     binaryFiles,
     textFiles,
     readTextFile: vi.fn(async (path) => textFiles.get(path) ?? ""),

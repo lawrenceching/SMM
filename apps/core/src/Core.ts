@@ -55,7 +55,6 @@ import { ImportLibraryJob } from "./jobs/ImportLibraryJob";
 import { ScrapeJob } from "./jobs/ScrapeJob";
 import { nextJobId } from "./jobs/jobManager";
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
-import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import {
   renameEpisodeFilePipeline,
@@ -99,7 +98,6 @@ import type { PersistedMediaMetadata } from "./pipeline/mediaMetadataValidation"
 import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/metadataErrors";
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
-import type { JobHandle } from "./jobs/jobHandle";
 import type { AbstractJob, Callbacks } from "./jobs/abstract-job";
 import type { AppContext, AppContextInput, PlatformPorts, PlatformPortsInput } from "./types";
 
@@ -878,24 +876,6 @@ export class Core {
 
   private async writeMetadata(mm: MediaMetadata): Promise<void> {
     await this.mediaMetadata.write(mm);
-  }
-
-  private async runImportLibrary(
-    job: JobHandle,
-    libraryPath: string,
-    type: FolderType,
-    skipInit: boolean,
-  ): Promise<void> {
-    try {
-      const job = new ImportLibraryJob(job, libraryPath, type, skipInit);
-      this.jobManager.submit(job);
-      return {
-        id: job.id,
-      }
-    } catch (error) {
-      this.logger.error(`Failed to run import library: ${error}`);
-      throw error;
-    }
   }
 
 }

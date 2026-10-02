@@ -15,6 +15,7 @@ const folder = "/m/Show";
 function inMemoryFs(seed: Record<string, string> = {}): FsPort & { raw: Map<string, string> } {
   const files = new Map(Object.entries(seed));
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     raw: files,
     readTextFile: vi.fn(async (path: string) => {
       const v = files.get(path);

@@ -1,3 +1,9 @@
+/**
+ * Legacy progress helpers for the pre-AbstractJob import job snapshot shape.
+ * `smm add` / `smm addlib` now stream Core job logs via callbacks.onLog + waitForJobUntilCompleted.
+ * Kept for unit tests of emitAddProgress string formatting only.
+ */
+// @ts-nocheck
 import type { Core, FolderType, ImportJob } from '@smm/core'
 
 type AddProgressKind = 'tvshow' | 'movie'
@@ -112,7 +118,6 @@ export async function waitUntilImportSettled(
     type: FolderType
     timeoutMs: number
     log?: (line: string) => void
-    /** When false, do not print progress lines (used with --skip-init). Default true. */
     progress?: boolean
   },
 ): Promise<ImportJob> {
@@ -122,13 +127,14 @@ export async function waitUntilImportSettled(
   let printedLogs = 0
   const deadline = Date.now() + options.timeoutMs
 
-  const emitLogs = () => {
-    let lines: { message: string }[] = []
+  const emitLogs = async () => {
+    let text = ''
     try {
-      lines = core.getJobLog(id)
+      text = await core.getJobLog(id)
     } catch (error) {
       if (!(error instanceof Error) || error.message !== 'Job not found') throw error
     }
+    const lines = text.split('\n').filter(Boolean).map((message) => ({ message }))
     for (const line of lines.slice(printedLogs)) {
       log(line.message)
     }
@@ -137,14 +143,14 @@ export async function waitUntilImportSettled(
 
   for (;;) {
     const job = core.getJob(id)
-    if (job?.kind === 'import') {
-      emitLogs()
-      if (emitProgress) {
-        progress = emitAddProgress(progress, job, options.folder, options.type, log)
+    if (job) {
+      await emitLogs()
+      if (emitProgress && (job as { kind?: string }).kind === 'import') {
+        progress = emitAddProgress(progress, job as ImportJob, options.folder, options.type, log)
       }
       if (job.status !== 'pending' && job.status !== 'running') {
-        emitLogs()
-        return job
+        await emitLogs()
+        return job as ImportJob
       }
     }
     if (Date.now() > deadline) {

@@ -174,6 +174,8 @@ describe("ImportLibraryJob", () => {
       options: { concurrency: 1 },
     });
 
+    // Mock constructor shape is intentionally incomplete for abort coordination.
+    // @ts-expect-error vitest mockImplementation typing vs ImportFolderJob constructor
     vi.mocked(ImportFolderJob).mockImplementation(function (
       this: { id: string; run: ReturnType<typeof vi.fn> },
       _ctx: unknown,

@@ -8,6 +8,7 @@ function unsupportedFsOperation(name: string): never {
 
 export function createFsPort(fs: ChatFs): FsPort {
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     async readTextFile(path: string): Promise<string> {
       const value = await fs.readJson(path);
       if (value === null) {

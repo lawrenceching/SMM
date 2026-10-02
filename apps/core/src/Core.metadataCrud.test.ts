@@ -14,6 +14,7 @@ import { metadataCachePath, userConfigPath } from "./pipeline/paths";
 function inMemoryFs(): FsPort {
   const files = new Map<string, string>();
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: vi.fn(async (path) => {
       const value = files.get(path);
       if (value === undefined) throw new Error(`ENOENT: ${path}`);

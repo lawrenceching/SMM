@@ -51,6 +51,7 @@ function createFs(seed: Record<string, string>): FsPort & {
 } {
   const textFiles = new Map<string, string>(Object.entries(seed));
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     textFiles,
     readTextFile: vi.fn(async (path: string) => {
       const v = textFiles.get(path);

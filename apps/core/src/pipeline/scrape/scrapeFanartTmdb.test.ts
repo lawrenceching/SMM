@@ -25,6 +25,7 @@ const tvShowMetadata: MediaMetadata = {
 function createInMemoryFs(): FsPort & { binaryFiles: Map<string, Uint8Array> } {
   const binaryFiles = new Map<string, Uint8Array>();
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     binaryFiles,
     readTextFile: vi.fn(),
     writeTextFile: vi.fn(),

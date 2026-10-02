@@ -8,6 +8,7 @@ function delayedFs(seed: Record<string, string>, delayMs = 15): FsPort {
   const files = new Map(Object.entries(seed));
   const pause = () => new Promise((r) => setTimeout(r, delayMs));
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: async (path: string) => {
       await pause();
       const v = files.get(path);
@@ -108,6 +109,7 @@ describe("UserConfigHelper", () => {
     ]);
     let writeCount = 0;
     const fs: FsPort = {
+      join: (...parts: string[]) => parts.filter(Boolean).join("/"),
       readTextFile: async (path: string) => {
         const v = files.get(path);
         if (v === undefined) throw new Error("ENOENT: " + path);

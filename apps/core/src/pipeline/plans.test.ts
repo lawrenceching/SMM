@@ -8,6 +8,7 @@ import { deletePlan, listPlans, readPlan, rejectPlan, writePlan } from "./plans"
 function inMemoryFs(): FsPort & { raw: Map<string, string> } {
   const files = new Map<string, string>();
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     raw: files,
     readTextFile: vi.fn(async (path: string) => {
       const v = files.get(path);

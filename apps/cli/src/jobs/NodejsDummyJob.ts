@@ -2,18 +2,23 @@ import {
   DummyJob,
   NodejsFsAdapter,
   NoopLoggerAdapter,
+  type AppContext,
   type FsPort,
   type JobOptions,
   type LoggerPort,
+  type NetworkPort,
+  type PlatformPorts,
 } from "@smm/core";
 
 export type NodejsDummyJobOptions = {
-  name: string;
+  id: string;
   logDir: string;
   join?: JobOptions["join"];
   printLogToConsole?: boolean;
   fs?: FsPort;
   logger?: LoggerPort;
+  network?: NetworkPort;
+  context?: Partial<AppContext>;
 };
 
 /**
@@ -22,13 +27,30 @@ export type NodejsDummyJobOptions = {
  */
 export class NodejsDummyJob extends DummyJob {
   constructor(options: NodejsDummyJobOptions) {
-    super({
-      name: options.name,
+    const fs = options.fs ?? new NodejsFsAdapter();
+    const logger = options.logger ?? new NoopLoggerAdapter();
+    const context: AppContext = {
+      appDataDir: "/tmp/smm",
+      userDataDir: "/tmp/smm",
+      osLocale: "en-US",
+      tmpDir: "/tmp",
       logDir: options.logDir,
-      join: options.join ?? ((...parts: string[]) => parts.join("/")),
+      ...options.context,
+    };
+    const ports: PlatformPorts = {
+      fs,
+      network: options.network ?? ({ fetch: async () => {
+        throw new Error("network not configured for NodejsDummyJob");
+      } } satisfies NetworkPort),
+      logger,
+      normalizePosix: (path) => path,
+    };
+    super(context, ports, {
+      id: options.id,
+      logDir: options.logDir,
+      join: options.join ?? ((...parts: string[]) => parts.filter(Boolean).join("/")),
       printLogToConsole: options.printLogToConsole ?? false,
-      fs: options.fs ?? new NodejsFsAdapter(),
-      logger: options.logger ?? new NoopLoggerAdapter(),
+      callbacks: {},
     });
   }
 }

@@ -30,9 +30,11 @@ export interface AppContext {
  * Host-supplied context for {@link Core} construction.
  * Core defaults `userDataDir` → `appDataDir` and leaves `osLocale` unset until hello.
  */
-export type AppContextInput = Omit<AppContext, "userDataDir" | "osLocale"> & {
+export type AppContextInput = Omit<AppContext, "userDataDir" | "osLocale" | "tmpDir" | "logDir"> & {
   userDataDir?: string;
   osLocale?: string;
+  tmpDir?: string;
+  logDir?: string;
 };
 
 /** Platform adapters injected by the host (CLI / Electron / OHOS), including Core-owned helpers. */

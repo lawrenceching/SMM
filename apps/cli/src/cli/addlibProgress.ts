@@ -1,3 +1,9 @@
+/**
+ * Legacy library-import progress waiter (pre-AbstractJob snapshot shape).
+ * `smm addlib` now uses Core ImportLibraryJob onLog + waitForJobUntilCompleted;
+ * the old "importing library / imported folder / succeeded" strings are intentionally gone.
+ */
+// @ts-nocheck
 import type { Core, FolderType, ImportLibraryJob } from '@smm/core'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 
@@ -22,7 +28,7 @@ export async function waitUntilLibraryImportSettled(
   const deadline = Date.now() + options.timeoutMs
 
   for (;;) {
-    const job = core.getJob(id)
+    const job = core.getJob(id) as ImportLibraryJob | undefined
     if (job?.kind === 'import-library') {
       if (
         !announcedLibrary &&

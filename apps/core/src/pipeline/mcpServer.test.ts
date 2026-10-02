@@ -12,6 +12,7 @@ import {
 function inMemoryFs(seed: Record<string, string> = {}): FsPort {
   const files = new Map(Object.entries(seed));
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: vi.fn(async (path: string) => {
       const value = files.get(path);
       if (value === undefined) throw new Error("ENOENT: " + path);

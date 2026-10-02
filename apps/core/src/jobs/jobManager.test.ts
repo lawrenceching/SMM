@@ -1,120 +1,120 @@
-import { describe, expect, it } from "vitest";
-import { JobAbortError } from "./jobAbortError";
+import { describe, expect, it, vi } from "vitest";
+import type { AppContext, PlatformPorts } from "../types";
+import type { FsPort } from "../ports/FsPort";
+import type { LoggerPort } from "../ports/LoggerPort";
+import type { NetworkPort } from "../ports/NetworkPort";
+import { AbstractJob, type JobOptions } from "./abstract-job";
 import { JobManager } from "./jobManager";
 
-function createImport(manager: JobManager) {
-  return manager.create({
-    kind: "import",
-    folderPath: "/m/My.Show",
-    type: "tvshow",
-    status: "running",
-    stage: "persistFolder",
-    progress: 0,
-  });
+class QuickJob extends AbstractJob {
+  constructor(ctx: AppContext, ports: PlatformPorts, options: JobOptions) {
+    super(ctx, ports, options);
+  }
+
+  async run(): Promise<void> {
+    this.setStatus("succeeded");
+  }
+
+  abort(): Promise<void> {
+    return Promise.resolve();
+  }
+}
+
+function createPorts() {
+  const files = new Map<string, string>();
+  const fs = {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
+    readTextFile: vi.fn(async (path: string) => {
+      const text = files.get(path);
+      if (text === undefined) throw new Error(`missing ${path}`);
+      return text;
+    }),
+    writeTextFile: vi.fn(async (path: string, content: string) => {
+      files.set(path, content);
+    }),
+    writeBinaryFile: vi.fn(),
+    exists: vi.fn(async (path: string) => files.has(path)),
+    listFiles: vi.fn(async () => []),
+    listSubdirectories: vi.fn(async () => []),
+    deleteFile: vi.fn(),
+    rename: vi.fn(),
+    mkdir: vi.fn(),
+  } satisfies FsPort;
+  const logger = {
+    info: vi.fn<(obj: unknown, msg: string) => void>(),
+    warn: vi.fn<(obj: unknown, msg: string) => void>(),
+    error: vi.fn<(obj: unknown, msg: string) => void>(),
+  } satisfies LoggerPort;
+  const network = { fetch: vi.fn() } satisfies NetworkPort;
+  const ports: PlatformPorts = {
+    fs,
+    network,
+    logger,
+    normalizePosix: (path) => path,
+  };
+  const context: AppContext = {
+    appDataDir: "/data/smm",
+    userDataDir: "/data/smm",
+    osLocale: "en-US",
+    tmpDir: "/tmp",
+    logDir: "/logs",
+  };
+  return { ports, context, logger };
+}
+
+function jobOptions(id: string): JobOptions {
+  return {
+    id,
+    type: "dummy",
+    logDir: "/logs",
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
+    printLogToConsole: false,
+    callbacks: {},
+  };
 }
 
 describe("JobManager", () => {
-  it("creates a job with id and timestamps", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
+  it("submit stores the job and getJob returns it", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    const job = new QuickJob(context, ports, jobOptions("job-1"));
+    const callback = vi.fn();
 
-    expect(handle.id).toBeTruthy();
-    const stored = manager.get(handle.id);
-    expect(stored?.kind).toBe("import");
-    expect(stored?.kind === "import" && stored.folderPath).toBe("/m/My.Show");
-    expect(stored?.createdAt).toBeGreaterThan(0);
-    expect(stored?.updatedAt).toBeGreaterThanOrEqual(stored!.createdAt);
+    manager.submit(job, callback);
+    expect(manager.getJob("job-1")).toBe(job);
+
+    await manager.waitForJobUntilCompleted("job-1");
+    expect(job.status).toBe("succeeded");
+    expect(callback).toHaveBeenCalledOnce();
   });
 
-  it("update patches fields and bumps updatedAt", async () => {
-    const manager = new JobManager();
-    const handle = manager.create({
-      kind: "import",
-      folderPath: "/m",
-      type: "movie",
-      status: "running",
-      stage: null,
-      progress: 0,
-    });
-    const firstUpdatedAt = manager.get(handle.id)!.updatedAt;
-
-    await new Promise((r) => setTimeout(r, 5));
-    handle.update({ status: "succeeded", stage: null, progress: 100 });
-
-    const updated = manager.get(handle.id);
-    expect(updated?.status).toBe("succeeded");
-    expect(updated?.kind === "import" && updated.progress).toBe(100);
-    expect(updated?.updatedAt).toBeGreaterThan(firstUpdatedAt);
+  it("getJob returns undefined for unknown id", () => {
+    const { ports } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    expect(manager.getJob("missing")).toBeUndefined();
   });
 
-  it("update on unknown id is a no-op", () => {
-    const manager = new JobManager();
-    expect(() => manager.update("nope", { status: "failed" })).not.toThrow();
+  it("waitForJobUntilCompleted throws when job was never submitted", async () => {
+    const { ports } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    await expect(manager.waitForJobUntilCompleted("missing")).rejects.toThrow("Job not found: missing");
   });
 
-  it("get returns a snapshot (mutating it does not affect the store)", () => {
-    const manager = new JobManager();
-    const handle = manager.create({
-      kind: "import",
-      folderPath: "/m",
-      type: "music",
-      status: "running",
-      stage: null,
-      progress: 0,
-    });
-    const snapshot = manager.get(handle.id);
-    snapshot!.status = "failed";
-    expect(manager.get(handle.id)?.status).toBe("running");
+  it("tryAbort forwards to the stored job", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    const job = new QuickJob(context, ports, jobOptions("job-abort"));
+    const tryAbortSpy = vi.spyOn(job, "tryAbort");
+    manager.submit(job, () => {});
+    await manager.waitForJobUntilCompleted("job-abort");
+
+    manager.tryAbort("job-abort");
+    expect(tryAbortSpy).toHaveBeenCalledOnce();
   });
 
-  it("appendLog is readable via getLog and is not on the get() snapshot", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
-    handle.appendLog("info", "persisted folder");
-    const lines = manager.getLog(handle.id);
-    expect(lines).toEqual([
-      expect.objectContaining({ level: "info", message: "persisted folder" }),
-    ]);
-    expect(lines![0]!.ts).toBeGreaterThan(0);
-    expect(manager.get(handle.id) as { logs?: unknown }).not.toHaveProperty("logs");
-  });
-
-  it("getLog returns a copy", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
-    handle.appendLog("info", "a");
-    const lines = manager.getLog(handle.id)!;
-    lines.push({ ts: 1, level: "error", message: "injected" });
-    expect(manager.getLog(handle.id)).toHaveLength(1);
-  });
-
-  it("requestStop then throwIfAborted throws JobAbortError", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
-    handle.requestStop();
-    expect(() => handle.throwIfAborted()).toThrow(JobAbortError);
-  });
-
-  it("throwIfAborted is a no-op before requestStop", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
-    expect(() => handle.throwIfAborted()).not.toThrow();
-  });
-
-  it("ignores appendLog and update after a terminal status", () => {
-    const manager = new JobManager();
-    const handle = createImport(manager);
-    handle.appendLog("info", "before");
-    handle.update({ status: "succeeded", progress: 100 });
-    handle.appendLog("info", "after");
-    handle.update({ status: "failed", error: "nope" });
-    const job = manager.get(handle.id);
-    expect(job?.status).toBe("succeeded");
-    expect(job?.error).toBeUndefined();
-    expect(manager.getLog(handle.id)?.map((l) => l.message)).toEqual(["before"]);
-  });
-
-  it("getLog returns undefined for unknown id", () => {
-    expect(new JobManager().getLog("missing")).toBeUndefined();
+  it("tryAbort on unknown id is a no-op", () => {
+    const { ports } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    expect(() => manager.tryAbort("missing")).not.toThrow();
   });
 });

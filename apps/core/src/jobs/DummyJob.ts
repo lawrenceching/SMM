@@ -1,17 +1,16 @@
+import type { AppContext, PlatformPorts } from "../types";
 import { AbstractJob, type JobOptions } from "./abstract-job";
-import type { JobStatus } from "./types";
 
 export class DummyJob extends AbstractJob {
   override abort(): Promise<void> {
     throw new Error("Method not implemented.");
   }
 
-  override status(): Promise<JobStatus> {
-    throw new Error("Method not implemented.");
-  }
-
-  constructor(options: JobOptions) {
-    super(options);
+  constructor(ctx: AppContext, ports: PlatformPorts, options: Omit<JobOptions, "type"> & { type?: string }) {
+    super(ctx, ports, {
+      ...options,
+      type: options.type ?? "dummy",
+    });
   }
 
   async run(): Promise<void> {

@@ -103,6 +103,9 @@ export abstract class AbstractJob {
     if (this.options.printLogToConsole) {
       this.ports.logger?.info({}, `[${this.id}] ${message}`);
     }
+    if (this.context.logDir.length === 0) {
+      return;
+    }
     try {
       let prev = "";
       if (await this.ports.fs.exists(this.logFilePath)) {

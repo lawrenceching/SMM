@@ -8,6 +8,7 @@ import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
 function inMemoryFs(): FsPort {
   const files = new Map<string, string>();
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: vi.fn(async (path: string) => {
       const v = files.get(path);
       if (v === undefined) throw new Error("ENOENT: " + path);

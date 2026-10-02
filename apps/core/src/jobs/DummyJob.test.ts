@@ -1,12 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AppContext, PlatformPorts } from "../types";
 import type { FsPort } from "../ports/FsPort";
 import type { LoggerPort } from "../ports/LoggerPort";
+import type { NetworkPort } from "../ports/NetworkPort";
 import { DummyJob } from "./DummyJob";
 import type { JobOptions } from "./abstract-job";
 
 function createFsMock() {
   const files = new Map<string, string>();
   const fs = {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: vi.fn(async (path: string) => {
       const text = files.get(path);
       if (text === undefined) throw new Error(`missing ${path}`);
@@ -34,47 +37,46 @@ function createLoggerMock() {
   } satisfies LoggerPort;
 }
 
-function createOptions(
-  overrides: Partial<JobOptions> & {
-    files?: Map<string, string>;
-    /** Convenience: nested into `ports.fs` when `ports` is not fully overridden. */
-    fs?: FsPort;
-    /** Convenience: nested into `ports.logger` when `ports` is not fully overridden. */
-    logger?: LoggerPort;
+function createJob(
+  overrides: {
+    context?: Partial<AppContext>;
+    ports?: Partial<PlatformPorts>;
+    options?: Partial<Omit<JobOptions, "type"> & { type?: string }>;
   } = {},
-): JobOptions & { files?: Map<string, string> } {
-  const { fs: defaultFs, files } = createFsMock();
-  const defaultLogger = createLoggerMock();
-  const {
-    files: _ignored,
-    fs: overrideFs,
-    logger: overrideLogger,
-    ports: overridePorts,
-    context: overrideContext,
-    ...rest
-  } = overrides;
-  const fs = overrideFs ?? overridePorts?.fs ?? defaultFs;
-  const logger = overrideLogger ?? overridePorts?.logger ?? defaultLogger;
-  return {
-    id: "dummy",
+) {
+  const { fs, files } = createFsMock();
+  const logger = createLoggerMock();
+  const network = { fetch: vi.fn() } satisfies NetworkPort;
+  const onLog = vi.fn<(message: string) => void>();
+
+  const context: AppContext = {
+    appDataDir: "/data/smm",
+    userDataDir: "/data/smm",
+    osLocale: "en-US",
+    tmpDir: "/tmp",
     logDir: "/logs",
-    join: (...parts: string[]) => parts.join("/"),
-    printLogToConsole: false,
-    context: overrideContext ?? {
-      appDataDir: "/data/smm",
-      userDataDir: "/data/smm",
-      osLocale: "en-US",
-    },
-    ports: {
-      network: { fetch: vi.fn() },
-      normalizePosix: (path) => path,
-      ...overridePorts,
-      fs,
-      logger,
-    },
-    ...rest,
-    files: overrides.files ?? files,
+    ...overrides.context,
   };
+
+  const ports: PlatformPorts = {
+    fs,
+    network,
+    logger,
+    normalizePosix: (path) => path,
+    ...overrides.ports,
+  };
+
+  const options: Omit<JobOptions, "type"> & { type?: string } = {
+    id: "dummy",
+    logDir: context.logDir,
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
+    printLogToConsole: false,
+    callbacks: { onLog },
+    ...overrides.options,
+  };
+
+  const job = new DummyJob(context, ports, options);
+  return { job, fs, files, logger, onLog, context, ports };
 }
 
 describe("DummyJob", () => {
@@ -86,25 +88,28 @@ describe("DummyJob", () => {
     vi.useRealTimers();
   });
 
-  it("sets name and logFilePath from options", () => {
-    const job = new DummyJob(createOptions({ id: "my-dummy", logDir: "/var/log" }));
+  it("sets id and logFilePath from context.logDir and options.id", () => {
+    const { job } = createJob({
+      context: { logDir: "/var/log" },
+      options: { id: "my-dummy" },
+    });
     expect(job.id).toBe("my-dummy");
+    expect(job.type).toBe("dummy");
     expect(job.logFilePath).toBe("/var/log/my-dummy.log");
   });
 
   it("abort throws Method not implemented", () => {
-    const job = new DummyJob(createOptions());
+    const { job } = createJob();
     expect(() => job.abort()).toThrow("Method not implemented.");
   });
 
-  it("status throws Method not implemented", () => {
-    const job = new DummyJob(createOptions());
-    expect(() => job.status()).toThrow("Method not implemented.");
+  it("status starts as pending", () => {
+    const { job } = createJob();
+    expect(job.status).toBe("pending");
   });
 
   it("run logs waiting messages for 10 iterations with 1s delay", async () => {
-    const { fs, files } = createFsMock();
-    const job = new DummyJob(createOptions({ fs }));
+    const { job, fs, files } = createJob();
 
     const runPromise = job.run();
     await vi.runAllTimersAsync();
@@ -119,8 +124,7 @@ describe("DummyJob", () => {
   });
 
   it("start logs started and completed around run", async () => {
-    const { fs, files } = createFsMock();
-    const job = new DummyJob(createOptions({ id: "dummy", fs }));
+    const { job, files } = createJob({ options: { id: "dummy" } });
 
     const startPromise = job.start();
     await vi.runAllTimersAsync();
@@ -137,14 +141,9 @@ describe("DummyJob", () => {
   });
 
   it("prints log lines to console when printLogToConsole is true", async () => {
-    const logger = createLoggerMock();
-    const job = new DummyJob(
-      createOptions({
-        id: "dummy",
-        printLogToConsole: true,
-        logger,
-      }),
-    );
+    const { job, logger } = createJob({
+      options: { id: "dummy", printLogToConsole: true },
+    });
 
     const startPromise = job.start();
     await vi.runAllTimersAsync();
@@ -156,8 +155,7 @@ describe("DummyJob", () => {
   });
 
   it("skips the log file when logDir is empty", async () => {
-    const { fs } = createFsMock();
-    const job = new DummyJob(createOptions({ fs, logDir: "" }));
+    const { job, fs } = createJob({ context: { logDir: "" } });
 
     await job.log("hello");
 
@@ -165,10 +163,8 @@ describe("DummyJob", () => {
   });
 
   it("warns when writing the log file fails", async () => {
-    const logger = createLoggerMock();
-    const { fs } = createFsMock();
+    const { job, fs, logger } = createJob();
     vi.mocked(fs.exists).mockRejectedValue(new Error("disk full"));
-    const job = new DummyJob(createOptions({ fs, logger }));
 
     await job.log("hello");
 

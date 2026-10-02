@@ -1,11 +1,30 @@
 import type { Hono } from 'hono'
-import type { Job } from '@smm/core'
+import { ScrapeJob, type Job } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
 interface GetJobResponseBody {
-  data?: Job
+  data?: Job | {
+    id: string
+    type: string
+    status: string
+    progress: number
+    logFilePath: string
+  }
   error?: string
+}
+
+function serializeJob(job: NonNullable<ReturnType<ReturnType<typeof getCore>['getJob']>>) {
+  if (job instanceof ScrapeJob) {
+    return job.toJSON()
+  }
+  return {
+    id: job.id,
+    type: job.type,
+    status: job.status,
+    progress: job.progress(),
+    logFilePath: job.logFilePath,
+  }
 }
 
 export function handleGetJob(app: Hono): void {
@@ -30,7 +49,7 @@ export function handleGetJob(app: Hono): void {
         const err: GetJobResponseBody = { error: 'Error Reason: Job not found' }
         return c.json(err, 200)
       }
-      const ok: GetJobResponseBody = { data: job }
+      const ok: GetJobResponseBody = { data: serializeJob(job) }
       return c.json(ok, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/get-job] route error')

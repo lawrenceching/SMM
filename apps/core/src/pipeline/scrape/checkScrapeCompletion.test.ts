@@ -5,6 +5,7 @@ import { checkScrapeCompletion } from "./checkScrapeCompletion";
 
 function createFs(listFiles: string[] | (() => never)): FsPort {
   return {
+    join: (...parts: string[]) => parts.filter(Boolean).join("/"),
     readTextFile: vi.fn(),
     writeTextFile: vi.fn(),
     writeBinaryFile: vi.fn(),
