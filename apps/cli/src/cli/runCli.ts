@@ -1,20 +1,14 @@
 import { Command, CommanderError, Option } from 'commander'
 import { mkdir } from 'node:fs/promises'
 import type { FolderType } from '@smm/core'
-import { isUserConfigKey, NoopLoggerAdapter, ScrapeJob } from '@smm/core'
+import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
-import { formatScrapeJobTaskLines } from './scrapeJobFormat'
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
 import { formatTmdbDetailsTree } from './tmdbDetailsFormat'
 import { formatTvdbSearchResults } from './tvdbSearchFormat'
 import { getLogDir } from '../utils/config'
-import {
-  listPersistedImportJobIds,
-  persistedJobLogLines,
-  readPersistedJobLog,
-} from './persistedJobLog'
 import { add } from './commands/add'
 import { addlib } from './commands/addlib'
 import { hello } from './commands/hello'
@@ -34,6 +28,10 @@ import { planReject } from './commands/planReject'
 import { planShow } from './commands/planShow'
 import { rename } from './commands/rename'
 import { renameEpisodeFile } from './commands/renameEpisodeFile'
+import { jobList } from './commands/jobList'
+import { jobLog } from './commands/jobLog'
+import { jobShow } from './commands/jobShow'
+import { jobStop } from './commands/jobStop'
 import { parseConfigValue, printJson } from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -243,15 +241,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .command('list')
     .description('List import jobs that have a log file')
     .action(async () => {
-      try {
-        const ids = await listPersistedImportJobIds(getLogDir())
-        for (const id of ids) {
-          console.log(id)
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await jobList()
     })
 
   jobCmd
@@ -259,29 +249,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Print job log messages')
     .argument('<jobId>', 'Job id')
     .action(async (jobId: string) => {
-      try {
-        let messages: string[] | undefined
-        try {
-          messages = getCore().getJobLog(jobId).map((line) => line.message)
-        } catch (error) {
-          if (!(error instanceof Error) || error.message !== 'Job not found') throw error
-        }
-        if (messages === undefined) {
-          const text = await readPersistedJobLog(jobId)
-          if (text === null) {
-            console.error(`Job not found: ${jobId}`)
-            exitCode = 1
-            return
-          }
-          messages = persistedJobLogLines(text)
-        }
-        for (const message of messages) {
-          console.log(message)
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await jobLog(jobId)
     })
 
   jobCmd
@@ -289,39 +257,13 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Abort a running import job')
     .argument('<jobId>', 'Job id')
     .action(async (jobId: string) => {
-      try {
-        getCore().stopJob(jobId)
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await jobStop(jobId)
     })
 
   jobCmd
     .argument('<jobId>', 'Job id from scrape or add')
     .action(async (jobId: string) => {
-      try {
-        const job = getCore().getJob(jobId)
-        if (job === undefined) {
-          console.error(`Job not found: ${jobId}`)
-          exitCode = 1
-          return
-        }
-        if (job instanceof ScrapeJob) {
-          for (const line of formatScrapeJobTaskLines(job)) {
-            console.log(line)
-          }
-          return
-        }
-        if (job.type === 'import-library') {
-          printJson(job)
-          return
-        }
-        printJson(job)
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await jobShow(jobId)
     })
 
   const tmdbCmd = program.command('tmdb').description('TMDB helpers')
