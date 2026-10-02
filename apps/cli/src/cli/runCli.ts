@@ -5,9 +5,6 @@ import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
-import { formatTmdbSearchResults } from './tmdbSearchFormat'
-import { formatTmdbDetailsTree } from './tmdbDetailsFormat'
-import { formatTvdbSearchResults } from './tvdbSearchFormat'
 import { getLogDir } from '../utils/config'
 import { add } from './commands/add'
 import { addlib } from './commands/addlib'
@@ -32,6 +29,12 @@ import { jobList } from './commands/jobList'
 import { jobLog } from './commands/jobLog'
 import { jobShow } from './commands/jobShow'
 import { jobStop } from './commands/jobStop'
+import { tmdbMovie } from './commands/tmdbMovie'
+import { tmdbSearch } from './commands/tmdbSearch'
+import { tmdbTv } from './commands/tmdbTv'
+import { tvdbMovie } from './commands/tvdbMovie'
+import { tvdbSearch } from './commands/tvdbSearch'
+import { tvdbTv } from './commands/tvdbTv'
 import { parseConfigValue, printJson } from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -284,111 +287,49 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       '--lang <language>',
       'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
     )
-    .action(
-      async (
-        keyword: string,
-        opts: {
-          type: 'tv' | 'movie'
-          host?: string
-          password?: string
-          proxy?: string
-          lang?: string
-        },
-      ) => {
-        try {
-          const body = await getCore().searchInTmdb(keyword, {
-            type: opts.type,
-            host: opts.host,
-            password: opts.password,
-            proxy: opts.proxy,
-            language: opts.lang,
-          })
-          if (body.error) {
-            console.error(body.error)
-            exitCode = 1
-            return
-          }
-          const text = formatTmdbSearchResults(body, opts.type)
-          if (text) console.log(text)
-        } catch (error) {
-          console.error(error instanceof Error ? error.message : String(error))
-          exitCode = 1
-        }
-      },
+    .action(async (keyword: string, opts: { type: 'tv' | 'movie'; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tmdbSearch(keyword, opts)
+    })
+
+  tmdbCmd
+    .command('tv')
+    .description('Get TMDB TV show details by id')
+    .argument('<tmdbid>', 'TMDB id')
+    .addOption(
+      new Option('-f, --format <fmt>', 'Output format')
+        .choices(['json', 'default'])
+        .default('default'),
     )
+    .option('--host <url>', 'TMDB API base URL (overrides userConfig.tmdb.host)')
+    .option('--password <key>', 'TMDB API key (overrides userConfig.tmdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tmdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
+    )
+    .action(async (tmdbIdRaw: string, opts: { format?: string; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tmdbTv(tmdbIdRaw, opts)
+    })
 
-  function registerTmdbGetCommand(
-    name: 'tv' | 'movie',
-    description: string,
-    fetch: (
-      id: number,
-      options: {
-        language?: string
-        host?: string
-        password?: string
-        proxy?: string
-      },
-    ) => Promise<unknown>,
-  ) {
-    tmdbCmd
-      .command(name)
-      .description(description)
-      .argument('<tmdbid>', 'TMDB id')
-      .addOption(
-        new Option('-f, --format <fmt>', 'Output format')
-          .choices(['json', 'default'])
-          .default('default'),
-      )
-      .option('--host <url>', 'TMDB API base URL (overrides userConfig.tmdb.host)')
-      .option('--password <key>', 'TMDB API key (overrides userConfig.tmdb.apiKey)')
-      .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tmdb.httpProxy)')
-      .option(
-        '--lang <language>',
-        'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
-      )
-      .action(
-        async (
-          tmdbIdRaw: string,
-          opts: {
-            format?: string
-            host?: string
-            password?: string
-            proxy?: string
-            lang?: string
-          },
-        ) => {
-          try {
-            const id = Number(tmdbIdRaw)
-            if (!Number.isInteger(id) || id <= 0) {
-              console.error('id must be a positive integer')
-              exitCode = 1
-              return
-            }
-            const details = await fetch(id, {
-              language: opts.lang,
-              host: opts.host,
-              password: opts.password,
-              proxy: opts.proxy,
-            })
-            if (opts.format === 'json') {
-              printJson(details)
-              return
-            }
-            console.log(formatTmdbDetailsTree(details))
-          } catch (error) {
-            console.error(error instanceof Error ? error.message : String(error))
-            exitCode = 1
-          }
-        },
-      )
-  }
-
-  registerTmdbGetCommand('tv', 'Get TMDB TV show details by id', (id, options) =>
-    getCore().getTvShowInTmdb(id, options),
-  )
-  registerTmdbGetCommand('movie', 'Get TMDB movie details by id', (id, options) =>
-    getCore().getMovieInTmdb(id, options),
-  )
+  tmdbCmd
+    .command('movie')
+    .description('Get TMDB movie details by id')
+    .argument('<tmdbid>', 'TMDB id')
+    .addOption(
+      new Option('-f, --format <fmt>', 'Output format')
+        .choices(['json', 'default'])
+        .default('default'),
+    )
+    .option('--host <url>', 'TMDB API base URL (overrides userConfig.tmdb.host)')
+    .option('--password <key>', 'TMDB API key (overrides userConfig.tmdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tmdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TMDB primary translation IETF tag (static list from /configuration/primary_translations, e.g. zh-CN, en-US, fr-FR); defaults from userConfig then OS locale',
+    )
+    .action(async (tmdbIdRaw: string, opts: { format?: string; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tmdbMovie(tmdbIdRaw, opts)
+    })
 
   const tvdbCmd = program.command('tvdb').description('TVDB helpers')
 
@@ -408,106 +349,49 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       '--lang <language>',
       'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
     )
-    .action(
-      async (
-        keyword: string,
-        opts: {
-          type: 'series' | 'movie'
-          host?: string
-          password?: string
-          proxy?: string
-          lang?: string
-        },
-      ) => {
-        try {
-          const results = await getCore().searchInTvdb(keyword, {
-            type: opts.type,
-            host: opts.host,
-            password: opts.password,
-            proxy: opts.proxy,
-            language: opts.lang,
-          })
-          const text = formatTvdbSearchResults(results, opts.type)
-          if (text) console.log(text)
-        } catch (error) {
-          console.error(error instanceof Error ? error.message : String(error))
-          exitCode = 1
-        }
-      },
+    .action(async (keyword: string, opts: { type: 'series' | 'movie'; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tvdbSearch(keyword, opts)
+    })
+
+  tvdbCmd
+    .command('tv')
+    .description('Get TVDB series details by id (raw API)')
+    .argument('<tvdbid>', 'TVDB id')
+    .addOption(
+      new Option('-f, --format <fmt>', 'Output format')
+        .choices(['json', 'default'])
+        .default('default'),
     )
+    .option('--host <url>', 'TVDB API base URL (overrides userConfig.tvdb.host)')
+    .option('--password <key>', 'TVDB API key (overrides userConfig.tvdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tvdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
+    )
+    .action(async (tvdbIdRaw: string, opts: { format?: string; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tvdbTv(tvdbIdRaw, opts)
+    })
 
-  function registerTvdbGetCommand(
-    name: 'tv' | 'movie',
-    description: string,
-    fetch: (
-      id: number,
-      options: {
-        language?: string
-        host?: string
-        password?: string
-        proxy?: string
-      },
-    ) => Promise<unknown>,
-  ) {
-    tvdbCmd
-      .command(name)
-      .description(description)
-      .argument('<tvdbid>', 'TVDB id')
-      .addOption(
-        new Option('-f, --format <fmt>', 'Output format')
-          .choices(['json', 'default'])
-          .default('default'),
-      )
-      .option('--host <url>', 'TVDB API base URL (overrides userConfig.tvdb.host)')
-      .option('--password <key>', 'TVDB API key (overrides userConfig.tvdb.apiKey)')
-      .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tvdb.httpProxy)')
-      .option(
-        '--lang <language>',
-        'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
-      )
-      .action(
-        async (
-          tvdbIdRaw: string,
-          opts: {
-            format?: string
-            host?: string
-            password?: string
-            proxy?: string
-            lang?: string
-          },
-        ) => {
-          try {
-            const id = Number(tvdbIdRaw)
-            if (!Number.isInteger(id) || id <= 0) {
-              console.error('id must be a positive integer')
-              exitCode = 1
-              return
-            }
-            const details = await fetch(id, {
-              language: opts.lang,
-              host: opts.host,
-              password: opts.password,
-              proxy: opts.proxy,
-            })
-            if (opts.format === 'json') {
-              printJson(details)
-              return
-            }
-            console.log(formatTmdbDetailsTree(details))
-          } catch (error) {
-            console.error(error instanceof Error ? error.message : String(error))
-            exitCode = 1
-          }
-        },
-      )
-  }
-
-  registerTvdbGetCommand('tv', 'Get TVDB series details by id (raw API)', (id, options) =>
-    getCore().getTvdbSeriesById(id, options),
-  )
-  registerTvdbGetCommand('movie', 'Get TVDB movie details by id (raw API)', (id, options) =>
-    getCore().getTvdbMovieById(id, options),
-  )
+  tvdbCmd
+    .command('movie')
+    .description('Get TVDB movie details by id (raw API)')
+    .argument('<tvdbid>', 'TVDB id')
+    .addOption(
+      new Option('-f, --format <fmt>', 'Output format')
+        .choices(['json', 'default'])
+        .default('default'),
+    )
+    .option('--host <url>', 'TVDB API base URL (overrides userConfig.tvdb.host)')
+    .option('--password <key>', 'TVDB API key (overrides userConfig.tvdb.apiKey)')
+    .option('--proxy <url>', 'Outbound HTTP/SOCKS proxy (overrides userConfig.tvdb.httpProxy)')
+    .option(
+      '--lang <language>',
+      'TVDB ISO 639-3 language code (static list, e.g. eng, zho, yue); defaults from userConfig then OS locale',
+    )
+    .action(async (tvdbIdRaw: string, opts: { format?: string; host?: string; password?: string; proxy?: string; lang?: string }) => {
+      exitCode = await tvdbMovie(tvdbIdRaw, opts)
+    })
 
   const configCmd = program.command('config').description('Read or write user config (smm.json)')
 
