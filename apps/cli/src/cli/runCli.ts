@@ -1,19 +1,11 @@
 import { Command, CommanderError, Option } from 'commander'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import type { FolderType } from '@smm/core'
-import type { MediaMetadata } from '@smm/types'
 import { isUserConfigKey, NoopLoggerAdapter, ScrapeJob } from '@smm/core'
 import { getCore } from '../core/getCore'
-import { formatHelloLines } from './helloFormat'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
-import {
-  formatMediaMetadata,
-  formatShowFolder,
-  isFolderImported,
-  resolveShowFolder,
-} from './folderDisplay'
 import { resolvePathUnderMediaFolder } from './resolvePathUnderMediaFolder'
 import {
   classifyRenameTarget,
@@ -37,7 +29,12 @@ import {
 } from './persistedJobLog'
 import { add } from './commands/add'
 import { addlib } from './commands/addlib'
+import { hello } from './commands/hello'
+import { list } from './commands/list'
+import { metadata } from './commands/metadata'
+import { rm } from './commands/rm'
 import { scrape } from './commands/scrape'
+import { show } from './commands/show'
 import {
   parseConfigValue,
   printJson,
@@ -64,36 +61,14 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Print application bootstrap info')
     .option('-f, --format <fmt>', 'Output format (json)')
     .action(async (opts: { format?: string }) => {
-      try {
-        const body = getCore().hello()
-        if (opts.format === 'json') {
-          printJson(body)
-          return
-        }
-        for (const line of formatHelloLines(body)) {
-          console.log(line)
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await hello(opts)
     })
 
   program
     .command('list')
     .description('List imported media folder paths')
     .action(async () => {
-      try {
-        const folders = await getCore().getFolders()
-        for (const folder of folders) {
-          console.log(folder)
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await list()
     })
 
   program
@@ -132,21 +107,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Show imported folder status (UI-aligned)')
     .argument('<folder>', 'Folder path')
     .action(async (folder: string) => {
-      try {
-        const resolved = await resolveShowFolder(folder)
-        if (!resolved.ok) {
-          console.error(resolved.error)
-          exitCode = 1
-          return
-        }
-        for (const line of formatShowFolder(resolved.result)) {
-          console.log(line)
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await show(folder)
     })
 
   program
@@ -155,33 +116,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<folder>', 'Folder path')
     .option('--set <file>', 'Write media metadata from a JSON file')
     .action(async (folder: string, opts: { set?: string }) => {
-      try {
-        if (!(await isFolderImported(folder))) {
-          console.error(`Folder is not imported: ${folder}`)
-          exitCode = 1
-          return
-        }
-        if (opts.set !== undefined) {
-          const raw = await readFile(opts.set, 'utf-8')
-          const mm = JSON.parse(raw) as MediaMetadata
-          await getCore().setMetadata(folder, {
-            type: mm.type,
-            mediaFiles: mm.mediaFiles,
-            tvShow: mm.tvShow,
-            movie: mm.movie,
-          })
-          console.log(`updated metadata for ${folder}`)
-          return
-        }
-        const mm = await getCore().getMetadata(folder)
-        for (const line of formatMediaMetadata(folder, mm)) {
-          console.log(line)
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await metadata(folder, opts)
     })
 
   program
@@ -189,19 +124,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Unimport a media folder (remove from config and delete metadata cache)')
     .argument('<folder>', 'Folder path to unimport')
     .action(async (folder: string) => {
-      try {
-        if (!(await isFolderImported(folder))) {
-          console.error(`Folder is not imported: ${folder}`)
-          exitCode = 1
-          return
-        }
-        await getCore().unimportFolder(folder)
-        console.log(`Removed ${folder}`)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await rm(folder)
     })
 
   program
