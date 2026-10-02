@@ -14,11 +14,6 @@ import {
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
 import { formatTmdbDetailsTree } from './tmdbDetailsFormat'
 import { formatTvdbSearchResults } from './tvdbSearchFormat'
-import {
-  formatPlanDetailLines,
-  formatPlanListLine,
-  planFileCount,
-} from './planFormat'
 import { Path } from '@smm/utils/path'
 import { getLogDir } from '../utils/config'
 import {
@@ -37,6 +32,12 @@ import { scrape } from './commands/scrape'
 import { show } from './commands/show'
 import { tryToRecognize } from './commands/tryToRecognize'
 import { tryToRename } from './commands/tryToRename'
+import { apply } from './commands/apply'
+import { reject } from './commands/reject'
+import { planApply } from './commands/planApply'
+import { planList } from './commands/planList'
+import { planReject } from './commands/planReject'
+import { planShow } from './commands/planShow'
 import { parseConfigValue, printJson } from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -153,33 +154,12 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
       exitCode = await tryToRename(folder, opts)
     })
 
-  const applyPlanById = async (planId: string): Promise<void> => {
-    try {
-      const plan = await getCore().getPlan(planId)
-      await getCore().applyPlan(plan)
-      console.log(`applied ${plan.id} (${planFileCount(plan)} file(s))`)
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      exitCode = 1
-    }
-  }
-
-  const rejectPlanById = async (planId: string): Promise<void> => {
-    try {
-      const plan = await getCore().rejectPlan(planId)
-      console.log(`rejected ${plan.id}`)
-    } catch (error) {
-      console.error(error instanceof Error ? error.message : String(error))
-      exitCode = 1
-    }
-  }
-
   program
     .command('apply')
     .description('Apply a pending plan by id (recognize-media-file or rename-files)')
     .argument('<planId>', 'Plan id from try-to-recognize or try-to-rename')
     .action(async (planId: string) => {
-      await applyPlanById(planId)
+      exitCode = await apply(planId)
     })
 
   program
@@ -187,7 +167,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Reject a plan by id (keeps plan file with status rejected)')
     .argument('<planId>', 'Plan id')
     .action(async (planId: string) => {
-      await rejectPlanById(planId)
+      exitCode = await reject(planId)
     })
 
   const planCmd = program.command('plan').description('List, show, apply, or reject plans')
@@ -199,22 +179,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('-a, --all', 'Include rejected plans')
     .option('-f, --format <fmt>', 'Output format (json)')
     .action(async (folder: string | undefined, opts: { all?: boolean; format?: string }) => {
-      try {
-        const plans = await getCore().listPlans({
-          mediaFolderPath: folder,
-          all: Boolean(opts.all),
-        })
-        if (opts.format === 'json') {
-          printJson({ plans })
-          return
-        }
-        for (const plan of plans) {
-          console.log(formatPlanListLine(plan))
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await planList(folder, opts)
     })
 
   planCmd
@@ -223,19 +188,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<planId>', 'Plan id')
     .option('-f, --format <fmt>', 'Output format (json)')
     .action(async (planId: string, opts: { format?: string }) => {
-      try {
-        const plan = await getCore().getPlan(planId)
-        if (opts.format === 'json') {
-          printJson({ plan })
-          return
-        }
-        for (const line of formatPlanDetailLines(plan)) {
-          console.log(line)
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await planShow(planId, opts)
     })
 
   planCmd
@@ -243,7 +196,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Apply a pending plan by id (alias of smm apply)')
     .argument('<planId>', 'Plan id')
     .action(async (planId: string) => {
-      await applyPlanById(planId)
+      exitCode = await planApply(planId)
     })
 
   planCmd
@@ -251,7 +204,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Reject a plan by id (alias of smm reject)')
     .argument('<planId>', 'Plan id')
     .action(async (planId: string) => {
-      await rejectPlanById(planId)
+      exitCode = await planReject(planId)
     })
 
   program
