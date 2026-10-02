@@ -20,7 +20,6 @@ import {
   planFileCount,
 } from './planFormat'
 import { Path } from '@smm/utils/path'
-import { confirmRecognizeCandidate } from './recognizeConfirm'
 import { getLogDir } from '../utils/config'
 import {
   listPersistedImportJobIds,
@@ -32,14 +31,13 @@ import { addlib } from './commands/addlib'
 import { hello } from './commands/hello'
 import { list } from './commands/list'
 import { metadata } from './commands/metadata'
+import { recognize } from './commands/recognize'
 import { rm } from './commands/rm'
 import { scrape } from './commands/scrape'
 import { show } from './commands/show'
-import {
-  parseConfigValue,
-  printJson,
-  resolveRenameRule,
-} from './commands/shared'
+import { tryToRecognize } from './commands/tryToRecognize'
+import { tryToRename } from './commands/tryToRename'
+import { parseConfigValue, printJson } from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
 
@@ -135,35 +133,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('--id <id>', 'TMDB or TVDB id')
     .option('-y, --yes', 'Accept auto-recognition candidate without prompting')
     .action(async (folder: string, opts: { db?: string; id?: string; yes?: boolean }) => {
-      try {
-        const hasDb = opts.db !== undefined
-        const hasId = opts.id !== undefined
-        if (hasDb !== hasId) {
-          console.error('--db and --id must be provided together')
-          exitCode = 1
-          return
-        }
-        const core = getCore()
-        if (hasDb && hasId) {
-          await core.recognizeFolder(folder, {
-            db: opts.db as 'tmdb' | 'tvdb',
-            id: opts.id!,
-          })
-          console.log('Metadata is updated')
-          return
-        }
-        const candidate = await core.tryToRecognizeFolder(folder)
-        const accepted = await confirmRecognizeCandidate(candidate, { yes: Boolean(opts.yes) })
-        if (!accepted) {
-          console.log('Cancelled')
-          return
-        }
-        await core.recognizeFolder(folder, { db: candidate.db, id: candidate.id })
-        console.log('Metadata is updated')
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await recognize(folder, opts)
     })
 
   program
@@ -171,25 +141,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Build a pending recognize-media-file plan for a TV show folder')
     .argument('<folder>', 'Imported media folder path')
     .action(async (folder: string) => {
-      try {
-        const plan = await getCore().tryToRecognizeEpisodes(folder)
-        console.log(`plan: ${plan.id}`)
-        console.log(`task: ${plan.task}`)
-        console.log(`status: ${plan.status}`)
-        console.log(`folder: ${plan.mediaFolderPath}`)
-        console.log('files:')
-        if (plan.files.length === 0) {
-          console.log('  (none)')
-        } else {
-          for (const f of plan.files) {
-            const ep = `S${String(f.season).padStart(2, '0')}E${String(f.episode).padStart(2, '0')}`
-            console.log(`  ${ep}  ${f.path}`)
-          }
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await tryToRecognize(folder)
     })
 
   program
@@ -198,25 +150,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<folder>', 'Imported media folder path')
     .option('--rule <rule>', 'Naming rule: plex | emby', 'plex')
     .action(async (folder: string, opts: { rule: string }) => {
-      try {
-        const rule = resolveRenameRule(opts.rule)
-        const plan = await getCore().tryToRenameFolder(folder, rule)
-        console.log(`plan: ${plan.id}`)
-        console.log(`task: ${plan.task}`)
-        console.log(`status: ${plan.status}`)
-        console.log(`folder: ${plan.mediaFolderPath}`)
-        console.log('files:')
-        if (plan.files.length === 0) {
-          console.log('  (none)')
-        } else {
-          for (const f of plan.files) {
-            console.log(`  ${f.from} → ${f.to}`)
-          }
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await tryToRename(folder, opts)
     })
 
   const applyPlanById = async (planId: string): Promise<void> => {
