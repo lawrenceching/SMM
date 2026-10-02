@@ -46,6 +46,10 @@ export async function add(folder: string, options: AddOptions): Promise<number> 
       return 1
     }
     await core.waitForJobUntilCompleted(id)
+    if (job.status !== 'succeeded') {
+      console.error(`Import folder failed with status ${job.status}`)
+      return 1
+    }
     return 0
   } catch (error) {
     console.error('Unknown error during import folder: ' + inspect(error))

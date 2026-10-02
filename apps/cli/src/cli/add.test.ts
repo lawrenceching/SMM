@@ -3,15 +3,14 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { Path } from '@smm/utils/path'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('smm add', () => {
   let userDataDir: string
   let mediaFolder: string
   let prevUserDataDir: string | undefined
-  let logSpy: MockInstance<(...args: any[]) => void>
-  let errorSpy: MockInstance<(...args: any[]) => void>
+  let logSpy: MockInstance<(...args: unknown[]) => void>
+  let errorSpy: MockInstance<(...args: unknown[]) => void>
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR
@@ -67,26 +66,23 @@ describe('smm add', () => {
 
   it('treats --type anime as tvshow', async () => {
     const { Core } = await import('@smm/core')
-    const importFolder = vi
-      .spyOn(Core.prototype, 'importFolder')
-      .mockResolvedValue({ id: 'job-1' })
-    vi.spyOn(Core.prototype, 'getJob').mockReturnValue({
-      kind: 'import',
-      id: 'job-1',
-      folderPath: mediaFolder,
-      type: 'tvshow',
-      status: 'succeeded',
-      stage: null,
-      progress: 100,
-      createdAt: 0,
-      updatedAt: 0,
-    })
+    const job = { status: 'succeeded' as const }
+    const importFolder = vi.spyOn(Core.prototype, 'importFolder').mockResolvedValue({ id: 'job-1' })
+    vi.spyOn(Core.prototype, 'getJob').mockReturnValue(job as never)
+    vi.spyOn(Core.prototype, 'waitForJobUntilCompleted').mockResolvedValue(undefined)
 
     const { runCli } = await import('./runCli')
     const code = await runCli(['node', 'smm', 'add', mediaFolder, '--type', 'anime'])
 
     expect(code).toBe(0)
-    expect(importFolder).toHaveBeenCalledWith(mediaFolder, 'tvshow')
+    expect(importFolder).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: mediaFolder,
+        type: 'tvshow',
+        skipInit: false,
+        callbacks: expect.objectContaining({ onLog: expect.any(Function) }),
+      }),
+    )
   })
 
   it('prints necessary logs by default', async () => {
@@ -97,12 +93,13 @@ describe('smm add', () => {
 
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(true)
-    expect(lines).toContain(`Started to import folder: ${Path.posix(mediaFolder)}, type: music`)
+    expect(lines.some((l) => l.includes('Started to import folder:') && l.includes('type: music'))).toBe(
+      true,
+    )
     expect(lines).toContain('Completed')
-    expect(lines.some((l) => l === 'succeeded')).toBe(true)
     expect(lines.some((l) => l.includes('importFolder: stage='))).toBe(false)
     expect(lines.some((l) => l.includes('"folderPath"'))).toBe(false)
+    expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(false)
   })
 
   it('prints detailed logs with --verbose', async () => {
@@ -115,12 +112,14 @@ describe('smm add', () => {
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
     expect(lines.some((l) => l.includes('importFolder: stage=persistFolder'))).toBe(true)
     expect(lines.some((l) => l.includes('folderPath'))).toBe(true)
-    expect(lines.some((l) => l === 'succeeded')).toBe(true)
+    expect(lines).toContain('Completed')
   })
 
-  it('with --skip-init only registers the folder and prints imported folder', async () => {
+  it('with --skip-init only registers the folder and prints job log lines', async () => {
+    writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
+
     const { runCli } = await import('./runCli')
-    const code = await runCli(['node', 'smm', 'add', mediaFolder, '--type', 'tvshow', '--skip-init'])
+    const code = await runCli(['node', 'smm', 'add', mediaFolder, '--type', 'music', '--skip-init'])
 
     expect(code).toBe(0)
     const config = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as {
@@ -128,12 +127,10 @@ describe('smm add', () => {
     }
     expect(config.folders).toContain(mediaFolder)
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines).toEqual([
-      `Started to import folder: ${Path.posix(mediaFolder)}, type: tvshow`,
-      'Completed',
-      `imported folder ${mediaFolder}`,
-    ])
-    expect(lines.some((l) => l === 'succeeded')).toBe(false)
-    expect(lines.some((l) => l.includes('recognizing'))).toBe(false)
+    expect(lines.some((l) => l.includes('Started to import folder:') && l.includes('type: music'))).toBe(
+      true,
+    )
+    expect(lines).toContain('Completed')
+    expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(false)
   })
 })

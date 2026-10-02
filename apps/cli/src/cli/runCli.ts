@@ -1,15 +1,13 @@
 import { Command, CommanderError, Option } from 'commander'
 import { mkdir, readFile } from 'node:fs/promises'
-import type { FolderType, RenameRuleName } from '@smm/core'
+import type { FolderType } from '@smm/core'
 import type { MediaMetadata } from '@smm/types'
-import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
+import { isUserConfigKey, NoopLoggerAdapter, ScrapeJob } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { formatHelloLines } from './helloFormat'
 import { createAddProgressState, emitAddProgress } from './addProgress'
-import { waitUntilLibraryImportSettled } from './addlibProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
-import { waitUntilScrapeSettled } from './waitScrapeJob'
 import {
   formatMediaMetadata,
   formatShowFolder,
@@ -37,43 +35,18 @@ import {
   persistedJobLogLines,
   readPersistedJobLog,
 } from './persistedJobLog'
-import { Tail } from 'tail'
 import { add } from './commands/add'
+import { addlib } from './commands/addlib'
+import { scrape } from './commands/scrape'
+import {
+  parseConfigValue,
+  printJson,
+  resolveRenameRule,
+} from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
 
-function resolveFolderType(value: string): FolderType {
-  if (value === 'anime') return 'tvshow'
-  if ((FOLDER_TYPES as readonly string[]).includes(value)) {
-    return value as FolderType
-  }
-  throw new Error(`Invalid folder type: ${value}`)
-}
-
-const RENAME_RULES: readonly RenameRuleName[] = ['plex', 'emby']
-
-function resolveRenameRule(value: string): RenameRuleName {
-  if ((RENAME_RULES as readonly string[]).includes(value)) {
-    return value as RenameRuleName
-  }
-  throw new Error(`Unsupported rename rule: ${value}`)
-}
-
-/** Parse CLI value as JSON when possible; otherwise keep the raw string. */
-function parseConfigValue(raw: string): unknown {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return raw
-  }
-}
-
-function printJson(value: unknown): void {
-  console.log(JSON.stringify(value, null, 2))
-}
-
 const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
-const SCRAPE_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
  * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
@@ -151,36 +124,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('-v, --verbose', 'Print detailed logs')
     .option('--skip-init', 'Only register subfolders in UserConfig; skip recognition and metadata')
     .action(async (library: string, opts: { type: string; verbose?: boolean; skipInit?: boolean }) => {
-      try {
-        const type = resolveFolderType(opts.type)
-        const verbose = Boolean(opts.verbose)
-        const skipInit = Boolean(opts.skipInit)
-        const core = getCore({
-          logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
-        })
-        const { id } = core.importLibrary(library, type, skipInit ? { skipInit: true } : undefined)
-        const job = await waitUntilLibraryImportSettled(core, id, {
-          libraryPath: library,
-          type,
-          timeoutMs: IMPORT_WAIT_TIMEOUT_MS,
-          progress: !skipInit,
-          skipInit,
-        })
-        if (job.status !== 'succeeded') {
-          console.error(job.error ?? `Import library failed with status ${job.status}`)
-          exitCode = 1
-          return
-        }
-        if (skipInit) {
-          for (const task of job.tasks) {
-            console.log(`imported folder ${task.path}`)
-          }
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await addlib(library, opts)
     })
 
   program
@@ -459,28 +403,9 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<folder>', 'Imported media folder path')
     .option('--language <language>', 'TMDB language code (defaults to user config preferMediaLanguage)')
     .option('--wait', 'Wait until scrape finishes and print per-task status icons')
-    .action(async (folder: string, opts: { language?: string; wait?: boolean }) => {
-      try {
-        const core = getCore()
-        const { id } = await core.scrapeFolder(folder, {
-          language: opts.language,
-        })
-        console.log(id)
-        if (!opts.wait) return
-
-        const job = await waitUntilScrapeSettled(core, id, {
-          timeoutMs: SCRAPE_WAIT_TIMEOUT_MS,
-        })
-        for (const line of formatScrapeJobTaskLines(job)) {
-          console.log(line)
-        }
-        if (job.status !== 'succeeded') {
-          exitCode = 1
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(async (folder: string, opts: { language?: string; wait?: boolean; verbose?: boolean }) => {
+      exitCode = await scrape(folder, opts)
     })
 
   program
@@ -610,13 +535,13 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           exitCode = 1
           return
         }
-        if (job.kind === 'scrape') {
+        if (job instanceof ScrapeJob) {
           for (const line of formatScrapeJobTaskLines(job)) {
             console.log(line)
           }
           return
         }
-        if (job.kind === 'import-library') {
+        if (job.type === 'import-library') {
           printJson(job)
           return
         }
