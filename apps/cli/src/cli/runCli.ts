@@ -1,11 +1,5 @@
 import { Command, CommanderError, Option } from 'commander'
-import { mkdir } from 'node:fs/promises'
 import type { FolderType } from '@smm/core'
-import { isUserConfigKey, NoopLoggerAdapter } from '@smm/core'
-import { getCore } from '../core/getCore'
-import { createAddProgressState, emitAddProgress } from './addProgress'
-import { CliLoggerAdapter } from './cliLogger'
-import { getLogDir } from '../utils/config'
 import { add } from './commands/add'
 import { addlib } from './commands/addlib'
 import { hello } from './commands/hello'
@@ -35,11 +29,13 @@ import { tmdbTv } from './commands/tmdbTv'
 import { tvdbMovie } from './commands/tvdbMovie'
 import { tvdbSearch } from './commands/tvdbSearch'
 import { tvdbTv } from './commands/tvdbTv'
-import { parseConfigValue, printJson } from './commands/shared'
+import { configList } from './commands/configList'
+import { configGet } from './commands/configGet'
+import { configSet } from './commands/configSet'
+import { mcpStart } from './commands/mcpStart'
+
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
-
-const IMPORT_WAIT_TIMEOUT_MS = 5 * 60 * 1000
 
 /**
  * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
@@ -399,13 +395,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .command('list')
     .description('Print the full user config as JSON')
     .action(async () => {
-      try {
-        printJson(await getCore().getUserConfig())
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await configList()
     })
 
   configCmd
@@ -413,19 +403,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .description('Print one config value as JSON')
     .argument('<key>', 'Config key')
     .action(async (key: string) => {
-      try {
-        if (!isUserConfigKey(key)) {
-          console.error(`Unknown config key: ${key}`)
-          exitCode = 1
-          return
-        }
-        const config = await getCore().getUserConfig()
-        printJson(config[key] ?? null)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await configGet(key)
     })
 
   configCmd
@@ -434,19 +412,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<key>', 'Config key')
     .argument('<value>', 'Config value')
     .action(async (key: string, value: string) => {
-      try {
-        if (!isUserConfigKey(key)) {
-          console.error(`Unknown config key: ${key}`)
-          exitCode = 1
-          return
-        }
-        const updated = await getCore().setUserConfigKey(key, parseConfigValue(value))
-        printJson(updated[key] ?? null)
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        console.error(message)
-        exitCode = 1
-      }
+      exitCode = await configSet(key, value)
     })
 
   const mcpCmd = program.command('mcp').description('MCP server management')
@@ -457,53 +423,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('--host <host>', 'MCP server bind host (default: user config mcpHost or 127.0.0.1)')
     .option('-p, --port <port>', 'MCP server port (default: user config mcpPort or 30001)')
     .action(async (opts: { host?: string; port?: string }) => {
-      // Lazy imports: pulling in the MCP lifecycle manager (and thus
-      // `@smm/core-routes`) at module load breaks vitest's CLI unit tests
-      // which don't alias `@smm/utils/path`.
-      const { getAppDataDir, getLogDir, getUserDataDir } = await import('@/utils/config')
-
-      await mkdir(getUserDataDir(), { recursive: true })
-      await mkdir(getAppDataDir(), { recursive: true })
-      await mkdir(getLogDir(), { recursive: true })
-
-      const core = getCore()
-      const state = await core.startMcpServer(
-        {
-          hostname: opts.host,
-          port: opts.port ? Number(opts.port) : undefined,
-        },
-        { persistUserConfig: true },
-      )
-      if (state.status !== 'running' || !state.url) {
-        throw new Error(state.error ?? 'MCP server failed to start')
-      }
-      console.log(
-        `MCP server started at ${state.url} using protocol is Streamable HTTP`,
-      )
-
-      // Keep the process alive until interrupted, then stop the server gracefully.
-      await new Promise<void>((resolve) => {
-        let stopping = false
-        const shutdown = async () => {
-          if (stopping) {
-            return
-          }
-          stopping = true
-          try {
-            await core.stopMcpServer({ persistUserConfig: true })
-          } finally {
-            resolve()
-          }
-        }
-        const onSignal = () => {
-          void shutdown()
-        }
-        process.once('SIGINT', onSignal)
-        process.once('SIGTERM', onSignal)
-        if (process.platform === 'win32') {
-          process.once('SIGBREAK', onSignal)
-        }
-      })
+      exitCode = await mcpStart(opts)
     })
 
   try {
