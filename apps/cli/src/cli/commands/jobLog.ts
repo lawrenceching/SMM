@@ -5,7 +5,8 @@ export async function jobLog(jobId: string): Promise<number> {
   try {
     let messages: string[] | undefined
     try {
-      messages = getCore().getJobLog(jobId).map((line) => line.message)
+      const text = await getCore().getJobLog(jobId)
+      messages = persistedJobLogLines(text)
     } catch (error) {
       if (!(error instanceof Error) || error.message !== 'Job not found') throw error
     }

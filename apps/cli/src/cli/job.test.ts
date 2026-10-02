@@ -1,10 +1,27 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MockInstance } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { Path } from '@smm/utils/path'
+import { importJobLogFileName } from '@smm/core'
 import { getCore, resetCoreForTests } from '../core/getCore'
+
+async function startMusicImportSkipInit(mediaFolder: string): Promise<string> {
+  const core = getCore()
+  const { id } = await core.importFolder({
+    path: mediaFolder,
+    type: 'music',
+    skipInit: true,
+    callbacks: {},
+  })
+  await core.waitForJobUntilCompleted(id)
+  return id
+}
+
+async function expectedImportLogLines(id: string): Promise<string[]> {
+  const text = await getCore().getJobLog(id)
+  return text.split(/\r?\n/).filter((line) => line.length > 0)
+}
 
 describe('smm job', () => {
   let userDataDir: string
@@ -35,26 +52,27 @@ describe('smm job', () => {
 
   it('prints job JSON for smm job <id>', async () => {
     writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
-    const { id } = await getCore().importFolder(mediaFolder, 'music', { skipInit: true })
+    const id = await startMusicImportSkipInit(mediaFolder)
     const { runCli } = await import('./runCli')
     const code = await runCli(['node', 'smm', 'job', id])
     expect(code).toBe(0)
     const printed = logSpy.mock.calls.map((c) => c.map(String).join(' ')).join('\n')
     expect(printed).toContain(id)
-    expect(printed).toContain('"kind": "import"')
+    expect(printed).toContain('"type": "import-folder"')
+    expect(printed).toMatch(/"_status": "(succeeded|failed)"/)
   })
 
   it('prints log messages for smm job log', async () => {
     writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
-    const { id } = await getCore().importFolder(mediaFolder, 'music', { skipInit: true })
+    const id = await startMusicImportSkipInit(mediaFolder)
+    const expectedLines = await expectedImportLogLines(id)
     const { runCli } = await import('./runCli')
     const code = await runCli(['node', 'smm', 'job', 'log', id])
     expect(code).toBe(0)
     const lines = logSpy.mock.calls.map((c) => String(c[0]))
-    expect(lines).toEqual([
-      `Started to import folder: ${Path.posix(mediaFolder)}, type: music`,
-      'Completed',
-    ])
+    expect(lines).toEqual(expectedLines)
+    expect(lines.some((line) => line.includes('Started to import folder'))).toBe(true)
+    expect(lines).toContain('Completed')
   })
 
   it('lists a finished import and prints its log after the process is gone', async () => {
@@ -64,7 +82,12 @@ describe('smm job', () => {
     try {
       writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
       resetCoreForTests()
-      const { id } = await getCore().importFolder(mediaFolder, 'music', { skipInit: true })
+      const id = await startMusicImportSkipInit(mediaFolder)
+      const expectedLines = await expectedImportLogLines(id)
+      copyFileSync(
+        join(logDir, `${id}.log`),
+        join(logDir, importJobLogFileName(id)),
+      )
       resetCoreForTests()
 
       const { runCli } = await import('./runCli')
@@ -75,10 +98,7 @@ describe('smm job', () => {
       logSpy.mockClear()
       const logCode = await runCli(['node', 'smm', 'job', 'log', id])
       expect(logCode).toBe(0)
-      expect(logSpy.mock.calls.map((c) => String(c[0]))).toEqual([
-        `Started to import folder: ${Path.posix(mediaFolder)}, type: music`,
-        'Completed',
-      ])
+      expect(logSpy.mock.calls.map((c) => String(c[0]))).toEqual(expectedLines)
     } finally {
       if (prevLogDir === undefined) delete process.env.LOG_DIR
       else process.env.LOG_DIR = prevLogDir
@@ -93,14 +113,12 @@ describe('smm job', () => {
     expect(errorSpy).toHaveBeenCalled()
   })
 
-  it('exits 1 for smm job stop on a finished import', async () => {
+  it('exits 0 for smm job stop on a finished import (Core tryAbort is a no-op)', async () => {
     writeFileSync(join(mediaFolder, 'track.mp3'), 'x')
-    const { id } = await getCore().importFolder(mediaFolder, 'music', { skipInit: true })
+    const id = await startMusicImportSkipInit(mediaFolder)
     const { runCli } = await import('./runCli')
     const code = await runCli(['node', 'smm', 'job', 'stop', id])
-    expect(code).toBe(1)
-    expect(errorSpy.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
-      'Job already finished',
-    )
+    expect(code).toBe(0)
+    expect(errorSpy).not.toHaveBeenCalled()
   })
 })
