@@ -6,15 +6,9 @@ import { getCore } from '../core/getCore'
 import { createAddProgressState, emitAddProgress } from './addProgress'
 import { CliLoggerAdapter } from './cliLogger'
 import { formatScrapeJobTaskLines } from './scrapeJobFormat'
-import { resolvePathUnderMediaFolder } from './resolvePathUnderMediaFolder'
-import {
-  classifyRenameTarget,
-  printEpisodeRenameResult,
-} from './renameDispatch'
 import { formatTmdbSearchResults } from './tmdbSearchFormat'
 import { formatTmdbDetailsTree } from './tmdbDetailsFormat'
 import { formatTvdbSearchResults } from './tvdbSearchFormat'
-import { Path } from '@smm/utils/path'
 import { getLogDir } from '../utils/config'
 import {
   listPersistedImportJobIds,
@@ -38,6 +32,8 @@ import { planApply } from './commands/planApply'
 import { planList } from './commands/planList'
 import { planReject } from './commands/planReject'
 import { planShow } from './commands/planShow'
+import { rename } from './commands/rename'
+import { renameEpisodeFile } from './commands/renameEpisodeFile'
 import { parseConfigValue, printJson } from './commands/shared'
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
@@ -226,27 +222,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .argument('<from>', 'Absolute path of media folder or episode file')
     .argument('<to>', 'Absolute target path')
     .action(async (from: string, to: string) => {
-      try {
-        const core = getCore()
-        const folders = await core.getFolders()
-        const classified = await classifyRenameTarget(from, folders)
-        if (classified.kind === 'folder') {
-          await core.renameFolder({ from, to })
-          console.log(`${Path.posix(from)} → ${Path.posix(to)}`)
-          return
-        }
-        const result = await core.renameEpisodeFile({
-          mediaFolderPath: classified.mediaFolderPath,
-          from,
-          to,
-        })
-        if (printEpisodeRenameResult(result)) {
-          exitCode = 1
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await rename(from, to)
     })
 
   program
@@ -258,21 +234,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .requiredOption('--from <path>', 'Current episode file path (absolute or relative to folder)')
     .requiredOption('--to <path>', 'Target episode file path (absolute or relative to folder)')
     .action(async (folder: string, opts: { from: string; to: string }) => {
-      try {
-        const from = resolvePathUnderMediaFolder(folder, opts.from)
-        const to = resolvePathUnderMediaFolder(folder, opts.to)
-        const result = await getCore().renameEpisodeFile({
-          mediaFolderPath: folder,
-          from,
-          to,
-        })
-        if (printEpisodeRenameResult(result)) {
-          exitCode = 1
-        }
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : String(error))
-        exitCode = 1
-      }
+      exitCode = await renameEpisodeFile(folder, opts)
     })
 
   const jobCmd = program.command('job').description('Show job status, print log, or stop a job')
