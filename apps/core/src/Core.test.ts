@@ -9,6 +9,7 @@ import type { HttpResponse, NetworkPort } from "./ports/NetworkPort";
 import { NoopLoggerAdapter } from "./adapters/ConsoleLoggerAdapter";
 import { NodejsFsAdapter } from "./adapters/node/NodejsFsAdapter";
 import { Core } from "./Core";
+import { ScrapeJob } from "./jobs/ScrapeJob";
 import {
   IMPORT_FOLDER_COMPLETED,
   importJobLogPosixPath,
@@ -1868,6 +1869,7 @@ describe("scrapeFolder", () => {
     return {
       binaryFiles,
       textFiles,
+      join: (...parts: string[]) => parts.filter(Boolean).join("/"),
       readTextFile: vi.fn(async (path: string) => {
         const v = textFiles.get(path);
         if (v === undefined) throw new Error("ENOENT: " + path);
@@ -1958,11 +1960,11 @@ describe("scrapeFolder", () => {
     });
   }
 
-  async function waitForScrapeJob(core: Core, id: string, timeoutMs = 5_000) {
+  async function waitForScrapeJob(core: Core, id: string, timeoutMs = 5_000): Promise<ScrapeJob> {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       const job = core.getJob(id);
-      if (job && job.kind === "scrape" && job.status !== "pending" && job.status !== "running") {
+      if (job instanceof ScrapeJob && job.status !== "pending" && job.status !== "running") {
         return job;
       }
       if (Date.now() > deadline) throw new Error(`Timed out waiting for scrape job ${id}`);
@@ -1984,11 +1986,11 @@ describe("scrapeFolder", () => {
     },
   });
 
-    const { id } = await core.scrapeFolder("/m/Show");
+    const { id } = await core.scrapeFolder({ path: "/m/Show", callbacks: {} });
     expect(id).toBeTruthy();
 
     const job = await waitForScrapeJob(core, id);
-    expect(job.kind).toBe("scrape");
+    expect(job.type).toBe("scrape");
     expect(job.folderPath).toBe("/m/Show");
     expect(job.status).toBe("succeeded");
     expect(job.tasks.poster).toEqual({ status: "completed" });
@@ -2010,7 +2012,7 @@ describe("scrapeFolder", () => {
     },
   });
 
-    const { id } = await core.scrapeFolder("/m/Show");
+    const { id } = await core.scrapeFolder({ path: "/m/Show", callbacks: {} });
     const job = await waitForScrapeJob(core, id);
 
     expect(job.tasks.poster).toEqual({ status: "skipped" });
@@ -2032,7 +2034,9 @@ describe("scrapeFolder", () => {
       network: scrapeNetwork(new Uint8Array([1])),
     },
   });
-    await expect(core.scrapeFolder("/m/Other")).rejects.toThrow(/not managed by SMM/);
+    await expect(core.scrapeFolder({ path: "/m/Other", callbacks: {} })).rejects.toThrow(
+      /not managed by SMM/,
+    );
   });
 
   it("rejects non-TMDB/TVDB metadata before creating a job", async () => {
@@ -2052,7 +2056,9 @@ describe("scrapeFolder", () => {
       network: scrapeNetwork(new Uint8Array([1])),
     },
   });
-    await expect(core.scrapeFolder("/m/Show")).rejects.toThrow(/Unsupported media database/);
+    await expect(core.scrapeFolder({ path: "/m/Show", callbacks: {} })).rejects.toThrow(
+      /Unsupported media database/,
+    );
   });
 });
 

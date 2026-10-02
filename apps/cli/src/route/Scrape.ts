@@ -26,10 +26,11 @@ export function handleScrape(app: Hono): void {
         typeof rec.language === 'string' && rec.language.trim() !== ''
           ? rec.language
           : undefined
-      const { id } = await getCore().scrapeFolder(
+      const { id } = await getCore().scrapeFolder({
         path,
-        language !== undefined ? { language } : undefined,
-      )
+        language,
+        callbacks: {},
+      })
       const ok: ScrapeResponseBody = { data: { id } }
       return c.json(ok, 200)
     } catch (error) {

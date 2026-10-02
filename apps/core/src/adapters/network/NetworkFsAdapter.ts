@@ -1,5 +1,6 @@
 import type { FsPort } from "../../ports/FsPort";
 import type { NetworkPort } from "../../ports/NetworkPort";
+import { joinPosix } from "../../pipeline/paths";
 
 export interface NetworkFsAdapterOptions {
   network: NetworkPort;
@@ -14,6 +15,10 @@ export interface NetworkFsAdapterOptions {
  */
 export class NetworkFsAdapter implements FsPort {
   constructor(private readonly options: NetworkFsAdapterOptions) {}
+
+  join(...parts: string[]): string {
+    return joinPosix(...parts.filter(Boolean));
+  }
 
   private async post<T>(path: string, body: Record<string, unknown>): Promise<T> {
     const resp = await this.options.network.fetch(`${this.options.baseUrl}${path}`, {

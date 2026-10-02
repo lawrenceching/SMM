@@ -1,4 +1,4 @@
-import type { ScrapeJob, ScrapeTaskRuntimeStatus } from '@smm/core'
+import type { ScrapeJobTask, ScrapeTaskId, ScrapeTaskRuntimeStatus } from '@smm/core'
 
 /** CLI display order; Core task id `thumbnails` is shown as `thumbnail`. */
 const SCRAPE_TASK_LINES = [
@@ -21,7 +21,9 @@ export function scrapeStatusIcon(status: ScrapeTaskRuntimeStatus): string {
 }
 
 /** Four lines: `poster ✓` … `nfo ○` */
-export function formatScrapeJobTaskLines(job: ScrapeJob): string[] {
+export function formatScrapeJobTaskLines(job: {
+  tasks: Record<ScrapeTaskId, ScrapeJobTask>
+}): string[] {
   return SCRAPE_TASK_LINES.map(({ taskId, label }) => {
     const task = job.tasks[taskId]
     return `${label} ${scrapeStatusIcon(task.status)}`

@@ -33,7 +33,12 @@ async function processScrapeTool(
         path: validationResult.data.path,
         language: validationResult.data.language,
       },
-      (path, options) => getCore().scrapeFolder(path, options),
+      (path, options) =>
+        getCore().scrapeFolder({
+          path,
+          language: options?.language,
+          callbacks: {},
+        }),
     )
 
     if (result.error) {

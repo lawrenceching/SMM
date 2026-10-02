@@ -5,23 +5,26 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { handleScrape } from './Scrape'
 import { handleGetJob } from './GetJob'
-import { handleImportFolder } from './ImportFolder'
 import { getCore, resetCoreForTests } from '../core/getCore'
 import { Path } from '@smm/utils/path'
 import type { MediaMetadata } from '@smm/types'
 
 describe('POST /api/scrape', () => {
   let userDataDir: string
+  let appDataDir: string
   let prevUserDataDir: string | undefined
+  let prevAppDataDir: string | undefined
   let app: Hono
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR
+    prevAppDataDir = process.env.APP_DATA_DIR
     userDataDir = mkdtempSync(join(tmpdir(), 'smm-scrape-route-'))
+    appDataDir = mkdtempSync(join(tmpdir(), 'smm-scrape-route-app-'))
     process.env.USER_DATA_DIR = userDataDir
+    process.env.APP_DATA_DIR = appDataDir
     resetCoreForTests()
     app = new Hono()
-    handleImportFolder(app)
     handleScrape(app)
     handleGetJob(app)
   })
@@ -30,7 +33,10 @@ describe('POST /api/scrape', () => {
     resetCoreForTests()
     if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
     else process.env.USER_DATA_DIR = prevUserDataDir
+    if (prevAppDataDir === undefined) delete process.env.APP_DATA_DIR
+    else process.env.APP_DATA_DIR = prevAppDataDir
     rmSync(userDataDir, { recursive: true, force: true })
+    rmSync(appDataDir, { recursive: true, force: true })
   })
 
   async function postScrape(body: unknown) {
@@ -58,31 +64,6 @@ describe('POST /api/scrape', () => {
 
   it('returns a scrape job id and get-job includes kind scrape', async () => {
     const folderPath = join(userDataDir, 'show')
-    const imported = await app.request('/api/import-folder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: folderPath, type: 'tvshow', skipInit: true }),
-    })
-    expect(imported.status).toBe(200)
-    const importJson = (await imported.json()) as { data?: { id: string }; error?: string }
-    expect(importJson.error).toBeUndefined()
-
-    const importJobId = importJson.data!.id
-    const deadline = Date.now() + 2000
-    let importStatus: string | undefined
-    while (Date.now() < deadline) {
-      const jobRes = await app.request('/api/get-job', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: importJobId }),
-      })
-      const jobJson = (await jobRes.json()) as { data?: { status: string } }
-      importStatus = jobJson.data?.status
-      if (importStatus === 'succeeded' || importStatus === 'failed') break
-      await new Promise((r) => setTimeout(r, 20))
-    }
-    expect(importStatus).toBe('succeeded')
-
     const posixPath = Path.posix(folderPath)
     const metadata: MediaMetadata = {
       type: 'tvshow-folder',
@@ -95,11 +76,8 @@ describe('POST /api/scrape', () => {
         seasons: [],
       },
     }
-    await getCore().setMetadata(posixPath, {
-      type: metadata.type,
-      mediaFiles: metadata.mediaFiles,
-      tvShow: metadata.tvShow,
-    })
+    await getCore().setUserConfigKey('folders', [posixPath])
+    await getCore().createMetadata(metadata)
 
     const res = await postScrape({ path: folderPath })
     expect(res.status).toBe(200)

@@ -1,4 +1,4 @@
-import type { Core, ScrapeJob } from '@smm/core'
+import { ScrapeJob, type Core } from '@smm/core'
 
 const DEFAULT_POLL_MS = 20
 
@@ -12,7 +12,7 @@ export async function waitUntilScrapeSettled(
 
   for (;;) {
     const job = core.getJob(id)
-    if (job?.kind === 'scrape') {
+    if (job instanceof ScrapeJob) {
       if (job.status !== 'pending' && job.status !== 'running') {
         return job
       }

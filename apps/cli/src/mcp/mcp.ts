@@ -144,7 +144,12 @@ async function buildMcpConfig(): Promise<McpConfig> {
     renameEpisodeFile: (input) => getCore().renameEpisodeFile(input),
     applyRenameEpisodePlan: (plan) => getCore().applyPlan(plan),
     applyRecognizeEpisodePlan: (plan) => getCore().applyPlan(plan),
-    scrapeFolder: (path, options) => getCore().scrapeFolder(path, options),
+    scrapeFolder: (path, options) =>
+      getCore().scrapeFolder({
+        path,
+        language: options?.language,
+        callbacks: {},
+      }),
     getJob: (id) => getCore().getJob(id),
     searchInTmdb: (keyword, options) => getCore().searchInTmdb(keyword, options),
     getMovieInTmdb: (id, options) => getCore().getMovieInTmdb(id, options),

@@ -2,12 +2,9 @@ import { Path } from "@smm/utils/path";
 import type { MediaMetadata } from "@smm/types";
 import { TmdbClient } from "../../clients/TmdbClient";
 import { TvdbClient } from "../../clients/TvdbClient";
-import type { DiscoverPort } from "../../ports/DiscoverPort";
-import type { FsPort } from "../../ports/FsPort";
-import type { NetworkPort } from "../../ports/NetworkPort";
-import type { HostPerformanceStore } from "../../clients/hostPerformance";
+import type { AppContext, PlatformPorts } from "../../types";
 import { metadataCachePath } from "../paths";
-import type { UserConfigHelper } from "../userConfigHelper";
+import { UserConfigHelper } from "../userConfigHelper";
 import type { UserConfig as UserConfigData } from "@smm/types";
 import { checkScrapeCompletion } from "./checkScrapeCompletion";
 import { scrapeFanartTmdb } from "./scrapeFanartTmdb";
@@ -20,17 +17,6 @@ import type { ScrapeFolderResult, ScrapeTaskId, ScrapeTaskResult } from "./types
 export interface ScrapeFolderOptions {
   /** Defaults to userConfig.preferMediaLanguage */
   language?: string;
-}
-
-export interface ScrapeFolderDeps {
-  fs: FsPort;
-  network: NetworkPort;
-  appDataDir: string;
-  userConfig: UserConfigHelper;
-  normalizePosix: (path: string) => string;
-  discover?: DiscoverPort;
-  reverseProxyUrl?: string | null;
-  hostPerformance?: HostPerformanceStore;
 }
 
 export interface ScrapeFolderProgress {
@@ -70,23 +56,25 @@ export interface PreparedScrape {
 export async function prepareScrapeFolder(
   path: string,
   options: ScrapeFolderOptions | undefined,
-  deps: ScrapeFolderDeps,
+  context: AppContext,
+  ports: PlatformPorts,
 ): Promise<PreparedScrape> {
-  const posixPath = deps.normalizePosix(path);
+  const posixPath = ports.normalizePosix(path);
+  const userConfig = new UserConfigHelper(ports.fs, context.userDataDir);
 
-  const config = await deps.userConfig.read();
+  const config = await userConfig.read();
   if (!isManaged(config.folders ?? [], path)) {
     throw new Error(`${posixPath} is not managed by SMM`);
   }
 
-  const cachePath = metadataCachePath(deps.appDataDir, posixPath);
-  if (!(await deps.fs.exists(cachePath))) {
+  const cachePath = metadataCachePath(context.appDataDir, posixPath);
+  if (!(await ports.fs.exists(cachePath))) {
     throw new Error(`Media metadata not found: ${path}`);
   }
 
   let mediaMetadata: MediaMetadata;
   try {
-    mediaMetadata = JSON.parse(await deps.fs.readTextFile(cachePath)) as MediaMetadata;
+    mediaMetadata = JSON.parse(await ports.fs.readTextFile(cachePath)) as MediaMetadata;
   } catch {
     throw new Error(`Media metadata not found: ${path}`);
   }
@@ -119,46 +107,48 @@ export async function prepareScrapeFolder(
 export async function scrapeFolderPipeline(
   path: string,
   options: ScrapeFolderOptions | undefined,
-  deps: ScrapeFolderDeps,
+  context: AppContext,
+  ports: PlatformPorts,
   progress?: ScrapeFolderProgress,
 ): Promise<ScrapeFolderResult> {
-  const prepared = await prepareScrapeFolder(path, options, deps);
-  return runPreparedScrape(prepared, deps, progress);
+  const prepared = await prepareScrapeFolder(path, options, context, ports);
+  return runPreparedScrape(prepared, context, ports, progress);
 }
 
 export async function runPreparedScrape(
   prepared: PreparedScrape,
-  deps: ScrapeFolderDeps,
+  context: AppContext,
+  ports: PlatformPorts,
   progress?: ScrapeFolderProgress,
 ): Promise<ScrapeFolderResult> {
   const { posixPath, language, config, mediaMetadata } = prepared;
 
-  const tmdb = new TmdbClient(deps.network, {
+  const tmdb = new TmdbClient(ports.network, {
     ...config.tmdb,
-    discover: deps.discover,
-    reverseProxyUrl: deps.reverseProxyUrl,
-    hostPerformance: deps.hostPerformance,
+    discover: ports.discover,
+    reverseProxyUrl: context.reverseProxyUrl,
+    hostPerformance: ports.hostPerformance,
   });
-  const tvdb = new TvdbClient(deps.network, {
+  const tvdb = new TvdbClient(ports.network, {
     ...config.tvdb,
-    discover: deps.discover,
-    reverseProxyUrl: deps.reverseProxyUrl,
-    hostPerformance: deps.hostPerformance,
+    discover: ports.discover,
+    reverseProxyUrl: context.reverseProxyUrl,
+    hostPerformance: ports.hostPerformance,
   });
 
-  const completion = await checkScrapeCompletion(mediaMetadata, deps.fs);
+  const completion = await checkScrapeCompletion(mediaMetadata, ports.fs);
 
   const taskDeps: ScrapeTaskDeps = {
-    fs: deps.fs,
-    network: deps.network,
+    fs: ports.fs,
+    network: ports.network,
     tmdb,
     tvdb,
     mediaMetadata,
     language,
     userConfig: config,
-    reverseProxyUrl: deps.reverseProxyUrl ?? undefined,
-    discover: deps.discover,
-    hostPerformance: deps.hostPerformance,
+    reverseProxyUrl: context.reverseProxyUrl ?? undefined,
+    discover: ports.discover,
+    hostPerformance: ports.hostPerformance,
   };
 
   const tasks = {} as Record<ScrapeTaskId, ScrapeTaskResult>;

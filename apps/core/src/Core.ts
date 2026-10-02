@@ -51,6 +51,9 @@ import {
 import { speedTestHosts } from "./clients/hostSpeedTest";
 import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 import { ImportFolderJob } from "./jobs/ImportFolderJob";
+import { ImportLibraryJob } from "./jobs/ImportLibraryJob";
+import { ScrapeJob } from "./jobs/ScrapeJob";
+import { nextJobId } from "./jobs/jobManager";
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { dedupLibraryFolders, prepareLibraryFoldersForImport, createImportLibraryTasks, patchImportLibraryTask, importLibraryJobProgress } from "./pipeline/importLibrary";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
@@ -86,9 +89,6 @@ import {
 import { tryToRenameFolderPipeline } from "./pipeline/tryToRenameFolder";
 import {
   prepareScrapeFolder,
-  runPreparedScrape,
-  type PreparedScrape,
-  type ScrapeFolderDeps,
   type ScrapeFolderOptions,
 } from "./pipeline/scrape/scrapeFolder";
 import type { ScrapeFolderResult } from "./pipeline/scrape/types";
@@ -100,8 +100,8 @@ import { MetadataAlreadyExistsError, MetadataNotFoundError } from "./pipeline/me
 import { applyMetadataPatch, type MetadataPatch } from "./pipeline/setMetadataPatch";
 import { JobManager } from "./jobs/jobManager";
 import type { JobHandle } from "./jobs/jobHandle";
-import { AbstractJob, initialScrapeTasks, type Callbacks, type Job, type JobLogLine } from "./jobs/types";
-import type { AppContextInput, PlatformPortsInput } from "./types";
+import type { AbstractJob, Callbacks } from "./jobs/abstract-job";
+import type { AppContext, AppContextInput, PlatformPorts, PlatformPortsInput } from "./types";
 
 export interface TmdbRequestOptions {
   /** TMDB language (CLI `--lang`). Validated offline against static primary_translations. */
@@ -328,61 +328,86 @@ export class Core {
    * once it completed; stages 2 and 3 continue in the background. Stage 1 failures are
    * reported on the job, never thrown. See docs/dev/import-folder.md.
    */
-  async importFolder(
+  async importFolder(options: {    
     path: string,
     type: FolderType,
+    skipInit: boolean,
     callbacks: Callbacks
-  ): Promise<ImportFolderHandle> {
+  }): Promise<ImportFolderHandle> {
 
-    const job = new ImportFolderJob({
-      id: Date.now().toString(),
+    const ctx: AppContext = {
+      appDataDir: this.getMetadataRoot(),
+      userDataDir: this.userDataDir,
+      osLocale: this.osLocale ?? "",
+      tmpDir: this.tmpDir ?? "",
       logDir: this.logDir ?? "",
-      join: (dir, file) => (dir ? new Path(Path.posix(dir)).join(file).abs("posix") : file),
+    };
+    const ports: PlatformPorts = {
+      fs: this.fs,
+      network: this.network,
+      logger: this.logger,
+      normalizePosix: (p) => this.normalizePosix(p),
+      discover: this.discover,
+      hostPerformance: this.hostPerformance,
+    };
+    const job = new ImportFolderJob(ctx, ports, {
+      id: Date.now().toString(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
       printLogToConsole: false,
-      folderPath: path,
-      type,
-      userConfig: this.userConfig,
-      mediaMetadata: this.mediaMetadata,
-      context: {
-        appDataDir: this.getMetadataRoot(),
-        userDataDir: this.userDataDir,
-        osLocale: this.osLocale ?? "",
-      },
-      ports: {
-        fs: this.fs,
-        network: this.network,
-        logger: this.logger,
-        normalizePosix: (p) => this.normalizePosix(p),
-        discover: this.discover,
-        hostPerformance: this.hostPerformance,
-      },
+      folderPath: options.path,
+      skipInit: options.skipInit,
+      type: options.type,
       onMediaMetadataUpdated: (folderPath) => {
         this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
       },
-      callbacks,
+      callbacks: options.callbacks,
     });
 
     this.jobManager.submit(job, () => {});
     return { id: job.id };
   }
 
-  /** Imports every immediate subfolder of a library directory via {@link importFolder}. */
-  importLibrary(path: string, type: FolderType, options?: ImportLibraryOptions): ImportLibraryHandle {
-    // const libraryPath = this.normalizePosix(path);
-    // const job = this.jobManager.create({
-    //   kind: "import-library",
-    //   libraryPath,
-    //   type,
-    //   status: "pending",
-    //   progress: 0,
-    //   tasks: [],
-    // });
-    // void this.runImportLibrary(job, path, type, options?.skipInit === true);
-    // this.logger.info(
-    //   { jobId: job.id, libraryPath, type, skipInit: options?.skipInit === true },
-    //   "importLibrary: job created",
-    // );
-    // return { id: job.id };
+  /** Imports every immediate subfolder of a library directory via {@link ImportLibraryJob}. */
+  async importLibrary(options: {
+    path: string;
+    type: FolderType;
+    skipInit: boolean;
+    concurrency?: number;
+    callbacks: Callbacks;
+  }): Promise<ImportLibraryHandle> {
+    const ctx: AppContext = {
+      appDataDir: this.getMetadataRoot(),
+      userDataDir: this.userDataDir,
+      osLocale: this.osLocale ?? "",
+      tmpDir: this.tmpDir ?? "",
+      logDir: this.logDir ?? "",
+    };
+    const ports: PlatformPorts = {
+      fs: this.fs,
+      network: this.network,
+      logger: this.logger,
+      normalizePosix: (p) => this.normalizePosix(p),
+      discover: this.discover,
+      hostPerformance: this.hostPerformance,
+    };
+    const job = new ImportLibraryJob(ctx, ports, {
+      id: Date.now().toString(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      libraryPath: options.path,
+      type: options.type,
+      skipInit: options.skipInit,
+      concurrency: options.concurrency ?? 1,
+      onMediaMetadataUpdated: (folderPath) => {
+        this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
+      },
+      callbacks: options.callbacks,
+    });
+
+    this.jobManager.submit(job, () => {});
+    return { id: job.id };
   }
 
   getJob(id: string): AbstractJob | undefined {
@@ -611,17 +636,48 @@ export class Core {
     );
   }
 
-  async scrapeFolder(path: string, options?: ScrapeFolderOptions): Promise<ScrapeFolderHandle> {
-    // const scrapeDeps = this.createScrapeDeps();
-    // const prepared = await prepareScrapeFolder(path, options, scrapeDeps);
-    // const job = this.jobManager.create({
-    //   kind: "scrape",
-    //   folderPath: prepared.posixPath,
-    //   status: "running",
-    //   tasks: initialScrapeTasks(),
-    // });
-    // void this.runScrape(job.id, prepared, scrapeDeps);
-    // return { id: job.id };
+  /**
+   * Validates the folder, then runs poster / fanart / thumbnail / NFO scrape in the background.
+   * Validation failures are thrown before a job is created.
+   */
+  async scrapeFolder(options: {
+    path: string;
+    language?: string;
+    callbacks: Callbacks;
+  }): Promise<ScrapeFolderHandle> {
+    const ctx: AppContext = {
+      appDataDir: this.getMetadataRoot(),
+      userDataDir: this.userDataDir,
+      osLocale: this.osLocale ?? "",
+      tmpDir: this.tmpDir ?? "",
+      logDir: this.logDir ?? "",
+      reverseProxyUrl: this.reverseProxyUrl,
+    };
+    const ports: PlatformPorts = {
+      fs: this.fs,
+      network: this.network,
+      logger: this.logger,
+      normalizePosix: (p) => this.normalizePosix(p),
+      discover: this.discover,
+      hostPerformance: this.hostPerformance,
+    };
+    const prepared = await prepareScrapeFolder(
+      options.path,
+      options.language !== undefined ? { language: options.language } : undefined,
+      ctx,
+      ports,
+    );
+    const job = new ScrapeJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      folderPath: prepared.posixPath,
+      prepared,
+      callbacks: options.callbacks,
+    });
+    this.jobManager.submit(job, () => {});
+    return { id: job.id };
   }
 
   /**
@@ -824,59 +880,6 @@ export class Core {
     await this.mediaMetadata.write(mm);
   }
 
-  private createScrapeDeps(): ScrapeFolderDeps {
-    return {
-      fs: this.fs,
-      network: this.network,
-      appDataDir: this.getMetadataRoot(),
-      userConfig: this.userConfig,
-      normalizePosix: (p: string) => this.normalizePosix(p),
-      discover: this.discover,
-      reverseProxyUrl: this.reverseProxyUrl,
-      hostPerformance: this.hostPerformance,
-    };
-  }
-
-  private async runScrape(
-    jobId: string,
-    prepared: PreparedScrape,
-    deps: ScrapeFolderDeps,
-  ): Promise<void> {
-    try {
-      await runPreparedScrape(prepared, deps, {
-        onTaskStart: (taskId) => {
-          const current = this.jobManager.get(jobId);
-          if (current?.kind !== "scrape") return;
-          this.jobManager.update(jobId, {
-            tasks: { ...current.tasks, [taskId]: { status: "running" } },
-          });
-        },
-        onTaskDone: (taskId, result) => {
-          const current = this.jobManager.get(jobId);
-          if (current?.kind !== "scrape") return;
-          this.jobManager.update(jobId, {
-            tasks: {
-              ...current.tasks,
-              [taskId]: {
-                status: result.status,
-                ...(result.error !== undefined ? { error: result.error } : {}),
-              },
-            },
-          });
-        },
-      });
-      const finalJob = this.jobManager.get(jobId);
-      if (finalJob?.kind !== "scrape") return;
-      const anyFailed = Object.values(finalJob.tasks).some((t) => t.status === "failed");
-      this.jobManager.update(jobId, { status: anyFailed ? "failed" : "succeeded" });
-    } catch (error) {
-      this.jobManager.update(jobId, {
-        status: "failed",
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
   private async runImportLibrary(
     job: JobHandle,
     libraryPath: string,
@@ -884,110 +887,15 @@ export class Core {
     skipInit: boolean,
   ): Promise<void> {
     try {
-      if (!(await this.fs.exists(libraryPath))) {
-        throw new Error(`Library path not found: ${libraryPath}`);
+      const job = new ImportLibraryJob(job, libraryPath, type, skipInit);
+      this.jobManager.submit(job);
+      return {
+        id: job.id,
       }
-      const subdirs = await this.fs.listSubdirectories(libraryPath);
-      const existing = await this.getFolders();
-      const toImport = dedupLibraryFolders(subdirs, existing);
-      const tasks = createImportLibraryTasks(job.id, toImport);
-      this.jobManager.update(job.id, { tasks });
-      this.logger.info(
-        { jobId: job.id, libraryPath, folderCount: toImport.length, folderPaths: toImport },
-        "importLibrary: folders discovered",
-      );
-
-      await prepareLibraryFoldersForImport(toImport, type, {
-        writeBlankMetadata: (metadata) => this.mediaMetadata.write(metadata),
-        upsertFolders: async (folders) => {
-          await this.userConfig.update((config) => ({
-            ...config,
-            folders: [...new Set([...config.folders, ...folders])],
-          }));
-        },
-      });
-      this.logger.info(
-        { jobId: job.id, folderCount: toImport.length },
-        "importLibrary: folder registration complete (metadata + UserConfig)",
-      );
-
-      if (skipInit) {
-        const succeededTasks = tasks.map((task) => ({
-          ...task,
-          status: "succeeded" as const,
-          importJobId: undefined,
-        }));
-        this.jobManager.update(job.id, {
-          status: "succeeded",
-          progress: 100,
-          tasks: succeededTasks,
-        });
-        return;
-      }
-
-      this.jobManager.update(job.id, { status: "running" });
-      let currentTasks = tasks;
-
-      for (const task of tasks) {
-        currentTasks = patchImportLibraryTask(currentTasks, task.id, {
-          status: "running",
-        });
-        this.jobManager.update(job.id, {
-          tasks: currentTasks,
-          progress: importLibraryJobProgress(currentTasks),
-        });
-
-        const { id: childId } = await this.importFolder(task.path, type);
-        currentTasks = patchImportLibraryTask(currentTasks, task.id, { importJobId: childId });
-        this.jobManager.update(job.id, { tasks: currentTasks });
-
-        await this.waitForImportJob(childId);
-        const childJob = this.jobManager.get(childId);
-        if (
-          childJob?.kind === "import" &&
-          (childJob.status === "failed" || childJob.status === "aborted")
-        ) {
-          currentTasks = patchImportLibraryTask(currentTasks, task.id, {
-            status: "failed",
-            importJobId: undefined,
-          });
-          this.jobManager.update(job.id, { tasks: currentTasks });
-          throw new Error(childJob.error ?? `Failed to import folder: ${task.path}`);
-        }
-
-        currentTasks = patchImportLibraryTask(currentTasks, task.id, {
-          status: "succeeded",
-          importJobId: undefined,
-        });
-        this.jobManager.update(job.id, {
-          tasks: currentTasks,
-          progress: importLibraryJobProgress(currentTasks),
-        });
-      }
-
-      this.jobManager.update(job.id, {
-        status: "succeeded",
-        progress: 100,
-        tasks: currentTasks,
-      });
-      this.logger.info({ jobId: job.id, taskCount: tasks.length }, "importLibrary: job succeeded");
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error({ jobId: job.id, libraryPath, error: message }, "importLibrary: job failed");
-      this.jobManager.update(job.id, {
-        status: "failed",
-        error: message,
-      });
+      this.logger.error(`Failed to run import library: ${error}`);
+      throw error;
     }
   }
 
-  private async waitForImportJob(id: string): Promise<void> {
-    // for (;;) {
-    //   const job = this.jobManager.get(id);
-    //   if (job?.kind === "import" && job.status !== "pending" && job.status !== "running") {
-    //     return;
-    //   }
-    //   await new Promise((resolve) => setTimeout(resolve, 20));
-    // }
-  }
 }

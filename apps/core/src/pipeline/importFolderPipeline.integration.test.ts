@@ -8,8 +8,6 @@ import {
   persistNewFolder,
   type FolderInitializationDeps,
 } from "./importFolderPipeline";
-import { MediaMetadataHelper } from "./mediaMetadataHelper";
-import { UserConfigHelper } from "./userConfigHelper";
 import { metadataCachePath } from "./paths";
 
 function jsonResponse(body: unknown): HttpResponse {
@@ -74,8 +72,6 @@ describe("folder initialization integration", () => {
       },
     };
 
-    const userConfig = new UserConfigHelper(fs, appDataDir);
-    const mediaMetadata = new MediaMetadataHelper(fs, appDataDir);
     const deps: FolderInitializationDeps = {
       fs,
       network,
@@ -85,8 +81,19 @@ describe("folder initialization integration", () => {
       normalizePosix: (path) => Path.posix(path),
       logger: new NoopLoggerAdapter(),
     };
+    const ctx = {
+      appDataDir,
+      userDataDir: appDataDir,
+      osLocale: "en-US",
+    };
+    const ports = {
+      fs: deps.fs,
+      network: deps.network,
+      logger: deps.logger,
+      normalizePosix: deps.normalizePosix,
+    };
 
-    await persistNewFolder("/m/My Film", "movie", { userConfig, mediaMetadata });
+    await persistNewFolder("/m/My Film", "movie", ctx, ports);
     await initializeFolder("/m/My Film", "movie", deps);
 
     const cached = JSON.parse(

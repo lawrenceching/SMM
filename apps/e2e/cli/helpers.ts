@@ -52,6 +52,12 @@ async function resolveAppDataDir(binary: string): Promise<string> {
     return appDataDir
 }
 
+/** Read `userDataDir/smm.json` as parsed JSON. */
+export async function readUserConfig(binary: string): Promise<any> {
+    const { userDataDir } = await runCliHello(binary)
+    return JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8'))
+}
+
 export async function planFilePath(binary: string, planId: string): Promise<string> {
     const dataDir = await resolveAppDataDir(binary)
     const filename = `${planId}.plan.json`

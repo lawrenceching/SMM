@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FsPort } from "../ports/FsPort";
 import type { LoggerPort } from "../ports/LoggerPort";
 import { DummyJob } from "./DummyJob";
-import type { JobOptions } from "./types";
+import type { JobOptions } from "./abstract-job";
 
 function createFsMock() {
   const files = new Map<string, string>();

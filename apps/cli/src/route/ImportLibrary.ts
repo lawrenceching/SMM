@@ -45,7 +45,12 @@ export function handleImportLibrary(app: Hono): void {
         return c.json(err, 200)
       }
       const skipInit = rec.skipInit === true
-      const { id } = getCore().importLibrary(path, type, skipInit ? { skipInit: true } : undefined)
+      const { id } = await getCore().importLibrary({
+        path,
+        type,
+        skipInit,
+        callbacks: {},
+      })
       logger.info(
         { path, type, skipInit, jobId: id },
         '[POST /api/import-library] Core importLibrary started',

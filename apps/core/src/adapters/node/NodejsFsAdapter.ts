@@ -2,12 +2,17 @@ import { promises as fsp } from "node:fs";
 import { dirname, join } from "node:path";
 import { Path } from "@smm/utils/path";
 import type { FsPort } from "../../ports/FsPort";
+import { joinPosix } from "../../pipeline/paths";
 
 /**
  * Node host adapter. Core passes POSIX paths; this adapter converts to the
  * host's platform format before touching node:fs. Node hosts only.
  */
 export class NodejsFsAdapter implements FsPort {
+  join(...parts: string[]): string {
+    return joinPosix(...parts.filter(Boolean));
+  }
+
   async readTextFile(path: string): Promise<string> {
     return fsp.readFile(Path.toPlatformPath(path), "utf-8");
   }

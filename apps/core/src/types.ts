@@ -19,9 +19,9 @@ export interface AppContext {
   /** Hello appDataDir; may differ from smm.json root on Linux. */
   reportedAppDataDir?: string;
   /** Tmp dir for hello bootstrap. */
-  tmpDir?: string;
+  tmpDir: string;
   /** Log dir for hello bootstrap / job logs. */
-  logDir?: string;
+  logDir: string;
   /** Process platform for hello bootstrap. */
   platform?: string;
 }

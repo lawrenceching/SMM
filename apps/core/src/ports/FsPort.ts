@@ -1,5 +1,6 @@
 /** Runtime-agnostic file system. Paths are POSIX. Adapters convert at the boundary. */
 export interface FsPort {
+  join: (...args: string[]) => string;
   readTextFile(path: string): Promise<string>;
   writeTextFile(path: string, content: string): Promise<void>;
   /** Write raw bytes; parent directories are created if needed. Paths are POSIX. */

@@ -1,12 +1,13 @@
-import { AbstractJob, type JobOptions, type JobStatus } from "./types";
+import { AbstractJob, type JobOptions } from "./abstract-job";
+import type { JobStatus } from "./types";
 
 export class DummyJob extends AbstractJob {
-
   override abort(): Promise<void> {
-      throw new Error("Method not implemented.");
+    throw new Error("Method not implemented.");
   }
+
   override status(): Promise<JobStatus> {
-      throw new Error("Method not implemented.");
+    throw new Error("Method not implemented.");
   }
 
   constructor(options: JobOptions) {
@@ -14,10 +15,9 @@ export class DummyJob extends AbstractJob {
   }
 
   async run(): Promise<void> {
-    for(let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) {
       await this.log(`waiting : ${i}`);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
-
 }

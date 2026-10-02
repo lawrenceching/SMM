@@ -13,8 +13,6 @@ import {
   persistNewFolder,
   type FolderInitializationDeps,
 } from "./importFolderPipeline";
-import { MediaMetadataHelper } from "./mediaMetadataHelper";
-import { UserConfigHelper } from "./userConfigHelper";
 import { userConfigPath, metadataCachePath } from "./paths";
 import { recognizeMediaFolder } from "./recognizeMediaFolder";
 const mockRecognizeMediaFolder = recognizeMediaFolder as ReturnType<typeof vi.fn>;
@@ -55,8 +53,6 @@ function inMemoryFs(seed: Record<string, string> = {}): FsPort {
 function makeDeps(seed: Record<string, string> = {}) {
   const appDataDir = "/data/smm";
   const fs = inMemoryFs(seed);
-  const userConfig = new UserConfigHelper(fs, appDataDir);
-  const mediaMetadata = new MediaMetadataHelper(fs, appDataDir);
   const deps: FolderInitializationDeps = {
     fs,
     network: { fetch: vi.fn() },
@@ -66,7 +62,18 @@ function makeDeps(seed: Record<string, string> = {}) {
     normalizePosix: (path) => Path.posix(path),
     logger: new NoopLoggerAdapter(),
   };
-  return { fs, appDataDir, deps, userConfig, mediaMetadata };
+  const ctx = {
+    appDataDir,
+    userDataDir: appDataDir,
+    osLocale: "en-US",
+  };
+  const ports = {
+    fs: deps.fs,
+    network: deps.network,
+    logger: deps.logger,
+    normalizePosix: deps.normalizePosix,
+  };
+  return { fs, appDataDir, deps, ctx, ports };
 }
 
 async function readJson(fs: FsPort, path: string): Promise<Record<string, unknown>> {
@@ -76,9 +83,9 @@ async function readJson(fs: FsPort, path: string): Promise<Record<string, unknow
 describe("persistNewFolder (stage 1)", () => {
   it("registers the folder in smm.json and writes blank metadata", async () => {
     const mediaDir = "/m/My.Show";
-    const { fs, appDataDir, userConfig, mediaMetadata } = makeDeps({ "/m/My.Show/S01E01.mkv": "" });
+    const { fs, appDataDir, ctx, ports } = makeDeps({ "/m/My.Show/S01E01.mkv": "" });
 
-    const blank = await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    const blank = await persistNewFolder(mediaDir, "tvshow", ctx, ports);
 
     expect(blank).toEqual({
       mediaFolderPath: mediaDir,
@@ -96,11 +103,11 @@ describe("persistNewFolder (stage 1)", () => {
 
   it("dedupes an already-present folder in userConfig", async () => {
     const mediaDir = "/m/My.Show";
-    const { fs, appDataDir, userConfig, mediaMetadata } = makeDeps({
+    const { fs, appDataDir, ctx, ports } = makeDeps({
       [userConfigPath("/data/smm")]: JSON.stringify({ folders: [mediaDir] }),
     });
 
-    await persistNewFolder(mediaDir, "music", { userConfig, mediaMetadata });
+    await persistNewFolder(mediaDir, "music", ctx, ports);
 
     const savedConfig = await readJson(fs, userConfigPath(appDataDir));
     expect(savedConfig.folders).toEqual([mediaDir]);
@@ -109,12 +116,12 @@ describe("persistNewFolder (stage 1)", () => {
   it("skips rewriting smm.json when the folder is already registered", async () => {
     const mediaDir = "/m/My.Show";
     const configPath = userConfigPath("/data/smm");
-    const { fs, userConfig, mediaMetadata } = makeDeps({
+    const { fs, ctx, ports } = makeDeps({
       [configPath]: JSON.stringify({ folders: [mediaDir] }),
     });
     vi.mocked(fs.writeTextFile).mockClear();
 
-    await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    await persistNewFolder(mediaDir, "tvshow", ctx, ports);
 
     const configWrites = vi.mocked(fs.writeTextFile).mock.calls.filter(([path]) => path === configPath);
     expect(configWrites).toHaveLength(0);
@@ -128,12 +135,12 @@ describe("persistNewFolder (stage 1)", () => {
       mediaFiles: [{ path: `${mediaDir}/S01E01.mkv`, episode: { season: 1, episode: 1 } }],
       tvShow: { database: "TMDB", id: "1", name: "My Show" },
     };
-    const { fs, appDataDir, userConfig, mediaMetadata } = makeDeps({
+    const { fs, appDataDir, ctx, ports } = makeDeps({
       [userConfigPath("/data/smm")]: JSON.stringify({ folders: [mediaDir] }),
       [metadataCachePath("/data/smm", mediaDir)]: JSON.stringify(existing),
     });
 
-    const result = await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    const result = await persistNewFolder(mediaDir, "tvshow", ctx, ports);
 
     expect(result).toEqual(existing);
     expect(await readJson(fs, metadataCachePath(appDataDir, mediaDir))).toEqual(existing);
@@ -157,8 +164,8 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("skips recognition for music folders", async () => {
     const mediaDir = "/m/My.Music";
-    const { deps , userConfig, mediaMetadata } = makeDeps({ "/m/My.Music/a.mp3": "" });
-    await persistNewFolder(mediaDir, "music", { userConfig, mediaMetadata });
+    const { deps, ctx, ports } = makeDeps({ "/m/My.Music/a.mp3": "" });
+    await persistNewFolder(mediaDir, "music", ctx, ports);
     mockRecognizeMediaFolder.mockClear();
 
     const stages: (string | null)[] = [];
@@ -172,8 +179,8 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("fails when the folder cannot be listed, even for music", async () => {
     const mediaDir = "/m/Missing";
-    const { fs, deps , userConfig, mediaMetadata } = makeDeps();
-    await persistNewFolder(mediaDir, "music", { userConfig, mediaMetadata });
+    const { fs, deps, ctx, ports } = makeDeps();
+    await persistNewFolder(mediaDir, "music", ctx, ports);
     vi.mocked(fs.listFiles).mockRejectedValueOnce(new Error(`ENOENT: ${mediaDir}`));
 
     await expect(initializeFolder(mediaDir, "music", deps)).rejects.toThrow("ENOENT");
@@ -181,12 +188,12 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("recognizes a tvshow and matches episodes via SXXEYY", async () => {
     const mediaDir = "/m/My.Show";
-    const { fs, appDataDir, deps , userConfig, mediaMetadata } = makeDeps({
+    const { fs, appDataDir, deps, ctx, ports } = makeDeps({
       "/m/My.Show/S01E01.mkv": "",
       "/m/My.Show/S01E02.mkv": "",
       "/m/My.Show/tvshow.nfo": "<tvshow><tmdbid>1</tmdbid></tvshow>",
     });
-    await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    await persistNewFolder(mediaDir, "tvshow", ctx, ports);
     mockRecognizeMediaFolder.mockResolvedValue({
       tvShow: {
         database: "TMDB",
@@ -226,11 +233,11 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("logs how many episode files were recognized and how many episodes were not", async () => {
     const mediaDir = "/m/My.Show";
-    const { deps , userConfig, mediaMetadata } = makeDeps({
+    const { deps, ctx, ports } = makeDeps({
       "/m/My.Show/S01E01.mkv": "",
       "/m/My.Show/notes.txt": "",
     });
-    await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    await persistNewFolder(mediaDir, "tvshow", ctx, ports);
     mockRecognizeMediaFolder.mockResolvedValue({
       tvShow: {
         database: "TMDB",
@@ -266,11 +273,11 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("links the first video file of a recognized movie folder", async () => {
     const mediaDir = "/m/My Film";
-    const { fs, appDataDir, deps , userConfig, mediaMetadata } = makeDeps({
+    const { fs, appDataDir, deps, ctx, ports } = makeDeps({
       "/m/My Film/cover.jpg": "",
       "/m/My Film/my.video.mkv": "",
     });
-    await persistNewFolder(mediaDir, "movie", { userConfig, mediaMetadata });
+    await persistNewFolder(mediaDir, "movie", ctx, ports);
     mockRecognizeMediaFolder.mockResolvedValue({
       movie: { database: "TMDB", id: "2", name: "My Film" },
     });
@@ -283,8 +290,8 @@ describe("initializeFolder (stages 2 and 3)", () => {
 
   it("leaves metadata blank when nothing is recognized", async () => {
     const mediaDir = "/m/Unknown.Show";
-    const { fs, appDataDir, deps , userConfig, mediaMetadata } = makeDeps({ "/m/Unknown.Show/S01E01.mkv": "" });
-    await persistNewFolder(mediaDir, "tvshow", { userConfig, mediaMetadata });
+    const { fs, appDataDir, deps, ctx, ports } = makeDeps({ "/m/Unknown.Show/S01E01.mkv": "" });
+    await persistNewFolder(mediaDir, "tvshow", ctx, ports);
     mockRecognizeMediaFolder.mockResolvedValue({ tvShow: undefined, movie: undefined });
 
     await initializeFolder(mediaDir, "tvshow", deps);

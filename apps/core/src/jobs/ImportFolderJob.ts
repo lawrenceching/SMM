@@ -1,25 +1,26 @@
 import { Path } from "@smm/utils/path";
 import type { FolderType } from "@smm/types";
 import { JobAbortError } from "./jobAbortError";
-import type { JobHandle } from "./jobHandle";
 import {
   IMPORT_FOLDER_COMPLETED,
   startedImportFolderMessage,
 } from "./importFolderLog";
-import { AbstractJob, type JobOptions, type JobStatus } from "./types";
+import { AbstractJob, type JobOptions } from "./abstract-job";
 import {
   persistNewFolder,
   recognizeImportedEpisodes,
   recognizeImportedFolder,
-  type PersistNewFolderDeps,
+  type AppContext,
+  type PlatformPorts,
   type RecognizeImportedEpisodesRequest,
   type RecognizeImportedFolderRequest,
 } from "../pipeline/importFolderPipeline";
 
-export interface ImportFolderJobOptions extends JobOptions, PersistNewFolderDeps {
+export interface ImportFolderJobOptions {
   /** Caller path used in log lines, the job record, persist, and recognition. */
   folderPath: string;
   type: FolderType;
+  skipInit: boolean;
   onMediaMetadataUpdated?: (folderPath: string) => void;
 }
 
@@ -35,23 +36,18 @@ interface Step {
 export class ImportFolderJob extends AbstractJob {
   private readonly folderPath: string;
   private readonly folderType: FolderType;
-  private readonly persistDeps: PersistNewFolderDeps;
   private readonly onMediaMetadataUpdated: ((folderPath: string) => void) | undefined;
 
   /** Cached for recognition steps within a single `run()`. */
   private filePaths: string[] = [];
 
-  constructor(options: ImportFolderJobOptions) {
-    super({
+  constructor(ctx: AppContext, ports: PlatformPorts, options: ImportFolderJobOptions & JobOptions) {
+    super(ctx, ports, {
       ...options,
       type: "import-folder"
     });
     this.folderPath = options.folderPath;
     this.folderType = options.type;
-    this.persistDeps = {
-      userConfig: options.userConfig,
-      mediaMetadata: options.mediaMetadata,
-    };
     this.onMediaMetadataUpdated = options.onMediaMetadataUpdated;
   }
 
@@ -89,10 +85,10 @@ export class ImportFolderJob extends AbstractJob {
     try {
 
       const msg = `Started to import folder: ${this.folderPath}, type: ${this.folderType}`
-      this.logger.info({}, msg);
+      this.ports.logger.info({}, msg);
       this.log(msg);
       
-      this.filePaths = (await this.fs.listFiles(this.folderPath)).map((file) => Path.posix(file));
+      this.filePaths = (await this.ports.fs.listFiles(this.folderPath)).map((file) => Path.posix(file));
 
       if(this.requestToAbort) {
         this.setStatus("aborted");
@@ -100,7 +96,7 @@ export class ImportFolderJob extends AbstractJob {
       }
 
       for (const step of steps) {
-        this.logger.info({ step: step.name, folderPath: this.folderPath }, "importFolder: step");
+        this.ports.logger.info({ step: step.name, folderPath: this.folderPath }, "importFolder: step");
         await step.run(this);
         this.setProgress(this.progress() + 100 / steps.length);
         if(this.requestToAbort) {
@@ -139,11 +135,17 @@ export class ImportFolderJob extends AbstractJob {
     const persistStep: Step = {
       name: "create blank metadata and save folder to user config",
       async run(job: ImportFolderJob): Promise<void> {
-        job.logger.info(
+        job.ports.logger.info(
           { folderPath: job.folderPath, type: job.folderType },
           "importFolder: stage=persistFolder",
         );
-        await persistNewFolder(job.folderPath, job.folderType, job.persistDeps);
+        await persistNewFolder(
+          job.folderPath,
+          job.folderType,
+          job.context,
+          job.ports,
+          job.onMediaMetadataUpdated,
+        );
       },
     };
 

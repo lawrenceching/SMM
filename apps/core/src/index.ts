@@ -67,7 +67,6 @@ export {
   type FolderInitializationCallbacks,
   type FolderInitializationDeps,
   type MediaMetadataUpdatedHandler,
-  type PersistNewFolderDeps,
   type RecognizeImportedEpisodesRequest,
   type RecognizeImportedFolderRequest,
 } from "./pipeline/importFolderPipeline";
@@ -129,10 +128,7 @@ export {
   type BuildAssetUrlCandidatesOptions,
 } from "./pipeline/scrape/assetImageUrls";
 export type { Plan } from "./pipeline/plans";
-export {
-  scrapeFolderPipeline,
-  type ScrapeFolderDeps,
-} from "./pipeline/scrape/scrapeFolder";
+export { scrapeFolderPipeline } from "./pipeline/scrape/scrapeFolder";
 export type {
   ScrapeTaskId,
   ScrapeTaskStatus,
@@ -143,7 +139,7 @@ export type {
   ImportJob,
   ImportLibraryJob,
   ImportLibraryJobTask,
-  ScrapeJob,
+  ScrapeJobSnapshot,
   Job,
   JobStatus,
   JobStage,
@@ -151,10 +147,12 @@ export type {
   ScrapeTaskRuntimeStatus,
   JobLogLevel,
   JobLogLine,
-  JobOptions,
 } from "./jobs/types";
+export type { JobOptions, Callbacks } from "./jobs/abstract-job";
+export { AbstractJob } from "./jobs/abstract-job";
 export type { JobHandle } from "./jobs/jobHandle";
 export { JobAbortError } from "./jobs/jobAbortError";
 export { importJobLogFileName, isImportJobLogId } from "./jobs/importFolderLog";
 export { DummyJob } from "./jobs/DummyJob";
+export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
 export type { FolderType, HelloCliBody } from "@smm/types";

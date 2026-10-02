@@ -1,15 +1,15 @@
 import PQueue from "p-queue";
 import { JobAbortError } from "./jobAbortError";
 import type { JobHandle } from "./jobHandle";
+import type { AbstractJob } from "./abstract-job";
 import type {
-  AbstractJob,
   ImportJob,
   ImportLibraryJob,
   Job,
   JobLogLevel,
   JobLogLine,
   JobStatus,
-  ScrapeJob,
+  ScrapeJobSnapshot,
 } from "./types";
 import type { LoggerPort } from "src/ports/LoggerPort";
 import type { PlatformPorts } from "src/types";
@@ -25,9 +25,9 @@ export function nextJobId(): string {
 
 type ImportJobInit = Omit<ImportJob, "id" | "createdAt" | "updatedAt">;
 type ImportLibraryJobInit = Omit<ImportLibraryJob, "id" | "createdAt" | "updatedAt">;
-type ScrapeJobInit = Omit<ScrapeJob, "id" | "createdAt" | "updatedAt">;
+type ScrapeJobInit = Omit<ScrapeJobSnapshot, "id" | "createdAt" | "updatedAt">;
 type JobInit = ImportJobInit | ImportLibraryJobInit | ScrapeJobInit;
-type JobPatch = Partial<ImportJob> | Partial<ImportLibraryJob> | Partial<ScrapeJob>;
+type JobPatch = Partial<ImportJob> | Partial<ImportLibraryJob> | Partial<ScrapeJobSnapshot>;
 
 function isTerminal(status: JobStatus): boolean {
   return status === "succeeded" || status === "failed" || status === "aborted";

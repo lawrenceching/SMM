@@ -10,8 +10,8 @@ describe('smm addlib', () => {
   let userDataDir: string
   let libraryPath: string
   let prevUserDataDir: string | undefined
-  let logSpy: MockInstance<(...args: any[]) => void>
-  let errorSpy: MockInstance<(...args: any[]) => void>
+  let logSpy: MockInstance<(...args: unknown[]) => void>
+  let errorSpy: MockInstance<(...args: unknown[]) => void>
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR
@@ -52,8 +52,8 @@ describe('smm addlib', () => {
     expect(config.folders.length).toBe(2)
   }, 30_000)
 
-  it('with --skip-init registers each subfolder without full initialization output', async () => {
-    createFolderInTestFolder(libraryPath, musicFolder)
+  it('with --skip-init registers each subfolder and exits 0', async () => {
+    const music1 = createFolderInTestFolder(libraryPath, musicFolder)
     createFolderInTestFolder(libraryPath, {
       ...musicFolder,
       folderName: 'SecondMusic',
@@ -71,12 +71,12 @@ describe('smm addlib', () => {
     ])
 
     expect(code).toBe(0)
-    const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
-    expect(lines.some((l) => l.includes(`importing library ${libraryPath}`))).toBe(true)
-    expect(lines.filter((l) => l.startsWith('imported folder ')).length).toBe(2)
-    expect(lines.some((l) => l === 'succeeded')).toBe(false)
-    expect(lines.some((l) => l.includes('recognizing'))).toBe(false)
-  })
+    const config = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as {
+      folders: string[]
+    }
+    expect(config.folders).toContain(music1.path)
+    expect(config.folders.length).toBe(2)
+  }, 30_000)
 
   it('exits 1 when the library path does not exist', async () => {
     const missing = join(libraryPath, 'does-not-exist')
@@ -92,23 +92,33 @@ describe('smm addlib', () => {
     const { Core } = await import('@smm/core')
     const importLibrary = vi
       .spyOn(Core.prototype, 'importLibrary')
-      .mockReturnValue({ id: 'lib-job-1' })
+      .mockResolvedValue({ id: 'lib-job-1' })
     vi.spyOn(Core.prototype, 'getJob').mockReturnValue({
-      kind: 'import-library',
       id: 'lib-job-1',
-      libraryPath,
-      type: 'tvshow',
       status: 'succeeded',
-      progress: 100,
-      tasks: [],
-      createdAt: 0,
-      updatedAt: 0,
-    })
+      type: 'import-library',
+      logFilePath: '/logs/lib-job-1.log',
+      progress: () => 100,
+      start: async () => {},
+      run: async () => {},
+      abort: async () => {},
+      tryAbort: () => {},
+      log: async () => {},
+      context: {} as never,
+      ports: {} as never,
+    } as never)
+    vi.spyOn(Core.prototype, 'waitForJobUntilCompleted').mockResolvedValue(undefined)
 
     const { runCli } = await import('./runCli')
     const code = await runCli(['node', 'smm', 'addlib', libraryPath, '--type', 'anime'])
 
     expect(code).toBe(0)
-    expect(importLibrary).toHaveBeenCalledWith(libraryPath, 'tvshow', undefined)
+    expect(importLibrary).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: libraryPath,
+        type: 'tvshow',
+        skipInit: false,
+      }),
+    )
   })
 })

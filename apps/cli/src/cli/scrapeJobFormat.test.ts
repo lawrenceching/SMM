@@ -1,17 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { ScrapeJob } from '@smm/core'
+import type { ScrapeJobTask, ScrapeTaskId } from '@smm/core'
 import { formatScrapeJobTaskLines, scrapeStatusIcon } from './scrapeJobFormat'
 
-function scrapeJob(tasks: ScrapeJob['tasks']): ScrapeJob {
-  return {
-    kind: 'scrape',
-    id: 'j1',
-    folderPath: '/m/Show',
-    status: 'running',
-    tasks,
-    createdAt: 0,
-    updatedAt: 0,
-  }
+function scrapeJob(tasks: Record<ScrapeTaskId, ScrapeJobTask>) {
+  return { tasks }
 }
 
 describe('scrapeJobFormat', () => {

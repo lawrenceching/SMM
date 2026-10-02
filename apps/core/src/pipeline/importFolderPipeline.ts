@@ -3,7 +3,7 @@ import type { FolderType, MediaMetadata } from "@smm/types";
 import type { JobLogLevel, JobStage } from "../jobs/types";
 import type { AppContext, PlatformPorts } from "../types";
 import { MediaMetadataHelper } from "./mediaMetadataHelper";
-import type { UserConfigHelper } from "./userConfigHelper";
+import { UserConfigHelper } from "./userConfigHelper";
 import {
   recognizedEpisodeFilesMessage,
   recognizedFolderMessage,
@@ -16,12 +16,6 @@ import { buildEpisodes } from "./recognizeEpisodes";
 import { recognizeMediaFilesPipeline } from "./recognizeMediaFiles";
 
 export type { AppContext, PlatformPorts } from "../types";
-
-/** Stage 1 only needs the two stores it writes to. */
-export interface PersistNewFolderDeps {
-  userConfig: UserConfigHelper;
-  mediaMetadata: MediaMetadataHelper;
-}
 
 export type MediaMetadataUpdatedHandler = (folderPath: string) => void;
 
@@ -72,17 +66,22 @@ export function createBlankMediaMetadata(folderPath: string, type: FolderType): 
  * Idempotent: skips smm.json when the folder is already listed, and skips
  * metadata when a cache file already exists.
  * `importFolder` returns to the caller once this stage completed.
+ * Builds store helpers from ctx/ports (same pattern as recognition stages).
  */
 export async function persistNewFolder(
   folderPath: string,
   type: FolderType,
-  deps: PersistNewFolderDeps,
+  ctx: AppContext,
+  ports: PlatformPorts,
+  onMediaMetadataUpdated?: MediaMetadataUpdatedHandler,
 ): Promise<MediaMetadata> {
-  await deps.userConfig.addFolder(folderPath);
+  const userConfig = new UserConfigHelper(ports.fs, ctx.userDataDir);
+  const mediaMetadata = new MediaMetadataHelper(ports.fs, ctx.appDataDir, onMediaMetadataUpdated);
+  await userConfig.addFolder(folderPath);
   const blank = createBlankMediaMetadata(folderPath, type);
-  const created = await deps.mediaMetadata.createIfAbsent(blank);
+  const created = await mediaMetadata.createIfAbsent(blank);
   if (created) return created;
-  return (await deps.mediaMetadata.read(folderPath)) ?? blank;
+  return (await mediaMetadata.read(folderPath)) ?? blank;
 }
 
 /** Stage 2: recognize the media folder (tvshow / movie). Builds TMDB/TVDB clients from ports. */

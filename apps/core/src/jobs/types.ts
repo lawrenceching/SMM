@@ -3,9 +3,6 @@ import type {
   ImportLibraryJob as ImportLibraryJobPayload,
 } from "@smm/types/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
-import type { FsPort } from "../ports/FsPort";
-import type { LoggerPort } from "../ports/LoggerPort";
-import type { AppContext, PlatformPorts } from "../types";
 
 export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
@@ -44,7 +41,8 @@ export interface ScrapeJobTask {
   error?: string;
 }
 
-export interface ScrapeJob {
+/** Serialized scrape job returned by `POST /api/get-job`. */
+export interface ScrapeJobSnapshot {
   kind: "scrape";
   id: string;
   folderPath: string;
@@ -55,7 +53,7 @@ export interface ScrapeJob {
   updatedAt: number;
 }
 
-export type Job = ImportJob | ImportLibraryJob | ScrapeJob;
+export type Job = ImportJob | ImportLibraryJob | ScrapeJobSnapshot;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {
@@ -72,118 +70,4 @@ export interface JobLogLine {
   ts: number;
   level: JobLogLevel;
   message: string;
-}
-
-
-export interface JobOptions {
-  id: string;
-  logDir: string;
-  join: (...args: string[]) => string;
-  printLogToConsole: boolean;
-  context: AppContext;
-  ports: PlatformPorts;
-  type: string;
-  callbacks?: Callbacks;
-}
-
-export interface Callbacks {
-  onLog?(message: string): void;
-}
-
-export abstract class AbstractJob {
-
-  readonly id: string;
-  readonly logDir: string;
-  readonly logFilePath: string;
-  readonly printLogToConsole: boolean;
-  readonly context: AppContext;
-  readonly ports: PlatformPorts;
-  readonly fs: FsPort;
-  readonly logger: LoggerPort;
-  readonly type: string;
-  private _progress: number = 0;
-  private _status: JobStatus = "pending";
-  protected requestToAbort: boolean = false;
-  private aborted: boolean = false;
-  private options: JobOptions
-
-  constructor(options: JobOptions) {
-    const { id: id, logDir, join, printLogToConsole, context, ports, type } = options;
-    this.id = id;
-    this.logDir = logDir;
-    this.logFilePath = join(logDir, `${this.id}.log`);
-    this.printLogToConsole = printLogToConsole ?? false;
-    this.context = context;
-    this.ports = ports;
-    this.fs = ports.fs;
-    this.logger = ports.logger;
-    this.type = type;
-    this.options = options;
-  }
-
-  protected setProgress(progress: number): void {
-    if(progress < 0) {
-      progress = 0;
-    }
-    if(progress > 100) {
-      progress = 100;
-    }
-    this._progress = progress;
-  }
-
-  public progress(): number {
-    return this._progress;
-  }
-
-  async start(): Promise<void> {
-
-    if(this.aborted) {
-      throw new Error("Job already aborted")
-    }
-
-    await this.log(`${this.id} started`);
-    this.setProgress(0);
-    await this.run();
-    this.setProgress(100);
-    await this.log(`${this.id} completed`);
-  }
-
-  abstract run(): Promise<void>;
-
-  abstract abort(): Promise<void>;
-
-  protected setStatus(status: JobStatus): void {
-    this._status = status;
-  }
-
-  get status(): JobStatus {
-    return this._status;
-  };
-
-  /**
-   * Mark the aborted flag to true.
-   * The job will try it's best to abort the operation, but it's not guaranteed.
-   */
-  tryAbort(): void {
-    this.requestToAbort = true;
-  }
-
-  /** Appends a job log line to the log file (and optionally the console). */
-  async log(message: string): Promise<void> {
-    this.options.callbacks?.onLog?.(message);
-    if (this.printLogToConsole) {
-      this.logger.info({}, `[${this.id}] ${message}`);
-    }
-    if (!this.logDir) return;
-    try {
-      let prev = "";
-      if (await this.fs.exists(this.logFilePath)) {
-        prev = await this.fs.readTextFile(this.logFilePath);
-      }
-      const prefix = prev.length === 0 || prev.endsWith("\n") ? prev : `${prev}\n`;
-      await this.fs.writeTextFile(this.logFilePath, `${prefix}${message}\n`);
-    } catch (error) {
-      this.logger.warn({ err: error, name: this.id }, "job: failed to write job log file");
-    }
-  }
 }
