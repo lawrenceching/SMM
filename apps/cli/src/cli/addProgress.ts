@@ -4,7 +4,7 @@
  * Kept for unit tests of emitAddProgress string formatting only.
  */
 // @ts-nocheck
-import type { Core, FolderType, ImportJob } from '@smm/core'
+import type { FolderType, ImportJob } from '@smm/core'
 
 type AddProgressKind = 'tvshow' | 'movie'
 
@@ -108,54 +108,4 @@ export function emitAddProgress(
   }
 
   return next
-}
-
-export async function waitUntilImportSettled(
-  core: Core,
-  id: string,
-  options: {
-    folder: string
-    type: FolderType
-    timeoutMs: number
-    log?: (line: string) => void
-    progress?: boolean
-  },
-): Promise<ImportJob> {
-  const log = options.log ?? console.log
-  const emitProgress = options.progress !== false
-  let progress = createAddProgressState()
-  let printedLogs = 0
-  const deadline = Date.now() + options.timeoutMs
-
-  const emitLogs = async () => {
-    let text = ''
-    try {
-      text = await core.getJobLog(id)
-    } catch (error) {
-      if (!(error instanceof Error) || error.message !== 'Job not found') throw error
-    }
-    const lines = text.split('\n').filter(Boolean).map((message) => ({ message }))
-    for (const line of lines.slice(printedLogs)) {
-      log(line.message)
-    }
-    printedLogs = lines.length
-  }
-
-  for (;;) {
-    const job = core.getJob(id)
-    if (job) {
-      await emitLogs()
-      if (emitProgress && (job as { kind?: string }).kind === 'import') {
-        progress = emitAddProgress(progress, job as ImportJob, options.folder, options.type, log)
-      }
-      if (job.status !== 'pending' && job.status !== 'running') {
-        await emitLogs()
-        return job as ImportJob
-      }
-    }
-    if (Date.now() > deadline) {
-      throw new Error(`Timed out waiting for import job ${id}`)
-    }
-    await new Promise((resolve) => setTimeout(resolve, 20))
-  }
 }

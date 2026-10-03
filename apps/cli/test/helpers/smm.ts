@@ -1,5 +1,4 @@
 import { vi } from 'vitest'
-import { resetCoreForTests } from '../../src/core/getCore'
 import { runCli } from '../../src/cli/runCli'
 
 export interface SmmResult {
@@ -44,5 +43,3 @@ export async function smm(args: string[]): Promise<SmmResult> {
     errorSpy.mockRestore()
   }
 }
-
-export { resetCoreForTests }

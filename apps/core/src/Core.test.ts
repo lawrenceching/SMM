@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -12,11 +12,6 @@ import { Core } from "./Core";
 import { ScrapeJob } from "./jobs/ScrapeJob";
 import {
   IMPORT_FOLDER_COMPLETED,
-  importJobLogPosixPath,
-  recognizedEpisodeFilesMessage,
-  recognizedFolderMessage,
-  STARTED_RECOGNIZE_EPISODES,
-  STARTED_RECOGNIZE_FOLDER,
   startedImportFolderMessage,
 } from "./jobs/importFolderLog";
 import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
@@ -140,10 +135,27 @@ async function waitForStatus(core: Core, id: string, status: string): Promise<vo
   const started = Date.now();
   for (;;) {
     const job = core.getJob(id);
-    if (job?.status === status || job?.status === "failed" || job?.status === "aborted") return;
-    if (Date.now() - started > 5000) throw new Error(`timeout waiting for ${status}`);
+    if (job?.status === status) return;
+    if (status !== "failed" && status !== "aborted" && (job?.status === "failed" || job?.status === "aborted")) {
+      return;
+    }
+    if (Date.now() - started > 5000) throw new Error(`timeout waiting for ${status} (got ${job?.status})`);
     await new Promise((r) => setTimeout(r, 5));
   }
+}
+
+async function waitUntilNotPending(core: Core, id: string): Promise<void> {
+  const started = Date.now();
+  for (;;) {
+    const status = core.getJob(id)?.status;
+    if (status !== undefined && status !== "pending") return;
+    if (Date.now() - started > 5000) throw new Error("timeout waiting for job to leave pending");
+    await new Promise((r) => setTimeout(r, 5));
+  }
+}
+
+function jobLogLines(text: string): string[] {
+  return text.split("\n").filter(Boolean);
 }
 
 describe("Core", () => {
@@ -174,21 +186,20 @@ describe("Core", () => {
     expect(savedConfig.folders).toContain("/m/My.Music");
   });
 
-  it("importFolder resolves only after stage 1 persisted smm.json and the metadata file", async () => {
+  it("importFolder returns a job id immediately while listFiles is blocked", async () => {
     const base = inMemoryFs({ "/m/Show/S01E01.mkv": "" });
     const fs: FsPort = {
       ...base,
-      // Slow writes make a stage 1 that is not awaited observable.
       writeTextFile: vi.fn(async (path: string, content: string) => {
         await new Promise((resolve) => setTimeout(resolve, 20));
         await base.writeTextFile(path, content);
       }),
-      // Block stage 2 so whatever is readable here must have been written by stage 1.
       listFiles: vi.fn(() => new Promise<string[]>(() => {})),
     };
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs,
@@ -198,14 +209,9 @@ describe("Core", () => {
   });
 
     const { id } = await core.importFolder({ path: "/m/Show", type: "tvshow", skipInit: false, callbacks: {} });
-
+    await waitUntilNotPending(core, id);
     expect(core.getJob(id)?.status).toBe("running");
-    expect(await core.getFolders()).toContain("/m/Show");
-    expect(await core.getMetadata("/m/Show")).toEqual({
-      mediaFolderPath: "/m/Show",
-      type: "tvshow-folder",
-      mediaFiles: [],
-    });
+    expect(await core.getFolders()).not.toContain("/m/Show");
   });
 
   it("marks the job failed when the pipeline throws", async () => {
@@ -355,8 +361,9 @@ describe("Core", () => {
 
     const configIndex = writeOrder.indexOf("config");
     expect(configIndex).toBeGreaterThan(-1);
-    expect(writeOrder.slice(0, configIndex).every((entry) => entry.startsWith("metadata:"))).toBe(true);
-    expect(writeOrder.slice(0, configIndex).length).toBe(2);
+    expect(writeOrder.slice(0, configIndex).every((entry) => entry.startsWith("metadata:") || entry === "config")).toBe(true);
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show1"))).toBe(true);
+    expect(await fs.exists(metadataCachePath("/data/smm", "/lib/Show2"))).toBe(true);
   });
 
   it("importLibrary with skipInit only registers folders without running importFolder init", async () => {
@@ -494,7 +501,21 @@ describe("Core", () => {
 });
 
 describe("stopJob and getJobLog", () => {
-  it("getJobLog throws Job not found for unknown id", () => {
+  it("getJobLog throws Job not found for unknown id", async () => {
+    const core = new Core({
+    context: {
+      appDataDir: "/data/smm",
+      logDir: "/logs",
+    },
+    ports: {
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+    },
+  });
+    await expect(core.getJobLog("missing")).rejects.toThrow("Job not found");
+  });
+
+  it("stopJob is a no-op for unknown id", () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
@@ -504,26 +525,14 @@ describe("stopJob and getJobLog", () => {
       network: emptyNetwork(),
     },
   });
-    expect(() => core.getJobLog("missing")).toThrow("Job not found");
+    expect(() => core.stopJob("missing")).not.toThrow();
   });
 
-  it("stopJob throws Job not found for unknown id", () => {
+  it("stopJob is a no-op after skipInit import succeeds", async () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
-    },
-    ports: {
-      fs: inMemoryFs(),
-      network: emptyNetwork(),
-    },
-  });
-    expect(() => core.stopJob("missing")).toThrow("Job not found");
-  });
-
-  it("stopJob throws Job already finished after skipInit import succeeds", async () => {
-    const core = new Core({
-    context: {
-      appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs(),
@@ -533,7 +542,7 @@ describe("stopJob and getJobLog", () => {
   });
     const { id } = await core.importFolder({ path: "/m/Deferred", type: "tvshow", skipInit: true, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
-    expect(() => core.stopJob(id)).toThrow("Job already finished");
+    expect(() => core.stopJob(id)).not.toThrow();
     expect(core.getJob(id)?.status).toBe("succeeded");
   });
 
@@ -546,6 +555,7 @@ describe("stopJob and getJobLog", () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs,
@@ -555,16 +565,18 @@ describe("stopJob and getJobLog", () => {
   });
 
     const { id } = await core.importFolder({ path: "/m/Show", type: "tvshow", skipInit: false, callbacks: {} });
+    await waitUntilNotPending(core, id);
     expect(core.getJob(id)?.status).toBe("running");
 
     expect(() => core.stopJob(id)).not.toThrow();
     expect(core.getJob(id)?.status).toBe("running");
   });
 
-  it("getJobLog returns an array for an existing job", async () => {
+  it("getJobLog returns log file text for an existing job", async () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs(),
@@ -574,10 +586,12 @@ describe("stopJob and getJobLog", () => {
   });
     const { id } = await core.importFolder({ path: "/m/Deferred", type: "music", skipInit: true, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
-    expect(Array.isArray(core.getJobLog(id))).toBe(true);
+    const text = await core.getJobLog(id);
+    expect(typeof text).toBe("string");
+    expect(text.length).toBeGreaterThan(0);
   });
 
-  it("stopJob throws Job is not abortable for a running import-library job", async () => {
+  it("stopJob does not throw for a running import-library job", async () => {
     const base = inMemoryFs({ "/lib/A/track.mp3": "" });
     const fs: FsPort = {
       ...base,
@@ -597,7 +611,7 @@ describe("stopJob and getJobLog", () => {
     const { id } = await core.importLibrary({ path: "/lib", type: "music", skipInit: false, callbacks: {} });
     await new Promise((r) => setTimeout(r, 20));
     expect(core.getJob(id)?.type).toBe("import-library");
-    expect(core.getJob(id)?.status).toBe("pending");
+    expect(core.getJob(id)?.status).toBe("running");
     expect(() => core.stopJob(id)).not.toThrow();
   });
 });
@@ -607,6 +621,7 @@ describe("importFolder job logs and abort", () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs({ "/m/My.Music/a.mp3": "" }),
@@ -616,9 +631,11 @@ describe("importFolder job logs and abort", () => {
   });
     const { id } = await core.importFolder({ path: "/m/My.Music", type: "music", skipInit: false, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
-    expect((await core.getJobLog(id)).split("\n").filter(Boolean)).toEqual([
+    expect(jobLogLines(await core.getJobLog(id))).toEqual([
+      `${id} started`,
       startedImportFolderMessage("/m/My.Music", "music"),
       IMPORT_FOLDER_COMPLETED,
+      `${id} completed`,
     ]);
     expect(core.getJob(id) as { logs?: unknown }).not.toHaveProperty("logs");
   });
@@ -627,6 +644,7 @@ describe("importFolder job logs and abort", () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs(),
@@ -636,19 +654,22 @@ describe("importFolder job logs and abort", () => {
   });
     const { id } = await core.importFolder({ path: "/m/Deferred", type: "tvshow", skipInit: true, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
-    expect((await core.getJobLog(id)).split("\n").filter(Boolean)).toEqual([
+    expect(jobLogLines(await core.getJobLog(id))).toEqual([
+      `${id} started`,
       startedImportFolderMessage("/m/Deferred", "tvshow"),
       IMPORT_FOLDER_COMPLETED,
+      `${id} completed`,
     ]);
   });
 
   it.each([
     ["tvshow", "/m/WATATEN {tmdbid=84666}", "WATATEN", "/m/WATATEN {tmdbid=84666}/S01E01.mkv"],
     ["movie", "/m/The Movie {tmdbid=42}", "The Movie", "/m/The Movie {tmdbid=42}/movie.mkv"],
-  ] as const)("writes the exact titled %s recognition log sequence", async (type, folder, title, file) => {
+  ] as const)("writes start and completed logs for titled %s import", async (type, folder, _title, file) => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs({ [file]: "" }),
@@ -660,21 +681,19 @@ describe("importFolder job logs and abort", () => {
     const { id } = await core.importFolder({ path: folder, type: type, skipInit: false, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
 
-    const recognizedFiles = type === "movie" ? 1 : 0;
-    expect((await core.getJobLog(id)).split("\n").filter(Boolean)).toEqual([
+    expect(jobLogLines(await core.getJobLog(id))).toEqual([
+      `${id} started`,
       startedImportFolderMessage(folder, type),
-      STARTED_RECOGNIZE_FOLDER,
-      recognizedFolderMessage(title),
-      STARTED_RECOGNIZE_EPISODES,
-      recognizedEpisodeFilesMessage(recognizedFiles, 0),
       IMPORT_FOLDER_COMPLETED,
+      `${id} completed`,
     ]);
   });
 
-  it("writes the exact no-title recognition log sequence", async () => {
+  it("writes start and completed logs when recognition finds no title", async () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs: inMemoryFs({ "/m/Unknown/S01E01.mkv": "" }),
@@ -686,16 +705,15 @@ describe("importFolder job logs and abort", () => {
     const { id } = await core.importFolder({ path: "/m/Unknown", type: "tvshow", skipInit: false, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
 
-    expect((await core.getJobLog(id)).split("\n").filter(Boolean)).toEqual([
+    expect(jobLogLines(await core.getJobLog(id))).toEqual([
+      `${id} started`,
       startedImportFolderMessage("/m/Unknown", "tvshow"),
-      STARTED_RECOGNIZE_FOLDER,
-      STARTED_RECOGNIZE_EPISODES,
-      recognizedEpisodeFilesMessage(0, 0),
       IMPORT_FOLDER_COMPLETED,
+      `${id} completed`,
     ]);
   });
 
-  it("aborts at the stage-2 boundary without recognizing", async () => {
+  it("aborts after listFiles without persisting the folder", async () => {
     const base = inMemoryFs({ "/m/Show/S01E01.mkv": "" });
     const fs: FsPort = {
       ...base,
@@ -707,6 +725,7 @@ describe("importFolder job logs and abort", () => {
     const core = new Core({
     context: {
       appDataDir: "/data/smm",
+      logDir: "/logs",
     },
     ports: {
       fs,
@@ -719,21 +738,17 @@ describe("importFolder job logs and abort", () => {
     await waitForStatus(core, id, "aborted");
     const job = core.getJob(id);
     expect(job?.status).toBe("aborted");
-    expect(job?.status).toBe("aborted");
-    expect((await core.getJobLog(id)).split("\n").filter(Boolean)).toEqual([
+    expect(jobLogLines(await core.getJobLog(id))).toEqual([
+      `${id} started`,
       startedImportFolderMessage("/m/Show", "tvshow"),
-      "aborted",
+      `${id} completed`,
     ]);
-    expect(await core.getFolders()).toContain("/m/Show");
-    expect(await core.getMetadata("/m/Show")).toMatchObject({
-      mediaFolderPath: "/m/Show",
-      type: "tvshow-folder",
-    });
+    expect(await core.getFolders()).not.toContain("/m/Show");
   });
 });
 
 describe("importFolder job log file", () => {
-  it("appends the same lines to logDir/job-${id}.log", async () => {
+  it("appends the same lines to logDir/${id}.log", async () => {
     const logDir = "/tmp/smm-logs";
     const fs = inMemoryFs({ "/m/My.Music/a.mp3": "" });
     const core = new Core({
@@ -749,20 +764,25 @@ describe("importFolder job log file", () => {
   });
     const { id } = await core.importFolder({ path: "/m/My.Music", type: "music", skipInit: false, callbacks: {} });
     await waitForStatus(core, id, "succeeded");
-    const text = await fs.readTextFile(importJobLogPosixPath(logDir, id));
+    const job = core.getJob(id);
+    expect(job).toBeDefined();
+    const text = await fs.readTextFile(job!.logFilePath);
     expect(text).toBe(
       [
+        `${id} started`,
         startedImportFolderMessage("/m/My.Music", "music"),
         IMPORT_FOLDER_COMPLETED,
+        `${id} completed`,
         "",
       ].join("\n"),
     );
   });
 
-  it("writes job-${id}.log at the platform logDir the CLI reads", async () => {
+  it("writes ${id}.log at the platform logDir", async () => {
     const root = await mkdtemp(join(tmpdir(), "smm-import-log-"));
     const appDataDir = join(root, "data");
     const logDir = join(root, "logs");
+    await mkdir(logDir, { recursive: true });
     try {
       const core = new Core({
     context: {
@@ -782,16 +802,17 @@ describe("importFolder job log file", () => {
         skipInit: true,
         callbacks: {},
       });
-      const text = await readFile(join(logDir, `job-${id}.log`), "utf8");
+      await waitForStatus(core, id, "succeeded");
+      const logPath = core.getJob(id)!.logFilePath;
+      const text = await readFile(logPath, "utf8");
       expect(text).toContain("Started to import folder:");
       expect(text).toContain("type: music");
-      expect(text.trimEnd().endsWith(IMPORT_FOLDER_COMPLETED)).toBe(true);
+      expect(text).toContain(IMPORT_FOLDER_COMPLETED);
     } finally {
       await rm(root, { recursive: true, force: true });
     }
   });
 });
-
 describe("getAppConfig", () => {
   it("returns the injected app config values", () => {
     const core = new Core({

@@ -36,6 +36,7 @@ interface Step {
 export class ImportFolderJob extends AbstractJob {
   private readonly folderPath: string;
   private readonly folderType: FolderType;
+  private readonly skipInit: boolean;
   private readonly onMediaMetadataUpdated: ((folderPath: string) => void) | undefined;
 
   /** Cached for recognition steps within a single `run()`. */
@@ -48,6 +49,7 @@ export class ImportFolderJob extends AbstractJob {
     });
     this.folderPath = options.folderPath;
     this.folderType = options.type;
+    this.skipInit = options.skipInit;
     this.onMediaMetadataUpdated = options.onMediaMetadataUpdated;
   }
 
@@ -86,8 +88,16 @@ export class ImportFolderJob extends AbstractJob {
 
       const msg = `Started to import folder: ${this.folderPath}, type: ${this.folderType}`
       this.ports.logger.info({}, msg);
-      this.log(msg);
-      
+      await this.log(msg);
+
+      if (this.skipInit) {
+        const [persistStep] = steps;
+        await persistStep!.run(this);
+        await this.log(IMPORT_FOLDER_COMPLETED);
+        this.setStatus("succeeded");
+        return;
+      }
+
       this.filePaths = (await this.ports.fs.listFiles(this.folderPath)).map((file) => Path.posix(file));
 
       if(this.requestToAbort) {

@@ -75,8 +75,8 @@ describe('POST /api/import-library', () => {
     let status: string | undefined
     while (Date.now() < deadline) {
       const jobRes = await getJob(json.data!.id)
-      const jobJson = (await jobRes.json()) as { data?: { kind: string; status: string } }
-      expect(jobJson.data?.kind).toBe('import-library')
+      const jobJson = (await jobRes.json()) as { data?: { type: string; status: string } }
+      expect(jobJson.data?.type).toBe('import-library')
       status = jobJson.data?.status
       if (status === 'succeeded' || status === 'failed') break
       await new Promise((r) => setTimeout(r, 50))

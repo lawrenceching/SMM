@@ -33,7 +33,7 @@ function createFsMock(subdirectories: string[] = []) {
       files.set(path, content);
     }),
     writeBinaryFile: vi.fn(),
-    exists: vi.fn(async (path: string) => files.has(path)),
+    exists: vi.fn(async () => true),
     listFiles: vi.fn(async () => []),
     listSubdirectories: vi.fn(async () => subdirectories),
     deleteFile: vi.fn(),

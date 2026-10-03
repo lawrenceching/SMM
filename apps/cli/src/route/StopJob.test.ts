@@ -66,6 +66,17 @@ describe('POST /api/stop-job', () => {
       body: JSON.stringify({ path: '/media/A', type: 'music', skipInit: true }),
     })
     const { data } = (await imported.json()) as { data: { id: string } }
+    const deadline = Date.now() + 5000
+    while (Date.now() < deadline) {
+      const jobRes = await app.request('/api/get-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: data.id }),
+      })
+      const jobJson = (await jobRes.json()) as { data?: { status: string } }
+      if (jobJson.data?.status === 'succeeded' || jobJson.data?.status === 'failed') break
+      await new Promise((r) => setTimeout(r, 20))
+    }
     const res = await app.request('/api/stop-job', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -56,10 +56,18 @@ describe('POST /api/import-folder', () => {
     expect(json.error).toBeUndefined()
     expect(json.data?.id).toEqual(expect.any(String))
 
-    await new Promise((r) => setTimeout(r, 50))
-    const saved = JSON.parse(readFileSync(join(userDataDir, 'smm.json'), 'utf-8')) as {
-      folders: string[]
+    const smmPath = join(userDataDir, 'smm.json')
+    const deadline = Date.now() + 5000
+    let saved: { folders: string[] } | undefined
+    while (Date.now() < deadline) {
+      try {
+        saved = JSON.parse(readFileSync(smmPath, 'utf-8')) as { folders: string[] }
+        if (saved.folders.includes('/media/A')) break
+      } catch {
+        /* job still writing */
+      }
+      await new Promise((r) => setTimeout(r, 20))
     }
-    expect(saved.folders).toContain('/media/A')
+    expect(saved?.folders).toContain('/media/A')
   })
 })

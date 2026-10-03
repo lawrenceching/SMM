@@ -31,7 +31,11 @@ export function handleGetJobLog(app: Hono): void {
         const err: GetJobLogResponseBody = { error: 'Error Reason: id is required' }
         return c.json(err, 200)
       }
-      const lines = getCore().getJobLog(id)
+      const text = await getCore().getJobLog(id)
+      const lines = text
+        .split('\n')
+        .filter((line) => line.length > 0)
+        .map((message) => ({ message }))
       return c.json({ data: { lines } }, 200)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error'

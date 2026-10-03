@@ -62,16 +62,25 @@ describe('POST /api/get-job-log', () => {
       body: JSON.stringify({ path: '/media/A', type: 'music', skipInit: true }),
     })
     const { data } = (await imported.json()) as { data: { id: string } }
-    const res = await app.request('/api/get-job-log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: data.id }),
-    })
-    expect(res.status).toBe(200)
-    const json = (await res.json()) as { data?: { lines: { message: string }[] } }
-    expect(json.data?.lines.map((l) => l.message)).toEqual([
+    const deadline = Date.now() + 5000
+    let lines: string[] | undefined
+    while (Date.now() < deadline) {
+      const res = await app.request('/api/get-job-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: data.id }),
+      })
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as { data?: { lines: { message: string }[] }; error?: string }
+      if (json.data?.lines.some((l) => l.message === 'Completed')) {
+        lines = json.data.lines.map((l) => l.message)
+        break
+      }
+      await new Promise((r) => setTimeout(r, 20))
+    }
+    expect(lines).toEqual(expect.arrayContaining([
       'Started to import folder: /media/A, type: music',
       'Completed',
-    ])
+    ]))
   })
 })

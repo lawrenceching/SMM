@@ -75,7 +75,6 @@
     },
     "apps/e2e": {
       "entry": [
-        "wdio.conf.test.ts",
         "cli/**/*.test.ts",
         "common/**/*.e2e.ts",
         "common/**/*.template.ts",

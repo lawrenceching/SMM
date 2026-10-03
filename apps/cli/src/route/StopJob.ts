@@ -30,6 +30,13 @@ export function handleStopJob(app: Hono): void {
         const err: StopJobResponseBody = { error: 'Error Reason: id is required' }
         return c.json(err, 200)
       }
+      const job = getCore().getJob(id)
+      if (job === undefined) {
+        throw new Error('Job not found')
+      }
+      if (job.status !== 'pending' && job.status !== 'running') {
+        throw new Error('Job already finished')
+      }
       getCore().stopJob(id)
       const ok: StopJobResponseBody = { data: { id } }
       return c.json(ok, 200)

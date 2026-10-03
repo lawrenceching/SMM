@@ -36,6 +36,12 @@ export class ImportLibraryJob extends AbstractJob {
   }
 
   async run(): Promise<void> {
+    this.setStatus("running");
+    if (!(await this.ports.fs.exists(this.libraryPath))) {
+      await this.log(`Library path not found: ${this.libraryPath}`);
+      this.setStatus("failed");
+      return;
+    }
     const folderPaths: string[] = await this.ports.fs.listSubdirectories(this.libraryPath);
     await this.log(`Found ${folderPaths.length} folders to import`);
 

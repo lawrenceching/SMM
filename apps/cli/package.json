@@ -37,7 +37,6 @@
     "socket.io": "^4.8.3",
     "socks-proxy-agent": "^8.0.5",
     "strip-ansi": "^7.2.0",
-    "tail": "^2.2.6",
     "zod": "^4.1.8"
   },
   "scripts": {
