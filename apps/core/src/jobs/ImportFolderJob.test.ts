@@ -123,7 +123,8 @@ describe("ImportFolderJob", () => {
       kind: "import",
       id: "job-m1abc-0",
       folderPath: "/media/Show",
-      type: "tvshow",
+      type: "import-folder",
+      folderType: "tvshow",
     });
   });
 

@@ -7,7 +7,8 @@ function job(partial: Partial<ImportJob>): ImportJob {
     kind: "import",
     id: "j1",
     folderPath: "/m/Show",
-    type: "tvshow",
+    type: "import-folder",
+    folderType: "tvshow",
     status: "running",
     stage: null,
     progress: 0,
@@ -105,10 +106,10 @@ describe('emitAddProgress', () => {
     const lines: string[] = []
     let state = createAddProgressState()
     const folder = '/m/Music'
-    state = emitAddProgress(state, job({ type: 'music', stage: 'persistFolder', progress: 10 }), folder, 'music', (l) => lines.push(l))
+    state = emitAddProgress(state, job({ folderType: 'music', stage: 'persistFolder', progress: 10 }), folder, 'music', (l) => lines.push(l))
     state = emitAddProgress(
       state,
-      job({ type: 'music', stage: null, progress: 100, status: 'succeeded' }),
+      job({ folderType: 'music', stage: null, progress: 100, status: 'succeeded' }),
       folder,
       'music',
       (l) => lines.push(l),

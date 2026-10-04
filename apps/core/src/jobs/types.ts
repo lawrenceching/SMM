@@ -14,7 +14,8 @@ export interface ImportJob {
   kind: "import";
   id: string;
   folderPath: string;
-  type: FolderType;
+  type: "import-folder";
+  folderType: FolderType;
   status: JobStatus;
   stage: JobStage;
   progress: number;

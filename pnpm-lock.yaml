@@ -120,9 +120,6 @@ importers:
       strip-ansi:
         specifier: ^7.2.0
         version: 7.2.0
-      tail:
-        specifier: ^2.2.6
-        version: 2.2.6
       zod:
         specifier: 4.3.6
         version: 4.3.6
@@ -173,9 +170,6 @@ importers:
       '@smm/test':
         specifier: workspace:*
         version: link:../../packages/test
-      '@vitest/coverage-v8':
-        specifier: ^4.0.18
-        version: 4.0.18(vitest@4.0.18)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -660,9 +654,6 @@ importers:
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
-      '@vitest/coverage-v8':
-        specifier: ^4.0.18
-        version: 4.0.18(vitest@4.0.18)
       socket.io-client:
         specifier: ^4.8.3
         version: 4.8.3
@@ -8679,10 +8670,6 @@ packages:
   tagged-tag@1.0.0:
     resolution: {integrity: sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==}
     engines: {node: '>=20'}
-
-  tail@2.2.6:
-    resolution: {integrity: sha512-IQ6G4wK/t8VBauYiGPLx+d3fA5XjSVagjWV5SIYzvEvglbQjwEcukeYI68JOPpdydjxhZ9sIgzRlSmwSpphHyw==}
-    engines: {node: '>= 6.0.0'}
 
   tailwind-merge@3.5.0:
     resolution: {integrity: sha512-I8K9wewnVDkL1NTGoqWmVEIlUcB9gFriAEkXkfCjX5ib8ezGxtR3xD7iZIxrfArjEsH7F1CHD4RFUtxefdqV/A==}
@@ -18502,8 +18489,6 @@ snapshots:
       '@pkgr/core': 0.2.9
 
   tagged-tag@1.0.0: {}
-
-  tail@2.2.6: {}
 
   tailwind-merge@3.5.0: {}
 

@@ -75,5 +75,6 @@ describe('POST /api/get-job', () => {
     expect(job?.id).toBe(data.id)
     expect(job?.status).toBe('succeeded')
     expect(job?.kind).toBe('import')
+    expect((job as { type?: string }).type).toBe('import-folder')
   })
 })

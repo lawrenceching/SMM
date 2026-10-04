@@ -35,7 +35,8 @@ interface ImportJob {
   kind: 'import'
   id: string
   folderPath: string
-  type: string
+  type: 'import-folder'
+  folderType: string
   status: JobStatus
   stage: string | null
   progress: number

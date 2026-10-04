@@ -59,7 +59,7 @@ describe('smm job', () => {
     const printed = logSpy.mock.calls.map((c) => c.map(String).join(' ')).join('\n')
     expect(printed).toContain(id)
     expect(printed).toContain('"type": "import-folder"')
-    expect(printed).toMatch(/"_status": "(succeeded|failed)"/)
+    expect(printed).toMatch(/"status": "(succeeded|failed)"/)
   })
 
   it('prints log messages for smm job log', async () => {
