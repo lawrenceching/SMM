@@ -53,7 +53,7 @@ export function useScrapeDialog({
     enabled: !!jobId,
   })
 
-  const scrapeJob = job?.kind === "scrape" ? job : null
+  const scrapeJob = job && 'kind' in job && job.kind === "scrape" ? job : null
   const startError = overlayError ?? scrapeMutationError
 
   const tasks = useMemo(
@@ -69,7 +69,7 @@ export function useScrapeDialog({
 
   const jobInFlight =
     !!jobId &&
-    (!job || (job.kind === "scrape" && !isJobTerminalStatus(job.status)))
+    (!job || (job && 'kind' in job && job.kind === "scrape" && !isJobTerminalStatus(job.status)))
 
   const isRunning = isStartingScrape || jobInFlight || isRefreshingMetadata
   const allTasksDone = useMemo(() => areAllTasksDone(tasks), [tasks])
@@ -88,8 +88,12 @@ export function useScrapeDialog({
 
   useEffect(() => {
     if (!jobId || !job) return
-    if (job.kind === "scrape") return
-    setOverlayError(new Error(`Error Reason: unexpected job kind: ${job.kind}`))
+    if ('kind' in job && job.kind === "scrape") return
+    setOverlayError(
+      new Error(
+        `Error Reason: unexpected job kind: ${'kind' in job ? job.kind : 'undefined'}`,
+      ),
+    )
     setJobId(null)
   }, [job, jobId])
 

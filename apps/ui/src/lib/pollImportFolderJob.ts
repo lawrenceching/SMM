@@ -19,8 +19,10 @@ export async function pollImportFolderJob(
 ): Promise<ImportFolderJob> {
   for (;;) {
     const job = await getJobViaCore(jobId, signal)
-    if (job.kind !== "import") {
-      throw new Error(`Error Reason: unexpected job kind: ${job.kind}`)
+    if (!('kind' in job) || job.kind !== "import") {
+      throw new Error(
+        `Error Reason: unexpected job kind: ${'kind' in job ? job.kind : 'undefined'}`,
+      )
     }
     onUpdate?.(job)
     if (isJobTerminalStatus(job.status as JobStatus)) {

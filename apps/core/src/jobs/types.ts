@@ -25,9 +25,7 @@ export interface ImportJob {
   updatedAt: number;
 }
 
-export interface ImportLibraryJob extends ImportLibraryJobPayload {
-  kind: "import-library";
-}
+export type ImportLibraryJob = ImportLibraryJobPayload;
 
 export type ScrapeTaskRuntimeStatus =
   | "pending"

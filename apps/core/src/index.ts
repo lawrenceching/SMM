@@ -137,7 +137,6 @@ export type {
 export { parseNfo, type ParsedNfo } from "./pipeline/nfo";
 export type {
   ImportJob,
-  ImportLibraryJob,
   ImportLibraryJobTask,
   ScrapeJobSnapshot,
   Job,
@@ -154,5 +153,7 @@ export type { JobHandle } from "./jobs/jobHandle";
 export { JobAbortError } from "./jobs/jobAbortError";
 export { importJobLogFileName, isImportJobLogId } from "./jobs/importFolderLog";
 export { DummyJob } from "./jobs/DummyJob";
+export { ImportFolderJob, type ImportFolderJobOptions } from "./jobs/ImportFolderJob";
+export { ImportLibraryJob, type ImportLibraryJobOptions } from "./jobs/ImportLibraryJob";
 export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
 export type { FolderType, HelloCliBody } from "@smm/types";

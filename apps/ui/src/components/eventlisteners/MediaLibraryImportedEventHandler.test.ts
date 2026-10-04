@@ -83,7 +83,7 @@ function makeImportLibraryJob(
   overrides: Partial<{
     id: string
     libraryPath: string
-    type: "tvshow" | "music" | "movie"
+    folderType: "tvshow" | "music" | "movie"
     status: "pending" | "running" | "succeeded" | "failed"
     progress: number
     tasks: Array<{ id: string; path: string; status: "pending" | "running" | "succeeded" | "failed" }>
@@ -91,10 +91,10 @@ function makeImportLibraryJob(
   }> = {},
 ) {
   return {
-    kind: "import-library" as const,
+    type: "import-library" as const,
     id: "core-job-1",
     libraryPath: "/media/library",
-    type: "tvshow" as const,
+    folderType: "tvshow" as const,
     status: "succeeded" as const,
     progress: 100,
     tasks: [],
@@ -208,7 +208,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     getJobViaCoreMock.mockResolvedValue(
       makeImportLibraryJob({
         libraryPath,
-        type: "music",
+        folderType: "music",
         tasks: [{ id: "t0", path: folderA, status: "running" }],
         status: "running",
         progress: 0,
@@ -223,7 +223,7 @@ describe("MediaLibraryImportedEventHandler", () => {
       await pollDeferred
       return makeImportLibraryJob({
         libraryPath,
-        type: "music",
+        folderType: "music",
         tasks: [{ id: "t0", path: folderA, status: "succeeded" }],
       })
     })
@@ -260,7 +260,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     getJobViaCoreMock.mockResolvedValue(
       makeImportLibraryJob({
         libraryPath,
-        type: "movie",
+        folderType: "movie",
         status: "failed",
         progress: 0,
         error: "Library path not found",
@@ -269,7 +269,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     pollImportLibraryJobMock.mockResolvedValue(
       makeImportLibraryJob({
         libraryPath,
-        type: "movie",
+        folderType: "movie",
         status: "failed",
         progress: 0,
         error: "Library path not found",

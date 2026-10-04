@@ -60,19 +60,20 @@ describe('POST /api/get-job', () => {
     const { data } = (await imported.json()) as { data: { id: string } }
 
     const deadline = Date.now() + 2000
-    let job: { status?: string; id?: string } | undefined
+    let job: { status?: string; id?: string; kind?: string } | undefined
     while (Date.now() < deadline) {
       const res = await app.request('/api/get-job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: data.id }),
       })
-      const json = (await res.json()) as { data?: { id: string; status: string } }
+      const json = (await res.json()) as { data?: { id: string; status: string; kind?: string } }
       job = json.data
       if (job?.status === 'succeeded' || job?.status === 'failed') break
       await new Promise((r) => setTimeout(r, 20))
     }
     expect(job?.id).toBe(data.id)
     expect(job?.status).toBe('succeeded')
+    expect(job?.kind).toBe('import')
   })
 })

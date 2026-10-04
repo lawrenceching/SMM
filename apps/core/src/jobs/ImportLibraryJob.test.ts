@@ -114,6 +114,34 @@ describe("ImportLibraryJob", () => {
     expect(job.logFilePath).toBe("/var/log/lib-abc.log");
   });
 
+  it("toJSON uses job type import-library, not kind", () => {
+    const { job } = createJob({ options: { id: "lib-abc", type: "tvshow" } });
+    expect(job.toJSON()).toMatchObject({
+      id: "lib-abc",
+      type: "import-library",
+      folderType: "tvshow",
+      libraryPath: "/lib",
+      status: "pending",
+      tasks: [],
+    });
+    expect(job.toJSON()).not.toHaveProperty("kind");
+  });
+
+  it("toJSON lists a task per subdirectory after run", async () => {
+    const { job } = createJob({
+      subdirectories: ["/lib/ShowA", "/lib/ShowB"],
+    });
+
+    await job.run();
+
+    expect(job.toJSON().tasks).toEqual([
+      expect.objectContaining({ path: "/lib/ShowA", status: "succeeded" }),
+      expect.objectContaining({ path: "/lib/ShowB", status: "succeeded" }),
+    ]);
+    expect(job.toJSON().type).toBe("import-library");
+    expect(job.status).toBe("succeeded");
+  });
+
   it("run logs the discovered folder count", async () => {
     const { job, onLog, fs } = createJob({
       subdirectories: ["/lib/ShowA", "/lib/ShowB"],

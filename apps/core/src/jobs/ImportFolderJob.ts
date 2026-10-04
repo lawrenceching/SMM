@@ -15,6 +15,7 @@ import {
   type RecognizeImportedEpisodesRequest,
   type RecognizeImportedFolderRequest,
 } from "../pipeline/importFolderPipeline";
+import type { ImportJob } from "./types";
 
 export interface ImportFolderJobOptions {
   /** Caller path used in log lines, the job record, persist, and recognition. */
@@ -41,6 +42,8 @@ export class ImportFolderJob extends AbstractJob {
 
   /** Cached for recognition steps within a single `run()`. */
   private filePaths: string[] = [];
+  private readonly createdAt = Date.now();
+  private updatedAt = Date.now();
 
   constructor(ctx: AppContext, ports: PlatformPorts, options: ImportFolderJobOptions & JobOptions) {
     super(ctx, ports, {
@@ -51,6 +54,21 @@ export class ImportFolderJob extends AbstractJob {
     this.folderType = options.type;
     this.skipInit = options.skipInit;
     this.onMediaMetadataUpdated = options.onMediaMetadataUpdated;
+  }
+
+  /** Snapshot consumed by `POST /api/get-job` and UI job polling. */
+  toJSON(): ImportJob {
+    return {
+      kind: "import",
+      id: this.id,
+      folderPath: this.folderPath,
+      type: this.folderType,
+      status: this.status,
+      stage: null,
+      progress: this.progress(),
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt,
+    };
   }
 
   /**

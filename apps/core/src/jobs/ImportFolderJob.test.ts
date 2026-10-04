@@ -117,6 +117,16 @@ describe("ImportFolderJob", () => {
     expect(job.logFilePath).toBe("/var/log/job-abc.log");
   });
 
+  it("toJSON reports kind import for get-job polling", () => {
+    const { job } = createJob();
+    expect(job.toJSON()).toMatchObject({
+      kind: "import",
+      id: "job-m1abc-0",
+      folderPath: "/media/Show",
+      type: "tvshow",
+    });
+  });
+
   it("persistFolder writes the start line and calls persistNewFolder with ctx/ports", async () => {
     const { job, files, onLog } = createJob();
 

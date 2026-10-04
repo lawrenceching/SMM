@@ -12,7 +12,9 @@ export interface ImportLibraryJobTask {
 export interface ImportLibraryJob {
   id: string
   libraryPath: string
-  type: 'music' | 'tvshow' | 'movie'
+  /** Job type (`AbstractJob.type`), not media-folder type. */
+  type: 'import-library'
+  folderType: 'music' | 'tvshow' | 'movie'
   status: 'pending' | 'running' | 'succeeded' | 'failed'
   createdAt: number
   updatedAt: number

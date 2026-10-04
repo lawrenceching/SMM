@@ -267,3 +267,13 @@ describe('run-e2e-test web platform', () => {
     }
   });
 });
+
+describe('desktop e2e:cli script', () => {
+  test('starts the CLI HTTP server rather than CLI bun tests', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts['e2e:cli']).toContain('pnpm --filter cli start');
+    expect(pkg.scripts['e2e:cli']).not.toContain('test:cli');
+  });
+});

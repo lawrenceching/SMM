@@ -45,9 +45,7 @@ interface ImportJob {
   updatedAt: number
 }
 
-export interface ImportLibraryJob extends ImportLibraryJobBody {
-  kind: 'import-library'
-}
+export type ImportLibraryJob = ImportLibraryJobBody
 
 export type Job = ImportJob | ImportLibraryJob | ScrapeJob
 

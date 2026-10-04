@@ -1,5 +1,5 @@
 import type { Hono } from 'hono'
-import { ScrapeJob, type Job } from '@smm/core'
+import { ImportFolderJob, ImportLibraryJob, ScrapeJob, type Job } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
@@ -16,6 +16,12 @@ interface GetJobResponseBody {
 
 function serializeJob(job: NonNullable<ReturnType<ReturnType<typeof getCore>['getJob']>>) {
   if (job instanceof ScrapeJob) {
+    return job.toJSON()
+  }
+  if (job instanceof ImportFolderJob) {
+    return job.toJSON()
+  }
+  if (job instanceof ImportLibraryJob) {
     return job.toJSON()
   }
   return {

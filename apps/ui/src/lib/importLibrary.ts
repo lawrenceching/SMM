@@ -1,6 +1,6 @@
 import { Path } from '@smm/utils/path'
 import { getFolders } from '@/api/getFolders'
-import { getJobViaCore, type ImportLibraryJob, type ImportLibraryJobTask } from '@/api/getJob'
+import { getJobViaCore, type ImportLibraryJob, type ImportLibraryJobTask, type Job } from '@/api/getJob'
 import { showFolderViaCore } from '@/api/showFolder'
 import type { UIMediaFolder, UIMediaFolderStatus } from '@/types/UIMediaFolder'
 import type { FolderType } from '@smm/types'
@@ -47,6 +47,10 @@ export function syncSidebarFromImportLibraryJob(
   }
 }
 
+export function isImportLibraryJob(job: Job): job is ImportLibraryJob {
+  return 'type' in job && job.type === 'import-library'
+}
+
 function importLibraryTaskPaths(job: ImportLibraryJob): string[] {
   return job.tasks.map((task) => task.path)
 }
@@ -82,8 +86,10 @@ export async function waitForLibraryFoldersRegistered(
 
   for (;;) {
     const job = await getJobViaCore(coreJobId, signal)
-    if (job.kind !== 'import-library') {
-      throw new Error(`Error Reason: unexpected job kind: ${job.kind}`)
+    if (!isImportLibraryJob(job)) {
+      throw new Error(
+        `Error Reason: unexpected job type: ${'type' in job ? String(job.type) : 'undefined'}`,
+      )
     }
 
     const folderPaths = importLibraryTaskPaths(job)
@@ -136,8 +142,10 @@ export async function pollImportLibraryJob(
 
   for (;;) {
     const job = await getJobViaCore(jobId, signal)
-    if (job.kind !== 'import-library') {
-      throw new Error(`Error Reason: unexpected job kind: ${job.kind}`)
+    if (!isImportLibraryJob(job)) {
+      throw new Error(
+        `Error Reason: unexpected job type: ${'type' in job ? String(job.type) : 'undefined'}`,
+      )
     }
 
     if (job.progress !== lastLoggedProgress || job.status !== lastLoggedStatus) {

@@ -36,12 +36,14 @@ describe('waitForLibraryFoldersRegistered', () => {
   it('returns folder paths once they appear in UserConfig', async () => {
     getJobViaCoreMock
       .mockResolvedValueOnce({
-        kind: 'import-library',
+        type: 'import-library',
+        folderType: 'tvshow',
         tasks: [{ id: 't0', path: '/lib/A', status: 'pending' }],
         status: 'pending',
       })
       .mockResolvedValue({
-        kind: 'import-library',
+        type: 'import-library',
+        folderType: 'tvshow',
         tasks: [{ id: 't0', path: '/lib/A', status: 'pending' }],
         status: 'pending',
       })
@@ -57,7 +59,8 @@ describe('waitForLibraryFoldersRegistered', () => {
 
   it('returns empty paths when the job fails before registration', async () => {
     getJobViaCoreMock.mockResolvedValue({
-      kind: 'import-library',
+      type: 'import-library',
+      folderType: 'tvshow',
       tasks: [],
       status: 'failed',
     })
@@ -70,7 +73,8 @@ describe('waitForLibraryFoldersRegistered', () => {
 
   it('returns empty paths when the library has no subfolders', async () => {
     getJobViaCoreMock.mockResolvedValue({
-      kind: 'import-library',
+      type: 'import-library',
+      folderType: 'tvshow',
       tasks: [],
       status: 'succeeded',
     })

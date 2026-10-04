@@ -20,6 +20,7 @@ import {
   pollImportLibraryJob,
   syncSidebarFromImportLibraryJob,
   waitForLibraryFoldersRegistered,
+  isImportLibraryJob,
 } from "@/lib/importLibrary"
 
 export function MediaLibraryImportedEventHandler() {
@@ -69,7 +70,7 @@ export function MediaLibraryImportedEventHandler() {
       })
 
       const prepJob = await getJobViaCore(coreJobId)
-      if (prepJob.kind === "import-library") {
+      if (isImportLibraryJob(prepJob)) {
         syncSidebarFromImportLibraryJob(prepJob, upsertFolder, mediaType)
       }
 

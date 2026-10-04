@@ -75,8 +75,12 @@ describe('POST /api/import-library', () => {
     let status: string | undefined
     while (Date.now() < deadline) {
       const jobRes = await getJob(json.data!.id)
-      const jobJson = (await jobRes.json()) as { data?: { type: string; status: string } }
+      const jobJson = (await jobRes.json()) as {
+        data?: { type: string; folderType?: string; status: string; tasks?: unknown[] }
+      }
       expect(jobJson.data?.type).toBe('import-library')
+      expect(jobJson.data?.folderType).toBe('music')
+      expect(jobJson.data?.tasks).toEqual([])
       status = jobJson.data?.status
       if (status === 'succeeded' || status === 'failed') break
       await new Promise((r) => setTimeout(r, 50))

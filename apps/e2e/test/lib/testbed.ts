@@ -31,6 +31,7 @@ import {
     type ResetUserConfigOption,
     type UserConfigUpdater,
 } from './testbed-core'
+import { E2E_PRESERVED_LOCAL_STORAGE_KEYS } from './preservedLocalStorage'
 import {
     createMetadataViaBrowser,
     getMetadataViaBrowser,
@@ -399,10 +400,26 @@ export async function removeDirInSidebar(): Promise<void> {
 async function clearBrowserLocalStorage(): Promise<void> {
     // In some cleanup paths browser context may not be ready.
     try {
-        await browser.execute(() => {
-            const storage = (globalThis as { localStorage?: Storage }).localStorage
-            storage?.clear()
-        })
+        await browser.execute(
+            (preservedKeys: string[]) => {
+                const storage = (globalThis as { localStorage?: Storage }).localStorage
+                if (!storage) {
+                    return
+                }
+                const snapshot: Record<string, string> = {}
+                for (const key of preservedKeys) {
+                    const value = storage.getItem(key)
+                    if (value !== null) {
+                        snapshot[key] = value
+                    }
+                }
+                storage.clear()
+                for (const [key, value] of Object.entries(snapshot)) {
+                    storage.setItem(key, value)
+                }
+            },
+            [...E2E_PRESERVED_LOCAL_STORAGE_KEYS],
+        )
     } catch (error) {
         console.warn('Skip clearing localStorage because browser is not ready:', error)
     }
