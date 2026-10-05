@@ -10,9 +10,16 @@ export interface ProbeWhitelistedCommandResult {
 
 const PROBE_TIMEOUT_MS = 15_000;
 
-/** ffmpeg/ffprobe use `-version`; other whitelisted tools use `--version`. */
+/** ffmpeg/ffprobe use `-version`; QuickJS uses `-q` to probe (no `--version`); others use `--version`. */
 export function versionProbeArgs(command: ExecuteCmdType): string[] {
-  return command === "ffmpeg" || command === "ffprobe" ? ["-version"] : ["--version"];
+  if (command === "ffmpeg" || command === "ffprobe") {
+    return ["-version"];
+  }
+  if (command === "qjs") {
+    // `-h` exits 1; `-q` only instantiates and exits 0.
+    return ["-q"];
+  }
+  return ["--version"];
 }
 
 /**

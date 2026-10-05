@@ -187,7 +187,6 @@ export async function executeCmdToCompletionWithHeaders(
 
     void (async () => {
       try {
-        const { withDevApiUrl } = await import("@/api/executeCmd");
         const headers: Record<string, string> = {
           "Content-Type": "application/json",
           "X-Command-Execution-Id": options.executionId!,
@@ -196,7 +195,8 @@ export async function executeCmdToCompletionWithHeaders(
           headers["X-Timeout"] = String(options.timeoutMs);
         }
 
-        const response = await fetch(withDevApiUrl("/api/executeCmd"), {
+        // Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`.
+        const response = await fetch("/api/executeCmd", {
           method: "POST",
           headers,
           body: JSON.stringify(request),

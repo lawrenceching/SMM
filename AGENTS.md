@@ -176,43 +176,6 @@ pnpm test
 **pps/ui/src/stores/uiMediaFolderStore.ts** 基于 Zustand 的全局状态类. 接口 `UIMediaFolder` 用于表示前端的多媒体目录. 该store是前端项目的核心状态, 被Sidebar, Statusbar, TvShowPanel, MoviePanle 和 MoviePanel 等主要组件依赖.
 **apps/ui/src/hooks/mediaMetadata/** 基于 TanStack Query 的 MediaMetadata 读取和写入方法
 
-## 端到端测试
-
-`apps/e2e` 是端到端测试目录
-其使用 webdriver.io 运行基于浏览器的端到端测试
-
-### 代码结构
-本项目主要代码在 `apps/e2e/test` 目录下
-* actions - 可复用的测试动作
-* componentobjects - Component Object (简称CO), 用于表示应用界面的一个组件, 辅助开发者操作该组件的各个元素
-* pageobject - 用于操作网页
-* lib - 可复用的辅助函数
-* specs - 端到端测试用例
-
-### 执行测试
-
-**自动化测试/AI Agent测试**
-在项目根目录执行
-```
-bun ci/run-e2e-test.ts --spec ./test/specs/[test file].e2e.ts
-```
-日志由 `apps/cicd` 写入 `artifacts/cicd/<commandId>/`，每个 spec 文件对应一个 task（如 `SearchMovie.e2e.ts/main.log`）。
-
-浏览器网络请求日志在 `artifacts/cicd/[commandId]/[testFileName]/network-log` 目录.
-网络请求日志通常非常庞大, 不适宜直接文件
-请使用 [query-network-log](apps/tools/query-network-log.md) 工具查询
-
-
-### 编写测试
-
-关键辅助测试函数
-* `apps\e2e\test\lib\testbed.ts` 创建和清理测试环境
-* `apps\e2e\test\actions\import-folders.ts` 创建和导入测试媒体目录
-  
-模板
-* 测试音乐和视频目录: `apps\e2e\common\music\MusicPanel.template.ts`
-
-
 ## apps/cli API 列表
 API列表可查阅文件: `docs/api/index.md`.
 
@@ -225,3 +188,6 @@ API列表可查阅文件: `docs/api/index.md`.
 当使用 superpowers skillset 驱动改动时, 在 "writing-plans" 阶段, 需要为本项目额外编写/更新一份设计文档.
 
 文档模板: [Design Template](./docs/superpowers/reference/design-template.md)
+
+## References
+[Testing in SMM](docs/dev/test.md)

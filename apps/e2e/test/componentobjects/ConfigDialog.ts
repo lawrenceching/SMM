@@ -846,6 +846,90 @@ class ConfigDialog {
         }
     }
 
+    /**
+     * Effective executable path: saved input value, or discovered path in the placeholder.
+     */
+    async getExecutablePathOrPlaceholder(
+        element: ChainablePromiseElement,
+    ): Promise<string> {
+        await element.waitForExist({ timeout: 5000 })
+        const value = (await this.getInputValue(element)).trim()
+        if (value) {
+            return value
+        }
+        const attr = await element.getAttribute('placeholder')
+        if (typeof attr === 'string' && attr.trim()) {
+            return attr.trim()
+        }
+        // Some drivers expose placeholder as a property rather than an attribute.
+        const prop = await element.getProperty('placeholder')
+        if (typeof prop === 'string' && prop.trim()) {
+            return prop.trim()
+        }
+        return ''
+    }
+
+    async getYtdlpResolvedPath(): Promise<string> {
+        return await this.getExecutablePathOrPlaceholder(this.ytdlpPathInput)
+    }
+
+    async getFfmpegResolvedPath(): Promise<string> {
+        return await this.getExecutablePathOrPlaceholder(this.ffmpegPathInput)
+    }
+
+    async getQuickjsResolvedPath(): Promise<string> {
+        return await this.getExecutablePathOrPlaceholder(this.quickjsPathInput)
+    }
+
+    /**
+     * Wait until External Apps tab has finished discovering tool paths/versions.
+     */
+    async waitForExternalAppsDiscovery(timeout = 30000): Promise<void> {
+        await this.externalAppsSettings.waitForDisplayed({ timeout: 10000 })
+        const looksLikeBin = (p: string, toolDir: string, exe: string) => {
+            const n = p.replace(/\\/g, '/')
+            return new RegExp(`/${toolDir}/${exe}(\\.exe)?$`, 'i').test(n)
+        }
+        try {
+            await browser.waitUntil(
+                async () => {
+                    const ytdlp = await this.getYtdlpResolvedPath()
+                    const ffmpeg = await this.getFfmpegResolvedPath()
+                    const quickjs = await this.getQuickjsResolvedPath()
+                    const ytdlpVer = await this.getYtdlpVersionText()
+                    const ffmpegVer = await this.getFfmpegVersionText()
+                    const quickjsVer = await this.getQuickjsVersionText()
+                    return (
+                        looksLikeBin(ytdlp, 'bin/yt-dlp', 'yt-dlp') &&
+                        looksLikeBin(ffmpeg, 'bin/ffmpeg', 'ffmpeg') &&
+                        looksLikeBin(quickjs, 'bin/quickjs', 'qjs') &&
+                        ytdlpVer.startsWith('Version:') &&
+                        ffmpegVer.startsWith('Version:') &&
+                        quickjsVer.startsWith('Version:')
+                    )
+                },
+                {
+                    timeout,
+                    interval: 500,
+                    timeoutMsg:
+                        'External apps discovery did not populate project bin paths and versions for yt-dlp/ffmpeg/QuickJS',
+                },
+            )
+        } catch (err) {
+            const ytdlp = await this.getYtdlpResolvedPath()
+            const ffmpeg = await this.getFfmpegResolvedPath()
+            const quickjs = await this.getQuickjsResolvedPath()
+            const ytdlpVer = await this.getYtdlpVersionText()
+            const ffmpegVer = await this.getFfmpegVersionText()
+            const quickjsVer = await this.getQuickjsVersionText()
+            throw new Error(
+                `${err instanceof Error ? err.message : String(err)}\n` +
+                    `debug paths: ytdlp=${JSON.stringify(ytdlp)} ffmpeg=${JSON.stringify(ffmpeg)} quickjs=${JSON.stringify(quickjs)}\n` +
+                    `debug versions: ytdlp=${JSON.stringify(ytdlpVer)} ffmpeg=${JSON.stringify(ffmpegVer)} quickjs=${JSON.stringify(quickjsVer)}`,
+            )
+        }
+    }
+
     // ==================== AI Settings Actions ====================
 
     /**

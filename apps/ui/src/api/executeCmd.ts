@@ -60,38 +60,6 @@ function isTerminalSystemMessage(message: ExecuteCmdMessage): boolean {
   );
 }
 
-/**
- * Absolute CLI origin for Vite-only streaming APIs that bypass the /api proxy.
- * Electron (UI served from the same HTTP port as the API) must stay same-origin.
- */
-function devCliOrigin(): string {
-  const raw = import.meta.env.VITE_DEV_CLI_URL;
-  if (typeof raw === 'string' && raw.trim()) {
-    return raw.replace(/\/$/, '');
-  }
-  if (!import.meta.env.DEV || typeof window === 'undefined') {
-    return '';
-  }
-  const httpPort =
-    typeof import.meta.env.VITE_HTTP_PORT === 'string' && import.meta.env.VITE_HTTP_PORT.trim()
-      ? import.meta.env.VITE_HTTP_PORT.trim()
-      : '';
-  if (!httpPort) {
-    return '';
-  }
-  // Same port as the CLI → already talking to the unified server (Electron / static).
-  if (window.location.port === httpPort) {
-    return '';
-  }
-  return `http://${window.location.hostname}:${httpPort}`;
-}
-
-export function withDevApiUrl(apiPath: string): string {
-  const o = devCliOrigin();
-  const p = apiPath.startsWith('/') ? apiPath : `/${apiPath}`;
-  return o ? `${o}${p}` : p;
-}
-
 export interface ExecuteCmdStreamCallbacks {
   onMessage: (message: ExecuteCmdMessage) => void;
   onComplete: () => void;
@@ -123,7 +91,8 @@ export function executeCmdStream(
         headers['X-Timeout'] = String(timeoutMs);
       }
 
-      const response = await fetch(withDevApiUrl('/api/executeCmd'), {
+      // Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`.
+      const response = await fetch('/api/executeCmd', {
         method: 'POST',
         headers,
         body: JSON.stringify(request),

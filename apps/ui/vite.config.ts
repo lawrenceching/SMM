@@ -39,7 +39,7 @@ function resolveUiDevPort(raw: string | undefined = process.env.VITE_PORT): numb
 }
 
 /**
- * Unified CLI HTTP port for Vite proxy / executeCmd bypass.
+ * Unified CLI HTTP port for Vite `/api` proxy target.
  * Env: `HTTP_PORT` (default 30000).
  */
 function resolveHttpDevPort(
@@ -98,7 +98,7 @@ export default defineConfig({
   envPrefix: ["VITE_", "TEST_"],
   define: {
     "import.meta.env.VITE_APP_VERSION": JSON.stringify(pkg.version),
-    // Default CLI origin when VITE_DEV_CLI_URL is unset (executeCmd streaming bypass).
+    // CLI HTTP port for Vite proxy target / client diagnostics.
     "import.meta.env.VITE_HTTP_PORT": JSON.stringify(String(httpDevPort)),
   },
   plugins: [

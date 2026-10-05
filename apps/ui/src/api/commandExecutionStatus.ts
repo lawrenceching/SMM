@@ -1,4 +1,3 @@
-import { withDevApiUrl } from '@/api/executeCmd'
 import { apiFetch } from '@/lib/apiFetch'
 
 type CommandExecutionPhase = 'unknown' | 'running' | 'finished'
@@ -18,8 +17,9 @@ export interface CommandExecutionStatusResponse {
 export async function fetchCommandExecutionStatus(
   executionId: string,
 ): Promise<CommandExecutionStatusResponse> {
+  // Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`.
   const res = await apiFetch(
-    withDevApiUrl(`/api/command-execution/${encodeURIComponent(executionId)}`),
+    `/api/command-execution/${encodeURIComponent(executionId)}`,
     { credentials: 'same-origin' },
   )
   const text = await res.text()

@@ -1,5 +1,3 @@
-import { withDevApiUrl } from "@/api/executeCmd";
-
 export interface ExecutablePathInfo {
   configuredPath: string | null;
   discoveredPath: string | null;
@@ -22,8 +20,9 @@ const emptyPathInfo = (): ExecutablePathInfo => ({
   discoveredPath: null,
 });
 
+/** Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`. */
 export async function fetchDiscoverExecutables(): Promise<DiscoverExecutablesData> {
-  const response = await fetch(withDevApiUrl("/api/discoverExecutables"));
+  const response = await fetch("/api/discoverExecutables");
   const body = (await response.json()) as DiscoverExecutablesResponseBody;
   if (!response.ok) {
     throw new Error(body.error ?? `HTTP ${response.status}`);

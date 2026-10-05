@@ -11,4 +11,8 @@ describe("versionProbeArgs", () => {
     expect(versionProbeArgs("yt-dlp")).toEqual(["--version"]);
     expect(versionProbeArgs("videocaptioner")).toEqual(["--version"]);
   });
+
+  it("uses -q for qjs probe ( -h exits 1; no --version flag)", () => {
+    expect(versionProbeArgs("qjs")).toEqual(["-q"]);
+  });
 });
