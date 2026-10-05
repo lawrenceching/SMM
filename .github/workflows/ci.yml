@@ -1,11 +1,12 @@
 name: CI
 
-# Orchestrates multi-platform Build (win-x64) then parallel Web UI + MCP Tools
-# E2E (win-x64).
+# Platform-independent quality gates (Lint UI / Typecheck / Knip) run here once
+# on ubuntu, then orchestrates multi-platform Build (win-x64) and parallel Web
+# UI + MCP Tools E2E (win-x64).
 #
 # Required check names (RELEASE_REQUIRED_CHECKS) must stay stable — see
 # ci/verify-check-runs-lib.ts:
-#   Lint UI, build / gate, web-ui-e2e / gate, mcp-tools-e2e / gate
+#   Lint UI, Typecheck, Knip, build / gate, web-ui-e2e / gate, mcp-tools-e2e / gate
 on:
   push:
     branches: [ main, develop ]
@@ -56,6 +57,45 @@ jobs:
 
       - name: Lint UI
         run: cd apps/ui && pnpm run lint
+
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  knip:
+    name: Knip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Knip
+        run: pnpm knip
 
   dispatch-build:
     name: Dispatch Build

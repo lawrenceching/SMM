@@ -1,9 +1,12 @@
 name: Build
 
 # Multi-platform build validation (same five OS/arch runners as
-# "E2E Tests for Electron"). On each selected runner: unit tests, typecheck,
-# knip (hard gate), then produce UI web assets, CLI binary, and Electron
-# installers. Upload artifacts for inspection (no GitHub Release).
+# "E2E Tests for Electron"). On each selected runner: unit tests, then produce
+# UI web assets, CLI binary, and Electron installers. Upload artifacts for
+# inspection (no GitHub Release).
+#
+# Platform-independent static checks (Lint UI / Typecheck / Knip) live in the
+# CI workflow, not here — so they are not repeated on every matrix runner.
 #
 # Triggered manually or via workflow_dispatch from CI / Release.
 # Input `platforms`: comma-separated keys (e.g. win-x64). Empty = all five.
@@ -101,12 +104,6 @@ jobs:
 
       - name: Run unit tests
         run: pnpm -r test
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Knip
-        run: pnpm knip
 
       - name: Download third-party binaries
         run: bash ci/download-3pp-binary.sh

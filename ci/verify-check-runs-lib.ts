@@ -4,6 +4,8 @@
  */
 export const RELEASE_REQUIRED_CHECKS = [
   'Lint UI',
+  'Typecheck',
+  'Knip',
   'build / gate',
   'web-ui-e2e / gate',
   'mcp-tools-e2e / gate',

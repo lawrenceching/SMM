@@ -50,6 +50,8 @@ Electron 与 Docker **共用同一个 Git tag**（例如 `v1.2.3`）。先发布
 | 检查项 | Workflow | Job 名称 |
 |--------|----------|----------|
 | Lint | **CI** | `Lint UI` |
+| Typecheck | **CI** | `Typecheck` |
+| Knip | **CI** | `Knip` |
 | 多平台 Build（CI 仅 win-x64） | **Build** | `build / gate` |
 | Web UI E2E（CI 仅 win-x64） | **E2E Tests for Web UI** | `web-ui-e2e / gate` |
 | MCP Tools E2E（CI 仅 win-x64） | **E2E Tests for MCP Tools** | `mcp-tools-e2e / gate` |

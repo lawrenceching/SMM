@@ -343,7 +343,8 @@ class StatusBar {
 
     async getLogDialogText(): Promise<string> {
         await this.logDialogContent.waitForExist({ timeout: 10000 })
-        return this.logDialogContent.getValue()
+        const value = await this.logDialogContent.getValue()
+        return typeof value === 'string' ? value : String(value ?? '')
     }
 
     async waitForLogDialogContaining(substring: string, timeout: number = 30000): Promise<string> {
@@ -353,7 +354,8 @@ class StatusBar {
                 if (!(await this.logDialogContent.isExisting())) {
                     return false
                 }
-                lastText = await this.logDialogContent.getValue()
+                const value = await this.logDialogContent.getValue()
+                lastText = typeof value === 'string' ? value : String(value ?? '')
                 return lastText.includes(substring)
             },
             {
