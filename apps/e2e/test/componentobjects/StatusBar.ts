@@ -295,6 +295,77 @@ class StatusBar {
     }
 
     /**
+     * Open the popover if it is not already visible.
+     */
+    async ensureBackgroundJobsPopoverOpen(timeout: number = 5000): Promise<void> {
+        if (await this.isBackgroundJobsPopoverOpen()) {
+            return
+        }
+        await this.clickBackgroundJobsIndicator()
+        const opened = await this.waitForBackgroundJobsPopover(timeout)
+        if (!opened) {
+            throw new Error('Background jobs popover did not open')
+        }
+    }
+
+    /**
+     * Find a job whose displayed name contains `nameFragment` (folder name, etc.).
+     */
+    async findBackgroundJobIdContaining(nameFragment: string): Promise<string | null> {
+        return browser.execute((fragment: string) => {
+            for (const el of Array.from(document.querySelectorAll('[data-testid$="-name"]'))) {
+                const testId = el.getAttribute('data-testid')
+                if (!testId?.startsWith('background-job-') || !testId.endsWith('-name')) {
+                    continue
+                }
+                const name = el.textContent?.trim() ?? ''
+                if (!name.includes(fragment)) {
+                    continue
+                }
+                return testId.replace('background-job-', '').replace('-name', '')
+            }
+            return null
+        }, nameFragment)
+    }
+
+    /**
+     * Click the log button for a job (opens LogDialog).
+     */
+    async openBackgroundJobLog(jobId: string): Promise<void> {
+        const logBtn = this.backgroundJobLogButton(jobId)
+        await logBtn.waitForDisplayed({ timeout: 5000 })
+        await logBtn.click()
+    }
+
+    get logDialogContent() {
+        return $('[data-testid="log-dialog-content"]')
+    }
+
+    async getLogDialogText(): Promise<string> {
+        await this.logDialogContent.waitForExist({ timeout: 10000 })
+        return this.logDialogContent.getValue()
+    }
+
+    async waitForLogDialogContaining(substring: string, timeout: number = 30000): Promise<string> {
+        let lastText = ''
+        await browser.waitUntil(
+            async () => {
+                if (!(await this.logDialogContent.isExisting())) {
+                    return false
+                }
+                lastText = await this.logDialogContent.getValue()
+                return lastText.includes(substring)
+            },
+            {
+                timeout,
+                interval: 500,
+                timeoutMsg: `Log dialog did not contain ${JSON.stringify(substring)}. Last text: ${JSON.stringify(lastText)}`,
+            },
+        )
+        return lastText
+    }
+
+    /**
      * Get the displayed message in the status bar
      */
     async getMessage(): Promise<string> {

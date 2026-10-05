@@ -12,6 +12,7 @@ import { Core } from "./Core";
 import { ScrapeJob } from "./jobs/ScrapeJob";
 import {
   IMPORT_FOLDER_COMPLETED,
+  importJobLogFileName,
   startedImportFolderMessage,
 } from "./jobs/importFolderLog";
 import { metadataCachePath, planFilePath, userConfigPath } from "./pipeline/paths";
@@ -748,7 +749,7 @@ describe("importFolder job logs and abort", () => {
 });
 
 describe("importFolder job log file", () => {
-  it("appends the same lines to logDir/${id}.log", async () => {
+  it("appends the same lines to logDir/job-${id}.log", async () => {
     const logDir = "/tmp/smm-logs";
     const fs = inMemoryFs({ "/m/My.Music/a.mp3": "" });
     const core = new Core({
@@ -766,6 +767,7 @@ describe("importFolder job log file", () => {
     await waitForStatus(core, id, "succeeded");
     const job = core.getJob(id);
     expect(job).toBeDefined();
+    expect(job!.logFilePath).toBe(`${logDir}/${importJobLogFileName(id)}`);
     const text = await fs.readTextFile(job!.logFilePath);
     expect(text).toBe(
       [
@@ -778,7 +780,7 @@ describe("importFolder job log file", () => {
     );
   });
 
-  it("writes ${id}.log at the platform logDir", async () => {
+  it("writes job-${id}.log at the platform logDir", async () => {
     const root = await mkdtemp(join(tmpdir(), "smm-import-log-"));
     const appDataDir = join(root, "data");
     const logDir = join(root, "logs");
@@ -804,6 +806,7 @@ describe("importFolder job log file", () => {
       });
       await waitForStatus(core, id, "succeeded");
       const logPath = core.getJob(id)!.logFilePath;
+      expect(logPath.endsWith(importJobLogFileName(id))).toBe(true);
       const text = await readFile(logPath, "utf8");
       expect(text).toContain("Started to import folder:");
       expect(text).toContain("type: music");

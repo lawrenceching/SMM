@@ -37,7 +37,7 @@ export function canOpenCommandLog(job: BackgroundJob): boolean {
   return typeof id === 'string' && id.length > 0
 }
 
-/** Import-folder logs are read from `${logDir}/job-${jobId}.log`. */
+/** Import-folder logs are loaded with `POST /api/get-job-log`. */
 export function canOpenJobFileLog(job: BackgroundJob): boolean {
   return isImportFolderBackgroundJob(job) && job.id.length > 0
 }

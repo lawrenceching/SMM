@@ -52,7 +52,6 @@ import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
 import { registerExecuteRoutes } from './src/route/execute';
 import { handleCommandLog } from './src/route/commandLog';
-import { handleJobLogFile } from './src/route/jobLogFile';
 import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
 import { handleSpeedtest } from './src/route/speedtest';
@@ -315,7 +314,6 @@ export class Server {
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
     handleCommandLog(this.app);
-    handleJobLogFile(this.app);
     handleCommandExecutionStatus(this.app);
     handleLog(this.app);
     handleSpeedtest(this.app);

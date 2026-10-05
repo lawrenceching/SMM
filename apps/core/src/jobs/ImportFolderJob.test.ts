@@ -8,6 +8,7 @@ import { ImportFolderJob, type ImportFolderJobOptions } from "./ImportFolderJob"
 import type { JobOptions } from "./abstract-job";
 import {
   IMPORT_FOLDER_COMPLETED,
+  importJobLogFileName,
   startedImportFolderMessage,
 } from "./importFolderLog";
 import {
@@ -111,10 +112,10 @@ describe("ImportFolderJob", () => {
   it("sets id and logFilePath from context.logDir and options.id", () => {
     const { job } = createJob({
       context: { logDir: "/var/log" },
-      options: { id: "job-abc" },
+      options: { id: "m1abc-0" },
     });
-    expect(job.id).toBe("job-abc");
-    expect(job.logFilePath).toBe("/var/log/job-abc.log");
+    expect(job.id).toBe("m1abc-0");
+    expect(job.logFilePath).toBe(`/var/log/${importJobLogFileName("m1abc-0")}`);
   });
 
   it("toJSON reports kind import for get-job polling", () => {
@@ -201,10 +202,10 @@ describe("ImportFolderJob", () => {
   });
 
   it("writes the log file under context.logDir", async () => {
-    const { job, fs } = createJob({ context: { logDir: "/var/log" }, options: { id: "job-x" } });
+    const { job, fs } = createJob({ context: { logDir: "/var/log" }, options: { id: "x" } });
     await job.persistFolder();
     expect(fs.writeTextFile).toHaveBeenCalledWith(
-      "/var/log/job-x.log",
+      `/var/log/${importJobLogFileName("x")}`,
       expect.any(String),
     );
   });

@@ -65,7 +65,7 @@ note2: core layer already provides methods to recognize folder and recognize epi
 
 note3: The ImportJob can be aborted in stage 2 or stage 3 via `stopJob(id)`. Abort is cooperative at stage boundaries (`throwIfAborted`). Failed or aborted jobs do not roll back smm.json / metadata.
 
-note4: User-visible job logs are written with `JobHandle.appendLog` and read with `getJobLog(id)`. Process logs still go to `LoggerPort`. See [Job Management](./job.md). Web UI does not call `getJobLog` / `stopJob` in this iteration.
+note4: User-visible job logs are written with `JobHandle.appendLog` / `AbstractJob.log` and read with `getJobLog(id)` / `POST /api/get-job-log`. Process logs still go to `LoggerPort`. See [Job Management](./job.md).
 
 note5: `mediaMetadataUpdated` is emitted by `MediaMetadataHelper` on every successful metadata cache write/move/delete (including stage-1 blank metadata). Hosts subscribe via `core.on(...)` and forward to Socket.IO.
 
@@ -102,6 +102,23 @@ sequenceDiagram
   Core-->>CLI: folders[] + MediaMetadata | null
   CLI-->>Browser: { data: { path, status, ... } }
   Note over Browser: upsertFolder status from show-folder (Zustand)
+```
+
+When the user opens **BackgroundJobsPopover** and clicks the job log button, the UI reads ImportFolderJob logs through Core (`get-job` snapshots do not include log lines):
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Browser
+  participant CLI
+  participant Core
+
+  User->>Browser: click log in BackgroundJobsPopover
+  Browser->>CLI: POST /api/get-job-log { id }
+  CLI->>Core: getJobLog(id)
+  Core-->>CLI: log text
+  CLI-->>Browser: { data: { lines } }
+  Note over Browser: LogDialog
 ```
 
 See [apps/core](#appscore) for pipeline stages and persistence details.

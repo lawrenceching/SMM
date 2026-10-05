@@ -417,6 +417,9 @@ export class Core {
     if(job === undefined) {
       throw new Error("Job not found");
     }
+    if (!(await this.fs.exists(job.logFilePath))) {
+      return "";
+    }
     return await this.fs.readTextFile(job.logFilePath);
   }
 

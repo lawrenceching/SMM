@@ -14,6 +14,8 @@ interface JobOptionalOptions {
   type: string;
   id: string;
   printLogToConsole: boolean;
+  /** File name under `logDir`. Defaults to `${id}.log`. */
+  logFileName: string;
 }
 
 export type JobOptions = JobMandatoryOptions & Partial<JobOptionalOptions>;
@@ -40,7 +42,8 @@ export abstract class AbstractJob {
       id: options.id ?? Date.now().toString(),
       printLogToConsole: options.printLogToConsole ?? false,
     };
-    this.logFilePath = this.ports.fs.join(this.context.logDir, `${this.options.id}.log`);
+    const logFileName = options.logFileName ?? `${this.options.id}.log`;
+    this.logFilePath = this.ports.fs.join(this.context.logDir, logFileName);
   }
 
   get id(): string {

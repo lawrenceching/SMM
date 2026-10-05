@@ -173,15 +173,15 @@ mediaFiles:
             files: ['01.mp3'],
             type: 'music',
         })
-        await expectImportJobLog(testFolder.path!, 'music', [
-            'Completed',
-        ])
+        await expectImportJobLog(testFolder.path!, 'music', [])
     }, FIVE_MINUTES_MS)
 
     it('smm add prints the tvshow import job log', async () => {
         const testFolder = createFolderInTestFolder(folder1)
-        await expectImportJobLog(testFolder.path!, 'tvshow', [
-            'Completed',
+        const folderPath = testFolder.path!
+        await expectImportJobLog(folderPath, 'tvshow', [
+            `Recognize ${folderPath}: WATATEN!: an Angel Flew Down to Me (tmdbId:84666)`,
+            'Recognize 3 episode files',
         ])
     }, FIVE_MINUTES_MS)
 
@@ -190,17 +190,42 @@ mediaFiles:
             ...folder2,
             folderName: '{tmdbid=1539104}',
         })
-        await expectImportJobLog(testFolder.path!, 'movie', [
-            'Completed',
+        const folderPath = testFolder.path!
+        await expectImportJobLog(folderPath, 'movie', [
+            `Recognize ${folderPath}: JUJUTSU KAISEN: Execution (tmdbId:1539104)`,
+            'Recognize 1 episode files',
         ])
     }, FIVE_MINUTES_MS)
 })
 
-async function expectImportJobLog(folderPath: string, type: string, lines: string[]): Promise<void> {
-    const started = `Started to import folder: ${Path.toPlatformPath(folderPath)}, type: ${type}`
+/**
+ * `smm add` prints ImportFolderJob log lines to stdout (`callbacks.onLog`).
+ * That stream is part of the CLI user experience: the entire stdout must equal
+ * the expected log, line for line.
+ *
+ * Do not weaken this to `toContain` / partial matches, and do not drop or
+ * rewrite expected lines to make a later change easier. If production log
+ * wording changes, update the expected string to match the new UX on purpose.
+ */
+async function expectImportJobLog(
+    folderPath: string,
+    type: string,
+    recognitionLines: string[],
+): Promise<void> {
     const added = await $`${bin} add ${folderPath} --type ${type}`.nothrow()
     expect(added.exitCode).toBe(0)
-    for (const line of [started, ...lines]) {
-        expect(added.text()).toContain(line)
-    }
+
+    const text = added.text().replace(/\r\n/g, '\n')
+    const idMatch = text.match(/^(\S+) started\n/)
+    expect(idMatch).not.toBeNull()
+    const id = idMatch![1]!
+
+    const expected = [
+        `${id} started`,
+        `Started to import folder: ${folderPath}, type: ${type}`,
+        ...recognitionLines,
+        `${id} completed`,
+        '',
+    ].join('\n')
+    expect(text).toBe(expected)
 }

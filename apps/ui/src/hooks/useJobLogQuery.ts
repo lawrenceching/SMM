@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchJobLogText } from '@/api/jobLogFile'
+import { fetchJobLogText } from '@/api/getJobLog'
 import type { CommandLogResponseMeta } from '@/api/commandLog'
 
 export interface UseJobLogQueryArgs {
@@ -18,7 +18,7 @@ export interface UseJobLogQueryResult {
   refetch: () => void
 }
 
-/** Polls `GET /api/job-log-file/:jobId` (`${logDir}/job-${jobId}.log`). */
+/** Polls `POST /api/get-job-log` (`Core.getJobLog`). */
 export function useJobLogQuery({
   jobId,
   enabled,
@@ -26,7 +26,7 @@ export function useJobLogQuery({
   refetchIntervalMs = 200,
 }: UseJobLogQueryArgs): UseJobLogQueryResult {
   const query = useQuery({
-    queryKey: ['job-log-file', jobId],
+    queryKey: ['get-job-log', jobId],
     enabled: !!jobId && enabled,
     refetchInterval: isRunning ? refetchIntervalMs : false,
     staleTime: isRunning ? 0 : Infinity,

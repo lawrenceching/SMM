@@ -1,4 +1,4 @@
-import { expect } from '@wdio/globals'
+import { expect, browser } from '@wdio/globals'
 import { setup, cleanup } from 'test/lib/testbed'
 import {
     clearFolderViaBrowser,
@@ -7,6 +7,7 @@ import {
 } from 'test/lib/browser-fs'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import Sidebar from 'test/componentobjects/Sidebar'
+import StatusBar from 'test/componentobjects/StatusBar'
 import { then, resetStepContext } from 'test/lib/gherkin'
 import 'test/steps'
 import { folder1 } from 'test/actions/import-folders'
@@ -96,6 +97,43 @@ describe('TVShow - Import', () => {
                 500,
             )
             expect(await TvShowPanelCO.toString()).toBe(EXPECTED_EPISODE_TABLE)
+        })
+
+        await then('BackgroundJobsPopover ImportFolderJob log shows import stages', async () => {
+            await StatusBar.ensureBackgroundJobsPopoverOpen()
+            const jobId = await StatusBar.findBackgroundJobIdContaining(folder.folderName)
+            expect(jobId).not.toBeNull()
+
+            await browser.waitUntil(
+                async () => {
+                    const badge = (await StatusBar.backgroundJobStatusBadge(jobId!).getText())
+                        .trim()
+                        .toLowerCase()
+                    return badge === 'succeeded' || badge.includes('succeeded') || badge.includes('成功')
+                },
+                {
+                    timeout: 30000,
+                    interval: 500,
+                    timeoutMsg: 'ImportFolderJob did not reach succeeded in the background jobs popover',
+                },
+            )
+
+            await StatusBar.openBackgroundJobLog(jobId!)
+            // Wait until AbstractJob lifecycle footer is present (import finished).
+            const logText = await StatusBar.waitForLogDialogContaining(`${jobId} completed`)
+
+            // LogDialog body must equal the ImportFolderJob log line-for-line.
+            // Do not weaken to toContain / partial matches, and do not drop lines
+            // to make a later change easier. Update the expected string only when
+            // production log wording changes on purpose.
+            const expected = [
+                `${jobId} started`,
+                `Started to import folder: ${folderPathInOhos}, type: tvshow`,
+                `Recognize ${folderPathInOhos}: WATATEN!: an Angel Flew Down to Me (tmdbId:84666)`,
+                'Recognize 3 episode files',
+                `${jobId} completed`,
+            ].join('\n')
+            expect(logText.replace(/\r\n/g, '\n')).toBe(expected)
         })
     })
 })

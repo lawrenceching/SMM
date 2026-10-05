@@ -1,9 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { MockInstance } from 'vitest'
-import { copyFileSync, mkdtempSync, rmSync, writeFileSync } from 'fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { importJobLogFileName } from '@smm/core'
 import { getCore, resetCoreForTests } from '../core/getCore'
 
 async function startMusicImportSkipInit(mediaFolder: string): Promise<string> {
@@ -84,10 +83,6 @@ describe('smm job', () => {
       resetCoreForTests()
       const id = await startMusicImportSkipInit(mediaFolder)
       const expectedLines = await expectedImportLogLines(id)
-      copyFileSync(
-        join(logDir, `${id}.log`),
-        join(logDir, importJobLogFileName(id)),
-      )
       resetCoreForTests()
 
       const { runCli } = await import('./runCli')

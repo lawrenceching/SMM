@@ -1,6 +1,19 @@
 import { readdir, readFile } from "node:fs/promises";
-import { isImportJobLogId } from "@smm/core";
-import { resolveImportJobLogPath } from "../route/jobLogFile";
+import path from "node:path";
+import { importJobLogFileName, isImportJobLogId } from "@smm/core";
+import { getLogDir } from "../utils/config";
+
+function resolvePersistedImportJobLogPath(jobId: string): string | null {
+  const id = jobId.trim();
+  if (!isImportJobLogId(id)) return null;
+  const root = path.resolve(getLogDir());
+  const fileName = importJobLogFileName(id);
+  const file = path.resolve(root, fileName);
+  const rel = path.relative(root, file);
+  if (rel.startsWith(`..${path.sep}`) || rel === ".." || path.isAbsolute(rel)) return null;
+  if (rel !== fileName) return null;
+  return file;
+}
 
 /** Job ids that already have `${logDir}/job-${id}.log` on disk. */
 export async function listPersistedImportJobIds(logDir: string): Promise<string[]> {
@@ -20,7 +33,7 @@ export async function listPersistedImportJobIds(logDir: string): Promise<string[
 
 /** Log file text for a finished import, or null when the file is missing. */
 export async function readPersistedJobLog(jobId: string): Promise<string | null> {
-  const file = resolveImportJobLogPath(jobId);
+  const file = resolvePersistedImportJobLogPath(jobId);
   if (!file) return null;
   try {
     return await readFile(file, "utf-8");

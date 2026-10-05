@@ -23,7 +23,7 @@ export type LogDialogProps = {
   /** When true, poll the log endpoint while the job is still running. */
   isRunning?: boolean
   /**
-   * When set, load `${logDir}/job-${jobLogId}.log` instead of a command log.
+   * When set, load Internal Job logs via `POST /api/get-job-log`.
    */
   jobLogId?: string
 }

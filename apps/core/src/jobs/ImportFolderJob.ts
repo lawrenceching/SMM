@@ -3,6 +3,7 @@ import type { FolderType } from "@smm/types";
 import { JobAbortError } from "./jobAbortError";
 import {
   IMPORT_FOLDER_COMPLETED,
+  importJobLogFileName,
   startedImportFolderMessage,
 } from "./importFolderLog";
 import { AbstractJob, type JobOptions } from "./abstract-job";
@@ -16,6 +17,7 @@ import {
   type RecognizeImportedFolderRequest,
 } from "../pipeline/importFolderPipeline";
 import type { ImportJob } from "./types";
+import { MediaMetadataHelper } from "src/pipeline/mediaMetadataHelper";
 
 export interface ImportFolderJobOptions {
   /** Caller path used in log lines, the job record, persist, and recognition. */
@@ -32,7 +34,7 @@ interface Step {
 
 /**
  * Folder import: persist the folder, then recognize it and its episode files.
- * Log lines are appended to `${logDir}/${name}.log` (name is `job-${id}`).
+ * Log lines are appended to `${logDir}/job-${id}.log`.
  */
 export class ImportFolderJob extends AbstractJob {
   private readonly folderPath: string;
@@ -48,7 +50,8 @@ export class ImportFolderJob extends AbstractJob {
   constructor(ctx: AppContext, ports: PlatformPorts, options: ImportFolderJobOptions & JobOptions) {
     super(ctx, ports, {
       ...options,
-      type: "import-folder"
+      type: "import-folder",
+      logFileName: importJobLogFileName(options.id),
     });
     this.folderPath = options.folderPath;
     this.folderType = options.type;
@@ -134,7 +137,6 @@ export class ImportFolderJob extends AbstractJob {
         }
       }
 
-      await this.log(IMPORT_FOLDER_COMPLETED);
       this.setStatus("succeeded");
     } catch (error) {
       this.setStatus("failed");
@@ -188,6 +190,16 @@ export class ImportFolderJob extends AbstractJob {
             filePaths: job.filePaths,
           };
           await recognizeImportedFolder(req, job.context, job.ports, job.onMediaMetadataUpdated);
+          const helper = new MediaMetadataHelper(job.ports.fs, job.context.appDataDir, job.onMediaMetadataUpdated);
+          const mm = await helper.read(job.folderPath);
+
+          const name = mm?.tvShow?.name ?? mm?.movie?.name ?? 'undefined';
+          const id = mm?.tvShow?.id ?? mm?.movie?.id ?? 'undefined';
+          const db: string = (mm?.tvShow?.database ?? mm?.movie?.database ?? 'undefined').toLocaleLowerCase();
+
+          const msg = `Recognize ${job.folderPath}: ${name} (${db}Id:${id})`
+          job.ports.logger.info({}, msg);
+          await job.log(msg);
         },
       },
       {
@@ -198,6 +210,15 @@ export class ImportFolderJob extends AbstractJob {
             filePaths: job.filePaths,
           };
           await recognizeImportedEpisodes(req, job.context, job.ports, job.onMediaMetadataUpdated);
+
+
+          const helper = new MediaMetadataHelper(job.ports.fs, job.context.appDataDir, job.onMediaMetadataUpdated);
+          const mm = await helper.read(job.folderPath);          
+          const recognizedFilesNumber = mm?.mediaFiles?.length ?? 0;
+          const msg = `Recognize ${recognizedFilesNumber} episode files`
+          job.ports.logger.info({}, msg);
+          await job.log(msg);
+
         },
       },
     ];

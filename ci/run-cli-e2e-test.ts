@@ -70,6 +70,8 @@ async function main(): Promise<number> {
     const extraArgs = process.argv.slice(2);
     const testArgs = extraArgs.length > 0 ? extraArgs : ['./cli/'];
 
+    await $`pnpm --filter cli run build`
+
     const result = await $`bun test ${testArgs}`.cwd(E2E_DIR).env(process.env).nothrow();
     return result.exitCode;
   } finally {

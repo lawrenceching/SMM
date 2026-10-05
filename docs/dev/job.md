@@ -40,7 +40,7 @@ POST /api/get-job-log  { id }  → { lines }
 POST /api/stop-job     { id }  → { id }
 ```
 
-Use these to inspect or abort an import started by `POST /api/import-folder`. Web UI import still polls `get-job` only; it does not call stop/log in this iteration.
+Use these to inspect or abort an import started by `POST /api/import-folder`. Web UI polls `get-job` for status and reads logs with `POST /api/get-job-log`.
 
 
 ## CLI

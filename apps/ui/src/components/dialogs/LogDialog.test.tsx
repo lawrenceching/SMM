@@ -55,16 +55,12 @@ describe('LogDialog', () => {
     expect(globalThis.fetch).toHaveBeenCalled()
   })
 
-  it('loads an import-folder log from the job log file', async () => {
+  it('loads an import-folder log from POST /api/get-job-log', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      headers: new Headers({
-        'X-Log-Truncated': 'false',
-        'X-Log-Total-Bytes': '9',
-        'X-Log-Read-Offset': '0',
-        'X-Log-Read-Limit': '9',
+      json: async () => ({
+        data: { lines: [{ message: 'Completed' }] },
       }),
-      text: async () => 'Completed',
     })
     vi.stubGlobal('fetch', fetchMock)
 
@@ -82,8 +78,13 @@ describe('LogDialog', () => {
       expect(screen.getByText('Completed')).toBeInTheDocument()
     })
     const url = String(fetchMock.mock.calls[0]?.[0])
-    expect(url).toContain('/api/job-log-file/core-job-1')
+    expect(url).toContain('/api/get-job-log')
+    expect(url).not.toContain('/api/job-log-file/')
     expect(url).not.toContain('/api/command-log/')
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ id: 'core-job-1' }),
+    })
   })
 
   it('selects all log text on Ctrl+A when focus is outside the log area', async () => {
