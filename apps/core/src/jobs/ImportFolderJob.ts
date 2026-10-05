@@ -17,7 +17,7 @@ import {
   type RecognizeImportedFolderRequest,
 } from "../pipeline/importFolderPipeline";
 import type { ImportJob } from "./types";
-import { MediaMetadataHelper } from "src/pipeline/mediaMetadataHelper";
+import { MediaMetadataHelper } from "../pipeline/mediaMetadataHelper";
 
 export interface ImportFolderJobOptions {
   /** Caller path used in log lines, the job record, persist, and recognition. */
@@ -137,6 +137,7 @@ export class ImportFolderJob extends AbstractJob {
         }
       }
 
+      await this.log(IMPORT_FOLDER_COMPLETED);
       this.setStatus("succeeded");
     } catch (error) {
       this.setStatus("failed");

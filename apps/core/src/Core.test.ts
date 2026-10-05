@@ -685,6 +685,8 @@ describe("importFolder job logs and abort", () => {
     expect(jobLogLines(await core.getJobLog(id))).toEqual([
       `${id} started`,
       startedImportFolderMessage(folder, type),
+      `Recognize ${folder}: ${_title} (tmdbId:${type === "tvshow" ? "84666" : "42"})`,
+      `Recognize ${type === "movie" ? 1 : 0} episode files`,
       IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
@@ -709,6 +711,8 @@ describe("importFolder job logs and abort", () => {
     expect(jobLogLines(await core.getJobLog(id))).toEqual([
       `${id} started`,
       startedImportFolderMessage("/m/Unknown", "tvshow"),
+      "Recognize /m/Unknown: undefined (undefinedId:undefined)",
+      "Recognize 0 episode files",
       IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
