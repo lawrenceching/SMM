@@ -40,7 +40,8 @@ describe('manage folders', () => {
 
         const added = await $`${bin} add ${folderPath} --type tvshow --skip-init`.nothrow()
         expect(added.exitCode).toBe(0)
-        expect(added.text()).toContain(`imported folder ${folderPath}`)
+        expect(added.text()).toContain(`Started to import folder: ${folderPath}, type: tvshow`)
+        expect(added.text()).toContain('Completed')
 
         const listed = await $`${bin} list`.nothrow()
         expect(listed.exitCode).toBe(0)
