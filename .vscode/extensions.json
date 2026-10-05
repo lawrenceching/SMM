@@ -1,5 +1,6 @@
 {
     "recommendations": [
+      "dbaeumer.vscode-eslint",
       "vitest.explorer",
       "ryanluker.vscode-coverage-gutters",
       "oven.bun-vscode"

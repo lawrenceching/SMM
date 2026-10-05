@@ -17,6 +17,8 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      // Surface missing/incorrect React hook dependency arrays in IDE + CI
+      'react-hooks/exhaustive-deps': 'error',
     },
     languageOptions: {
       ecmaVersion: 2020,
