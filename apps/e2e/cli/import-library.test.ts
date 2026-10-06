@@ -64,13 +64,23 @@ ${bin} list
 
     expect(ret.exitCode).toBe(0)
     const jobId = /^(\d+) started\n/.exec(ret.text())![1]
+    const recognizeLinesFor = (folderPath: string): string[] =>
+      folderPath === unknown.path
+        ? [
+            `Recognize ${folderPath}: undefined (undefinedId:undefined)`,
+            `Recognize 0 episode files`,
+          ]
+        : [
+            `Recognize ${folderPath}: WATATEN!: an Angel Flew Down to Me (tmdbId:84666)`,
+            `Recognize 3 episode files`,
+          ]
     expect(ret.text()).toBe(
       `${jobId} started\n` +
         `Found 2 folders to import\n` +
         `Started to import folder: ${folder1}, type: tvshow\n` +
-        `Completed\n` +
+        `${recognizeLinesFor(folder1!).join('\n')}\n` +
         `Started to import folder: ${folder2Path}, type: tvshow\n` +
-        `Completed\n` +
+        `${recognizeLinesFor(folder2Path!).join('\n')}\n` +
         `${jobId} completed\n` +
         `${folder1}\n` +
         `${folder2Path}\n`,
@@ -153,7 +163,8 @@ ${bin} list
       `${jobId} started\n` +
         `Found 1 folders to import\n` +
         `Started to import folder: ${movie.path}, type: movie\n` +
-        `Completed\n` +
+        `Recognize ${movie.path}: JUJUTSU KAISEN: Execution (tmdbId:1539104)\n` +
+        `Recognize 1 episode files\n` +
         `${jobId} completed\n`,
     )
 
@@ -188,7 +199,6 @@ ${bin} list
       `${jobId} started\n` +
         `Found 1 folders to import\n` +
         `Started to import folder: ${music.path}, type: music\n` +
-        `Completed\n` +
         `${jobId} completed\n` +
         `${music.path}\n`,
     )
