@@ -79,7 +79,7 @@ import {
   type SocketIOManager,
 } from '@smm/core-routes';
 import { createCliCoreRoutesHandler, type HelloResolverHolder } from './src/coreRoutesServer';
-import { buildHelloHttpResponse } from './src/cli/helloHttp';
+import { buildHelloHttpResponse } from './src/helloHttp';
 import type { Server as SocketIOServer } from 'socket.io';
 import { initI18n } from './src/i18n/config';
 import { getFolderWatcher } from './src/services/folderWatcher';

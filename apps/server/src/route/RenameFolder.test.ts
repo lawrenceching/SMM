@@ -12,7 +12,7 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
 import { handleRenameFolder } from './RenameFolder'
-import { metadataCachePath } from '../../test/helpers/testFolders'
+import { metadataCachePath } from '@smm/test'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
