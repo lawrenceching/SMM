@@ -96,7 +96,7 @@ describe('smm add', () => {
     expect(lines.some((l) => l.includes('Started to import folder:') && l.includes('type: music'))).toBe(
       true,
     )
-    expect(lines).toContain('Completed')
+    expect(lines.some((l) => /^\S+ completed$/.test(l))).toBe(true)
     expect(lines.some((l) => l.includes('importFolder: stage='))).toBe(false)
     expect(lines.some((l) => l.includes('"folderPath"'))).toBe(false)
     expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(false)
@@ -112,7 +112,7 @@ describe('smm add', () => {
     const lines = logSpy.mock.calls.map((c) => c.map(String).join(' '))
     expect(lines.some((l) => l.includes('importFolder: stage=persistFolder'))).toBe(true)
     expect(lines.some((l) => l.includes('folderPath'))).toBe(true)
-    expect(lines).toContain('Completed')
+    expect(lines.some((l) => /^\S+ completed$/.test(l))).toBe(true)
   })
 
   it('with --skip-init only registers the folder and prints job log lines', async () => {
@@ -130,7 +130,7 @@ describe('smm add', () => {
     expect(lines.some((l) => l.includes('Started to import folder:') && l.includes('type: music'))).toBe(
       true,
     )
-    expect(lines).toContain('Completed')
+    expect(lines.some((l) => /^\S+ completed$/.test(l))).toBe(true)
     expect(lines.some((l) => l.includes(`imported folder ${mediaFolder}`))).toBe(false)
   })
 })

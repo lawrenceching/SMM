@@ -71,7 +71,7 @@ describe('smm job', () => {
     const lines = logSpy.mock.calls.map((c) => String(c[0]))
     expect(lines).toEqual(expectedLines)
     expect(lines.some((line) => line.includes('Started to import folder'))).toBe(true)
-    expect(lines).toContain('Completed')
+    expect(lines.some((line) => /^\S+ completed$/.test(line))).toBe(true)
   })
 
   it('lists a finished import and prints its log after the process is gone', async () => {

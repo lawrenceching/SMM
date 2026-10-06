@@ -72,7 +72,7 @@ describe('POST /api/get-job-log', () => {
       })
       expect(res.status).toBe(200)
       const json = (await res.json()) as { data?: { lines: { message: string }[] }; error?: string }
-      if (json.data?.lines.some((l) => l.message === 'Completed')) {
+      if (json.data?.lines.some((l) => /^\S+ completed$/.test(l.message))) {
         lines = json.data.lines.map((l) => l.message)
         break
       }
@@ -80,7 +80,7 @@ describe('POST /api/get-job-log', () => {
     }
     expect(lines).toEqual(expect.arrayContaining([
       'Started to import folder: /media/A, type: music',
-      'Completed',
+      expect.stringMatching(/^\S+ completed$/),
     ]))
   })
 })
