@@ -163,7 +163,7 @@ CLI wiring:
 |------|--------|
 | `apps/core` | Add `hello()` returning `HelloCliBody` |
 | `packages/core/types.ts` | Split `HelloResponseBody` → `HelloCliBody` + `HelloHttpResponseBody` |
-| `apps/cli/src/route/execute.ts` | `GET /api/hello` (replace `POST`); merge HTTP-only fields after `Core.hello()` |
+| `apps/server/src/route/execute.ts` | `GET /api/hello` (replace `POST`); merge HTTP-only fields after `Core.hello()` |
 | `packages/core-routes` | Route handler accepts `GET /api/hello`; delegate to shared hello builder |
 | `apps/ui/src/api/hello.ts` | `GET /api/hello` |
 | `apps/cli/src/cli/runCli.ts` | Add `smm hello` with `-f \| --format` |
@@ -175,7 +175,7 @@ Deprecate `POST /api/hello` after callers migrate. Remove `name: "hello"` remnan
 
 | Test Case | Platform | Test File |
 |--|--|--|
-| `GET /api/hello` returns full HTTP body | CLI (route unit) | `apps/cli/src/route/execute.test.ts` |
+| `GET /api/hello` returns full HTTP body | CLI (route unit) | `apps/server/src/route/execute.test.ts` |
 | `hello()` core unit | Core | `apps/core/src/...` (new) |
 | `smm hello` default lines | CLI | `apps/cli/src/cli/hello.test.ts` (new) |
 | `smm hello -f json` | CLI | `apps/cli/src/cli/hello.test.ts` (new) |

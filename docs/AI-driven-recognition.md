@@ -215,6 +215,6 @@ Product and API details: [docs/dev/rename-episodes.md](./dev/rename-episodes.md)
 | Core API | `apps/core/src/pipeline/createRenameEpisodePlan.ts`, `Core.createRenameEpisodePlan` |
 | Tool types | `packages/core/types/ai-tools/createRenameEpisodePlan.ts` |
 | MCP / AI tool | `packages/core-routes/src/tools/createRenameEpisodePlan.ts` |
-| HTTP + broadcast | `apps/cli/src/route/RenameEpisodesPlan.ts` |
+| HTTP + broadcast | `apps/server/src/route/RenameEpisodesPlan.ts` |
 | Debug e2e helper | `POST /debug/createRenameEpisodePlan` |
 | Plan types / event | `packages/core/types/RenameFilesPlan.ts`, `RenameFilesPlanReady` in `packages/core/event-types.ts` |

@@ -405,7 +405,7 @@ sequenceDiagram
 |-------|----------|-----------|
 | Web e2e | ScrapeDialog: TMDB/TVDB × TV show / movie; failover; HTTP proxy | `apps/e2e/common/tv/Scrape.e2e.ts`, `ScrapeFailover.e2e.ts`, `apps/e2e/common/httpproxy/ScrapeTvShowByTmdbBehindHttpProxy.e2e.ts`, `ScrapeTvShowByTvdbBehindHttpProxy.e2e.ts` |
 | CLI e2e | `smm scrape --wait` creates poster / fanart / thumbnail / nfo | `apps/e2e/cli/scrape.test.ts` |
-| HTTP | `POST /api/scrape` + `POST /api/get-job` | `apps/cli/src/route/Scrape.test.ts`, `GetJob.test.ts` |
+| HTTP | `POST /api/scrape` + `POST /api/get-job` | `apps/server/src/route/Scrape.test.ts`, `GetJob.test.ts` |
 | MCP tool | MCP `scrape` + `get-job`; movie fixture; thumbnails skipped | `apps/e2e/common/mcp/McpOther-ScrapeTool.e2e.ts` |
 | AI tool | Debug `scrape` + `get-job`; movie fixture; thumbnails skipped | `apps/e2e/test/specs/ai/AiTool-ScrapeTool.e2e.ts` |
 

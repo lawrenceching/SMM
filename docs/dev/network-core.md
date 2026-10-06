@@ -4,7 +4,7 @@ Support proxy procotol: http, https and socks5.
 
 | Platform | Implementation |
 |--|--|
-| cli | apps/cli/src/core/NodejsNetworkPort.ts |
+| cli | apps/server/src/core/NodejsNetworkPort.ts |
 | ohos | apps/oho/src/core/OhosNetworkPort.ts |
 | browser | apps/ui/src/core/BrowserNetworkPort.ts |
 

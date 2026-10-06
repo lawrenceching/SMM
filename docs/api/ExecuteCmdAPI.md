@@ -78,7 +78,7 @@ X-Command-Log-Path: commands/550e8400-e29b-41d4-a716-446655440000/main.log
 
 ##### Server-side command logs
 
-For each successful stream setup, the CLI writes the child process **stdout** and **stderr** (in receive order) to a UTF-8 file under the same log root used for `smm.log` (see `getLogDir()` in `apps/cli/src/utils/config.ts`, overridable with `LOG_DIR`):
+For each successful stream setup, the CLI writes the child process **stdout** and **stderr** (in receive order) to a UTF-8 file under the same log root used for `smm.log` (see `getLogDir()` in `apps/server/src/utils/config.ts`, overridable with `LOG_DIR`):
 
 ```text
 <getLogDir>/commands/<X-Command-Execution-Id>/main.log

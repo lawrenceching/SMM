@@ -1,6 +1,6 @@
 # TheTVDB (TVDB) HTTP API — v4
 
-This document describes the **official TheTVDB API v4** HTTP surface that SMM’s CLI uses when talking to TVDB. Implementation reference: `apps/cli/src/route/Tvdb.ts`.
+This document describes the **official TheTVDB API v4** HTTP surface that SMM’s CLI uses when talking to TVDB. Implementation reference: `apps/server/src/route/Tvdb.ts`.
 
 Authoritative references:
 

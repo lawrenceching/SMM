@@ -49,7 +49,7 @@ JSON. The UI inspects `error` to decide whether to surface the data URL.
 
 ## Allowlist
 
-The CLI builds its allowlist from `apps/cli/src/utils/buildAllowlist.ts`
+The CLI builds its allowlist from `apps/server/src/utils/buildAllowlist.ts`
 (`userDataDir`, `appDataDir`, `tmpDir`, plus configured media folders).
 On HarmonyOS, the allowlist is built from `userData`, `temp`, the
 user home directory, and the app root (see `apps/ohos/src/http/server.ts`).
@@ -60,7 +60,7 @@ Served by both the Hono Bun server (apps/cli port 30000) and the
 core-routes Node `http` server (port from
 `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI,
 18081 on HarmonyOS). The Hono shell at
-`apps/cli/src/route/ReadImage.ts` delegates to `doReadImage` from
+`apps/server/src/route/ReadImage.ts` delegates to `doReadImage` from
 `@smm/core-routes`.
 
 ## Source
@@ -69,5 +69,5 @@ core-routes Node `http` server (port from
   function (no Bun APIs; uses `node:fs/promises`).
 - `packages/core-routes/src/routes/readImageRoute.ts` — Node `http`
   handler used by ohos.
-- `apps/cli/src/route/ReadImage.ts` — Hono shell used by the
+- `apps/server/src/route/ReadImage.ts` — Hono shell used by the
   desktop CLI.

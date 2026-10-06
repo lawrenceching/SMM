@@ -182,7 +182,7 @@ host / apiKey / proxy 未在工具参数中指定时，仍走 `userConfig.tvdb`�
 
 类型定义：`packages/core/types/ai-tools/tvdb*.ts`  
 执行与构建：`packages/core-routes/src/tools/tvdb.ts`  
-注册：`packages/core-routes/src/tools/index.ts`、`chat.ts`；CLI 注入 runner：`apps/cli/src/route/chatRoute.ts`。
+注册：`packages/core-routes/src/tools/index.ts`、`chat.ts`；CLI 注入 runner：`apps/server/src/route/chatRoute.ts`。
 
 System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tvdb-search`，再按 id 拉详情）。
 
@@ -200,7 +200,7 @@ System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tvdb-sear
 | `tvdb-get-languages` | `POST /api/get-tvdb-languages` | `getTvdbLanguages` |
 
 注册：`packages/core-routes/src/mcp/toolHandlers/tvdbTools.ts`  
-CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTvdb` / `getMovieInTvdb` / `getTvShowInTvdb` / `getTvdbLanguages`）。
+CLI runner：`apps/server/src/mcp/mcp.ts`（`searchInTvdb` / `getMovieInTvdb` / `getTvShowInTvdb` / `getTvdbLanguages`）。
 
 本地调试 MCP 客户端：`test/mcp-test-client/index.ts`（`SMM_MCP_URL` + `--tool tvdb-search`）。
 
@@ -225,7 +225,7 @@ flowchart LR
 | UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` · `apps/ui/src/api/tvdbSearch.ts` · `apps/ui/src/api/tvdbHttp.ts` |
 | HTTP | `POST /api/search-in-tvdb` · `POST /api/get-movie-in-tvdb` · `POST /api/get-tvshow-in-tvdb` · `POST /api/get-tvdb-languages` |
 | Core | `searchInTvdb` · `getMovieInTvdb` · `getTvShowInTvdb` · `getTvdbLanguages` |
-| 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |
+| 出站 | `apps/server/src/core/NodejsNetworkPort.ts` |
 
 Web 不调用 `smm tvdb search`，但与 CLI 共用 Core 方法与 `userConfig.tvdb` 语义。
 

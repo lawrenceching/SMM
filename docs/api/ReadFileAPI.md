@@ -15,7 +15,7 @@ with `POST /api/getUserConfig` and updated with `POST /api/patchUserConfig`.
 
 The route is served both by:
 - The Hono Bun server on `apps/cli` port `30000` (via the thin Hono
- adapter in `apps/cli/src/route/ReadFile.ts`), and
+ adapter in `apps/server/src/route/ReadFile.ts`), and
 - The core-routes Node `http` server (port from
  `HelloResponseBody.coreRoutesPort`, default `3001` on the desktop
  CLI, `18081` on the HarmonyOS Electron main process).

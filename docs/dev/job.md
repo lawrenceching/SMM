@@ -35,6 +35,7 @@ See [Core JobManager design](../superpowers/specs/2026-09-15-core-job-manager-de
 Web UI, Electron, and ohos talk to the long-lived CLI/Electron server:
 
 ```
+GET  /api/get-jobs -> Get all jobs
 POST /api/get-job      { id }  → Job snapshot
 POST /api/get-job-log  { id }  → { lines }
 POST /api/stop-job     { id }  → { id }
@@ -45,7 +46,7 @@ Use these to inspect or abort an import started by `POST /api/import-folder`. We
 
 ## CLI
 
-```
+```bash 
 smm job <job-id>       # print job status
 smm job log <job-id>   # print log messages, one per line
 smm job stop <job-id>  # abort the job
@@ -55,6 +56,19 @@ No start command. The job is created by another command such as `smm add <folder
 
 `smm job*` talks to in-process Core (same as today). A second CLI process cannot see or stop a job from `smm add` or from the HTTP server. To stop an import started via UI/HTTP, call `POST /api/stop-job` against that server.
 
+## Web UI, Electron, ohos
+
+```mermaid
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant B as Browser
+  participant C as Core
+
+  U->B: Open SMM
+  B->B: useJobQuery
+  B->C: GET /api/get-jobs
+```
 
 ## References
 

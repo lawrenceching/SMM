@@ -20,7 +20,8 @@
 |------|------|
 | **apps/ui** | 前端应用, 基于 React 19 + Tailwind CSS 4 + Shadcn UI + Vite 7 |
 | **apps/core** | 业务 Core（`@smm/core`），headless 业务逻辑与 Ports 抽象 |
-| **apps/cli** | 后端服务, 基于 Bun + Hono + Socket.IO |
+| **apps/cli** | 命令行应用 (`smm`), 基于 Commander。`smm web` 命令启动 apps/server 提供的 HTTP 服务器 |
+| **apps/server** | HTTP 服务器纯库, 基于 Bun + Hono + Socket.IO, 由 apps/cli 的 `smm web` 引入 |
 | **apps/electron** | Electron 桌面应用, 将 ui 和 cli 打包成桌面应用 |
 | **apps/e2e** | 端到端测试, 基于 WebdriverIO |
 | **apps/docker** | Docker 镜像构建配置 |
@@ -67,7 +68,21 @@ Shadcn UI 的 cli 对 monorepo 的支持不友好, 无法通过 cli 安装组件
 请手动安装组件, 并在 `apps/ui/src/components/ui/` 目录下创建对应的组件文件.
 
 ### apps/cli
-后端服务, 主要目录结构:
+命令行应用 (`smm`), 基于 Commander。`smm web` 命令启动 apps/server 提供的 HTTP 服务器。主要目录结构:
+- `src/cli/` - CLI 命令定义与输出格式化
+  - `commands/` - 各子命令实现 (list/add/show/recognize/plan/web 等)
+- `src/web/` - `smm web` 启动编排 (startWeb)
+- `src/utils/` - 入口专用工具 (authToken、清理器、TLS bypass)
+- `test/` - CLI 级测试与测试助手
+
+技术栈:
+- Bun (运行时)
+- Commander (命令行)
+- `@smm/server` (HTTP 服务器库, 见 apps/server)
+
+### apps/server
+HTTP 服务器纯库 (无独立二进制), 由 apps/cli 的 `smm web` 引入。依赖方向: `apps/cli -> apps/server -> apps/core`, 本包禁止反向依赖 apps/cli。主要目录结构:
+- `server.ts` - Server 类 (Hono + Socket.IO + 静态资源 + 反向代理)
 - `src/route/` - HTTP API 路由
   - `ffmpeg/` - FFmpeg 相关 API (转换、截图)
   - `mediaMetadata/` - 媒体元数据 API
@@ -75,6 +90,7 @@ Shadcn UI 的 cli 对 monorepo 的支持不友好, 无法通过 cli 安装组件
 - `src/tools/` - 业务工具函数
 - `src/mcp/` - MCP (Model Context Protocol) 服务器
   - `tools/` - MCP 工具定义
+- `src/core/` - Core 单例组装 (getCore) 与平台 Port
 - `src/utils/` - 工具函数
 - `src/validations/` - 验证逻辑
 - `src/events/` - Socket.IO 事件处理
@@ -176,7 +192,7 @@ pnpm test
 **pps/ui/src/stores/uiMediaFolderStore.ts** 基于 Zustand 的全局状态类. 接口 `UIMediaFolder` 用于表示前端的多媒体目录. 该store是前端项目的核心状态, 被Sidebar, Statusbar, TvShowPanel, MoviePanle 和 MoviePanel 等主要组件依赖.
 **apps/ui/src/hooks/mediaMetadata/** 基于 TanStack Query 的 MediaMetadata 读取和写入方法
 
-## apps/cli API 列表
+## apps/server API 列表
 API列表可查阅文件: `docs/api/index.md`.
 
 

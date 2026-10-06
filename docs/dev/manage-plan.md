@@ -36,7 +36,7 @@ smm try-to-rename <folder>
 
 ## HTTP API
 
-Source Code: `packages/core-routes/src/plansApi.ts` (handlers), `packages/core-routes/src/routes/plansRoute.ts` (Node http routes). CLI wrapper: `apps/cli/src/route/Plans.ts`.
+Source Code: `packages/core-routes/src/plansApi.ts` (handlers), `packages/core-routes/src/routes/plansRoute.ts` (Node http routes). CLI wrapper: `apps/server/src/route/Plans.ts`.
 
 Plans are persisted as `{appDataDir}/plans/{planId}.plan.json`. All endpoints use RPC-style `POST` and return HTTP `200` with `{ data, error }` — business success/failure is determined by the `error` field. Requires `appDataDir` to be configured; otherwise returns `Error Reason: appDataDir is not configured`.
 

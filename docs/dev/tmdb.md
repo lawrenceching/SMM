@@ -163,7 +163,7 @@ host / apiKey / proxy 未在工具参数中指定时，仍走 `userConfig.tmdb`�
 
 类型定义：`packages/core/types/ai-tools/tmdb*.ts`  
 执行与构建：`packages/core-routes/src/tools/tmdb.ts`  
-注册：`packages/core-routes/src/tools/index.ts`、`chat.ts`；CLI 注入 runner：`apps/cli/src/route/chatRoute.ts`。
+注册：`packages/core-routes/src/tools/index.ts`、`chat.ts`；CLI 注入 runner：`apps/server/src/route/chatRoute.ts`。
 
 System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tmdb-search`，再按 id 拉详情）。
 
@@ -180,7 +180,7 @@ System prompt 指引见 `packages/core/ai-tool/systemPrompt.ts`（先 `tmdb-sear
 | `tmdb-get-tv-show` | `POST /api/get-tvshow-in-tmdb` | `getTvShowInTmdb` |
 
 注册：`packages/core-routes/src/mcp/toolHandlers/tmdbTools.ts`  
-CLI runner：`apps/cli/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `getTvShowInTmdb`）。
+CLI runner：`apps/server/src/mcp/mcp.ts`（`searchInTmdb` / `getMovieInTmdb` / `getTvShowInTmdb`）。
 
 本地调试 MCP 客户端：`test/mcp-test-client/index.ts`（`SMM_MCP_URL` + `--tool tmdb-search`）。
 
@@ -205,7 +205,7 @@ flowchart LR
 | UI | `apps/ui/src/components/MediaDatabaseSearchbox.tsx` |
 | HTTP | `POST /api/search-in-tmdb` · `POST /api/get-movie-in-tmdb` · `POST /api/get-tvshow-in-tmdb` |
 | Core | `searchInTmdb` · `getMovieInTmdb` · `getTvShowInTmdb` |
-| 出站 | `apps/cli/src/core/NodejsNetworkPort.ts` |
+| 出站 | `apps/server/src/core/NodejsNetworkPort.ts` |
 
 Web 不调用 `smm tmdb search`，但与 CLI 共用 Core 方法与 `userConfig.tmdb` 语义。
 
