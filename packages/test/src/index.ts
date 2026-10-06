@@ -16,6 +16,7 @@ export {
   tvShowFolder,
   movieFolder,
   createFolderInTestFolder,
+  metadataCachePath,
 } from './testFolders'
 
 import * as fs from 'node:fs'

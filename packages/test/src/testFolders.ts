@@ -118,3 +118,9 @@ export function createFolderInTestFolder(mediaDir: string, folder: TestFolder): 
   }
   return { ...folder, path: testMediaFolder }
 }
+
+/** Same sanitization as Core `metadataCachePath` / core-routes cache. */
+export function metadataCachePath(appDataDir: string, folderPathInPosix: string): string {
+  const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
+  return path.join(appDataDir, 'metadata', `${filename}.json`)
+}
