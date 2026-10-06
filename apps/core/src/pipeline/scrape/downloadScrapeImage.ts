@@ -50,7 +50,7 @@ async function fetchImageResponse(
   if (customFetch) {
     return customFetch(url, init, httpProxy);
   }
-  return network.fetch(url, init);
+  return network.fetch(url, { ...init, proxy: httpProxy });
 }
 
 /**

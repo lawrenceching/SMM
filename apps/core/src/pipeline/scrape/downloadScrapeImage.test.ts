@@ -182,6 +182,29 @@ describe("downloadScrapeImage", () => {
     expect(network.fetch).not.toHaveBeenCalled();
   });
 
+  it("passes resolved httpProxy to network.fetch when no custom fetch is provided", async () => {
+    const fs = createInMemoryFs();
+    const fetch = vi.fn(async () => fakeImageResponse(new Uint8Array([1])));
+    const network: NetworkPort = { fetch };
+    const uc = userConfig({
+      tmdb: { host: "https://api.themoviedb.org", httpProxy: "http://proxy:8080" },
+    });
+
+    await downloadScrapeImage(
+      movieMetadata,
+      "https://image.tmdb.org/x.jpg",
+      "/media/poster.jpg",
+      uc,
+      fs,
+      network,
+    );
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://image.tmdb.org/x.jpg",
+      expect.objectContaining({ proxy: "http://proxy:8080" }),
+    );
+  });
+
   it("uses network.fetch directly when no proxy is configured", async () => {
     const fs = createInMemoryFs();
     const fetch = vi.fn(async () => fakeImageResponse(new Uint8Array([1])));
