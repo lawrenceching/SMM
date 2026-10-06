@@ -12,7 +12,7 @@ class QuickJob extends AbstractJob {
   }
 
   async run(): Promise<void> {
-    this.setStatus("succeeded");
+    // Leave status as "running"; AbstractJob.start promotes to succeeded after the footer.
   }
 
   abort(): Promise<void> {

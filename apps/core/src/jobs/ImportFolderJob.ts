@@ -106,7 +106,7 @@ export class ImportFolderJob extends AbstractJob {
       if (this.skipInit) {
         const [persistStep] = steps;
         await persistStep!.run(this);
-        this.setStatus("succeeded");
+        // Terminal "succeeded" is set by AbstractJob.start after the lifecycle footer.
         return;
       }
 
@@ -127,7 +127,7 @@ export class ImportFolderJob extends AbstractJob {
         }
       }
 
-      this.setStatus("succeeded");
+      // Terminal "succeeded" is set by AbstractJob.start after the lifecycle footer.
     } catch (error) {
       this.setStatus("failed");
       if (error instanceof JobAbortError) {

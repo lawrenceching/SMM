@@ -132,7 +132,7 @@ describe("ImportLibraryJob", () => {
       subdirectories: ["/lib/ShowA", "/lib/ShowB"],
     });
 
-    await job.run();
+    await job.start();
 
     expect(job.toJSON().tasks).toEqual([
       expect.objectContaining({ path: "/lib/ShowA", status: "succeeded" }),

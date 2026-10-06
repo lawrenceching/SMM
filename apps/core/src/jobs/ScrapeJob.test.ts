@@ -149,7 +149,7 @@ describe("ScrapeJob", () => {
       return completedResult;
     });
 
-    await job.run();
+    await job.start();
 
     expect(runPreparedScrape).toHaveBeenCalledWith(prepared, context, ports, expect.any(Object));
     expect(posterWhileRunning).toBe("running");
@@ -158,6 +158,7 @@ describe("ScrapeJob", () => {
     expect(job.tasks.nfo).toEqual({ status: "completed" });
     expect(job.status).toBe("succeeded");
     expect(onLog).toHaveBeenCalledWith(expect.stringContaining("/media/Show"));
+    expect(onLog).toHaveBeenCalledWith(`${job.id} completed`);
     expect(job.toJSON()).toMatchObject({
       kind: "scrape",
       id: job.id,

@@ -74,10 +74,16 @@ export abstract class AbstractJob {
     }
 
     await this.log(`${this.id} started`);
+    this.setStatus("running");
     this.setProgress(0);
     await this.run();
     this.setProgress(100);
+    // Lifecycle footer first, then promote running → succeeded so pollers that
+    // wait on status never observe success before `${id} completed` is on disk.
     await this.log(`${this.id} completed`);
+    if (this._status === "running") {
+      this.setStatus("succeeded");
+    }
   }
 
   abstract run(): Promise<void>;

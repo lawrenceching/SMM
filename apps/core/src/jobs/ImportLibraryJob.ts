@@ -117,7 +117,7 @@ export class ImportLibraryJob extends AbstractJob {
       await queue.onSizeLessThan(this.concurrency);
     }
     await queue.onIdle();
-    this.setStatus("succeeded");
+    // Terminal "succeeded" is set by AbstractJob.start after the lifecycle footer.
     this.setProgress(importLibraryJobProgress(this.tasks));
     this.updatedAt = Date.now();
   }

@@ -92,7 +92,10 @@ export class ScrapeJob extends AbstractJob {
       }
 
       const anyFailed = TASK_ORDER.some((id) => this.taskState[id].status === "failed");
-      this.setStatus(anyFailed ? "failed" : "succeeded");
+      if (anyFailed) {
+        this.setStatus("failed");
+      }
+      // Terminal "succeeded" is set by AbstractJob.start after the lifecycle footer.
       this.touch();
     } catch (error) {
       if (error instanceof JobAbortError) {

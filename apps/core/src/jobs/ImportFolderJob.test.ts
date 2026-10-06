@@ -158,7 +158,7 @@ describe("ImportFolderJob", () => {
   it("run recognizes tvshow folder then episodes and marks succeeded", async () => {
     const { job, onLog } = createJob();
 
-    await job.run();
+    await job.start();
 
     expect(persistNewFolder).toHaveBeenCalled();
     expect(recognizeImportedFolder).toHaveBeenCalledWith(
@@ -170,19 +170,21 @@ describe("ImportFolderJob", () => {
     expect(recognizeImportedEpisodes).toHaveBeenCalled();
     expect(onLog).toHaveBeenCalledWith(startedImportFolderMessage("/media/Show", "tvshow"));
     expect(onLog).not.toHaveBeenCalledWith("Completed");
+    expect(onLog).toHaveBeenCalledWith(`${job.id} completed`);
     expect(job.status).toBe("succeeded");
   });
 
   it("run for music skips recognition steps", async () => {
     const { job, onLog } = createJob({ options: { type: "music" } });
 
-    await job.run();
+    await job.start();
 
     expect(persistNewFolder).toHaveBeenCalled();
     expect(recognizeImportedFolder).not.toHaveBeenCalled();
     expect(recognizeImportedEpisodes).not.toHaveBeenCalled();
     expect(onLog).toHaveBeenCalledWith(startedImportFolderMessage("/media/Show", "music"));
     expect(onLog).not.toHaveBeenCalledWith("Completed");
+    expect(onLog).toHaveBeenCalledWith(`${job.id} completed`);
     expect(job.status).toBe("succeeded");
   });
 
