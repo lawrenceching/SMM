@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { formatPlanListLine } from '../planFormat'
 import { printJson } from './shared'
 

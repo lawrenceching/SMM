@@ -10,12 +10,12 @@ vi.mock('../core/getCore', () => ({
   getCore: () => mocks,
 }))
 
-vi.mock('@/utils/socketIO', () => ({
+vi.mock('@server/utils/socketIO', () => ({
   broadcast: mocks.broadcast,
 }))
 
-vi.mock('@/utils/config', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/utils/config')>()),
+vi.mock('@server/utils/config', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@server/utils/config')>()),
   getAppDataDir: () => 'C:/smm-app-data',
 }))
 

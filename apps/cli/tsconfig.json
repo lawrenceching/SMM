@@ -28,6 +28,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@smm/server": ["../server/index.ts"],
+      "@smm/server/*": ["../server/src/*"],
+      "@server/*": ["../server/src/*"],
       "@smm/types": ["../../packages/types/types.ts"],
       "@smm/types/*": ["../../packages/types/*"],
       "@smm/utils": ["../../packages/utils/src/index.ts"],

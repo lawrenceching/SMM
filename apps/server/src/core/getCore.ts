@@ -7,10 +7,10 @@ import {
   type LoggerPort,
   type PlatformPortsInput,
 } from '@smm/core'
-import { getBunMcpServerPort } from '@/mcp/BunMcpServerPort'
+import { getBunMcpServerPort } from '@server/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
 import { wireCoreEvents } from './wireCoreEvents'
-import { buildCliHostRuntimeConfig } from '@/hostRuntimeConfig'
+import { buildCliHostRuntimeConfig } from '@server/hostRuntimeConfig'
 
 let instance: Core | undefined
 

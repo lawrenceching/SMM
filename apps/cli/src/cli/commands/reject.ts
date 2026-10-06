@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 
 export async function reject(planId: string): Promise<number> {
   try {

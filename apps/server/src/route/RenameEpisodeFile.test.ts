@@ -16,7 +16,7 @@ import { metadataCachePath } from '@smm/test'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
-vi.mock('@/utils/socketIO', () => ({
+vi.mock('@server/utils/socketIO', () => ({
   broadcast: vi.fn(),
 }))
 

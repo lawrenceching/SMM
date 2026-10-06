@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { confirmRecognizeCandidate } from '../recognizeConfirm'
 
 export async function recognize(

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { resetCoreForTests } from '../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 describe('smm recognize', () => {
   let logSpy: ReturnType<typeof vi.spyOn>

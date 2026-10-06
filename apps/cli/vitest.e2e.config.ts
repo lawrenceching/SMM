@@ -11,10 +11,19 @@ export default defineConfig({
     include: ['test/**/*.e2e.ts'],
     exclude: ['test/test-mcp.e2e.ts'],
     testTimeout: 10 * 60 * 1000,
+    setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {
     alias: [
       { find: '@', replacement: resolve(__dirname, './src') },
+      {
+        find: '@smm/server',
+        replacement: resolve(__dirname, '../server/index.ts'),
+      },
+      {
+        find: /^@server\/(.+)$/,
+        replacement: resolve(__dirname, '../server/src/$1'),
+      },
       {
         find: /^@smm\/types\/(.+)$/,
         replacement: `${typesRoot}/$1`,

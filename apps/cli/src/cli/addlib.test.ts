@@ -4,7 +4,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs'
 import { join } from 'path'
 import { tmpdir } from 'os'
 import { createFolderInTestFolder, musicFolder } from '@smm/test'
-import { resetCoreForTests } from '../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 describe('smm addlib', () => {
   let userDataDir: string

@@ -1,5 +1,5 @@
 import { ScrapeJob } from '@smm/core'
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { formatScrapeJobTaskLines } from '../scrapeJobFormat'
 import { printJson } from './shared'
 

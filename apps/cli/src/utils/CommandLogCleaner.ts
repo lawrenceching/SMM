@@ -1,6 +1,6 @@
 import { readdir, stat, rm } from 'node:fs/promises';
 import path from 'node:path';
-import { logger } from '../../lib/logger';
+import { logger } from '@smm/server';
 
 // ============================================================
 // Types

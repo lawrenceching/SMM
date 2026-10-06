@@ -12,8 +12,8 @@ import {
   listFilesInMediaFolderOutputSchema,
   type ListFilesInMediaFolderToolOutput,
 } from '@smm/types/ai-tools/listFilesInMediaFolder'
-import { doListFiles } from '@/route/ListFiles'
-import { getUserConfig } from '@/utils/config'
+import { doListFiles } from '@server/route/ListFiles'
+import { getUserConfig } from '@server/utils/config'
 
 export type { ListFilesInMediaFolderToolOutput }
 

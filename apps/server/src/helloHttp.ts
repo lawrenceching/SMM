@@ -1,5 +1,5 @@
 import type { HelloHttpResponseBody } from '@smm/types'
-import { getCore } from '@/core/getCore'
+import { getCore } from '@server/core/getCore'
 
 export function buildHelloHttpResponse(
   reverseProxyUrl: string | null,

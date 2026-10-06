@@ -1,4 +1,4 @@
-import { getUserConfig, getUserDataDir, getAppDataDir, getTmpDir } from '@/utils/config';
+import { getUserConfig, getUserDataDir, getAppDataDir, getTmpDir } from '@server/utils/config';
 import { Path } from '@smm/utils/path';
 
 /**

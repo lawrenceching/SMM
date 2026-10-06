@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { persistedJobLogLines, readPersistedJobLog } from '../persistedJobLog'
 
 export async function jobLog(jobId: string): Promise<number> {

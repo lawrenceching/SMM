@@ -7,8 +7,8 @@ import {
   type CoreRoutesConfig,
 } from '@smm/core-routes';
 import { logger } from '../../lib/logger';
-import { buildAllowlist } from '@/utils/buildAllowlist';
-import { getAppDataDir } from '@/utils/config';
+import { buildAllowlist } from '@server/utils/buildAllowlist';
+import { getAppDataDir } from '@server/utils/config';
 
 const coreRoutesLogger = {
   debug: (obj: Record<string, unknown>, msg?: string) => logger.debug(obj, msg),

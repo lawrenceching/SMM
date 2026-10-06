@@ -11,8 +11,8 @@ import { SelectedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRen
 import { RecognizedFilesNotInPlanError } from '@smm/core/pipeline/applySelectedRecognizeFilesPlan'
 import type { ProblemDetails } from '@smm/types'
 import { getCore } from '../core/getCore'
-import { broadcast } from '@/utils/socketIO'
-import { getAppDataDir } from '@/utils/config'
+import { broadcast } from '@server/utils/socketIO'
+import { getAppDataDir } from '@server/utils/config'
 import { logger } from '../../lib/logger'
 
 interface TryToRenameEpisodesResponseBody {

@@ -14,8 +14,8 @@ import {
   getEpisodesToolOutputSchema,
   type GetEpisodesToolOutput,
 } from '@smm/types/ai-tools/getEpisodes'
-import { findMediaMetadata } from '@/utils/mediaMetadata'
-import { getUserConfig } from '@/utils/config'
+import { findMediaMetadata } from '@server/utils/mediaMetadata'
+import { getUserConfig } from '@server/utils/config'
 import { logger } from '../../lib/logger'
 
 export type { GetEpisodesToolOutput }

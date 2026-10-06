@@ -1,6 +1,6 @@
 import type { HelloOptions } from '@smm/core-routes';
-import { getCore } from '@/core/getCore';
-import { resolveCoreRoutesPort } from '@/coreRoutesPort';
+import { getCore } from '@server/core/getCore';
+import { resolveCoreRoutesPort } from '@server/coreRoutesPort';
 
 /** Static hello options for core-routes fallback (ohos) and legacy callers. */
 export function buildHelloOptions(

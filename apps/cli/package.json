@@ -5,44 +5,27 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@ai-sdk/mcp": "latest",
+    "@ai-sdk/mcp": "1.0.21",
     "@types/bun": "latest",
     "@vitest/coverage-v8": "^4.0.18",
-    "proxy-chain": "^3.0.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^3.0.48",
-    "@hono/node-server": "^1.19.0",
     "@smm/core": "workspace:*",
     "@smm/core-routes": "workspace:*",
+    "server": "workspace:*",
     "@smm/test": "workspace:*",
     "@smm/tvdb4": "workspace:*",
     "@smm/types": "workspace:*",
     "@smm/utils": "workspace:*",
-    "@types/shelljs": "^0.10.0",
-    "ai": "^7.0.99",
     "commander": "^15.0.0",
-    "dotenv": "^17.2.3",
-    "hono": "^4.10.8",
-    "http-proxy-agent": "^7.0.2",
-    "https-proxy-agent": "^7.0.6",
-    "i18next": "^25.8.4",
-    "i18next-fs-backend": "^2.6.1",
-    "node-pty": "^1.1.0",
-    "pino": "^10.1.0",
-    "rotating-file-stream": "^3.2.9",
-    "shelljs": "^0.10.0",
-    "socket.io": "^4.8.3",
-    "socks-proxy-agent": "^8.0.5",
-    "strip-ansi": "^7.2.0",
-    "zod": "^4.1.8"
+    "dotenv": "^17.2.3"
   },
   "scripts": {
-    "dev": "bun run index.ts | pino-pretty",
-    "dev:prd-ui": "bun run index.ts --staticDir \"C:\\Users\\lawrence\\AppData\\Local\\Programs\\SMM\\resources\\public\" --port 30000",
-    "start": "bun run index.ts",
+    "dev": "bun run index.ts web | pino-pretty",
+    "dev:prd-ui": "bun run index.ts web --staticDir \"C:\\Users\\lawrence\\AppData\\Local\\Programs\\SMM\\resources\\public\" --port 30000",
+    "start": "bun run index.ts web",
     "mcp": "bun run index.ts mcp start",
     "build": "bun run scripts/build.ts",
     "typecheck": "tsc --noEmit",
@@ -50,6 +33,6 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
-    "test:mcp": "bun test ./test/test-mcp.e2e.ts"
+    "test:mcp": "bun test ./test/test-mcp.test.ts"
   }
 }

@@ -1,5 +1,5 @@
 import type { CoreRoutesAuthConfig } from "@smm/core-routes";
-import { getCore } from "@/core/getCore";
+import { getCore } from "@server/core/getCore";
 import { logger } from "../../lib/logger";
 
 export interface ApplicationConfigLogContext {

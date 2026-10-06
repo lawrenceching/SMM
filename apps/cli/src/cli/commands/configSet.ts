@@ -1,5 +1,5 @@
 import { isUserConfigKey } from '@smm/core'
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { parseConfigValue, printJson } from './shared'
 
 export async function configSet(key: string, value: string): Promise<number> {

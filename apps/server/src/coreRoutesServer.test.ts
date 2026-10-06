@@ -13,15 +13,15 @@ vi.mock("@smm/core-routes", () => ({
   createCoreRoutesRequestHandler,
 }));
 
-vi.mock("@/utils/buildAllowlist", () => ({
+vi.mock("@server/utils/buildAllowlist", () => ({
   buildAllowlist: vi.fn(async () => []),
 }));
 
-vi.mock("@/helloHttp", () => ({
+vi.mock("@server/helloHttp", () => ({
   buildHelloHttpResponse: vi.fn(() => ({ data: null, error: null })),
 }));
 
-vi.mock("@/utils/socketIO", () => ({
+vi.mock("@server/utils/socketIO", () => ({
   broadcast: vi.fn(),
   acknowledge: vi.fn(),
 }));
@@ -30,11 +30,11 @@ vi.mock("../lib/ai-provider", () => ({
   createAIProvider: vi.fn(),
 }));
 
-vi.mock("@/mcp/bunMcpLifecycleManager", () => ({
+vi.mock("@server/mcp/bunMcpLifecycleManager", () => ({
   getBunMcpLifecycleManager: vi.fn(() => ({ start: vi.fn(), stop: vi.fn(), getStatus: vi.fn() })),
 }));
 
-vi.mock("@/core/getCore", () => ({
+vi.mock("@server/core/getCore", () => ({
   getCore: vi.fn(() => ({})),
 }));
 

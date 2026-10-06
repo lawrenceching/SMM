@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import type { CoreRoutesAuthConfig } from '@smm/core-routes';
-import { logger } from '../../lib/logger';
+import { logger } from '@smm/server';
 
 let resolvedToken: string | null = null;
 

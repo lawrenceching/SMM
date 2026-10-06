@@ -1,4 +1,4 @@
-import { getLogDir } from '../../utils/config'
+import { getLogDir } from '@smm/server'
 import { listPersistedImportJobIds } from '../persistedJobLog'
 
 export async function jobList(): Promise<number> {

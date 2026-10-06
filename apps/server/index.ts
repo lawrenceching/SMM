@@ -16,6 +16,18 @@ export { resolveHttpPort } from './src/httpPort'
 export { logApplicationConfig } from './src/startup/applicationConfig'
 export { logger } from './lib/logger'
 export { registerGracefulShutdown } from './src/utils/gracefulShutdown'
+export { permanentlyDeleteFile } from './src/utils/files'
+export {
+  formatMediaFilesTree,
+  formatMediaMetadata,
+  formatShowFolder,
+  isFolderImported,
+  relativeMediaFilePath,
+  resolveShowFolder,
+  toShowFolderApiResult,
+  type ShowFolderCliResult,
+  type ShowFolderResult,
+} from './src/folderDisplay'
 export {
   getAppDataDir,
   getLogDir,

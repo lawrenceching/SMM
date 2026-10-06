@@ -5,8 +5,8 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import type { MediaMetadata } from '@smm/types'
 import { Path } from '@smm/utils/path'
-import { resetCoreForTests } from '../../core/getCore'
-import { metadataCachePath } from '../../../test/helpers/testFolders'
+import { resetCoreForTests } from '@smm/server'
+import { metadataCachePath } from '@smm/test'
 import { add } from './add'
 
 describe('add', () => {

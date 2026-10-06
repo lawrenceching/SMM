@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { formatTvdbSearchResults } from '../tvdbSearchFormat'
 
 export interface TvdbSearchOptions {

@@ -48,12 +48,6 @@ importers:
 
   apps/cli:
     dependencies:
-      '@ai-sdk/openai-compatible':
-        specifier: ^3.0.48
-        version: 3.0.48(zod@4.3.6)
-      '@hono/node-server':
-        specifier: ^1.19.0
-        version: 1.19.9(hono@4.12.2)
       '@smm/core':
         specifier: workspace:*
         version: link:../core
@@ -72,60 +66,18 @@ importers:
       '@smm/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      '@types/shelljs':
-        specifier: ^0.10.0
-        version: 0.10.0
-      ai:
-        specifier: ^7.0.99
-        version: 7.0.99(zod@4.3.6)
       commander:
         specifier: ^15.0.0
         version: 15.0.0
       dotenv:
         specifier: ^17.2.3
         version: 17.3.1
-      hono:
-        specifier: ^4.10.8
-        version: 4.12.2
-      http-proxy-agent:
-        specifier: ^7.0.2
-        version: 7.0.2
-      https-proxy-agent:
-        specifier: ^7.0.6
-        version: 7.0.6
-      i18next:
-        specifier: ^25.8.4
-        version: 25.8.13(typescript@5.9.3)
-      i18next-fs-backend:
-        specifier: ^2.6.1
-        version: 2.6.1
-      node-pty:
-        specifier: ^1.1.0
-        version: 1.1.0
-      pino:
-        specifier: ^10.1.0
-        version: 10.3.1
-      rotating-file-stream:
-        specifier: ^3.2.9
-        version: 3.2.9
-      shelljs:
-        specifier: ^0.10.0
-        version: 0.10.0
-      socket.io:
-        specifier: ^4.8.3
-        version: 4.8.3
-      socks-proxy-agent:
-        specifier: ^8.0.5
-        version: 8.0.5
-      strip-ansi:
-        specifier: ^7.2.0
-        version: 7.2.0
-      zod:
-        specifier: 4.3.6
-        version: 4.3.6
+      server:
+        specifier: workspace:*
+        version: link:../server
     devDependencies:
       '@ai-sdk/mcp':
-        specifier: latest
+        specifier: 1.0.21
         version: 1.0.21(zod@4.3.6)
       '@types/bun':
         specifier: latest
@@ -133,9 +85,6 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18)
-      proxy-chain:
-        specifier: ^3.0.0
-        version: 3.0.0
       typescript:
         specifier: ^5
         version: 5.9.3
@@ -387,8 +336,8 @@ importers:
         version: 4.3.6
     devDependencies:
       '@ai-sdk/mcp':
-        specifier: latest
-        version: 2.0.67(zod@4.3.6)
+        specifier: 1.0.21
+        version: 1.0.21(zod@4.3.6)
       '@smm/test':
         specifier: workspace:*
         version: link:../../packages/test
@@ -876,12 +825,6 @@ packages:
     peerDependencies:
       zod: 4.3.6
 
-  '@ai-sdk/mcp@2.0.67':
-    resolution: {integrity: sha512-cMEif3Lbvh+FozPpBM5UPy6QQhH8v8L/u1kcR2UXp+86EfIDXIaIeOaH+wYCk2CfloFccUn1K8LJuPXqZMZsfw==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: 4.3.6
-
   '@ai-sdk/openai-compatible@2.0.30':
     resolution: {integrity: sha512-iTjumHf1/u4NhjXYFn/aONM2GId3/o7J1Lp5ql8FCbgIMyRwrmanR5xy1S3aaVkfTscuDvLTzWiy1mAbGzK3nQ==}
     engines: {node: '>=18'}
@@ -906,22 +849,12 @@ packages:
     peerDependencies:
       zod: 4.3.6
 
-  '@ai-sdk/provider-utils@5.0.54':
-    resolution: {integrity: sha512-amqDxFnw9+dpVrDACRDGmExUUNOH9C1D2bhg/DqWJnamEOieDTXBBXLHujSby/0MqHdAFksnpE8Pzfqx6ABMBw==}
-    engines: {node: '>=22'}
-    peerDependencies:
-      zod: 4.3.6
-
   '@ai-sdk/provider@3.0.8':
     resolution: {integrity: sha512-oGMAgGoQdBXbZqNG0Ze56CHjDZ1IDYOwGYxYjO5KLSlz5HiNQ9udIXsPZ61VWaHGZ5XW/jyjmr6t2xz2jGVwbQ==}
     engines: {node: '>=18'}
 
   '@ai-sdk/provider@4.0.14':
     resolution: {integrity: sha512-yukP2tbcQQErG5gLCMBGvpvb/rM3D3KlTKG6eKKOdNHLHqtNNDEeBxdYrY/JL+O76B2ig5dXY19H/f1HFSvRiQ==}
-    engines: {node: '>=22'}
-
-  '@ai-sdk/provider@4.0.22':
-    resolution: {integrity: sha512-1Jtmn36VNMOBo9CMUQrPqsR744qtqRloEiXpWCYS8ffPlhS2CrSNmoho5lPjp3R7EnkzBsGI6p51TA7fQJQZdA==}
     engines: {node: '>=22'}
 
   '@ai-sdk/react@3.0.100':
@@ -6194,10 +6127,6 @@ packages:
   highlightjs-vue@1.0.0:
     resolution: {integrity: sha512-PDEfEF102G23vHmPhLyPboFCD+BkMGu+GuJe2d9/eH4FsCwvgBpnc9n0pGE+ffKdph38s6foEZiEjdgHdzp+IA==}
 
-  hono@4.12.2:
-    resolution: {integrity: sha512-gJnaDHXKDayjt8ue0n8Gs0A007yKXj4Xzb8+cNjZeYsSzzwKc0Lr+OZgYwVfB0pHfUs17EPoLvrOsEaJ9mj+Tg==}
-    engines: {node: '>=16.9.0'}
-
   hono@4.13.3:
     resolution: {integrity: sha512-r8AO2mYHoLxSHkgafNeC/BXyb2vWRxD3jem4Ts+ptav8oTG5FIRifAjuJEmZI4bSvvc2ns0GxmIYiZnHqN3mMw==}
     engines: {node: '>=16.9.0'}
@@ -9700,14 +9629,6 @@ snapshots:
       pkce-challenge: 5.0.1
       zod: 4.3.6
 
-  '@ai-sdk/mcp@2.0.67(zod@4.3.6)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.22
-      '@ai-sdk/provider-utils': 5.0.54(zod@4.3.6)
-      cross-spawn: 7.0.6
-      pkce-challenge: 5.0.1
-      zod: 4.3.6
-
   '@ai-sdk/openai-compatible@2.0.30(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
@@ -9724,7 +9645,7 @@ snapshots:
     dependencies:
       '@ai-sdk/provider': 3.0.8
       '@standard-schema/spec': 1.1.0
-      eventsource-parser: 3.0.6
+      eventsource-parser: 3.1.1
       zod: 4.3.6
 
   '@ai-sdk/provider-utils@5.0.40(zod@4.3.6)':
@@ -9736,24 +9657,11 @@ snapshots:
       undici: 7.29.1
       zod: 4.3.6
 
-  '@ai-sdk/provider-utils@5.0.54(zod@4.3.6)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.22
-      '@standard-schema/spec': 1.1.0
-      '@workflow/serde': 4.1.0
-      eventsource-parser: 3.1.1
-      undici: 7.29.1
-      zod: 4.3.6
-
   '@ai-sdk/provider@3.0.8':
     dependencies:
       json-schema: 0.4.0
 
   '@ai-sdk/provider@4.0.14':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/provider@4.0.22':
     dependencies:
       json-schema: 0.4.0
 
@@ -10726,10 +10634,6 @@ snapshots:
       react-dom: 19.2.4(react@19.2.4)
 
   '@floating-ui/utils@0.2.11': {}
-
-  '@hono/node-server@1.19.9(hono@4.12.2)':
-    dependencies:
-      hono: 4.12.2
 
   '@hono/node-server@1.19.9(hono@4.13.3)':
     dependencies:
@@ -15509,8 +15413,6 @@ snapshots:
   highlight.js@10.7.3: {}
 
   highlightjs-vue@1.0.0: {}
-
-  hono@4.12.2: {}
 
   hono@4.13.3: {}
 

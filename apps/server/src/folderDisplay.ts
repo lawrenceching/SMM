@@ -1,7 +1,7 @@
 import { stat } from 'fs/promises'
 import { Path } from '@smm/utils/path'
 import type { MediaFileMetadata, MediaMetadata } from '@smm/types'
-import { getCore } from '@/core/getCore'
+import { getCore } from '@server/core/getCore'
 
 function normalizePosixSafe(path: string): string {
   try {

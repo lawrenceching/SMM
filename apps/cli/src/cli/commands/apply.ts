@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { planFileCount } from '../planFormat'
 
 export async function apply(planId: string): Promise<number> {

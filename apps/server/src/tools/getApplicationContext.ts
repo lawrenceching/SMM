@@ -1,6 +1,6 @@
-import { acknowledge, getFirstAvailableSocket } from '@/utils/socketIO'
+import { acknowledge, getFirstAvailableSocket } from '@server/utils/socketIO'
 import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale'
-import { getUserConfig } from '@/utils/config'
+import { getUserConfig } from '@server/utils/config'
 import { toolOk } from '@smm/core/ai-tool/toolResult'
 import {
   GET_APPLICATION_CONTEXT_DESCRIPTION,

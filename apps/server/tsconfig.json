@@ -27,7 +27,7 @@
     "noPropertyAccessFromIndexSignature": false,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
+      "@server/*": ["./src/*"],
       "@smm/types": ["../../packages/types/types.ts"],
       "@smm/types/*": ["../../packages/types/*"],
       "@smm/utils": ["../../packages/utils/src/index.ts"],

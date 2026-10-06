@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { buildApplicationConfigLogFields } from "./applicationConfig";
 
-vi.mock("@/core/getCore", () => ({
+vi.mock("@server/core/getCore", () => ({
   getCore: () => ({
     hello: () => ({
       uptime: 1,

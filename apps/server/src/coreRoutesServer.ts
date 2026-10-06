@@ -6,15 +6,15 @@ import {
   type CoreRoutesLogger,
 } from "@smm/core-routes";
 import type { HostRuntimeConfig } from "@smm/types";
-import { buildAllowlist } from "@/utils/buildAllowlist";
-import { getUserConfig } from "@/utils/config";
-import { buildHelloHttpResponse } from "@/helloHttp";
+import { buildAllowlist } from "@server/utils/buildAllowlist";
+import { getUserConfig } from "@server/utils/config";
+import { buildHelloHttpResponse } from "@server/helloHttp";
 import { logger } from "../lib/logger";
-import { acknowledge, broadcast } from "@/utils/socketIO";
+import { acknowledge, broadcast } from "@server/utils/socketIO";
 import { createAIProvider } from "../lib/ai-provider";
-import { getBunMcpLifecycleManager } from "@/mcp/bunMcpLifecycleManager";
-import { getCore } from "@/core/getCore";
-import { buildCliHostRuntimeConfig } from "@/hostRuntimeConfig";
+import { getBunMcpLifecycleManager } from "@server/mcp/bunMcpLifecycleManager";
+import { getCore } from "@server/core/getCore";
+import { buildCliHostRuntimeConfig } from "@server/hostRuntimeConfig";
 
 function createCoreRoutesLogger(): CoreRoutesLogger {
   return {

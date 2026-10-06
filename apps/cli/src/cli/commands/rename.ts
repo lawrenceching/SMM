@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { Path } from '@smm/utils/path'
 import { classifyRenameTarget, printEpisodeRenameResult } from '../renameDispatch'
 

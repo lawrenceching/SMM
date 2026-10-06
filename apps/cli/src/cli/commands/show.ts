@@ -1,4 +1,4 @@
-import { formatShowFolder, resolveShowFolder } from '../folderDisplay'
+import { formatShowFolder, resolveShowFolder } from '@smm/server'
 
 export async function show(folder: string): Promise<number> {
   try {

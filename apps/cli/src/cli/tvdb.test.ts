@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { resetCoreForTests } from '../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 describe('smm tvdb search', () => {
   let userDataDir: string
@@ -26,13 +26,13 @@ describe('smm tvdb search', () => {
     if (prevUserDataDir === undefined) delete process.env.USER_DATA_DIR
     else process.env.USER_DATA_DIR = prevUserDataDir
     rmSync(userDataDir, { recursive: true, force: true })
-    vi.doUnmock('../core/getCore')
+    vi.doUnmock('@smm/server')
     vi.resetModules()
   })
 
   it('prints formatted results and exits 0', async () => {
     vi.resetModules()
-    vi.doMock('../core/getCore', () => ({
+    vi.doMock('@smm/server', () => ({
       getCore: () => ({
         searchInTvdb: async () => [
           { id: 'series-42', objectID: 'series-42', tvdb_id: '42', name: 'My Show', overview: 'A show', first_air_time: '2020-01-01' },
@@ -51,7 +51,7 @@ describe('smm tvdb search', () => {
   it('passes host, password, proxy and lang to Core.searchInTvdb', async () => {
     const calls: unknown[] = []
     vi.resetModules()
-    vi.doMock('../core/getCore', () => ({
+    vi.doMock('@smm/server', () => ({
       getCore: () => ({
         searchInTvdb: async (keyword: string, options: unknown) => {
           calls.push({ keyword, options })
@@ -87,7 +87,7 @@ describe('smm tvdb search', () => {
 
   it('writes to stderr and exits 1 when search throws', async () => {
     vi.resetModules()
-    vi.doMock('../core/getCore', () => ({
+    vi.doMock('@smm/server', () => ({
       getCore: () => ({
         searchInTvdb: async () => { throw new Error('network down') },
       }),

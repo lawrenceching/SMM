@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
-import { resetCoreForTests } from '../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 describe('smm metadata', () => {
   let env: CliTestEnv
@@ -101,7 +101,7 @@ describe('smm metadata', () => {
   })
 
   it('prints tvShow and mediaFiles fields when present', async () => {
-    const { formatMediaMetadata } = await import('./folderDisplay')
+    const { formatMediaMetadata } = await import('@smm/server')
     const lines = formatMediaMetadata(mediaFolder, {
       mediaFolderPath: '/media/Show',
       type: 'tvshow-folder',
@@ -138,7 +138,7 @@ describe('smm metadata', () => {
   })
 
   it('omits absent fields and never invents unrecognized placeholders', async () => {
-    const { formatMediaMetadata } = await import('./folderDisplay')
+    const { formatMediaMetadata } = await import('@smm/server')
     const lines = formatMediaMetadata(mediaFolder, {
       mediaFolderPath: '/media/Show',
       type: 'tvshow-folder',

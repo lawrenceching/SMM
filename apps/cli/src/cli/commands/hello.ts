@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { formatHelloLines } from '../helloFormat'
 import { printJson } from './shared'
 

@@ -1,5 +1,5 @@
 import { createStream } from "rotating-file-stream";
-import { getLogDir } from "@/utils/config";
+import { getLogDir } from "@server/utils/config";
 import path from "path";
 
 const DEFAULT_ROTATE_SIZE = "10MB";

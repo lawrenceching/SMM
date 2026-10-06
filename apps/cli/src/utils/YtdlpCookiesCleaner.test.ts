@@ -4,11 +4,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { YtdlpCookiesCleaner } from './YtdlpCookiesCleaner';
 
-vi.mock('./files', () => ({
+vi.mock('@smm/server', () => ({
+  logger: {
+    info: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  },
   permanentlyDeleteFile: vi.fn(),
 }));
 
-import { permanentlyDeleteFile } from './files';
+import { permanentlyDeleteFile } from '@smm/server';
 
 describe('YtdlpCookiesCleaner', () => {
   let userDataDir: string;

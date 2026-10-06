@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { Hono } from 'hono'
 import { handlePlans } from './Plans'
 
-vi.mock('@/utils/buildAllowlist', () => ({
+vi.mock('@server/utils/buildAllowlist', () => ({
   buildAllowlist: async () => [],
 }))
 

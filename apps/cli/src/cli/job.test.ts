@@ -3,7 +3,7 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { getCore, resetCoreForTests } from '../core/getCore'
+import { getCore, resetCoreForTests } from '@smm/server'
 
 async function startMusicImportSkipInit(mediaFolder: string): Promise<string> {
   const core = getCore()

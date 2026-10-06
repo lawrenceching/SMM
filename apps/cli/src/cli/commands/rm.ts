@@ -1,5 +1,5 @@
-import { getCore } from '../../core/getCore'
-import { isFolderImported } from '../folderDisplay'
+import { getCore } from '@smm/server'
+import { isFolderImported } from '@smm/server'
 
 export async function rm(folder: string): Promise<number> {
   try {

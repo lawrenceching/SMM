@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { formatTmdbSearchResults } from '../tmdbSearchFormat'
 
 export interface TmdbSearchOptions {

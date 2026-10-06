@@ -5,7 +5,7 @@ const { broadcastMock } = vi.hoisted(() => ({
   broadcastMock: vi.fn(),
 }))
 
-vi.mock('@/utils/socketIO', () => ({
+vi.mock('@server/utils/socketIO', () => ({
   broadcast: broadcastMock,
 }))
 

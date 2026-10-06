@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { MediaMetadata } from '@smm/types'
-import { getCore, resetCoreForTests } from '../src/core/getCore'
+import { getCore, resetCoreForTests } from '@smm/server'
 import { smm } from './helpers/smm'
 import { createFolderInTestFolder, type TestFolder } from './helpers/testFolders'
 

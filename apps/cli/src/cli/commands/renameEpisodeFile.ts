@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { resolvePathUnderMediaFolder } from '../resolvePathUnderMediaFolder'
 import { printEpisodeRenameResult } from '../renameDispatch'
 

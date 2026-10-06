@@ -3,7 +3,7 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { resetCoreForTests } from '../../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 import { scrape } from './scrape'
 
 describe('scrape', () => {

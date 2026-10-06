@@ -1,10 +1,10 @@
 import pino from 'pino';
-import { getLogDir } from '@/utils/config';
+import { getLogDir } from '@server/utils/config';
 import path from 'path';
 import { mkdir } from 'fs/promises';
 import type { Context } from 'hono';
-import { createFrontendLogStream } from '@/utils/FrontendLogFile';
-import { initSensitiveStrings, wrapWithMasking } from '@/utils/sensitiveBlacklist';
+import { createFrontendLogStream } from '@server/utils/FrontendLogFile';
+import { initSensitiveStrings, wrapWithMasking } from '@server/utils/sensitiveBlacklist';
 
 /**
  * Creates a Pino logger instance with appropriate configuration.

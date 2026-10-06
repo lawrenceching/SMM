@@ -12,7 +12,7 @@ const mockHello = vi.fn(() => ({
   osLocale: 'en-US',
 }))
 
-vi.mock('../core/getCore', () => ({
+vi.mock('@smm/server', () => ({
   getCore: () => ({ hello: mockHello }),
 }))
 

@@ -7,8 +7,8 @@ import {
 } from '@smm/types/event-types'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { getCore } from '../core/getCore'
-import { broadcast } from '@/utils/socketIO'
-import { getAppDataDir } from '@/utils/config'
+import { broadcast } from '@server/utils/socketIO'
+import { getAppDataDir } from '@server/utils/config'
 import { logger } from '../../lib/logger'
 
 interface CreateRecognizeEpisodePlanResponseBody {

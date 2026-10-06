@@ -3,7 +3,7 @@ import type { MockInstance } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { resetCoreForTests } from '../core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 describe('smm list', () => {
   let userDataDir: string
@@ -54,7 +54,7 @@ describe('smm list', () => {
 
   it('writes to stderr and exits 1 when getFolders throws', async () => {
     vi.resetModules()
-    vi.doMock('../core/getCore', () => ({
+    vi.doMock('@smm/server', () => ({
       getCore: () => ({
         getFolders: async () => {
           throw new Error('boom')
@@ -71,7 +71,7 @@ describe('smm list', () => {
     const errText = String(errorSpy.mock.calls[0]?.[0] ?? '')
     expect(errText).toContain('boom')
 
-    vi.doUnmock('../core/getCore')
+    vi.doUnmock('@smm/server')
     vi.resetModules()
   })
 })

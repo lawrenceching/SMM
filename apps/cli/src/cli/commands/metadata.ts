@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import type { MediaMetadata } from '@smm/types'
-import { getCore } from '../../core/getCore'
-import { formatMediaMetadata, isFolderImported } from '../folderDisplay'
+import { getCore } from '@smm/server'
+import { formatMediaMetadata, isFolderImported } from '@smm/server'
 
 export async function metadata(
   folder: string,

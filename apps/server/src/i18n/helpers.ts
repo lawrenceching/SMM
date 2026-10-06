@@ -1,5 +1,5 @@
 import { resolveAppLanguage, detectOsLocale } from '@smm/utils/locale';
-import { getUserConfig } from '@/utils/config';
+import { getUserConfig } from '@server/utils/config';
 import { getI18n } from './config';
 import { logger } from '../../lib/logger';
 

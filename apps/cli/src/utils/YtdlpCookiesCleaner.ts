@@ -1,8 +1,7 @@
 import { readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { isManagedYtdlpCookiesBasename } from '@smm/core/whitelistedCmd/ytdlpCookies';
-import { logger } from '../../lib/logger';
-import { permanentlyDeleteFile } from './files';
+import { logger, permanentlyDeleteFile } from '@smm/server';
 
 export interface YtdlpCookiesCleanerOptions {
   userDataDir: string;

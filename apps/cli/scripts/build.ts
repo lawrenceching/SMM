@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { $ } from 'bun';
 
-// Read version from package.json
-const packageJsonPath = join(import.meta.dir, '..', 'package.json');
+// Read version from apps/server package.json (single version source; synced with cli via changesets fixed group)
+const packageJsonPath = join(import.meta.dir, '..', '..', 'server', 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
 const version = packageJson.version || 'unknown';
 
@@ -13,7 +13,7 @@ const versionFileContent = `// This file is auto-generated at build time
 export const APP_VERSION = '${version}';
 `;
 
-const versionFilePath = join(import.meta.dir, '..', 'src', 'version.ts');
+const versionFilePath = join(import.meta.dir, '..', '..', 'server', 'src', 'version.ts');
 writeFileSync(versionFilePath, versionFileContent, 'utf-8');
 
 console.log(`✓ Generated version.ts with version: ${version}`);

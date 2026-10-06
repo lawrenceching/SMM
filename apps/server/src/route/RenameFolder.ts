@@ -6,8 +6,8 @@ import {
 } from '@smm/core-routes'
 import type { Hono } from 'hono'
 import { getCore } from '../core/getCore'
-import { broadcastUserConfigFolderRenamedEvent } from '@/events/userConfigUpdatedEvent'
-import { broadcast } from '@/utils/socketIO'
+import { broadcastUserConfigFolderRenamedEvent } from '@server/events/userConfigUpdatedEvent'
+import { broadcast } from '@server/utils/socketIO'
 import { logger } from '../../lib/logger'
 import { buildCoreRoutesConfig } from './coreRoutesConfig'
 

@@ -1,4 +1,4 @@
-import { getUserConfig } from '@/utils/config'
+import { getUserConfig } from '@server/utils/config'
 import {
   buildGetMediaFoldersResponse,
   createEmptyGetMediaFoldersData,

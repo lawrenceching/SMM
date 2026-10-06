@@ -1,12 +1,12 @@
 import { mkdir } from 'node:fs/promises'
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 
 export async function mcpStart(options: { host?: string; port?: string }): Promise<number> {
   try {
     // Lazy imports: pulling in the MCP lifecycle manager (and thus
     // `@smm/core-routes`) at module load breaks vitest's CLI unit tests
     // which don't alias `@smm/utils/path`.
-    const { getAppDataDir, getLogDir, getUserDataDir } = await import('@/utils/config')
+    const { getAppDataDir, getLogDir, getUserDataDir } = await import('@smm/server')
 
     await mkdir(getUserDataDir(), { recursive: true })
     await mkdir(getAppDataDir(), { recursive: true })

@@ -1,4 +1,4 @@
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { printJson } from './shared'
 
 export async function configList(): Promise<number> {

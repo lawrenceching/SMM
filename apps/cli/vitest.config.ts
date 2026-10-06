@@ -9,10 +9,19 @@ export default defineConfig({
     environment: 'node',
     // Unit tests only. E2E lives in test/*.e2e.ts — run via `pnpm run test:e2e`.
     include: ['src/**/*.test.ts', 'test/helpers/**/*.test.ts'],
+    setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {
     alias: [
       { find: '@', replacement: resolve(__dirname, './src') },
+      {
+        find: '@smm/server',
+        replacement: resolve(__dirname, '../server/index.ts'),
+      },
+      {
+        find: /^@server\/(.+)$/,
+        replacement: resolve(__dirname, '../server/src/$1'),
+      },
       {
         find: /^@smm\/types\/(.+)$/,
         replacement: `${typesRoot}/$1`,

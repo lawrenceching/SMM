@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { resetCoreForTests } from '../../src/core/getCore'
+import { resetCoreForTests } from '@smm/server'
 
 export type CliTestEnv = {
   userDataDir: string

@@ -1,6 +1,6 @@
 import { NoopLoggerAdapter } from '@smm/core'
 import type { AppContextInput, PlatformPortsInput } from '@smm/core'
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { CliLoggerAdapter } from '../cliLogger'
 import { formatScrapeJobTaskLines } from '../scrapeJobFormat'
 import { waitUntilScrapeSettled } from '../waitScrapeJob'

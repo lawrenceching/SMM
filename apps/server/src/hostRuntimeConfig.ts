@@ -5,8 +5,8 @@ import {
   getLogDir,
   getTmpDir,
   getUserDataDir,
-} from '@/utils/config'
-import { APP_VERSION } from '@/version'
+} from '@server/utils/config'
+import { APP_VERSION } from '@server/version'
 
 /**
  * Single source of CLI host paths/version for Core and core-routes.

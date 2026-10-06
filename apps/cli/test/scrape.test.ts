@@ -10,7 +10,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { smm } from './helpers/smm'
-import { resetCoreForTests } from '../src/core/getCore'
+import { resetCoreForTests } from '@smm/server'
 import {
   createAndImportInitializedFolder,
   tvShowFolder,

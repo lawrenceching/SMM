@@ -9,7 +9,7 @@ vi.mock('node:fs', async (importOriginal) => {
   };
 });
 
-vi.mock('../../lib/logger', () => ({
+vi.mock('@smm/server', () => ({
   logger: {
     info: vi.fn(),
     debug: vi.fn(),
@@ -83,7 +83,7 @@ describe('resolveAuthToken', () => {
 
   it('generates a 64-char hex token when env is unset', async () => {
     const { resolveAuthToken } = await import('./authToken');
-    const { logger } = await import('../../lib/logger');
+    const { logger } = await import('@smm/server');
 
     const token = resolveAuthToken();
 

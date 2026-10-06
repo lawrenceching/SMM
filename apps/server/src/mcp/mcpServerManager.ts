@@ -1,4 +1,4 @@
-import { getCore } from "@/core/getCore";
+import { getCore } from "@server/core/getCore";
 import { logger } from "../../lib/logger";
 import { setBunMcpServerError } from "./BunMcpServerPort";
 /**

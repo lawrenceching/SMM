@@ -4,7 +4,7 @@ import {
   resolveShowFolder,
   toShowFolderApiResult,
   type ShowFolderResult,
-} from '@/folderDisplay'
+} from '@server/folderDisplay'
 
 interface ShowFolderResponseBody {
   data?: ShowFolderResult

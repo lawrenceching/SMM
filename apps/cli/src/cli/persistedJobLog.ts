@@ -1,7 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { importJobLogFileName, isImportJobLogId } from "@smm/core";
-import { getLogDir } from "../utils/config";
+import { getLogDir } from "@smm/server";
 
 function resolvePersistedImportJobLogPath(jobId: string): string | null {
   const id = jobId.trim();

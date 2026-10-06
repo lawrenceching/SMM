@@ -15,8 +15,8 @@ import {
   getMediaMetadataToolOutputSchema,
   type GetMediaMetadataToolOutput,
 } from '@smm/types/ai-tools/getMediaMetadata'
-import { findMediaMetadata } from '@/utils/mediaMetadata'
-import { getUserConfig } from '@/utils/config'
+import { findMediaMetadata } from '@server/utils/mediaMetadata'
+import { getUserConfig } from '@server/utils/config'
 
 export type { GetMediaMetadataToolOutput }
 

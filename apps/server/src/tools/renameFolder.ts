@@ -14,9 +14,9 @@ import {
   renameFolderOutputSchema,
   type RenameFolderOutput,
 } from '@smm/types/ai-tools/renameFolder'
-import { acknowledge } from '@/utils/socketIO'
+import { acknowledge } from '@server/utils/socketIO'
 import { logger } from '../../lib/logger'
-import { doRenameFolder } from '@/route/RenameFolder'
+import { doRenameFolder } from '@server/route/RenameFolder'
 
 export interface RenameFolderParams {
   from: string

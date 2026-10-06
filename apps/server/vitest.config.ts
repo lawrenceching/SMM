@@ -13,7 +13,7 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      { find: '@', replacement: resolve(__dirname, './src') },
+      { find: '@server', replacement: resolve(__dirname, './src') },
       {
         find: /^@smm\/types\/(.+)$/,
         replacement: `${typesRoot}/$1`,

@@ -8,14 +8,14 @@ import { getBunMcpServerPort } from "./BunMcpServerPort";
 export function getBunMcpLifecycleManager(): McpLifecycleManager {
   return {
     async start(options) {
-      const { getCore } = await import("@/core/getCore");
+      const { getCore } = await import("@server/core/getCore");
       await getCore().startMcpServer(
         { hostname: options?.hostname, port: options?.port },
         { persistUserConfig: true },
       );
     },
     async stop() {
-      const { getCore } = await import("@/core/getCore");
+      const { getCore } = await import("@server/core/getCore");
       await getCore().stopMcpServer({ persistUserConfig: true });
     },
     getState() {

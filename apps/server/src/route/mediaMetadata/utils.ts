@@ -1,4 +1,4 @@
-import { getAppDataDir } from "@/utils/config";
+import { getAppDataDir } from "@server/utils/config";
 import path, { join } from "path";
 
 const appDataDir = getAppDataDir();

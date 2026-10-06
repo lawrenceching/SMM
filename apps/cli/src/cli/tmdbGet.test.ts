@@ -4,7 +4,7 @@ import { runCli } from './runCli'
 const mockGetTvShowInTmdb = vi.fn()
 const mockGetMovieInTmdb = vi.fn()
 
-vi.mock('../core/getCore', () => ({
+vi.mock('@smm/server', () => ({
   getCore: () => ({
     getTvShowInTmdb: mockGetTvShowInTmdb,
     getMovieInTmdb: mockGetMovieInTmdb,

@@ -1,7 +1,7 @@
 import type { AppContextInput, PlatformPortsInput } from '@smm/core'
 import { NoopLoggerAdapter } from '@smm/core'
 import { inspect } from 'node:util'
-import { getCore } from '../../core/getCore'
+import { getCore } from '@smm/server'
 import { CliLoggerAdapter } from '../cliLogger'
 import { resolveFolderType } from './shared'
 

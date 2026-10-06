@@ -21,11 +21,11 @@ import { TVDB_GET_MOVIE } from "@smm/types/ai-tools/tvdbGetMovie";
 import { TVDB_GET_TV_SHOW } from "@smm/types/ai-tools/tvdbGetTvShow";
 import { TVDB_GET_LANGUAGES } from "@smm/types/ai-tools/tvdbGetLanguages";
 import { GET_EPISODES } from "@smm/types/ai-tools/getEpisodes";
-import { getAppDataDir, getUserDataDir } from "@/utils/config";
-import { acknowledge, broadcast } from "@/utils/socketIO";
+import { getAppDataDir, getUserDataDir } from "@server/utils/config";
+import { acknowledge, broadcast } from "@server/utils/socketIO";
 import { logger } from "../../lib/logger";
-import { getLocalizedToolDescription } from "@/i18n/helpers";
-import { initI18n } from "@/i18n/config";
+import { getLocalizedToolDescription } from "@server/i18n/helpers";
+import { initI18n } from "@server/i18n/config";
 
 /**
  * Tool names that have localized descriptions in
@@ -130,8 +130,8 @@ async function loadLocalizedToolDescriptions(): Promise<Record<string, string>> 
  * - Localized tool descriptions loaded from i18next.
  */
 async function buildMcpConfig(): Promise<McpConfig> {
-  const { getUserConfig } = await import("@/utils/config");
-  const { getCore } = await import("@/core/getCore");
+  const { getUserConfig } = await import("@server/utils/config");
+  const { getCore } = await import("@server/core/getCore");
   return {
     getUserConfig,
     appDataDir: getAppDataDir(),

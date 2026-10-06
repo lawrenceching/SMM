@@ -7,7 +7,7 @@ import type { RenameFileExistenceProbe } from '@smm/core/validations/rename/vali
 import { metadataCacheFilePath } from '../route/mediaMetadata/utils';
 import { executeBatchRenameOperations, updateMediaMetadataAndBroadcast } from '../utils/renameFileUtils';
 import { logger } from '../../lib/logger';
-import { askForRenameFilesConfirmation } from '@/events/askForRenameFilesConfirmation';
+import { askForRenameFilesConfirmation } from '@server/events/askForRenameFilesConfirmation';
 
 interface RenameFile {
   from: string;

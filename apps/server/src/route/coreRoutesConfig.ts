@@ -1,7 +1,7 @@
 import type { CoreRoutesConfig, CoreRoutesLogger } from '@smm/core-routes'
-import { buildAllowlist } from '@/utils/buildAllowlist'
+import { buildAllowlist } from '@server/utils/buildAllowlist'
 import { buildHelloOptions } from '../../tasks/HelloTask'
-import { buildCliHostRuntimeConfig } from '@/hostRuntimeConfig'
+import { buildCliHostRuntimeConfig } from '@server/hostRuntimeConfig'
 
 export async function buildCoreRoutesConfig(
   logger: CoreRoutesLogger,

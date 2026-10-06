@@ -4,8 +4,10 @@ import { fileURLToPath } from 'node:url'
 import { expect } from 'vitest'
 import { Path } from '@smm/utils/path'
 import type { MediaMetadata } from '@smm/types'
-import { getCore } from '../../src/core/getCore'
+import { getCore } from '@smm/server'
 import { smm } from './smm'
+
+export { metadataCachePath } from '@smm/test'
 
 export {
   type TestFolder,
@@ -20,12 +22,6 @@ import { createFolderInTestFolder, type TestFolder } from '@smm/test'
 const helpersDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(helpersDir, '../../../..')
 const MEDIA_METADATA_TEMPLATES_DIR = join(repoRoot, 'test', 'templates', 'mediaMetadatas')
-
-/** Same sanitization as Core `metadataCachePath` / core-routes cache. */
-export function metadataCachePath(appDataDir: string, folderPathInPosix: string): string {
-  const filename = folderPathInPosix.replace(/[/\\:?*|<>"]/g, '_')
-  return join(appDataDir, 'metadata', `${filename}.json`)
-}
 
 function loadTemplate(templateFileName: string): MediaMetadata {
   const templatePath = join(MEDIA_METADATA_TEMPLATES_DIR, templateFileName)

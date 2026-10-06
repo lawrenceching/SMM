@@ -33,12 +33,13 @@ import { configList } from './commands/configList'
 import { configGet } from './commands/configGet'
 import { configSet } from './commands/configSet'
 import { mcpStart } from './commands/mcpStart'
+import { startWeb } from '../web/startWeb'
 
 const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`, `tvdb`, `mcp`, `web`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -424,6 +425,20 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('-p, --port <port>', 'MCP server port (default: user config mcpPort or 30001)')
     .action(async (opts: { host?: string; port?: string }) => {
       exitCode = await mcpStart(opts)
+    })
+
+  program
+    .command('web')
+    .description('Start the SMM HTTP server (Web UI + API)')
+    .option('--staticDir <dir>', 'Static Web UI directory (default: ../ui/dist)')
+    .option('--port <port>', 'HTTP port (default: HTTP_PORT env or 30000)')
+    .action(async (opts: { staticDir?: string; port?: string }) => {
+      await startWeb({
+        staticDir: opts.staticDir,
+        port: opts.port ? parseInt(opts.port, 10) : undefined,
+      })
+      // Keep the process alive for the HTTP server; exit handled by signals.
+      await new Promise(() => {})
     })
 
   try {

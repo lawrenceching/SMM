@@ -16,10 +16,10 @@ import { metadataCachePath } from '@smm/test'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
 
-vi.mock('@/events/userConfigUpdatedEvent', () => ({
+vi.mock('@server/events/userConfigUpdatedEvent', () => ({
   broadcastUserConfigFolderRenamedEvent: vi.fn(),
 }))
-vi.mock('@/utils/socketIO', () => ({
+vi.mock('@server/utils/socketIO', () => ({
   broadcast: vi.fn(),
 }))
 

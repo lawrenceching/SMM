@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@ai-sdk/mcp": "latest",
+    "@ai-sdk/mcp": "1.0.21",
     "@types/bun": "latest",
     "@vitest/coverage-v8": "^4.0.18",
     "@smm/test": "workspace:*",
