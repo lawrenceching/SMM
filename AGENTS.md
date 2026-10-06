@@ -186,11 +186,30 @@ pnpm test
 
 ## 代码架构
 
+依赖方向: `apps/cli -> apps/server -> apps/core`, `apps/server` 禁止反向依赖 `apps/cli`（其内部别名使用 `@server/*`）.
+
 ### apps/ui
 
 **apps/ui/src/hooks/userConfig/** 该目录提供了基于 TanStack Query 的读取和写入应用配置的方法, 如 `useConfig.ts`
 **pps/ui/src/stores/uiMediaFolderStore.ts** 基于 Zustand 的全局状态类. 接口 `UIMediaFolder` 用于表示前端的多媒体目录. 该store是前端项目的核心状态, 被Sidebar, Statusbar, TvShowPanel, MoviePanle 和 MoviePanel 等主要组件依赖.
 **apps/ui/src/hooks/mediaMetadata/** 基于 TanStack Query 的 MediaMetadata 读取和写入方法
+
+### apps/cli
+
+**index.ts** 入口分发: CLI 子命令（含 `web`）走 `src/cli/runCli.ts`（Commander）, 裸调用仅打印帮助.
+**src/cli/commands/** 各子命令实现, 直接调用 `@smm/core`（经 `getCore({ logger: new CliLoggerAdapter(...) })` 注入 LoggingPort）.
+**src/cli/cliLogger.ts** `CliLoggerAdapter`, CLI 侧 LoggingPort 实现, 留在 apps/cli.
+**src/web/startWeb.ts** `smm web` 启动编排: 目录初始化、清理任务、auth、构造 `@smm/server` 的 `Server` 并注册优雅停机.
+**src/utils/** 仅入口编排使用的平台工具: `authToken`、`CommandLogCleaner`、`YtdlpCookiesCleaner`、`tmdbTls`.
+
+### apps/server
+
+**server.ts** `Server` 类: Hono app + Socket.IO + 静态资源 + 路径挂载反向代理 + core-routes 分发.
+**index.ts** 公共 API 导出（`Server`、`getCore`、`logger`、`utils/config` 路径函数等）, 供 apps/cli 消费.
+**src/core/getCore.ts** Core 单例组装（平台 Port: `NodejsNetworkPort`、`BunMcpServerPort` 等）, CLI 与 `smm web` 同进程共享同一实例.
+**src/route/** HTTP API 路由（thin shell, 共享逻辑委托 `@smm/core-routes`）.
+**src/mcp/** MCP 服务器（`smm mcp start` 经 `Core.startMcpServer` 启动）.
+**lib/logger.ts** pino 日志基础设施（含 `frontendLogger`）, 由 apps/cli 注入使用.
 
 ## apps/server API 列表
 API列表可查阅文件: `docs/api/index.md`.
