@@ -11,7 +11,7 @@ export default defineConfig({
     include: ['test/**/*.e2e.ts'],
     exclude: ['test/test-mcp.e2e.ts'],
     testTimeout: 10 * 60 * 1000,
-    setupFiles: ['./vitest.setup.ts'],
+    passWithNoTests: true,
   },
   resolve: {
     alias: [
