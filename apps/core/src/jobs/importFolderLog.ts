@@ -35,5 +35,3 @@ export function recognizedEpisodeFilesMessage(
 ): string {
   return `Recognized episode files: ${recognizedFiles} files are recognized, didn't recognize files for ${unrecognizedEpisodes} episodes`;
 }
-
-export const IMPORT_FOLDER_COMPLETED = "Completed";

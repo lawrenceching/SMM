@@ -11,7 +11,6 @@ import { NodejsFsAdapter } from "./adapters/node/NodejsFsAdapter";
 import { Core } from "./Core";
 import { ScrapeJob } from "./jobs/ScrapeJob";
 import {
-  IMPORT_FOLDER_COMPLETED,
   importJobLogFileName,
   startedImportFolderMessage,
 } from "./jobs/importFolderLog";
@@ -635,7 +634,6 @@ describe("importFolder job logs and abort", () => {
     expect(jobLogLines(await core.getJobLog(id))).toEqual([
       `${id} started`,
       startedImportFolderMessage("/m/My.Music", "music"),
-      IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
     expect(core.getJob(id) as { logs?: unknown }).not.toHaveProperty("logs");
@@ -658,7 +656,6 @@ describe("importFolder job logs and abort", () => {
     expect(jobLogLines(await core.getJobLog(id))).toEqual([
       `${id} started`,
       startedImportFolderMessage("/m/Deferred", "tvshow"),
-      IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
   });
@@ -687,7 +684,6 @@ describe("importFolder job logs and abort", () => {
       startedImportFolderMessage(folder, type),
       `Recognize ${folder}: ${_title} (tmdbId:${type === "tvshow" ? "84666" : "42"})`,
       `Recognize ${type === "movie" ? 1 : 0} episode files`,
-      IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
   });
@@ -713,7 +709,6 @@ describe("importFolder job logs and abort", () => {
       startedImportFolderMessage("/m/Unknown", "tvshow"),
       "Recognize /m/Unknown: undefined (undefinedId:undefined)",
       "Recognize 0 episode files",
-      IMPORT_FOLDER_COMPLETED,
       `${id} completed`,
     ]);
   });
@@ -777,7 +772,6 @@ describe("importFolder job log file", () => {
       [
         `${id} started`,
         startedImportFolderMessage("/m/My.Music", "music"),
-        IMPORT_FOLDER_COMPLETED,
         `${id} completed`,
         "",
       ].join("\n"),
@@ -814,7 +808,7 @@ describe("importFolder job log file", () => {
       const text = await readFile(logPath, "utf8");
       expect(text).toContain("Started to import folder:");
       expect(text).toContain("type: music");
-      expect(text).toContain(IMPORT_FOLDER_COMPLETED);
+      expect(text).toContain(`${id} completed`);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

@@ -1,11 +1,7 @@
 import { Path } from "@smm/utils/path";
 import type { FolderType } from "@smm/types";
 import { JobAbortError } from "./jobAbortError";
-import {
-  IMPORT_FOLDER_COMPLETED,
-  importJobLogFileName,
-  startedImportFolderMessage,
-} from "./importFolderLog";
+import { importJobLogFileName, startedImportFolderMessage } from "./importFolderLog";
 import { AbstractJob, type JobOptions } from "./abstract-job";
 import {
   persistNewFolder,
@@ -93,11 +89,6 @@ export class ImportFolderJob extends AbstractJob {
     }
   }
 
-  /** Marks a skipInit import finished without recognition. */
-  async finishSkipInit(): Promise<void> {
-    await this.log(IMPORT_FOLDER_COMPLETED);
-  }
-
   /**
    * Runs Steps after stage 1 (already done by {@link persistFolder}).
    * Music has no further steps; tvshow/movie recognize folder then episodes.
@@ -115,7 +106,6 @@ export class ImportFolderJob extends AbstractJob {
       if (this.skipInit) {
         const [persistStep] = steps;
         await persistStep!.run(this);
-        await this.log(IMPORT_FOLDER_COMPLETED);
         this.setStatus("succeeded");
         return;
       }
@@ -137,7 +127,6 @@ export class ImportFolderJob extends AbstractJob {
         }
       }
 
-      await this.log(IMPORT_FOLDER_COMPLETED);
       this.setStatus("succeeded");
     } catch (error) {
       this.setStatus("failed");

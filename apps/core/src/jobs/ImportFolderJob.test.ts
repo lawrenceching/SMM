@@ -7,7 +7,6 @@ import type { NetworkPort } from "../ports/NetworkPort";
 import { ImportFolderJob, type ImportFolderJobOptions } from "./ImportFolderJob";
 import type { JobOptions } from "./abstract-job";
 import {
-  IMPORT_FOLDER_COMPLETED,
   importJobLogFileName,
   startedImportFolderMessage,
 } from "./importFolderLog";
@@ -169,7 +168,8 @@ describe("ImportFolderJob", () => {
       undefined,
     );
     expect(recognizeImportedEpisodes).toHaveBeenCalled();
-    expect(onLog).toHaveBeenCalledWith(IMPORT_FOLDER_COMPLETED);
+    expect(onLog).toHaveBeenCalledWith(startedImportFolderMessage("/media/Show", "tvshow"));
+    expect(onLog).not.toHaveBeenCalledWith("Completed");
     expect(job.status).toBe("succeeded");
   });
 
@@ -181,7 +181,8 @@ describe("ImportFolderJob", () => {
     expect(persistNewFolder).toHaveBeenCalled();
     expect(recognizeImportedFolder).not.toHaveBeenCalled();
     expect(recognizeImportedEpisodes).not.toHaveBeenCalled();
-    expect(onLog).toHaveBeenCalledWith(IMPORT_FOLDER_COMPLETED);
+    expect(onLog).toHaveBeenCalledWith(startedImportFolderMessage("/media/Show", "music"));
+    expect(onLog).not.toHaveBeenCalledWith("Completed");
     expect(job.status).toBe("succeeded");
   });
 
@@ -193,12 +194,6 @@ describe("ImportFolderJob", () => {
 
     expect(job.status).toBe("aborted");
     expect(recognizeImportedFolder).not.toHaveBeenCalled();
-  });
-
-  it("finishSkipInit logs Completed", async () => {
-    const { job, onLog } = createJob();
-    await job.finishSkipInit();
-    expect(onLog).toHaveBeenCalledWith(IMPORT_FOLDER_COMPLETED);
   });
 
   it("writes the log file under context.logDir", async () => {

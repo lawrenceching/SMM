@@ -59,6 +59,7 @@
     "e2e:ohos:tv": "bun ci/run-e2e-test.ts --platform ohos --spec \"./common/tv/*.e2e.ts\"",
     "e2e:electron:tv": "bun ci/run-e2e-test.ts --platform electron --spec \"./common/tv/*.e2e.ts\"",
     "e2e:web:tv": "bun ci/run-e2e-test.ts --platform desktop --spec \"./common/tv/*.e2e.ts\"",
+    "e2e:run": "bun ci/run-e2e-test.ts",
     "e2e:web:run": "bun ci/run-e2e-test.ts --platform web",
     "e2e:failover": "cross-env EXTERNAL_CONFIG_FILE_URL=\"http://localhost:18000/config.json\" bun ci/run-e2e-test.ts --spec ./common/tv/TmdbHostFailover.e2e.ts",
     "e2e:http-proxy": "bun apps/cicd/run.ts -f apps/e2e/scenarios/http-proxy-reverse-proxy.test.json",
@@ -80,7 +81,8 @@
     "changeset:version": "changeset version && pnpm i && pnpm run build:cli",
     "changeset:publish": "changeset publish",
     "query-network-log": "bun apps/tools/query-network-log.ts",
-    "knip": "knip"
+    "knip": "knip",
+    "precommit": "pnpm typecheck && pnpm --filter ui lint && pnpm knip"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
