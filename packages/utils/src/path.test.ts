@@ -33,6 +33,14 @@ describe('split', () => {
   it('should handle empty string', () => {
     expect(split('')).toEqual([]);
   });
+
+  it('should normalize drive letter for forward-slash Windows path', () => {
+    expect(split('C:/Users/Documents')).toEqual(['C', 'Users', 'Documents']);
+  });
+
+  it('should normalize drive letter for mixed separators', () => {
+    expect(split('C:/Users\\Documents')).toEqual(['C', 'Users', 'Documents']);
+  });
 });
 
 describe('ext', () => {
@@ -384,6 +392,11 @@ describe('Path', () => {
       expect(result).toBe('/C/Users/Documents');
     });
 
+    it('should convert forward-slash Windows path to POSIX format', () => {
+      const result = Path.posix('C:/Users/Documents');
+      expect(result).toBe('/C/Users/Documents');
+    });
+
     it('should convert UNC path to POSIX format', () => {
       const result = Path.posix('\\\\server\\share\\folder');
       expect(result).toBe('/server/share/folder');
@@ -468,6 +481,14 @@ describe('Path', () => {
       const result = Path.toPlatformPath('C:\\Users\\Documents');
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should not produce UNC path from drive-letter POSIX path (round trip)', () => {
+      // Regression: USER_DATA_DIR with forward slashes (e.g. from POSIX shells)
+      // produced '\\C:\\...' via Path.win and broke mkdir on Windows.
+      const posixConfigPath = Path.posix('C:/Users/me/.smm') + '/smm.json';
+      const result = Path.toPlatformPath(posixConfigPath);
+      expect(result).toBe('C:\\Users\\me\\.smm\\smm.json');
     });
   });
 

@@ -67,7 +67,7 @@ describe('POST /api/create-recognize-episode-plan', () => {
       event: 'recognizeMediaFilePlanReady',
       data: {
         taskId: 'plan-1',
-        planFilePath: '/C:/smm-app-data/plans/plan-1.plan.json',
+        planFilePath: '/C/smm-app-data/plans/plan-1.plan.json',
       },
     })
   })

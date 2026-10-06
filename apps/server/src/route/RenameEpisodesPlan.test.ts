@@ -74,7 +74,7 @@ describe('POST /api/create-rename-episode-plan', () => {
       event: 'renameFilesPlanReady',
       data: {
         taskId: 'plan-1',
-        planFilePath: '/C:/smm-app-data/plans/plan-1.plan.json',
+        planFilePath: '/C/smm-app-data/plans/plan-1.plan.json',
       },
     })
   })

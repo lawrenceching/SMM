@@ -13,7 +13,10 @@ export function split(path: string) {
     let parts = path.split(':\\').filter(isNotEmpty) // Windows drive letter
     parts = flattenDeep(parts.map(part => part.split('\\').filter(isNotEmpty))) // Windows format
     parts = flattenDeep(parts.map(part => part.split('/').filter(isNotEmpty))) // POSIX format
-    return parts;
+    // Normalize drive letter token: 'C:/x' and 'C:\\x' must both yield ['C', 'x'].
+    // A trailing colon (e.g. root[0] === 'C:') would otherwise be mistaken for a
+    // UNC server name by Path.abs('win') and produce '\\C:\\...'.
+    return parts.map(part => /^[A-Za-z]:$/.test(part) ? part.slice(0, -1) : part);
 
 }
 
