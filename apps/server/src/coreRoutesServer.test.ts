@@ -17,7 +17,7 @@ vi.mock("@/utils/buildAllowlist", () => ({
   buildAllowlist: vi.fn(async () => []),
 }));
 
-vi.mock("@/cli/helloHttp", () => ({
+vi.mock("@/helloHttp", () => ({
   buildHelloHttpResponse: vi.fn(() => ({ data: null, error: null })),
 }));
 

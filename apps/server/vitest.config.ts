@@ -31,14 +31,6 @@ export default defineConfig({
         replacement: resolve(utilsSrc, 'index.ts'),
       },
       {
-        find: '@smm/core',
-        replacement: resolve(__dirname, '../core/src/index.ts'),
-      },
-      {
-        find: /^@smm\/core\/(.+)$/,
-        replacement: resolve(__dirname, '../core/src/$1'),
-      },
-      {
         find: '@smm/core-routes',
         replacement: resolve(__dirname, '../../packages/core-routes/src/index.ts'),
       },

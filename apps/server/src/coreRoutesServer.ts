@@ -8,7 +8,7 @@ import {
 import type { HostRuntimeConfig } from "@smm/types";
 import { buildAllowlist } from "@/utils/buildAllowlist";
 import { getUserConfig } from "@/utils/config";
-import { buildHelloHttpResponse } from "@/cli/helloHttp";
+import { buildHelloHttpResponse } from "@/helloHttp";
 import { logger } from "../lib/logger";
 import { acknowledge, broadcast } from "@/utils/socketIO";
 import { createAIProvider } from "../lib/ai-provider";
