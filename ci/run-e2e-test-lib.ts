@@ -348,7 +348,7 @@ function resolveWebListenPort(): number {
 function resolveWebCliCommand(): string {
   assertWebUiArtifactsExist(ROOT);
   const { cliBin, staticDir } = resolveWebUiArtifactPaths(ROOT);
-  return `"${cliBin}" --staticDir "${staticDir}" --port ${resolveWebListenPort()}`;
+  return `"${cliBin}" web --staticDir "${staticDir}" --port ${resolveWebListenPort()}`;
 }
 
 /**

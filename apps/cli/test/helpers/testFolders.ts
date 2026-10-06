@@ -7,8 +7,6 @@ import type { MediaMetadata } from '@smm/types'
 import { getCore } from '@smm/server'
 import { smm } from './smm'
 
-export { metadataCachePath } from '@smm/test'
-
 export {
   type TestFolder,
   musicFolder,

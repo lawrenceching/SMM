@@ -7,7 +7,7 @@
  * request, then a `tools/list` request, and prints the responses.
  */
 
-import { getMcpStreamableHttpHandler } from "../apps/cli/src/mcp/mcp"
+import { getMcpStreamableHttpHandler } from "../apps/server/src/mcp/mcp"
 
 const HOST = "127.0.0.1"
 const PORT = 30099

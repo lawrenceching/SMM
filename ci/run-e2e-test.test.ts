@@ -221,6 +221,7 @@ describe('run-e2e-test web platform', () => {
       expect(config.env.NETWORK_LOG_ENABLED).toBe('true');
       expect(config.background).toHaveLength(1);
       expect(config.background[0]!.name).toBe('cli');
+      expect(config.background[0]!.command).toContain(' web --staticDir');
       expect(config.background[0]!.command).toContain('--staticDir');
       expect(config.background[0]!.command).toContain('--port 30000');
       expect(config.background[0]!.command).not.toContain('dev:ui');

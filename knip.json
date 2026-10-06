@@ -6,7 +6,7 @@
   "ignore": [
     ".agents/**",
     "apps/site/**",
-    "apps/cli/public/**",
+    "apps/server/public/**",
     "apps/electron/build/**",
     "apps/ui/src/components/ui/**",
     "packages/electron-common/dist/**",
@@ -39,6 +39,15 @@
         "scripts/**/*.ts",
         "src/**/*.test.ts",
         "test/**/*.test.ts"
+      ],
+      "ignoreDependencies": [
+        "server"
+      ]
+    },
+    "apps/server": {
+      "entry": [
+        "scripts/**/*.ts",
+        "src/**/*.test.ts"
       ]
     },
     "apps/core": {

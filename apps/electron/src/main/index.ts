@@ -326,7 +326,7 @@ function startCLIProcess(port: number): CliProcessMonitor {
   }
 
   const publicFolder = getPublicFolderPath()
-  const cliArgs = ['--staticDir', publicFolder, '--port', port.toString()]
+  const cliArgs = ['web', '--staticDir', publicFolder, '--port', port.toString()]
   console.log(`Starting CLI from: ${cliExecutable}`)
   console.log(`Public folder path: ${publicFolder}`)
   console.log(`CLI HTTP port: ${port}`)

@@ -24,6 +24,8 @@ COPY packages/core-routes packages/core-routes
 COPY packages/tvdb4 packages/tvdb4
 # @smm/core (apps/core) is a runtime dependency of apps/cli (Core singleton)
 COPY apps/core apps/core
+# apps/server is a workspace dependency of apps/cli (imported via @smm/server)
+COPY apps/server apps/server
 COPY apps/cli apps/cli
 
 # pnpm --frozen-lockfile tolerates missing workspace members: only packages

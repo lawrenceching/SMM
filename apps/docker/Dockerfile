@@ -57,4 +57,4 @@ ENV REVERSE_PROXY_ADDRESS=0.0.0.0
 EXPOSE 30000
 EXPOSE 30002
 
-CMD ["/app/cli", "--staticDir", "/app/public", "--port", "30000"]
+CMD ["/app/cli", "web", "--staticDir", "/app/public", "--port", "30000"]

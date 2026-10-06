@@ -1,8 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
-const cliPackageJsonPath = join(import.meta.dir, "..", "..", "cli", "package.json")
-const packageJson = JSON.parse(readFileSync(cliPackageJsonPath, "utf-8")) as { version?: string }
+const serverPackageJsonPath = join(import.meta.dir, "..", "..", "server", "package.json")
+const packageJson = JSON.parse(readFileSync(serverPackageJsonPath, "utf-8")) as { version?: string }
 const version = packageJson.version ?? "unknown"
 
 const versionFileContent = `// This file is auto-generated at build time
