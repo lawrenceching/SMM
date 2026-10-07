@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleGetFolders } from './GetFolders'
+import { getFoldersRoute } from './GetFolders'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/get-folders', () => {
@@ -16,8 +16,7 @@ describe('POST /api/get-folders', () => {
     userDataDir = mkdtempSync(join(tmpdir(), 'smm-get-folders-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleGetFolders(app)
+    app = getFoldersRoute
   })
 
   afterEach(() => {

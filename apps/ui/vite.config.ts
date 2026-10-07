@@ -151,6 +151,10 @@ export default defineConfig({
         find: "@smm/core",
         replacement: path.resolve(__dirname, "../core/src/index.ts"),
       },
+      {
+        find: "@smm/server",
+        replacement: path.resolve(__dirname, "../server/app.ts"),
+      },
       { find: "@/", replacement: `${path.resolve(__dirname, "./src")}/` },
       {
         find: "@smm/tvdb4",

@@ -29,7 +29,6 @@ import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFold
 import { handleRenameEpisodesPlan } from './src/route/RenameEpisodesPlan';
 import { handleRecognizeEpisodesPlan } from './src/route/RecognizeEpisodesPlan';
 import { handleTryToRecognizeEpisodes } from './src/route/TryToRecognizeEpisodes';
-import { handleGetFolders } from './src/route/GetFolders';
 import { handleUnimportFolder } from './src/route/UnimportFolder';
 import { handleImportFolder } from './src/route/ImportFolder';
 import { handleImportLibrary } from './src/route/ImportLibrary';
@@ -212,7 +211,6 @@ export class Server {
     handleRenameEpisodesPlan(this.app);
     handleRecognizeEpisodesPlan(this.app);
     handleTryToRecognizeEpisodes(this.app);
-    handleGetFolders(this.app);
     handleUnimportFolder(this.app);
     handleImportFolder(this.app);
     handleImportLibrary(this.app);

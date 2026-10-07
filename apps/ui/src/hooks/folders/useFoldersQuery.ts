@@ -6,9 +6,7 @@ export function useFoldersQuery() {
   return useQuery({
     queryKey: foldersQueryKey,
     queryFn: async (): Promise<string[]> => {
-      const resp = await getFolders()
-      if (resp.error) throw new Error(resp.error)
-      return resp.data?.folders ?? []
+      return await getFolders()
     },
   })
 }

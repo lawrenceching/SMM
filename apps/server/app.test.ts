@@ -21,8 +21,8 @@ describe('createApp middleware composition', () => {
 
   it('lets requests with a valid bearer token reach the handler', async () => {
     const app = createApp({ auth: enabledAuth, logger: noopLogger })
-    app.post('/api/get-folders', (c) => c.text('ok'))
-    const res = await app.request('/api/get-folders', {
+    app.post('/api/auth-probe', (c) => c.text('ok'))
+    const res = await app.request('/api/auth-probe', {
       method: 'POST',
       headers: { Authorization: 'Bearer secret' },
     })

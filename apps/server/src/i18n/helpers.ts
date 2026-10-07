@@ -67,8 +67,9 @@ export async function getLocalizedToolDescription(
 
   const translationKey = `${toolName}.description`;
 
+  const translate = i18n.t as (key: string, options?: { ns: string }) => string
   // Falls back to 'en' if key is missing in the requested language
-  const description = i18n.t(translationKey, {
+  const description = translate(translationKey, {
     ns: 'tools',
   });
 

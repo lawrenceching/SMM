@@ -47,9 +47,7 @@ describe('waitForLibraryFoldersRegistered', () => {
         tasks: [{ id: 't0', path: '/lib/A', status: 'pending' }],
         status: 'pending',
       })
-    getFoldersMock
-      .mockResolvedValueOnce({ data: { folders: [] } })
-      .mockResolvedValue({ data: { folders: ['/lib/A'] } })
+    getFoldersMock.mockResolvedValueOnce([]).mockResolvedValue(['/lib/A'])
 
     const paths = await waitForLibraryFoldersRegistered('job-1')
 

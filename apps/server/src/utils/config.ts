@@ -4,6 +4,10 @@ import { migrateAIConfig } from "@smm/core/configMigration";
 import path from "path";
 import os from "os";
 
+declare const Bun: {
+  file(path: string): { exists(): Promise<boolean>; text(): Promise<string> };
+};
+
 
 
 const DEFAULT_USER_CONFIG: UserConfig = {

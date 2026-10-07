@@ -31,9 +31,7 @@ describe('useFoldersQuery', () => {
   })
 
   it('fetches folders when v3 is enabled by default', async () => {
-    mockedGetFolders.mockResolvedValue({
-      data: { folders: ['/media/a', '/media/b'] },
-    })
+    mockedGetFolders.mockResolvedValue(['/media/a', '/media/b'])
 
     const wrapper = createWrapper(queryClient)
     const { result } = renderHook(() => useFoldersQuery(), { wrapper })

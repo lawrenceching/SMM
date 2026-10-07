@@ -3,6 +3,7 @@ import { requestId } from 'hono/request-id';
 import { cors } from 'hono/cors';
 import type { CoreRoutesAuthConfig, CoreRoutesLogger } from '@smm/core-routes';
 import { isRequestAuthorized } from '@smm/core-routes';
+import { getFoldersRoute } from './src/route/GetFolders';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -90,7 +91,8 @@ export function createApp(deps: CreateAppDeps) {
     return next();
   });
 
-  return app;
+  const composed = app.route('/', getFoldersRoute);
+  return composed;
 }
 
 export type AppType = ReturnType<typeof createApp>;

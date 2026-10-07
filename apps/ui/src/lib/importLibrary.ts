@@ -64,11 +64,7 @@ async function foldersRegisteredInUserConfig(
   folderPaths: string[],
   signal?: AbortSignal,
 ): Promise<boolean> {
-  const resp = await getFolders(signal)
-  if (resp.error) {
-    throw new Error(resp.error)
-  }
-  const folders = resp.data?.folders ?? []
+  const folders = await getFolders(signal)
   return foldersContainAll(folderPaths, folders)
 }
 

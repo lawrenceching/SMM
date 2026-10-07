@@ -1,21 +1,8 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc } from '@/lib/rpc'
 
-export interface GetFoldersResponseBody {
-  data?: { folders: string[] }
-  error?: string
-}
-
-export async function getFolders(signal?: AbortSignal): Promise<GetFoldersResponseBody> {
-  const resp = await apiFetch('/api/get-folders', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({}),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  return (await resp.json()) as GetFoldersResponseBody
+export async function getFolders(signal?: AbortSignal): Promise<string[]> {
+  const resp = await rpc.api['get-folders'].$post({}, { init: { signal } })
+  const body = await resp.json()
+  if ('error' in body) throw new Error(body.error)
+  return body.data.folders
 }
