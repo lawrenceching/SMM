@@ -1,12 +1,11 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import type { RecognizeFolderDb } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-interface RecognizeFolderResponseBody {
-  data?: { path: string }
-  error?: string
-}
+type RecognizeFolderResponseBody =
+  | { data: { path: string } }
+  | { error: string }
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
@@ -34,33 +33,31 @@ function errorBody(message: string): RecognizeFolderResponseBody {
 }
 
 /** `POST /api/recognize-folder` → `Core.recognizeFolder`. */
-export function handleRecognizeFolder(app: Hono): void {
-  app.post('/api/recognize-folder', async (c) => {
-    try {
-      const rec = await readJsonObject(c)
-      const path = optionalString(rec.path)
-      if (!path) {
-        return c.json(errorBody('path is required'), 200)
-      }
-      const db = parseDb(rec.db)
-      if (!db) {
-        return c.json(errorBody('db must be tmdb or tvdb'), 200)
-      }
-      const id = optionalString(rec.id)
-      if (!id) {
-        return c.json(errorBody('id is required'), 200)
-      }
-
-      await getCore().recognizeFolder(path, { db, id })
-
-      const ok: RecognizeFolderResponseBody = { data: { path } }
-      return c.json(ok, 200)
-    } catch (error) {
-      logger.error({ error }, '[POST /api/recognize-folder] route error')
-      return c.json(
-        errorBody(error instanceof Error ? error.message : 'Unknown error'),
-        200,
-      )
+export const recognizeFolderRoute = new Hono().post('/api/recognize-folder', async (c) => {
+  try {
+    const rec = await readJsonObject(c)
+    const path = optionalString(rec.path)
+    if (!path) {
+      return c.json<RecognizeFolderResponseBody>(errorBody('path is required'), 200)
     }
-  })
-}
+    const db = parseDb(rec.db)
+    if (!db) {
+      return c.json<RecognizeFolderResponseBody>(errorBody('db must be tmdb or tvdb'), 200)
+    }
+    const id = optionalString(rec.id)
+    if (!id) {
+      return c.json<RecognizeFolderResponseBody>(errorBody('id is required'), 200)
+    }
+
+    await getCore().recognizeFolder(path, { db, id })
+
+    const ok: RecognizeFolderResponseBody = { data: { path } }
+    return c.json<RecognizeFolderResponseBody>(ok, 200)
+  } catch (error) {
+    logger.error({ error }, '[POST /api/recognize-folder] route error')
+    const err: RecognizeFolderResponseBody = errorBody(
+      error instanceof Error ? error.message : 'Unknown error',
+    )
+    return c.json<RecognizeFolderResponseBody>(err, 200)
+  }
+})

@@ -2,7 +2,7 @@ import { generateObject } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { z } from 'zod/v3';
 import type { OpenAIGenerateObjectRequestBody, OpenAIGenerateObjectResponseBody, OpenAICompatibleConfig } from '@smm/types';
-import type { Hono } from "hono";
+import { Hono } from "hono";
 
 interface MatchMediaFilesToEpisodeResponse {
   data: {
@@ -56,28 +56,26 @@ async function matchMediaFilesToEpisode(config: OpenAICompatibleConfig, prompt: 
   return object as MatchMediaFilesToEpisodeResponse;
 }
 
-export async function handleMatchMediaFilesToEpisodeRequest(app: Hono) {
+export const matchMediaFilesToEpisodeRoute = new Hono().post('/api/ai/matchMediaFilesToEpisode', async (c) => {
     /**
      * TODO:
      * I got error:
      * AI SDK Warning: The "responseFormat" setting is not supported by this model - JSON response format schema is only supported with structuredOutputs
-     * 
+     *
      * Need further investigation to for what model can support JSON response format schema.
      * hold this API for now.
      */
-    app.post('/api/ai/matchMediaFilesToEpisode', async (c) => {
-        console.log(`[HTTP_IN] ${c.req.method} ${c.req.url}`);
-        const body = await c.req.json() as OpenAIGenerateObjectRequestBody;
-        const config: OpenAICompatibleConfig = {
-            baseURL: body.baseURL,
-            apiKey: body.apiKey,
-            model: body.model,
-        };
+    console.log(`[HTTP_IN] ${c.req.method} ${c.req.url}`);
+    const body = await c.req.json() as OpenAIGenerateObjectRequestBody;
+    const config: OpenAICompatibleConfig = {
+        baseURL: body.baseURL,
+        apiKey: body.apiKey,
+        model: body.model,
+    };
 
-        const object = await matchMediaFilesToEpisode(config, body.prompt);
-        const response: OpenAIGenerateObjectResponseBody = {
-            data: object,
-        };
-        return c.json(response);
-    });
-}
+    const object = await matchMediaFilesToEpisode(config, body.prompt);
+    const response: OpenAIGenerateObjectResponseBody = {
+        data: object,
+    };
+    return c.json(response, 200);
+});

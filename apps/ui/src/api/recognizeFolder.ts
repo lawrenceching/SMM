@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 type RecognizeFolderDb = 'tmdb' | 'tvdb'
 
@@ -8,34 +8,26 @@ export interface RecognizeFolderParams {
   id: string
 }
 
-interface RecognizeFolderResponseBody {
-  data?: { path: string }
-  error?: string
-}
+type RecognizeFolderResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['recognize-folder']['$post']>>['json']>
+>
 
 /** `POST /api/recognize-folder` → `Core.recognizeFolder`. */
 async function recognizeFolder(
   params: RecognizeFolderParams,
   signal?: AbortSignal,
 ): Promise<RecognizeFolderResponseBody> {
-  const resp = await apiFetch('/api/recognize-folder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  return (await resp.json()) as RecognizeFolderResponseBody
+  const resp = await rpc.api['recognize-folder'].$post(
+    { json: params },
+    { init: { signal } },
+  )
+  return unwrapJson(resp)
 }
 
 /** Throws on business error. */
 export async function recognizeFolderViaCore(params: RecognizeFolderParams): Promise<void> {
   const body = await recognizeFolder(params)
-  if (body.error) {
+  if ('error' in body) {
     throw new Error(body.error)
   }
 }

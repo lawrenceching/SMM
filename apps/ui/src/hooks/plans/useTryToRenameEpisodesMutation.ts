@@ -20,13 +20,8 @@ export function useTryToRenameEpisodesMutation() {
   const queryClient = useQueryClient()
 
   return useMutation<Plan, Error, TryToRenameEpisodesVariables>({
-    mutationFn: async ({ mediaFolderPath, rule }): Promise<Plan> => {
-      const resp = await tryToRenameEpisodes({ mediaFolderPath, rule })
-      if (resp.error || !resp.data?.plan) {
-        throw new Error(resp.error ?? "Failed to create rename plan")
-      }
-      return resp.data.plan as Plan
-    },
+    mutationFn: async ({ mediaFolderPath, rule }): Promise<Plan> =>
+      tryToRenameEpisodes({ mediaFolderPath, rule }),
     onSuccess: (plan, { mediaFolderPath }) => {
       const key = plansQueryKey(normalizeMediaFolderPathForQuery(mediaFolderPath))
       queryClient.setQueryData<Plan[]>(key, (prev) => {

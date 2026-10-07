@@ -24,7 +24,7 @@ export function handleDebugCreateRenameEpisodePlan(app: Hono): void {
       }
 
       const result = await createRenameEpisodePlanFromBody(body)
-      if (!result.data) {
+      if ('error' in result) {
         const response: DebugCreateRenameEpisodePlanResponseBody = {
           success: false,
           error: result.error,

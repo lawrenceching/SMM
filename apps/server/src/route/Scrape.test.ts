@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleScrape } from './Scrape'
+import { scrapeRoute } from './Scrape'
 import { handleGetJob } from './GetJob'
 import { getCore, resetCoreForTests } from '../core/getCore'
 import { Path } from '@smm/utils/path'
@@ -25,7 +25,7 @@ describe('POST /api/scrape', () => {
     process.env.APP_DATA_DIR = appDataDir
     resetCoreForTests()
     app = new Hono()
-    handleScrape(app)
+    app.route('/', scrapeRoute)
     handleGetJob(app)
   })
 

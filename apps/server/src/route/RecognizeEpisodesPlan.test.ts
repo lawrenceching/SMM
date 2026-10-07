@@ -19,7 +19,7 @@ vi.mock('@server/utils/config', async (importOriginal) => ({
   getAppDataDir: () => 'C:/smm-app-data',
 }))
 
-import { handleRecognizeEpisodesPlan } from './RecognizeEpisodesPlan'
+import { recognizeEpisodesPlanRoute } from './RecognizeEpisodesPlan'
 
 const plan = {
   id: 'plan-1',
@@ -36,8 +36,7 @@ describe('POST /api/create-recognize-episode-plan', () => {
   beforeEach(() => {
     mocks.createRecognizeEpisodePlan.mockReset()
     mocks.broadcast.mockReset()
-    app = new Hono()
-    handleRecognizeEpisodesPlan(app)
+    app = recognizeEpisodesPlanRoute
   })
 
   async function post(body: unknown) {

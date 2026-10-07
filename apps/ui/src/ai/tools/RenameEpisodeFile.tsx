@@ -51,7 +51,7 @@ const renameEpisodeFileTool = tool({
         from: fromCheck,
         to: toCheck,
       })
-      if (result.error) {
+      if ('error' in result) {
         return renameEpisodeFileFailed(
           folderCheck,
           fromCheck,
@@ -64,8 +64,8 @@ const renameEpisodeFileTool = tool({
           folderCheck,
           fromCheck,
           toCheck,
-          result.data?.succeeded ?? [],
-          result.data?.failed ?? [],
+          result.data.succeeded,
+          result.data.failed,
         ),
       )
     } catch (error) {

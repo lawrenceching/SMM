@@ -1,25 +1,18 @@
-import { apiFetch } from '@/lib/apiFetch';
-export interface ListDrivesResponseBody {
+import { rpc, unwrapJson } from '@/lib/rpc';
+
+/**
+ * Wide catch-all shape: 200 `{ data, error?: undefined }`, 500 `{ data: [], error }`.
+ */
+export type ListDrivesResponseBody = {
   data: string[];
   error?: string;
-}
+};
 
 /**
  * List available drives on Windows
  * @returns Array of drive paths (e.g., ["C:\\", "D:\\", "E:\\"])
  */
 export async function listDrivesApi(): Promise<ListDrivesResponseBody> {
-  const resp = await apiFetch('/api/listDrives', {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-
-  if (!resp.ok) {
-    throw new Error(`Failed to list drives: ${resp.statusText}`);
-  }
-
-  const data: ListDrivesResponseBody = await resp.json();
-  return data;
+  const resp = await rpc.api.listDrives.$get();
+  return unwrapJson<ListDrivesResponseBody>(resp);
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
 import type { RenameValidationResult } from '@smm/types'
 import { validateRenameOperationsSync } from '@smm/core/validations/rename/validateRenameOperationsSync'
@@ -61,24 +61,20 @@ async function processValidateRenameOperations(
   }
 }
 
-export function handleValidateRenameOperationsRoute(app: Hono) {
-  app.post('/api/validateRenameOperations', async (c) => {
-    try {
-      const body = await c.req.json()
-      const result = await processValidateRenameOperations(body)
-      return c.json(result, 200)
-    } catch (error) {
-      logger.error(
-        { error: error instanceof Error ? error.message : String(error) },
-        '[validateRenameOperations] Route error',
-      )
-      return c.json(
-        {
-          data: null,
-          error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        },
-        200,
-      )
+export const validateRenameOperationsRoute = new Hono().post('/api/validateRenameOperations', async (c) => {
+  try {
+    const body = await c.req.json()
+    const result = await processValidateRenameOperations(body)
+    return c.json<ValidateRenameOperationsResponseBody>(result, 200)
+  } catch (error) {
+    logger.error(
+      { error: error instanceof Error ? error.message : String(error) },
+      '[validateRenameOperations] Route error',
+    )
+    const response: ValidateRenameOperationsResponseBody = {
+      data: null,
+      error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
     }
-  })
-}
+    return c.json<ValidateRenameOperationsResponseBody>(response, 200)
+  }
+})

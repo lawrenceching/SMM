@@ -1,30 +1,22 @@
 import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 export interface TryToRecognizeEpisodesRequest {
   mediaFolderPath: string
-}
-
-export interface TryToRecognizeEpisodesResponseBody {
-  data?: { plan: RecognizeMediaFilePlan }
-  error?: string
 }
 
 /** POST /api/try-to-recognize-episodes — build a pending recognize-media-file plan. */
 export async function tryToRecognizeEpisodes(
   request: TryToRecognizeEpisodesRequest,
   signal?: AbortSignal,
-): Promise<TryToRecognizeEpisodesResponseBody> {
-  const resp = await apiFetch('/api/try-to-recognize-episodes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`Failed to try-to-recognize-episodes: ${resp.statusText}`)
+): Promise<RecognizeMediaFilePlan> {
+  const resp = await rpc.api['try-to-recognize-episodes'].$post(
+    { json: request },
+    { init: { signal } },
+  )
+  const body = await unwrapJson(resp)
+  if ('error' in body) {
+    throw new Error(body.error)
   }
-
-  return (await resp.json()) as TryToRecognizeEpisodesResponseBody
+  return body.data.plan
 }

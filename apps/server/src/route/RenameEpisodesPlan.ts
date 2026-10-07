@@ -1,4 +1,4 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
 import type { Plan } from '@smm/core'
 import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
@@ -15,25 +15,21 @@ import { broadcast } from '@server/utils/socketIO'
 import { getAppDataDir } from '@server/utils/config'
 import { logger } from '../../lib/logger'
 
-interface TryToRenameEpisodesResponseBody {
-  data?: { plan: RenameFilesPlan }
-  error?: string
-}
+type TryToRenameEpisodesResponseBody =
+  | { data: { plan: RenameFilesPlan } }
+  | { error: string }
 
-export interface CreateRenameEpisodePlanResponseBody {
-  data?: { plan: RenameFilesPlan }
-  error?: string
-}
+type CreateRenameEpisodePlanResponseBody =
+  | { data: { plan: RenameFilesPlan } }
+  | { error: string }
 
-interface ApplyPlanResponseBody {
-  data?: { id: string }
-  error?: string
-}
+type ApplyPlanResponseBody =
+  | { data: { id: string } }
+  | { error: string }
 
-interface RejectPlanResponseBody {
-  data?: { plan: Plan }
-  error?: string
-}
+type RejectPlanResponseBody =
+  | { data: { plan: Plan } }
+  | { error: string }
 
 function readStringField(body: unknown, key: string): string | undefined {
   if (typeof body !== 'object' || body === null || !(key in body)) return undefined
@@ -123,8 +119,8 @@ export async function createRenameEpisodePlanFromBody(
  * - POST /api/apply-plan → Core.applyPlan
  * - POST /api/reject-plan → Core.rejectPlan
  */
-export function handleRenameEpisodesPlan(app: Hono): void {
-  app.post('/api/create-rename-episode-plan', async (c) => {
+export const renameEpisodesPlanRoute = new Hono()
+  .post('/api/create-rename-episode-plan', async (c) => {
     try {
       let body: unknown = {}
       try {
@@ -132,15 +128,15 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       } catch {
         /* empty */
       }
-      return c.json(await createRenameEpisodePlanFromBody(body), 200)
+      const resp = await createRenameEpisodePlanFromBody(body)
+      return c.json<CreateRenameEpisodePlanResponseBody>(resp, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/create-rename-episode-plan] route error')
       const err: CreateRenameEpisodePlanResponseBody = formatToolError(error)
-      return c.json(err, 200)
+      return c.json<CreateRenameEpisodePlanResponseBody>(err, 200)
     }
   })
-
-  app.post('/api/try-to-rename-episodes', async (c) => {
+  .post('/api/try-to-rename-episodes', async (c) => {
     try {
       let body: unknown = {}
       try {
@@ -154,7 +150,7 @@ export function handleRenameEpisodesPlan(app: Hono): void {
         const err: TryToRenameEpisodesResponseBody = {
           error: 'Error Reason: mediaFolderPath is required',
         }
-        return c.json(err, 200)
+        return c.json<TryToRenameEpisodesResponseBody>(err, 200)
       }
 
       const ruleRaw = readStringField(body, 'rule')
@@ -166,22 +162,21 @@ export function handleRenameEpisodesPlan(app: Hono): void {
         const err: TryToRenameEpisodesResponseBody = {
           error: `Error Reason: Unsupported rename rule: ${ruleRaw}`,
         }
-        return c.json(err, 200)
+        return c.json<TryToRenameEpisodesResponseBody>(err, 200)
       }
 
       const plan = await getCore().tryToRenameFolder(mediaFolderPath, rule)
       const ok: TryToRenameEpisodesResponseBody = { data: { plan } }
-      return c.json(ok, 200)
+      return c.json<TryToRenameEpisodesResponseBody>(ok, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/try-to-rename-episodes] route error')
       const err: TryToRenameEpisodesResponseBody = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }
-      return c.json(err, 200)
+      return c.json<TryToRenameEpisodesResponseBody>(err, 200)
     }
   })
-
-  app.post('/api/apply-plan', async (c) => {
+  .post('/api/apply-plan', async (c) => {
     try {
       let body: unknown = {}
       try {
@@ -193,7 +188,7 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const id = readStringField(body, 'id')
       if (!id?.trim()) {
         const err: ApplyPlanResponseBody = { error: 'Error Reason: id is required' }
-        return c.json(err, 200)
+        return c.json<ApplyPlanResponseBody>(err, 200)
       }
 
       const selection = readApplyPlanData(body)
@@ -218,7 +213,7 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       }
 
       const ok: ApplyPlanResponseBody = { data: { id: plan.id } }
-      return c.json(ok, 200)
+      return c.json<ApplyPlanResponseBody>(ok, 200)
     } catch (error) {
       if (
         error instanceof SelectedFilesNotInPlanError ||
@@ -231,11 +226,10 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const err: ApplyPlanResponseBody = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }
-      return c.json(err, 200)
+      return c.json<ApplyPlanResponseBody>(err, 200)
     }
   })
-
-  app.post('/api/reject-plan', async (c) => {
+  .post('/api/reject-plan', async (c) => {
     try {
       let body: unknown = {}
       try {
@@ -247,18 +241,17 @@ export function handleRenameEpisodesPlan(app: Hono): void {
       const id = readStringField(body, 'id')
       if (!id?.trim()) {
         const err: RejectPlanResponseBody = { error: 'Error Reason: id is required' }
-        return c.json(err, 200)
+        return c.json<RejectPlanResponseBody>(err, 200)
       }
 
       const plan = await getCore().rejectPlan(id)
       const ok: RejectPlanResponseBody = { data: { plan } }
-      return c.json(ok, 200)
+      return c.json<RejectPlanResponseBody>(ok, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/reject-plan] route error')
       const err: RejectPlanResponseBody = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }
-      return c.json(err, 200)
+      return c.json<RejectPlanResponseBody>(err, 200)
     }
   })
-}

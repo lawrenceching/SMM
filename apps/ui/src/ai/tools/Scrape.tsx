@@ -23,10 +23,10 @@ const scrapeTool = tool({
         path: pathCheck,
         language,
       })
-      if (result.error) {
+      if ('error' in result) {
         return scrapeFailed(pathCheck, result.error)
       }
-      if (!result.data?.id) {
+      if (!result.data.id) {
         return scrapeFailed(pathCheck, 'Error Reason: scrape job id missing')
       }
       return toolOk(scrapeSucceeded(result.data.id))

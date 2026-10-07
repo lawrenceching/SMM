@@ -9,15 +9,14 @@ vi.mock('../core/getCore', () => ({
   getCore: () => mocks,
 }))
 
-import { handleRecognizeFolder } from './RecognizeFolder'
+import { recognizeFolderRoute } from './RecognizeFolder'
 
 describe('RecognizeFolder HTTP API', () => {
   let app: Hono
 
   beforeEach(() => {
     mocks.recognizeFolder.mockReset()
-    app = new Hono()
-    handleRecognizeFolder(app)
+    app = recognizeFolderRoute
   })
 
   async function post(body: unknown) {

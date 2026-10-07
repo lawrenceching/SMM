@@ -1,30 +1,22 @@
 import type { Plan } from './getPlans'
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 export interface RejectPlanRequest {
   id: string
-}
-
-export interface RejectPlanResponseBody {
-  data?: { plan: Plan }
-  error?: string
 }
 
 /** POST /api/reject-plan — reject a plan by id (file kept with status rejected). */
 export async function rejectPlan(
   request: RejectPlanRequest,
   signal?: AbortSignal,
-): Promise<RejectPlanResponseBody> {
-  const resp = await apiFetch('/api/reject-plan', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`Failed to reject-plan: ${resp.statusText}`)
+): Promise<Plan> {
+  const resp = await rpc.api['reject-plan'].$post(
+    { json: request },
+    { init: { signal } },
+  )
+  const body = await unwrapJson(resp)
+  if ('error' in body) {
+    throw new Error(body.error)
   }
-
-  return (await resp.json()) as RejectPlanResponseBody
+  return body.data.plan
 }

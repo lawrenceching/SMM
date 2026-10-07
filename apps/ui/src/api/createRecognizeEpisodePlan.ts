@@ -1,6 +1,5 @@
 import type { PlanCreator } from '@smm/types/planCommon'
-import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 export interface CreateRecognizeEpisodePlanRequest {
   mediaFolderPath: string
@@ -8,25 +7,19 @@ export interface CreateRecognizeEpisodePlanRequest {
   creator: PlanCreator
 }
 
-export interface CreateRecognizeEpisodePlanResponseBody {
-  data?: { plan: RecognizeMediaFilePlan }
-  error?: string
-}
+type CreateRecognizeEpisodePlanResponseBody = Awaited<
+  ReturnType<
+    Awaited<ReturnType<(typeof rpc)['api']['create-recognize-episode-plan']['$post']>>['json']
+  >
+>
 
 export async function createRecognizeEpisodePlanApi(
   request: CreateRecognizeEpisodePlanRequest,
   signal?: AbortSignal,
 ): Promise<CreateRecognizeEpisodePlanResponseBody> {
-  const resp = await apiFetch('/api/create-recognize-episode-plan', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  return (await resp.json()) as CreateRecognizeEpisodePlanResponseBody
+  const resp = await rpc.api['create-recognize-episode-plan'].$post(
+    { json: request },
+    { init: { signal } },
+  )
+  return unwrapJson(resp)
 }

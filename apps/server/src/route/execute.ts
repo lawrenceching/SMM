@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { validator } from 'hono/validator';
 import { z } from 'zod';
 import { executeGetSelectedMediaMetadataTask } from '../../tasks/GetSelectedMediaMetadataTask';
 
@@ -15,32 +16,34 @@ const executeRequestSchema = z.object({
 });
 
 /**
- * Register /api/execute on the given Hono app (cli-specific orchestration).
+ * POST /api/execute (cli-specific orchestration).
  *
  * GET /api/hello is served by core-routes on the unified HTTP server.
  */
-export function registerExecuteRoutes(app: Hono): void {
-  app.post('/api/execute', async (c) => {
+export const executeRoute = new Hono().post(
+  '/api/execute',
+  validator('json', (value, c) => {
+    const validationResult = executeRequestSchema.safeParse(value);
+
+    if (!validationResult.success) {
+      return c.json({
+        error: 'Validation failed',
+        details: validationResult.error.issues.map((err) => ({
+          path: err.path.join('.'),
+          message: err.message
+        }))
+      }, 400);
+    }
+
+    return validationResult.data;
+  }),
+  async (c) => {
+    const body = c.req.valid('json');
+
     try {
-      const rawBody = await c.req.json();
-
-      const validationResult = executeRequestSchema.safeParse(rawBody);
-
-      if (!validationResult.success) {
-        return c.json({
-          error: 'Validation failed',
-          details: validationResult.error.issues.map((err) => ({
-            path: err.path.join('.'),
-            message: err.message
-          }))
-        }, 400);
-      }
-
-      const body = validationResult.data;
-
       if (body.name === 'GetSelectedMediaMetadata') {
         const result = await executeGetSelectedMediaMetadataTask();
-        return c.json(result);
+        return c.json(result, 200);
       }
 
       return c.json({
@@ -52,5 +55,5 @@ export function registerExecuteRoutes(app: Hono): void {
         details: error instanceof Error ? error.message : 'Unknown error'
       }, 400);
     }
-  });
-}
+  },
+);

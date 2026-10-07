@@ -1,5 +1,5 @@
 import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 export type RenameRuleName = 'plex' | 'emby'
 
@@ -8,26 +8,18 @@ export interface TryToRenameEpisodesRequest {
   rule?: RenameRuleName
 }
 
-export interface TryToRenameEpisodesResponseBody {
-  data?: { plan: RenameFilesPlan }
-  error?: string
-}
-
 /** POST /api/try-to-rename-episodes — build a pending rename-files plan. */
 export async function tryToRenameEpisodes(
   request: TryToRenameEpisodesRequest,
   signal?: AbortSignal,
-): Promise<TryToRenameEpisodesResponseBody> {
-  const resp = await apiFetch('/api/try-to-rename-episodes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`Failed to try-to-rename-episodes: ${resp.statusText}`)
+): Promise<RenameFilesPlan> {
+  const resp = await rpc.api['try-to-rename-episodes'].$post(
+    { json: request },
+    { init: { signal } },
+  )
+  const body = await unwrapJson(resp)
+  if ('error' in body) {
+    throw new Error(body.error)
   }
-
-  return (await resp.json()) as TryToRenameEpisodesResponseBody
+  return body.data.plan
 }

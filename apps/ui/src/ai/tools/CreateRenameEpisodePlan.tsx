@@ -20,8 +20,8 @@ const createRenameEpisodePlan = tool({
         files,
         creator: 'ai',
       })
-      if (resp.error || !resp.data) {
-        return { error: resp.error ?? 'Error Reason: Plan creation returned no data' }
+      if ('error' in resp) {
+        return { error: resp.error }
       }
 
       await queryClient.invalidateQueries({ queryKey: [PLANS_QUERY_ROOT] })

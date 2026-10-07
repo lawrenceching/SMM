@@ -17,10 +17,7 @@ export function useRejectPlanMutation() {
 
   return useMutation<null, Error, RejectPlanVariables>({
     mutationFn: async ({ id }): Promise<null> => {
-      const resp = await rejectPlan({ id })
-      if (resp.error) {
-        throw new Error(resp.error)
-      }
+      await rejectPlan({ id })
       return null
     },
     onSuccess: (_data, { id, mediaFolderPath }) => {

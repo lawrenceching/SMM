@@ -1,4 +1,4 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
 import type { RecognizeMediaFilePlan } from '@smm/types/RecognizeMediaFilePlan'
 import {
@@ -11,10 +11,9 @@ import { broadcast } from '@server/utils/socketIO'
 import { getAppDataDir } from '@server/utils/config'
 import { logger } from '../../lib/logger'
 
-interface CreateRecognizeEpisodePlanResponseBody {
-  data?: { plan: RecognizeMediaFilePlan }
-  error?: string
-}
+type CreateRecognizeEpisodePlanResponseBody =
+  | { data: { plan: RecognizeMediaFilePlan } }
+  | { error: string }
 
 function readStringField(body: unknown, key: string): string | undefined {
   if (typeof body !== 'object' || body === null || !(key in body)) return undefined
@@ -76,20 +75,19 @@ async function createRecognizeEpisodePlanFromBody(
  * - POST /api/create-recognize-episode-plan → Core.createRecognizeEpisodePlan
  * (apply/reject reuse POST /api/apply-plan and /api/reject-plan in RenameEpisodesPlan.ts)
  */
-export function handleRecognizeEpisodesPlan(app: Hono): void {
-  app.post('/api/create-recognize-episode-plan', async (c) => {
+export const recognizeEpisodesPlanRoute = new Hono().post('/api/create-recognize-episode-plan', async (c) => {
+  try {
+    let body: unknown = {}
     try {
-      let body: unknown = {}
-      try {
-        body = await c.req.json()
-      } catch {
-        /* empty */
-      }
-      return c.json(await createRecognizeEpisodePlanFromBody(body), 200)
-    } catch (error) {
-      logger.error({ error }, '[POST /api/create-recognize-episode-plan] route error')
-      const err: CreateRecognizeEpisodePlanResponseBody = formatToolError(error)
-      return c.json(err, 200)
+      body = await c.req.json()
+    } catch {
+      /* empty */
     }
-  })
-}
+    const resp = await createRecognizeEpisodePlanFromBody(body)
+    return c.json<CreateRecognizeEpisodePlanResponseBody>(resp, 200)
+  } catch (error) {
+    logger.error({ error }, '[POST /api/create-recognize-episode-plan] route error')
+    const err: CreateRecognizeEpisodePlanResponseBody = formatToolError(error)
+    return c.json<CreateRecognizeEpisodePlanResponseBody>(err, 200)
+  }
+})

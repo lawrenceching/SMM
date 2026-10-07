@@ -11,7 +11,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { Path } from '@smm/utils/path'
-import { handleRenameEpisodeFile } from './RenameEpisodeFile'
+import { renameEpisodeFileRoute } from './RenameEpisodeFile'
 import { metadataCachePath } from '@smm/test'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
@@ -31,8 +31,7 @@ describe('POST /api/rename-episode-file', () => {
     mediaDir = mkdtempSync(join(tmpdir(), 'smm-rename-episode-media-'))
     mediaFolder = join(mediaDir, 'Show')
     mkdirSync(mediaFolder)
-    app = new Hono()
-    handleRenameEpisodeFile(app)
+    app = renameEpisodeFileRoute
   })
 
   afterEach(() => {

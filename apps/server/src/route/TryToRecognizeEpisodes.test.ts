@@ -9,7 +9,7 @@ vi.mock('../core/getCore', () => ({
   getCore: () => mocks,
 }))
 
-import { handleTryToRecognizeEpisodes } from './TryToRecognizeEpisodes'
+import { tryToRecognizeEpisodesRoute } from './TryToRecognizeEpisodes'
 
 const plan = {
   id: 'plan-r1',
@@ -25,8 +25,7 @@ describe('POST /api/try-to-recognize-episodes', () => {
 
   beforeEach(() => {
     mocks.tryToRecognizeEpisodes.mockReset()
-    app = new Hono()
-    handleTryToRecognizeEpisodes(app)
+    app = tryToRecognizeEpisodesRoute
   })
 
   async function post(body: unknown) {

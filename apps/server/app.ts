@@ -11,6 +11,16 @@ import { setMetadataRoute } from './src/route/metadata/SetMetadata';
 import { deleteMetadataRoute } from './src/route/metadata/DeleteMetadata';
 import { folderMetadataRoute } from './src/route/FolderMetadata';
 import { renameFilesInMediaMetadataRoute } from './src/route/mediaMetadata/renameFilesInMediaMetadata';
+import { recognizeFolderRoute } from './src/route/RecognizeFolder';
+import { scrapeRoute } from './src/route/Scrape';
+import { tryToRecognizeEpisodesRoute } from './src/route/TryToRecognizeEpisodes';
+import { recognizeEpisodesPlanRoute } from './src/route/RecognizeEpisodesPlan';
+import { renameEpisodeFileRoute } from './src/route/RenameEpisodeFile';
+import { renameEpisodesPlanRoute } from './src/route/RenameEpisodesPlan';
+import { validateRenameOperationsRoute } from './src/route/validateRenameOperations';
+import { listDrivesRoute } from './src/route/ListDrives';
+import { matchMediaFilesToEpisodeRoute } from './src/route/ai';
+import { executeRoute } from './src/route/execute';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -106,7 +116,17 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', setMetadataRoute)
     .route('/', deleteMetadataRoute)
     .route('/', folderMetadataRoute)
-    .route('/', renameFilesInMediaMetadataRoute);
+    .route('/', renameFilesInMediaMetadataRoute)
+    .route('/', recognizeFolderRoute)
+    .route('/', scrapeRoute)
+    .route('/', tryToRecognizeEpisodesRoute)
+    .route('/', recognizeEpisodesPlanRoute)
+    .route('/', renameEpisodeFileRoute)
+    .route('/', renameEpisodesPlanRoute)
+    .route('/', validateRenameOperationsRoute)
+    .route('/', listDrivesRoute)
+    .route('/', matchMediaFilesToEpisodeRoute)
+    .route('/', executeRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

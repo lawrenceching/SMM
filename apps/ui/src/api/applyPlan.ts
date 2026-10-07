@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 export interface ApplyPlanRequest {
   id: string
@@ -6,26 +6,21 @@ export interface ApplyPlanRequest {
   data?: { files?: string[] }
 }
 
-export interface ApplyPlanResponseBody {
-  data?: { id: string }
-  error?: string
-}
-
 /** POST /api/apply-plan — apply a pending plan by id. */
 export async function applyPlan(
   request: ApplyPlanRequest,
   signal?: AbortSignal,
-): Promise<ApplyPlanResponseBody> {
-  const resp = await apiFetch('/api/apply-plan', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(request),
-    signal,
-  })
-
+): Promise<{ id: string }> {
+  const resp = await rpc.api['apply-plan'].$post(
+    { json: request },
+    { init: { signal } },
+  )
   if (!resp.ok) {
     throw new Error(`Failed to apply-plan: ${resp.statusText}`)
   }
-
-  return (await resp.json()) as ApplyPlanResponseBody
+  const body = await unwrapJson(resp)
+  if ('error' in body) {
+    throw new Error(body.error)
+  }
+  return body.data
 }

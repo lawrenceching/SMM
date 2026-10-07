@@ -1,5 +1,5 @@
 import os from 'os';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const shell = require('shelljs');
@@ -455,32 +455,30 @@ function localDrives(): string[] {
  
 }
 
-export function handleListDrives(app: Hono) {
-  app.get('/api/listDrives', async (c) => {
-    
-    try {
+export const listDrivesRoute = new Hono().get('/api/listDrives', async (c) => {
 
-      let drives: string[] = [];
+  try {
 
-      // Only list drives on Windows
-      if (os.platform() === 'win32') {
-        drives = drives.concat(localDrives());
-        drives = drives.concat(networkDrives());
-      }
+    let drives: string[] = [];
 
-      return c.json({
-        data: drives,
-        error: undefined,
-      }, 200);
-
-    } catch (error) {
-      logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in listDrives');
-      const response: ListDrivesResponseBody = {
-        data: [],
-        error: 'Unexpected error',
-      };
-      return c.json(response, 500);
+    // Only list drives on Windows
+    if (os.platform() === 'win32') {
+      drives = drives.concat(localDrives());
+      drives = drives.concat(networkDrives());
     }
-      
-  });
-}
+
+    return c.json({
+      data: drives,
+      error: undefined,
+    }, 200);
+
+  } catch (error) {
+    logger.error({ error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : undefined }, '[ListDrives] Unexpected error in listDrives');
+    const response: ListDrivesResponseBody = {
+      data: [],
+      error: 'Unexpected error',
+    };
+    return c.json(response, 500);
+  }
+
+});

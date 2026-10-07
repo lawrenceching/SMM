@@ -17,13 +17,8 @@ export function useTryToRecognizeEpisodesMutation() {
   const queryClient = useQueryClient()
 
   return useMutation<RecognizeMediaFilePlan, Error, TryToRecognizeEpisodesVariables>({
-    mutationFn: async ({ mediaFolderPath }): Promise<RecognizeMediaFilePlan> => {
-      const resp = await tryToRecognizeEpisodes({ mediaFolderPath })
-      if (resp.error || !resp.data?.plan) {
-        throw new Error(resp.error ?? "Failed to create recognize plan")
-      }
-      return resp.data.plan as RecognizeMediaFilePlan
-    },
+    mutationFn: async ({ mediaFolderPath }): Promise<RecognizeMediaFilePlan> =>
+      tryToRecognizeEpisodes({ mediaFolderPath }),
     onSuccess: (plan, { mediaFolderPath }) => {
       const key = plansQueryKey(normalizeMediaFolderPathForQuery(mediaFolderPath))
       queryClient.setQueryData<Plan[]>(key, (prev) => {

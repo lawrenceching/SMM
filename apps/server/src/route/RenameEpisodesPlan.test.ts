@@ -24,7 +24,7 @@ vi.mock('@server/utils/config', async (importOriginal) => ({
   getAppDataDir: () => 'C:/smm-app-data',
 }))
 
-import { handleRenameEpisodesPlan } from './RenameEpisodesPlan'
+import { renameEpisodesPlanRoute } from './RenameEpisodesPlan'
 
 const plan = {
   id: 'plan-1',
@@ -43,8 +43,7 @@ describe('POST /api/create-rename-episode-plan', () => {
     mocks.getPlan.mockReset()
     mocks.applyPlan.mockReset()
     mocks.broadcast.mockReset()
-    app = new Hono()
-    handleRenameEpisodesPlan(app)
+    app = renameEpisodesPlanRoute
   })
 
   async function post(body: unknown) {
@@ -130,8 +129,7 @@ describe('POST /api/apply-plan', () => {
   beforeEach(() => {
     mocks.getPlan.mockReset()
     mocks.applyPlan.mockReset()
-    app = new Hono()
-    handleRenameEpisodesPlan(app)
+    app = renameEpisodesPlanRoute
   })
 
   async function post(body: unknown) {

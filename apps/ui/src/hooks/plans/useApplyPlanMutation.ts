@@ -23,13 +23,10 @@ export function useApplyPlanMutation() {
 
   return useMutation<null, Error, ApplyPlanVariables>({
     mutationFn: async ({ id, files }): Promise<null> => {
-      const resp = await applyPlan({
+      await applyPlan({
         id,
         data: files && files.length > 0 ? { files } : undefined,
       })
-      if (resp.error) {
-        throw new Error(resp.error)
-      }
       return null
     },
     onSuccess: (_data, { id, mediaFolderPath }) => {
