@@ -5,7 +5,7 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import type { MediaMetadata } from '@smm/types'
 import { resetCoreForTests } from '../../core/getCore'
-import { handleCreateMetadata } from './CreateMetadata'
+import { createMetadataRoute } from './CreateMetadata'
 
 const metadata: MediaMetadata = {
   mediaFolderPath: '/media/Show',
@@ -28,8 +28,7 @@ describe('POST /api/create-metadata', () => {
     process.env.APP_DATA_DIR = appDataDir
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleCreateMetadata(app)
+    app = createMetadataRoute
   })
 
   afterEach(() => {

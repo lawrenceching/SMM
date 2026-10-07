@@ -1,4 +1,4 @@
-import type { Context } from 'hono'
+import type { Context, TypedResponse } from 'hono'
 import type { ProblemDetails } from '@smm/types'
 import {
   MetadataAlreadyExistsError,
@@ -7,13 +7,19 @@ import {
 } from '@smm/core'
 import { ZodError } from 'zod'
 
+export type MetadataProblemJsonResponse = TypedResponse<
+  ProblemDetails,
+  400 | 404 | 409 | 500,
+  'json'
+>
+
 function problemJson(
   c: Context,
   status: 400 | 404 | 409 | 500,
   type: string,
   title: string,
   detail: string,
-): Response {
+): MetadataProblemJsonResponse {
   const body: ProblemDetails = {
     type,
     title,
@@ -26,7 +32,7 @@ function problemJson(
   })
 }
 
-export function metadataProblemJson(c: Context, error: unknown): Response {
+export function metadataProblemJson(c: Context, error: unknown): MetadataProblemJsonResponse {
   if (error instanceof MetadataNotFoundError) {
     return problemJson(
       c,

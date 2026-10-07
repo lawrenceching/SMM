@@ -5,6 +5,12 @@ import type { CoreRoutesAuthConfig, CoreRoutesLogger } from '@smm/core-routes';
 import { isRequestAuthorized } from '@smm/core-routes';
 import { getFoldersRoute } from './src/route/GetFolders';
 import { commandExecutionStatusRoute } from './src/route/commandExecutionStatus';
+import { getMetadataRoute } from './src/route/metadata/GetMetadata';
+import { createMetadataRoute } from './src/route/metadata/CreateMetadata';
+import { setMetadataRoute } from './src/route/metadata/SetMetadata';
+import { deleteMetadataRoute } from './src/route/metadata/DeleteMetadata';
+import { folderMetadataRoute } from './src/route/FolderMetadata';
+import { renameFilesInMediaMetadataRoute } from './src/route/mediaMetadata/renameFilesInMediaMetadata';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -92,7 +98,15 @@ export function createApp(deps: CreateAppDeps) {
     return next();
   });
 
-  return app.route('/', getFoldersRoute).route('/', commandExecutionStatusRoute);
+  return app
+    .route('/', getFoldersRoute)
+    .route('/', commandExecutionStatusRoute)
+    .route('/', getMetadataRoute)
+    .route('/', createMetadataRoute)
+    .route('/', setMetadataRoute)
+    .route('/', deleteMetadataRoute)
+    .route('/', folderMetadataRoute)
+    .route('/', renameFilesInMediaMetadataRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

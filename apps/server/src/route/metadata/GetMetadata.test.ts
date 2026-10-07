@@ -5,10 +5,10 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import type { MediaMetadata } from '@smm/types'
 import { resetCoreForTests } from '../../core/getCore'
-import { handleCreateMetadata } from './CreateMetadata'
-import { handleDeleteMetadata } from './DeleteMetadata'
-import { handleGetMetadata } from './GetMetadata'
-import { handleSetMetadata } from './SetMetadata'
+import { createMetadataRoute } from './CreateMetadata'
+import { deleteMetadataRoute } from './DeleteMetadata'
+import { getMetadataRoute } from './GetMetadata'
+import { setMetadataRoute } from './SetMetadata'
 
 const metadata: MediaMetadata = {
   mediaFolderPath: '/media/Show',
@@ -32,10 +32,10 @@ describe('POST /api/get-metadata', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     app = new Hono()
-    handleCreateMetadata(app)
-    handleSetMetadata(app)
-    handleDeleteMetadata(app)
-    handleGetMetadata(app)
+    app.route('/', createMetadataRoute)
+    app.route('/', setMetadataRoute)
+    app.route('/', deleteMetadataRoute)
+    app.route('/', getMetadataRoute)
   })
 
   afterEach(() => {

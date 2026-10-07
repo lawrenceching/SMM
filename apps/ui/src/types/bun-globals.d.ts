@@ -7,5 +7,7 @@ declare const Bun: {
   file(path: string): {
     exists(): Promise<boolean>
     text(): Promise<string>
+    json(): Promise<unknown>
   }
+  write(path: string, data: string): Promise<number>
 }

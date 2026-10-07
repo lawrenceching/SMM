@@ -5,7 +5,7 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import type { MediaMetadata } from '@smm/types'
 import { getCore, resetCoreForTests } from '../../core/getCore'
-import { handleDeleteMetadata } from './DeleteMetadata'
+import { deleteMetadataRoute } from './DeleteMetadata'
 
 const metadata: MediaMetadata = {
   mediaFolderPath: '/media/Show',
@@ -28,8 +28,7 @@ describe('POST /api/delete-metadata', () => {
     process.env.APP_DATA_DIR = appDataDir
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleDeleteMetadata(app)
+    app = deleteMetadataRoute
     await getCore().createMetadata(metadata)
   })
 
@@ -56,5 +55,21 @@ describe('POST /api/delete-metadata', () => {
       expect(res.status).toBe(200)
       expect(await res.json()).toEqual({ data: true })
     }
+  })
+
+  it('returns 400 validation ProblemDetails when path is missing', async () => {
+    const res = await app.request('/api/delete-metadata', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+
+    expect(res.status).toBe(400)
+    expect(res.headers.get('content-type')).toContain('application/problem+json')
+    expect(await res.json()).toMatchObject({
+      type: 'urn:smm:problem:metadata-validation',
+      status: 400,
+      instance: '/api/delete-metadata',
+    })
   })
 })

@@ -1,4 +1,4 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import type { CreateMetadataRequestBody } from '@smm/types'
 import { z } from 'zod'
 import { getCore } from '../../core/getCore'
@@ -14,14 +14,12 @@ const createMetadataRequestSchema: z.ZodType<CreateMetadataRequestBody> = z.obje
   data: createMetadataDataSchema,
 })
 
-export function handleCreateMetadata(app: Hono): void {
-  app.post('/api/create-metadata', async (c) => {
-    try {
-      const body = createMetadataRequestSchema.parse(await c.req.json())
-      const metadata = await getCore().createMetadata(body.data)
-      return c.json({ data: metadata }, 200)
-    } catch (error) {
-      return metadataProblemJson(c, error)
-    }
-  })
-}
+export const createMetadataRoute = new Hono().post('/api/create-metadata', async (c) => {
+  try {
+    const body = createMetadataRequestSchema.parse(await c.req.json())
+    const metadata = await getCore().createMetadata(body.data)
+    return c.json({ data: metadata }, 200)
+  } catch (error) {
+    return metadataProblemJson(c, error)
+  }
+})

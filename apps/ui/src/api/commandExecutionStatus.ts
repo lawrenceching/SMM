@@ -20,7 +20,7 @@ export async function fetchCommandExecutionStatus(
   const resp = await rpc.api['command-execution'][':executionId'].$get({
     param: { executionId },
   })
-  const body = await unwrapJson<Awaited<ReturnType<typeof resp.json>>>(resp)
+  const body = await unwrapJson(resp)
   if ('error' in body) throw new Error(body.error)
   return body
 }

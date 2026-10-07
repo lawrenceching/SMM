@@ -3,9 +3,9 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleFolderMetadata } from './FolderMetadata'
 import { handleImportFolder } from './ImportFolder'
 import { handleGetJob } from './GetJob'
+import { folderMetadataRoute } from './FolderMetadata'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/folder-metadata', () => {
@@ -23,7 +23,7 @@ describe('POST /api/folder-metadata', () => {
     app = new Hono()
     handleImportFolder(app)
     handleGetJob(app)
-    handleFolderMetadata(app)
+    app.route('/', folderMetadataRoute)
   })
 
   afterEach(() => {

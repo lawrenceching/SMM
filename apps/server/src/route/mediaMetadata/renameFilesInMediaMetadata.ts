@@ -1,14 +1,19 @@
-import type { Hono } from "hono";
-import type { RenameFilesInMediaMetadataRequestBody, RenameFilesInMediaMetadataResponseBody } from "@smm/types";
+import { Hono } from "hono";
+import type { RenameFilesInMediaMetadataRequestBody } from "@smm/types";
 import { updateMediaMetadataAndBroadcast } from "../../utils/renameFileUtils";
+
+type RenameFilesInMediaMetadataResponseBody =
+  | { data: { successfulRenames: RenameFilesInMediaMetadataRequestBody["files"] } }
+  | { error: string };
 
 /**
  * @deprecated Use POST /api/renameFiles with the `mediaFolder` field instead.
  * When `mediaFolder` is provided to /api/renameFiles, the backend automatically
  * updates media metadata and broadcasts the change in a single request.
  */
-export async function handleRenameFilesInMediaMetadata(app: Hono) {
-  app.post('/api/renameFilesInMediaMetadata', async (c) => {
+export const renameFilesInMediaMetadataRoute = new Hono().post(
+  '/api/renameFilesInMediaMetadata',
+  async (c) => {
     const raw = await c.req.json() as RenameFilesInMediaMetadataRequestBody;
     console.log(`[HTTP_IN] ${c.req.method} ${c.req.url} ${JSON.stringify(raw)}`)
     const { mediaFolder, files, traceId, clientId } = raw;
@@ -58,5 +63,5 @@ export async function handleRenameFilesInMediaMetadata(app: Hono) {
     };
     console.log(`[HTTP_OUT] ${c.req.method} ${c.req.url} ${JSON.stringify(resp)}`)
     return c.json(resp, 200);
-  });
-}
+  },
+);
