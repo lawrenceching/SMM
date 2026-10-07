@@ -30,6 +30,7 @@ export interface TmdbClientOptions {
 }
 
 export class TmdbClient {
+  private readonly network: NetworkPort;
   private readonly host?: string;
   private readonly apiKey?: string;
   private readonly httpProxy?: string;
@@ -38,9 +39,10 @@ export class TmdbClient {
   private readonly hostPerformance?: HostPerformanceStore;
 
   constructor(
-    private readonly network: NetworkPort,
+    network: NetworkPort,
     options: TmdbClientOptions = {},
   ) {
+    this.network = network;
     this.host = options.host?.trim() || undefined;
     this.apiKey = options.apiKey?.trim() || undefined;
     this.httpProxy = options.httpProxy?.trim() || undefined;

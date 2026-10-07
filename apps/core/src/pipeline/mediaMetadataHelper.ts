@@ -40,11 +40,19 @@ export type MediaMetadataUpdatedListener = (folderPath: string) => void;
 
 /** Write-locked reader/writer for `{appDataDir}/metadata/*.json` cache files. */
 export class MediaMetadataHelper {
+  private readonly fs: FsPort;
+  private readonly appDataDir: string;
+  private readonly onUpdated?: MediaMetadataUpdatedListener;
+
   constructor(
-    private readonly fs: FsPort,
-    private readonly appDataDir: string,
-    private readonly onUpdated?: MediaMetadataUpdatedListener,
-  ) {}
+    fs: FsPort,
+    appDataDir: string,
+    onUpdated?: MediaMetadataUpdatedListener,
+  ) {
+    this.fs = fs;
+    this.appDataDir = appDataDir;
+    this.onUpdated = onUpdated;
+  }
 
   cachePath(folder: string): string {
     return metadataCachePath(this.appDataDir, this.normalizeFolder(folder));

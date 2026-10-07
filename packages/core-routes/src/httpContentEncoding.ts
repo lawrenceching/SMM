@@ -68,7 +68,7 @@ export async function nodeHttpMessageToFetchResponse(
   const body = await decompressBody(wireBody, res.headers["content-encoding"]);
   const headers = incomingHeadersToObject(res.headers);
   headers["Content-Length"] = String(body.length);
-  return new Response(body, {
+  return new Response(new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.byteLength), {
     status: toFetchApiStatus(res.statusCode),
     statusText: res.statusMessage ?? "",
     headers,

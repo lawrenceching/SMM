@@ -78,11 +78,16 @@ function createNodeHttpResponse(
   sourceHeaders: http.IncomingHttpHeaders,
   bodyLength?: number,
 ): Response {
-  return new Response(body, {
-    status: toFetchApiStatus(statusCode),
-    statusText: statusMessage ?? "",
-    headers: buildResponseHeaders(sourceHeaders, bodyLength),
-  });
+  return new Response(
+    body instanceof Uint8Array
+      ? new Uint8Array(body.buffer as ArrayBuffer, body.byteOffset, body.byteLength)
+      : body,
+    {
+      status: toFetchApiStatus(statusCode),
+      statusText: statusMessage ?? "",
+      headers: buildResponseHeaders(sourceHeaders, bodyLength),
+    },
+  );
 }
 
 function buildResponseHeaders(

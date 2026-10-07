@@ -69,7 +69,7 @@ function incomingMessageToRequest(req: IncomingMessage): Request {
   copyIncomingHeaders(req.headers, headers);
 
   const method = req.method ?? "GET";
-  const init: RequestInit = { method, headers };
+  const init: RequestInit & { duplex?: "half" } = { method, headers };
 
   if (method !== "GET" && method !== "HEAD") {
     // Node 18+ requires `duplex: "half"` when streaming a request body

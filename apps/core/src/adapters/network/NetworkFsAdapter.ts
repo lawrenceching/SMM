@@ -14,7 +14,11 @@ export interface NetworkFsAdapterOptions {
  * accept both POSIX and platform formats.
  */
 export class NetworkFsAdapter implements FsPort {
-  constructor(private readonly options: NetworkFsAdapterOptions) {}
+  private readonly options: NetworkFsAdapterOptions;
+
+  constructor(options: NetworkFsAdapterOptions) {
+    this.options = options;
+  }
 
   join(...parts: string[]): string {
     return joinPosix(...parts.filter(Boolean));

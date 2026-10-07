@@ -19,13 +19,15 @@ function mutexFor(path: string): Mutex {
 
 /** Locked reader/writer for `{appDataDir}/smm.json`. Instances that share a path share one mutex. */
 export class UserConfigHelper {
+  private readonly fs: FsPort
   private readonly path: string
   private readonly mutex: Mutex
 
   constructor(
-    private readonly fs: FsPort,
+    fs: FsPort,
     appDataDir: string,
   ) {
+    this.fs = fs
     this.path = userConfigPath(appDataDir)
     this.mutex = mutexFor(this.path)
   }

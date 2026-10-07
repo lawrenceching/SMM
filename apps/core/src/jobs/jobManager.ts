@@ -23,11 +23,13 @@ export class JobManager {
    * The promise will be resolved when the job is completed.
    */
   private readonly completedJobs: Record<string, Promise<void>> = {};
+  private readonly options: JobManagerOptions;
+  private readonly ports: PlatformPorts;
 
-  constructor(
-    private readonly options: JobManagerOptions,
-    private readonly ports: PlatformPorts,
-  ) {}
+  constructor(options: JobManagerOptions, ports: PlatformPorts) {
+    this.options = options;
+    this.ports = ports;
+  }
 
   private get queue(): PQueue {
     if (this._queue === undefined) {
