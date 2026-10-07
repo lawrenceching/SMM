@@ -61,6 +61,7 @@
         "index.html",
         ".storybook/**/*.{ts,tsx}",
         "src/**/*.stories.tsx",
+        "src/lib/rpc.ts",
         "src/**/*.test.ts",
         "src/**/*.test.tsx"
       ],

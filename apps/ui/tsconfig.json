@@ -19,7 +19,8 @@
       "@smm/core/FsPort": ["../core/src/ports/FsPort.ts"],
       "@smm/core/*": ["../core/src/*"],
       "@smm/tvdb4": ["../../packages/tvdb4/src/index.ts"],
-      "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"]
+      "@smm/tvdb4/*": ["../../packages/tvdb4/src/*"],
+      "@smm/server": ["../server/app.ts"]
     }
   }
 }

@@ -58,6 +58,7 @@
     "embla-carousel-react": "^8.6.0",
     "es-toolkit": "^1.42.0",
     "harden-react-markdown": "^1.1.7",
+    "hono": "^4.10.8",
     "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^8.2.0",
     "i18next-http-backend": "^3.0.2",
