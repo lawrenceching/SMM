@@ -4,7 +4,7 @@ import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 import { isFolderImported } from '@server/folderDisplay'
 
-export type FolderMetadataResponseBody =
+type FolderMetadataResponseBody =
   | { data: Omit<MediaMetadata, 'files'> }
   | { error: string }
 

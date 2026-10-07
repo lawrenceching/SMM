@@ -1167,13 +1167,6 @@ export interface RenameFilesInMediaMetadataRequestBody {
   clientId?: string;
 }
 
-export interface RenameFilesInMediaMetadataResponseBody {
-  data?: {
-    successfulRenames: Array<{ from: string; to: string }>;
-  };
-  error?: string;
-}
-
 export interface FolderRenameRequestBody {
   /**
    * Absolute path of source folder

@@ -37,6 +37,18 @@ describe('POST /api/renameFilesInMediaMetadata', () => {
     expect(mocks.updateMediaMetadataAndBroadcast).not.toHaveBeenCalled()
   })
 
+  it('returns 200 error body when files is missing or empty', async () => {
+    for (const body of [{ mediaFolder: '/media/Show' }, { mediaFolder: '/media/Show', files: [] }]) {
+      const res = await post(body)
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({
+        error: 'Invalid Request: files array is required and must not be empty',
+      })
+    }
+    expect(mocks.updateMediaMetadataAndBroadcast).not.toHaveBeenCalled()
+  })
+
   it('updates media metadata and echoes successful renames', async () => {
     mocks.updateMediaMetadataAndBroadcast.mockResolvedValue({ success: true })
 
