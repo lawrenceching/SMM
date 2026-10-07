@@ -1,12 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { Hono } from 'hono'
 import { readJson } from '../test/readJson'
 import {
   clearCommandExecutionRegistry,
   markCommandExecutionFinished,
   markCommandExecutionRunning,
 } from './commandExecutionRegistry'
-import { handleCommandExecutionStatus } from './commandExecutionStatus'
+import { commandExecutionStatusRoute } from './commandExecutionStatus'
 
 const EXEC_ID = '00000000-0000-4000-8000-000000000099'
 
@@ -15,8 +14,7 @@ describe('GET /api/command-execution/:executionId', () => {
     clearCommandExecutionRegistry()
     markCommandExecutionRunning(EXEC_ID, 'yt-dlp')
 
-    const app = new Hono()
-    handleCommandExecutionStatus(app)
+    const app = commandExecutionStatusRoute
     const res = await app.request(`/api/command-execution/${EXEC_ID}`)
     expect(res.status).toBe(200)
     const body = await readJson<{ phase: string; found: boolean; outcome?: string }>(res)
@@ -34,8 +32,7 @@ describe('GET /api/command-execution/:executionId', () => {
       systemNote: 'client disconnected (abort)',
     })
 
-    const app = new Hono()
-    handleCommandExecutionStatus(app)
+    const app = commandExecutionStatusRoute
     const res = await app.request(`/api/command-execution/${EXEC_ID}`)
     const body = await readJson<{ phase: string; found: boolean; outcome?: string }>(res)
     expect(body.phase).toBe('finished')
@@ -43,9 +40,10 @@ describe('GET /api/command-execution/:executionId', () => {
   })
 
   it('rejects invalid id', async () => {
-    const app = new Hono()
-    handleCommandExecutionStatus(app)
+    const app = commandExecutionStatusRoute
     const res = await app.request('/api/command-execution/not-a-uuid')
     expect(res.status).toBe(400)
+    const body = await readJson<{ error: string }>(res)
+    expect(body.error).toBe('Invalid execution id')
   })
 })

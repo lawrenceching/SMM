@@ -50,7 +50,6 @@ import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
 import { handleCommandLog } from './src/route/commandLog';
-import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
 import { handleSpeedtest } from './src/route/speedtest';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
@@ -232,7 +231,6 @@ export class Server {
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
     handleCommandLog(this.app);
-    handleCommandExecutionStatus(this.app);
     handleLog(this.app);
     handleSpeedtest(this.app);
     handleShutdown(this.app);

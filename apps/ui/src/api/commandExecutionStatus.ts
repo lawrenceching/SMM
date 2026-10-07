@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 type CommandExecutionPhase = 'unknown' | 'running' | 'finished'
 
@@ -17,14 +17,10 @@ export interface CommandExecutionStatusResponse {
 export async function fetchCommandExecutionStatus(
   executionId: string,
 ): Promise<CommandExecutionStatusResponse> {
-  // Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`.
-  const res = await apiFetch(
-    `/api/command-execution/${encodeURIComponent(executionId)}`,
-    { credentials: 'same-origin' },
-  )
-  const text = await res.text()
-  if (!res.ok) {
-    throw new Error(text || `HTTP ${res.status}`)
-  }
-  return JSON.parse(text) as CommandExecutionStatusResponse
+  const resp = await rpc.api['command-execution'][':executionId'].$get({
+    param: { executionId },
+  })
+  const body = await unwrapJson<Awaited<ReturnType<typeof resp.json>>>(resp)
+  if ('error' in body) throw new Error(body.error)
+  return body
 }

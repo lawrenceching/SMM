@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { isCommandExecutionId } from './commandLog';
 import {
   getCommandExecutionRegistryStatus,
@@ -22,14 +22,17 @@ async function resolveCommandExecutionStatus(
   };
 }
 
-export function handleCommandExecutionStatus(app: Hono) {
-  app.get('/api/command-execution/:executionId', async (c) => {
+export type CommandExecutionStatusResponseBody = CommandExecutionStatus | { error: string };
+
+export const commandExecutionStatusRoute = new Hono().get(
+  '/api/command-execution/:executionId',
+  async (c) => {
     const executionId = c.req.param('executionId') ?? '';
     if (!isCommandExecutionId(executionId)) {
-      return c.json({ error: 'Invalid execution id' }, 400);
+      return c.json<CommandExecutionStatusResponseBody>({ error: 'Invalid execution id' }, 400);
     }
 
     const status = await resolveCommandExecutionStatus(executionId);
-    return c.json(status);
-  });
-}
+    return c.json<CommandExecutionStatusResponseBody>(status);
+  },
+);
