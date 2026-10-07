@@ -16,14 +16,6 @@ import {
 const DEFAULT_MCP_HOST = "127.0.0.1";
 const DEFAULT_MCP_PORT = 30001;
 
-declare const Bun: {
-  serve(options: {
-    hostname: string;
-    port: number;
-    fetch: (req: Request) => Promise<Response>;
-  }): { hostname: string; port: number; stop(): void };
-};
-
 function buildMcpUrl(host: string, port: number): string {
   return `http://${host}:${port}/mcp`;
 }

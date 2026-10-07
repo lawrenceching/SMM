@@ -5,8 +5,6 @@ import { foldersQueryKey } from './foldersQueryKeys'
 export function useFoldersQuery() {
   return useQuery({
     queryKey: foldersQueryKey,
-    queryFn: async (): Promise<string[]> => {
-      return await getFolders()
-    },
+    queryFn: ({ signal }) => getFolders(signal),
   })
 }
