@@ -34,27 +34,27 @@ export async function processTencentAsrTranscribe(
 }
 
 export const tencentAsrTranscribeRoute = new Hono().post("/api/tencent-asr/transcribe", async (c) => {
-    try {
-      const rawBody = await c.req.json();
-      const parseResult = tencentTranscribeRequestSchema.safeParse(rawBody);
-      if (!parseResult.success) {
-        const firstIssue = parseResult.error.issues[0];
-        const message = firstIssue?.message ?? "Invalid request body";
-        return c.json<{ error: string }>({ error: message }, 400);
-      }
-
-      const result = await processTencentAsrTranscribe(parseResult.data);
-      if (result.error) {
-        return c.json<TencentAsrTranscribeResponseData>(result, 400);
-      }
-      return c.json<TencentAsrTranscribeResponseData>(result, 200);
-    } catch (error) {
-      logger.error({ error }, "Tencent ASR transcribe route error");
-      return c.json<{ error: string }>(
-        {
-          error: "Failed to process Tencent ASR transcribe request",
-        },
-        500
-      );
+  try {
+    const rawBody = await c.req.json();
+    const parseResult = tencentTranscribeRequestSchema.safeParse(rawBody);
+    if (!parseResult.success) {
+      const firstIssue = parseResult.error.issues[0];
+      const message = firstIssue?.message ?? "Invalid request body";
+      return c.json<{ error: string }>({ error: message }, 400);
     }
-  });
+
+    const result = await processTencentAsrTranscribe(parseResult.data);
+    if (result.error) {
+      return c.json<TencentAsrTranscribeResponseData>(result, 400);
+    }
+    return c.json<TencentAsrTranscribeResponseData>(result, 200);
+  } catch (error) {
+    logger.error({ error }, "Tencent ASR transcribe route error");
+    return c.json<{ error: string }>(
+      {
+        error: "Failed to process Tencent ASR transcribe request",
+      },
+      500
+    );
+  }
+});

@@ -31,4 +31,13 @@ describe('POST /api/openInFileManager', () => {
     const json = (await res.json()) as { data?: { path?: string }; error?: string }
     expect(json.error).toMatch(/^Path does not exist:/)
   })
+
+  it('returns 500 for a malformed JSON body', async () => {
+    const res = await openInFileManagerRoute.request('/api/openInFileManager', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: 'not-json',
+    })
+    expect(res.status).toBe(500)
+  })
 })

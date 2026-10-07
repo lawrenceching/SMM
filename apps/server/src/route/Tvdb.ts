@@ -8,19 +8,19 @@ type TvdbTvShowData = Awaited<ReturnType<Core['getTvShowInTvdb']>>
 type TvdbMovieData = Awaited<ReturnType<Core['getMovieInTvdb']>>
 type TvdbLanguagesData = Awaited<ReturnType<Core['getTvdbLanguages']>>
 
-export type TvdbSearchHttpResponseBody =
+type TvdbSearchHttpResponseBody =
   | { data: TvdbSearchData }
   | { error: string }
 
-export type TvdbTvShowHttpResponseBody =
+type TvdbTvShowHttpResponseBody =
   | { data: TvdbTvShowData }
   | { error: string }
 
-export type TvdbMovieHttpResponseBody =
+type TvdbMovieHttpResponseBody =
   | { data: TvdbMovieData }
   | { error: string }
 
-export type TvdbLanguagesHttpResponseBody =
+type TvdbLanguagesHttpResponseBody =
   | { data: TvdbLanguagesData }
   | { error: string }
 

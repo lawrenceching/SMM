@@ -59,4 +59,17 @@ describe('POST /debug/getJobTool', () => {
       error: 'job not found',
     })
   })
+
+  it('reports validation failures', async () => {
+    const response = await app.request('/debug/getJobTool', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    })
+
+    expect(response.status).toBe(200)
+    const json = (await response.json()) as { success: boolean; error: string }
+    expect(json.success).toBe(false)
+    expect(json.error).toMatch(/^Validation failed:/)
+  })
 })

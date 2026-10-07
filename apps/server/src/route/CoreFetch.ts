@@ -19,7 +19,7 @@ interface CoreFetchResponseData {
   bodyBase64: string
 }
 
-export type CoreFetchResponseBody =
+type CoreFetchResponseBody =
   | { data: CoreFetchResponseData }
   | { error: string }
 

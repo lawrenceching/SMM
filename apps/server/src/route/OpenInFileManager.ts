@@ -101,7 +101,7 @@ export const openInFileManagerRoute = new Hono().post('/api/openInFileManager', 
         },
         error: 'Not running in desktop environment. This operation requires a desktop environment.',
       };
-      return c.json(response, 400);
+      return c.json<OpenInFileManagerResponseBody>(response, 400);
     }
 
     // Validate path is provided
@@ -112,7 +112,7 @@ export const openInFileManagerRoute = new Hono().post('/api/openInFileManager', 
         },
         error: 'Path is required and must be a string',
       };
-      return c.json(response, 400);
+      return c.json<OpenInFileManagerResponseBody>(response, 400);
     }
 
     // Open the folder
@@ -123,7 +123,7 @@ export const openInFileManagerRoute = new Hono().post('/api/openInFileManager', 
         path: body.path,
       },
     };
-    return c.json(response, 200);
+    return c.json<OpenInFileManagerResponseBody>(response, 200);
   } catch (error) {
     const response: OpenInFileManagerResponseBody = {
       data: {
@@ -131,6 +131,6 @@ export const openInFileManagerRoute = new Hono().post('/api/openInFileManager', 
       },
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
-    return c.json(response, 400);
+    return c.json<OpenInFileManagerResponseBody>(response, 400);
   }
 });

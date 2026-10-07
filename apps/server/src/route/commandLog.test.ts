@@ -94,6 +94,35 @@ describe("GET /api/command-log/:executionId", () => {
     expect(res.headers.get("X-Log-Truncated")).toBe("true");
   });
 
+  it("falls back to a full slice with offset 0 for non-numeric offset and limit", async () => {
+    const id = "00000000-0000-4000-8000-000000000005";
+    const logDir = path.join(tmpLogRoot, "commands", id);
+    mkdirSync(logDir, { recursive: true });
+    writeFileSync(path.join(logDir, "main.log"), "abcdefghij");
+
+    const res = await app.request(`/api/command-log/${id}?offset=abc&limit=xyz`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("abcdefghij");
+    expect(res.headers.get("X-Log-Read-Offset")).toBe("0");
+    expect(res.headers.get("X-Log-Read-Limit")).toBe("10");
+    expect(res.headers.get("X-Log-Truncated")).toBe("false");
+  });
+
+  it("returns an empty body with read limit 0 when offset is past EOF", async () => {
+    const id = "00000000-0000-4000-8000-000000000006";
+    const logDir = path.join(tmpLogRoot, "commands", id);
+    mkdirSync(logDir, { recursive: true });
+    writeFileSync(path.join(logDir, "main.log"), "abcdefghij");
+
+    const res = await app.request(`/api/command-log/${id}?offset=100`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toBe("");
+    expect(res.headers.get("X-Log-Total-Bytes")).toBe("10");
+    expect(res.headers.get("X-Log-Read-Offset")).toBe("100");
+    expect(res.headers.get("X-Log-Read-Limit")).toBe("0");
+    expect(res.headers.get("X-Log-Truncated")).toBe("false");
+  });
+
   it("returns the raw main.log text as text/plain", async () => {
     const id = "00000000-0000-4000-8000-000000000003";
     const logDir = path.join(tmpLogRoot, "commands", id);

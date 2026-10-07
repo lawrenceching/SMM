@@ -3,15 +3,15 @@ import type { TmdbMovieDetails, TmdbSearchResponseBody, TmdbSeriesDetails } from
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-export type TmdbSearchHttpResponseBody =
+type TmdbSearchHttpResponseBody =
   | { data: TmdbSearchResponseBody }
   | { error: string }
 
-export type TmdbMovieHttpResponseBody =
+type TmdbMovieHttpResponseBody =
   | { data: TmdbMovieDetails }
   | { error: string }
 
-export type TmdbTvShowHttpResponseBody =
+type TmdbTvShowHttpResponseBody =
   | { data: TmdbSeriesDetails }
   | { error: string }
 

@@ -64,9 +64,5 @@ export async function openInFileManagerApi(pathInPosix: string): Promise<OpenInF
 
   const resp = await rpc.api.openInFileManager.$post({ json: req });
 
-  if (!resp.ok) {
-    return await resp.json();
-  }
-
   return await resp.json();
 }

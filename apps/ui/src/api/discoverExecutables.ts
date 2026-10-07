@@ -4,10 +4,7 @@ type DiscoverExecutablesResponseBody = Awaited<
   ReturnType<Awaited<ReturnType<(typeof rpc)["api"]["discoverExecutables"]["$get"]>>["json"]>
 >;
 
-export type DiscoverExecutablesData = Exclude<
-  DiscoverExecutablesResponseBody,
-  { error: string }
->["data"];
+export type DiscoverExecutablesData = DiscoverExecutablesResponseBody["data"];
 
 export type ExecutablePathInfo = DiscoverExecutablesData["ffmpeg"];
 

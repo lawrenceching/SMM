@@ -46,6 +46,23 @@ describe('POST /debug/startRecognizeTask', () => {
     expect(mocks.beginExecute).toHaveBeenCalledWith({ mediaFolderPath: '/media/Show' })
   })
 
+  it('reports tool errors in-band with data', async () => {
+    mocks.beginExecute.mockResolvedValue({ taskId: undefined, error: 'x' })
+
+    const response = await app.request('/debug/startRecognizeTask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaFolderPath: '/media/Show' }),
+    })
+
+    expect(response.status).toBe(200)
+    await expect(response.json()).resolves.toEqual({
+      success: false,
+      data: { error: 'x' },
+      error: 'x',
+    })
+  })
+
   it('reports validation failures', async () => {
     const response = await app.request('/debug/startRecognizeTask', {
       method: 'POST',

@@ -19,26 +19,26 @@ export function setShutdownRequestIPResolver(
 }
 
 export const shutdownRoute = new Hono().post('/api/shutdown', async (c) => {
-    const req = c.req.raw;
+  const req = c.req.raw;
 
-    if (
-      !isLocalhostShutdownRequest(
-        req,
-        resolveRequestIP ? (request) => resolveRequestIP!(request) : undefined,
-      )
-    ) {
-      logger.warn('[shutdown] rejected non-localhost request');
-      return c.json<{ error: string }>({ error: 'Forbidden' }, 403);
-    }
+  if (
+    !isLocalhostShutdownRequest(
+      req,
+      resolveRequestIP ? (request) => resolveRequestIP!(request) : undefined,
+    )
+  ) {
+    logger.warn('[shutdown] rejected non-localhost request');
+    return c.json<{ error: string }>({ error: 'Forbidden' }, 403);
+  }
 
-    const result = await runGracefulShutdown();
-    if (!result.ok) {
-      return c.json<{ error: string }>({ error: 'Shutdown failed' }, 503);
-    }
+  const result = await runGracefulShutdown();
+  if (!result.ok) {
+    return c.json<{ error: string }>({ error: 'Shutdown failed' }, 503);
+  }
 
-    scheduleProcessExit();
-    return c.json<{ ok: boolean; alreadyShuttingDown: boolean }>(
-      { ok: true, alreadyShuttingDown: result.alreadyShuttingDown },
-      200,
-    );
-  });
+  scheduleProcessExit();
+  return c.json<{ ok: boolean; alreadyShuttingDown: boolean }>(
+    { ok: true, alreadyShuttingDown: result.alreadyShuttingDown },
+    200,
+  );
+});

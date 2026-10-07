@@ -46,7 +46,6 @@
     },
     "apps/server": {
       "entry": [
-        "app.ts",
         "scripts/**/*.ts",
         "src/**/*.test.ts"
       ]

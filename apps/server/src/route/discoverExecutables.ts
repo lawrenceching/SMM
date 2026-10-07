@@ -16,7 +16,7 @@ interface DiscoverExecutablesData {
   quickjs: ExecutablePathInfo;
 }
 
-export type DiscoverExecutablesResponseBody = { data: DiscoverExecutablesData }
+type DiscoverExecutablesResponseBody = { data: DiscoverExecutablesData }
 
 export async function resolveDiscoverExecutables(): Promise<DiscoverExecutablesResponseBody> {
   const [ffmpeg, ytdlp, videocaptioner, quickjs] = await Promise.all([
