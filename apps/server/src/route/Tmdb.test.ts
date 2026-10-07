@@ -11,7 +11,7 @@ vi.mock('../core/getCore', () => ({
   getCore: () => mocks,
 }))
 
-import { handleTmdb } from './Tmdb'
+import { tmdbRoute } from './Tmdb'
 
 describe('TMDB Internal HTTP APIs', () => {
   let app: Hono
@@ -20,8 +20,7 @@ describe('TMDB Internal HTTP APIs', () => {
     mocks.searchInTmdb.mockReset()
     mocks.getMovieInTmdb.mockReset()
     mocks.getTvShowInTmdb.mockReset()
-    app = new Hono()
-    handleTmdb(app)
+    app = tmdbRoute
   })
 
   async function post(path: string, body: unknown) {

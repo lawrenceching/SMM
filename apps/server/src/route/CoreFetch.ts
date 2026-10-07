@@ -1,4 +1,5 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
+import type { NetworkPort } from '@smm/core'
 import { NodejsNetworkPort } from '../core/NodejsNetworkPort'
 import { logger } from '../../lib/logger'
 
@@ -18,10 +19,9 @@ interface CoreFetchResponseData {
   bodyBase64: string
 }
 
-interface CoreFetchResponseBody {
-  data?: CoreFetchResponseData
-  error?: string
-}
+export type CoreFetchResponseBody =
+  | { data: CoreFetchResponseData }
+  | { error: string }
 
 function isPlainStringRecord(value: unknown): value is Record<string, string> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
@@ -41,13 +41,12 @@ function isAbortError(error: unknown): boolean {
  * Client disconnect / `AbortSignal` on the incoming request is forwarded to
  * the network port via `c.req.raw.signal` (same pattern as executeCmd).
  */
-export function handleCoreFetch(
-  app: Hono,
-  options?: { network?: import('@smm/core').NetworkPort },
-): void {
+export function createCoreFetchRoute(
+  options?: { network?: NetworkPort },
+) {
   const network = options?.network ?? new NodejsNetworkPort()
 
-  app.post('/api/core/fetch', async (c) => {
+  return new Hono().post('/api/core/fetch', async (c) => {
     try {
       let body: CoreFetchRequestBody = {}
       try {
@@ -58,8 +57,8 @@ export function handleCoreFetch(
       }
 
       if (typeof body.url !== 'string' || body.url.trim() === '') {
-        const err: CoreFetchResponseBody = { error: 'Error Reason: url is required' }
-        return c.json(err, 200)
+        const err: { error: string } = { error: 'Error Reason: url is required' }
+        return c.json<CoreFetchResponseBody>(err, 200)
       }
 
       const method = typeof body.method === 'string' ? body.method : undefined
@@ -79,15 +78,16 @@ export function handleCoreFetch(
       })
 
       const bytes = new Uint8Array(await upstream.arrayBuffer())
-      const data: CoreFetchResponseData = {
-        ok: upstream.ok,
-        status: upstream.status,
-        statusText: upstream.statusText,
-        headers: upstream.headers,
-        bodyBase64: Buffer.from(bytes).toString('base64'),
+      const ok: { data: CoreFetchResponseData } = {
+        data: {
+          ok: upstream.ok,
+          status: upstream.status,
+          statusText: upstream.statusText,
+          headers: upstream.headers,
+          bodyBase64: Buffer.from(bytes).toString('base64'),
+        },
       }
-      const ok: CoreFetchResponseBody = { data }
-      return c.json(ok, 200)
+      return c.json<CoreFetchResponseBody>(ok, 200)
     } catch (error) {
       // Do not convert abort into a business `{ error }` JSON — let the
       // connection drop / fetch reject like a cancelled request.
@@ -95,13 +95,15 @@ export function handleCoreFetch(
         throw error
       }
       logger.error({ error }, '[POST /api/core/fetch] route error')
-      const err: CoreFetchResponseBody = {
+      const err: { error: string } = {
         error: `Error Reason: ${error instanceof Error ? error.message : 'Unknown error'}`,
       }
-      return c.json(err, 200)
+      return c.json<CoreFetchResponseBody>(err, 200)
     }
   })
 }
+
+export const coreFetchRoute = createCoreFetchRoute()
 
 function abortFromSignal(signal: AbortSignal): Error {
   if (signal.reason instanceof Error) return signal.reason

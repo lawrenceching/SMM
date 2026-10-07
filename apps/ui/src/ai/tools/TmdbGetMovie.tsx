@@ -18,11 +18,8 @@ const tmdbGetMovieTool = tool({
 
     try {
       const body = await getMovieInTmdb({ id, language, host: baseURL })
-      if (body.error) {
+      if ('error' in body) {
         return { error: body.error }
-      }
-      if (!body.data) {
-        return { error: 'Error Reason: empty movie result' }
       }
       return body.data as unknown as TmdbGetMovieOutput
     } catch (error) {

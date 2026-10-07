@@ -1,5 +1,13 @@
 import type { FetchInit, HttpResponse, NetworkPort } from '../../../core/src/ports/NetworkPort'
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
+
+type CoreFetchResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['core']['fetch']['$post']>>['json']>
+>
+
+type CoreFetchSuccessBody = Exclude<CoreFetchResponseBody, { error: string }>
+
+type CoreFetchResponseData = CoreFetchSuccessBody['data']
 
 /** Request body for `POST /api/core/fetch`. */
 interface CoreFetchRequestBody {
@@ -8,21 +16,6 @@ interface CoreFetchRequestBody {
   headers?: Record<string, string>
   body?: string
   proxy?: string
-}
-
-/** Upstream response payload inside API `data`. */
-interface CoreFetchResponseData {
-  ok: boolean
-  status: number
-  statusText: string
-  headers: Record<string, string>
-  /** Raw response body, base64-encoded (binary-safe). */
-  bodyBase64: string
-}
-
-interface CoreFetchResponseBody {
-  data?: CoreFetchResponseData
-  error?: string
 }
 
 function decodeBodyBase64(bodyBase64: string): Uint8Array {
@@ -66,26 +59,11 @@ function dataToHttpResponse(data: CoreFetchResponseData): HttpResponse {
   }
 }
 
-export interface BrowserNetworkPortOptions {
-  /** Override internal API fetch (defaults to {@link apiFetch}). */
-  fetchImpl?: typeof fetch
-  /** Path of the core fetch RPC (default `/api/core/fetch`). */
-  endpoint?: string
-}
-
 /**
  * Browser NetworkPort: relays outbound HTTP through `POST /api/core/fetch`,
  * which runs {@link NodejsNetworkPort} on the CLI (proxy-capable).
  */
 export class BrowserNetworkPort implements NetworkPort {
-  private readonly fetchImpl: typeof fetch
-  private readonly endpoint: string
-
-  constructor(options?: BrowserNetworkPortOptions) {
-    this.fetchImpl = options?.fetchImpl ?? apiFetch
-    this.endpoint = options?.endpoint ?? '/api/core/fetch'
-  }
-
   async fetch(input: string, init?: FetchInit): Promise<HttpResponse> {
     const requestBody: CoreFetchRequestBody = {
       url: input,
@@ -95,24 +73,16 @@ export class BrowserNetworkPort implements NetworkPort {
     if (init?.body !== undefined) requestBody.body = init.body
     if (init?.proxy !== undefined) requestBody.proxy = init.proxy
 
-    const response = await this.fetchImpl(this.endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: init?.signal,
-    })
+    const response = await rpc.api.core.fetch.$post(
+      { json: requestBody },
+      { init: { signal: init?.signal } },
+    )
 
-    if (!response.ok) {
-      throw new Error(`HTTP Layer Error: ${response.status} ${response.statusText}`)
-    }
+    const body = await unwrapJson(response)
 
-    const json = (await response.json()) as CoreFetchResponseBody
-    if (json.error) {
-      throw new Error(json.error)
+    if ('error' in body) {
+      throw new Error(body.error)
     }
-    if (!json.data) {
-      throw new Error('Error Reason: /api/core/fetch returned no data')
-    }
-    return dataToHttpResponse(json.data)
+    return dataToHttpResponse(body.data)
   }
 }

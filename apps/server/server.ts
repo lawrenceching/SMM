@@ -18,15 +18,9 @@ import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesT
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
-import { handleTmdb } from './src/route/Tmdb';
-import { handleTvdb } from './src/route/Tvdb';
-import { handleCoreFetch } from './src/route/CoreFetch';
-import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
-import { handleDiscoverExecutables } from './src/route/discoverExecutables';
 import { handleLog } from './src/route/Log';
-import { handleSpeedtest } from './src/route/speedtest';
-import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
+import { setShutdownRequestIPResolver } from './src/route/shutdown';
 import { applyMcpConfig } from '@server/mcp/mcpServerManager';
 import { getCore } from '@server/core/getCore';
 import { getUserConfig } from './src/utils/config.ts';
@@ -171,15 +165,8 @@ export class Server {
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
-    handleTmdb(this.app);
-    handleTvdb(this.app);
-    handleCoreFetch(this.app);
-    handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
-    handleDiscoverExecutables(this.app);
     handleLog(this.app);
-    handleSpeedtest(this.app);
-    handleShutdown(this.app);
 
     // Path-mounted L7 reverse proxy (TMDB/TVDB/AI). Must be registered before
     // the static catch-all so `/proxy` is not served as a static file miss.

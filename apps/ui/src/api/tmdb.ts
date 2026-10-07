@@ -111,18 +111,9 @@ export async function searchTmdb(
     { keyword, type, language },
     options?.signal,
   )
-  if (body.error) {
+  if ('error' in body) {
     return {
       error: body.error,
-      results: [],
-      page: 0,
-      total_pages: 0,
-      total_results: 0,
-    }
-  }
-  if (!body.data) {
-    return {
-      error: 'Error Reason: empty search result',
       results: [],
       page: 0,
       total_pages: 0,
@@ -141,11 +132,8 @@ export async function getTvShowById(
   options?: TmdbRequestOptions,
 ): Promise<TmdbSeriesDetails> {
   const body = await getTvShowInTmdb({ id, language }, options?.signal)
-  if (body.error) {
+  if ('error' in body) {
     throw new Error(body.error)
-  }
-  if (!body.data) {
-    throw new Error('Error Reason: empty TV show result')
   }
   return body.data
 }
@@ -159,11 +147,8 @@ export async function getMovieById(
   options?: TmdbRequestOptions,
 ): Promise<TmdbMovieDetails> {
   const body = await getMovieInTmdb({ id, language }, options?.signal)
-  if (body.error) {
+  if ('error' in body) {
     throw new Error(body.error)
-  }
-  if (!body.data) {
-    throw new Error('Error Reason: empty movie result')
   }
   return body.data
 }

@@ -1,40 +1,19 @@
-export interface ExecutablePathInfo {
-  configuredPath: string | null;
-  discoveredPath: string | null;
-}
+import { rpc, unwrapJson } from "@/lib/rpc";
 
-export interface DiscoverExecutablesData {
-  ffmpeg: ExecutablePathInfo;
-  ytdlp: ExecutablePathInfo;
-  videocaptioner: ExecutablePathInfo;
-  quickjs: ExecutablePathInfo;
-}
+type DiscoverExecutablesResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)["api"]["discoverExecutables"]["$get"]>>["json"]>
+>;
 
-interface DiscoverExecutablesResponseBody {
-  data?: DiscoverExecutablesData;
-  error?: string;
-}
+export type DiscoverExecutablesData = Exclude<
+  DiscoverExecutablesResponseBody,
+  { error: string }
+>["data"];
 
-const emptyPathInfo = (): ExecutablePathInfo => ({
-  configuredPath: null,
-  discoveredPath: null,
-});
+export type ExecutablePathInfo = DiscoverExecutablesData["ffmpeg"];
 
 /** Relative `/api` so Vite proxy + authenticated fetch apply in `pnpm dev`. */
 export async function fetchDiscoverExecutables(): Promise<DiscoverExecutablesData> {
-  const response = await fetch("/api/discoverExecutables");
-  const body = (await response.json()) as DiscoverExecutablesResponseBody;
-  if (!response.ok) {
-    throw new Error(body.error ?? `HTTP ${response.status}`);
-  }
-  if (body.error) {
-    throw new Error(body.error);
-  }
-  const data = body.data;
-  return {
-    ffmpeg: data?.ffmpeg ?? emptyPathInfo(),
-    ytdlp: data?.ytdlp ?? emptyPathInfo(),
-    videocaptioner: data?.videocaptioner ?? emptyPathInfo(),
-    quickjs: data?.quickjs ?? emptyPathInfo(),
-  };
+  const response = await rpc.api.discoverExecutables.$get();
+  const body = await unwrapJson(response);
+  return body.data;
 }

@@ -1,9 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
-import type {
-  TmdbMovieDetails,
-  TmdbSearchResponseBody,
-  TmdbSeriesDetails,
-} from '@smm/types'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
 interface TmdbCoreRequestOptions {
   language?: string
@@ -21,20 +16,17 @@ export interface GetTmdbByIdParams extends TmdbCoreRequestOptions {
   id: number
 }
 
-export interface SearchInTmdbResponseBody {
-  data?: TmdbSearchResponseBody
-  error?: string
-}
+export type SearchInTmdbResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['search-in-tmdb']['$post']>>['json']>
+>
 
-export interface GetMovieInTmdbResponseBody {
-  data?: TmdbMovieDetails
-  error?: string
-}
+export type GetMovieInTmdbResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['get-movie-in-tmdb']['$post']>>['json']>
+>
 
-export interface GetTvShowInTmdbResponseBody {
-  data?: TmdbSeriesDetails
-  error?: string
-}
+export type GetTvShowInTmdbResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['get-tvshow-in-tmdb']['$post']>>['json']>
+>
 
 function optionalFields(options?: TmdbCoreRequestOptions): Record<string, string> {
   const body: Record<string, string> = {}
@@ -45,33 +37,22 @@ function optionalFields(options?: TmdbCoreRequestOptions): Record<string, string
   return body
 }
 
-async function postTmdb<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  const resp = await apiFetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  })
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-  return (await resp.json()) as T
-}
-
 /** `POST /api/search-in-tmdb` → `Core.searchInTmdb`. */
 export async function searchInTmdb(
   params: SearchInTmdbParams,
   signal?: AbortSignal,
 ): Promise<SearchInTmdbResponseBody> {
-  return postTmdb<SearchInTmdbResponseBody>(
-    '/api/search-in-tmdb',
+  const resp = await rpc.api['search-in-tmdb'].$post(
     {
-      keyword: params.keyword,
-      type: params.type,
-      ...optionalFields(params),
+      json: {
+        keyword: params.keyword,
+        type: params.type,
+        ...optionalFields(params),
+      },
     },
-    signal,
+    { init: { signal } },
   )
+  return unwrapJson(resp)
 }
 
 /** `POST /api/get-movie-in-tmdb` → `Core.getMovieInTmdb`. */
@@ -79,11 +60,11 @@ export async function getMovieInTmdb(
   params: GetTmdbByIdParams,
   signal?: AbortSignal,
 ): Promise<GetMovieInTmdbResponseBody> {
-  return postTmdb<GetMovieInTmdbResponseBody>(
-    '/api/get-movie-in-tmdb',
-    { id: params.id, ...optionalFields(params) },
-    signal,
+  const resp = await rpc.api['get-movie-in-tmdb'].$post(
+    { json: { id: params.id, ...optionalFields(params) } },
+    { init: { signal } },
   )
+  return unwrapJson(resp)
 }
 
 /** `POST /api/get-tvshow-in-tmdb` → `Core.getTvShowInTmdb`. */
@@ -91,9 +72,9 @@ export async function getTvShowInTmdb(
   params: GetTmdbByIdParams,
   signal?: AbortSignal,
 ): Promise<GetTvShowInTmdbResponseBody> {
-  return postTmdb<GetTvShowInTmdbResponseBody>(
-    '/api/get-tvshow-in-tmdb',
-    { id: params.id, ...optionalFields(params) },
-    signal,
+  const resp = await rpc.api['get-tvshow-in-tmdb'].$post(
+    { json: { id: params.id, ...optionalFields(params) } },
+    { init: { signal } },
   )
+  return unwrapJson(resp)
 }

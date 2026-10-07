@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 const ALLOWED_HOSTNAMES = new Set([
   'github.com',
@@ -13,7 +13,7 @@ interface SpeedtestResult {
   error?: string;
 }
 
-interface SpeedtestResponse {
+export interface SpeedtestResponse {
   fastestUrl: string;
   results: SpeedtestResult[];
 }
@@ -82,23 +82,22 @@ async function testUrl(url: string): Promise<SpeedtestResult> {
   }
 }
 
-export function handleSpeedtest(app: Hono) {
-  app.post('/api/speedtest', async (c) => {
+export const speedtestRoute = new Hono().post('/api/speedtest', async (c) => {
     let body: { urls?: unknown };
     try {
       body = await c.req.json();
     } catch {
-      return c.json({ error: 'Invalid JSON body' }, 400);
+      return c.json<{ error: string }>({ error: 'Invalid JSON body' }, 400);
     }
 
     const urls = body.urls;
     if (!Array.isArray(urls)) {
-      return c.json({ error: 'urls must be an array' }, 400);
+      return c.json<{ error: string }>({ error: 'urls must be an array' }, 400);
     }
 
     const validationError = validateUrls(urls);
     if (validationError) {
-      return c.json({ error: validationError }, 400);
+      return c.json<{ error: string }>({ error: validationError }, 400);
     }
 
     // Run all tests in parallel
@@ -122,6 +121,5 @@ export function handleSpeedtest(app: Hono) {
       results,
     };
 
-    return c.json(response);
+    return c.json<SpeedtestResponse>(response, 200);
   });
-}

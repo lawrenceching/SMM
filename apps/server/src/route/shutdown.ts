@@ -1,4 +1,4 @@
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import {
   isLocalhostShutdownRequest,
@@ -18,8 +18,7 @@ export function setShutdownRequestIPResolver(
   resolveRequestIP = resolver;
 }
 
-export function handleShutdown(app: Hono) {
-  app.post('/api/shutdown', async (c) => {
+export const shutdownRoute = new Hono().post('/api/shutdown', async (c) => {
     const req = c.req.raw;
 
     if (
@@ -29,15 +28,17 @@ export function handleShutdown(app: Hono) {
       )
     ) {
       logger.warn('[shutdown] rejected non-localhost request');
-      return c.json({ error: 'Forbidden' }, 403);
+      return c.json<{ error: string }>({ error: 'Forbidden' }, 403);
     }
 
     const result = await runGracefulShutdown();
     if (!result.ok) {
-      return c.json({ error: 'Shutdown failed' }, 503);
+      return c.json<{ error: string }>({ error: 'Shutdown failed' }, 503);
     }
 
     scheduleProcessExit();
-    return c.json({ ok: true, alreadyShuttingDown: result.alreadyShuttingDown });
+    return c.json<{ ok: boolean; alreadyShuttingDown: boolean }>(
+      { ok: true, alreadyShuttingDown: result.alreadyShuttingDown },
+      200,
+    );
   });
-}

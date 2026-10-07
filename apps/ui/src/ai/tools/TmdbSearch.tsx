@@ -24,11 +24,8 @@ const tmdbSearchTool = tool({
         language,
         host: baseURL,
       })
-      if (body.error) {
+      if ('error' in body) {
         return { error: body.error }
-      }
-      if (!body.data) {
-        return { error: 'Error Reason: empty search result' }
       }
       if (body.data.error) {
         return { error: body.data.error }

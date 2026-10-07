@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Hono } from 'hono';
 import {
   isLocalhostShutdownRequest,
   isLoopbackAddress,
@@ -7,7 +6,7 @@ import {
   resetGracefulShutdownStateForTests,
   runGracefulShutdown,
 } from '../utils/gracefulShutdown';
-import { handleShutdown } from './shutdown';
+import { shutdownRoute } from './shutdown';
 
 describe('gracefulShutdown helpers', () => {
   it('accepts loopback addresses', () => {
@@ -65,10 +64,7 @@ describe('POST /api/shutdown', () => {
   });
 
   it('returns 403 for non-localhost requests', async () => {
-    const app = new Hono();
-    handleShutdown(app);
-
-    const res = await app.request('http://evil.test/api/shutdown', {
+    const res = await shutdownRoute.request('http://evil.test/api/shutdown', {
       method: 'POST',
       headers: { host: 'evil.test' },
     });
@@ -76,14 +72,28 @@ describe('POST /api/shutdown', () => {
     expect(res.status).toBe(403);
   });
 
+  it('returns 503 when stopServer fails', async () => {
+    const stopServer = vi.fn(async () => {
+      throw new Error('stop failed');
+    });
+    registerGracefulShutdown({ stopServer });
+
+    const res = await shutdownRoute.request('http://127.0.0.1:30000/api/shutdown', {
+      method: 'POST',
+      headers: { host: '127.0.0.1:30000' },
+    });
+
+    expect(res.status).toBe(503);
+    await expect(res.json()).resolves.toEqual({ error: 'Shutdown failed' });
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(exitSpy).not.toHaveBeenCalled();
+  });
+
   it('runs stopServer and returns ok for localhost requests', async () => {
     const stopServer = vi.fn(async () => undefined);
     registerGracefulShutdown({ stopServer });
 
-    const app = new Hono();
-    handleShutdown(app);
-
-    const res = await app.request('http://127.0.0.1:30000/api/shutdown', {
+    const res = await shutdownRoute.request('http://127.0.0.1:30000/api/shutdown', {
       method: 'POST',
       headers: { host: '127.0.0.1:30000' },
     });
@@ -105,10 +115,7 @@ describe('POST /api/shutdown', () => {
 
     await runGracefulShutdown();
 
-    const app = new Hono();
-    handleShutdown(app);
-
-    const res = await app.request('http://127.0.0.1:30000/api/shutdown', {
+    const res = await shutdownRoute.request('http://127.0.0.1:30000/api/shutdown', {
       method: 'POST',
       headers: { host: '127.0.0.1:30000' },
     });

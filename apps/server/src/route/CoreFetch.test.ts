@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createServer, type Server } from 'node:http'
 import { Hono } from 'hono'
-import { handleCoreFetch } from './CoreFetch'
+import { coreFetchRoute, createCoreFetchRoute } from './CoreFetch'
 
 describe('POST /api/core/fetch', () => {
   let app: Hono
@@ -9,8 +9,7 @@ describe('POST /api/core/fetch', () => {
   let upstreamUrl: string
 
   beforeAll(async () => {
-    app = new Hono()
-    handleCoreFetch(app)
+    app = coreFetchRoute
 
     upstream = createServer((_req, res) => {
       res.writeHead(200, { 'content-type': 'application/json' })
@@ -103,8 +102,7 @@ describe('POST /api/core/fetch', () => {
       },
     }
 
-    const abortApp = new Hono()
-    handleCoreFetch(abortApp, { network })
+    const abortApp = createCoreFetchRoute({ network })
 
     const controller = new AbortController()
     const pending = abortApp.request('/api/core/fetch', {

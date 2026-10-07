@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
-import { handleTencentAsrTranscribe, processTencentAsrTranscribe } from "./Transcribe";
+import { processTencentAsrTranscribe, tencentAsrTranscribeRoute } from "./Transcribe";
 
 const h = vi.hoisted(() => ({
   transcribeWithTencentAsrHttp: vi.fn(),
@@ -40,8 +40,7 @@ describe("POST /api/tencent-asr/transcribe", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    app = new Hono();
-    handleTencentAsrTranscribe(app);
+    app = tencentAsrTranscribeRoute;
     h.transcribeWithTencentAsrHttp.mockResolvedValue({ success: true });
   });
 
@@ -68,5 +67,32 @@ describe("POST /api/tencent-asr/transcribe", () => {
       }),
     });
     expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when upstream transcription reports an error", async () => {
+    h.transcribeWithTencentAsrHttp.mockRejectedValue(new Error("boom"));
+    const res = await app.request("/api/tencent-asr/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mediaPath: "C:/a.mp3",
+        baseUrl: "https://example.com/hook",
+        apiKey: "key",
+      }),
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toBe("Failed to transcribe media: boom");
+  });
+
+  it("returns 500 when request body is not JSON", async () => {
+    const res = await app.request("/api/tencent-asr/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "not-json",
+    });
+    expect(res.status).toBe(500);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toBe("Failed to process Tencent ASR transcribe request");
   });
 });

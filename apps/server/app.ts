@@ -33,6 +33,13 @@ import { getJobRoute } from './src/route/GetJob';
 import { stopJobRoute } from './src/route/StopJob';
 import { getJobLogRoute } from './src/route/GetJobLog';
 import { commandLogRoute } from './src/route/commandLog';
+import { tmdbRoute } from './src/route/Tmdb';
+import { tvdbRoute } from './src/route/Tvdb';
+import { coreFetchRoute } from './src/route/CoreFetch';
+import { discoverExecutablesRoute } from './src/route/discoverExecutables';
+import { speedtestRoute } from './src/route/speedtest';
+import { shutdownRoute } from './src/route/shutdown';
+import { tencentAsrTranscribeRoute } from './src/route/tencentAsr/Transcribe';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -150,7 +157,14 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', getJobRoute)
     .route('/', stopJobRoute)
     .route('/', getJobLogRoute)
-    .route('/', commandLogRoute);
+    .route('/', commandLogRoute)
+    .route('/', tmdbRoute)
+    .route('/', tvdbRoute)
+    .route('/', coreFetchRoute)
+    .route('/', discoverExecutablesRoute)
+    .route('/', speedtestRoute)
+    .route('/', shutdownRoute)
+    .route('/', tencentAsrTranscribeRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

@@ -18,11 +18,8 @@ const tmdbGetTvShowTool = tool({
 
     try {
       const body = await getTvShowInTmdb({ id, language, host: baseURL })
-      if (body.error) {
+      if ('error' in body) {
         return { error: body.error }
-      }
-      if (!body.data) {
-        return { error: 'Error Reason: empty TV show result' }
       }
       return body.data as unknown as TmdbGetTvShowOutput
     } catch (error) {

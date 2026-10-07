@@ -1,7 +1,6 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 import { mediaLanguageToTvdbCode } from '@smm/utils/locale'
 import type { PreferMediaLanguage } from '@smm/types'
-import type { TVDBv4SearchResult } from '@smm/tvdb4/types'
 
 const PREFER_MEDIA_LANGUAGES = new Set<string>(['zh-CN', 'en-US', 'ja-JP'])
 
@@ -27,10 +26,9 @@ export interface SearchInTvdbParams extends TvdbCoreRequestOptions {
   type: 'series' | 'movie'
 }
 
-export interface SearchInTvdbResponseBody {
-  data?: TVDBv4SearchResult[]
-  error?: string
-}
+export type SearchInTvdbResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['search-in-tvdb']['$post']>>['json']>
+>
 
 function optionalFields(options?: TvdbCoreRequestOptions): Record<string, string> {
   const body: Record<string, string> = {}
@@ -42,31 +40,20 @@ function optionalFields(options?: TvdbCoreRequestOptions): Record<string, string
   return body
 }
 
-async function postTvdb<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  const resp = await apiFetch(path, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  })
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-  return (await resp.json()) as T
-}
-
 /** `POST /api/search-in-tvdb` → `Core.searchInTvdb`. */
 export async function searchInTvdb(
   params: SearchInTvdbParams,
   signal?: AbortSignal,
 ): Promise<SearchInTvdbResponseBody> {
-  return postTvdb<SearchInTvdbResponseBody>(
-    '/api/search-in-tvdb',
+  const resp = await rpc.api['search-in-tvdb'].$post(
     {
-      keyword: params.keyword,
-      type: params.type,
-      ...optionalFields(params),
+      json: {
+        keyword: params.keyword,
+        type: params.type,
+        ...optionalFields(params),
+      },
     },
-    signal,
+    { init: { signal } },
   )
+  return unwrapJson(resp)
 }

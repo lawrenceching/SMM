@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
-import { handleSpeedtest } from "./speedtest";
+import { speedtestRoute } from "./speedtest";
 import { readJson } from "../test/readJson";
 
 type SpeedtestErrorBody = { error: string };
@@ -18,7 +18,7 @@ function okResponse(delayMs = 0): Promise<Response> {
   );
 }
 
-describe("handleSpeedtest", () => {
+describe("POST /api/speedtest", () => {
   let app: Hono;
   let mockFetch: ReturnType<typeof vi.spyOn>;
 
@@ -27,8 +27,7 @@ describe("handleSpeedtest", () => {
     mockFetch = vi.spyOn(globalThis, "fetch");
     mockFetch.mockImplementation(() => okResponse(10));
 
-    app = new Hono();
-    handleSpeedtest(app);
+    app = speedtestRoute;
   });
 
   afterEach(() => {

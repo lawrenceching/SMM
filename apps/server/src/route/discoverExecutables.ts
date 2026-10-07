@@ -1,8 +1,8 @@
-import type { Hono } from 'hono';
-import { resolveFfmpegPathInfo } from '../utils/Ffmpeg';
-import { resolveYtdlpPathInfo } from '../utils/Ytdlp';
-import { resolveVideoCaptionerPathInfo } from '../utils/VideoCaptioner';
-import { resolveQuickjsPathInfo } from '../utils/QuickJS';
+import { Hono } from 'hono'
+import { resolveFfmpegPathInfo } from '../utils/Ffmpeg'
+import { resolveYtdlpPathInfo } from '../utils/Ytdlp'
+import { resolveVideoCaptionerPathInfo } from '../utils/VideoCaptioner'
+import { resolveQuickjsPathInfo } from '../utils/QuickJS'
 
 interface ExecutablePathInfo {
   configuredPath: string | null;
@@ -16,10 +16,7 @@ interface DiscoverExecutablesData {
   quickjs: ExecutablePathInfo;
 }
 
-export interface DiscoverExecutablesResponseBody {
-  data?: DiscoverExecutablesData;
-  error?: string;
-}
+export type DiscoverExecutablesResponseBody = { data: DiscoverExecutablesData }
 
 export async function resolveDiscoverExecutables(): Promise<DiscoverExecutablesResponseBody> {
   const [ffmpeg, ytdlp, videocaptioner, quickjs] = await Promise.all([
@@ -38,9 +35,7 @@ export async function resolveDiscoverExecutables(): Promise<DiscoverExecutablesR
   };
 }
 
-export function handleDiscoverExecutables(app: Hono) {
-  app.get('/api/discoverExecutables', async (c) => {
-    const result = await resolveDiscoverExecutables();
-    return c.json(result);
-  });
-}
+export const discoverExecutablesRoute = new Hono().get('/api/discoverExecutables', async (c) => {
+  const result = await resolveDiscoverExecutables();
+  return c.json<DiscoverExecutablesResponseBody>(result, 200);
+});

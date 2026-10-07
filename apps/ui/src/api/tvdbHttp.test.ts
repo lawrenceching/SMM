@@ -41,15 +41,14 @@ describe('tvdbHttp Internal HTTP clients', () => {
       }),
     )
     await searchInTvdb({ keyword: '天使降临到我身边', type: 'series', language: 'zh-CN' })
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/search-in-tvdb', {
+    expect(mockApiFetch.mock.calls[0]?.[0]).toBe('/api/search-in-tvdb')
+    expect(mockApiFetch.mock.calls[0]?.[1]).toMatchObject({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         keyword: '天使降临到我身边',
         type: 'series',
         language: 'zho',
       }),
-      signal: undefined,
     })
   })
 
@@ -60,13 +59,12 @@ describe('tvdbHttp Internal HTTP clients', () => {
       }),
     )
     const body = await searchInTvdb({ keyword: '我推的孩子', type: 'series', language: 'zho' })
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/search-in-tvdb', {
+    expect(mockApiFetch.mock.calls[0]?.[0]).toBe('/api/search-in-tvdb')
+    expect(mockApiFetch.mock.calls[0]?.[1]).toMatchObject({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keyword: '我推的孩子', type: 'series', language: 'zho' }),
-      signal: undefined,
     })
-    expect(body.data?.[0]?.tvdb_id).toBe('421069')
+    expect(body.data[0]?.tvdb_id).toBe('421069')
   })
 
   it('throws on HTTP layer failure', async () => {

@@ -20,8 +20,8 @@ export async function searchTvdb(
   options?: TvdbSearchRequestOptions,
 ): Promise<SearchTvdbResponse> {
   const body = await searchInTvdb({ keyword, type, language }, options?.signal)
-  if (body.error) {
+  if ('error' in body) {
     return { results: [], error: body.error }
   }
-  return { results: body.data ?? [] }
+  return { results: body.data }
 }

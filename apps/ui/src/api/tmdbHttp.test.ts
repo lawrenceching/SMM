@@ -33,33 +33,30 @@ describe('tmdbHttp Internal HTTP clients', () => {
       }),
     )
     const body = await searchInTmdb({ keyword: 'naruto', type: 'tv', language: 'zh-CN' })
-    expect(mockApiFetch).toHaveBeenCalledWith('/api/search-in-tmdb', {
+    expect(mockApiFetch.mock.calls[0]?.[0]).toBe('/api/search-in-tmdb')
+    expect(mockApiFetch.mock.calls[0]?.[1]).toMatchObject({
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ keyword: 'naruto', type: 'tv', language: 'zh-CN' }),
-      signal: undefined,
     })
-    expect(body.data?.total_results).toBe(1)
+    expect(body.data.total_results).toBe(1)
   })
 
   it('getMovieInTmdb POSTs id', async () => {
     mockApiFetch.mockResolvedValue(jsonResponse({ data: { id: 550, title: 'Fight Club' } }))
     const body = await getMovieInTmdb({ id: 550 })
-    expect(mockApiFetch).toHaveBeenCalledWith(
-      '/api/get-movie-in-tmdb',
-      expect.objectContaining({
-        method: 'POST',
-        body: JSON.stringify({ id: 550 }),
-      }),
-    )
-    expect(body.data?.title).toBe('Fight Club')
+    expect(mockApiFetch.mock.calls[0]?.[0]).toBe('/api/get-movie-in-tmdb')
+    expect(mockApiFetch.mock.calls[0]?.[1]).toMatchObject({
+      method: 'POST',
+      body: JSON.stringify({ id: 550 }),
+    })
+    expect(body.data.title).toBe('Fight Club')
   })
 
   it('getTvShowInTmdb POSTs id', async () => {
     mockApiFetch.mockResolvedValue(jsonResponse({ data: { id: 1396, name: 'Breaking Bad' } }))
     const body = await getTvShowInTmdb({ id: 1396, language: 'en-US' })
     expect(mockApiFetch.mock.calls[0]?.[0]).toBe('/api/get-tvshow-in-tmdb')
-    expect(body.data?.name).toBe('Breaking Bad')
+    expect(body.data.name).toBe('Breaking Bad')
   })
 
   it('throws on HTTP layer failure', async () => {

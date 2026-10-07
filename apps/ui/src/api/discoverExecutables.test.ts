@@ -27,7 +27,7 @@ describe("fetchDiscoverExecutables", () => {
 
     const result = await fetchDiscoverExecutables();
 
-    expect(fetchMock).toHaveBeenCalledWith("/api/discoverExecutables");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/discoverExecutables");
     expect(result.ffmpeg.discoveredPath).toBe("/bin/ffmpeg/ffmpeg");
   });
 });

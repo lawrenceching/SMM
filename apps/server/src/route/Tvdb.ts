@@ -1,6 +1,28 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
+import type { Core } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
+
+type TvdbSearchData = Awaited<ReturnType<Core['searchInTvdb']>>
+type TvdbTvShowData = Awaited<ReturnType<Core['getTvShowInTvdb']>>
+type TvdbMovieData = Awaited<ReturnType<Core['getMovieInTvdb']>>
+type TvdbLanguagesData = Awaited<ReturnType<Core['getTvdbLanguages']>>
+
+export type TvdbSearchHttpResponseBody =
+  | { data: TvdbSearchData }
+  | { error: string }
+
+export type TvdbTvShowHttpResponseBody =
+  | { data: TvdbTvShowData }
+  | { error: string }
+
+export type TvdbMovieHttpResponseBody =
+  | { data: TvdbMovieData }
+  | { error: string }
+
+export type TvdbLanguagesHttpResponseBody =
+  | { data: TvdbLanguagesData }
+  | { error: string }
 
 function optionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
@@ -47,66 +69,74 @@ function errorBody(message: string): { error: string } {
   return { error: `Error Reason: ${message}` }
 }
 
-export function handleTvdb(app: Hono): void {
-  app.post('/api/search-in-tvdb', async (c) => {
+export const tvdbRoute = new Hono()
+  .post('/api/search-in-tvdb', async (c) => {
     try {
       const rec = await readJsonObject(c)
       const keyword = optionalString(rec.keyword)
       if (!keyword) {
-        return c.json(errorBody('keyword is required'), 200)
+        return c.json<TvdbSearchHttpResponseBody>(errorBody('keyword is required'), 200)
       }
       const type = rec.type
       if (type !== 'series' && type !== 'movie') {
-        return c.json(errorBody('type must be series or movie'), 200)
+        return c.json<TvdbSearchHttpResponseBody>(errorBody('type must be series or movie'), 200)
       }
       const data = await getCore().searchInTvdb(keyword, {
         type,
         ...tvdbRequestOptions(rec),
       })
-      return c.json({ data }, 200)
+      return c.json<TvdbSearchHttpResponseBody>({ data }, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/search-in-tvdb] route error')
-      return c.json(errorBody(error instanceof Error ? error.message : 'Unknown error'), 200)
+      return c.json<TvdbSearchHttpResponseBody>(
+        errorBody(error instanceof Error ? error.message : 'Unknown error'),
+        200,
+      )
     }
   })
-
-  app.post('/api/get-tvshow-in-tvdb', async (c) => {
+  .post('/api/get-tvshow-in-tvdb', async (c) => {
     try {
       const rec = await readJsonObject(c)
       const id = parsePositiveInt(rec.id)
       if (id === undefined) {
-        return c.json(errorBody('id is required'), 200)
+        return c.json<TvdbTvShowHttpResponseBody>(errorBody('id is required'), 200)
       }
       const data = await getCore().getTvShowInTvdb(id, tvdbRequestOptions(rec))
-      return c.json({ data }, 200)
+      return c.json<TvdbTvShowHttpResponseBody>({ data }, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/get-tvshow-in-tvdb] route error')
-      return c.json(errorBody(error instanceof Error ? error.message : 'Unknown error'), 200)
+      return c.json<TvdbTvShowHttpResponseBody>(
+        errorBody(error instanceof Error ? error.message : 'Unknown error'),
+        200,
+      )
     }
   })
-
-  app.post('/api/get-movie-in-tvdb', async (c) => {
+  .post('/api/get-movie-in-tvdb', async (c) => {
     try {
       const rec = await readJsonObject(c)
       const id = parsePositiveInt(rec.id)
       if (id === undefined) {
-        return c.json(errorBody('id is required'), 200)
+        return c.json<TvdbMovieHttpResponseBody>(errorBody('id is required'), 200)
       }
       const data = await getCore().getMovieInTvdb(id, tvdbRequestOptions(rec))
-      return c.json({ data }, 200)
+      return c.json<TvdbMovieHttpResponseBody>({ data }, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/get-movie-in-tvdb] route error')
-      return c.json(errorBody(error instanceof Error ? error.message : 'Unknown error'), 200)
+      return c.json<TvdbMovieHttpResponseBody>(
+        errorBody(error instanceof Error ? error.message : 'Unknown error'),
+        200,
+      )
     }
   })
-
-  app.post('/api/get-tvdb-languages', async (c) => {
+  .post('/api/get-tvdb-languages', async (c) => {
     try {
       const data = await getCore().getTvdbLanguages(tvdbRequestOptions({}))
-      return c.json({ data }, 200)
+      return c.json<TvdbLanguagesHttpResponseBody>({ data }, 200)
     } catch (error) {
       logger.error({ error }, '[POST /api/get-tvdb-languages] route error')
-      return c.json(errorBody(error instanceof Error ? error.message : 'Unknown error'), 200)
+      return c.json<TvdbLanguagesHttpResponseBody>(
+        errorBody(error instanceof Error ? error.message : 'Unknown error'),
+        200,
+      )
     }
   })
-}

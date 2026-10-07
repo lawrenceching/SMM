@@ -12,7 +12,7 @@ vi.mock('../core/getCore', () => ({
   getCore: () => mocks,
 }))
 
-import { handleTvdb } from './Tvdb'
+import { tvdbRoute } from './Tvdb'
 
 describe('TVDB Internal HTTP APIs', () => {
   let app: Hono
@@ -22,8 +22,7 @@ describe('TVDB Internal HTTP APIs', () => {
     mocks.getTvShowInTvdb.mockReset()
     mocks.getMovieInTvdb.mockReset()
     mocks.getTvdbLanguages.mockReset()
-    app = new Hono()
-    handleTvdb(app)
+    app = tvdbRoute
   })
 
   async function post(path: string, body: unknown) {

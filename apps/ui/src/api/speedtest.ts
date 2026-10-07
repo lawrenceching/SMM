@@ -1,32 +1,29 @@
-import { apiFetch } from '@/lib/apiFetch';
-interface SpeedtestResult {
-  url: string;
-  timeMs: number | null;
-  error?: string;
-}
+import { rpc } from '@/lib/rpc';
 
-export interface SpeedtestResponse {
-  fastestUrl: string;
-  results: SpeedtestResult[];
-}
+type SpeedtestHttpResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['speedtest']['$post']>>['json']>
+>;
+
+export type SpeedtestResponse = Exclude<SpeedtestHttpResponseBody, { error: string }>;
 
 /**
  * Call the CLI speedtest endpoint to determine which URL responds faster.
  * The result should be cached in localStorage for use by the DVD guide link.
  */
 export async function speedtest(urls: string[]): Promise<SpeedtestResponse> {
-  const resp = await apiFetch('/api/speedtest', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ urls }),
-  });
+  const resp = await rpc.api.speedtest.$post({ json: { urls } });
 
   if (!resp.ok) {
-    const errorBody = await resp.json().catch(() => ({}));
-    throw new Error(errorBody.error || `HTTP ${resp.status} ${resp.statusText}`);
+    const errorBody = await resp.json().catch(() => null);
+    if (errorBody !== null && typeof errorBody === 'object' && 'error' in errorBody) {
+      throw new Error(errorBody.error);
+    }
+    throw new Error(`HTTP ${resp.status} ${resp.statusText}`);
   }
 
-  return resp.json();
+  const body = await resp.json();
+  if ('error' in body) {
+    throw new Error(body.error);
+  }
+  return body;
 }
