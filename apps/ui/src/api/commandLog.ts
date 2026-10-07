@@ -52,11 +52,14 @@ export async function fetchCommandLogText(
   >[0]
   const resp = await rpc.api['command-log'][':executionId'].$get(req as CommandLogGetArgs)
   if (!resp.ok) {
-    const body = await resp.json()
-    if (body.error === 'Log not found') {
-      return { text: '', meta: emptyLogMeta }
+    const body = await resp.json().catch(() => null)
+    if (body !== null && typeof body === 'object' && 'error' in body) {
+      if (body.error === 'Log not found') {
+        return { text: '', meta: emptyLogMeta }
+      }
+      throw new Error(body.error)
     }
-    throw new Error(body.error)
+    throw new Error(`HTTP ${resp.status} ${resp.statusText}`)
   }
   return { text: await resp.text(), meta: readLogMeta(resp) }
 }

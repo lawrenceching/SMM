@@ -83,43 +83,43 @@ async function testUrl(url: string): Promise<SpeedtestResult> {
 }
 
 export const speedtestRoute = new Hono().post('/api/speedtest', async (c) => {
-    let body: { urls?: unknown };
-    try {
-      body = await c.req.json();
-    } catch {
-      return c.json<{ error: string }>({ error: 'Invalid JSON body' }, 400);
-    }
+  let body: { urls?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json<{ error: string }>({ error: 'Invalid JSON body' }, 400);
+  }
 
-    const urls = body.urls;
-    if (!Array.isArray(urls)) {
-      return c.json<{ error: string }>({ error: 'urls must be an array' }, 400);
-    }
+  const urls = body.urls;
+  if (!Array.isArray(urls)) {
+    return c.json<{ error: string }>({ error: 'urls must be an array' }, 400);
+  }
 
-    const validationError = validateUrls(urls);
-    if (validationError) {
-      return c.json<{ error: string }>({ error: validationError }, 400);
-    }
+  const validationError = validateUrls(urls);
+  if (validationError) {
+    return c.json<{ error: string }>({ error: validationError }, 400);
+  }
 
-    // Run all tests in parallel
-    const results = await Promise.all(urls.map((url) => testUrl(url as string)));
+  // Run all tests in parallel
+  const results = await Promise.all(urls.map((url) => testUrl(url as string)));
 
-    // Pick the fastest URL (prefer one without error, then fastest time)
-    const successfulResults = results.filter((r) => !r.error);
-    let fastestUrl: string;
+  // Pick the fastest URL (prefer one without error, then fastest time)
+  const successfulResults = results.filter((r) => !r.error);
+  let fastestUrl: string;
 
-    if (successfulResults.length === 0) {
-      // All URLs failed — return the first URL as fallback, include error info
-      fastestUrl = urls[0] as string;
-    } else {
-      // Sort by timeMs ascending, pick the fastest
-      successfulResults.sort((a, b) => (a.timeMs ?? Infinity) - (b.timeMs ?? Infinity));
-      fastestUrl = successfulResults[0]!.url;
-    }
+  if (successfulResults.length === 0) {
+    // All URLs failed — return the first URL as fallback, include error info
+    fastestUrl = urls[0] as string;
+  } else {
+    // Sort by timeMs ascending, pick the fastest
+    successfulResults.sort((a, b) => (a.timeMs ?? Infinity) - (b.timeMs ?? Infinity));
+    fastestUrl = successfulResults[0]!.url;
+  }
 
-    const response: SpeedtestResponse = {
-      fastestUrl,
-      results,
-    };
+  const response: SpeedtestResponse = {
+    fastestUrl,
+    results,
+  };
 
-    return c.json<SpeedtestResponse>(response, 200);
-  });
+  return c.json<SpeedtestResponse>(response, 200);
+});

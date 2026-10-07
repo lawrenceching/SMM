@@ -30,7 +30,7 @@ Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Nod
 The `POST /api/deleteMediaMetadata` route was removed in favor of the unified `/api/deleteFile` API. The UI now computes the metadata cache file path (`metadataCacheFilePath(appDataDir, folderPath)`) and calls `/api/deleteFile` directly. The MCP `deleteMediaMetadata` tool continues to work in-process and is not affected.
 
 ## Plans (GetPlans / CreatePlan / UpdatePlan)
-Source Code: packages/core-routes/src/plansApi.ts (handlers), packages/core-routes/src/routes/plansRoute.ts (Node http routes), packages/core-routes/src/tools/plans.ts (file store). apps/cli thin wrapper: apps/server/src/route/Plans.ts (registered in apps/server/server.ts via `handlePlans`).
+Source Code: packages/core-routes/src/plansApi.ts (handlers), packages/core-routes/src/routes/plansRoute.ts (Node http routes), packages/core-routes/src/tools/plans.ts (file store). Served by apps/server/server.ts via the core-routes `isCoreRoute` dispatch; `apps/server/src/route/Plans.ts` is an unregistered thin wrapper (test-only).
 
 Unified, platform-agnostic CRUD for recognize / rename **plans**, replacing the removed `POST /api/getPendingPlans` and the old per-status `POST /api/updatePlan` route. Plans are persisted as `appDataDir/plans/*.plan.json`. The UI consumes these via TanStack Query (`usePlansQuery`, `useCreatePlanMutation`, `useUpdatePlanMutation` in `apps/ui/src/hooks/plans`) instead of the removed Zustand `plansStore` / IndexedDB. A `PlanReady` Socket.IO event triggers `['plans']` query invalidation.
 
@@ -188,7 +188,7 @@ Source Code: packages/core-routes/src/routes/mcpLifecycleRoute.ts
 HTTP: `GET /api/mcp/status` — returns the current MCP server runtime state as `McpServerState` JSON. Prefer `url` for the client connection address when present.
 
 ## Discover
-Source Code: apps/server/src/route/discover.ts
+Source Code: packages/core-routes/src/routes/discoverRoute.ts (`handleDiscoverGet`, served via the core-routes `isCoreRoute` dispatch in apps/server/server.ts); `apps/server/src/route/discover.ts` is an unregistered Hono wrapper (test-only).
 HTTP: `GET /api/discover` — fetches the remote discovery config from `https://lawrenceching.github.io/SMM/config.json` (overridable via `EXTERNAL_CONFIG_FILE_URL`) and returns normalized `mediaDatabases` and `reverseProxies` arrays plus optional `latestVersion`. Each media-database entry has the shape `{ type: 'tmdb' | 'tvdb' | 'tmdb-asset' | 'tvdb-asset', url: string, authorizationMethod: 'date-token' | 'none' }`. Each reverse-proxy entry has the shape `{ id: string, type: 'general', url: string, authorizationMethod: 'date-token' | 'none' }` (the remote config's `authMethod` is normalized to `authorizationMethod`). `latestVersion` is a non-empty string from the remote `config.json` when present. The CLI never returns an error response — fetch failures (timeout, non-2xx, malformed body) result in empty lists (and no `latestVersion`). The UI uses this endpoint at startup to populate candidate TMDB/TVDB endpoints and for StatusBar new-version checks.
 
 ## DownloadImage
