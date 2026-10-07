@@ -5,7 +5,7 @@ import path from "path";
 import { Hono } from "hono";
 import {
   COMMAND_LOG_MAX_BYTES,
-  handleCommandLog,
+  commandLogRoute,
   parseOptionalXCommandExecutionId,
   resolveCommandMainLogPath,
 } from "./commandLog";
@@ -40,8 +40,7 @@ describe("GET /api/command-log/:executionId", () => {
     prevLogDir = process.env.LOG_DIR;
     tmpLogRoot = mkdtempSync(path.join(tmpdir(), "smm-cmdlog-read-"));
     process.env.LOG_DIR = tmpLogRoot;
-    app = new Hono();
-    handleCommandLog(app);
+    app = commandLogRoute;
   });
 
   afterEach(() => {

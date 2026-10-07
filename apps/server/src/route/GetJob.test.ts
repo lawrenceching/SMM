@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { importFolderRoute } from './ImportFolder'
 import { resetCoreForTests } from '../core/getCore'
 
@@ -18,7 +18,7 @@ describe('POST /api/get-job', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleGetJob(base)
+    base.route('/', getJobRoute)
     app = base.route('/', importFolderRoute)
   })
 

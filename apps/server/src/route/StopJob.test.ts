@@ -4,9 +4,9 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { NodejsFsAdapter } from '@smm/core'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { importFolderRoute } from './ImportFolder'
-import { handleStopJob } from './StopJob'
+import { stopJobRoute } from './StopJob'
 import { resetCoreForTests } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
@@ -21,8 +21,8 @@ describe('POST /api/stop-job', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleStopJob(base)
-    handleGetJob(base)
+    base.route('/', stopJobRoute)
+    base.route('/', getJobRoute)
     app = base.route('/', importFolderRoute)
   })
 

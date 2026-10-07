@@ -21,11 +21,8 @@ const getJobTool = tool({
 
     try {
       const body = await getJob(idCheck)
-      if (body.error) {
+      if ('error' in body) {
         return getJobFailed(body.error)
-      }
-      if (!body.data) {
-        return getJobFailed('Error Reason: Job not found')
       }
       return toolOk(getJobSucceeded(body.data as JobToolPayload))
     } catch (error) {

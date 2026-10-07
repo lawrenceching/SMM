@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 import type { CommandLogResponseMeta } from '@/api/commandLog'
 
 const emptyLogMeta: CommandLogResponseMeta = {
@@ -8,30 +8,16 @@ const emptyLogMeta: CommandLogResponseMeta = {
   readLimit: null,
 }
 
-interface GetJobLogResponseBody {
-  data?: { lines: { message: string }[] }
-  error?: string
-}
-
 /**
  * Fetches ImportFolderJob log lines via `POST /api/get-job-log`.
  */
 export async function fetchJobLogText(
   jobId: string,
 ): Promise<{ text: string; meta: CommandLogResponseMeta }> {
-  const res = await apiFetch('/api/get-job-log', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ id: jobId }),
-  })
-  if (!res.ok) {
-    throw new Error(`HTTP Layer Error: ${res.status} ${res.statusText}`)
-  }
-  const body = (await res.json()) as GetJobLogResponseBody
-  if (body.error) {
+  const body = await unwrapJson(await rpc.api['get-job-log'].$post({ json: { id: jobId } }))
+  if ('error' in body) {
     throw new Error(body.error)
   }
-  const text = (body.data?.lines ?? []).map((line) => line.message).join('\n')
+  const text = body.data.lines.map((line) => line.message).join('\n')
   return { text, meta: emptyLogMeta }
 }

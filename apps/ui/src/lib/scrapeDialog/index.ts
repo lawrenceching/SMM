@@ -1,6 +1,5 @@
 export {
   getScrapeTaskIdsForMedia,
-  type ScrapeTaskId,
   type ScrapeTaskView,
 } from "./types"
 export { areAllTasksDone } from "./selectors"

@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { importFolderRoute } from './ImportFolder'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { folderMetadataRoute } from './FolderMetadata'
 import { resetCoreForTests } from '../core/getCore'
 
@@ -21,7 +21,7 @@ describe('POST /api/folder-metadata', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleGetJob(base)
+    base.route('/', getJobRoute)
     base.route('/', importFolderRoute)
     app = base.route('/', folderMetadataRoute)
   })

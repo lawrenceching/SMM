@@ -1,3 +1,5 @@
+import { rpc } from '@/lib/rpc'
+
 export type CommandLogResponseMeta = {
   truncated: boolean
   totalBytes: number | null
@@ -27,49 +29,34 @@ const emptyLogMeta: CommandLogResponseMeta = {
   readLimit: null,
 }
 
-/** CLI returns 404 JSON when `main.log` does not exist yet; treat as empty so queries stay successful and can poll. */
-function isCommandLogNotFoundResponse(res: Response, bodyText: string): boolean {
-  if (res.status !== 404) return false
-  try {
-    const j = JSON.parse(bodyText) as { error?: string }
-    return j?.error === 'Log not found'
-  } catch {
-    return bodyText.includes('Log not found')
-  }
-}
-
-function buildCommandLogUrl(
-  executionId: string,
-  range?: { offset?: number; limit?: number },
-): string {
-  const base = `/api/command-log/${encodeURIComponent(executionId)}`
-  const q = new URLSearchParams()
-  if (range?.offset !== undefined) q.set('offset', String(range.offset))
-  if (range?.limit !== undefined) q.set('limit', String(range.limit))
-  const qs = q.toString()
-  return qs ? `${base}?${qs}` : base
-}
-
 /**
  * Fetches the raw main.log text for an execution. The CLI returns the
  * file contents as `text/plain` along with pagination/truncation
  * headers. No server-side structure is imposed — the UI parses
  * whatever it needs from the text (e.g. yt-dlp progress JSON).
  */
-import { apiFetch } from '@/lib/apiFetch';
-
 export async function fetchCommandLogText(
   executionId: string,
   range?: { offset?: number; limit?: number },
 ): Promise<{ text: string; meta: CommandLogResponseMeta }> {
-  const url = buildCommandLogUrl(executionId, range)
-  const res = await apiFetch(url, { credentials: 'same-origin' })
-  const text = await res.text()
-  if (!res.ok) {
-    if (isCommandLogNotFoundResponse(res, text)) {
+  const query: { offset?: string; limit?: string } = {}
+  if (range?.offset !== undefined) query.offset = String(range.offset)
+  if (range?.limit !== undefined) query.limit = String(range.limit)
+  const req: { param: { executionId: string }; query?: { offset?: string; limit?: string } } = {
+    param: { executionId: encodeURIComponent(executionId) },
+  }
+  if (query.offset !== undefined) req.query = { offset: query.offset }
+  if (query.limit !== undefined) req.query = { ...req.query, limit: query.limit }
+  type CommandLogGetArgs = Parameters<
+    (typeof rpc)['api']['command-log'][':executionId']['$get']
+  >[0]
+  const resp = await rpc.api['command-log'][':executionId'].$get(req as CommandLogGetArgs)
+  if (!resp.ok) {
+    const body = await resp.json()
+    if (body.error === 'Log not found') {
       return { text: '', meta: emptyLogMeta }
     }
-    throw new Error(text || `HTTP ${res.status}`)
+    throw new Error(body.error)
   }
-  return { text, meta: readLogMeta(res) }
+  return { text: await resp.text(), meta: readLogMeta(resp) }
 }

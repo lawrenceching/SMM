@@ -29,6 +29,10 @@ import { showFolderRoute } from './src/route/ShowFolder';
 import { openFileRoute } from './src/route/OpenFile';
 import { openInFileManagerRoute } from './src/route/OpenInFileManager';
 import { moveFileToTrashRoute } from './src/route/MoveFileToTrash';
+import { getJobRoute } from './src/route/GetJob';
+import { stopJobRoute } from './src/route/StopJob';
+import { getJobLogRoute } from './src/route/GetJobLog';
+import { commandLogRoute } from './src/route/commandLog';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -142,7 +146,11 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', showFolderRoute)
     .route('/', openFileRoute)
     .route('/', openInFileManagerRoute)
-    .route('/', moveFileToTrashRoute);
+    .route('/', moveFileToTrashRoute)
+    .route('/', getJobRoute)
+    .route('/', stopJobRoute)
+    .route('/', getJobLogRoute)
+    .route('/', commandLogRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

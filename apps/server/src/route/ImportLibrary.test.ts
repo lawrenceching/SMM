@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { importLibraryRoute } from './ImportLibrary'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/import-library', () => {
@@ -21,7 +21,7 @@ describe('POST /api/import-library', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleGetJob(base)
+    base.route('/', getJobRoute)
     app = base.route('/', importLibraryRoute)
   })
 

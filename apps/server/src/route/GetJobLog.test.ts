@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleGetJobLog } from './GetJobLog'
+import { getJobLogRoute } from './GetJobLog'
 import { importFolderRoute } from './ImportFolder'
 import { resetCoreForTests } from '../core/getCore'
 import { logger } from '../../lib/logger'
@@ -19,7 +19,7 @@ describe('POST /api/get-job-log', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleGetJobLog(base)
+    base.route('/', getJobLogRoute)
     app = base.route('/', importFolderRoute)
   })
 

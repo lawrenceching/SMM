@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { scrapeRoute } from './Scrape'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { getCore, resetCoreForTests } from '../core/getCore'
 import { Path } from '@smm/utils/path'
 import type { MediaMetadata } from '@smm/types'
@@ -26,7 +26,7 @@ describe('POST /api/scrape', () => {
     resetCoreForTests()
     app = new Hono()
     app.route('/', scrapeRoute)
-    handleGetJob(app)
+    app.route('/', getJobRoute)
   })
 
   afterEach(() => {

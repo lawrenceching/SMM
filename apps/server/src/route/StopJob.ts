@@ -1,11 +1,10 @@
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
-interface StopJobResponseBody {
-  data?: { id: string }
-  error?: string
-}
+type StopJobResponseBody =
+  | { data: { id: string } }
+  | { error: string }
 
 const BUSINESS_JOB_ERRORS = new Set([
   'Job not found',
@@ -13,42 +12,40 @@ const BUSINESS_JOB_ERRORS = new Set([
   'Job already finished',
 ])
 
-export function handleStopJob(app: Hono): void {
-  app.post('/api/stop-job', async (c) => {
+export const stopJobRoute = new Hono().post('/api/stop-job', async (c) => {
+  try {
+    let body: unknown = {}
     try {
-      let body: unknown = {}
-      try {
-        body = await c.req.json()
-      } catch {
-        /* empty body */
-      }
-      const id =
-        typeof body === 'object' && body !== null && 'id' in body
-          ? (body as { id: unknown }).id
-          : undefined
-      if (typeof id !== 'string' || id.trim() === '') {
-        const err: StopJobResponseBody = { error: 'Error Reason: id is required' }
-        return c.json(err, 200)
-      }
-      const job = getCore().getJob(id)
-      if (job === undefined) {
-        throw new Error('Job not found')
-      }
-      if (job.status !== 'pending' && job.status !== 'running') {
-        throw new Error('Job already finished')
-      }
-      getCore().stopJob(id)
-      const ok: StopJobResponseBody = { data: { id } }
-      return c.json(ok, 200)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown error'
-      if (!BUSINESS_JOB_ERRORS.has(message)) {
-        logger.error({ error }, '[POST /api/stop-job] route error')
-      }
-      const err: StopJobResponseBody = {
-        error: `Error Reason: ${message}`,
-      }
-      return c.json(err, 200)
+      body = await c.req.json()
+    } catch {
+      /* empty body */
     }
-  })
-}
+    const id =
+      typeof body === 'object' && body !== null && 'id' in body
+        ? (body as { id: unknown }).id
+        : undefined
+    if (typeof id !== 'string' || id.trim() === '') {
+      const err: StopJobResponseBody = { error: 'Error Reason: id is required' }
+      return c.json<StopJobResponseBody>(err, 200)
+    }
+    const job = getCore().getJob(id)
+    if (job === undefined) {
+      throw new Error('Job not found')
+    }
+    if (job.status !== 'pending' && job.status !== 'running') {
+      throw new Error('Job already finished')
+    }
+    getCore().stopJob(id)
+    const ok: StopJobResponseBody = { data: { id } }
+    return c.json<StopJobResponseBody>(ok, 200)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    if (!BUSINESS_JOB_ERRORS.has(message)) {
+      logger.error({ error }, '[POST /api/stop-job] route error')
+    }
+    const err: StopJobResponseBody = {
+      error: `Error Reason: ${message}`,
+    }
+    return c.json<StopJobResponseBody>(err, 200)
+  }
+})

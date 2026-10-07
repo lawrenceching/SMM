@@ -5,7 +5,7 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { showFolderRoute } from './ShowFolder'
 import { importFolderRoute } from './ImportFolder'
-import { handleGetJob } from './GetJob'
+import { getJobRoute } from './GetJob'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/show-folder', () => {
@@ -21,7 +21,7 @@ describe('POST /api/show-folder', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
     const base = new Hono()
-    handleGetJob(base)
+    base.route('/', getJobRoute)
     base.route('/', importFolderRoute)
     app = base.route('/', showFolderRoute)
   })

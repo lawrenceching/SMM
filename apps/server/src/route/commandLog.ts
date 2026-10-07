@@ -1,4 +1,5 @@
-import type { Hono } from "hono";
+import { Hono } from "hono";
+import { validator } from "hono/validator";
 import fs from "fs/promises";
 import path from "path";
 import { getLogDir } from "../utils/config";
@@ -40,24 +41,33 @@ export function resolveCommandMainLogPath(executionId: string): string | null {
   return file;
 }
 
+type CommandLogErrorResponseBody = { error: string };
+
+type CommandLogQuery = { offset?: string; limit?: string };
+
 /**
  * GET /api/command-log/:executionId — returns the raw main.log contents
  * (UTF-8) along with pagination/truncation headers. The UI parses the
  * text on its end (see `extractLatestProgress`); no server-side
  * structure is imposed.
  */
-export function handleCommandLog(app: Hono) {
-  app.get("/api/command-log/:executionId", async (c) => {
+export const commandLogRoute = new Hono().get(
+  "/api/command-log/:executionId",
+  validator("query", (_value, c): CommandLogQuery => ({
+    offset: c.req.query("offset"),
+    limit: c.req.query("limit"),
+  })),
+  async (c) => {
     const executionId = c.req.param("executionId") ?? "";
     const logPath = resolveCommandMainLogPath(executionId);
     if (!logPath) {
-      return c.json({ error: "Invalid execution id" }, 400);
+      return c.json<CommandLogErrorResponseBody>({ error: "Invalid execution id" }, 400);
     }
 
-    let offset = parseInt(c.req.query("offset") ?? "0", 10);
+    const { offset: offsetRaw, limit: limitRaw } = c.req.valid("query");
+    let offset = parseInt(offsetRaw ?? "0", 10);
     if (Number.isNaN(offset) || offset < 0) offset = 0;
 
-    const limitRaw = c.req.query("limit");
     let limit = limitRaw === undefined || limitRaw === "" ? NaN : parseInt(limitRaw, 10);
 
     let size: number;
@@ -67,10 +77,10 @@ export function handleCommandLog(app: Hono) {
     } catch (err) {
       const code = (err as NodeJS.ErrnoException)?.code;
       if (code === "ENOENT") {
-        return c.json({ error: "Log not found" }, 404);
+        return c.json<CommandLogErrorResponseBody>({ error: "Log not found" }, 404);
       }
       logger.warn({ err: err, executionId, logPath }, "[commandLog] stat failed");
-      return c.json({ error: "Failed to read log" }, 500);
+      return c.json<CommandLogErrorResponseBody>({ error: "Failed to read log" }, 500);
     }
 
     const remaining = Math.max(0, size - offset);
@@ -100,9 +110,9 @@ export function handleCommandLog(app: Hono) {
       return c.body(new Uint8Array(buf.subarray(0, bytesRead)), 200);
     } catch (err) {
       logger.warn({ err, executionId, logPath }, "[commandLog] read failed");
-      return c.json({ error: "Failed to read log" }, 500);
+      return c.json<CommandLogErrorResponseBody>({ error: "Failed to read log" }, 500);
     } finally {
       await fh.close();
     }
-  });
-}
+  },
+);
