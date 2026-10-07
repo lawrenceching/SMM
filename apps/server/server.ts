@@ -1,10 +1,10 @@
 import http from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { Hono } from 'hono';
-import { cors } from 'hono/cors';
 import { serveStatic } from 'hono/bun';
 import { getRequestListener } from '@hono/node-server';
 import path from 'path';
+import { createApp } from './app';
 import { setSocketIOManager } from './src/utils/socketIO.ts';
 import { handleRenameEpisodeFile } from './src/route/RenameEpisodeFile';
 import { handleValidateRenameOperationsRoute } from './src/route/validateRenameOperations';
@@ -50,7 +50,6 @@ import { handleDeleteMetadata } from './src/route/metadata/DeleteMetadata';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
-import { registerExecuteRoutes } from './src/route/execute';
 import { handleCommandLog } from './src/route/commandLog';
 import { handleCommandExecutionStatus } from './src/route/commandExecutionStatus';
 import { handleLog } from './src/route/Log';
@@ -60,7 +59,6 @@ import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
 import { applyMcpConfig } from '@server/mcp/mcpServerManager';
 import { getCore } from '@server/core/getCore';
 import { getUserConfig } from './src/utils/config.ts';
-import { requestId } from 'hono/request-id';
 import { logger } from './lib/logger';
 import {
   buildReverseProxyPublicUrl,
@@ -69,7 +67,6 @@ import {
   DEFAULT_ALLOWED_UPSTREAM_HOSTS,
   handleProxyRequest,
   isCoreRoute,
-  isRequestAuthorized,
   resolveHttpBindAddress,
   resolveReverseProxyAdvertisedHost,
   REVERSE_PROXY_MOUNT_PATH,
@@ -121,7 +118,7 @@ function attachCliHttpTiming(req: IncomingMessage, res: ServerResponse, inflight
   res.on('close', () => done('aborted'));
 }
 
-function createSocketIOLogger(): CoreRoutesLogger {
+function createHonoLogger(): CoreRoutesLogger {
   return {
     debug: (obj, msg) => logger.debug(obj, msg),
     info: (obj, msg) => logger.info(obj, msg),
@@ -131,7 +128,7 @@ function createSocketIOLogger(): CoreRoutesLogger {
 }
 
 export class Server {
-  private app: Hono;
+  private app: ReturnType<typeof createApp>;
   private httpServer: http.Server | null = null;
   private port: number;
   private webUiBindAddress: string;
@@ -151,37 +148,7 @@ export class Server {
     this.beforeStop = config.beforeStop;
     this.auth = config.auth;
 
-    this.app = new Hono();
-    this.app.use(requestId())
-
-    // Pino logging middleware for Hono
-    this.app.use(async (c, next) => {
-      const reqId = c.get('requestId');
-      const method = c.req.method;
-      const path = c.req.path;
-
-      // Skip logging for Socket.IO polling to reduce noise
-      if (path.includes('/socket.io/')) {
-        return next();
-      }
-
-      const start = Date.now();
-
-      logger.debug({ requestId: reqId, method, path }, 'incoming request');
-
-      await next();
-
-      const duration = Date.now() - start;
-      const status = c.res.status;
-
-      logger.info({
-        requestId: reqId,
-        method,
-        path,
-        status,
-        duration: `${duration}ms`
-      }, 'request completed');
-    });
+    this.app = createApp({ auth: this.auth, logger: createHonoLogger() });
 
     this.proxyConfig = null;
     this.reverseProxyUrl = null;
@@ -219,53 +186,6 @@ export class Server {
   }
 
   private setupRoutes() {
-    // Allow browser dev (Vite on another origin) to call CLI directly for streaming APIs.
-    this.app.use(
-      '/api/*',
-      cors({
-        origin: '*',
-        allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'Authorization', 'X-Timeout', 'X-Command-Execution-Id'],
-        exposeHeaders: [
-          'X-Command-Execution-Id',
-          'X-Command-Log-Path',
-          'X-Resolved-Executable-Path',
-        ],
-      }),
-    );
-
-    // Enforce no browser caching on all API responses, except handlers
-    // that explicitly opt into caching (e.g. /api/image poster proxy).
-    this.app.use('/api/*', async (c, next) => {
-      await next();
-      // Leave CORS preflight responses untouched so browsers can still cache them.
-      if (c.req.method === 'OPTIONS') return;
-      const cacheControl = c.res.headers.get('Cache-Control');
-      const allowsCaching =
-        cacheControl && /\b(public|private|max-age|s-maxage|immutable)\b/.test(cacheControl);
-      if (!allowsCaching) {
-        c.res.headers.set('Cache-Control', 'no-store');
-      }
-    });
-
-    this.app.use('/api/*', async (c, next) => {
-      if (c.req.method === 'OPTIONS') {
-        return next();
-      }
-      // /api/log is intentionally public: it is write-only, rate-limited
-      // (10/s + 200-entry cap), and body-bounded (~800KB max). The flusher
-      // uses sendBeacon as its primary path, which cannot carry an
-      // Authorization header, so auth would defeat the whole pipeline.
-      // Abuse ceiling is "polluted logs" — no read access, no data leak.
-      if (c.req.path === '/api/log') {
-        return next();
-      }
-      if (!isRequestAuthorized(c.req.header('Authorization'), this.auth)) {
-        return c.json({ error: 'Unauthorized: invalid or missing token' }, 401);
-      }
-      return next();
-    });
-
     // Platform-specific CLI routes (not in core-routes — ohos does not reuse these).
     // Shared public APIs are dispatched to createCliCoreRoutesHandler via isCoreRoute.
     handleSetWatchedFolder(this.app);
@@ -318,7 +238,6 @@ export class Server {
     handleLog(this.app);
     handleSpeedtest(this.app);
     handleShutdown(this.app);
-    // /api/execute is registered in start() once reverse-proxy config is available.
 
     // Path-mounted L7 reverse proxy (TMDB/TVDB/AI). Must be registered before
     // the static catch-all so `/proxy` is not served as a static file miss.
@@ -379,7 +298,6 @@ export class Server {
       ...proxyConfig,
       stripPathPrefix: REVERSE_PROXY_MOUNT_PATH,
     };
-    registerExecuteRoutes(this.app);
 
     const advertisedHost = resolveReverseProxyAdvertisedHost(this.webUiBindAddress);
     this.reverseProxyUrl = buildReverseProxyPublicUrl(
@@ -434,7 +352,7 @@ export class Server {
     });
 
     this.socketManager = createSocketIOManager(this.httpServer, {
-      logger: createSocketIOLogger(),
+      logger: createHonoLogger(),
       cors: {
         origin: '*',
         methods: ['GET', 'POST'],

@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Unit tests only. E2E lives in dedicated suites — run via dedicated scripts.
-    include: ['src/**/*.test.ts', 'test/helpers/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/helpers/**/*.test.ts', 'app.test.ts'],
     passWithNoTests: true,
   },
   resolve: {
