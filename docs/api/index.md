@@ -1,5 +1,7 @@
 # API 列表
 
+Hono 路由的类型契约由 `apps/server/app.ts` 的 `AppType` 提供; apps/ui 经 `hc<AppType>` RPC client (见 `apps/ui/src/lib/rpc.ts`) 调用, 请求/响应类型从服务端推导。core-routes 公共 API 与流式/二进制端点不走该 client (保留 `apiFetch` / 裸 fetch)。
+
 ## CommandLog
 Source Code: apps/server/src/route/commandLog.ts
 HTTP: `GET /api/command-log/:executionId` — reads `commands/<uuid>/main.log` under the app log root; query `format` (`raw` \| `segments`), optional byte `offset` and `limit` (capped). Response headers `X-Log-Total-Bytes`, `X-Log-Truncated`, `X-Log-Read-Offset`, `X-Log-Read-Limit`.
@@ -208,3 +210,12 @@ Document: docs/api/ReadImageAPI.md
 HTTP: `POST /api/readImage` — reads a local image file and returns it as a `data:image/<mime>;base64,…` URL. Request body: `{ path: string }` (platform absolute path). The path must be inside the server-side allowlist and have a supported extension (`.jpg .jpeg .png .gif .webp .svg .bmp .ico .tiff .tif`). Missing files return `File Not Found`; out-of-allowlist paths return `Path "<path>" is not in the allowlist`.
 
 Served by both the Hono Bun server (apps/cli port 30000) and the core-routes Node `http` server (port from `HelloResponseBody.coreRoutesPort`, default 3001 on the desktop CLI, 18081 on HarmonyOS). The Hono shell at `apps/server/src/route/ReadImage.ts` delegates to `doReadImage` from `@smm/core-routes`.
+
+## Debug
+Source Code: apps/server/src/route/Debug.ts (`POST /debug` dispatcher) + apps/server/src/route/debug/*.ts
+HTTP: `POST /debug`, `POST /debug/startRecognizeTask`, `POST /debug/addFileToRecognizeTask`, `POST /debug/endRecognizeTask`, `POST /debug/createRenameEpisodePlan`, `POST /debug/getApplicationContext`, `POST /debug/getMediaMetadata`, `POST /debug/renameFolderTool`, `POST /debug/scrapeTool`, `POST /debug/getJobTool`, `POST /debug/listFilesTool`, `POST /debug/getMediaFolders`, `POST /debug/getEpisodesTool`, `POST /debug/isFolderExistTool`
+
+Server-side debug / AI tool trial endpoints (no UI callers). Wire contract differs from the standard Hono routes: the response is a wide union `{ success: boolean, data?: T, error?: string }` with HTTP 200 in-band errors (route-level catch-alls may return 500). Discriminate on `success` truthiness, not `'error' in body` (the latter silently no-ops on non-union shapes). Two families:
+
+- data-keeps-error (`getJobTool` / `scrapeTool` / `renameFolderTool` / `startRecognizeTask` / `addFileToRecognizeTask` / `endRecognizeTask`): the tool result is returned verbatim as `data` (its `error` field, when present, stays inside `data`) and mirrored at the top level: `{ success: false, data: { ... result, error }, error }`.
+- error-stripped (`getMediaMetadata` / `listFilesTool` / `getEpisodesTool` / `getMediaFolders`): on failure the `error` field is destructured out of the tool result; `data` carries only the remainder (`Omit<T, 'error'>`) and `error` is top-level only.

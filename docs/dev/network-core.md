@@ -14,7 +14,7 @@ Support proxy procotol: http, https and socks5.
 
 浏览器无法直连任意上游 / 出站代理，因此通过 CLI RPC：
 
-1. `BrowserNetworkPort.fetch` → `POST /api/core/fetch`（`apiFetch`，带 auth）
+1. `BrowserNetworkPort.fetch` → `POST /api/core/fetch`（经 `apps/ui/src/lib/rpc.ts` 的 rpc client，内部仍 `apiFetch`，auth 行为不变）
 2. CLI `handleCoreFetch` 用 `NodejsNetworkPort` 发起真实请求（含 `proxy`）
 3. 响应以 `{ data: { ok, status, statusText, headers, bodyBase64 }, error? }` 返回；Port 再还原为 `HttpResponse`
 

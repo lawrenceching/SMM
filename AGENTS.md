@@ -163,7 +163,12 @@ pnpm test
 见 [架构总览](./docs/dev/overview.md)
 
 ### 前后端通信
-- **HTTP API**: 使用 Hono 框架提供 RESTful API
+- **HTTP API**: 使用 Hono 框架提供 RESTful API, ui 与 server 之间走 Hono RPC 类型安全客户端:
+  - 服务端路由模块以 `export const xxxRoute = new Hono().method(...)` 形式定义, 由 `apps/server/app.ts` 的 `createApp()` 以 `.route()` 链组合, `AppType` 由该文件导出
+  - apps/ui 经 `apps/ui/src/lib/rpc.ts` 的 `hc<AppType>('', { fetch: apiFetch })` 类型化调用 (复用 apiFetch 的 Authorization 注入与 401 处理), 请求/响应类型从服务端推导, 不手写 ResponseBody interface
+  - 新增路由: 新建 route module → 加入 `createApp()` 的 `.route()` 链 → UI 自动获得类型
+  - 响应模板要点: 判别联合 `{ data } | { error }`, 客户端用 `'error' in body` 收窄; 多 status / 非 JSON 响应的例外见 refactoring.md
+  - Out of scope (不走 rpc, 保留 apiFetch / 裸 fetch): core-routes 公共 API、`/api/executeCmd` (NDJSON 流)、`/api/log` (sendBeacon)、`/proxy` 反向代理、Socket.IO、静态资源
 - **Socket.IO**: 使用 Socket.IO 进行实时双向通信
 - **MCP**: 提供 Model Context Protocol 服务器, 支持 AI 工具调用
 
