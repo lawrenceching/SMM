@@ -1,4 +1,5 @@
 import { brotliCompress } from "node:zlib";
+import { randomBytes } from "node:crypto";
 import { promisify } from "node:util";
 import type { IncomingMessage } from "node:http";
 import { describe, expect, it, vi } from "vitest";
@@ -99,6 +100,54 @@ describe("createNodeHttpFetch", () => {
       const response = await fetchImpl(request);
       expect(response.status).toBe(200);
       await expect(response.text()).resolves.toBe("");
+    } finally {
+      requestSpy.mockRestore();
+    }
+  });
+
+  it("preserves exact bytes for a response body Buffer with non-zero byteOffset", async () => {
+    const fetchImpl = createNodeHttpFetch();
+    const backing = new ArrayBuffer(7 + 256 + 3);
+    const payload = Buffer.from(backing, 7, 256);
+    randomBytes(256).copy(payload);
+    expect(payload.byteOffset).toBe(7);
+
+    const request = new Request("https://example.test/resource", { method: "GET" });
+
+    const https = await import("node:https");
+    const requestSpy = vi
+      .spyOn(https.default, "request")
+      .mockImplementation((_options, callback) => {
+        const res = {
+          statusCode: 200,
+          statusMessage: "OK",
+          headers: { "content-type": "application/octet-stream" },
+          on(event: string, handler: (...args: unknown[]) => void) {
+            if (event === "data") {
+              handler(payload);
+            }
+            if (event === "end") {
+              handler();
+            }
+          },
+        };
+        queueMicrotask(() => {
+          (callback as ((res: IncomingMessage) => void) | undefined)?.(
+            res as IncomingMessage,
+          );
+        });
+        return {
+          on() {},
+          write() {},
+          end() {},
+        } as never;
+      });
+
+    try {
+      const response = await fetchImpl(request);
+      const bytes = Buffer.from(await response.arrayBuffer());
+      expect(bytes.length).toBe(256);
+      expect(Buffer.compare(bytes, payload)).toBe(0);
     } finally {
       requestSpy.mockRestore();
     }
