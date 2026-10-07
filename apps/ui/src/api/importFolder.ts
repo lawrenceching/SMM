@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 import type { FolderType } from '@smm/types'
 
 export interface ImportFolderParams {
@@ -9,10 +9,9 @@ export interface ImportFolderParams {
   traceId?: string
 }
 
-interface ImportFolderResponseBody {
-  data?: { id: string }
-  error?: string
-}
+type ImportFolderResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['import-folder']['$post']>>['json']>
+>
 
 /** Layer-2 import folder via Core (`POST /api/import-folder`). */
 async function importFolder(
@@ -32,22 +31,12 @@ async function importFolder(
     console.log(`[${traceId}] import-folder: POST /api/import-folder`, { path, type, skipInit: skipInit === true })
   }
 
-  const resp = await apiFetch('/api/import-folder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  const data = (await resp.json()) as ImportFolderResponseBody
+  const resp = await rpc.api['import-folder'].$post({ json: body }, { init: { signal } })
+  const data = await unwrapJson(resp)
   if (traceId) {
     console.log(`[${traceId}] import-folder: POST /api/import-folder response`, {
-      jobId: data.data?.id,
-      error: data.error,
+      jobId: 'error' in data ? undefined : data.data.id,
+      error: 'error' in data ? data.error : undefined,
     })
   }
   return data
@@ -56,10 +45,10 @@ async function importFolder(
 /** Throws on business error; returns job id. */
 export async function importFolderViaCore(params: ImportFolderParams): Promise<string> {
   const data = await importFolder(params)
-  if (data.error) {
+  if ('error' in data) {
     throw new Error(data.error)
   }
-  if (!data.data?.id) {
+  if (!data.data.id) {
     throw new Error('Error Reason: import-folder job id missing')
   }
   return data.data.id

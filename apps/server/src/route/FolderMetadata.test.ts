@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleImportFolder } from './ImportFolder'
+import { importFolderRoute } from './ImportFolder'
 import { handleGetJob } from './GetJob'
 import { folderMetadataRoute } from './FolderMetadata'
 import { resetCoreForTests } from '../core/getCore'
@@ -20,10 +20,10 @@ describe('POST /api/folder-metadata', () => {
     mediaFolder = mkdtempSync(join(tmpdir(), 'smm-folder-meta-media-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportFolder(app)
-    handleGetJob(app)
-    app.route('/', folderMetadataRoute)
+    const base = new Hono()
+    handleGetJob(base)
+    base.route('/', importFolderRoute)
+    app = base.route('/', folderMetadataRoute)
   })
 
   afterEach(() => {

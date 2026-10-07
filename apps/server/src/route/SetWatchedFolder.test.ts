@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { Hono } from 'hono';
-import { handleSetWatchedFolder } from './SetWatchedFolder';
+import { setWatchedFolderRoute } from './SetWatchedFolder';
 import { getFolderWatcher, resetFolderWatcherForTests } from '../services/folderWatcher';
 
 describe('POST /api/setWatchedFolder', () => {
@@ -15,8 +15,7 @@ describe('POST /api/setWatchedFolder', () => {
     resetFolderWatcherForTests();
     dirA = mkdtempSync(join(tmpdir(), 'smm-api-watch-a-'));
     dirB = mkdtempSync(join(tmpdir(), 'smm-api-watch-b-'));
-    app = new Hono();
-    handleSetWatchedFolder(app);
+    app = setWatchedFolderRoute;
     getFolderWatcher(10);
   });
 
@@ -66,5 +65,19 @@ describe('POST /api/setWatchedFolder', () => {
     });
     await expect(res.json()).resolves.toEqual({ data: { watchedFolder: null } });
     expect(getFolderWatcher().getWatchedFolders()).toEqual([]);
+  });
+
+  it('returns Error Reason when the watcher fails', async () => {
+    vi.spyOn(getFolderWatcher(), 'setWatchedFolder').mockImplementation(() => {
+      throw new Error('watcher boom');
+    });
+    const res = await app.request('/api/setWatchedFolder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ folderPath: dirA }),
+    });
+    expect(res.status).toBe(200);
+    const json = (await res.json()) as { error?: string };
+    expect(json.error).toMatch(/^Error Reason: watcher boom$/);
   });
 });

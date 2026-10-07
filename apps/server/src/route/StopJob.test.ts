@@ -5,7 +5,7 @@ import { join } from 'path'
 import { Hono } from 'hono'
 import { NodejsFsAdapter } from '@smm/core'
 import { handleGetJob } from './GetJob'
-import { handleImportFolder } from './ImportFolder'
+import { importFolderRoute } from './ImportFolder'
 import { handleStopJob } from './StopJob'
 import { resetCoreForTests } from '../core/getCore'
 import { logger } from '../../lib/logger'
@@ -20,10 +20,10 @@ describe('POST /api/stop-job', () => {
     userDataDir = mkdtempSync(join(tmpdir(), 'smm-stop-job-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportFolder(app)
-    handleStopJob(app)
-    handleGetJob(app)
+    const base = new Hono()
+    handleStopJob(base)
+    handleGetJob(base)
+    app = base.route('/', importFolderRoute)
   })
 
   afterEach(() => {

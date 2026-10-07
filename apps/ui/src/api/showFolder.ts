@@ -1,48 +1,25 @@
-import { apiFetch } from '@/lib/apiFetch'
-import type { MediaMetadata } from '@smm/types'
-import type { UIMediaFolderStatus } from '@/types/UIMediaFolder'
+import { rpc, unwrapJson } from '@/lib/rpc'
 
-type ShowFolderStatus = Extract<
-  UIMediaFolderStatus,
-  'ok' | 'folder_not_found' | 'error_loading_metadata'
+type ShowFolderResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['show-folder']['$post']>>['json']>
 >
 
-export interface ShowFolderResult {
-  path: string
-  status: ShowFolderStatus
-  type?: MediaMetadata['type']
-  title?: string
-}
-
-interface ShowFolderResponseBody {
-  data?: ShowFolderResult
-  error?: string
-}
+type ShowFolderResult = Exclude<ShowFolderResponseBody, { error: string }>['data']
 
 /** Resolve folder display status via Core (`POST /api/show-folder`). */
 async function showFolder(path: string, signal?: AbortSignal): Promise<ShowFolderResponseBody> {
-  const resp = await apiFetch('/api/show-folder', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ path }),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  return (await resp.json()) as ShowFolderResponseBody
+  const resp = await rpc.api['show-folder'].$post(
+    { json: { path } },
+    { init: { signal } },
+  )
+  return unwrapJson(resp)
 }
 
 /** Throws on business error; returns show-folder payload. */
 export async function showFolderViaCore(path: string, signal?: AbortSignal): Promise<ShowFolderResult> {
   const body = await showFolder(path, signal)
-  if (body.error) {
+  if ('error' in body) {
     throw new Error(body.error)
-  }
-  if (!body.data) {
-    throw new Error('Error Reason: show-folder result missing')
   }
   return body.data
 }

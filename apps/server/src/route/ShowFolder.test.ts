@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleShowFolder } from './ShowFolder'
-import { handleImportFolder } from './ImportFolder'
+import { showFolderRoute } from './ShowFolder'
+import { importFolderRoute } from './ImportFolder'
 import { handleGetJob } from './GetJob'
 import { resetCoreForTests } from '../core/getCore'
 
@@ -20,10 +20,10 @@ describe('POST /api/show-folder', () => {
     mediaFolder = mkdtempSync(join(tmpdir(), 'smm-show-folder-media-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportFolder(app)
-    handleGetJob(app)
-    handleShowFolder(app)
+    const base = new Hono()
+    handleGetJob(base)
+    base.route('/', importFolderRoute)
+    app = base.route('/', showFolderRoute)
   })
 
   afterEach(() => {

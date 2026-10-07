@@ -1,6 +1,6 @@
 import { Path } from "@smm/utils/path";
 import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from "@smm/types";
-import { apiFetch } from '@/lib/apiFetch';
+import { rpc } from '@/lib/rpc';
 
 const OPEN_IN_FILE_MANAGER_CHANNEL = "open-in-file-manager";
 
@@ -61,19 +61,12 @@ export async function openInFileManagerApi(pathInPosix: string): Promise<OpenInF
   const req: OpenInFileManagerRequestBody = {
     path: platformPath,
   };
-  
-  const resp = await apiFetch('/api/openInFileManager', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
+
+  const resp = await rpc.api.openInFileManager.$post({ json: req });
 
   if (!resp.ok) {
-    const errorData = await resp.json() as OpenInFileManagerResponseBody;
-    return errorData;
+    return await resp.json();
   }
 
-  return (await resp.json()) as OpenInFileManagerResponseBody;
+  return await resp.json();
 }

@@ -1,26 +1,19 @@
-import type {
-  SetWatchedFolderRequestBody,
-  SetWatchedFolderResponseBody,
-} from "@smm/types"
-import { apiFetch } from "@/lib/apiFetch"
+import { rpc, unwrapJson } from "@/lib/rpc"
+
+type SetWatchedFolderResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['setWatchedFolder']['$post']>>['json']>
+>
 
 export async function setWatchedFolder(
   folderPath: string | null,
   signal?: AbortSignal,
 ): Promise<SetWatchedFolderResponseBody> {
-  const body: SetWatchedFolderRequestBody = { folderPath }
-  const resp = await apiFetch("/api/setWatchedFolder", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-    signal,
-  })
+  const resp = await rpc.api.setWatchedFolder.$post(
+    { json: { folderPath } },
+    { init: { signal } },
+  )
 
-  if (!resp.ok) {
-    throw new Error(`setWatchedFolder: HTTP ${resp.status} ${resp.statusText}`)
-  }
-
-  const data = (await resp.json()) as SetWatchedFolderResponseBody
+  const data = await unwrapJson(resp)
   if (data.error) {
     console.error("[setWatchedFolder] API error", data.error)
   }

@@ -4,7 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import { handleGetJob } from './GetJob'
-import { handleImportFolder } from './ImportFolder'
+import { importFolderRoute } from './ImportFolder'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/get-job', () => {
@@ -17,9 +17,9 @@ describe('POST /api/get-job', () => {
     userDataDir = mkdtempSync(join(tmpdir(), 'smm-get-job-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportFolder(app)
-    handleGetJob(app)
+    const base = new Hono()
+    handleGetJob(base)
+    app = base.route('/', importFolderRoute)
   })
 
   afterEach(() => {

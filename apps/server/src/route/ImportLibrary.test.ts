@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleImportLibrary } from './ImportLibrary'
+import { importLibraryRoute } from './ImportLibrary'
 import { handleGetJob } from './GetJob'
 import { resetCoreForTests } from '../core/getCore'
 
@@ -20,9 +20,9 @@ describe('POST /api/import-library', () => {
     libraryPath = mkdtempSync(join(tmpdir(), 'smm-import-library-path-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportLibrary(app)
-    handleGetJob(app)
+    const base = new Hono()
+    handleGetJob(base)
+    app = base.route('/', importLibraryRoute)
   })
 
   afterEach(() => {

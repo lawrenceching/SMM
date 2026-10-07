@@ -2,7 +2,7 @@ import { z } from 'zod/v3';
 import { stat } from 'node:fs/promises';
 import { Path } from '@smm/utils/path';
 import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@smm/types';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import { moveFileToTrashOrDelete } from '../utils/files';
 
@@ -80,23 +80,21 @@ async function doMoveFileToTrash(
   }
 }
 
-export function handleMoveFileToTrash(app: Hono) {
-  app.post('/api/moveFileToTrash', async (c) => {
-    try {
-      const rawBody = await c.req.json();
-      const result = await doMoveFileToTrash(rawBody);
-      return c.json(result, 200);
-    } catch (error) {
-      logger.error({ error }, 'MoveFileToTrash route error:');
-      return c.json(
-        {
-          data: {
-            path: '',
-          },
-          error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process move file to trash request'}`,
+export const moveFileToTrashRoute = new Hono().post('/api/moveFileToTrash', async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const result = await doMoveFileToTrash(rawBody);
+    return c.json<MoveFileToTrashResponseBody>(result, 200);
+  } catch (error) {
+    logger.error({ error }, 'MoveFileToTrash route error:');
+    return c.json<MoveFileToTrashResponseBody>(
+      {
+        data: {
+          path: '',
         },
-        200,
-      );
-    }
-  });
-}
+        error: `Unexpected Error: ${error instanceof Error ? error.message : 'Failed to process move file to trash request'}`,
+      },
+      200,
+    );
+  }
+});

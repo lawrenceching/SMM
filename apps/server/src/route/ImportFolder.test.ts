@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleImportFolder } from './ImportFolder'
+import { importFolderRoute } from './ImportFolder'
 import { resetCoreForTests } from '../core/getCore'
 
 describe('POST /api/import-folder', () => {
@@ -16,8 +16,7 @@ describe('POST /api/import-folder', () => {
     userDataDir = mkdtempSync(join(tmpdir(), 'smm-import-folder-'))
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
-    app = new Hono()
-    handleImportFolder(app)
+    app = importFolderRoute
   })
 
   afterEach(() => {

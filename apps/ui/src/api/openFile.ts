@@ -1,5 +1,5 @@
 import type { OpenFileRequestBody, OpenFileResponseBody } from '@smm/types';
-import { apiFetch } from '@/lib/apiFetch';
+import { rpc, unwrapJson } from '@/lib/rpc';
 
 const OPEN_FILE_CHANNEL = 'open-file';
 
@@ -56,13 +56,7 @@ export async function openFile(path: string): Promise<OpenFileResponseBody> {
     path: path,
   };
 
-  const resp = await apiFetch('/api/openFile', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
+  const resp = await rpc.api.openFile.$post({ json: req });
 
   if (!resp.ok) {
     console.error(`[openFile] unexpected HTTP status`, {
@@ -75,7 +69,7 @@ export async function openFile(path: string): Promise<OpenFileResponseBody> {
     throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`);
   }
 
-  const data: OpenFileResponseBody = await resp.json();
+  const data = await unwrapJson(resp);
   if (data.error) {
     console.error(`[openFile] unexpected response body`, {
       url: resp.url,

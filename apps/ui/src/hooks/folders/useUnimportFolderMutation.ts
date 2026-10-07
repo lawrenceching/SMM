@@ -88,7 +88,7 @@ export function useUnimportFolderMutation() {
         await Promise.all(
           paths.map(async (path) => {
             const resp = await unimportFolder(path)
-            if (resp.error) throw new Error(resp.error)
+            if ('error' in resp) throw new Error(resp.error)
           }),
         )
         invalidateFoldersQuery(queryClient)

@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { existsSync } from 'fs';
 import type { OpenInFileManagerRequestBody, OpenInFileManagerResponseBody } from '@smm/types';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 /**
  * Check if the process is running in a desktop environment
@@ -88,51 +88,49 @@ async function openFolderInFileManager(folderPath: string): Promise<void> {
   });
 }
 
-export function handleOpenInFileManagerRequest(app: Hono) {
-  app.post('/api/openInFileManager', async (c) => {
-    const body = await c.req.json() as OpenInFileManagerRequestBody;
-    console.log(`[OpenInFileManager] Opening folder: ${body.path}`);
-    
-    try {
-      // Check if running in desktop environment
-      if (!isDesktopEnvironment()) {
-        const response: OpenInFileManagerResponseBody = {
-          data: {
-            path: body.path,
-          },
-          error: 'Not running in desktop environment. This operation requires a desktop environment.',
-        };
-        return c.json(response, 400);
-      }
-      
-      // Validate path is provided
-      if (!body.path || typeof body.path !== 'string') {
-        const response: OpenInFileManagerResponseBody = {
-          data: {
-            path: body.path || '',
-          },
-          error: 'Path is required and must be a string',
-        };
-        return c.json(response, 400);
-      }
-      
-      // Open the folder
-      await openFolderInFileManager(body.path);
-      
+export const openInFileManagerRoute = new Hono().post('/api/openInFileManager', async (c) => {
+  const body = await c.req.json() as OpenInFileManagerRequestBody;
+  console.log(`[OpenInFileManager] Opening folder: ${body.path}`);
+
+  try {
+    // Check if running in desktop environment
+    if (!isDesktopEnvironment()) {
       const response: OpenInFileManagerResponseBody = {
         data: {
           path: body.path,
         },
-      };
-      return c.json(response);
-    } catch (error) {
-      const response: OpenInFileManagerResponseBody = {
-        data: {
-          path: body.path,
-        },
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        error: 'Not running in desktop environment. This operation requires a desktop environment.',
       };
       return c.json(response, 400);
     }
-  });
-}
+
+    // Validate path is provided
+    if (!body.path || typeof body.path !== 'string') {
+      const response: OpenInFileManagerResponseBody = {
+        data: {
+          path: body.path || '',
+        },
+        error: 'Path is required and must be a string',
+      };
+      return c.json(response, 400);
+    }
+
+    // Open the folder
+    await openFolderInFileManager(body.path);
+
+    const response: OpenInFileManagerResponseBody = {
+      data: {
+        path: body.path,
+      },
+    };
+    return c.json(response, 200);
+  } catch (error) {
+    const response: OpenInFileManagerResponseBody = {
+      data: {
+        path: body.path,
+      },
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
+    return c.json(response, 400);
+  }
+});

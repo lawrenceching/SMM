@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { Hono } from 'hono'
-import { handleUnimportFolder } from './UnimportFolder'
+import { unimportFolderRoute } from './UnimportFolder'
 import { metadataCachePath } from '@smm/test'
 import { installCliTestEnv, restoreCliTestEnv, type CliTestEnv } from '../../test/helpers/cliTestEnv'
 import { resetCoreForTests } from '../core/getCore'
@@ -13,8 +13,7 @@ describe('POST /api/unimport-folder', () => {
 
   beforeEach(() => {
     env = installCliTestEnv('smm-unimport-folder')
-    app = new Hono()
-    handleUnimportFolder(app)
+    app = unimportFolderRoute
   })
 
   afterEach(() => {

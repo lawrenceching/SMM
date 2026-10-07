@@ -1,18 +1,12 @@
 import type { MoveFileToTrashRequestBody, MoveFileToTrashResponseBody } from '@smm/types';
-import { apiFetch } from '@/lib/apiFetch';
+import { rpc, unwrapJson } from '@/lib/rpc';
 
 export async function moveFileToTrash(path: string): Promise<MoveFileToTrashResponseBody> {
   const req: MoveFileToTrashRequestBody = {
     path,
   };
 
-  const resp = await apiFetch('/api/moveFileToTrash', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(req),
-  });
+  const resp = await rpc.api.moveFileToTrash.$post({ json: req });
 
   if (!resp.ok) {
     console.error(`[moveFileToTrash] unexpected HTTP status`, {
@@ -25,7 +19,7 @@ export async function moveFileToTrash(path: string): Promise<MoveFileToTrashResp
     throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`);
   }
 
-  const data: MoveFileToTrashResponseBody = await resp.json();
+  const data = await unwrapJson(resp);
   if (data.error) {
     console.error(`[moveFileToTrash] API error`, {
       url: resp.url,

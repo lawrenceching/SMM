@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/apiFetch'
+import { rpc, unwrapJson } from '@/lib/rpc'
 import type { FolderType } from '@smm/types'
 
 export interface ImportLibraryParams {
@@ -9,10 +9,9 @@ export interface ImportLibraryParams {
   traceId?: string
 }
 
-interface ImportLibraryResponseBody {
-  data?: { id: string }
-  error?: string
-}
+type ImportLibraryResponseBody = Awaited<
+  ReturnType<Awaited<ReturnType<(typeof rpc)['api']['import-library']['$post']>>['json']>
+>
 
 /** Layer-2 import library via Core (`POST /api/import-library`). */
 async function importLibrary(
@@ -32,22 +31,12 @@ async function importLibrary(
     console.log(`[${traceId}] import-library: POST /api/import-library`, { path, type, skipInit: skipInit === true })
   }
 
-  const resp = await apiFetch('/api/import-library', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal,
-  })
-
-  if (!resp.ok) {
-    throw new Error(`HTTP Layer Error: ${resp.status} ${resp.statusText}`)
-  }
-
-  const data = (await resp.json()) as ImportLibraryResponseBody
+  const resp = await rpc.api['import-library'].$post({ json: body }, { init: { signal } })
+  const data = await unwrapJson(resp)
   if (traceId) {
     console.log(`[${traceId}] import-library: POST /api/import-library response`, {
-      jobId: data.data?.id,
-      error: data.error,
+      jobId: 'error' in data ? undefined : data.data.id,
+      error: 'error' in data ? data.error : undefined,
     })
   }
   return data
@@ -56,10 +45,10 @@ async function importLibrary(
 /** Throws on business error; returns job id. */
 export async function importLibraryViaCore(params: ImportLibraryParams): Promise<string> {
   const data = await importLibrary(params)
-  if (data.error) {
+  if ('error' in data) {
     throw new Error(data.error)
   }
-  if (!data.data?.id) {
+  if (!data.data.id) {
     throw new Error('Error Reason: import-library job id missing')
   }
   return data.data.id

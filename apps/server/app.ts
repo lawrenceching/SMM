@@ -21,6 +21,14 @@ import { validateRenameOperationsRoute } from './src/route/validateRenameOperati
 import { listDrivesRoute } from './src/route/ListDrives';
 import { matchMediaFilesToEpisodeRoute } from './src/route/ai';
 import { executeRoute } from './src/route/execute';
+import { importFolderRoute } from './src/route/ImportFolder';
+import { importLibraryRoute } from './src/route/ImportLibrary';
+import { unimportFolderRoute } from './src/route/UnimportFolder';
+import { setWatchedFolderRoute } from './src/route/SetWatchedFolder';
+import { showFolderRoute } from './src/route/ShowFolder';
+import { openFileRoute } from './src/route/OpenFile';
+import { openInFileManagerRoute } from './src/route/OpenInFileManager';
+import { moveFileToTrashRoute } from './src/route/MoveFileToTrash';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -126,7 +134,15 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', validateRenameOperationsRoute)
     .route('/', listDrivesRoute)
     .route('/', matchMediaFilesToEpisodeRoute)
-    .route('/', executeRoute);
+    .route('/', executeRoute)
+    .route('/', importFolderRoute)
+    .route('/', importLibraryRoute)
+    .route('/', unimportFolderRoute)
+    .route('/', setWatchedFolderRoute)
+    .route('/', showFolderRoute)
+    .route('/', openFileRoute)
+    .route('/', openInFileManagerRoute)
+    .route('/', moveFileToTrashRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

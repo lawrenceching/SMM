@@ -6,9 +6,6 @@ import { getRequestListener } from '@hono/node-server';
 import path from 'path';
 import { createApp } from './app';
 import { setSocketIOManager } from './src/utils/socketIO.ts';
-import { handleOpenInFileManagerRequest } from './src/route/OpenInFileManager';
-import { handleOpenFile } from './src/route/OpenFile';
-import { handleMoveFileToTrash } from './src/route/MoveFileToTrash';
 import { handleDebugRequest } from './src/route/Debug';
 import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
 import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
@@ -21,16 +18,12 @@ import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesT
 import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
 import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
 import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
-import { handleUnimportFolder } from './src/route/UnimportFolder';
-import { handleImportFolder } from './src/route/ImportFolder';
-import { handleImportLibrary } from './src/route/ImportLibrary';
 import { handleGetJob } from './src/route/GetJob';
 import { handleStopJob } from './src/route/StopJob';
 import { handleGetJobLog } from './src/route/GetJobLog';
 import { handleTmdb } from './src/route/Tmdb';
 import { handleTvdb } from './src/route/Tvdb';
 import { handleCoreFetch } from './src/route/CoreFetch';
-import { handleShowFolder } from './src/route/ShowFolder';
 import { handleTencentAsrTranscribe } from './src/route/tencentAsr/Transcribe';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleDiscoverExecutables } from './src/route/discoverExecutables';
@@ -38,7 +31,6 @@ import { handleCommandLog } from './src/route/commandLog';
 import { handleLog } from './src/route/Log';
 import { handleSpeedtest } from './src/route/speedtest';
 import { handleShutdown, setShutdownRequestIPResolver } from './src/route/shutdown';
-import { handleSetWatchedFolder } from './src/route/SetWatchedFolder';
 import { applyMcpConfig } from '@server/mcp/mcpServerManager';
 import { getCore } from '@server/core/getCore';
 import { getUserConfig } from './src/utils/config.ts';
@@ -171,10 +163,6 @@ export class Server {
   private setupRoutes() {
     // Platform-specific CLI routes (not in core-routes — ohos does not reuse these).
     // Shared public APIs are dispatched to createCliCoreRoutesHandler via isCoreRoute.
-    handleSetWatchedFolder(this.app);
-    handleOpenInFileManagerRequest(this.app);
-    handleOpenFile(this.app);
-    handleMoveFileToTrash(this.app);
     handleDebugRequest(this.app);
     handleDebugRecognizeTaskRoutes(this.app);
     handleDebugCreateRenameEpisodePlan(this.app);
@@ -187,16 +175,12 @@ export class Server {
     handleDebugGetMediaFoldersRoute(this.app);
     handleDebugGetEpisodesToolRoute(this.app);
     handleDebugIsFolderExistToolRoute(this.app);
-    handleUnimportFolder(this.app);
-    handleImportFolder(this.app);
-    handleImportLibrary(this.app);
     handleGetJob(this.app);
     handleStopJob(this.app);
     handleGetJobLog(this.app);
     handleTmdb(this.app);
     handleTvdb(this.app);
     handleCoreFetch(this.app);
-    handleShowFolder(this.app);
     handleTencentAsrTranscribe(this.app);
     handleExecuteCmd(this.app);
     handleDiscoverExecutables(this.app);
