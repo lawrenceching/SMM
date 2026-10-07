@@ -2,7 +2,7 @@ import { z } from 'zod/v3'
 import { logger } from '../../../lib/logger'
 import { listFilesInMediaFolderAgentTool } from '../../tools/listFilesInMediaFolder'
 import type { ListFilesInMediaFolderToolOutput } from '../../tools/listFilesInMediaFolder'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 
 interface DebugListFilesToolResponseBody {
   success: boolean
@@ -54,15 +54,16 @@ async function processListFilesTool(
   }
 }
 
-export function handleDebugListFilesToolRoute(app: Hono) {
-  app.post('/debug/listFilesTool', async (c) => {
+export const debugListFilesToolRoute = new Hono().post(
+  '/debug/listFilesTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json()
       const result = await processListFilesTool(rawBody)
-      return c.json(result, 200)
+      return c.json<DebugListFilesToolResponseBody>(result, 200)
     } catch (error) {
       logger.error({ error }, 'Debug API listFilesTool route error:')
-      return c.json(
+      return c.json<DebugListFilesToolResponseBody>(
         {
           success: false,
           error: `Failed to process listFilesTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -70,5 +71,5 @@ export function handleDebugListFilesToolRoute(app: Hono) {
         500,
       )
     }
-  })
-}
+  },
+)

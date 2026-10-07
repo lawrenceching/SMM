@@ -1,7 +1,7 @@
 import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import type { GetApplicationContextOutput } from '@smm/types/ai-tools/getApplicationContext';
 
 interface DebugGetApplicationContextResponseBody {
@@ -59,8 +59,9 @@ async function processGetApplicationContext(
   }
 }
 
-export function handleDebugGetApplicationContextRoute(app: Hono) {
-  app.post('/debug/getApplicationContext', async (c) => {
+export const debugGetApplicationContextRoute = new Hono().post(
+  '/debug/getApplicationContext',
+  async (c) => {
     try {
       let rawBody: unknown = {};
       try {
@@ -70,13 +71,13 @@ export function handleDebugGetApplicationContextRoute(app: Hono) {
       }
 
       const result = await processGetApplicationContext(rawBody);
-      return c.json(result, 200);
+      return c.json<DebugGetApplicationContextResponseBody>(result, 200);
     } catch (error) {
       logger.error(
         { error },
         'Debug API getApplicationContext route error:',
       );
-      return c.json(
+      return c.json<DebugGetApplicationContextResponseBody>(
         {
           success: false,
           error: `Failed to process getApplicationContext request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -84,5 +85,5 @@ export function handleDebugGetApplicationContextRoute(app: Hono) {
         500,
       );
     }
-  });
-}
+  },
+);

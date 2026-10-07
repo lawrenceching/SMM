@@ -2,7 +2,7 @@ import { z } from 'zod/v3'
 import { logger } from '../../../lib/logger'
 import { getMediaFoldersAgentTool } from '../../tools/getMediaFolders'
 import type { GetMediaFoldersToolOutput } from '../../tools/getMediaFolders'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 
 interface DebugGetMediaFoldersResponseBody {
   success: boolean
@@ -51,8 +51,9 @@ async function processGetMediaFolders(
   }
 }
 
-export function handleDebugGetMediaFoldersRoute(app: Hono) {
-  app.post('/debug/getMediaFolders', async (c) => {
+export const debugGetMediaFoldersRoute = new Hono().post(
+  '/debug/getMediaFolders',
+  async (c) => {
     try {
       let rawBody: unknown = {}
       try {
@@ -61,10 +62,10 @@ export function handleDebugGetMediaFoldersRoute(app: Hono) {
         rawBody = {}
       }
       const result = await processGetMediaFolders(rawBody)
-      return c.json(result, 200)
+      return c.json<DebugGetMediaFoldersResponseBody>(result, 200)
     } catch (error) {
       logger.error({ error }, 'Debug API getMediaFolders route error:')
-      return c.json(
+      return c.json<DebugGetMediaFoldersResponseBody>(
         {
           success: false,
           error: `Failed to process getMediaFolders request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -72,5 +73,5 @@ export function handleDebugGetMediaFoldersRoute(app: Hono) {
         500,
       )
     }
-  })
-}
+  },
+)

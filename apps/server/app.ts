@@ -40,6 +40,18 @@ import { discoverExecutablesRoute } from './src/route/discoverExecutables';
 import { speedtestRoute } from './src/route/speedtest';
 import { shutdownRoute } from './src/route/shutdown';
 import { tencentAsrTranscribeRoute } from './src/route/tencentAsr/Transcribe';
+import { debugRoute } from './src/route/Debug';
+import { debugRecognizeTaskRoute } from './src/route/debug/debugRecognizeTask';
+import { debugCreateRenameEpisodePlanRoute } from './src/route/debug/debugCreateRenameEpisodePlan';
+import { debugGetApplicationContextRoute } from './src/route/debug/debugGetApplicationContext';
+import { debugGetMediaMetadataRoute } from './src/route/debug/debugGetMediaMetadata';
+import { debugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
+import { debugScrapeToolRoute } from './src/route/debug/debugScrapeTool';
+import { debugGetJobToolRoute } from './src/route/debug/debugGetJobTool';
+import { debugListFilesToolRoute } from './src/route/debug/debugListFilesTool';
+import { debugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
+import { debugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
+import { debugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 
 export interface CreateAppDeps {
   auth?: CoreRoutesAuthConfig;
@@ -164,7 +176,19 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', discoverExecutablesRoute)
     .route('/', speedtestRoute)
     .route('/', shutdownRoute)
-    .route('/', tencentAsrTranscribeRoute);
+    .route('/', tencentAsrTranscribeRoute)
+    .route('/', debugRoute)
+    .route('/', debugRecognizeTaskRoute)
+    .route('/', debugCreateRenameEpisodePlanRoute)
+    .route('/', debugGetApplicationContextRoute)
+    .route('/', debugGetMediaMetadataRoute)
+    .route('/', debugRenameFolderToolRoute)
+    .route('/', debugScrapeToolRoute)
+    .route('/', debugGetJobToolRoute)
+    .route('/', debugListFilesToolRoute)
+    .route('/', debugGetMediaFoldersRoute)
+    .route('/', debugGetEpisodesToolRoute)
+    .route('/', debugIsFolderExistToolRoute);
 }
 
 export type AppType = ReturnType<typeof createApp>;

@@ -2,7 +2,7 @@ import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { executeRenameFolder } from '../../tools/renameFolder';
 import type { RenameFolderOutput } from '@smm/types/ai-tools/renameFolder';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 type RenameFolderToolData = RenameFolderOutput;
 
@@ -56,18 +56,22 @@ async function processRenameFolderTool(body: unknown): Promise<DebugRenameFolder
   }
 }
 
-export function handleDebugRenameFolderToolRoute(app: Hono) {
-  app.post('/debug/renameFolderTool', async (c) => {
+export const debugRenameFolderToolRoute = new Hono().post(
+  '/debug/renameFolderTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processRenameFolderTool(rawBody);
-      return c.json(result, 200);
+      return c.json<DebugRenameFolderToolResponseBody>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API renameFolderTool route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process renameFolderTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugRenameFolderToolResponseBody>(
+        {
+          success: false,
+          error: `Failed to process renameFolderTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
-  });
-}
+  },
+);

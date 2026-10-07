@@ -2,7 +2,7 @@ import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
 import type { GetMediaMetadataToolOutput } from '../../tools/getMediaMetadata';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 type MediaFolderType = 'tvshow-folder' | 'movie-folder' | 'music-folder';
 
@@ -63,18 +63,22 @@ async function processGetMediaMetadata(body: unknown): Promise<DebugGetMediaMeta
   }
 }
 
-export function handleDebugGetMediaMetadataRoute(app: Hono) {
-  app.post('/debug/getMediaMetadata', async (c) => {
+export const debugGetMediaMetadataRoute = new Hono().post(
+  '/debug/getMediaMetadata',
+  async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processGetMediaMetadata(rawBody);
-      return c.json(result, 200);
+      return c.json<DebugGetMediaMetadataResponseBody>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API getMediaMetadata route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process getMediaMetadata request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugGetMediaMetadataResponseBody>(
+        {
+          success: false,
+          error: `Failed to process getMediaMetadata request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
-  });
-}
+  },
+);

@@ -23,7 +23,7 @@ vi.mock('@server/utils/config', async (importOriginal) => ({
   getUserDataDir: () => '/smm-data',
 }))
 
-import { handleDebugCreateRenameEpisodePlan } from './debugCreateRenameEpisodePlan'
+import { debugCreateRenameEpisodePlanRoute } from './debugCreateRenameEpisodePlan'
 
 describe('POST /debug/createRenameEpisodePlan', () => {
   let app: Hono
@@ -31,8 +31,7 @@ describe('POST /debug/createRenameEpisodePlan', () => {
   beforeEach(() => {
     mocks.createRenameEpisodePlan.mockReset()
     mocks.broadcast.mockReset()
-    app = new Hono()
-    handleDebugCreateRenameEpisodePlan(app)
+    app = debugCreateRenameEpisodePlanRoute
   })
 
   it('returns the created plan and plan id', async () => {

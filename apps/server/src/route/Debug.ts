@@ -1,6 +1,6 @@
 import { z } from 'zod/v3';
 import { broadcast, acknowledge } from '../utils/socketIO';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { logger } from '../../lib/logger';
 import { getUserConfigPath } from '../utils/config';
 import { mediaMetadataDir } from '../route/mediaMetadata/utils';
@@ -239,21 +239,22 @@ async function processDebugRequest(body: any): Promise<DebugApiResponseBody> {
   }
 }
 
-export function handleDebugRequest(app: Hono) {
-  // POST /debug - Debug API for testing functions
-  app.post('/debug', async (c) => {
-    try {
-      const rawBody = await c.req.json();
-      const result = await processDebugRequest(rawBody);
-      
-      // Return 200 with success/error status
-      return c.json(result, 200);
-    } catch (error) {
-      logger.error({ error }, 'Debug API route error:');
-      return c.json({
+// POST /debug - Debug API for testing functions
+export const debugRoute = new Hono().post('/debug', async (c) => {
+  try {
+    const rawBody = await c.req.json();
+    const result = await processDebugRequest(rawBody);
+
+    // Return 200 with success/error status
+    return c.json<DebugApiResponseBody>(result, 200);
+  } catch (error) {
+    logger.error({ error }, 'Debug API route error:');
+    return c.json<DebugApiResponseBody>(
+      {
         success: false,
         error: `Failed to process debug request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
-    }
-  });
-}
+      },
+      500,
+    );
+  }
+});

@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { executeGetJob } from '@smm/core-routes'
 import type { GetJobOutput } from '@smm/types/ai-tools/getJob'
 import { getCore } from '../../core/getCore'
@@ -51,15 +51,16 @@ async function processGetJobTool(
   }
 }
 
-export function handleDebugGetJobToolRoute(app: Hono) {
-  app.post('/debug/getJobTool', async (c) => {
+export const debugGetJobToolRoute = new Hono().post(
+  '/debug/getJobTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json()
       const result = await processGetJobTool(rawBody)
-      return c.json(result, 200)
+      return c.json<DebugGetJobToolResponseBody>(result, 200)
     } catch (error) {
       logger.error({ error }, 'Debug API getJobTool route error:')
-      return c.json(
+      return c.json<DebugGetJobToolResponseBody>(
         {
           success: false,
           error: `Failed to process getJobTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -67,5 +68,5 @@ export function handleDebugGetJobToolRoute(app: Hono) {
         500,
       )
     }
-  })
-}
+  },
+)

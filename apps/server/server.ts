@@ -6,18 +6,6 @@ import { getRequestListener } from '@hono/node-server';
 import path from 'path';
 import { createApp } from './app';
 import { setSocketIOManager } from './src/utils/socketIO.ts';
-import { handleDebugRequest } from './src/route/Debug';
-import { handleDebugRecognizeTaskRoutes } from './src/route/debug/debugRecognizeTask';
-import { handleDebugCreateRenameEpisodePlan } from './src/route/debug/debugCreateRenameEpisodePlan';
-import { handleDebugGetApplicationContextRoute } from './src/route/debug/debugGetApplicationContext';
-import { handleDebugGetMediaMetadataRoute } from './src/route/debug/debugGetMediaMetadata';
-import { handleDebugRenameFolderToolRoute } from './src/route/debug/debugRenameFolderTool';
-import { handleDebugScrapeToolRoute } from './src/route/debug/debugScrapeTool';
-import { handleDebugGetJobToolRoute } from './src/route/debug/debugGetJobTool';
-import { handleDebugListFilesToolRoute } from './src/route/debug/debugListFilesTool';
-import { handleDebugGetMediaFoldersRoute } from './src/route/debug/debugGetMediaFolders';
-import { handleDebugGetEpisodesToolRoute } from './src/route/debug/debugGetEpisodesTool';
-import { handleDebugIsFolderExistToolRoute } from './src/route/debug/debugIsFolderExistTool';
 import { handleExecuteCmd } from './src/route/executeCmd';
 import { handleLog } from './src/route/Log';
 import { setShutdownRequestIPResolver } from './src/route/shutdown';
@@ -153,18 +141,6 @@ export class Server {
   private setupRoutes() {
     // Platform-specific CLI routes (not in core-routes — ohos does not reuse these).
     // Shared public APIs are dispatched to createCliCoreRoutesHandler via isCoreRoute.
-    handleDebugRequest(this.app);
-    handleDebugRecognizeTaskRoutes(this.app);
-    handleDebugCreateRenameEpisodePlan(this.app);
-    handleDebugGetApplicationContextRoute(this.app);
-    handleDebugGetMediaMetadataRoute(this.app);
-    handleDebugRenameFolderToolRoute(this.app);
-    handleDebugScrapeToolRoute(this.app);
-    handleDebugGetJobToolRoute(this.app);
-    handleDebugListFilesToolRoute(this.app);
-    handleDebugGetMediaFoldersRoute(this.app);
-    handleDebugGetEpisodesToolRoute(this.app);
-    handleDebugIsFolderExistToolRoute(this.app);
     handleExecuteCmd(this.app);
     handleLog(this.app);
 

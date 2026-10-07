@@ -2,7 +2,7 @@ import { z } from 'zod/v3';
 import { logger } from '../../../lib/logger';
 import { agentTools } from '../../tools';
 import type { IsFolderExistOutput } from '../../tools/isFolderExist';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 type IsFolderExistData = IsFolderExistOutput;
 
@@ -43,18 +43,22 @@ async function processIsFolderExistTool(body: unknown): Promise<DebugIsFolderExi
   }
 }
 
-export function handleDebugIsFolderExistToolRoute(app: Hono) {
-  app.post('/debug/isFolderExistTool', async (c) => {
+export const debugIsFolderExistToolRoute = new Hono().post(
+  '/debug/isFolderExistTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processIsFolderExistTool(rawBody);
-      return c.json(result, 200);
+      return c.json<DebugIsFolderExistToolResponseBody>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API isFolderExistTool route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process isFolderExistTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugIsFolderExistToolResponseBody>(
+        {
+          success: false,
+          error: `Failed to process isFolderExistTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
-  });
-}
+  },
+);

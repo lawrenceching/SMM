@@ -1,5 +1,5 @@
 import type { RenameFilesPlan } from '@smm/types/RenameFilesPlan'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { formatToolError } from '@smm/core/ai-tool/toolResult'
 import { logger } from '../../../lib/logger'
 import { createRenameEpisodePlanFromBody } from '../RenameEpisodesPlan'
@@ -13,8 +13,9 @@ interface DebugCreateRenameEpisodePlanResponseBody {
   error?: string
 }
 
-export function handleDebugCreateRenameEpisodePlan(app: Hono): void {
-  app.post('/debug/createRenameEpisodePlan', async (c) => {
+export const debugCreateRenameEpisodePlanRoute = new Hono().post(
+  '/debug/createRenameEpisodePlan',
+  async (c) => {
     try {
       let body: unknown = {}
       try {
@@ -29,7 +30,7 @@ export function handleDebugCreateRenameEpisodePlan(app: Hono): void {
           success: false,
           error: result.error,
         }
-        return c.json(response, 200)
+        return c.json<DebugCreateRenameEpisodePlanResponseBody>(response, 200)
       }
 
       const response: DebugCreateRenameEpisodePlanResponseBody = {
@@ -39,14 +40,14 @@ export function handleDebugCreateRenameEpisodePlan(app: Hono): void {
           plan: result.data.plan,
         },
       }
-      return c.json(response, 200)
+      return c.json<DebugCreateRenameEpisodePlanResponseBody>(response, 200)
     } catch (error) {
       logger.error({ error }, '[POST /debug/createRenameEpisodePlan] route error')
       const response: DebugCreateRenameEpisodePlanResponseBody = {
         success: false,
         ...formatToolError(error),
       }
-      return c.json(response, 200)
+      return c.json<DebugCreateRenameEpisodePlanResponseBody>(response, 200)
     }
-  })
-}
+  },
+)

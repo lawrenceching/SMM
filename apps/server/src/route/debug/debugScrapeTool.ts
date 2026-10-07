@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 import { executeScrape } from '@smm/core-routes'
 import type { ScrapeOutput } from '@smm/types/ai-tools/scrape'
 import { getCore } from '../../core/getCore'
@@ -61,15 +61,16 @@ async function processScrapeTool(
   }
 }
 
-export function handleDebugScrapeToolRoute(app: Hono) {
-  app.post('/debug/scrapeTool', async (c) => {
+export const debugScrapeToolRoute = new Hono().post(
+  '/debug/scrapeTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json()
       const result = await processScrapeTool(rawBody)
-      return c.json(result, 200)
+      return c.json<DebugScrapeToolResponseBody>(result, 200)
     } catch (error) {
       logger.error({ error }, 'Debug API scrapeTool route error:')
-      return c.json(
+      return c.json<DebugScrapeToolResponseBody>(
         {
           success: false,
           error: `Failed to process scrapeTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -77,5 +78,5 @@ export function handleDebugScrapeToolRoute(app: Hono) {
         500,
       )
     }
-  })
-}
+  },
+)

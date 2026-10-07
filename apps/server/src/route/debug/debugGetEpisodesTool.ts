@@ -2,7 +2,7 @@ import { z } from 'zod/v3'
 import { logger } from '../../../lib/logger'
 import { getEpisodesAgentTool } from '../../tools/getEpisodes'
 import type { GetEpisodesToolOutput } from '../../tools/getEpisodes'
-import type { Hono } from 'hono'
+import { Hono } from 'hono'
 
 interface DebugGetEpisodesToolResponseBody {
   success: boolean
@@ -54,15 +54,16 @@ async function processGetEpisodesTool(
   }
 }
 
-export function handleDebugGetEpisodesToolRoute(app: Hono) {
-  app.post('/debug/getEpisodesTool', async (c) => {
+export const debugGetEpisodesToolRoute = new Hono().post(
+  '/debug/getEpisodesTool',
+  async (c) => {
     try {
       const rawBody = await c.req.json()
       const result = await processGetEpisodesTool(rawBody)
-      return c.json(result, 200)
+      return c.json<DebugGetEpisodesToolResponseBody>(result, 200)
     } catch (error) {
       logger.error({ error }, 'Debug API getEpisodesTool route error:')
-      return c.json(
+      return c.json<DebugGetEpisodesToolResponseBody>(
         {
           success: false,
           error: `Failed to process getEpisodesTool request: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -70,5 +71,5 @@ export function handleDebugGetEpisodesToolRoute(app: Hono) {
         500,
       )
     }
-  })
-}
+  },
+)

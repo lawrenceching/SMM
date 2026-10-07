@@ -5,7 +5,7 @@ import {
   createAddRecognizedMediaFileTool,
   createEndRecognizeTaskTool,
 } from '../../tools/recognizeMediaFilesTask';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 
 interface ToolResultBase {
   error?: string;
@@ -172,49 +172,55 @@ async function processEndRecognizeTask(body: any): Promise<DebugRecognizeTaskRes
   }
 }
 
-export function handleDebugRecognizeTaskRoutes(app: Hono) {
-  app.post('/debug/startRecognizeTask', async (c) => {
+export const debugRecognizeTaskRoute = new Hono()
+  .post('/debug/startRecognizeTask', async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processStartRecognizeTask(rawBody);
 
-      return c.json(result, 200);
+      return c.json<DebugRecognizeTaskResponseBody<BeginRecognizeTaskToolResult>>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API startRecognizeTask route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process startRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugRecognizeTaskResponseBody<BeginRecognizeTaskToolResult>>(
+        {
+          success: false,
+          error: `Failed to process startRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
-  });
-
-  app.post('/debug/addFileToRecognizeTask', async (c) => {
+  })
+  .post('/debug/addFileToRecognizeTask', async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processAddFileToRecognizeTask(rawBody);
 
-      return c.json(result, 200);
+      return c.json<DebugRecognizeTaskResponseBody<AddRecognizedMediaFileToolResult>>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API addFileToRecognizeTask route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process addFileToRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugRecognizeTaskResponseBody<AddRecognizedMediaFileToolResult>>(
+        {
+          success: false,
+          error: `Failed to process addFileToRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
-  });
-
-  app.post('/debug/endRecognizeTask', async (c) => {
+  })
+  .post('/debug/endRecognizeTask', async (c) => {
     try {
       const rawBody = await c.req.json();
       const result = await processEndRecognizeTask(rawBody);
 
-      return c.json(result, 200);
+      return c.json<DebugRecognizeTaskResponseBody<EndRecognizeTaskToolResult>>(result, 200);
     } catch (error) {
       logger.error({ error }, 'Debug API endRecognizeTask route error:');
-      return c.json({
-        success: false,
-        error: `Failed to process endRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      }, 500);
+      return c.json<DebugRecognizeTaskResponseBody<EndRecognizeTaskToolResult>>(
+        {
+          success: false,
+          error: `Failed to process endRecognizeTask request: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        },
+        500,
+      );
     }
   });
-}
