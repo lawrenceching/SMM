@@ -85,7 +85,7 @@
     "changeset:publish": "changeset publish",
     "query-network-log": "bun apps/tools/query-network-log.ts",
     "knip": "knip",
-    "precommit": "pnpm typecheck && pnpm --filter ui lint && pnpm knip"
+    "precommit": "pnpm typecheck && pnpm --filter ui lint && pnpm knip && pnpm test"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
