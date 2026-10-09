@@ -55,6 +55,12 @@ vi.mock("@/hooks/userConfig", () => ({
   })),
 }))
 
+vi.mock("@/hooks/userConfig/useHelloQuery", () => ({
+  useHelloQuery: () => ({
+    data: { isDocker: false },
+  }),
+}))
+
 vi.mock("@/api/openInFileManager", () => ({
   openInFileManagerApi: vi.fn(),
 }))

@@ -18,6 +18,8 @@ describe('syncPathServerPlatformFromHello', () => {
       logDir: '/root/.local/logs',
       reverseProxyUrl: null,
       osLocale: 'en-US',
+      isDocker: false,
+      coreRoutesPort: 30000,
     })
 
     expect(Path.getServerPlatform()).toBe('linux')

@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react"
 import { SearchForm } from "@/components/search-form"
 import { MediaFolderToolbar } from "@/components/shared/MediaFolderToolbar"
 import { useSidebar } from "@/hooks/useSidebar"
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { useTranslation } from "@/lib/i18n"
 import { isPathInSelection, nextFolderSelection } from "@/lib/sidebarFolderSelection"
 import type { FolderListItemContainerProps } from "./FolderListItemContainer"
@@ -63,6 +64,8 @@ export function Sidebar({
   onSearchQueryChange,
 }: SidebarProps) {
   const { t } = useTranslation(["components"])
+  const { data: helloData } = useHelloQuery()
+  const isDocker = helloData?.isDocker === true
 
   const isSearchControlled = searchQueryProp !== undefined
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
@@ -195,7 +198,9 @@ export function Sidebar({
                     isSelected={selectedFolderPathsSet.has(path)}
                     isPrimary={primaryPath === path}
                     onRename={() => handleRename(path)}
-                    onOpenInExplorer={() => void handleOpenInExplorer(path)}
+                    onOpenInExplorer={
+                      isDocker ? undefined : () => void handleOpenInExplorer(path)
+                    }
                     onDelete={() => handleDeleteItem(path)}
                     onClick={(e) => handleFolderClick(path, e)}
                   />

@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
 import type { CoreRoutesAuthConfig } from '@smm/core-routes';
-import { logger } from '@smm/server';
+import { isRunningInDocker, logger } from '@smm/server';
 
 let resolvedToken: string | null = null;
 
@@ -21,14 +20,6 @@ export function resolveAuthToken(): string {
     `SMM_AUTH_TOKEN was not set, SMM generated auth token: ${resolvedToken}`,
   );
   return resolvedToken;
-}
-
-function isRunningInDocker(): boolean {
-  try {
-    return existsSync('/.dockerenv');
-  } catch {
-    return false;
-  }
 }
 
 export function isAuthEnabled(): boolean {

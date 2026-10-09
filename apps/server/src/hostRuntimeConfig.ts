@@ -6,6 +6,7 @@ import {
   getTmpDir,
   getUserDataDir,
 } from '@server/utils/config'
+import { isRunningInDocker } from '@server/utils/isRunningInDocker'
 import { APP_VERSION } from '@server/version'
 
 /**
@@ -21,5 +22,6 @@ export function buildCliHostRuntimeConfig(): HostRuntimeConfig {
     logDir: getLogDir(),
     platform: process.platform,
     osLocale: detectOsLocale(),
+    isDocker: isRunningInDocker(),
   }
 }

@@ -191,6 +191,7 @@ export class Core {
   private readonly logDir: string | undefined;
   private readonly platform: string | undefined;
   private readonly osLocale: string | undefined;
+  private readonly isDocker: boolean;
   private readonly userConfig: UserConfigHelper;
   private readonly mediaMetadata: MediaMetadataHelper;
   private readonly discover?: DiscoverPort;
@@ -212,6 +213,7 @@ export class Core {
     this.logDir = context.logDir;
     this.platform = context.platform;
     this.osLocale = context.osLocale;
+    this.isDocker = context.isDocker ?? false;
     this.userConfig = new UserConfigHelper(this.fs, this.userDataDir);
     this.mediaMetadata = new MediaMetadataHelper(this.fs, this.getMetadataRoot(), (folderPath) => {
       this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
@@ -447,6 +449,7 @@ export class Core {
       tmpDir: this.tmpDir ?? "",
       logDir: this.logDir ?? "",
       osLocale: this.osLocale ?? detectOsLocale(),
+      isDocker: this.isDocker,
     };
   }
 

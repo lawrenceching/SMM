@@ -54,6 +54,26 @@ describe('FolderListItem context menu callbacks', () => {
     fireEvent.click(deleteItem)
     expect(onDelete).toHaveBeenCalledTimes(1)
   })
+
+  it('hides Open in Explorer when onOpenInExplorer is omitted', () => {
+    render(
+      React.createElement(FolderListItem, {
+        path,
+        mediaName,
+        mediaType: 'tvshow',
+        onRename,
+        onDelete,
+      })
+    )
+
+    const trigger = document.querySelector('[data-slot="context-menu-trigger"]')
+    expect(trigger).toBeTruthy()
+    fireEvent.contextMenu(trigger!)
+
+    expect(screen.queryByTestId('context-menu-open-in-explorer')).toBeNull()
+    expect(screen.getByTestId('context-menu-rename')).toBeInTheDocument()
+    expect(screen.getByTestId('context-menu-delete')).toBeInTheDocument()
+  })
 })
 
 describe("FolderListItem folder_not_found status", () => {

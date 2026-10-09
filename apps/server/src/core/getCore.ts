@@ -36,6 +36,7 @@ export function getCore(options?: GetCoreOptions): Core {
         logDir: host.logDir,
         platform: host.platform,
         osLocale: host.osLocale,
+        isDocker: host.isDocker,
         ...options?._context,
       },
       ports: {

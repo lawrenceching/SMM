@@ -131,6 +131,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       tmpDir: "",
       reverseProxyUrl: null,
       osLocale: "en-US",
+      isDocker: false,
       coreRoutesPort: 0,
     },
     appDataDir: config.appDataDir,

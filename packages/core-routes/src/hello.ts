@@ -17,6 +17,8 @@ export interface HelloOptions {
   reverseProxyUrl: string | null;
   /** OS locale, e.g. "en-US", "zh-CN". */
   osLocale: string;
+  /** True when the process is running inside Docker. */
+  isDocker: boolean;
   /**
    * Port of the unified HTTP server (static UI + API).
    * Same value as the process listen port (`HTTP_PORT` / `--port`).

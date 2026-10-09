@@ -1,13 +1,6 @@
-import { existsSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('node:fs', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:fs')>();
-  return {
-    ...actual,
-    existsSync: vi.fn(actual.existsSync),
-  };
-});
+const isRunningInDocker = vi.hoisted(() => vi.fn(() => false));
 
 vi.mock('@smm/server', () => ({
   logger: {
@@ -16,13 +9,14 @@ vi.mock('@smm/server', () => ({
     warn: vi.fn(),
     error: vi.fn(),
   },
+  isRunningInDocker,
 }));
 
 describe('isAuthEnabled', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.unstubAllEnvs();
-    vi.mocked(existsSync).mockReturnValue(false);
+    isRunningInDocker.mockReturnValue(false);
   });
 
   afterEach(() => {
@@ -35,7 +29,7 @@ describe('isAuthEnabled', () => {
   });
 
   it('returns true when SMM_AUTH_ENABLED is unset inside Docker', async () => {
-    vi.mocked(existsSync).mockReturnValue(true);
+    isRunningInDocker.mockReturnValue(true);
     const { isAuthEnabled } = await import('./authToken');
     expect(isAuthEnabled()).toBe(true);
   });

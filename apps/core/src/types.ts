@@ -24,6 +24,8 @@ export interface AppContext {
   logDir: string;
   /** Process platform for hello bootstrap. */
   platform?: string;
+  /** True when the host process is running inside Docker. */
+  isDocker?: boolean;
 }
 
 /**

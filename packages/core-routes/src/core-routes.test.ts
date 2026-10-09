@@ -155,6 +155,7 @@ describe("handleCoreRoutesRequest", () => {
         tmpDir: "/tmp",
         reverseProxyUrl: null,
         osLocale: "en-US",
+        isDocker: false,
         coreRoutesPort: 3001,
       },
     });
@@ -177,6 +178,7 @@ describe("handleCoreRoutesRequest", () => {
         tmpDir: "/tmp",
         reverseProxyUrl: null,
         osLocale: "en-US",
+        isDocker: false,
         coreRoutesPort: 3001,
       },
     });

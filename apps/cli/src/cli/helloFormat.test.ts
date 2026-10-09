@@ -13,6 +13,7 @@ describe('formatHelloLines', () => {
         tmpDir: 'C:\\Temp\\smm',
         logDir: 'C:\\Users\\me\\AppData\\Local\\SMM\\logs',
         osLocale: 'zh-CN',
+        isDocker: false,
       }),
     ).toEqual([
       'Version: 1.3.8',
@@ -23,6 +24,7 @@ describe('formatHelloLines', () => {
       'Tmp dir: C:\\Temp\\smm',
       'Log dir: C:\\Users\\me\\AppData\\Local\\SMM\\logs',
       'OS locale: zh-CN',
+      'Docker: no',
     ])
   })
 })

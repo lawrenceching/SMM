@@ -63,6 +63,7 @@ describe("mcpServerConfig persistence", () => {
         tmpDir: tmpDir,
         reverseProxyUrl: null,
         osLocale: "en-US",
+        isDocker: false,
         coreRoutesPort: 3001,
       },
       appDataDir: tmpDir,

@@ -10,6 +10,7 @@ describe("doHello", () => {
     tmpDir: "/tmp/smm",
     reverseProxyUrl: "http://127.0.0.1:30001",
     osLocale: "zh-CN",
+    isDocker: false,
     coreRoutesPort: 3001,
   };
 

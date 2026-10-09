@@ -26,6 +26,7 @@ export function buildHelloConfig(reverseProxyUrl: string | null): Record<string,
     tmpDir,
     reverseProxyUrl,
     osLocale: app.getLocale(),
+    isDocker: false,
     coreRoutesPort: MAIN_HTTP_PORT,
   }
 }

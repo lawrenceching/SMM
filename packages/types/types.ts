@@ -21,6 +21,8 @@ export interface HostRuntimeConfig {
   logDir: string
   platform: string
   osLocale: string
+  /** True when the host process is running inside Docker (`/.dockerenv`). */
+  isDocker: boolean
 }
 
 
@@ -1082,6 +1084,11 @@ export interface HelloCliBody {
    * Used by the UI when applicationLanguage is not explicitly configured.
    */
   osLocale: string;
+  /**
+   * True when the CLI/server process is running inside Docker (`/.dockerenv`).
+   * UI uses this to hide host file-manager actions that cannot work in-container.
+   */
+  isDocker: boolean;
 }
 
 /** HTTP-only extensions for browser / embedded UI. */

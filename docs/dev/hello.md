@@ -20,7 +20,7 @@ Layer 2 entry point shared by CLI and HTTP adapters:
 
 | Method | Role |
 |--------|------|
-| `hello()` | Return bootstrap info: `uptime`, `version`, `platform`, `userDataDir`, `appDataDir`, `tmpDir`, `logDir`, `osLocale` |
+| `hello()` | Return bootstrap info: `uptime`, `version`, `platform`, `userDataDir`, `appDataDir`, `tmpDir`, `logDir`, `osLocale`, `isDocker` |
 
 Implementation notes:
 
@@ -29,6 +29,7 @@ Implementation notes:
 - `platform` — `process.platform` (`win32`, `linux`, `darwin`, …)
 - `*Dir` — resolved via platform-specific config helpers (same paths as today’s `buildHelloOptions`)
 - `osLocale` — OS locale detected by CLI process (e.g. `en-US`, `zh-CN`)
+- `isDocker` — `true` when `/.dockerenv` is present (host sets this via `isRunningInDocker()` in `apps/server`)
 
 ```mermaid
 sequenceDiagram
@@ -53,6 +54,7 @@ interface HelloCliBody {
   tmpDir: string
   logDir: string
   osLocale: string
+  isDocker: boolean
 }
 
 /** HTTP-only extensions for browser / embedded UI. */
@@ -69,7 +71,7 @@ interface HelloHttpResponseBody extends HelloCliBody {
 
 Web UI talks to Core via Internal HTTP (`apps/cli`). Electron and ohos reuse the same UI bundle.
 
-Bootstrap runs once at app start (TanStack Query `helloQueryKey`). The UI binds `Path` helpers to `platform`, reads `userDataDir` for config I/O, and uses `reverseProxyUrl` / `coreRoutesPort` for proxied metadata requests and core-routes calls.
+Bootstrap runs once at app start (TanStack Query `helloQueryKey`). The UI binds `Path` helpers to `platform`, reads `userDataDir` for config I/O, uses `reverseProxyUrl` / `coreRoutesPort` for proxied metadata requests and core-routes calls, and uses `isDocker` to hide host file-manager actions (sidebar “Open in Explorer”, Developer “Open App Data Folder” / “Open Log Folder”).
 
 ```mermaid
 sequenceDiagram
@@ -116,6 +118,7 @@ App data dir: C:\Users\lawrence\AppData\Local\SMM
 Tmp dir: C:\Users\lawrence\AppData\Local\Temp\SMM
 Log dir: C:\Users\lawrence\AppData\Local\SMM\logs
 OS locale: zh-CN
+Docker: no
 ```
 
 `-f json` prints `HelloCliBody` (no `reverseProxyUrl`, no `coreRoutesPort`):
@@ -129,7 +132,8 @@ OS locale: zh-CN
   "appDataDir": "C:\\Users\\lawrence\\AppData\\Local\\SMM",
   "tmpDir": "C:\\Users\\lawrence\\AppData\\Local\\Temp\\SMM",
   "logDir": "C:\\Users\\lawrence\\AppData\\Local\\SMM\\logs",
-  "osLocale": "zh-CN"
+  "osLocale": "zh-CN",
+  "isDocker": false
 }
 ```
 

@@ -10,5 +10,6 @@ export function formatHelloLines(body: HelloCliBody): string[] {
     `Tmp dir: ${body.tmpDir}`,
     `Log dir: ${body.logDir}`,
     `OS locale: ${body.osLocale}`,
+    `Docker: ${body.isDocker ? 'yes' : 'no'}`,
   ]
 }

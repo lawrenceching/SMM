@@ -17,6 +17,7 @@ export { logApplicationConfig } from './src/startup/applicationConfig'
 export { logger } from './lib/logger'
 export { registerGracefulShutdown } from './src/utils/gracefulShutdown'
 export { permanentlyDeleteFile } from './src/utils/files'
+export { isRunningInDocker } from './src/utils/isRunningInDocker'
 export {
   formatMediaFilesTree,
   formatMediaMetadata,

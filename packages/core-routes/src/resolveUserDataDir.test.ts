@@ -24,6 +24,7 @@ describe("resolveUserDataDir", () => {
         tmpDir: "/tmp",
         reverseProxyUrl: null,
         osLocale: "en-US",
+        isDocker: false,
         coreRoutesPort: 30000,
       },
     };

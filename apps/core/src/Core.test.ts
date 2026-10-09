@@ -881,7 +881,22 @@ describe("hello", () => {
       tmpDir: "/tmp/smm",
       logDir: "/data/ad/logs",
       osLocale: "zh-CN",
+      isDocker: false,
     });
+  });
+
+  it("reports isDocker when injected via context", () => {
+    const core = new Core({
+    context: {
+      appDataDir: "/data/smm",
+      isDocker: true,
+    },
+    ports: {
+      fs: inMemoryFs(),
+      network: emptyNetwork(),
+    },
+  });
+    expect(core.hello().isDocker).toBe(true);
   });
 
   it("falls back appDataDir to appDataDir and empty tmp/log when omitted", () => {

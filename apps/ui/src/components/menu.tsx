@@ -17,6 +17,7 @@ import {
 import { useDialogs } from "@/providers/dialog-provider"
 import { askForFormatConverter } from "@/lib/dialogRequestEvents"
 import { useFeatures } from "@/hooks/useFeatures"
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { useTranslation } from "@/lib/i18n"
 // import { cleanUp } from "@/api/cleanUp"
 import { toast } from "sonner"
@@ -178,6 +179,8 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
     isFormatConverterEnabled,
     isVideoCompressionEnabled,
   } = useFeatures()
+  const { data: helloData } = useHelloQuery()
+  const isDocker = helloData?.isDocker === true
 
   const [openConfig] = configDialog
   const [openDownloadVideo] = downloadVideoDialog
@@ -303,56 +306,60 @@ export function Menu({onOpenFolderMenuClick, onOpenMediaLibraryMenuClick}: MenuP
           type: "submenu",
           name: t('menu.developer'),
           items: [
-            {
-              name: t('menu.openAppDataFolder'),
-              id: 'open-app-data-folder',
-              onClick: async () => {
-                logMenuAction("open-app-data-folder.click")
-                try {
-                  const result = await hello()
-                  if (result.error) {
-                    toast.error(result.error)
-                    logMenuError("open-app-data-folder.hello", result.error)
-                    return
-                  }
-                  // Convert platform path to POSIX format
-                  const posixPath = Path.isWindows() ? Path.posix(result.appDataDir) : result.appDataDir
-                  const openResult = await openInFileManagerApi(posixPath)
-                  if (openResult.error) {
-                    toast.error(openResult.error)
-                    logMenuError("open-app-data-folder.open-in-file-manager", openResult.error, { path: posixPath })
-                  }
-                } catch (error) {
-                  toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
-                  logMenuError("open-app-data-folder.exception", error)
-                }
-              }
-            },
-            {
-              name: t('menu.openLogFolder'),
-              id: 'open-log-folder',
-              onClick: async () => {
-                logMenuAction("open-log-folder.click")
-                try {
-                  const result = await hello()
-                  if (result.error) {
-                    toast.error(result.error)
-                    logMenuError("open-log-folder.hello", result.error)
-                    return
-                  }
-                  // Convert platform path to POSIX format
-                  const posixPath = Path.isWindows() ? Path.posix(result.logDir) : result.logDir
-                  const openResult = await openInFileManagerApi(posixPath)
-                  if (openResult.error) {
-                    toast.error(openResult.error)
-                    logMenuError("open-log-folder.open-in-file-manager", openResult.error, { path: posixPath })
-                  }
-                } catch (error) {
-                  toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
-                  logMenuError("open-log-folder.exception", error)
-                }
-              }
-            },
+            ...(!isDocker
+              ? [
+                  {
+                    name: t('menu.openAppDataFolder'),
+                    id: 'open-app-data-folder',
+                    onClick: async () => {
+                      logMenuAction("open-app-data-folder.click")
+                      try {
+                        const result = await hello()
+                        if (result.error) {
+                          toast.error(result.error)
+                          logMenuError("open-app-data-folder.hello", result.error)
+                          return
+                        }
+                        // Convert platform path to POSIX format
+                        const posixPath = Path.isWindows() ? Path.posix(result.appDataDir) : result.appDataDir
+                        const openResult = await openInFileManagerApi(posixPath)
+                        if (openResult.error) {
+                          toast.error(openResult.error)
+                          logMenuError("open-app-data-folder.open-in-file-manager", openResult.error, { path: posixPath })
+                        }
+                      } catch (error) {
+                        toast.error(`Failed to open app data folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                        logMenuError("open-app-data-folder.exception", error)
+                      }
+                    }
+                  } as const,
+                  {
+                    name: t('menu.openLogFolder'),
+                    id: 'open-log-folder',
+                    onClick: async () => {
+                      logMenuAction("open-log-folder.click")
+                      try {
+                        const result = await hello()
+                        if (result.error) {
+                          toast.error(result.error)
+                          logMenuError("open-log-folder.hello", result.error)
+                          return
+                        }
+                        // Convert platform path to POSIX format
+                        const posixPath = Path.isWindows() ? Path.posix(result.logDir) : result.logDir
+                        const openResult = await openInFileManagerApi(posixPath)
+                        if (openResult.error) {
+                          toast.error(openResult.error)
+                          logMenuError("open-log-folder.open-in-file-manager", openResult.error, { path: posixPath })
+                        }
+                      } catch (error) {
+                        toast.error(`Failed to open log folder: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                        logMenuError("open-log-folder.exception", error)
+                      }
+                    }
+                  } as const,
+                ]
+              : []),
             {
               name: t('menu.addTestBackgroundJob'),
               id: 'add-test-background-job',

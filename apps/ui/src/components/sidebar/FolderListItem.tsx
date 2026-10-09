@@ -135,9 +135,11 @@ export function FolderListItem({
         <ContextMenuItem onClick={onRename} data-testid="context-menu-rename">
           {t("mediaFolder.rename")}
         </ContextMenuItem>
-        <ContextMenuItem onClick={onOpenInExplorer} data-testid="context-menu-open-in-explorer">
-          {t("mediaFolder.openInExplorer")}
-        </ContextMenuItem>
+        {onOpenInExplorer && (
+          <ContextMenuItem onClick={onOpenInExplorer} data-testid="context-menu-open-in-explorer">
+            {t("mediaFolder.openInExplorer")}
+          </ContextMenuItem>
+        )}
         <ContextMenuItem onClick={onDelete} data-testid="context-menu-delete">
           <div className="flex items-center gap-4">
             <span>{t("mediaFolder.delete")}</span>
