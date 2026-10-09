@@ -9,7 +9,11 @@ import {
   createImportLibraryTasks,
   importLibraryJobProgress,
   patchImportLibraryTask,
+  prepareLibraryFoldersForImport,
 } from "../pipeline/importLibrary";
+import { MediaMetadataHelper } from "../pipeline/mediaMetadataHelper";
+import { UserConfigHelper } from "../pipeline/userConfigHelper";
+import { uniq } from "es-toolkit/array";
 
 export interface ImportLibraryJobOptions {
   libraryPath: string;
@@ -69,6 +73,29 @@ export class ImportLibraryJob extends AbstractJob {
 
   async run(): Promise<void> {
     this.setStatus("running");
+
+    // Notify smm.json earlier so that the UI can show the folder list immediately
+    const folderPaths: string[] = await this.ports.fs.listSubdirectories(this.libraryPath);
+
+    // Blank metadata must exist before folders are listed in smm.json so the UI
+    // does not show a "No Media Metadata" warning. MediaMetadataHelper notifies
+    // onMediaMetadataUpdated (Core → mediaMetadataUpdated → Socket.IO → UI).
+    const userConfigHelper = new UserConfigHelper(this.ports.fs, this.context.userDataDir);
+    const mediaMetadata = new MediaMetadataHelper(
+      this.ports.fs,
+      this.context.appDataDir,
+      this.onMediaMetadataUpdated,
+    );
+    await prepareLibraryFoldersForImport(folderPaths, this.folderType, {
+      writeBlankMetadata: async (metadata) => {
+        await mediaMetadata.createIfAbsent(metadata);
+      },
+      upsertFolders: async (folders) => {
+        const existing = await userConfigHelper.getFolders();
+        await userConfigHelper.setFolders(uniq([...existing, ...folders]));
+      },
+    });
+
     this.updatedAt = Date.now();
     if (!(await this.ports.fs.exists(this.libraryPath))) {
       const message = `Library path not found: ${this.libraryPath}`;
@@ -78,7 +105,7 @@ export class ImportLibraryJob extends AbstractJob {
       this.updatedAt = Date.now();
       return;
     }
-    const folderPaths: string[] = await this.ports.fs.listSubdirectories(this.libraryPath);
+
     this.tasks = createImportLibraryTasks(this.id, folderPaths);
     this.setProgress(importLibraryJobProgress(this.tasks));
     this.updatedAt = Date.now();
