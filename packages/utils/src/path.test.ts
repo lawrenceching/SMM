@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Path, split, ext } from './path';
 
 describe('split', () => {
@@ -471,6 +471,10 @@ describe('Path', () => {
   });
 
   describe('toPlatformPath', () => {
+    afterEach(() => {
+      Path.resetServerPlatformForTests();
+    });
+
     it('should convert path to platform-specific format', () => {
       const result = Path.toPlatformPath('/home/user');
       expect(typeof result).toBe('string');
@@ -486,9 +490,12 @@ describe('Path', () => {
     it('should not produce UNC path from drive-letter POSIX path (round trip)', () => {
       // Regression: USER_DATA_DIR with forward slashes (e.g. from POSIX shells)
       // produced '\\C:\\...' via Path.win and broke mkdir on Windows.
+      // Force win32 so this assertion is stable on Linux/mac CI runners.
+      Path.setServerPlatform('win32');
       const posixConfigPath = Path.posix('C:/Users/me/.smm') + '/smm.json';
       const result = Path.toPlatformPath(posixConfigPath);
       expect(result).toBe('C:\\Users\\me\\.smm\\smm.json');
+      expect(result.startsWith('\\\\')).toBe(false);
     });
   });
 
