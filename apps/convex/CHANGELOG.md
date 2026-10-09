@@ -1,5 +1,21 @@
 # convex
 
+## 1.1.25-rc.0
+
+### Patch Changes
+
+- v1.4.17-rc.1
+- Updated dependencies
+  - convex@1.1.25-rc.0
+
+## 1.1.24
+
+### Patch Changes
+
+- v1.4.16
+- Updated dependencies
+  - convex@1.1.24
+
 ## 1.1.23
 
 ### Patch Changes
