@@ -87,7 +87,9 @@ watch_run() {
       fi
     } >> "${GITHUB_STEP_SUMMARY}"
   fi
-  gh run watch "${run_id}" --exit-status
+  # Default refresh is 3s. Six parallel watchers at that rate exhaust the
+  # GITHUB_TOKEN installation quota during a 15–30 minute E2E run.
+  gh run watch "${run_id}" --interval 60 --exit-status
   echo "Workflow ${WORKFLOW_FILE} run ${run_id} finished successfully."
 }
 
