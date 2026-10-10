@@ -19,6 +19,7 @@
     "@smm/utils": "1.2.24"
   },
   "changesets": [
-    "breezy-knives-listen"
+    "breezy-knives-listen",
+    "nine-baths-wash"
   ]
 }

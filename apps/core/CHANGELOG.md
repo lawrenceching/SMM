@@ -1,5 +1,15 @@
 # @smm/core
 
+## 1.4.17-rc.1
+
+### Patch Changes
+
+- v1.4.17-rc.1
+- Updated dependencies
+  - @smm/tvdb4@1.3.25-rc.1
+  - @smm/types@0.0.6-rc.1
+  - @smm/utils@1.2.25-rc.1
+
 ## 1.4.17-rc.0
 
 ### Patch Changes
