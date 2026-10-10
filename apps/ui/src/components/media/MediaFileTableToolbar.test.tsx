@@ -174,4 +174,19 @@ describe('MediaFileTableToolbar', () => {
     )
     expect(screen.queryByRole('button', { name: 'Preview layout' })).not.toBeInTheDocument()
   })
+
+  it('exposes layout switcher test ids for e2e', () => {
+    render(
+      <MediaFileTableToolbar
+        leading={<div>Search</div>}
+        layout="simple"
+        onLayoutChange={vi.fn()}
+        testIdPrefix="tvshow-header"
+      />,
+    )
+    expect(screen.getByTestId('media-file-table-layout-simple')).toBeInTheDocument()
+    expect(screen.getByTestId('media-file-table-layout-detail')).toBeInTheDocument()
+    expect(screen.getByTestId('media-file-table-layout-preview')).toBeInTheDocument()
+    expect(screen.getByTestId('tvshow-header-more')).toBeInTheDocument()
+  })
 })

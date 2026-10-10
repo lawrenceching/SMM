@@ -656,9 +656,15 @@ describe("GET /api/image", () => {
     } as unknown as Response;
   }
 
+  function toPosix(p: string): string {
+    if (path.sep === "/") return p;
+    return p.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
+  }
+
   async function requestImage(
     url: string,
     allowlist: string[],
+    config: Partial<CoreRoutesConfig> = {},
   ): Promise<{ status: number; headers: Record<string, string>; body: Buffer }> {
     const { handleCoreRoutesRequest } = await import("../src/register.ts");
     const { IncomingMessage, ServerResponse } = await import("node:http");
@@ -686,7 +692,7 @@ describe("GET /api/image", () => {
       return res;
     }) as typeof res.end;
 
-    await handleCoreRoutesRequest(req, res, { allowlist }, 3001);
+    await handleCoreRoutesRequest(req, res, { allowlist, ...config }, 3001);
 
     socket.destroy();
     return {
@@ -798,13 +804,47 @@ describe("GET /api/image", () => {
     try {
       const filePath = path.join(dir, "local.png");
       await writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-      const posixDir =
-        path.sep === "/"
-          ? dir
-          : dir.replace(/\\/g, "/").replace(/^([A-Za-z]):/, "/$1");
       const { status, headers, body } = await requestImage(
         "/api/image?url=" + encodeURIComponent(`file://${filePath}`),
-        [posixDir],
+        [toPosix(dir)],
+      );
+      expect(status).toBe(200);
+      expect(headers["Content-Type"]).toBe("image/png");
+      expect(Array.from(body)).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("uses resolveAllowlist when the file is in the resolved list but not the static allowlist", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-image-resolve-"));
+    const other = await mkdtemp(path.join(os.tmpdir(), "core-routes-image-static-"));
+    try {
+      const filePath = path.join(dir, "local.png");
+      await writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      const { status, headers, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent(`file://${filePath}`),
+        [toPosix(other)],
+        { resolveAllowlist: async () => [toPosix(dir)] },
+      );
+      expect(status).toBe(200);
+      expect(headers["Content-Type"]).toBe("image/png");
+      expect(Array.from(body)).toEqual([0x89, 0x50, 0x4e, 0x47]);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+      await rm(other, { recursive: true, force: true });
+    }
+  });
+
+  it("falls back to the static allowlist when resolveAllowlist throws", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "core-routes-image-resolve-throw-"));
+    try {
+      const filePath = path.join(dir, "local.png");
+      await writeFile(filePath, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+      const { status, headers, body } = await requestImage(
+        "/api/image?url=" + encodeURIComponent(`file://${filePath}`),
+        [toPosix(dir)],
+        { resolveAllowlist: async () => { throw new Error("boom"); } },
       );
       expect(status).toBe(200);
       expect(headers["Content-Type"]).toBe("image/png");

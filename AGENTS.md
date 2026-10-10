@@ -229,5 +229,7 @@ API列表可查阅文件: `docs/api/index.md`.
 
 文档模板: [Design Template](./docs/superpowers/reference/design-template.md)
 
+## 提交代码前, 执行 `pnpm precommit` 命令做代码检查
+
 ## References
 [Testing in SMM](docs/dev/test.md)

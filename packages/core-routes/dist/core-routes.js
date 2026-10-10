@@ -30961,7 +30961,7 @@ function split(path) {
   let parts = path.split(":\\").filter(isNotEmpty);
   parts = flattenDeep(parts.map((part) => part.split("\\").filter(isNotEmpty)));
   parts = flattenDeep(parts.map((part) => part.split("/").filter(isNotEmpty)));
-  return parts;
+  return parts.map((part) => /^[A-Za-z]:$/.test(part) ? part.slice(0, -1) : part);
 }
 
 class Path {
@@ -40122,6 +40122,191 @@ var optionalType = ZodOptional2.create;
 var nullableType = ZodNullable2.create;
 var preprocessType = ZodEffects.createWithPreprocess;
 var pipelineType = ZodPipeline.create;
+// ../../node_modules/.pnpm/eventsource-parser@3.1.1/node_modules/eventsource-parser/dist/index.js
+class ParseError extends Error {
+  constructor(message, options) {
+    super(message), this.name = "ParseError", this.type = options.type, this.field = options.field, this.value = options.value, this.line = options.line;
+  }
+}
+var LF = 10;
+var CR = 13;
+var SPACE = 32;
+function noop2(_arg) {}
+function createParser(config) {
+  if (typeof config == "function")
+    throw new TypeError("`config` must be an object, got a function instead. Did you mean `createParser({onEvent: fn})`?");
+  const { onEvent = noop2, onError = noop2, onRetry = noop2, onComment, maxBufferSize } = config, pendingFragments = [];
+  let pendingFragmentsLength = 0, isFirstChunk = true, id, data = "", dataLines = 0, eventType, terminated = false;
+  function feed(chunk) {
+    if (terminated)
+      throw new Error("Cannot feed parser: it was terminated after exceeding the configured max buffer size. Call `reset()` to resume parsing.");
+    if (isFirstChunk && (isFirstChunk = false, chunk.charCodeAt(0) === 239 && chunk.charCodeAt(1) === 187 && chunk.charCodeAt(2) === 191 && (chunk = chunk.slice(3))), pendingFragments.length === 0) {
+      const trailing2 = processLines(chunk);
+      trailing2 !== "" && (pendingFragments.push(trailing2), pendingFragmentsLength = trailing2.length), checkBufferSize();
+      return;
+    }
+    if (chunk.indexOf(`
+`) === -1 && chunk.indexOf("\r") === -1) {
+      pendingFragments.push(chunk), pendingFragmentsLength += chunk.length, checkBufferSize();
+      return;
+    }
+    pendingFragments.push(chunk);
+    const input = pendingFragments.join("");
+    pendingFragments.length = 0, pendingFragmentsLength = 0;
+    const trailing = processLines(input);
+    trailing !== "" && (pendingFragments.push(trailing), pendingFragmentsLength = trailing.length), checkBufferSize();
+  }
+  function checkBufferSize() {
+    maxBufferSize !== undefined && (pendingFragmentsLength + data.length <= maxBufferSize || (terminated = true, pendingFragments.length = 0, pendingFragmentsLength = 0, id = undefined, data = "", dataLines = 0, eventType = undefined, onError(new ParseError(`Buffered data exceeded max buffer size of ${maxBufferSize} characters`, {
+      type: "max-buffer-size-exceeded"
+    }))));
+  }
+  function processLines(chunk) {
+    let searchIndex = 0;
+    if (chunk.indexOf("\r") === -1) {
+      let lfIndex = chunk.indexOf(`
+`, searchIndex);
+      for (;lfIndex !== -1; ) {
+        if (searchIndex === lfIndex) {
+          dataLines > 0 && onEvent({ id, event: eventType, data }), id = undefined, data = "", dataLines = 0, eventType = undefined, searchIndex = lfIndex + 1, lfIndex = chunk.indexOf(`
+`, searchIndex);
+          continue;
+        }
+        const firstCharCode = chunk.charCodeAt(searchIndex);
+        if (isDataPrefix(chunk, searchIndex, firstCharCode)) {
+          const valueStart = chunk.charCodeAt(searchIndex + 5) === SPACE ? searchIndex + 6 : searchIndex + 5, value = chunk.slice(valueStart, lfIndex);
+          if (dataLines === 0 && chunk.charCodeAt(lfIndex + 1) === LF) {
+            onEvent({ id, event: eventType, data: value }), id = undefined, data = "", eventType = undefined, searchIndex = lfIndex + 2, lfIndex = chunk.indexOf(`
+`, searchIndex);
+            continue;
+          }
+          data = dataLines === 0 ? value : `${data}
+${value}`, dataLines++;
+        } else
+          isEventPrefix(chunk, searchIndex, firstCharCode) ? eventType = chunk.slice(chunk.charCodeAt(searchIndex + 6) === SPACE ? searchIndex + 7 : searchIndex + 6, lfIndex) || undefined : parseLine(chunk, searchIndex, lfIndex);
+        searchIndex = lfIndex + 1, lfIndex = chunk.indexOf(`
+`, searchIndex);
+      }
+      return chunk.slice(searchIndex);
+    }
+    for (;searchIndex < chunk.length; ) {
+      const crIndex = chunk.indexOf("\r", searchIndex), lfIndex = chunk.indexOf(`
+`, searchIndex);
+      let lineEnd = -1;
+      if (crIndex !== -1 && lfIndex !== -1 ? lineEnd = crIndex < lfIndex ? crIndex : lfIndex : crIndex !== -1 ? crIndex === chunk.length - 1 ? lineEnd = -1 : lineEnd = crIndex : lfIndex !== -1 && (lineEnd = lfIndex), lineEnd === -1)
+        break;
+      parseLine(chunk, searchIndex, lineEnd), searchIndex = lineEnd + 1, chunk.charCodeAt(searchIndex - 1) === CR && chunk.charCodeAt(searchIndex) === LF && searchIndex++;
+    }
+    return chunk.slice(searchIndex);
+  }
+  function parseLine(chunk, start, end) {
+    if (start === end) {
+      dispatchEvent();
+      return;
+    }
+    const firstCharCode = chunk.charCodeAt(start);
+    if (isDataPrefix(chunk, start, firstCharCode)) {
+      const valueStart = chunk.charCodeAt(start + 5) === SPACE ? start + 6 : start + 5, value2 = chunk.slice(valueStart, end);
+      data = dataLines === 0 ? value2 : `${data}
+${value2}`, dataLines++;
+      return;
+    }
+    if (isEventPrefix(chunk, start, firstCharCode)) {
+      eventType = chunk.slice(chunk.charCodeAt(start + 6) === SPACE ? start + 7 : start + 6, end) || undefined;
+      return;
+    }
+    if (firstCharCode === 105 && chunk.charCodeAt(start + 1) === 100 && chunk.charCodeAt(start + 2) === 58) {
+      const value2 = chunk.slice(chunk.charCodeAt(start + 3) === SPACE ? start + 4 : start + 3, end);
+      value2.includes("\x00") || (id = value2);
+      return;
+    }
+    if (firstCharCode === 58) {
+      if (onComment) {
+        const line2 = chunk.slice(start, end);
+        onComment(line2.slice(chunk.charCodeAt(start + 1) === SPACE ? 2 : 1));
+      }
+      return;
+    }
+    const line = chunk.slice(start, end), fieldSeparatorIndex = line.indexOf(":");
+    if (fieldSeparatorIndex === -1) {
+      processField(line, "", line);
+      return;
+    }
+    const field = line.slice(0, fieldSeparatorIndex), offset = line.charCodeAt(fieldSeparatorIndex + 1) === SPACE ? 2 : 1, value = line.slice(fieldSeparatorIndex + offset);
+    processField(field, value, line);
+  }
+  function processField(field, value, line) {
+    switch (field) {
+      case "event":
+        eventType = value || undefined;
+        break;
+      case "data":
+        data = dataLines === 0 ? value : `${data}
+${value}`, dataLines++;
+        break;
+      case "id":
+        value.includes("\x00") || (id = value);
+        break;
+      case "retry":
+        /^\d+$/.test(value) ? onRetry(parseInt(value, 10)) : onError(new ParseError(`Invalid \`retry\` value: "${value}"`, {
+          type: "invalid-retry",
+          value,
+          line
+        }));
+        break;
+      default:
+        onError(new ParseError(`Unknown field "${field.length > 20 ? `${field.slice(0, 20)}…` : field}"`, { type: "unknown-field", field, value, line }));
+        break;
+    }
+  }
+  function dispatchEvent() {
+    dataLines > 0 && onEvent({
+      id,
+      event: eventType,
+      data
+    }), id = undefined, data = "", dataLines = 0, eventType = undefined;
+  }
+  function reset(options = {}) {
+    if (options.consume && pendingFragments.length > 0) {
+      const incompleteLine = pendingFragments.join("");
+      parseLine(incompleteLine, 0, incompleteLine.length);
+    }
+    isFirstChunk = true, id = undefined, data = "", dataLines = 0, eventType = undefined, pendingFragments.length = 0, pendingFragmentsLength = 0, terminated = false;
+  }
+  return { feed, reset };
+}
+function isDataPrefix(chunk, i, firstCharCode) {
+  return firstCharCode === 100 && chunk.charCodeAt(i + 1) === 97 && chunk.charCodeAt(i + 2) === 116 && chunk.charCodeAt(i + 3) === 97 && chunk.charCodeAt(i + 4) === 58;
+}
+function isEventPrefix(chunk, i, firstCharCode) {
+  return firstCharCode === 101 && chunk.charCodeAt(i + 1) === 118 && chunk.charCodeAt(i + 2) === 101 && chunk.charCodeAt(i + 3) === 110 && chunk.charCodeAt(i + 4) === 116 && chunk.charCodeAt(i + 5) === 58;
+}
+
+// ../../node_modules/.pnpm/eventsource-parser@3.1.1/node_modules/eventsource-parser/dist/stream.js
+class EventSourceParserStream extends TransformStream {
+  constructor({ onError, onRetry, onComment, maxBufferSize } = {}) {
+    let parser;
+    super({
+      start(controller) {
+        parser = createParser({
+          onEvent: (event) => {
+            controller.enqueue(event);
+          },
+          onError(error) {
+            typeof onError == "function" && onError(error), (onError === "terminate" || error.type === "max-buffer-size-exceeded") && controller.error(error);
+          },
+          onRetry,
+          onComment,
+          maxBufferSize
+        });
+      },
+      transform(chunk) {
+        parser.feed(chunk);
+      }
+    });
+  }
+}
+
 // ../../node_modules/.pnpm/@ai-sdk+provider-utils@4.0.15_zod@4.3.6/node_modules/@ai-sdk/provider-utils/dist/index.mjs
 var { btoa: btoa2, atob: atob2 } = globalThis;
 var name14 = "AI_DownloadError";
@@ -43249,191 +43434,6 @@ var UnsupportedFunctionalityError2 = class extends (_b152 = AISDKError2, _a153 =
     return AISDKError2.hasMarker(error, marker153);
   }
 };
-
-// ../../node_modules/.pnpm/eventsource-parser@3.1.1/node_modules/eventsource-parser/dist/index.js
-class ParseError extends Error {
-  constructor(message, options) {
-    super(message), this.name = "ParseError", this.type = options.type, this.field = options.field, this.value = options.value, this.line = options.line;
-  }
-}
-var LF = 10;
-var CR = 13;
-var SPACE = 32;
-function noop2(_arg) {}
-function createParser(config) {
-  if (typeof config == "function")
-    throw new TypeError("`config` must be an object, got a function instead. Did you mean `createParser({onEvent: fn})`?");
-  const { onEvent = noop2, onError = noop2, onRetry = noop2, onComment, maxBufferSize } = config, pendingFragments = [];
-  let pendingFragmentsLength = 0, isFirstChunk = true, id, data = "", dataLines = 0, eventType, terminated = false;
-  function feed(chunk) {
-    if (terminated)
-      throw new Error("Cannot feed parser: it was terminated after exceeding the configured max buffer size. Call `reset()` to resume parsing.");
-    if (isFirstChunk && (isFirstChunk = false, chunk.charCodeAt(0) === 239 && chunk.charCodeAt(1) === 187 && chunk.charCodeAt(2) === 191 && (chunk = chunk.slice(3))), pendingFragments.length === 0) {
-      const trailing2 = processLines(chunk);
-      trailing2 !== "" && (pendingFragments.push(trailing2), pendingFragmentsLength = trailing2.length), checkBufferSize();
-      return;
-    }
-    if (chunk.indexOf(`
-`) === -1 && chunk.indexOf("\r") === -1) {
-      pendingFragments.push(chunk), pendingFragmentsLength += chunk.length, checkBufferSize();
-      return;
-    }
-    pendingFragments.push(chunk);
-    const input = pendingFragments.join("");
-    pendingFragments.length = 0, pendingFragmentsLength = 0;
-    const trailing = processLines(input);
-    trailing !== "" && (pendingFragments.push(trailing), pendingFragmentsLength = trailing.length), checkBufferSize();
-  }
-  function checkBufferSize() {
-    maxBufferSize !== undefined && (pendingFragmentsLength + data.length <= maxBufferSize || (terminated = true, pendingFragments.length = 0, pendingFragmentsLength = 0, id = undefined, data = "", dataLines = 0, eventType = undefined, onError(new ParseError(`Buffered data exceeded max buffer size of ${maxBufferSize} characters`, {
-      type: "max-buffer-size-exceeded"
-    }))));
-  }
-  function processLines(chunk) {
-    let searchIndex = 0;
-    if (chunk.indexOf("\r") === -1) {
-      let lfIndex = chunk.indexOf(`
-`, searchIndex);
-      for (;lfIndex !== -1; ) {
-        if (searchIndex === lfIndex) {
-          dataLines > 0 && onEvent({ id, event: eventType, data }), id = undefined, data = "", dataLines = 0, eventType = undefined, searchIndex = lfIndex + 1, lfIndex = chunk.indexOf(`
-`, searchIndex);
-          continue;
-        }
-        const firstCharCode = chunk.charCodeAt(searchIndex);
-        if (isDataPrefix(chunk, searchIndex, firstCharCode)) {
-          const valueStart = chunk.charCodeAt(searchIndex + 5) === SPACE ? searchIndex + 6 : searchIndex + 5, value = chunk.slice(valueStart, lfIndex);
-          if (dataLines === 0 && chunk.charCodeAt(lfIndex + 1) === LF) {
-            onEvent({ id, event: eventType, data: value }), id = undefined, data = "", eventType = undefined, searchIndex = lfIndex + 2, lfIndex = chunk.indexOf(`
-`, searchIndex);
-            continue;
-          }
-          data = dataLines === 0 ? value : `${data}
-${value}`, dataLines++;
-        } else
-          isEventPrefix(chunk, searchIndex, firstCharCode) ? eventType = chunk.slice(chunk.charCodeAt(searchIndex + 6) === SPACE ? searchIndex + 7 : searchIndex + 6, lfIndex) || undefined : parseLine(chunk, searchIndex, lfIndex);
-        searchIndex = lfIndex + 1, lfIndex = chunk.indexOf(`
-`, searchIndex);
-      }
-      return chunk.slice(searchIndex);
-    }
-    for (;searchIndex < chunk.length; ) {
-      const crIndex = chunk.indexOf("\r", searchIndex), lfIndex = chunk.indexOf(`
-`, searchIndex);
-      let lineEnd = -1;
-      if (crIndex !== -1 && lfIndex !== -1 ? lineEnd = crIndex < lfIndex ? crIndex : lfIndex : crIndex !== -1 ? crIndex === chunk.length - 1 ? lineEnd = -1 : lineEnd = crIndex : lfIndex !== -1 && (lineEnd = lfIndex), lineEnd === -1)
-        break;
-      parseLine(chunk, searchIndex, lineEnd), searchIndex = lineEnd + 1, chunk.charCodeAt(searchIndex - 1) === CR && chunk.charCodeAt(searchIndex) === LF && searchIndex++;
-    }
-    return chunk.slice(searchIndex);
-  }
-  function parseLine(chunk, start, end) {
-    if (start === end) {
-      dispatchEvent();
-      return;
-    }
-    const firstCharCode = chunk.charCodeAt(start);
-    if (isDataPrefix(chunk, start, firstCharCode)) {
-      const valueStart = chunk.charCodeAt(start + 5) === SPACE ? start + 6 : start + 5, value2 = chunk.slice(valueStart, end);
-      data = dataLines === 0 ? value2 : `${data}
-${value2}`, dataLines++;
-      return;
-    }
-    if (isEventPrefix(chunk, start, firstCharCode)) {
-      eventType = chunk.slice(chunk.charCodeAt(start + 6) === SPACE ? start + 7 : start + 6, end) || undefined;
-      return;
-    }
-    if (firstCharCode === 105 && chunk.charCodeAt(start + 1) === 100 && chunk.charCodeAt(start + 2) === 58) {
-      const value2 = chunk.slice(chunk.charCodeAt(start + 3) === SPACE ? start + 4 : start + 3, end);
-      value2.includes("\x00") || (id = value2);
-      return;
-    }
-    if (firstCharCode === 58) {
-      if (onComment) {
-        const line2 = chunk.slice(start, end);
-        onComment(line2.slice(chunk.charCodeAt(start + 1) === SPACE ? 2 : 1));
-      }
-      return;
-    }
-    const line = chunk.slice(start, end), fieldSeparatorIndex = line.indexOf(":");
-    if (fieldSeparatorIndex === -1) {
-      processField(line, "", line);
-      return;
-    }
-    const field = line.slice(0, fieldSeparatorIndex), offset = line.charCodeAt(fieldSeparatorIndex + 1) === SPACE ? 2 : 1, value = line.slice(fieldSeparatorIndex + offset);
-    processField(field, value, line);
-  }
-  function processField(field, value, line) {
-    switch (field) {
-      case "event":
-        eventType = value || undefined;
-        break;
-      case "data":
-        data = dataLines === 0 ? value : `${data}
-${value}`, dataLines++;
-        break;
-      case "id":
-        value.includes("\x00") || (id = value);
-        break;
-      case "retry":
-        /^\d+$/.test(value) ? onRetry(parseInt(value, 10)) : onError(new ParseError(`Invalid \`retry\` value: "${value}"`, {
-          type: "invalid-retry",
-          value,
-          line
-        }));
-        break;
-      default:
-        onError(new ParseError(`Unknown field "${field.length > 20 ? `${field.slice(0, 20)}…` : field}"`, { type: "unknown-field", field, value, line }));
-        break;
-    }
-  }
-  function dispatchEvent() {
-    dataLines > 0 && onEvent({
-      id,
-      event: eventType,
-      data
-    }), id = undefined, data = "", dataLines = 0, eventType = undefined;
-  }
-  function reset(options = {}) {
-    if (options.consume && pendingFragments.length > 0) {
-      const incompleteLine = pendingFragments.join("");
-      parseLine(incompleteLine, 0, incompleteLine.length);
-    }
-    isFirstChunk = true, id = undefined, data = "", dataLines = 0, eventType = undefined, pendingFragments.length = 0, pendingFragmentsLength = 0, terminated = false;
-  }
-  return { feed, reset };
-}
-function isDataPrefix(chunk, i, firstCharCode) {
-  return firstCharCode === 100 && chunk.charCodeAt(i + 1) === 97 && chunk.charCodeAt(i + 2) === 116 && chunk.charCodeAt(i + 3) === 97 && chunk.charCodeAt(i + 4) === 58;
-}
-function isEventPrefix(chunk, i, firstCharCode) {
-  return firstCharCode === 101 && chunk.charCodeAt(i + 1) === 118 && chunk.charCodeAt(i + 2) === 101 && chunk.charCodeAt(i + 3) === 110 && chunk.charCodeAt(i + 4) === 116 && chunk.charCodeAt(i + 5) === 58;
-}
-
-// ../../node_modules/.pnpm/eventsource-parser@3.1.1/node_modules/eventsource-parser/dist/stream.js
-class EventSourceParserStream extends TransformStream {
-  constructor({ onError, onRetry, onComment, maxBufferSize } = {}) {
-    let parser;
-    super({
-      start(controller) {
-        parser = createParser({
-          onEvent: (event) => {
-            controller.enqueue(event);
-          },
-          onError(error) {
-            typeof onError == "function" && onError(error), (onError === "terminate" || error.type === "max-buffer-size-exceeded") && controller.error(error);
-          },
-          onRetry,
-          onComment,
-          maxBufferSize
-        });
-      },
-      transform(chunk) {
-        parser.feed(chunk);
-      }
-    });
-  }
-}
 
 // ../../node_modules/.pnpm/@workflow+serde@4.1.0/node_modules/@workflow/serde/dist/index.js
 var WORKFLOW_SERIALIZE = Symbol.for("workflow-serialize");
@@ -60837,7 +60837,7 @@ var DEFAULT_USER_CONFIG = {
 };
 var fileLocks = new Map;
 function resolveUserDataDir(config) {
-  return config.hello?.userDataDir ?? config.appDataDir;
+  return config.userDataDir ?? config.hello?.userDataDir ?? config.appDataDir;
 }
 function userConfigFilePath(userDataDir) {
   return path2.join(userDataDir, "smm.json");
@@ -62331,6 +62331,7 @@ function unsupportedFsOperation(name) {
 }
 function createFsPort(fs) {
   return {
+    join: (...parts) => parts.filter(Boolean).join("/"),
     async readTextFile(path) {
       const value = await fs.readJson(path);
       if (value === null) {
@@ -62558,6 +62559,7 @@ function createChatTools(args) {
       tmpDir: "",
       reverseProxyUrl: null,
       osLocale: "en-US",
+      isDocker: false,
       coreRoutesPort: 0
     },
     appDataDir: config.appDataDir,
@@ -64464,7 +64466,7 @@ async function nodeHttpMessageToFetchResponse(res, wireBody) {
   const body = await decompressBody(wireBody, res.headers["content-encoding"]);
   const headers = incomingHeadersToObject(res.headers);
   headers["Content-Length"] = String(body.length);
-  return new Response(body, {
+  return new Response(new Uint8Array(body.buffer, body.byteOffset, body.byteLength), {
     status: toFetchApiStatus(res.statusCode),
     statusText: res.statusMessage ?? "",
     headers
@@ -64760,6 +64762,25 @@ async function doDownloadImage(url, config) {
 // src/reverseProxy.ts
 var PORT_RANGE_START = 30000;
 var PORT_RANGE_END = 31000;
+var REVERSE_PROXY_MOUNT_PATH = "/proxy";
+function buildReverseProxyPublicUrl(publicOrigin) {
+  const origin = publicOrigin.replace(/\/+$/, "");
+  return `${origin}${REVERSE_PROXY_MOUNT_PATH}`;
+}
+function stripMountPathPrefix(pathname, stripPathPrefix) {
+  const prefix = stripPathPrefix?.trim();
+  if (!prefix || prefix === "/") {
+    return pathname;
+  }
+  const normalizedPrefix = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
+  if (pathname === normalizedPrefix) {
+    return "/";
+  }
+  if (pathname.startsWith(`${normalizedPrefix}/`)) {
+    return pathname.slice(normalizedPrefix.length) || "/";
+  }
+  return pathname;
+}
 var DEFAULT_ALLOWED_UPSTREAM_HOSTS = new Set([
   "api.themoviedb.org",
   "api4.thetvdb.com",
@@ -65101,7 +65122,8 @@ async function handleProxyRequest(request, config = {}) {
     }), { status: 400, headers: { "Content-Type": "application/problem+json" } });
   }
   const incomingUrl = new URL(request.url);
-  const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingUrl.pathname, incomingUrl.search);
+  const incomingPath = stripMountPathPrefix(incomingUrl.pathname, config.stripPathPrefix);
+  const forwardUrl = buildUpstreamUrl(upstreamBaseURL, incomingPath, incomingUrl.search);
   const proxyLogFields = buildOutboundProxyLogFields(httpProxyHeader, usingProxiedFetch, forwardUrl);
   try {
     const reqHeaders = filterRequestHeaders(request, upstreamUrl);
@@ -65116,7 +65138,8 @@ async function handleProxyRequest(request, config = {}) {
       method,
       forwardUrl,
       upstreamHost: upstreamUrl.host,
-      incomingPath: incomingUrl.pathname,
+      incomingPath,
+      rawIncomingPath: incomingUrl.pathname,
       upstreamBaseURL,
       ...proxyLogFields
     }, "[Reverse Proxy] forwarding request");
@@ -65146,7 +65169,8 @@ async function handleProxyRequest(request, config = {}) {
       causeMessage: errDetail.causeMessage,
       method: request.method,
       forwardUrl,
-      incomingPath: incomingUrl.pathname,
+      incomingPath,
+      rawIncomingPath: incomingUrl.pathname,
       upstreamBaseURL,
       ...proxyLogFields
     }, "[Reverse Proxy] upstream request failed");
@@ -65356,7 +65380,7 @@ function toFetchApiStatus2(statusCode) {
   return status;
 }
 function createNodeHttpResponse(body, statusCode, statusMessage, sourceHeaders, bodyLength) {
-  return new Response(body, {
+  return new Response(body instanceof Uint8Array ? new Uint8Array(body.buffer, body.byteOffset, body.byteLength) : body, {
     status: toFetchApiStatus2(statusCode),
     statusText: statusMessage ?? "",
     headers: buildResponseHeaders(sourceHeaders, bodyLength)
@@ -65670,9 +65694,8 @@ var TVDB_TOKEN_REFRESH_BUFFER_MS = 60 * 60 * 1000;
 // ../tvdb4/src/client.ts
 var DEFAULT_TOKEN_VALIDITY_MS = 30 * 24 * 60 * 60 * 1000;
 var DEFAULT_TOKEN_EXPIRY_BUFFER_MS = 60 * 60 * 1000;
-// ../../apps/core/src/pipeline/scrape/assetImageUrls.ts
-var TMDB_IMAGE_HOSTS = new Set(["image.tmdb.org"]);
-var TVDB_ARTWORK_HOSTS = new Set(["artworks.thetvdb.com"]);
+// ../../apps/core/src/pipeline/mediaMetadataHelper.ts
+var writeMutexByPath = new Map;
 
 // ../../apps/core/src/pipeline/userConfigDefaults.ts
 var DEFAULT_USER_CONFIG2 = {
@@ -65951,8 +65974,9 @@ function validateUserConfig(config) {
 // ../../apps/core/src/pipeline/userConfigHelper.ts
 var mutexByPath = new Map;
 
-// ../../apps/core/src/pipeline/mediaMetadataHelper.ts
-var writeMutexByPath = new Map;
+// ../../apps/core/src/pipeline/scrape/assetImageUrls.ts
+var TMDB_IMAGE_HOSTS = new Set(["image.tmdb.org"]);
+var TVDB_ARTWORK_HOSTS = new Set(["artworks.thetvdb.com"]);
 
 // ../../apps/core/src/pipeline/setMetadataPatch.ts
 var ALLOWED_PATCH_KEYS = new Set([
@@ -67775,7 +67799,19 @@ async function handleDownloadImageGet(req, res, ctx) {
     return true;
   }
   try {
-    const result = await doDownloadImage(url, ctx.config);
+    let allowlist = ctx.config.allowlist;
+    if (ctx.config.resolveAllowlist) {
+      try {
+        allowlist = await ctx.config.resolveAllowlist();
+      } catch (error) {
+        ctx.config.logger?.warn({ error }, "[DownloadImage] failed to resolve allowlist, falling back to static");
+        allowlist = ctx.config.allowlist;
+      }
+    }
+    const result = await doDownloadImage(url, {
+      ...ctx.config,
+      allowlist
+    });
     res.writeHead(200, {
       "Content-Type": result.contentType,
       "Content-Length": result.buffer.length.toString(),
@@ -73671,6 +73707,7 @@ function registerGetEpisodesTool(server, config) {
           tmpDir: "",
           reverseProxyUrl: null,
           osLocale: "en-US",
+          isDocker: false,
           coreRoutesPort: 0
         },
         appDataDir: config.appDataDir,
@@ -73831,6 +73868,7 @@ function registerRenameFolderTool(server, config) {
           tmpDir: "",
           reverseProxyUrl: null,
           osLocale: "en-US",
+          isDocker: false,
           coreRoutesPort: 0
         },
         appDataDir: config.appDataDir,
@@ -74289,8 +74327,10 @@ export {
   MCP_TOOL_NAMES,
   PORT_RANGE_END,
   PORT_RANGE_START,
+  REVERSE_PROXY_MOUNT_PATH,
   applyMcpLifecycleFromConfig,
   buildGetJobTool,
+  buildReverseProxyPublicUrl,
   buildScrapeTool,
   buildUpstreamUrl,
   checkFileIsReadable,
@@ -74386,15 +74426,19 @@ export {
   parseStartOptionsFromBody,
   registerCoreRoutes,
   rejectUnauthorized,
+  resolveAppDataDir,
   resolveFolderExistence,
   resolveHttpBindAddress,
   resolveMcpAdvertisedHost,
   resolveMcpBindAddress,
   resolveReverseProxyAdvertisedHost,
   resolveReverseProxyBindAddress,
+  resolveUserDataDir,
   resolveWebUiBindAddress,
   startMcpServerWithUserConfig,
   stopMcpServerWithUserConfig,
+  stripMountPathPrefix,
+  userConfigFilePath,
   validatePathIsInAllowlist,
   validateUpstreamBaseURL
 };

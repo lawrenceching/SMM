@@ -1,4 +1,4 @@
-import { expect, browser } from '@wdio/globals'
+import { expect, browser, $ } from '@wdio/globals'
 import {
     setup,
     cleanup,
@@ -210,6 +210,25 @@ describe('Initialize TV Show by TMDB', () => {
             await TvShowPanel.waitForTitleToBe(expectedTitle)
             await browser.pause(5000)
             expect(await TvShowPanel.toString()).toBe(EXPECTED_EPISODE_TABLE_WITH_NFO)
+        })
+
+        // NFO case is used for testing thumbnail preview feature
+
+        await then('simple layout thumbnail hover shows a cover preview for one episode', async () => {
+            // Default episode-table layout is already "simple"; do not require the
+            // layout switcher (it is CSS-hidden when the toolbar container < 520px).
+            await TvShowPanel.expectThumbnailHoverPreviewForEpisode('S01E01')
+        })
+
+        await then('detail and preview layouts show loaded thumbnail images', async () => {
+            await TvShowPanel.setLayout('detail')
+            await TvShowPanel.expectInlineThumbnailImagesLoaded()
+
+            await TvShowPanel.setLayout('preview')
+            // setLayout no-ops when preview control is absent (e.g. HarmonyOS).
+            // Only assert images when preview layout actually mounted thumbnails
+            // larger than the detail ones — if still on detail, images remain.
+            await TvShowPanel.expectInlineThumbnailImagesLoaded()
         })
 
         await then('metadata is persisted with TMDB tvshow id 84666', async () => {

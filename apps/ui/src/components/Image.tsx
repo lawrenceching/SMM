@@ -22,6 +22,10 @@ interface ImageProps {
    * Error handler callback
    */
   onError?: () => void
+  /**
+   * Optional test id forwarded to the rendered `<img>`.
+   */
+  'data-testid'?: string
 }
 
 const Image: React.FC<ImageProps> = ({
@@ -29,7 +33,8 @@ const Image: React.FC<ImageProps> = ({
   placeholder,
   alt = '',
   className = '',
-  onError
+  onError,
+  'data-testid': dataTestId,
 }) => {
   const imageData = useImage(url, placeholder)
   const [hasError, setHasError] = useState(false)
@@ -47,13 +52,13 @@ const Image: React.FC<ImageProps> = ({
 
   // If there's an error, show placeholder or nothing
   if (hasError && placeholder) {
-    return <img src={placeholder} alt={alt} className={className} />
+    return <img src={placeholder} alt={alt} className={className} data-testid={dataTestId} />
   }
 
   // If no image data available, show placeholder or nothing
   if (!imageData) {
     if (placeholder) {
-      return <img src={placeholder} alt={alt} className={className} />
+      return <img src={placeholder} alt={alt} className={className} data-testid={dataTestId} />
     }
     return null
   }
@@ -64,6 +69,7 @@ const Image: React.FC<ImageProps> = ({
       alt={alt}
       className={className}
       onError={handleError}
+      data-testid={dataTestId}
     />
   )
 }

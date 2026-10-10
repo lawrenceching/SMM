@@ -299,6 +299,7 @@ export function MediaFileTableToolbar({
                                         size="icon"
                                         className="size-9 shrink-0"
                                         aria-label={moreAriaLabel}
+                                        data-testid={`${testIdPrefix}-more`}
                                     >
                                         <MoreVertical className="size-4" />
                                     </Button>
@@ -310,6 +311,7 @@ export function MediaFileTableToolbar({
                                                 className="@[520px]:hidden"
                                                 disabled={loading}
                                                 onClick={() => onLayoutChange("simple")}
+                                                data-testid="media-file-table-layout-simple-menu"
                                             >
                                                 <List className="size-4" />
                                                 {simpleLabel}
@@ -318,6 +320,7 @@ export function MediaFileTableToolbar({
                                                 className="@[520px]:hidden"
                                                 disabled={loading}
                                                 onClick={() => onLayoutChange("detail")}
+                                                data-testid="media-file-table-layout-detail-menu"
                                             >
                                                 <LayoutGrid className="size-4" />
                                                 {detailLabel}
@@ -327,6 +330,7 @@ export function MediaFileTableToolbar({
                                                     className="@[520px]:hidden"
                                                     disabled={loading}
                                                     onClick={() => onLayoutChange("preview")}
+                                                    data-testid="media-file-table-layout-preview-menu"
                                                 >
                                                     <PanelTop className="size-4" />
                                                     {previewLabel}
@@ -470,6 +474,7 @@ function LayoutSwitcher({
                 title={simpleLabel}
                 aria-label={simpleLabel}
                 aria-pressed={layout === "simple"}
+                data-testid="media-file-table-layout-simple"
             >
                 <List className="size-4" />
             </Button>
@@ -489,6 +494,7 @@ function LayoutSwitcher({
                 title={detailLabel}
                 aria-label={detailLabel}
                 aria-pressed={layout === "detail"}
+                data-testid="media-file-table-layout-detail"
             >
                 <LayoutGrid className="size-4" />
             </Button>
@@ -509,6 +515,7 @@ function LayoutSwitcher({
                         title={previewLabel}
                         aria-label={previewLabel}
                         aria-pressed={layout === "preview"}
+                        data-testid="media-file-table-layout-preview"
                     >
                         <PanelTop className="size-4" />
                     </Button>

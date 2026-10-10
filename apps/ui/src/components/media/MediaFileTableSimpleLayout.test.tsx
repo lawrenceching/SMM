@@ -34,7 +34,9 @@ vi.mock("@/lib/i18n", () => ({
 // UIThumbnailImage mounts <Image> inside a HoverCard when a row has a
 // thumbnail; it would try to load a file:// URL in jsdom. Stub it out.
 vi.mock("@/components/Image", () => ({
-  default: () => <div data-testid="thumbnail-image" />,
+  default: ({ "data-testid": testId }: { "data-testid"?: string }) => (
+    <div data-testid={testId} />
+  ),
 }))
 
 const mediaFolderPath = "/media/tv/Breaking Bad (2008)"

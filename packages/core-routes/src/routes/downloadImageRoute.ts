@@ -18,6 +18,11 @@ import type { RouteContext } from "../types.ts";
  *   - 400 when `url` is missing.
  *   - 500 on download / read failure.
  *   - 200 with the image bytes on success.
+ *
+ * When `ctx.config.resolveAllowlist` is set, it is invoked per request
+ * (same as `POST /api/downloadImage`) so newly imported media folders
+ * are readable without restarting the server. On resolve failure the
+ * static `allowlist` is used as a fallback.
  */
 export async function handleDownloadImageGet(
   req: IncomingMessage,
@@ -37,7 +42,23 @@ export async function handleDownloadImageGet(
   }
 
   try {
-    const result = await doDownloadImage(url, ctx.config);
+    let allowlist = ctx.config.allowlist;
+    if (ctx.config.resolveAllowlist) {
+      try {
+        allowlist = await ctx.config.resolveAllowlist();
+      } catch (error) {
+        ctx.config.logger?.warn(
+          { error },
+          "[DownloadImage] failed to resolve allowlist, falling back to static",
+        );
+        allowlist = ctx.config.allowlist;
+      }
+    }
+
+    const result = await doDownloadImage(url, {
+      ...ctx.config,
+      allowlist,
+    });
     res.writeHead(200, {
       "Content-Type": result.contentType,
       "Content-Length": result.buffer.length.toString(),

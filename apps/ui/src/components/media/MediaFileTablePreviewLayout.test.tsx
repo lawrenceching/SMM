@@ -27,7 +27,9 @@ vi.mock("@/lib/i18n", () => ({
 
 // UIThumbnailImage mounts <Image>; stub so jsdom does not load file:// URLs.
 vi.mock("@/components/Image", () => ({
-  default: () => <div data-testid="thumbnail-image" />,
+  default: ({ "data-testid": testId }: { "data-testid"?: string }) => (
+    <div data-testid={testId} />
+  ),
 }))
 
 const mediaFolderPath = "/media/tv/Breaking Bad (2008)"

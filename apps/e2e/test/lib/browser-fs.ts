@@ -1,11 +1,25 @@
 /**
  * Browser-protocol filesystem helpers for e2e setup/cleanup.
- * All I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
+ * Most I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
+ * Image fixtures are written via Node `fs` when the path is host-local so
+ * `/api/image` can return a decodable JPEG (utf-8 writeFile cannot carry binary).
  */
+import { mkdir, writeFile } from 'node:fs/promises'
+import { dirname } from 'node:path'
 import type { UserConfig, UserConfigPatchOperation } from '@smm/types'
 import { isElectronAppUiReadyUrl } from './electron-ui-ready'
 import { retryOnTransientHelloFetch } from './retry-transient-hello-fetch'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
+
+/** 1×1 JPEG — enough for `<img>.naturalWidth > 0` after `/api/image`. */
+const MINIMAL_JPEG = Buffer.from(
+    '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
+    'base64',
+)
+
+function isImageFixtureFile(file: string): boolean {
+    return /\.(jpe?g|png|webp|gif)$/i.test(file)
+}
 
 /** How long Electron may stay on the Loading splash before the CLI UI is ready. */
 const ELECTRON_UI_READY_TIMEOUT_MS = 60_000
@@ -501,6 +515,8 @@ export async function resolveSmmTestFolderViaBrowser(): Promise<string> {
 /**
  * Create a media-folder fixture under `base` via `POST /api/writeFile`
  * (empty files for each entry in `folder.files`).
+ * Image names get a minimal JPEG via host `fs` when possible so thumbnail
+ * hover / inline `<img>` assertions can see `naturalWidth > 0`.
  * When `files` is empty, writes a tiny keep file so the directory is created.
  */
 export async function createTestFolderViaBrowser(
@@ -514,6 +530,15 @@ export async function createTestFolderViaBrowser(
             .split(/[/\\]/)
             .filter(Boolean)
             .reduce((acc, segment) => joinPlatformPath(acc, segment), folderPath)
+        if (isImageFixtureFile(file)) {
+            try {
+                await mkdir(dirname(filePath), { recursive: true })
+                await writeFile(filePath, MINIMAL_JPEG)
+                continue
+            } catch {
+                // Remote / container paths: fall back to empty browser write.
+            }
+        }
         await writeFileViaBrowser(filePath, '')
     }
     folder.path = folderPath

@@ -70,7 +70,7 @@ function UIThumbnailImage({
   className?: string
 }) {
   const url = getThumbnailImageUrl(thumbnailPath, mediaFolderPath)
-  return <Image url={url} alt="" className={className} />
+  return <Image url={url} alt="" className={className} data-testid="thumbnail-image" />
 }
 
 /**
@@ -403,7 +403,10 @@ export function MediaFileTableEpisodeSimpleRow({
         {thumbnailPath ? (
           <HoverCard openDelay={200} closeDelay={100}>
             <HoverCardTrigger asChild>
-              <div className="flex items-center justify-center cursor-default">
+              <div
+                tabIndex={0}
+                className="flex items-center justify-center cursor-default"
+              >
                 <UICheckCell value={thumbnailPath} />
               </div>
             </HoverCardTrigger>

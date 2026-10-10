@@ -611,7 +611,263 @@ class TVShowPanel {
     get newVideoFilePaths() {
         return $$('[data-testid="media-file-table-new-video-file"]')
     }
-    
+
+    /**
+     * Switch episode table layout.
+     *
+     * The icon switcher is only visible when the toolbar `@container` is ≥520px
+     * (`hidden @[520px]:inline-flex`). On narrower panels the same actions live
+     * under the More menu (`@[520px]:hidden` items). Prefer a displayed toolbar
+     * button; otherwise open More and click the menu item.
+     *
+     * Preview may be absent on HarmonyOS (`showPreviewLayoutButton: false`).
+     */
+    async setLayout(layout: 'simple' | 'detail' | 'preview'): Promise<void> {
+        const toolbarBtn = await $(`[data-testid="media-file-table-layout-${layout}"]`)
+        if (await toolbarBtn.isDisplayed().catch(() => false)) {
+            await toolbarBtn.waitForClickable({ timeout: 10_000 })
+            await toolbarBtn.click()
+            await browser.pause(300)
+            return
+        }
+
+        // Narrow toolbar: layout options are inside More.
+        const moreBtn = await this.findMoreMenuButton()
+        if (!moreBtn) {
+            if (layout === 'preview' || layout === 'simple') {
+                return
+            }
+            throw new Error(
+                `Layout switcher for "${layout}" is not visible (toolbar button hidden and More menu missing)`,
+            )
+        }
+
+        await moreBtn.waitForClickable({ timeout: 10_000 })
+        await moreBtn.click()
+        await browser.pause(200)
+
+        const menuItem = await this.findLayoutMenuItem(layout)
+        if (!menuItem) {
+            await browser.keys('Escape')
+            if (layout === 'preview' || layout === 'simple') {
+                return
+            }
+            throw new Error(`Layout menu item for "${layout}" was not found in More menu`)
+        }
+        await menuItem.waitForClickable({ timeout: 5_000 })
+        await menuItem.click()
+        await browser.pause(300)
+    }
+
+    private async findMoreMenuButton(): Promise<ChainablePromiseElement | undefined> {
+        const candidates = [
+            '[data-testid="tvshow-header-more"]',
+            '[data-testid="media-file-table-toolbar-more"]',
+            'button[aria-label="More"]',
+            'button[aria-label="更多"]',
+        ]
+        for (const selector of candidates) {
+            const btn = $(selector)
+            if (await btn.isDisplayed().catch(() => false)) {
+                return btn
+            }
+        }
+        return undefined
+    }
+
+    private async findLayoutMenuItem(
+        layout: 'simple' | 'detail' | 'preview',
+    ): Promise<ChainablePromiseElement | undefined> {
+        const byTestId = $(`[data-testid="media-file-table-layout-${layout}-menu"]`)
+        if (await byTestId.isDisplayed().catch(() => false)) {
+            return byTestId
+        }
+
+        const labels: Record<'simple' | 'detail' | 'preview', string[]> = {
+            simple: ['Simple layout', '简洁布局', '簡易佈局'],
+            detail: ['Detail layout', '详细布局', '詳細佈局'],
+            preview: ['Preview layout', '预览布局', '預覽佈局'],
+        }
+        for (const label of labels[layout]) {
+            const item = $(`[role="menuitem"]*=${label}`)
+            if (await item.isDisplayed().catch(() => false)) {
+                return item
+            }
+        }
+        return undefined
+    }
+
+    /**
+     * Hover the thumbnail (check-icon) cell for one episode in simple layout
+     * and wait until the hover-card preview image has loaded.
+     *
+     * Nested overflow panels make WebDriver `move({ origin: element })` throw
+     * "out of bounds". Prefer Puppeteer CDP mouse (trusted events); fall back
+     * to focus + React-routed pointerover on the trigger.
+     */
+    async expectThumbnailHoverPreviewForEpisode(
+        episodeId: string,
+        timeout: number = 15_000,
+    ): Promise<void> {
+        const table = await this.episodeTable
+        await table.waitForDisplayed({ timeout: 10_000 })
+
+        const point = await browser.execute((episode) => {
+            const idCell = Array.from(
+                document.querySelectorAll('[data-testid="media-file-table"] td'),
+            ).find((td) => (td.textContent ?? '').trim() === episode)
+            const trigger = idCell
+                ?.closest('tr')
+                ?.querySelector('[data-slot="hover-card-trigger"]')
+            if (!(trigger instanceof HTMLElement)) {
+                throw new Error(`hover-card trigger not found for ${episode}`)
+            }
+            trigger.scrollIntoView({ block: 'center', inline: 'nearest' })
+            const rect = trigger.getBoundingClientRect()
+            if (rect.width < 1 || rect.height < 1) {
+                throw new Error(`hover-card trigger for ${episode} has zero size`)
+            }
+            if (!trigger.hasAttribute('tabindex')) {
+                trigger.tabIndex = -1
+            }
+            trigger.focus()
+            const x = rect.left + rect.width / 2
+            const y = rect.top + rect.height / 2
+            // React maps onPointerEnter from bubbling pointerover.
+            trigger.dispatchEvent(
+                new PointerEvent('pointerover', {
+                    bubbles: true,
+                    cancelable: true,
+                    pointerType: 'mouse',
+                    clientX: x,
+                    clientY: y,
+                }),
+            )
+            return { x: Math.round(x), y: Math.round(y) }
+        }, episodeId)
+
+        // Trusted CDP mouse move — Radix receives real pointerenter.
+        try {
+            const puppeteerBrowser = await browser.getPuppeteer()
+            const pages = await puppeteerBrowser.pages()
+            const page = pages[0] as
+                | { mouse: { move: (x: number, y: number) => Promise<void> } }
+                | undefined
+            if (page) {
+                await page.mouse.move(point.x, point.y)
+            }
+        } catch {
+            // Puppeteer bridge unavailable — focus/pointerover above is the fallback.
+        }
+
+        // openDelay is 200ms; give the portal a beat to mount before polling.
+        await browser.pause(400)
+
+        try {
+            await browser.waitUntil(
+                async () => {
+                    return browser.execute(() => {
+                        const content = document.querySelector(
+                            '[data-slot="hover-card-content"][data-state="open"]',
+                        )
+                        if (!content) return false
+                        const img =
+                            content.querySelector(
+                                '[data-testid="thumbnail-image"]',
+                            ) ?? content.querySelector('img')
+                        return (
+                            img instanceof HTMLImageElement &&
+                            img.complete &&
+                            img.naturalWidth > 0
+                        )
+                    })
+                },
+                {
+                    timeout,
+                    interval: 250,
+                    timeoutMsg: `Thumbnail hover preview for ${episodeId} did not open/load within ${timeout}ms`,
+                },
+            )
+        } catch (err) {
+            const diag = await browser.execute((episode) => {
+                const idCell = Array.from(
+                    document.querySelectorAll(
+                        '[data-testid="media-file-table"] td',
+                    ),
+                ).find((td) => (td.textContent ?? '').trim() === episode)
+                const trigger = idCell
+                    ?.closest('tr')
+                    ?.querySelector('[data-slot="hover-card-trigger"]')
+                const content = document.querySelector(
+                    '[data-slot="hover-card-content"]',
+                )
+                const openContent = document.querySelector(
+                    '[data-slot="hover-card-content"][data-state="open"]',
+                )
+                const img =
+                    openContent?.querySelector(
+                        '[data-testid="thumbnail-image"]',
+                    ) ?? openContent?.querySelector('img')
+                return {
+                    triggerState: trigger?.getAttribute('data-state'),
+                    contentCount: document.querySelectorAll(
+                        '[data-slot="hover-card-content"]',
+                    ).length,
+                    contentState: content?.getAttribute('data-state'),
+                    open: !!openContent,
+                    imgComplete:
+                        img instanceof HTMLImageElement ? img.complete : null,
+                    naturalWidth:
+                        img instanceof HTMLImageElement
+                            ? img.naturalWidth
+                            : null,
+                    imgSrc:
+                        img instanceof HTMLImageElement
+                            ? img.getAttribute('src')?.slice(0, 120)
+                            : null,
+                    activeTag: document.activeElement?.tagName,
+                }
+            }, episodeId)
+            throw new Error(
+                `${err instanceof Error ? err.message : String(err)} diag=${JSON.stringify(diag)}`,
+            )
+        }
+    }
+
+    /**
+     * In detail/preview layouts, wait until at least one inline thumbnail
+     * image inside the episode table has finished loading.
+     */
+    async expectInlineThumbnailImagesLoaded(timeout: number = 15_000): Promise<void> {
+        const table = await this.episodeTable
+        await table.waitForDisplayed({ timeout: 10_000 })
+        await browser.waitUntil(
+            async () => {
+                return browser.execute(() => {
+                    const imgs = document.querySelectorAll(
+                        '[data-testid="media-file-table"] [data-testid="thumbnail-image"]',
+                    )
+                    let loaded = 0
+                    imgs.forEach((node) => {
+                        if (
+                            node instanceof HTMLImageElement &&
+                            node.complete &&
+                            node.naturalWidth > 0
+                        ) {
+                            loaded += 1
+                        }
+                    })
+                    return loaded > 0
+                })
+            },
+            {
+                timeout,
+                interval: 250,
+                timeoutMsg: `No loaded thumbnail images found in media-file-table within ${timeout}ms`,
+            },
+        )
+    }
+
 }
 
 export const TvShowPanelCO = new TVShowPanel()
