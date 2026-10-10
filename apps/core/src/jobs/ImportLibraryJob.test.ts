@@ -156,6 +156,45 @@ describe("ImportLibraryJob", () => {
     expect(onLog).toHaveBeenCalledWith("Found 2 folders to import");
   });
 
+  it("forwards ImportFolderJob log lines into the ImportLibraryJob log file", async () => {
+    // Mock constructor shape is intentionally incomplete for log forwarding.
+    // @ts-expect-error vitest mockImplementation typing vs ImportFolderJob constructor
+    vi.mocked(ImportFolderJob).mockImplementation(function (
+      this: { id: string; run: ReturnType<typeof vi.fn>; status: string },
+      _ctx: unknown,
+      _ports: unknown,
+      options: { id: string; folderPath: string; callbacks?: { onLog?: (m: string) => void } },
+    ) {
+      this.id = options.id;
+      this.status = "succeeded";
+      this.run = vi.fn(async () => {
+        options.callbacks?.onLog?.(
+          `Started to import folder: ${options.folderPath}, type: tvshow`,
+        );
+        options.callbacks?.onLog?.("Recognize 3 episode files");
+      });
+    });
+
+    const { job, files } = createJob({
+      subdirectories: ["/lib/ShowA"],
+      options: { concurrency: 1 },
+    });
+
+    await job.start();
+
+    const logText = (files.get("/logs/lib-job-1.log") ?? "").replace(/\r\n/g, "\n");
+    expect(logText).toBe(
+      [
+        "lib-job-1 started",
+        "Found 1 folders to import",
+        "Started to import folder: /lib/ShowA, type: tvshow",
+        "Recognize 3 episode files",
+        "lib-job-1 completed",
+        "",
+      ].join("\n"),
+    );
+  });
+
   it("run creates an ImportFolderJob for each subdirectory with forwarded options", async () => {
     const { job, onMediaMetadataUpdated, onLog } = createJob({
       subdirectories: ["/lib/ShowA", "/lib/ShowB"],
@@ -175,9 +214,17 @@ describe("ImportLibraryJob", () => {
         printLogToConsole: false,
         logDir: "/logs",
         onMediaMetadataUpdated,
-        callbacks: { onLog },
+        callbacks: expect.objectContaining({
+          onLog: expect.any(Function),
+        }),
       }),
     );
+    // Child onLog must forward into the library job (writes file + outer callback).
+    const childOpts = vi.mocked(ImportFolderJob).mock.calls[0]?.[2] as {
+      callbacks?: { onLog?: (message: string) => void | Promise<void> };
+    };
+    await childOpts.callbacks?.onLog?.("child line");
+    expect(onLog).toHaveBeenCalledWith("child line");
     expect(ImportFolderJob).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),

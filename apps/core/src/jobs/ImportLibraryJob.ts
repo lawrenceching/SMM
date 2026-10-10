@@ -30,11 +30,12 @@ export class ImportLibraryJob extends AbstractJob {
   private readonly concurrency: number;
   private readonly skipInit: boolean;
   private readonly onMediaMetadataUpdated: ((folderPath: string) => void) | undefined;
-  private readonly callbacks: JobOptions["callbacks"];
   private tasks: ImportLibraryJobTask[] = [];
   private error: string | undefined;
   private readonly createdAt = Date.now();
   private updatedAt = Date.now();
+  /** Serializes log file writes under concurrent child ImportFolderJob logging. */
+  private logWriteChain: Promise<void> = Promise.resolve();
 
   constructor(ctx: AppContext, ports: PlatformPorts, options: ImportLibraryJobOptions & JobOptions) {
     super(ctx, ports, {
@@ -46,7 +47,18 @@ export class ImportLibraryJob extends AbstractJob {
     this.concurrency = options.concurrency;
     this.skipInit = options.skipInit;
     this.onMediaMetadataUpdated = options.onMediaMetadataUpdated;
-    this.callbacks = options.callbacks;
+  }
+
+  /**
+   * Serialize appends so concurrent child {@link ImportFolderJob} logs do not
+   * clobber each other (AbstractJob.log is read-modify-write).
+   */
+  override async log(message: string): Promise<void> {
+    this.logWriteChain = this.logWriteChain.then(
+      () => super.log(message),
+      () => super.log(message),
+    );
+    await this.logWriteChain;
   }
 
   /** Snapshot consumed by `POST /api/get-job` and UI job polling. */
@@ -128,7 +140,10 @@ export class ImportLibraryJob extends AbstractJob {
           type: this.folderType,
           skipInit: this.skipInit,
           onMediaMetadataUpdated: this.onMediaMetadataUpdated,
-          callbacks: this.callbacks,
+          // Mirror every child log line into this library job's log file.
+          callbacks: {
+            onLog: (message) => this.log(message),
+          },
         });
 
         if (task !== undefined) {

@@ -21,7 +21,7 @@ interface JobOptionalOptions {
 export type JobOptions = JobMandatoryOptions & Partial<JobOptionalOptions>;
 
 export interface Callbacks {
-  onLog?(message: string): void;
+  onLog?(message: string): void | Promise<void>;
 }
 
 export abstract class AbstractJob {
@@ -108,7 +108,7 @@ export abstract class AbstractJob {
 
   /** Appends a job log line to the log file (and optionally the console). */
   async log(message: string): Promise<void> {
-    this.options.callbacks?.onLog?.(message);
+    await this.options.callbacks?.onLog?.(message);
     if (this.options.printLogToConsole) {
       this.ports.logger?.info({}, `[${this.id}] ${message}`);
     }

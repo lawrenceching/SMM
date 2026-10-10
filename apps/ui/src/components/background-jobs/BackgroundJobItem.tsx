@@ -17,11 +17,11 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
-import { isDownloadVideoJob, isFfmpegConvertBackgroundJob, isImportFolderBackgroundJob } from '@/types/background-jobs'
+import { isDownloadVideoJob, isFfmpegConvertBackgroundJob } from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
 import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/i18n'
-import { canOpenCommandLog, canOpenJobFileLog, getJobExecutionId } from './backgroundJobsPopoverJobUtils'
+import { getJobExecutionId } from './backgroundJobsPopoverJobUtils'
 import { useYtdlpDownloadProgressQuery } from '@/hooks/useYtdlpDownloadProgressQuery'
 import { useFfmpegProgressQuery } from '@/hooks/useFfmpegProgressQuery'
 
@@ -288,37 +288,34 @@ export function BackgroundJobItem({
             </div>
 
             <div className="flex shrink-0 flex-col items-end gap-2">
-              {(canOpenCommandLog(job) || canOpenJobFileLog(job)) && (
-                <Button
-                  data-testid={`background-job-${job.id}-log-button`}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1"
-                  aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: displayName })}
-                  onClick={() => {
-                    if (isImportFolderBackgroundJob(job)) {
-                      openLogDialog({
-                        executionId: '',
-                        jobLogId: job.id,
-                        jobTitle: displayName,
-                        isRunning: job.status === 'running',
-                      })
-                      return
-                    }
-                    const id = getJobExecutionId(job)
-                    if (!id) return
+              <Button
+                data-testid={`background-job-${job.id}-log-button`}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                aria-label={t('statusBar.backgroundJobs.logButtonAria', { name: displayName })}
+                onClick={() => {
+                  const executionId = getJobExecutionId(job)
+                  if (executionId) {
                     openLogDialog({
-                      executionId: id,
+                      executionId,
                       jobTitle: displayName,
                       isRunning: job.status === 'running',
                     })
-                  }}
-                >
-                  <FileText className="h-4 w-4" />
-                  {t('statusBar.backgroundJobs.logButton')}
-                </Button>
-              )}
+                    return
+                  }
+                  openLogDialog({
+                    executionId: '',
+                    jobLogId: job.id,
+                    jobTitle: displayName,
+                    isRunning: job.status === 'running',
+                  })
+                }}
+              >
+                <FileText className="h-4 w-4" />
+                {t('statusBar.backgroundJobs.logButton')}
+              </Button>
               {job.status === 'running' && (
                 <Button
                   data-testid={`background-job-${job.id}-abort-button`}

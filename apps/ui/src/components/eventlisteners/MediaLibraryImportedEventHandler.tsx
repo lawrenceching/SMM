@@ -49,16 +49,23 @@ export function MediaLibraryImportedEventHandler() {
     await persistHarmonyOSFileAccess([libraryPathInPlatformFormat])
     importLibraryLog(trace, "HarmonyOS file access persisted")
 
-    const jobId = addJob(tRef.current("statusBar.backgroundJobs.jobNames.importMediaLibrary"))
-    updateJob(jobId, { status: "running", progress: 0 })
-    importLibraryLog(trace, "background job running", { uiJobId: jobId })
-
+    let jobId: string | undefined
     try {
       const coreJobId = await importLibraryViaCore({
         path: libraryPathInPlatformFormat,
         type,
         traceId,
       })
+      // Use Core job id so BackgroundJobsPopover LogDialog can POST /api/get-job-log.
+      jobId = addJob({
+        id: coreJobId,
+        name: tRef.current("statusBar.backgroundJobs.jobNames.importMediaLibrary"),
+        status: "running",
+        progress: 0,
+        type: "generic",
+        data: {},
+      })
+      importLibraryLog(trace, "background job running", { uiJobId: jobId, coreJobId })
       importLibraryLog(trace, "received core job id", { coreJobId, uiJobId: jobId })
 
       const registeredPaths = await waitForLibraryFoldersRegistered(coreJobId, trace)
@@ -77,7 +84,7 @@ export function MediaLibraryImportedEventHandler() {
       const finalJob = await pollImportLibraryJob(
         coreJobId,
         (job) => {
-          updateJob(jobId, { progress: job.progress })
+          updateJob(coreJobId, { progress: job.progress })
           syncSidebarFromImportLibraryJob(job, upsertFolder, mediaType)
         },
         trace,
@@ -100,7 +107,7 @@ export function MediaLibraryImportedEventHandler() {
         folderCount: importedFolders.length,
       })
 
-      updateJob(jobId, { status: "succeeded", progress: 100 })
+      updateJob(coreJobId, { status: "succeeded", progress: 100 })
       importLibraryLog(trace, "background job succeeded", { uiJobId: jobId, coreJobId })
     } catch (error) {
       console.error(`[${traceId}] import-library: failed`, error)
@@ -108,7 +115,9 @@ export function MediaLibraryImportedEventHandler() {
         uiJobId: jobId,
         error: error instanceof Error ? error.message : String(error),
       })
-      updateJob(jobId, { status: "failed" })
+      if (jobId) {
+        updateJob(jobId, { status: "failed" })
+      }
       toast.error(error instanceof Error ? error.message : "导入媒体库失败")
     }
   }

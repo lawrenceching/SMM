@@ -34,7 +34,9 @@ const { invalidateFoldersQueryMock } = vi.hoisted(() => ({
 }))
 
 const { addJobMock, updateJobMock } = vi.hoisted(() => ({
-  addJobMock: vi.fn(() => "job-1"),
+  addJobMock: vi.fn((nameOrJob: string | { id: string }) =>
+    typeof nameOrJob === "string" ? "job-1" : nameOrJob.id,
+  ),
   updateJobMock: vi.fn(),
 }))
 
@@ -197,7 +199,15 @@ describe("MediaLibraryImportedEventHandler", () => {
 
     const folders = useUIMediaFolderStore.getState().folders
     expect(folders.map((f) => f.path)).toContain(folderB)
-    expect(updateJobMock).toHaveBeenCalledWith("job-1", { status: "succeeded", progress: 100 })
+    // Background job id must be the Core job id so LogDialog can POST /api/get-job-log.
+    expect(addJobMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "core-job-1",
+        type: "generic",
+        status: "running",
+      }),
+    )
+    expect(updateJobMock).toHaveBeenCalledWith("core-job-1", { status: "succeeded", progress: 100 })
   })
 
   it("syncs per-folder status from import-library job tasks", async () => {
@@ -249,7 +259,7 @@ describe("MediaLibraryImportedEventHandler", () => {
 
     resolvePoll(undefined)
     await vi.waitFor(() => {
-      expect(updateJobMock).toHaveBeenCalledWith("job-1", { status: "succeeded", progress: 100 })
+      expect(updateJobMock).toHaveBeenCalledWith("core-job-1", { status: "succeeded", progress: 100 })
     })
   })
 
@@ -288,7 +298,7 @@ describe("MediaLibraryImportedEventHandler", () => {
     )
 
     await vi.waitFor(() => {
-      expect(updateJobMock).toHaveBeenCalledWith("job-1", { status: "failed" })
+      expect(updateJobMock).toHaveBeenCalledWith("core-job-1", { status: "failed" })
     })
   })
 })

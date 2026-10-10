@@ -261,12 +261,9 @@ describe('BackgroundJobItem — import-media-library name rendering', () => {
   })
 
   it('renders the translated "Importing Media Library" name for the import-media-library flow', () => {
-    // The import-media-library flow in MediaLibraryImportedEventHandler calls
-    // addJob(t('statusBar.backgroundJobs.jobNames.importMediaLibrary')). The
-    // resulting generic BackgroundJob carries that translated string in its
-    // `name` field, which the default branch of getJobDisplayName renders
-    // verbatim. The test ensures the i18n key resolves to a human-readable
-    // string instead of the raw key leaking into the popover.
+    // MediaLibraryImportedEventHandler registers a generic job whose `name` is
+    // the translated importMediaLibrary label. getJobDisplayName renders it
+    // verbatim; this guards against the raw i18n key leaking into the popover.
     const job: BackgroundJob = {
       id: 'lib-1',
       name: 'Importing Media Library',
@@ -287,6 +284,35 @@ describe('BackgroundJobItem — import-media-library name rendering', () => {
     )
 
     expect(screen.getByText('Importing Media Library')).toBeInTheDocument()
+  })
+
+  it('shows a log button for generic jobs and opens the Core job log by job.id', () => {
+    const job: BackgroundJob = {
+      id: 'core-lib-1',
+      name: 'Import Media Library',
+      status: 'succeeded',
+      progress: 100,
+      type: 'generic',
+      data: {},
+    }
+
+    renderWithQuery(
+      <BackgroundJobItem
+        job={job}
+        stopJob={stopJob}
+        removeJob={removeJob}
+        openLogDialog={openLogDialog}
+        stopAllJobs={stopAllJobs}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('background-job-core-lib-1-log-button'))
+    expect(openLogDialog).toHaveBeenCalledWith({
+      executionId: '',
+      jobLogId: 'core-lib-1',
+      jobTitle: 'Import Media Library',
+      isRunning: false,
+    })
   })
 })
 

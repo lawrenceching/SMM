@@ -3,13 +3,13 @@ import {
   isDownloadVideoJob,
   isFfmpegConvertBackgroundJob,
   isFfmpegWriteTagsBackgroundJob,
-  isImportFolderBackgroundJob,
   isProcessBackgroundJob,
   isSynthesizeBackgroundJob,
   isTranscribeBackgroundJob,
   isTranslateBackgroundJob,
 } from '@/types/background-jobs'
 
+/** Command-log correlation id when the job was started via executeCmd. */
 export function getJobExecutionId(job: BackgroundJob): string | undefined {
   if (isTranscribeBackgroundJob(job)) return job.data.executionId
   if (isTranslateBackgroundJob(job)) return job.data.executionId
@@ -19,25 +19,4 @@ export function getJobExecutionId(job: BackgroundJob): string | undefined {
   if (isFfmpegConvertBackgroundJob(job)) return job.data.executionId
   if (isFfmpegWriteTagsBackgroundJob(job)) return job.data.executionId
   return undefined
-}
-
-export function canOpenCommandLog(job: BackgroundJob): boolean {
-  if (
-    !isTranscribeBackgroundJob(job) &&
-    !isTranslateBackgroundJob(job) &&
-    !isSynthesizeBackgroundJob(job) &&
-    !isProcessBackgroundJob(job) &&
-    !isDownloadVideoJob(job) &&
-    !isFfmpegConvertBackgroundJob(job) &&
-    !isFfmpegWriteTagsBackgroundJob(job)
-  ) {
-    return false
-  }
-  const id = getJobExecutionId(job)
-  return typeof id === 'string' && id.length > 0
-}
-
-/** Import-folder logs are loaded with `POST /api/get-job-log`. */
-export function canOpenJobFileLog(job: BackgroundJob): boolean {
-  return isImportFolderBackgroundJob(job) && job.id.length > 0
 }
