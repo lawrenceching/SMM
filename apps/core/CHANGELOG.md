@@ -1,5 +1,15 @@
 # @smm/core
 
+## 1.4.17-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+- Updated dependencies
+  - @smm/tvdb4@1.3.25-rc.2
+  - @smm/types@0.0.6-rc.2
+  - @smm/utils@1.2.25-rc.2
+
 ## 1.4.17-rc.1
 
 ### Patch Changes

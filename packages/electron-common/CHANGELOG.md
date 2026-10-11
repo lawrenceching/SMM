@@ -1,5 +1,11 @@
 # @smm/electron-common
 
+## 1.3.25-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+
 ## 1.3.25-rc.1
 
 ### Patch Changes

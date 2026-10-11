@@ -41,12 +41,12 @@ docker buildx build --progress=plain -t smm:latest                  -f apps/dock
 运行镜像（示例）：
 
 ```bash
-docker run --rm -p 30000:30000 \
+docker run --rm -p 30000:30000 -p 30001:30001 \
   -e SMM_AUTH_TOKEN=your-secret-token \
   smm:latest
 ```
 
-浏览器访问 `http://localhost:30000/?token=your-secret-token`。
+浏览器访问 `http://localhost:30000/?token=your-secret-token`。MCP（开启后）地址为 `http://localhost:30001/mcp`（镜像默认 `MCP_ADDRESS=0.0.0.0`）。
 
 认证默认开启（镜像内 `SMM_AUTH_ENABLED=true`，CLI 在检测到 Docker 环境时也会默认启用）。如需关闭：`-e SMM_AUTH_ENABLED=false`。
 

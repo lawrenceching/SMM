@@ -1,5 +1,13 @@
 # convex
 
+## 1.1.25-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+- Updated dependencies
+  - convex@1.1.25-rc.2
+
 ## 1.1.25-rc.1
 
 ### Patch Changes

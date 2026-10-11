@@ -1,5 +1,13 @@
 # @smm/utils
 
+## 1.2.25-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+- Updated dependencies
+  - @smm/types@0.0.6-rc.2
+
 ## 1.2.25-rc.1
 
 ### Patch Changes

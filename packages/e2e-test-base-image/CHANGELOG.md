@@ -1,5 +1,11 @@
 # @smm/e2e-test-base-image
 
+## 1.2.25-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+
 ## 1.2.25-rc.1
 
 ### Patch Changes

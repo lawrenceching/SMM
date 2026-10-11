@@ -20,6 +20,7 @@
   },
   "changesets": [
     "breezy-knives-listen",
+    "docker-mcp-bind",
     "nine-baths-wash"
   ]
 }

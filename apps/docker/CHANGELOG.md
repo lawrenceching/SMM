@@ -1,5 +1,11 @@
 # docker
 
+## 1.4.17-rc.2
+
+### Patch Changes
+
+- Docker: set MCP_ADDRESS=0.0.0.0 so MCP is reachable via published port 30001
+
 ## 1.4.17-rc.1
 
 ### Patch Changes
