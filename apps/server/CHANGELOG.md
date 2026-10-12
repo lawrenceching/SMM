@@ -1,5 +1,16 @@
 # server
 
+## 1.4.17-rc.4
+
+### Patch Changes
+
+- v1.4.17-rc.4
+- Updated dependencies
+  - @smm/core@1.4.17-rc.4
+  - @smm/core-routes@1.4.17-rc.4
+  - @smm/types@0.0.6-rc.4
+  - @smm/utils@1.2.25-rc.4
+
 ## 1.4.17-rc.3
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "docker",
-  "version": "1.4.17-rc.3",
+  "version": "1.4.17-rc.4",
   "private": true,
   "description": "Docker image build for SMM (CLI + UI + bin)",
   "scripts": {
