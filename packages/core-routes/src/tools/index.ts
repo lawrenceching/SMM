@@ -37,6 +37,7 @@ import {
   CREATE_RECOGNIZE_EPISODE_PLAN,
 } from "@smm/types/ai-tools/createRecognizeEpisodePlan";
 import type { CoreRoutesConfig } from "../types.ts";
+import { withChatToolsAccessLog } from "./toolAccessLog.ts";
 import { defaultChatFs } from "../chatFs.ts";
 import type { ChatConfig, ChatFs } from "../chatTypes.ts";
 import type { ChatToolsExtraDeps } from "../chatToolsExtra.ts";
@@ -141,7 +142,7 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
   const tmdbRunners: TmdbToolRunners | undefined = extra?.tmdb;
   const tvdbRunners: TvdbToolRunners | undefined = extra?.tvdb;
 
-  return {
+  const tools: ChatTools = {
     [GET_APPLICATION_CONTEXT]: buildGetApplicationContextTool(
       clientId,
       userConfig,
@@ -208,6 +209,10 @@ export function createChatTools(args: CreateChatToolsArgs): ChatTools {
       },
     ),
   };
+
+  // Access log (docs/access-log.md): one entry per AI tool execution,
+  // tagged with the chat clientId so a multi-step agent loop is traceable.
+  return withChatToolsAccessLog(tools, { logger, clientId });
 }
 
 export { defaultChatFs };
