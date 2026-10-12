@@ -1,28 +1,11 @@
 import type { Server, Socket } from "socket.io";
 import type { CoreRoutesLogger } from "../types.ts";
+import { logAccess, serializeErrorForLog, truncateForLog } from "../accessLog.ts";
 import type { WebSocketMessage } from "./types.ts";
-
-function logInfo(logger: CoreRoutesLogger | undefined, obj: Record<string, unknown>, msg: string): void {
-  if (logger) {
-    logger.info(obj, msg);
-  }
-}
 
 function logWarn(logger: CoreRoutesLogger | undefined, obj: Record<string, unknown>, msg: string): void {
   if (logger) {
     logger.warn(obj, msg);
-  }
-}
-
-function logError(logger: CoreRoutesLogger | undefined, obj: Record<string, unknown>, msg: string): void {
-  if (logger) {
-    logger.error(obj, msg);
-  }
-}
-
-function logDebug(logger: CoreRoutesLogger | undefined, obj: Record<string, unknown>, msg: string): void {
-  if (logger) {
-    logger.debug(obj, msg);
   }
 }
 
@@ -33,10 +16,15 @@ function getClientIdFromSocket(socket: Socket): string | null {
 
 export function createSocketIOMessaging(io: Server, logger?: CoreRoutesLogger) {
   function broadcast(message: WebSocketMessage): void {
-    logInfo(logger, {
+    // Access log replaces the former info log (docs/access-log.md):
+    // broadcasts can be high-frequency (job progress), so they are
+    // debug-level and carry no payload.
+    logAccess(logger, {
+      source: "socket.io",
+      kind: "broadcast",
       event: message.event,
-      type: "broadcast",
-    }, "socket.io message broadcast");
+      outcome: "ok",
+    });
 
     io.emit(message.event, message.data);
   }
@@ -89,14 +77,6 @@ export function createSocketIOMessaging(io: Server, logger?: CoreRoutesLogger) {
     const { socket, clientId } = findSocketByClientId(message.clientId);
 
     const startTime = performance.now();
-    logInfo(logger, {
-      clientId,
-      socketId: socket.id,
-      event: message.event,
-      timeoutMs: timeoutMs ?? "none",
-      data: message.data,
-    }, "[DEBUG] socket.io sending message to specific socket with acknowledgement");
-
     try {
       let response: unknown;
 
@@ -106,31 +86,29 @@ export function createSocketIOMessaging(io: Server, logger?: CoreRoutesLogger) {
         response = await socket.emitWithAck(message.event, message.data);
       }
 
-      const duration = performance.now() - startTime;
-      logDebug(logger, {
-        clientId,
-        socketId: socket.id,
+      logAccess(logger, {
+        source: "socket.io",
+        kind: "ack",
         event: message.event,
-        hasResponse: response !== undefined && response !== null,
-        response,
-        durationMs: Math.round(duration),
-      }, "socket.io acknowledgement received successfully");
+        clientId,
+        data: truncateForLog(message.data),
+        outcome: "ok",
+        durationMs: Math.round(performance.now() - startTime),
+      });
 
       return response;
     } catch (error) {
-      const duration = performance.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      logError(logger, {
-        clientId,
-        socketId: socket.id,
+      logAccess(logger, {
+        source: "socket.io",
+        kind: "ack",
         event: message.event,
-        error: errorMessage,
-        errorType: typeof error,
-        errorDetails: error,
-        durationMs: Math.round(duration),
-      }, "[DEBUG] socket.io acknowledgement timeout or error");
+        clientId,
+        outcome: "error",
+        err: serializeErrorForLog(error),
+        durationMs: Math.round(performance.now() - startTime),
+      });
 
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(`Socket.IO request timed out or failed: ${errorMessage}`);
     }
   }
