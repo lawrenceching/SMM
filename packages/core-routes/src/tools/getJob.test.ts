@@ -32,4 +32,29 @@ describe("executeGetJob", () => {
     const result = await executeGetJob("missing", () => undefined);
     expect(result.error).toMatch(/Job not found/);
   });
+
+  it("serializes class-like jobs via toJSON before returning", async () => {
+    const snapshot = {
+      kind: "scrape" as const,
+      id: "job-1",
+      folderPath: "/m/Show",
+      status: "succeeded" as const,
+      tasks: {
+        poster: { status: "completed" as const },
+        fanart: { status: "completed" as const },
+        thumbnails: { status: "completed" as const },
+        nfo: { status: "completed" as const },
+      },
+      createdAt: 1,
+      updatedAt: 2,
+    };
+    const classLike = {
+      type: "scrape",
+      id: "job-1",
+      toJSON: () => snapshot,
+    };
+    const result = await executeGetJob("job-1", () => classLike);
+    expect(result.job).toEqual(snapshot);
+    expect(result.error).toBeUndefined();
+  });
 });

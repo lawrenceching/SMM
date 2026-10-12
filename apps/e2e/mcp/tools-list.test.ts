@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'vitest'
 import { EXPECTED_MCP_TOOL_NAMES } from './expectedTools'
 import { listTools } from './lib/mcpInspectorClient'
 import { useMcpServer } from './lib/useMcpServer'

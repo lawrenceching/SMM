@@ -10,6 +10,19 @@ import {
 
 export type GetJobRunner = (id: string) => unknown;
 
+/** Prefer snapshot shape (`kind`, …) when Core returns a job class with `toJSON()`. */
+function serializeJobForTool(job: unknown): JobToolPayload {
+  if (
+    job !== null &&
+    typeof job === "object" &&
+    "toJSON" in job &&
+    typeof (job as { toJSON: unknown }).toJSON === "function"
+  ) {
+    return (job as { toJSON: () => JobToolPayload }).toJSON();
+  }
+  return job as JobToolPayload;
+}
+
 /**
  * Load a job by id via host-injected Core runner.
  */
@@ -36,7 +49,7 @@ export async function executeGetJob(
     if (job == null) {
       return getJobFailed("Error Reason: Job not found");
     }
-    return getJobSucceeded(job as JobToolPayload);
+    return getJobSucceeded(serializeJobForTool(job));
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const withPrefix = message.startsWith("Error Reason:")

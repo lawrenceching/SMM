@@ -13,9 +13,11 @@
     "@wdio/local-runner": "^9.31.7",
     "@wdio/mocha-framework": "^9.23.0",
     "@wdio/spec-reporter": "^9.20.0",
+    "commander": "^15.0.0",
     "expect-webdriverio": "^5.6.1",
     "shelljs": "^0.10.0",
     "typescript": "^5.0.0",
+    "vitest": "^4.0.18",
     "wdio-electron-service": "9.2.1",
     "wdio-html-nice-reporter": "^8.1.7",
     "zx": "^8.8.5"
@@ -49,6 +51,10 @@
     "e2e:tv": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tv/*.e2e.ts\"",
     "e2e:tvdb": "bun ../../ci/run-e2e-test.ts --platform electron --spec \"./common/tvdb/*.e2e.ts\"",
     "test:cli": "cd cli && bun test",
+    "vitest:mcp": "vitest run --config vitest.mcp.config.ts",
+    "test:mcp": "cross-env TARGET=dev MCP_SERVER_ADDRESS='http://127.0.0.1:30001' bun mcp/entrypoint.ts",
+    "test:mcp:cli": "cross-env TARGET=cli MCP_SERVER_ADDRESS='http://127.0.0.1:30001' bun mcp/entrypoint.ts",
+    "test:mcp:remote": "cross-env TARGET=remote MCP_SERVER_ADDRESS='http://127.0.0.1:30001/mcp' HTTP_SERVER_ADDRESS='http://127.0.0.1:30000' SMM_AUTH_TOKEN=ChangeMe123 bun mcp/entrypoint.ts",
     "zx": "zx --verbose"
   },
   "dependencies": {

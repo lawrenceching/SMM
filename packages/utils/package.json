@@ -11,7 +11,8 @@
     "./locale": "./src/locale.ts",
     "./versionCompare": "./src/versionCompare.ts",
     "./proxiableFetch": "./src/proxiableFetch.ts",
-    "./errors": "./src/errors.ts"
+    "./errors": "./src/errors.ts",
+    "./waitFor": "./src/waitFor.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -7,8 +7,11 @@ tests target the MCP Streamable HTTP endpoint with MCP Inspector — no Web UI.
 
 ```bash
 pnpm install
-pnpm --filter cli run build
 ```
+
+`pnpm --filter e2e test:mcp` rebuilds the CLI binary before vitest (tests spawn
+`apps/cli/dist` via `useMcpServer`). CI (`bun ci/run-mcp-e2e-test.ts`) expects
+an already-built binary.
 
 TMDB-dependent tests (`tmdb-*`, `scrape`, `get-job`) need network access and
 `TMDB_HOST` / `TMDB_API_KEY` (optional `TMDB_HTTP_PROXY` as `http://` or
@@ -16,7 +19,13 @@ TMDB-dependent tests (`tmdb-*`, `scrape`, `get-job`) need network access and
 
 ## Run
 
-From repo root:
+From `apps/e2e` (rebuilds CLI, then runs vitest):
+
+```bash
+pnpm run test:mcp
+```
+
+From repo root (uses existing `apps/cli/dist`):
 
 ```bash
 pnpm e2e:mcp

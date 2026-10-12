@@ -1,5 +1,5 @@
 /**
- * MCP tools e2e runner: `bun test` under `apps/e2e/mcp` against
+ * MCP tools e2e runner: vitest under `apps/e2e/mcp` against
  * `apps/cli/dist/cli` (built binary + `smm mcp start` + MCP Inspector).
  *
  * Usage (from repo root):
@@ -35,9 +35,10 @@ async function main(): Promise<number> {
   ensureCliBinary()
 
   const extraArgs = process.argv.slice(2)
-  const testArgs = extraArgs.length > 0 ? extraArgs : ['./mcp/']
-
-  const result = await $`bun test ${testArgs}`.cwd(E2E_DIR).env(process.env).nothrow()
+  const result = await $`pnpm exec vitest run --config vitest.mcp.config.ts ${extraArgs}`
+    .cwd(E2E_DIR)
+    .env(process.env)
+    .nothrow()
   return result.exitCode
 }
 

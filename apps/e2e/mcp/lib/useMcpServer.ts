@@ -1,4 +1,4 @@
-import { afterAll, beforeAll } from 'bun:test'
+import { afterAll, beforeAll } from 'vitest'
 import { startMcpServer, type McpServerHandle } from './mcpServer'
 
 export interface McpTestContext {

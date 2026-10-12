@@ -1,8 +1,10 @@
 import { spawn } from 'node:child_process'
 import { chmodSync, existsSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { listTools } from './mcpInspectorClient'
 
 export interface McpServerHandle {
@@ -18,9 +20,11 @@ export interface McpServerHandle {
 
 const READY_TIMEOUT_MS = 30_000
 
+const libDir = dirname(fileURLToPath(import.meta.url))
+
 /** Repo root from `apps/e2e/mcp/lib/`. */
 export function repoRoot(): string {
-  return resolve(import.meta.dir, '..', '..', '..', '..')
+  return resolve(libDir, '..', '..', '..', '..')
 }
 
 /** Absolute path to the built CLI binary (`apps/cli/dist/cli[.exe]`). */
@@ -34,18 +38,18 @@ export function cliBinaryPath(): string {
  */
 export function findFreePort(): Promise<number> {
   return new Promise((resolvePort, reject) => {
-    try {
-      const srv = Bun.serve({
-        hostname: '127.0.0.1',
-        port: 0,
-        fetch: () => new Response('ok'),
-      })
-      const port = srv.port
-      srv.stop(true)
-      resolvePort(port)
-    } catch (err) {
-      reject(err)
-    }
+    const server = createServer()
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address()
+      if (!addr || typeof addr === 'string') {
+        server.close()
+        reject(new Error('Could not bind ephemeral port'))
+        return
+      }
+      const port = addr.port
+      server.close((err) => (err ? reject(err) : resolvePort(port)))
+    })
   })
 }
 
