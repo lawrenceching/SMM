@@ -15,7 +15,8 @@
   "ignoreBinaries": [
     "hdc",
     "pino-pretty",
-    "tasklist"
+    "tasklist",
+    "vitest"
   ],
   "ignoreDependencies": [
     "@ai-sdk/mcp"
