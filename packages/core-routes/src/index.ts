@@ -233,3 +233,4 @@ export {
   handleMcpStartPost,
   handleMcpStopPost,
 } from "./routes/mcpServerRpcRoute.ts";
+export { attachHttpAccessLog } from "./accessLogHttp.ts";
