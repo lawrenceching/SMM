@@ -181,19 +181,7 @@ export async function getMcpStreamableHttpHandler(): Promise<McpRequestHandler> 
   }
   handlerPromise = (async () => {
     const config = await buildMcpConfig();
-    const handler = await createMcpStreamableHttpHandler(config);
-
-    // === DIAGNOSTIC: wrap handler with logging ===
-    return async (req: Request): Promise<Response> => {
-      console.log(
-        `[mcp-cli-diag] handler wrapper invoked: ${req.method} ${req.url}`,
-      );
-      const response = await handler(req);
-      console.log(
-        `[mcp-cli-diag] handler returned: status=${response.status}, ctor=${response.constructor.name}`,
-      );
-      return response;
-    };
+    return createMcpStreamableHttpHandler(config);
   })();
   return handlerPromise;
 }

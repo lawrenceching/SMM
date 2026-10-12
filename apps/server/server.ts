@@ -14,6 +14,7 @@ import { getCore } from '@server/core/getCore';
 import { getUserConfig } from './src/utils/config.ts';
 import { logger } from './lib/logger';
 import {
+  attachHttpAccessLog,
   buildReverseProxyPublicUrl,
   createProxiedFetch,
   createSocketIOManager,
@@ -235,6 +236,13 @@ export class Server {
       if (url.startsWith('/socket.io/')) {
         return;
       }
+
+      // Unified access log (docs/access-log.md) — covers both the
+      // core-routes dispatch and the Hono sub-app at this choke point.
+      attachHttpAccessLog(req, res, {
+        logger: createHonoLogger(),
+        isDebugEnabled: () => logger.isLevelEnabled('debug'),
+      });
 
       if (isExecuteCmdRequest(req)) {
         req.setTimeout(0);
