@@ -27,11 +27,7 @@
         "scripts/**/*.ts",
         "test/bin/*.ts",
         "test/mcp-test-client/*.ts",
-        "test/utils/*.ts",
-        "test/mcp/**/*.test.ts"
-      ],
-      "ignore": [
-        "test/mcp/lib/**"
+        "test/utils/*.ts"
       ]
     },
     "apps/cli": {
