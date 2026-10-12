@@ -16,45 +16,19 @@ import type { MediaMetadata, UserConfig } from '@smm/types'
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
-const OSHI_NO_KO_TMDB_EPISODE_TABLE = `Specials
-S00E01 - - - -
-S00E02 - - - -
-第 1 季
-S01E01 - - - -
-S01E02 - - - -
-S01E03 - - - -
-S01E04 - - - -
-S01E05 - - - -
-S01E06 - - - -
-S01E07 - - - -
-S01E08 - - - -
-S01E09 - - - -
-S01E10 - - - -
-S01E11 - - - -
-S01E12 - - - -
-S01E13 - - - -
-S01E14 - - - -
-S01E15 - - - -
-S01E16 - - - -
-S01E17 - - - -
-S01E18 - - - -
-S01E19 - - - -
-S01E20 - - - -
-S01E21 - - - -
-S01E22 - - - -
-S01E23 - - - -
-S01E24 - - - -
-S01E25 - - - -
-S01E26 - - - -
-S01E27 - - - -
-S01E28 - - - -
-S01E29 - - - -
-S01E30 - - - -
-S01E31 - - - -
-S01E32 - - - -
-S01E33 - - - -
-S01E34 - - - -
-S01E35 - - - -`
+/** https://www.themoviedb.org/tv/209867 — stable search metadata (zh-CN). */
+const FRIEREN_TMDB_SEASONS = [
+    { label: 'Specials', season: 0, episodes: 26 },
+    { label: '第 1 季', season: 1, episodes: 38 },
+] as const
+
+/** Key rows once TMDB season fetches finish (64 episodes; full table match is slow). */
+const FRIEREN_TMDB_EPISODE_MARKERS = [
+    FRIEREN_TMDB_SEASONS[0].label,
+    'S00E26 - - - -',
+    FRIEREN_TMDB_SEASONS[1].label,
+    'S01E38 - - - -',
+] as const
 
 /** TVDB lists 5 aired-order seasons (S0–S4); empty names → Specials / Season N. */
 function buildEpisodeTableExpectation(
@@ -129,9 +103,8 @@ describe('Search TV Show', () => {
         this.timeout(5 * 60 * 1000)
 
         /**
-         * Anime 我推的孩子 have 4 seasons in TVDB
-         * while 2 seasons in TMDB
-         * So it's a good example to verify SMM search TMDB database
+         * TMDB tv/209867 (葬送的芙莉莲): search metadata includes first_air_date for disambiguation.
+         * TVDB case below still uses 我推的孩子 to compare season counts across databases.
          */
         await given('unknown TV show folder was imported')
 
@@ -141,29 +114,29 @@ describe('Search TV Show', () => {
         await when('I select "TMDB" as the search database')
         await when('I select "zh-CN" as the search language')
         await when('I click the search button in the searchbox')
-        await when('I search for "我推的孩子"')
-        await when('I select search result with title "【我推的孩子】" and date "April 12, 2023"')
+        await when('I search for "葬送的芙莉莲"')
+        await when('I select search result with title "葬送的芙莉莲" and date "September 29, 2023"')
 
         // After select: UI clears the panel, then POST /api/get-tvshow-in-tmdb (~20–30s in e2e)
         // plus sequential season fetches. Wait for panel state (not full getHTML — slow on macOS).
-        await then('episode table shows Oshi no Ko TMDB seasons', async () => {
+        await then('episode table shows Frieren TMDB seasons', async () => {
             await browser.waitUntil(async () => {
                 const stateInString = await TvShowPanelCO.toString()
                 console.log(`${new Date().toISOString()} stateInString="${stateInString}"`)
-                return stateInString.includes(OSHI_NO_KO_TMDB_EPISODE_TABLE)
+                return FRIEREN_TMDB_EPISODE_MARKERS.every((line) => stateInString.includes(line))
             }, {
-                timeout: 3 * 60 * 1000,
+                timeout: 5 * 60 * 1000,
                 interval: 2000,
-                timeoutMsg: 'Expected to see Specials in the TV show panel within 3 minutes after TMDB select',
+                timeoutMsg: 'Expected to see Frieren TMDB seasons in the TV show panel within 5 minutes after TMDB select',
             })
         })
 
-        await then('metadata is persisted with TMDB Oshi no Ko', async () => {
+        await then('metadata is persisted with TMDB Frieren', async () => {
             const folder = getStepContext()._folder as { path: string }
             await expectMediaMetadataViaBrowser(folder.path, (obj) => {
                 const mm = obj as MediaMetadata
-                expect(mm.tvShow?.id).toBe('203737')
-                expect(mm.tvShow?.name).toBe('【我推的孩子】')
+                expect(mm.tvShow?.id).toBe('209867')
+                expect(mm.tvShow?.name).toBe('葬送的芙莉莲')
                 expect(mm.tvShow?.database).toBe('TMDB')
                 return true
             })
