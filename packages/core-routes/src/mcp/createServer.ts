@@ -19,6 +19,8 @@ import { registerTmdbTools } from "./toolHandlers/tmdbTools.ts";
 import { registerTvdbTools } from "./toolHandlers/tvdbTools.ts";
 import { registerStaticTextTools } from "./toolHandlers/staticText.ts";
 import type { McpConfig } from "./types.ts";
+import { logAccess, serializeErrorForLog, truncateForLog } from "../accessLog.ts";
+import type { CoreRoutesLogger } from "../types.ts";
 import { SCRAPE } from "@smm/types/ai-tools/scrape";
 import { GET_JOB } from "@smm/types/ai-tools/getJob";
 
@@ -29,6 +31,54 @@ import { GET_JOB } from "@smm/types/ai-tools/getJob";
  * `apps/cli/src/mcp/mcp.ts`.
  */
 export type McpRequestHandler = (req: Request) => Promise<Response>;
+
+/**
+ * Callback shape every `register*Tool` call site in this file uses:
+ * `(args, extra) => Promise<McpToolResponse>`.
+ */
+type McpToolCallback = (args: unknown, extra: unknown) => Promise<unknown>;
+
+/**
+ * Wrap one MCP tool callback so each invocation emits a single
+ * `msg:"access"` entry: args (truncated), outcome derived from the
+ * protocol-level `isError` flag, duration — and, when the callback
+ * itself throws, the error summary (rethrown unchanged).
+ */
+export function wrapToolCallbackWithAccessLog(
+  toolName: string,
+  cb: McpToolCallback,
+  logger: CoreRoutesLogger | undefined,
+): McpToolCallback {
+  return async (args, extra) => {
+    const started = performance.now();
+    try {
+      const result = await cb(args, extra);
+      const isError =
+        typeof result === "object" &&
+        result !== null &&
+        "isError" in result &&
+        (result as { isError?: unknown }).isError === true;
+      logAccess(logger, {
+        source: "mcp",
+        tool: toolName,
+        args: truncateForLog(args),
+        outcome: isError ? "error" : "ok",
+        durationMs: Math.round(performance.now() - started),
+      });
+      return result;
+    } catch (error) {
+      logAccess(logger, {
+        source: "mcp",
+        tool: toolName,
+        args: truncateForLog(args),
+        outcome: "error",
+        err: serializeErrorForLog(error),
+        durationMs: Math.round(performance.now() - started),
+      });
+      throw error;
+    }
+  };
+}
 
 /**
  * Create a request handler for the MCP Streamable HTTP transport.
@@ -78,6 +128,29 @@ export async function createMcpStreamableHttpHandler(
       },
     },
   );
+
+  // Access log (docs/access-log.md): interpose on `registerTool` so
+  // every `tools/call` produces exactly one `msg:"access"` entry.
+  // Casts are required because `registerTool` is generic on the SDK
+  // side, while every call site passes the same runtime shape
+  // `(name, config, async (args) => McpToolResponse)`.
+  const rawRegisterTool = server.registerTool.bind(server);
+  const registerToolWithAccessLog = (
+    name: string,
+    toolConfig: Parameters<typeof rawRegisterTool>[1],
+    cb: unknown,
+  ): ReturnType<typeof rawRegisterTool> =>
+    rawRegisterTool(
+      name,
+      toolConfig,
+      wrapToolCallbackWithAccessLog(
+        name,
+        cb as unknown as McpToolCallback,
+        config.logger,
+      ) as unknown as Parameters<typeof rawRegisterTool>[2],
+    );
+  server.registerTool =
+    registerToolWithAccessLog as typeof server.registerTool;
 
   // Core toolset — order mirrors the original `apps/cli` MCP server.
   await registerGetApplicationContextTool(server, config);
