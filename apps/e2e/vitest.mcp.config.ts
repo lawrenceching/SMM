@@ -7,5 +7,6 @@ export default defineConfig({
     include: ['mcp/**/*.test.ts'],
     testTimeout: 10 * 60 * 1000,
     passWithNoTests: true,
+    fileParallelism: false,
   },
 })
