@@ -9,7 +9,9 @@ describe('MCP Other - TmdbGetMovieTool', () => {
   test(
     'tmdb-get-movie returns movie details',
     async () => {
-      await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      if (!ctx.isRemote) {
+        await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      }
       const r = await callTmdbTool(ctx.url, 'tmdb-get-movie', {
         id: MOVIE_TMDB_ID,
         language: 'zh-CN',

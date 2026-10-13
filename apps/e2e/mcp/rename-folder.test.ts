@@ -1,52 +1,46 @@
 import { describe, expect, test } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import path from 'node:path'
 import type { MediaMetadata } from '@smm/types'
 import { Path } from '@smm/utils/path'
 import { callTool } from './lib/mcpInspectorClient'
+import { dockerPathExists } from './lib/remoteDocker'
+import { seedForTarget } from './lib/remoteFixtures'
+import { getRemoteMetadata } from './lib/remoteHttp'
 import { useMcpServer } from './lib/useMcpServer'
 import {
   folder1,
   folder2,
   metadataCacheFilePath,
-  seedMediaMetadata,
-  setupTestMediaFolders,
-  writeUserConfig,
   type TestFolder,
 } from './lib/testSetup'
 
-const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
-
-interface SeededFolder {
-  path: string
-  mediaDir: string
-  cleanup: () => Promise<void>
+function joinOnTarget(isRemote: boolean, dir: string, name: string): string {
+  return isRemote ? path.posix.join(dir, name) : path.join(dir, name)
 }
 
-async function seedRecognizedFolder(
-  ctx: { userDataDir: string; appDataDir: string },
-  folder: TestFolder,
-  movie?: { database: 'TMDB' | 'TVDB'; id: string; name: string },
-): Promise<SeededFolder> {
-  const media = await setupTestMediaFolders()
-  const created = media.materialize(folder)
-  await writeUserConfig(ctx.userDataDir, { folders: [created.path!] })
-  await seedMediaMetadata(ctx.appDataDir, created, TV_SHOW_METADATA_TEMPLATE, (mm) => {
-    if (movie) {
-      mm.type = 'movie-folder'
-      mm.tvShow = undefined
-      mm.mediaFiles = created.files.map((file) => ({
-        absolutePath: join(created.path!, file),
-      })) as MediaMetadata['mediaFiles']
-      mm.movie = {
-        database: movie.database,
-        id: movie.id,
-        name: movie.name,
-      }
+function dirnameOnTarget(isRemote: boolean, folderPath: string): string {
+  return isRemote ? path.posix.dirname(folderPath) : path.dirname(folderPath)
+}
+
+function asMovieFolder(
+  movie: { database: 'TMDB' | 'TVDB'; id: string; name: string },
+  files: string[],
+): (mm: MediaMetadata) => MediaMetadata {
+  return (mm) => {
+    mm.type = 'movie-folder'
+    mm.tvShow = undefined
+    const folderAbs = new Path(mm.mediaFolderPath!)
+    mm.mediaFiles = files.map((file) => ({
+      absolutePath: folderAbs.join(file).abs('posix'),
+    })) as MediaMetadata['mediaFiles']
+    mm.movie = {
+      database: movie.database,
+      id: movie.id,
+      name: movie.name,
     }
     return mm
-  })
-  return { path: created.path!, mediaDir: media.mediaDir, cleanup: () => media.cleanup() }
+  }
 }
 
 function readMetadataCache(appDataDir: string, folderPath: string): MediaMetadata | null {
@@ -60,11 +54,46 @@ function readMetadataCache(appDataDir: string, folderPath: string): MediaMetadat
 describe('MCP Other - RenameFolderTool', () => {
   const ctx = useMcpServer()
 
+  async function seedRecognizedFolder(
+    folder: TestFolder,
+    movie?: { database: 'TMDB' | 'TVDB'; id: string; name: string },
+  ): Promise<{ path: string; cleanup: () => Promise<void> }> {
+    return seedForTarget(
+      ctx,
+      folder,
+      movie ? asMovieFolder(movie, folder.files) : undefined,
+    )
+  }
+
+  async function expectFolderExists(folderPath: string): Promise<void> {
+    if (ctx.isRemote) {
+      expect(
+        await dockerPathExists({
+          container: ctx.containerName!,
+          containerPath: folderPath,
+        }),
+      ).toBe(true)
+      return
+    }
+    expect(existsSync(folderPath)).toBe(true)
+  }
+
+  async function readMetadata(folderPath: string): Promise<MediaMetadata | null> {
+    if (ctx.isRemote) {
+      return getRemoteMetadata(ctx.httpServerAddress!, ctx.authToken!, folderPath)
+    }
+    return readMetadataCache(ctx.appDataDir, folderPath)
+  }
+
   test('TV Show: renames folder and updates metadata cache', async () => {
-    const seeded = await seedRecognizedFolder(ctx, { ...folder1 })
+    const seeded = await seedRecognizedFolder({ ...folder1 })
     try {
       const newFolderName = `new-${folder1.folderName}`
-      const newFolderPath = join(seeded.mediaDir, newFolderName)
+      const newFolderPath = joinOnTarget(
+        ctx.isRemote,
+        dirnameOnTarget(ctx.isRemote, seeded.path),
+        newFolderName,
+      )
 
       const r = await callTool(ctx.url, 'rename-folder', {
         from: seeded.path,
@@ -76,9 +105,9 @@ describe('MCP Other - RenameFolderTool', () => {
       expect(sc.from).toBe(seeded.path)
       expect(sc.to).toBe(newFolderPath)
 
-      expect(existsSync(newFolderPath)).toBe(true)
+      await expectFolderExists(newFolderPath)
 
-      const mm = readMetadataCache(ctx.appDataDir, newFolderPath)
+      const mm = await readMetadata(newFolderPath)
       expect(mm).not.toBeNull()
       expect(mm!.tvShow).toBeDefined()
     } finally {
@@ -88,7 +117,6 @@ describe('MCP Other - RenameFolderTool', () => {
 
   test('Movie: renames folder and updates metadata cache', async () => {
     const seeded = await seedRecognizedFolder(
-      ctx,
       { ...folder2 },
       {
         database: 'TMDB',
@@ -98,7 +126,11 @@ describe('MCP Other - RenameFolderTool', () => {
     )
     try {
       const newFolderName = `new-${folder2.folderName}`
-      const newFolderPath = join(seeded.mediaDir, newFolderName)
+      const newFolderPath = joinOnTarget(
+        ctx.isRemote,
+        dirnameOnTarget(ctx.isRemote, seeded.path),
+        newFolderName,
+      )
 
       const r = await callTool(ctx.url, 'rename-folder', {
         from: seeded.path,
@@ -110,9 +142,9 @@ describe('MCP Other - RenameFolderTool', () => {
       expect(sc.from).toBe(seeded.path)
       expect(sc.to).toBe(newFolderPath)
 
-      expect(existsSync(newFolderPath)).toBe(true)
+      await expectFolderExists(newFolderPath)
 
-      const mm = readMetadataCache(ctx.appDataDir, newFolderPath)
+      const mm = await readMetadata(newFolderPath)
       expect(mm).not.toBeNull()
       expect(mm!.movie).toBeDefined()
     } finally {

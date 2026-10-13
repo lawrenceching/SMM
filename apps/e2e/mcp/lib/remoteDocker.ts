@@ -24,21 +24,25 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | null): Promis
   return new Response(stream).text()
 }
 
-async function runDocker(args: string[], label: string): Promise<void> {
+async function runDockerCapture(args: string[], label: string): Promise<string> {
   const proc = Bun.spawn(['docker', ...args], {
     stdout: 'pipe',
     stderr: 'pipe',
   })
   const exitCode = await proc.exited
+  const stdout = await readStreamText(proc.stdout)
   if (exitCode === 0) {
-    return
+    return stdout
   }
   const stderr = await readStreamText(proc.stderr)
-  const stdout = await readStreamText(proc.stdout)
   const combined = [stderr, stdout].filter(Boolean).join('\n').trim()
   throw new Error(
     combined ? `${label}: ${combined}` : `${label}: docker exited with code ${exitCode}`,
   )
+}
+
+async function runDocker(args: string[], label: string): Promise<void> {
+  await runDockerCapture(args, label)
 }
 
 export async function dockerCpDirToContainer(opts: {
@@ -77,4 +81,14 @@ export async function dockerPathExists(opts: {
   )
   const exitCode = await proc.exited
   return exitCode === 0
+}
+
+export async function dockerReadTextFile(opts: {
+  container: string
+  containerPath: string
+}): Promise<string> {
+  return runDockerCapture(
+    ['exec', opts.container, 'cat', opts.containerPath],
+    'docker exec cat',
+  )
 }

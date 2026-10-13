@@ -233,7 +233,7 @@ export async function deleteRemoteMetadata(
   }
 }
 
-async function getRemoteMetadata(
+export async function getRemoteMetadata(
   httpBase: string,
   authToken: string,
   folderPath: string,

@@ -147,7 +147,7 @@ async function stopMcpProcess(proc: CliMcpProcess): Promise<number | null> {
   })
 }
 
-describe('CLI smm mcp start/stop', () => {
+describe.skipIf(process.env.TARGET === 'remote')('CLI smm mcp start/stop', () => {
   let proc: CliMcpProcess | undefined
 
   afterEach(async () => {

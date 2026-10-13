@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { callTool } from './lib/mcpInspectorClient'
+import { seedForTarget } from './lib/remoteFixtures'
 import { useMcpServer } from './lib/useMcpServer'
-import { folder1, seedRecognizedTvShowFolder } from './lib/testSetup'
+import { folder1 } from './lib/testSetup'
 
 describe('MCP Other - GetMediaMetadataTool', () => {
   const ctx = useMcpServer()
 
   test('should return cached metadata for folder', async () => {
-    const seeded = await seedRecognizedTvShowFolder(ctx, { ...folder1 }, (mm) => {
+    const seeded = await seedForTarget(ctx, { ...folder1 }, (mm) => {
       if (mm.tvShow) {
         mm.tvShow.name = folder1.mediaName!
       }

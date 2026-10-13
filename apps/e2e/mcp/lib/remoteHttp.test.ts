@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createRemoteMetadata, patchRemoteUserConfigFolders } from './remoteHttp'
+import {
+  createRemoteMetadata,
+  getRemoteMetadata,
+  patchRemoteUserConfigFolders,
+} from './remoteHttp'
 
 describe('remoteHttp', () => {
   afterEach(() => {
@@ -41,5 +45,21 @@ describe('remoteHttp', () => {
     } as never)
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('http://127.0.0.1:30000/api/create-metadata')
+  })
+
+  it('getRemoteMetadata posts path to /api/get-metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { mediaFolderPath: '/tmp/x', type: 'movie-folder' } }),
+      text: async () =>
+        JSON.stringify({ data: { mediaFolderPath: '/tmp/x', type: 'movie-folder' } }),
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const metadata = await getRemoteMetadata('http://127.0.0.1:30000', 'tok', '/tmp/x')
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('http://127.0.0.1:30000/api/get-metadata')
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ path: '/tmp/x' })
+    expect(metadata).toMatchObject({ mediaFolderPath: '/tmp/x', type: 'movie-folder' })
   })
 })

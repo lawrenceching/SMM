@@ -7,7 +7,11 @@ import {
   newRemoteRunId,
 } from './remoteDocker'
 import { patchRemoteUserConfigFolders, writeRemoteMediaMetadata } from './remoteHttp'
-import { buildMediaMetadataFromTemplate, setupTestMediaFolders } from './testSetup'
+import {
+  buildMediaMetadataFromTemplate,
+  seedRecognizedTvShowFolder,
+  setupTestMediaFolders,
+} from './testSetup'
 
 const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
 
@@ -20,6 +24,16 @@ export interface SeedRemoteRecognizedFolderContext {
   httpServerAddress: string
   authToken: string
   containerName: string
+}
+
+/** Subset of `McpTestContext` needed to seed fixtures locally or remotely. */
+export interface SeedTargetContext {
+  isRemote: boolean
+  userDataDir: string
+  appDataDir: string
+  httpServerAddress?: string
+  authToken?: string
+  containerName?: string
 }
 
 /**
@@ -35,27 +49,32 @@ export async function seedRemoteMediaFolder(opts: SeedRemoteMediaFolderOptions):
   cleanup: () => Promise<void>
 }> {
   const media = await setupTestMediaFolders()
-  const created = media.materialize(opts.folder)
-  const runId = newRemoteRunId()
-  const containerMediaDir = `${containerTmpRoot(runId)}/media`
-  const containerPath = `${containerMediaDir}/${created.folderName}`
+  try {
+    const created = media.materialize(opts.folder)
+    const runId = newRemoteRunId()
+    const containerMediaDir = `${containerTmpRoot(runId)}/media`
+    const containerPath = `${containerMediaDir}/${created.folderName}`
 
-  await dockerCpDirToContainer({
-    container: opts.container,
-    hostDir: media.mediaDir,
-    containerDir: containerMediaDir,
-  })
+    await dockerCpDirToContainer({
+      container: opts.container,
+      hostDir: media.mediaDir,
+      containerDir: containerMediaDir,
+    })
 
-  return {
-    containerPath,
-    runId,
-    cleanup: async () => {
-      await media.cleanup()
-      await dockerRmContainerPath({
-        container: opts.container,
-        containerPath: containerTmpRoot(runId),
-      })
-    },
+    return {
+      containerPath,
+      runId,
+      cleanup: async () => {
+        await media.cleanup()
+        await dockerRmContainerPath({
+          container: opts.container,
+          containerPath: containerTmpRoot(runId),
+        })
+      },
+    }
+  } catch (error) {
+    await media.cleanup()
+    throw error
   }
 }
 
@@ -88,4 +107,58 @@ export async function seedRemoteRecognizedFolder(
   }
 
   return { path, cleanup: seeded.cleanup }
+}
+
+function requireRemoteSeedContext(
+  ctx: SeedTargetContext,
+): SeedRemoteRecognizedFolderContext {
+  if (!ctx.httpServerAddress || ctx.authToken === undefined || !ctx.containerName) {
+    throw new Error(
+      'seedForTarget: httpServerAddress, authToken, and containerName are required when isRemote',
+    )
+  }
+  return {
+    httpServerAddress: ctx.httpServerAddress,
+    authToken: ctx.authToken,
+    containerName: ctx.containerName,
+  }
+}
+
+/**
+ * Materialize a fixture on the MCP server's filesystem: docker cp when remote,
+ * host temp dir otherwise.
+ */
+export async function seedMediaFolderForTarget(
+  ctx: SeedTargetContext,
+  folder: TestFolder,
+): Promise<{ path: string; cleanup: () => Promise<void> }> {
+  if (ctx.isRemote) {
+    const seeded = await seedRemoteMediaFolder({
+      container: requireRemoteSeedContext(ctx).containerName,
+      folder,
+    })
+    return { path: seeded.containerPath, cleanup: seeded.cleanup }
+  }
+  const media = await setupTestMediaFolders()
+  const created = media.materialize(folder)
+  return { path: created.path!, cleanup: () => media.cleanup() }
+}
+
+/**
+ * Seed a recognized media folder for the current MCP target (remote HTTP +
+ * docker cp, or local userDataDir / appDataDir writes).
+ */
+export async function seedForTarget(
+  ctx: SeedTargetContext,
+  folder: TestFolder,
+  updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata,
+): Promise<{ path: string; cleanup: () => Promise<void> }> {
+  if (ctx.isRemote) {
+    return seedRemoteRecognizedFolder(
+      requireRemoteSeedContext(ctx),
+      folder,
+      updateMediaMetadata,
+    )
+  }
+  return seedRecognizedTvShowFolder(ctx, folder, updateMediaMetadata)
 }

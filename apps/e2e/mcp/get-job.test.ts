@@ -1,16 +1,9 @@
 import { describe, expect, test } from 'vitest'
 import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/types/ai-tools/scrape'
 import { callTool } from './lib/mcpInspectorClient'
+import { seedForTarget } from './lib/remoteFixtures'
 import { useMcpServer } from './lib/useMcpServer'
-import {
-  folder2,
-  seedMediaMetadata,
-  setupTestMediaFolders,
-  writeUserConfig,
-  type TestFolder,
-} from './lib/testSetup'
-
-const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
+import { folder2, type TestFolder } from './lib/testSetup'
 
 describe('MCP Other - GetJobTool', () => {
   const ctx = useMcpServer()
@@ -18,28 +11,24 @@ describe('MCP Other - GetJobTool', () => {
   test(
     'get-job polls scrape job until terminal',
     async () => {
-      const media = await setupTestMediaFolders()
-      try {
-        const movieFolder: TestFolder = {
-          ...folder2,
-          folderName: '哪吒之魔童降世 (2019) {tmdbid=552524}',
-          files: ['movie.mkv'],
+      const movieFolder: TestFolder = {
+        ...folder2,
+        folderName: '哪吒之魔童降世 (2019) {tmdbid=552524}',
+        files: ['movie.mkv'],
+      }
+      const seeded = await seedForTarget(ctx, movieFolder, (mm) => {
+        mm.type = 'movie-folder'
+        mm.tvShow = undefined
+        mm.movie = {
+          database: 'TMDB',
+          id: '552524',
+          name: '哪吒之魔童降世',
         }
-        const folder = media.materialize(movieFolder)
-        await writeUserConfig(ctx.userDataDir, { folders: [folder.path!] })
-        await seedMediaMetadata(ctx.appDataDir, folder, TV_SHOW_METADATA_TEMPLATE, (mm) => {
-          mm.type = 'movie-folder'
-          mm.tvShow = undefined
-          mm.movie = {
-            database: 'TMDB',
-            id: '552524',
-            name: '哪吒之魔童降世',
-          }
-          return mm
-        })
-
+        return mm
+      })
+      try {
         const scrapeResult = await callTool(ctx.url, 'scrape', {
-          path: folder.path!,
+          path: seeded.path,
           language: 'zh-CN',
         })
         expect(scrapeResult.isError).toBe(false)
@@ -75,7 +64,7 @@ describe('MCP Other - GetJobTool', () => {
         expect(tasks.thumbnails.status).toBe('skipped')
         expect(tasks.nfo.status).toMatch(/completed|skipped/)
       } finally {
-        await media.cleanup()
+        await seeded.cleanup()
       }
     },
     150_000,

@@ -1,13 +1,14 @@
 import { describe, expect, test } from 'vitest'
 import { callTool } from './lib/mcpInspectorClient'
+import { seedForTarget } from './lib/remoteFixtures'
 import { useMcpServer } from './lib/useMcpServer'
-import { folder1, seedRecognizedTvShowFolder } from './lib/testSetup'
+import { folder1 } from './lib/testSetup'
 
 describe('MCP Other - GetEpisodesTool', () => {
   const ctx = useMcpServer()
 
   test('should return episodes list with mapped video path', async () => {
-    const seeded = await seedRecognizedTvShowFolder(ctx, { ...folder1 })
+    const seeded = await seedForTarget(ctx, { ...folder1 })
     try {
       const r = await callTool(ctx.url, 'get-episodes', {
         mediaFolderPath: seeded.path,

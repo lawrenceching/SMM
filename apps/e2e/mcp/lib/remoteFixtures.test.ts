@@ -8,7 +8,11 @@ import {
   newRemoteRunId,
 } from './remoteDocker'
 import { patchRemoteUserConfigFolders, writeRemoteMediaMetadata } from './remoteHttp'
-import { seedRemoteMediaFolder, seedRemoteRecognizedFolder } from './remoteFixtures'
+import {
+  seedForTarget,
+  seedRemoteMediaFolder,
+  seedRemoteRecognizedFolder,
+} from './remoteFixtures'
 
 vi.mock('./remoteDocker', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./remoteDocker')>()
@@ -78,6 +82,51 @@ describe('remoteFixtures', () => {
       container: 'smm',
       containerPath: '/tmp/run-fixed',
     })
+  })
+
+  it('seedRemoteMediaFolder cleans host temp if dockerCp throws', async () => {
+    vi.mocked(dockerCpDirToContainer).mockImplementationOnce(async (opts) => {
+      expect(existsSync(opts.hostDir)).toBe(true)
+      throw new Error('cp failed')
+    })
+
+    await expect(
+      seedRemoteMediaFolder({
+        container: 'smm',
+        folder,
+      }),
+    ).rejects.toThrow('cp failed')
+
+    const hostDir = vi.mocked(dockerCpDirToContainer).mock.calls[0]?.[0]?.hostDir
+    expect(hostDir).toBeDefined()
+    expect(existsSync(hostDir!)).toBe(false)
+  })
+
+  it('seedForTarget uses remote seed when isRemote', async () => {
+    const seeded = await seedForTarget(
+      {
+        isRemote: true,
+        userDataDir: '',
+        appDataDir: '',
+        httpServerAddress: 'http://127.0.0.1:30000',
+        authToken: 'tok',
+        containerName: 'smm',
+      },
+      folder,
+    )
+
+    try {
+      expect(seeded.path).toBe('/tmp/run-fixed/media/RemoteFixtureShow')
+      expect(dockerCpDirToContainer).toHaveBeenCalledTimes(1)
+      expect(patchRemoteUserConfigFolders).toHaveBeenCalledWith(
+        'http://127.0.0.1:30000',
+        'tok',
+        ['/tmp/run-fixed/media/RemoteFixtureShow'],
+      )
+      expect(writeRemoteMediaMetadata).toHaveBeenCalledTimes(1)
+    } finally {
+      await seeded.cleanup()
+    }
   })
 
   it('seedRemoteRecognizedFolder patches user config and writes metadata at container path', async () => {

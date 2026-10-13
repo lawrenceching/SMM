@@ -14,7 +14,9 @@ describe('MCP Other - TmdbSearchTool', () => {
   test(
     'tmdb-search returns TV results',
     async () => {
-      await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      if (!ctx.isRemote) {
+        await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      }
       const r = await callTmdbTool(ctx.url, 'tmdb-search', {
         keyword: TV_SEARCH_KEYWORD,
         type: 'tv',

@@ -14,7 +14,9 @@ describe('MCP Other - TmdbGetTvShowTool', () => {
   test(
     'tmdb-get-tv-show returns series details',
     async () => {
-      await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      if (!ctx.isRemote) {
+        await writeUserConfig(ctx.userDataDir, applyTmdbUserConfig())
+      }
       const r = await callTmdbTool(ctx.url, 'tmdb-get-tv-show', {
         id: TV_TMDB_ID,
         language: 'zh-CN',

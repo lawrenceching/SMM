@@ -4,16 +4,11 @@ import { join } from 'node:path'
 import { SCRAPE_JOB_CREATED_MESSAGE } from '@smm/types/ai-tools/scrape'
 import { Path } from '@smm/utils/path'
 import { callTool } from './lib/mcpInspectorClient'
+import { dockerPathExists, dockerReadTextFile } from './lib/remoteDocker'
+import { seedForTarget } from './lib/remoteFixtures'
 import { useMcpServer } from './lib/useMcpServer'
-import {
-  folder2,
-  seedMediaMetadata,
-  setupTestMediaFolders,
-  writeUserConfig,
-  type TestFolder,
-} from './lib/testSetup'
+import { folder2, type TestFolder } from './lib/testSetup'
 
-const TV_SHOW_METADATA_TEMPLATE = '天使降临到我身边.metadata.json'
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
 
 function findImageWithPrefix(dir: string, prefix: string): string | undefined {
@@ -28,6 +23,20 @@ function expectNonEmptyFile(filePath: string): void {
   expect(statSync(filePath).size).toBeGreaterThan(0)
 }
 
+async function findRemoteImageWithPrefix(
+  container: string,
+  dir: string,
+  prefix: string,
+): Promise<string | undefined> {
+  for (const ext of IMAGE_EXTENSIONS) {
+    const containerPath = `${dir}/${prefix}${ext}`
+    if (await dockerPathExists({ container, containerPath })) {
+      return containerPath
+    }
+  }
+  return undefined
+}
+
 /**
  * User scenario: scrape a recognized movie folder, poll until the job finishes,
  * then verify job tasks and on-disk poster / fanart / movie.nfo.
@@ -39,27 +48,23 @@ describe('MCP Other - ScrapeTool', () => {
   test(
     'scrape movie folder then get-job until succeeded with artwork and nfo',
     async () => {
-      const media = await setupTestMediaFolders()
-      try {
-        const movieFolder: TestFolder = {
-          ...folder2,
-          folderName: '哪吒之魔童降世 (2019) {tmdbid=552524}',
-          files: ['movie.mkv'],
+      const movieFolder: TestFolder = {
+        ...folder2,
+        folderName: '哪吒之魔童降世 (2019) {tmdbid=552524}',
+        files: ['movie.mkv'],
+      }
+      const seeded = await seedForTarget(ctx, movieFolder, (mm) => {
+        mm.type = 'movie-folder'
+        mm.tvShow = undefined
+        mm.movie = {
+          database: 'TMDB',
+          id: '552524',
+          name: '哪吒之魔童降世',
         }
-        const folder = media.materialize(movieFolder)
-        const folderPath = folder.path!
-        await writeUserConfig(ctx.userDataDir, { folders: [folderPath] })
-        await seedMediaMetadata(ctx.appDataDir, folder, TV_SHOW_METADATA_TEMPLATE, (mm) => {
-          mm.type = 'movie-folder'
-          mm.tvShow = undefined
-          mm.movie = {
-            database: 'TMDB',
-            id: '552524',
-            name: '哪吒之魔童降世',
-          }
-          return mm
-        })
-
+        return mm
+      })
+      const folderPath = seeded.path
+      try {
         const scrapeResult = await callTool(ctx.url, 'scrape', {
           path: folderPath,
           language: 'zh-CN',
@@ -98,19 +103,32 @@ describe('MCP Other - ScrapeTool', () => {
         expect(tasks.thumbnails.status).toBe('skipped')
         expect(tasks.nfo.status).toMatch(/completed|skipped/)
 
-        const platformFolder = Path.toPlatformPath(folderPath)
-        const poster = findImageWithPrefix(platformFolder, 'poster')
-        const fanart = findImageWithPrefix(platformFolder, 'fanart')
-        expect(poster).toBeDefined()
-        expect(fanart).toBeDefined()
-        expectNonEmptyFile(join(platformFolder, poster!))
-        expectNonEmptyFile(join(platformFolder, fanart!))
+        if (ctx.isRemote) {
+          const container = ctx.containerName!
+          const poster = await findRemoteImageWithPrefix(container, folderPath, 'poster')
+          const fanart = await findRemoteImageWithPrefix(container, folderPath, 'fanart')
+          expect(poster).toBeDefined()
+          expect(fanart).toBeDefined()
 
-        const movieNfoPath = join(platformFolder, 'movie.nfo')
-        expectNonEmptyFile(movieNfoPath)
-        expect(readFileSync(movieNfoPath, 'utf-8')).toContain('<tmdbid>552524</tmdbid>')
+          const movieNfoPath = `${folderPath}/movie.nfo`
+          expect(await dockerPathExists({ container, containerPath: movieNfoPath })).toBe(true)
+          const nfo = await dockerReadTextFile({ container, containerPath: movieNfoPath })
+          expect(nfo).toContain('<tmdbid>552524</tmdbid>')
+        } else {
+          const platformFolder = Path.toPlatformPath(folderPath)
+          const poster = findImageWithPrefix(platformFolder, 'poster')
+          const fanart = findImageWithPrefix(platformFolder, 'fanart')
+          expect(poster).toBeDefined()
+          expect(fanart).toBeDefined()
+          expectNonEmptyFile(join(platformFolder, poster!))
+          expectNonEmptyFile(join(platformFolder, fanart!))
+
+          const movieNfoPath = join(platformFolder, 'movie.nfo')
+          expectNonEmptyFile(movieNfoPath)
+          expect(readFileSync(movieNfoPath, 'utf-8')).toContain('<tmdbid>552524</tmdbid>')
+        }
       } finally {
-        await media.cleanup()
+        await seeded.cleanup()
       }
     },
     150_000,
