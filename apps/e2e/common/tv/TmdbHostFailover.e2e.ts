@@ -90,17 +90,18 @@ describe('TMDB Host Failover', () => {
         await when('I select "TMDB" as the search database')
         await when('I select "zh-CN" as the search language')
         await when('I click the search button in the searchbox')
-        await when('I search for "我推的孩子"')
-        await when('I select search result with title "【我推的孩子】" and date "April 12, 2023"')
+        // TMDB tv/209867: stable first_air_date for title+date select (Oshi no Ko no longer exposes it).
+        await when('I search for "葬送的芙莉莲"')
+        await when('I select search result with title "葬送的芙莉莲" and date "September 29, 2023"')
 
         await browser.pause(5000)
 
-        await then('metadata is persisted with TMDB Oshi no Ko', async () => {
+        await then('metadata is persisted with TMDB Frieren', async () => {
             const folder = getStepContext()._folder as { path: string }
             await expectMediaMetadataViaBrowser(folder.path, (obj) => {
                 const mm = obj as MediaMetadata
-                expect(mm.tvShow?.id).toBe('203737')
-                expect(mm.tvShow?.name).toBe('【我推的孩子】')
+                expect(mm.tvShow?.id).toBe('209867')
+                expect(mm.tvShow?.name).toBe('葬送的芙莉莲')
                 expect(mm.tvShow?.database).toBe('TMDB')
                 return true
             })
