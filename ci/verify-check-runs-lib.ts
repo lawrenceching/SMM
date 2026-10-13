@@ -8,7 +8,7 @@ export const RELEASE_REQUIRED_CHECKS = [
   'Knip',
   'build / gate',
   'web-ui-e2e / gate',
-  'mcp-tools-e2e / gate',
+  'mcp-server-e2e / gate',
 ] as const;
 
 export type ReleaseRequiredCheck = (typeof RELEASE_REQUIRED_CHECKS)[number];
