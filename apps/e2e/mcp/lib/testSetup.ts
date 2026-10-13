@@ -74,6 +74,36 @@ export function metadataCacheFilePath(appDataDir: string, folderPathInPosix: str
 }
 
 /**
+ * Build media metadata from a template, rewriting paths to `folder.path`.
+ * Uses `Path` so both host (Windows) and container (POSIX) folder paths
+ * produce POSIX `mediaFolderPath` / `mediaFiles[].absolutePath`.
+ */
+export async function buildMediaMetadataFromTemplate(
+  folder: TestFolder,
+  templateFileName: string,
+  updateMediaMetadata?: (mediaMetadata: MediaMetadata) => MediaMetadata,
+): Promise<MediaMetadata> {
+  const folderPath = folder.path
+  if (folderPath === undefined || folderPath === '') {
+    throw new Error('seedMediaMetadata: folder.path is required')
+  }
+
+  const templatePath = join(repoRoot(), 'test', 'templates', 'mediaMetadatas', templateFileName)
+  const template = JSON.parse(await readFile(templatePath, 'utf-8')) as MediaMetadata
+
+  const folderAbs = new Path(folderPath)
+  const mediaMetadata: MediaMetadata = {
+    ...template,
+    mediaFolderPath: folderAbs.abs('posix'),
+    mediaFiles: template.mediaFiles?.map((file) => ({
+      ...file,
+      absolutePath: folderAbs.join(file.absolutePath).abs('posix'),
+    })),
+  }
+  return updateMediaMetadata !== undefined ? updateMediaMetadata(mediaMetadata) : mediaMetadata
+}
+
+/**
  * Seed cached media metadata for a folder by writing directly into
  * `{appDataDir}/metadata/`. Mirrors `importFolderWithMediaMetadata` from
  * `apps/e2e/test/lib/testbed.ts`, but writes to disk instead of the browser.
@@ -89,20 +119,7 @@ export async function seedMediaMetadata(
     throw new Error('seedMediaMetadata: folder.path is required')
   }
 
-  const templatePath = join(repoRoot(), 'test', 'templates', 'mediaMetadatas', templateFileName)
-  const template = JSON.parse(await readFile(templatePath, 'utf-8')) as MediaMetadata
-
-  const mediaMetadata: MediaMetadata = {
-    ...template,
-    mediaFolderPath: Path.posix(folderPath),
-    mediaFiles: template.mediaFiles?.map((file) => ({
-      ...file,
-      absolutePath: Path.posix(join(folderPath, file.absolutePath)),
-    })),
-  }
-  const updated =
-    updateMediaMetadata !== undefined ? updateMediaMetadata(mediaMetadata) : mediaMetadata
-
+  const updated = await buildMediaMetadataFromTemplate(folder, templateFileName, updateMediaMetadata)
   const filePath = metadataCacheFilePath(appDataDir, Path.posix(folderPath))
   await mkdir(metadataDir(appDataDir), { recursive: true })
   await writeFile(filePath, JSON.stringify(updated, null, 2), 'utf-8')
