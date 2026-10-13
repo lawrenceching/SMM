@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
 # ffmpeg/ffprobe, yt-dlp, VideoCaptioner, and QuickJS are downloaded directly from
-# their official release sources — no npm packages, no self-hosted archive.
+# their release sources — no npm packages, no self-hosted archive.
+# VideoCaptioner binaries come from SMM GitHub Releases (tag videocaptioner-<version>).
 # Install into bin/ffmpeg, bin/yt-dlp, bin/videocaptioner, and bin/quickjs for Electron packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64).
-# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_REPO
-# (ffmpeg/yt-dlp versions default to the `3pp` section of the root package.json).
+# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_RELEASES_REPO
+# (versions default to the `3pp` section of the root package.json).
 
 set -e
 
 PLATFORM="${PLATFORM:?PLATFORM is required (linux|win|mac)}"
 ARCH="${ARCH:?ARCH is required (x64|arm64)}"
-VIDEOCAPTIONER_VERSION="${VIDEOCAPTIONER_VERSION:-1.0.0}"
-VIDEOCAPTIONER_REPO="${VIDEOCAPTIONER_REPO:-lawrenceching/VideoCaptioner}"
+VIDEOCAPTIONER_VERSION="${VIDEOCAPTIONER_VERSION:-$(node -p "require('./package.json')['3pp'].videocaptioner_version" 2>/dev/null || echo 1.0.1)}"
+VIDEOCAPTIONER_RELEASES_REPO="${VIDEOCAPTIONER_RELEASES_REPO:-$(node -p "require('./package.json')['3pp'].videocaptioner_releases_repo" 2>/dev/null || echo lawrenceching/SMM)}"
 
 FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 8.1)}"
 YTDLP_VERSION="${YTDLP_VERSION:-$(node -p "require('./package.json')['3pp'].ytdlp_version" 2>/dev/null || echo 2026.07.04)}"
 # osxexperts names its mac arm64 builds ffmpeg<VER>arm.zip (e.g. 81 = FFmpeg 8.1).
 FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-${FFMPEG_VERSION//./}}"
 
-VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_REPO}/releases/download/${VIDEOCAPTIONER_VERSION}"
+VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_RELEASES_REPO}/releases/download/videocaptioner-${VIDEOCAPTIONER_VERSION}"
 
 case "${PLATFORM}-${ARCH}" in
   linux-x64)

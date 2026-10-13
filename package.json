@@ -13,7 +13,10 @@
   "3pp": {
     "ffmpeg_version": "8.1",
     "ytdlp_version": "2026.07.04",
-    "videocaptioner_version": "1.0.0"
+    "videocaptioner_version": "1.0.1",
+    "videocaptioner_ref": "2fa280e9425370f02e4e65ea9aff80e71c79a246",
+    "videocaptioner_repo": "lawrenceching/VideoCaptioner",
+    "videocaptioner_releases_repo": "lawrenceching/SMM"
   },
   "scripts": {
     "dev": "cross-env SMM_AUTH_TOKEN=ChangeMe123 VITE_PORT=8081 HTTP_PORT=8082 npm-run-all2 --parallel dev:ui dev:cli",

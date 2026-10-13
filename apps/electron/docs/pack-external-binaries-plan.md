@@ -30,7 +30,7 @@
 - **CI 下载**（[`ci/download-3pp-binary.sh`](../../../ci/download-3pp-binary.sh)）：
   - **ffmpeg / ffprobe**：按平台从官方渠道直接下载——linux/win→BtbN FFmpeg-Builds（`FFMPEG_VERSION` 8.1），mac-arm64→osxexperts.net。
   - **yt-dlp**：从 [yt-dlp 官方 GitHub release](https://github.com/yt-dlp/yt-dlp/releases) 下载对应平台单文件（`YTDLP_VERSION` 2026.07.04）。
-  - **videocaptioner**：从 [VideoCaptioner release](https://github.com/lawrenceching/VideoCaptioner/releases) 下载 `videocaptioner-<version>-<platform>-<arch>.tar.gz`（含 PyInstaller 的 `_internal/`、`resource/`），解压到 `bin/videocaptioner/`。
+  - **videocaptioner**：从 [SMM Releases](https://github.com/lawrenceching/SMM/releases) 标签 `videocaptioner-<version>` 下载 `videocaptioner-<version>-<platform>-<arch>.tar.gz`（含 PyInstaller 的 `_internal/`、`resource/`），解压到 `bin/videocaptioner/`。
 - **发现**：CLI 在“用户配置”之后、“项目根 / 安装数据目录”之前，若存在环境变量 `SMM_RESOURCES_PATH`，则先在该路径下的 `bin/ffmpeg/`、`bin/yt-dlp/`、`bin/videocaptioner/` 中查找可执行文件（`VideoCaptioner.ts` 使用 `toolExecutableDiscovery`）。
 - **Electron**：在启动 CLI 时设置 `SMM_RESOURCES_PATH = process.resourcesPath`，使 CLI 使用随包安装的 bin。
 

@@ -1,0 +1,164 @@
+name: Build videocaptioner executables
+
+# Builds PyInstaller bundles from a pinned upstream checkout and publishes
+# them to this repository's GitHub Releases (tag videocaptioner-<version>).
+on:
+  workflow_dispatch:
+    inputs:
+      force_rerelease:
+        description: 'Delete existing Release tag assets and recreate'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  meta:
+    name: Read 3pp metadata
+    runs-on: ubuntu-22.04
+    outputs:
+      version: ${{ steps.pp.outputs.version }}
+      ref: ${{ steps.pp.outputs.ref }}
+      source_repo: ${{ steps.pp.outputs.source_repo }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pp
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "version=$(node -p "require('./package.json')['3pp'].videocaptioner_version")" >> "$GITHUB_OUTPUT"
+          echo "ref=$(node -p "require('./package.json')['3pp'].videocaptioner_ref")" >> "$GITHUB_OUTPUT"
+          echo "source_repo=$(node -p "require('./package.json')['3pp'].videocaptioner_repo")" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: meta
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            target: win-x64
+          - runner: windows-11-arm
+            target: win-arm64
+          - runner: ubuntu-22.04
+            target: linux-x64
+          - runner: ubuntu-22.04-arm
+            target: linux-arm64
+          - runner: macos-latest
+            target: mac-arm64
+    steps:
+      - name: Checkout SMM
+        uses: actions/checkout@v4
+        with:
+          path: smm
+
+      - name: Checkout VideoCaptioner source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ needs.meta.outputs.source_repo }}
+          ref: ${{ needs.meta.outputs.ref }}
+          path: third_party/videocaptioner
+
+      - name: Apply SMM patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          patches=(smm/ci/videocaptioner/patches/*.patch)
+          if ((${#patches[@]})); then
+            git -C third_party/videocaptioner apply --verbose "${patches[@]}"
+          else
+            echo "No patches to apply."
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        working-directory: third_party/videocaptioner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -e .
+
+      - name: Build executable
+        working-directory: third_party/videocaptioner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/build_exe.py --clean --version '${{ needs.meta.outputs.version }}'
+
+      - name: Pack tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          VER='${{ needs.meta.outputs.version }}'
+          TARGET='${{ matrix.target }}'
+          STAGE=staging/videocaptioner
+          rm -rf staging
+          mkdir -p "$STAGE"
+          cp -a third_party/videocaptioner/dist/videocaptioner/. "$STAGE/"
+          chmod +x "$STAGE/videocaptioner" "$STAGE/videocaptioner.exe" 2>/dev/null || true
+          tar -czf "videocaptioner-${VER}-${TARGET}.tar.gz" -C staging videocaptioner
+
+      - name: Upload job artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: videocaptioner-${{ matrix.target }}
+          path: videocaptioner-${{ needs.meta.outputs.version }}-${{ matrix.target }}.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [meta, build]
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Create or refresh Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ needs.meta.outputs.version }}
+          REF: ${{ needs.meta.outputs.ref }}
+          SRC: ${{ needs.meta.outputs.source_repo }}
+          FORCE: ${{ inputs.force_rerelease }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="videocaptioner-${VER}"
+          NOTES="$(cat <<EOF
+          SMM-packaged VideoCaptioner executables.
+
+          - Upstream source: \`${SRC}@${REF}\`
+          - License: GPL-3.0 (see upstream repository)
+          - Linux builds: ubuntu-22.04 / ubuntu-22.04-arm (glibc compatible with Debian bookworm)
+          EOF
+          )"
+          shopt -s nullglob
+          assets=(artifacts/videocaptioner-"${VER}"-*.tar.gz)
+          if ((${#assets[@]} != 5)); then
+            echo "Expected 5 assets, found ${#assets[@]}:" >&2
+            printf '%s\n' "${assets[@]}" >&2
+            exit 1
+          fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            if [ "$FORCE" != "true" ]; then
+              echo "Release $TAG already exists; pass force_rerelease=true to replace assets." >&2
+              exit 1
+            fi
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+          gh release create "$TAG" "${assets[@]}" --title "$TAG" --notes "$NOTES"
