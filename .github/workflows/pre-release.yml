@@ -3,8 +3,8 @@ name: Pre Release
 # Manual orchestration: dispatch each "E2E Tests for XXX" workflow as its own
 # workflow_dispatch run (visible on that workflow's Actions page), wait in
 # parallel, then gate. Not a CI or release gate by itself — maintainers
-# dispatch this to validate product surfaces (CLI / Electron / Web UI / MCP /
-# AI Tools / Docker) on their platform matrices.
+# dispatch this to validate product surfaces (CLI / Electron / Web UI / MCP
+# Tools / MCP Server / AI Tools / Docker) on their platform matrices.
 #
 # Each suite still builds on its own runners (no shared artifacts).
 
@@ -89,6 +89,19 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bash ci/dispatch-and-wait-workflow.sh e2e-mcp-tools.yml "${{ github.ref_name }}" "${{ github.sha }}"
 
+  e2e-mcp-server:
+    name: E2E Tests for MCP Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dispatch and wait
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash ci/dispatch-and-wait-workflow.sh e2e-mcp-server.yml "${{ github.ref_name }}" "${{ github.sha }}"
+
   e2e-ai-tools:
     name: E2E Tests for AI Tools
     runs-on: ubuntu-latest
@@ -110,6 +123,7 @@ jobs:
       - e2e-web-ui
       - e2e-docker
       - e2e-mcp-tools
+      - e2e-mcp-server
       - e2e-ai-tools
     if: always()
     runs-on: ubuntu-latest
@@ -120,7 +134,8 @@ jobs:
           ELECTRON: ${{ needs.e2e-electron.result }}
           WEB_UI: ${{ needs.e2e-web-ui.result }}
           DOCKER: ${{ needs.e2e-docker.result }}
-          MCP: ${{ needs.e2e-mcp-tools.result }}
+          MCP_TOOLS: ${{ needs.e2e-mcp-tools.result }}
+          MCP_SERVER: ${{ needs.e2e-mcp-server.result }}
           AI: ${{ needs.e2e-ai-tools.result }}
         run: |
           set -euo pipefail
@@ -133,7 +148,8 @@ jobs:
             echo "| Electron | ${ELECTRON} |"
             echo "| Web UI | ${WEB_UI} |"
             echo "| Docker | ${DOCKER} |"
-            echo "| MCP Tools | ${MCP} |"
+            echo "| MCP Tools | ${MCP_TOOLS} |"
+            echo "| MCP Server | ${MCP_SERVER} |"
             echo "| AI Tools | ${AI} |"
             echo ""
             echo "**Commit:** \`${{ github.sha }}\`"
@@ -147,7 +163,8 @@ jobs:
             "Electron:${ELECTRON}" \
             "Web UI:${WEB_UI}" \
             "Docker:${DOCKER}" \
-            "MCP Tools:${MCP}" \
+            "MCP Tools:${MCP_TOOLS}" \
+            "MCP Server:${MCP_SERVER}" \
             "AI Tools:${AI}"
           do
             name="${name_result%%:*}"

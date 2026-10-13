@@ -1,0 +1,341 @@
+name: E2E Tests for MCP Server
+
+# Manual-only MCP Server e2e (apps/e2e/mcp):
+#   - CLI: spawn local `cli mcp start` on five OS/arch runners
+#   - Docker: attach TARGET=remote to a built `smm:latest` (linux x64 / arm64)
+# Not a CI or release gate.
+
+run-name: "E2E MCP Server «parent:${{ inputs.parent_run_id || 'manual' }}»"
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_filter:
+        description: 'Optional vitest path under apps/e2e/mcp (e.g. ./mcp/tools-list.test.ts). Empty runs all MCP e2e tests.'
+        required: false
+        type: string
+        default: ''
+      parent_run_id:
+        description: 'Parent Actions run id when dispatched by an orchestrator (reuse correlation)'
+        required: false
+        type: string
+        default: ''
+      skipCliTest:
+        description: 'Skip CLI MCP e2e matrix'
+        required: false
+        type: boolean
+        default: false
+      skipDockerTest:
+        description: 'Skip Docker MCP e2e matrix'
+        required: false
+        type: boolean
+        default: false
+      skipWindowsTest:
+        description: 'Skip Windows runners (win-*)'
+        required: false
+        type: boolean
+        default: false
+      skipLinuxTest:
+        description: 'Skip Linux runners (linux-*)'
+        required: false
+        type: boolean
+        default: false
+      skipMacOSTest:
+        description: 'Skip macOS runners (mac-*)'
+        required: false
+        type: boolean
+        default: false
+      skipX86Test:
+        description: 'Skip x64 / amd64 runners (*-x64)'
+        required: false
+        type: boolean
+        default: false
+      skipArm64Test:
+        description: 'Skip arm64 runners (*-arm64)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  resolve-matrix:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      cli_include: ${{ steps.filter.outputs.cli_include }}
+      docker_include: ${{ steps.filter.outputs.docker_include }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Filter platforms
+        id: filter
+        env:
+          SKIP_WINDOWS: ${{ inputs.skipWindowsTest }}
+          SKIP_LINUX: ${{ inputs.skipLinuxTest }}
+          SKIP_MACOS: ${{ inputs.skipMacOSTest }}
+          SKIP_X86: ${{ inputs.skipX86Test }}
+          SKIP_ARM64: ${{ inputs.skipArm64Test }}
+        run: |
+          set -euo pipefail
+
+          cli_include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"win","arch":"x64","runs-on":"windows-latest"},
+            {"platform":"win","arch":"arm64","runs-on":"windows-11-arm"},
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm"},
+            {"platform":"mac","arch":"arm64","runs-on":"macos-14"}
+          ]
+          EOF
+          )"
+
+          docker_include="$(
+            python ci/filter-platform-matrix.py <<'EOF'
+          [
+            {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest","docker-platform":"linux/amd64"},
+            {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm","docker-platform":"linux/arm64"}
+          ]
+          EOF
+          )"
+
+          {
+            echo "cli_include<<EOF"
+            echo "${cli_include}"
+            echo "EOF"
+            echo "docker_include<<EOF"
+            echo "${docker_include}"
+            echo "EOF"
+          } >> "${GITHUB_OUTPUT}"
+          echo "CLI matrix: ${cli_include}"
+          echo "Docker matrix: ${docker_include}"
+
+  cli-e2e:
+    name: MCP Server CLI (${{ matrix.platform }}-${{ matrix.arch }})
+    needs: [resolve-matrix]
+    if: ${{ inputs.skipCliTest != true && needs.resolve-matrix.outputs.cli_include != '[]' }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.cli_include) }}
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.arch }}
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+      TMDB_HOST: https://api.themoviedb.org/3
+      TVDB_HOST: https://api4.thetvdb.com/v4
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build CLI
+        run: pnpm --filter cli run build
+
+      - name: Run MCP Server CLI E2E tests
+        run: |
+          set -euo pipefail
+          if [ -n "${{ inputs.test_filter }}" ]; then
+            bun ci/run-mcp-e2e-test.ts "${{ inputs.test_filter }}"
+          else
+            bun ci/run-mcp-e2e-test.ts
+          fi
+
+  docker-e2e:
+    name: MCP Server Docker (${{ matrix.platform }}-${{ matrix.arch }})
+    needs: [resolve-matrix]
+    if: ${{ inputs.skipDockerTest != true && needs.resolve-matrix.outputs.docker_include != '[]' }}
+    runs-on: ${{ matrix.runs-on }}
+    timeout-minutes: 180
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.resolve-matrix.outputs.docker_include) }}
+
+    env:
+      PLATFORM: ${{ matrix.platform }}
+      ARCH: ${{ matrix.arch }}
+      SMM_AUTH_TOKEN: ChangeMe123
+      SMM_DOCKER_CONTAINER: smm
+      TARGET: remote
+      MCP_SERVER_ADDRESS: http://127.0.0.1:30001/mcp
+      HTTP_SERVER_ADDRESS: http://127.0.0.1:30000
+      TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+      TVDB_API_KEY: ${{ secrets.TVDB_API_KEY }}
+      TMDB_HOST: https://api.themoviedb.org/3
+      TVDB_HOST: https://api4.thetvdb.com/v4
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install all dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
+
+      - name: Build intermediate Docker images
+        run: |
+          set -euo pipefail
+          PLATFORM="${{ matrix.docker-platform }}"
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
+          docker buildx build --load --platform "$PLATFORM" \
+            -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
+
+      - name: Assemble smm:latest
+        run: |
+          set -euo pipefail
+          docker buildx build --load --platform "${{ matrix.docker-platform }}" \
+            -t smm:latest -f apps/docker/Dockerfile .
+
+      - name: Start smm container
+        run: |
+          set -euo pipefail
+          docker rm -f smm >/dev/null 2>&1 || true
+          docker run -d --name smm \
+            -p 30000:30000 \
+            -p 30001:30001 \
+            -e SMM_AUTH_TOKEN="${SMM_AUTH_TOKEN}" \
+            -e HTTP_ADDRESS=0.0.0.0 \
+            -e MCP_ADDRESS=0.0.0.0 \
+            smm:latest
+
+          echo "Waiting for HTTP /api/hello…"
+          ready=0
+          for _ in $(seq 1 90); do
+            if curl -sf \
+              -H "Authorization: Bearer ${SMM_AUTH_TOKEN}" \
+              "http://127.0.0.1:30000/api/hello" >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" != "1" ]; then
+            echo "::error::smm container did not become ready"
+            docker logs smm || true
+            exit 1
+          fi
+          echo "smm container is ready."
+
+      - name: Run MCP Server Docker (remote) E2E tests
+        working-directory: apps/e2e
+        run: |
+          set -euo pipefail
+          # Always go through entrypoint so remote MCP is started via HTTP API.
+          # Job env already sets TARGET / MCP_SERVER_ADDRESS / HTTP_SERVER_ADDRESS / SMM_AUTH_TOKEN.
+          if [ -n "${{ inputs.test_filter }}" ]; then
+            bun mcp/entrypoint.ts -- "${{ inputs.test_filter }}"
+          else
+            bun mcp/entrypoint.ts
+          fi
+
+      - name: Stop smm container
+        if: always()
+        run: docker rm -f smm >/dev/null 2>&1 || true
+
+  gate:
+    name: mcp-server-e2e / gate
+    needs: [resolve-matrix, cli-e2e, docker-e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected MCP Server E2E jobs passed
+        env:
+          SKIP_CLI: ${{ inputs.skipCliTest }}
+          SKIP_DOCKER: ${{ inputs.skipDockerTest }}
+          CLI_INCLUDE: ${{ needs.resolve-matrix.outputs.cli_include }}
+          DOCKER_INCLUDE: ${{ needs.resolve-matrix.outputs.docker_include }}
+          CLI_RESULT: ${{ needs.cli-e2e.result }}
+          DOCKER_RESULT: ${{ needs.docker-e2e.result }}
+        run: |
+          set -euo pipefail
+
+          if [ "${SKIP_CLI}" = "true" ] && [ "${SKIP_DOCKER}" = "true" ]; then
+            echo "::error::Both skipCliTest and skipDockerTest are set; nothing to run"
+            exit 1
+          fi
+
+          failed=0
+
+          if [ "${SKIP_CLI}" != "true" ]; then
+            if [ "${CLI_INCLUDE}" = "[]" ]; then
+              echo "::error::CLI matrix empty after OS/arch skips (and skipCliTest is false)"
+              failed=1
+            elif [ "${CLI_RESULT}" != "success" ]; then
+              echo "::error::CLI MCP e2e matrix: ${CLI_RESULT}"
+              failed=1
+            else
+              echo "CLI MCP e2e matrix passed."
+            fi
+          else
+            echo "CLI MCP e2e skipped (skipCliTest)."
+          fi
+
+          if [ "${SKIP_DOCKER}" != "true" ]; then
+            if [ "${DOCKER_INCLUDE}" = "[]" ]; then
+              echo "::error::Docker matrix empty after OS/arch skips (and skipDockerTest is false)"
+              failed=1
+            elif [ "${DOCKER_RESULT}" != "success" ]; then
+              echo "::error::Docker MCP e2e matrix: ${DOCKER_RESULT}"
+              failed=1
+            else
+              echo "Docker MCP e2e matrix passed."
+            fi
+          else
+            echo "Docker MCP e2e skipped (skipDockerTest)."
+          fi
+
+          exit "${failed}"

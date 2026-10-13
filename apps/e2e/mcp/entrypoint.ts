@@ -83,7 +83,7 @@ async function waitForMcpReady(ctx: Context): Promise<void> {
     )
 }
 
-export async function run(ctx: Context): Promise<void> {
+export async function run(ctx: Context, vitestArgs: string[] = []): Promise<void> {
     // Vitest MCP tool tests spawn apps/cli/dist via useMcpServer — rebuild first
     // so source fixes (e.g. core-routes) are not left behind a stale binary.
     await $`pnpm --filter cli build`
@@ -109,12 +109,20 @@ export async function run(ctx: Context): Promise<void> {
 
     await waitForMcpReady(ctx)
 
-    await $`pnpm --filter e2e vitest:mcp`
+    if (vitestArgs.length > 0) {
+        await $`pnpm --filter e2e vitest:mcp ${vitestArgs}`
+    } else {
+        await $`pnpm --filter e2e vitest:mcp`
+    }
 }
 
 async function main(): Promise<void> {
-    const ctx = parseContext()
-    await run(ctx)
+    // Args after `--` are forwarded to vitest (e.g. `bun entrypoint.ts -- ./mcp/foo.test.ts`).
+    const dashDash = process.argv.indexOf('--')
+    const argv = dashDash >= 0 ? process.argv.slice(0, dashDash) : process.argv
+    const vitestArgs = dashDash >= 0 ? process.argv.slice(dashDash + 1) : []
+    const ctx = parseContext(argv)
+    await run(ctx, vitestArgs)
 }
 
 if (import.meta.main) {
