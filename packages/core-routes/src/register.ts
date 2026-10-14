@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type http from "node:http";
-import { createRequestUrl, sendJson } from "./http.ts";
+import { attachCoreRoutesCacheControlGuard, createRequestUrl, sendJson } from "./http.ts";
 import { coreRoutes } from "./coreRouteTable.ts";
 import { enforceCoreRoutesAuth } from "./auth.ts";
 import type { CoreRoutesConfig, RouteContext } from "./types.ts";
@@ -30,6 +30,7 @@ export async function handleCoreRoutesRequest(
   config: CoreRoutesConfig,
   fallbackPort: number = 3001,
 ): Promise<void> {
+  attachCoreRoutesCacheControlGuard(res);
   const url = createRequestUrl(req, fallbackPort);
   if (enforceCoreRoutesAuth(req, res, config)) {
     return;
