@@ -19,18 +19,18 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { ImageViewer } from "@/components/ImageViewer"
+import { LocalFilePreviewImage } from "./LocalFilePreviewImage"
 import { useTranslation } from "@/lib/i18n"
 import {
   FileText,
   Calendar,
   Clock,
   HardDrive,
-  Image,
+  Image as ImageIcon,
   Video,
   Loader2,
   Save,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { extensions } from "@smm/types/mediaFileExtensions"
 import { getMediaTags, generateFfmpegScreenshots } from "@/api/ffmpeg"
 import { Path } from "@smm/utils/path"
@@ -99,35 +99,29 @@ function getFileType(filePath: string): FileType {
 /** Preview row for images / video screenshots. */
 function PreviewRow({
   fileType,
+  filePath,
   screenshots,
   isLoading: loading,
   onPreviewClick,
 }: {
   fileType: FileType
+  filePath?: string
   screenshots?: string[]
   isLoading?: boolean
   onPreviewClick?: (url: string) => void
 }) {
   const { t } = useTranslation(["dialogs", "common"])
-  const mockImagePreview = "https://picsum.photos/seed/mock/400/300"
 
   if (fileType === "unknown") return null
   const isImage = fileType === "image"
-  const canClick = !!onPreviewClick
-
-  const handleKeyDown = (e: React.KeyboardEvent, url: string) => {
-    if (e.key === "Enter" || e.key === " ") {
-      e.preventDefault()
-      onPreviewClick?.(url)
-    }
-  }
+  const viewFullSizeLabel = t("fileProperty.viewFullSize", "View full size")
 
   return (
     <TableRow>
       <TableCell className="w-[140px] py-3 font-medium text-muted-foreground align-top">
         <div className="flex items-center gap-2">
           {isImage ? (
-            <Image className="size-4 shrink-0" />
+            <ImageIcon className="size-4 shrink-0" />
           ) : (
             <Video className="size-4 shrink-0" />
           )}
@@ -140,51 +134,31 @@ function PreviewRow({
             <Loader2 className="size-8 text-muted-foreground animate-spin" />
           </div>
         ) : isImage ? (
-          <div
-            className={cn(
-              "w-full rounded-md overflow-hidden bg-muted",
-              canClick && "cursor-pointer",
-            )}
-          >
-            <button
-              type="button"
-              onClick={() => onPreviewClick?.(mockImagePreview)}
-              onKeyDown={(e) => handleKeyDown(e, mockImagePreview)}
-              className="w-full h-auto block text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
-              aria-label={t("fileProperty.viewFullSize", "View full size")}
-            >
-              <img
-                src={mockImagePreview}
-                alt=""
-                className="w-full h-auto object-contain max-h-64 pointer-events-none"
+          filePath ? (
+            <div className="w-full rounded-md overflow-hidden bg-muted">
+              <LocalFilePreviewImage
+                path={filePath}
+                className="max-h-64"
+                onActivate={onPreviewClick}
+                aria-label={viewFullSizeLabel}
               />
-            </button>
-          </div>
+            </div>
+          ) : (
+            <div className="aspect-video w-full bg-muted flex items-center justify-center rounded">
+              <ImageIcon className="size-12 text-muted-foreground" />
+            </div>
+          )
         ) : (
           <div className="grid grid-cols-5 gap-1">
             {screenshots && screenshots.length > 0 ? (
-              screenshots.map((screenshot, index) => {
-                const screenshotUrl = `/api/image?url=${encodeURIComponent("file://" + screenshot)}`
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => onPreviewClick?.(screenshotUrl)}
-                    onKeyDown={(e) => handleKeyDown(e, screenshotUrl)}
-                    className={cn(
-                      "min-w-0 rounded overflow-hidden bg-muted text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      canClick && "cursor-pointer",
-                    )}
-                    aria-label={t("fileProperty.viewFullSize", "View full size")}
-                  >
-                    <img
-                      src={screenshotUrl}
-                      alt=""
-                      className="w-full h-auto block object-contain pointer-events-none"
-                    />
-                  </button>
-                )
-              })
+              screenshots.map((screenshot, index) => (
+                <LocalFilePreviewImage
+                  key={index}
+                  path={screenshot}
+                  onActivate={onPreviewClick}
+                  aria-label={viewFullSizeLabel}
+                />
+              ))
             ) : (
               <div className="col-span-5 aspect-video w-full bg-muted flex items-center justify-center rounded">
                 <Video className="size-12 text-muted-foreground" />
@@ -285,6 +259,9 @@ export function MediaFilePropertyDialog({
     if (!isOpen) return
 
     setLoading(true)
+    // Dialog stays mounted across open/close — clear so reopen never shows
+    // stale values if getMediaTags fails or returns empty.
+    setTags({ title: "", artist: "", comment: "", date: "" })
     setScreenshots([])
     setViewerImageUrl(null)
 
@@ -440,6 +417,7 @@ export function MediaFilePropertyDialog({
                   {/* ── Preview ── */}
                   <PreviewRow
                     fileType={fileType}
+                    filePath={resolvedFilePath}
                     screenshots={screenshots}
                     isLoading={isLoadingScreenshots}
                     onPreviewClick={(url) => setViewerImageUrl(url)}

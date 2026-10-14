@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { ImageViewer } from './ImageViewer'
 
+vi.mock('@/hooks/useImage', () => ({
+  useImage: (url?: string) =>
+    url?.startsWith('file://') ? 'data:image/png;base64,aaa' : undefined,
+}))
+
 describe('ImageViewer', () => {
   const mockOnClose = vi.fn()
   const testImageUrl = 'https://example.com/test-image.jpg'
@@ -277,6 +282,18 @@ describe('ImageViewer', () => {
 
       const title = screen.getByText('Image preview')
       expect(title).toHaveClass('sr-only')
+    })
+  })
+
+  describe('Authenticated local file:// URLs', () => {
+    it('renders via useImage data URL instead of raw file:// img src', async () => {
+      render(
+        <ImageViewer {...defaultProps} imageUrl="file:///tmp/shot.jpg" />,
+      )
+
+      const img = await waitFor(() => screen.getByRole('img'))
+      expect(img).toHaveAttribute('src', 'data:image/png;base64,aaa')
+      expect(img.getAttribute('src')).not.toContain('/api/image')
     })
   })
 })

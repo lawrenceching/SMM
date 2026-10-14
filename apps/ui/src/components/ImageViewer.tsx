@@ -4,8 +4,13 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useImage } from "@/hooks/useImage"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+
+function needsAuthenticatedImageLoad(url: string): boolean {
+  return url.startsWith("file://")
+}
 
 export interface ImageViewerProps {
   /** When non-null, the viewer is open and displays this image URL. When null, the viewer is closed. */
@@ -36,6 +41,10 @@ export function ImageViewer({
   "data-testid": dataTestId = "image-viewer",
 }: ImageViewerProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading")
+  const useAuthFetch = !!imageUrl && needsAuthenticatedImageLoad(imageUrl)
+  // file:// and legacy /api/image URLs must go through fetch (Bearer); <img src> cannot.
+  const authenticatedSrc = useImage(useAuthFetch ? imageUrl : undefined)
+  const displaySrc = useAuthFetch ? authenticatedSrc : imageUrl
 
   // Reset status when imageUrl changes so we show loading again for the new image
   useEffect(() => {
@@ -44,6 +53,19 @@ export function ImageViewer({
       setStatus("loading")
     }
   }, [imageUrl])
+
+  // Authenticated load finished without a usable data URL → error
+  useEffect(() => {
+    if (!useAuthFetch || !imageUrl) return
+    if (authenticatedSrc) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStatus("loaded")
+    }
+  }, [useAuthFetch, imageUrl, authenticatedSrc])
+
+  const showLoading =
+    !!imageUrl &&
+    (status === "loading" || (useAuthFetch && !authenticatedSrc && status !== "error"))
 
   return (
     <Dialog open={!!imageUrl} onOpenChange={(open) => !open && onClose()}>
@@ -78,7 +100,7 @@ export function ImageViewer({
         >
           {imageUrl && (
             <>
-              {status === "loading" && (
+              {showLoading && (
                 <Loader2
                   className="absolute size-10 text-white/70 animate-spin"
                   aria-hidden
@@ -89,19 +111,21 @@ export function ImageViewer({
                   Image failed to load
                 </p>
               )}
-              <img
-                src={imageUrl}
-                alt={alt}
-                className={cn(
-                  "max-w-full max-h-full object-contain pointer-events-none",
-                  status === "loaded"
-                    ? "opacity-100"
-                    : "opacity-0 absolute",
-                  status === "error" && "hidden"
-                )}
-                onLoad={() => setStatus("loaded")}
-                onError={() => setStatus("error")}
-              />
+              {displaySrc && (
+                <img
+                  src={displaySrc}
+                  alt={alt}
+                  className={cn(
+                    "max-w-full max-h-full object-contain pointer-events-none",
+                    status === "loaded"
+                      ? "opacity-100"
+                      : "opacity-0 absolute",
+                    status === "error" && "hidden"
+                  )}
+                  onLoad={() => setStatus("loaded")}
+                  onError={() => setStatus("error")}
+                />
+              )}
             </>
           )}
         </div>
