@@ -165,6 +165,7 @@ flowchart TB
    | `version_override` | （空） | 可选；默认读 `apps/docker/package.json` 的 `version` |
    | `skip_gates` | `false` | `true` 时跳过 Verify CI gates（仅维护者紧急使用） |
    | `draft` / `prerelease` / `body` | 同 Electron | 用于 GitHub Release（新建或更新说明） |
+   | `build_arm64_docker_image` | `true` | `false` 时仅 `linux/amd64`，加快 RC/测版（见上表） |
 
 4. 选择发版 **ref**  
 5. Run workflow  
@@ -174,7 +175,7 @@ flowchart TB
 1. **resolve-version**：从 `apps/docker/package.json` 得到 `git_tag`（`v1.2.3`）与 `docker_tag`（`1.2.3`）
 2. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
 3. **ensure-release-tag**：tag 不存在 → 创建；已存在 → 跳过（并发创建已做防竞态处理）
-4. **build-push-docker**（reusable **build-docker-push**）：multi-arch 构建，推送
+4. **build-push-docker**（reusable **build-docker-push**）：按 `build_arm64_docker_image` 构建（默认 multi-arch），推送
    - `lawrenceching/smm:latest`
    - `lawrenceching/smm:<git-sha>`
    - `lawrenceching/smm:<docker_tag>`（如 `1.2.3`，无前缀 `v`）
@@ -244,6 +245,7 @@ docker run --rm -p 30000:30000 lawrenceching/smm:1.2.3
 | `skip_build: true` | 仅 **Release** 编排的 Dispatch Build | 发版前不再跑一轮全平台 Build 校验 | 紧急发版；须确认近期 Build 可信 |
 | `skip_pre_release: true` | 仅 **Release** 编排的 Dispatch Pre Release | 发版前不再跑全套产品 E2E | 偶发不稳定阻塞发版时；须人工判断风险 |
 | `skip_gates: true` | Release / Release Electron / Release Docker | 未确认该 commit 上 required CI checks 全绿即发版 | 紧急 hotfix；须在 Release 说明中注明 |
+| `build_arm64_docker_image: false` | **Release** / **Release Docker**（仅 Docker 镜像） | 跳过 `linux/arm64` 构建；**不更新** `lawrenceching/smm:latest`；semver / SHA tag 为 amd64-only | 一天多次 RC/测版；正式对用户发布保持默认 `true` |
 
 `skip_build` / `skip_pre_release` **不会**跳过 Electron/Docker 子 workflow 内的产品构建与统一 `publish`。
 

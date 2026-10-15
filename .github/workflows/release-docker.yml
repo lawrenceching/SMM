@@ -45,6 +45,11 @@ on:
         required: false
         default: false
         type: boolean
+      build_arm64_docker_image:
+        description: 'Include linux/arm64 in Docker images (false for faster test/RC builds)'
+        required: false
+        default: true
+        type: boolean
   workflow_call:
     inputs:
       tag_name:
@@ -88,6 +93,10 @@ on:
         required: false
         type: boolean
         default: false
+      build_arm64_docker_image:
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -157,6 +166,7 @@ jobs:
       semver_tag: ${{ needs.resolve-version.outputs.docker_tag }}
       push_release_image: ${{ !inputs.skip_final_publish }}
       force_rebuild_3pp: ${{ inputs.force_rebuild_3pp }}
+      build_arm64_docker_image: ${{ inputs.build_arm64_docker_image }}
     secrets: inherit
 
   release-github:
@@ -177,8 +187,15 @@ jobs:
           RELEASE_TITLE: ${{ (inputs.release_name != '' && inputs.release_name) || needs.resolve-version.outputs.git_tag }}
           IS_DRAFT: ${{ inputs.draft }}
           IS_PRERELEASE: ${{ inputs.prerelease }}
+          BUILD_ARM64_DOCKER_IMAGE: ${{ inputs.build_arm64_docker_image }}
         run: |
           set -euo pipefail
+
+          if [ "${BUILD_ARM64_DOCKER_IMAGE}" = "true" ]; then
+            ARCH_LINE="Multi-arch (\`linux/amd64\`, \`linux/arm64\`). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md)."
+          else
+            ARCH_LINE="linux/amd64 only (RC/test Docker build; \`latest\` not updated). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md)."
+          fi
 
           DOCKER_SECTION="$(printf '%s\n' \
             '## Docker' \
@@ -187,7 +204,7 @@ jobs:
             "docker pull lawrenceching/smm:${DOCKER_TAG}" \
             '```' \
             '' \
-            "Multi-arch (\`linux/amd64\`, \`linux/arm64\`). See [docker-install.md](https://github.com/${REPO}/blob/${TAG}/docs/docker-install.md).")"
+            "${ARCH_LINE}")"
 
           write_notes() {
             printf '%s' "$1" > /tmp/release-notes.md
