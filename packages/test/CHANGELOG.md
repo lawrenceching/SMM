@@ -1,5 +1,13 @@
 # @smm/test
 
+## 1.2.25-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+- Updated dependencies
+  - @smm/types@0.0.6-rc.6
+
 ## 1.2.25-rc.5
 
 ### Patch Changes

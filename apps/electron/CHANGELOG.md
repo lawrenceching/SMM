@@ -1,5 +1,13 @@
 # SMM
 
+## 1.4.17-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+- Updated dependencies
+  - @smm/electron-common@1.3.25-rc.6
+
 ## 1.4.17-rc.5
 
 ### Patch Changes

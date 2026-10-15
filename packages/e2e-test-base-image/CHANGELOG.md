@@ -1,5 +1,11 @@
 # @smm/e2e-test-base-image
 
+## 1.2.25-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+
 ## 1.2.25-rc.5
 
 ### Patch Changes

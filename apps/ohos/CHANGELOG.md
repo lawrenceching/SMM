@@ -1,5 +1,13 @@
 # @smm/ohos-electron-main
 
+## 0.0.18-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+- Updated dependencies
+  - @smm/electron-common@1.3.25-rc.6
+
 ## 0.0.18-rc.5
 
 ### Patch Changes

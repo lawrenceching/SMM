@@ -1,6 +1,6 @@
 {
   "name": "@smm/test",
-  "version": "1.2.25-rc.5",
+  "version": "1.2.25-rc.6",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {

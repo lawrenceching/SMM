@@ -1,5 +1,13 @@
 # convex
 
+## 1.1.25-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+- Updated dependencies
+  - convex@1.1.25-rc.6
+
 ## 1.1.25-rc.5
 
 ### Patch Changes

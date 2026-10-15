@@ -1,5 +1,19 @@
 # cli
 
+## 1.4.17-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+- Updated dependencies
+  - @smm/core@1.4.17-rc.6
+  - server@1.4.17-rc.6
+  - @smm/core-routes@1.4.17-rc.6
+  - @smm/test@1.2.25-rc.6
+  - @smm/tvdb4@1.3.25-rc.6
+  - @smm/types@0.0.6-rc.6
+  - @smm/utils@1.2.25-rc.6
+
 ## 1.4.17-rc.5
 
 ### Patch Changes

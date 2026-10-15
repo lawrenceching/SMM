@@ -1,5 +1,11 @@
 # @smm/tvdb4
 
+## 1.3.25-rc.6
+
+### Patch Changes
+
+- fix: prevent container restart crash when smm.json lacks folders
+
 ## 1.3.25-rc.5
 
 ### Patch Changes

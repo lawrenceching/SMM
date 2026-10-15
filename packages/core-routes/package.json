@@ -1,6 +1,6 @@
 {
   "name": "@smm/core-routes",
-  "version": "1.4.17-rc.5",
+  "version": "1.4.17-rc.6",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
