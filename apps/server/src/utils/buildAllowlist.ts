@@ -12,7 +12,7 @@ export async function buildAllowlist(): Promise<string[]> {
   allowlist.push(Path.posix(getTmpDir()));
 
   const userConfig = await getUserConfig();
-  for (const folder of userConfig.folders) {
+  for (const folder of userConfig.folders ?? []) {
     if (folder === null) {
       console.error('illegal value in user config, null value in folders');
       continue;

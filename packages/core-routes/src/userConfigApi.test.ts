@@ -26,11 +26,16 @@ describe("user config HTTP handlers", () => {
     return dir;
   }
 
-  it("returns an empty document when smm.json is missing", async () => {
+  it("returns the default document when smm.json is missing", async () => {
     const dir = await makeDir();
     const result = await doGetUserConfig(configFor(dir));
     expect(result.error).toBeUndefined();
-    expect(result.data).toEqual({});
+    expect(result.data?.folders).toEqual([]);
+    expect(result.data?.tmdb).toEqual({});
+    expect(result.data?.tvdb).toEqual({});
+    expect(result.data?.renameRules).toEqual([]);
+    expect(result.data?.dryRun).toBe(false);
+    expect(result.data?.selectedRenameRule).toBe("plex");
   });
 
   it("returns the persisted config", async () => {
@@ -46,7 +51,7 @@ describe("user config HTTP handlers", () => {
     expect(result.data?.dryRun).toBe(true);
   });
 
-  it("applies a field patch and persists smm.json", async () => {
+  it("applies a field patch and persists smm.json with default fields", async () => {
     const dir = await makeDir();
     const result = await doPatchUserConfig(
       { patch: [{ op: "add", path: "/ytdlpProxy", value: "http://127.0.0.1:7890" }] },
@@ -54,8 +59,13 @@ describe("user config HTTP handlers", () => {
     );
     expect(result.error).toBeUndefined();
     expect(result.data?.ytdlpProxy).toBe("http://127.0.0.1:7890");
-    const saved = JSON.parse(await readFile(path.join(dir, "smm.json"), "utf-8")) as { ytdlpProxy: string };
+    expect(result.data?.folders).toEqual([]);
+    const saved = JSON.parse(await readFile(path.join(dir, "smm.json"), "utf-8")) as {
+      ytdlpProxy: string;
+      folders: string[];
+    };
     expect(saved.ytdlpProxy).toBe("http://127.0.0.1:7890");
+    expect(saved.folders).toEqual([]);
   });
 
   it("rejects a root replace and does not create smm.json", async () => {

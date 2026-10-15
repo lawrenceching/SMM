@@ -117,7 +117,15 @@ export async function readUserConfigDocument(
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
-      return { config: {} as UserConfig };
+      return {
+        config: {
+          ...DEFAULT_USER_CONFIG,
+          folders: [],
+          renameRules: [],
+          tmdb: {},
+          tvdb: {},
+        },
+      };
     }
     return { error: error instanceof Error ? error.message : "Failed to read user config" };
   }

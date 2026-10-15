@@ -147,6 +147,22 @@ export function getTmpDir(): string {
     }
 }
 
+/** Merge persisted (possibly partial) config with defaults so required fields always exist. */
+export function mergeWithDefaultUserConfig(raw: Partial<UserConfig>): UserConfig {
+    return {
+        ...DEFAULT_USER_CONFIG,
+        ...raw,
+        tmdb: {
+            ...DEFAULT_USER_CONFIG.tmdb,
+            ...(raw.tmdb ?? {}),
+        },
+        tvdb: {
+            ...DEFAULT_USER_CONFIG.tvdb,
+            ...(raw.tvdb ?? {}),
+        },
+    };
+}
+
 export async function getUserConfig(): Promise<UserConfig> {
     const configPath = getUserConfigPath();
     const file = Bun.file(configPath);
@@ -156,9 +172,9 @@ export async function getUserConfig(): Promise<UserConfig> {
     }
     const content = await file.text();
     try {
-        const raw = JSON.parse(content);
-        migrateAIConfig(raw);
-        return raw as UserConfig;
+        const raw = JSON.parse(content) as Partial<UserConfig>;
+        migrateAIConfig(raw as Record<string, unknown>);
+        return mergeWithDefaultUserConfig(raw);
     } catch (parseError) {
         throw new Error(
             `Failed to parse user config file at "${configPath}": ${parseError instanceof Error ? parseError.message : 'Invalid JSON format'}`
