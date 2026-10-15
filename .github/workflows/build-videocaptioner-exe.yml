@@ -1,7 +1,8 @@
 name: Build videocaptioner executables
 
 # Builds PyInstaller bundles from a pinned upstream checkout and publishes
-# them to this repository's GitHub Releases (tag videocaptioner-<version>).
+# them to this repository's GitHub Releases
+# (tag videocaptioner-<upstream>_<smm_build>, e.g. videocaptioner-1.4.2_1.0.2).
 on:
   workflow_dispatch:
     inputs:
@@ -19,18 +20,80 @@ jobs:
     name: Read 3pp metadata
     runs-on: ubuntu-22.04
     outputs:
-      version: ${{ steps.pp.outputs.version }}
+      upstream_version: ${{ steps.pp.outputs.upstream_version }}
+      smm_build_version: ${{ steps.pp.outputs.smm_build_version }}
+      artifact_version: ${{ steps.pp.outputs.artifact_version }}
       ref: ${{ steps.pp.outputs.ref }}
       source_repo: ${{ steps.pp.outputs.source_repo }}
     steps:
       - uses: actions/checkout@v4
-      - id: pp
+        with:
+          path: smm
+
+      - id: read
+        name: Read package.json 3pp keys
+        working-directory: smm
         shell: bash
         run: |
           set -euo pipefail
-          echo "version=$(node -p "require('./package.json')['3pp'].videocaptioner_version")" >> "$GITHUB_OUTPUT"
+          echo "upstream_version=$(node -p "require('./package.json')['3pp'].videocaptioner_upstream_version")" >> "$GITHUB_OUTPUT"
+          echo "smm_build_version=$(node -p "require('./package.json')['3pp'].videocaptioner_smm_build_version")" >> "$GITHUB_OUTPUT"
           echo "ref=$(node -p "require('./package.json')['3pp'].videocaptioner_ref")" >> "$GITHUB_OUTPUT"
           echo "source_repo=$(node -p "require('./package.json')['3pp'].videocaptioner_repo")" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout VideoCaptioner source (for version resolve)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.read.outputs.source_repo }}
+          ref: ${{ steps.read.outputs.ref }}
+          path: third_party/videocaptioner
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: pp
+        name: Resolve and verify artifact version
+        shell: bash
+        env:
+          EXPECTED_UPSTREAM: ${{ steps.read.outputs.upstream_version }}
+          SMM_BUILD: ${{ steps.read.outputs.smm_build_version }}
+          REF: ${{ steps.read.outputs.ref }}
+          SOURCE_REPO: ${{ steps.read.outputs.source_repo }}
+        run: |
+          set -euo pipefail
+          cd third_party/videocaptioner
+          git fetch --tags --force
+          RAW="$(git describe --tags --long)"
+
+          # Normalize with the same rules as ci/videocaptioner-release-url.ts
+          RESOLVED="$(node -e '
+            const raw = process.argv[1];
+            let v = String(raw).trim();
+            const long = /^(v)?(.+)-(\d+)-g[0-9a-f]+$/i.exec(v);
+            if (long) v = long[2];
+            else if (/^v/i.test(v)) v = v.slice(1);
+            v = (v.split(".dev")[0] || v).trim();
+            if (!v) { console.error("empty upstream version from", raw); process.exit(2); }
+            process.stdout.write(v);
+          ' "$RAW")"
+
+          if [ "$RESOLVED" != "$EXPECTED_UPSTREAM" ]; then
+            echo "Upstream version mismatch:" >&2
+            echo "  git describe --long: $RAW" >&2
+            echo "  resolved:            $RESOLVED" >&2
+            echo "  package.json expect: $EXPECTED_UPSTREAM" >&2
+            echo "  ref: ${REF} repo: ${SOURCE_REPO}" >&2
+            exit 1
+          fi
+
+          ARTIFACT="${RESOLVED}_${SMM_BUILD}"
+          echo "Resolved upstream=${RESOLVED} smm_build=${SMM_BUILD} artifact=${ARTIFACT}"
+          {
+            echo "upstream_version=${RESOLVED}"
+            echo "smm_build_version=${SMM_BUILD}"
+            echo "artifact_version=${ARTIFACT}"
+            echo "ref=${REF}"
+            echo "source_repo=${SOURCE_REPO}"
+          } >> "$GITHUB_OUTPUT"
 
   build:
     name: Build (${{ matrix.target }})
@@ -63,6 +126,8 @@ jobs:
           repository: ${{ needs.meta.outputs.source_repo }}
           ref: ${{ needs.meta.outputs.ref }}
           path: third_party/videocaptioner
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Apply SMM patches
         shell: bash
@@ -75,6 +140,15 @@ jobs:
           else
             echo "No patches to apply."
           fi
+
+      - name: Install SMM packaging files
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Upstream does not ship PyInstaller packaging; SMM owns these files.
+          cp -f smm/ci/videocaptioner/packaging/videocaptioner.spec third_party/videocaptioner/videocaptioner.spec
+          mkdir -p third_party/videocaptioner/scripts
+          cp -f smm/ci/videocaptioner/packaging/build_exe.py third_party/videocaptioner/scripts/build_exe.py
 
       - uses: actions/setup-python@v5
         with:
@@ -94,13 +168,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python scripts/build_exe.py --clean --version '${{ needs.meta.outputs.version }}'
+          # CLI --version reports upstream only
+          python scripts/build_exe.py --clean --version '${{ needs.meta.outputs.upstream_version }}'
 
       - name: Pack tarball
         shell: bash
         run: |
           set -euo pipefail
-          VER='${{ needs.meta.outputs.version }}'
+          VER='${{ needs.meta.outputs.artifact_version }}'
           TARGET='${{ matrix.target }}'
           STAGE=staging/videocaptioner
           rm -rf staging
@@ -113,7 +188,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: videocaptioner-${{ matrix.target }}
-          path: videocaptioner-${{ needs.meta.outputs.version }}-${{ matrix.target }}.tar.gz
+          path: videocaptioner-${{ needs.meta.outputs.artifact_version }}-${{ matrix.target }}.tar.gz
           if-no-files-found: error
 
   release:
@@ -131,7 +206,9 @@ jobs:
       - name: Create or refresh Release
         env:
           GH_TOKEN: ${{ github.token }}
-          VER: ${{ needs.meta.outputs.version }}
+          VER: ${{ needs.meta.outputs.artifact_version }}
+          UPSTREAM: ${{ needs.meta.outputs.upstream_version }}
+          SMM_BUILD: ${{ needs.meta.outputs.smm_build_version }}
           REF: ${{ needs.meta.outputs.ref }}
           SRC: ${{ needs.meta.outputs.source_repo }}
           FORCE: ${{ inputs.force_rerelease }}
@@ -142,7 +219,9 @@ jobs:
           NOTES="$(cat <<EOF
           SMM-packaged VideoCaptioner executables.
 
-          - Upstream source: \`${SRC}@${REF}\`
+          - Upstream source: \`${SRC}@${REF}\` (version ${UPSTREAM})
+          - SMM build: ${SMM_BUILD}
+          - Artifact version: ${VER}
           - License: GPL-3.0 (see upstream repository)
           - Linux builds: ubuntu-22.04 / ubuntu-22.04-arm (glibc compatible with Debian bookworm)
           EOF

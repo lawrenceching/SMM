@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # ffmpeg/ffprobe, yt-dlp, VideoCaptioner, and QuickJS are downloaded directly from
 # their release sources — no npm packages, no self-hosted archive.
-# VideoCaptioner binaries come from SMM GitHub Releases (tag videocaptioner-<version>).
+# VideoCaptioner binaries come from SMM GitHub Releases
+# (tag videocaptioner-<upstream>_<smm_build>, e.g. videocaptioner-1.4.2_1.0.2).
 # Install into bin/ffmpeg, bin/yt-dlp, bin/videocaptioner, and bin/quickjs for Electron packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64).
-# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_VERSION, VIDEOCAPTIONER_RELEASES_REPO
-# (versions default to the `3pp` section of the root package.json).
+# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_ARTIFACT_VERSION,
+#           VIDEOCAPTIONER_RELEASES_REPO (versions default to root package.json `3pp`).
 
 set -e
 
 PLATFORM="${PLATFORM:?PLATFORM is required (linux|win|mac)}"
 ARCH="${ARCH:?ARCH is required (x64|arm64)}"
-VIDEOCAPTIONER_VERSION="${VIDEOCAPTIONER_VERSION:-$(node -p "require('./package.json')['3pp'].videocaptioner_version" 2>/dev/null || echo 1.0.1)}"
+VIDEOCAPTIONER_UPSTREAM_VERSION="${VIDEOCAPTIONER_UPSTREAM_VERSION:-$(node -p "require('./package.json')['3pp'].videocaptioner_upstream_version" 2>/dev/null || echo 1.4.2)}"
+VIDEOCAPTIONER_SMM_BUILD_VERSION="${VIDEOCAPTIONER_SMM_BUILD_VERSION:-$(node -p "require('./package.json')['3pp'].videocaptioner_smm_build_version" 2>/dev/null || echo 1.0.2)}"
+VIDEOCAPTIONER_ARTIFACT_VERSION="${VIDEOCAPTIONER_ARTIFACT_VERSION:-${VIDEOCAPTIONER_UPSTREAM_VERSION}_${VIDEOCAPTIONER_SMM_BUILD_VERSION}}"
 VIDEOCAPTIONER_RELEASES_REPO="${VIDEOCAPTIONER_RELEASES_REPO:-$(node -p "require('./package.json')['3pp'].videocaptioner_releases_repo" 2>/dev/null || echo lawrenceching/SMM)}"
 
 FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 8.1)}"
@@ -19,7 +22,7 @@ YTDLP_VERSION="${YTDLP_VERSION:-$(node -p "require('./package.json')['3pp'].ytdl
 # osxexperts names its mac arm64 builds ffmpeg<VER>arm.zip (e.g. 81 = FFmpeg 8.1).
 FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-${FFMPEG_VERSION//./}}"
 
-VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_RELEASES_REPO}/releases/download/videocaptioner-${VIDEOCAPTIONER_VERSION}"
+VC_BASE_URL="https://github.com/${VIDEOCAPTIONER_RELEASES_REPO}/releases/download/videocaptioner-${VIDEOCAPTIONER_ARTIFACT_VERSION}"
 
 case "${PLATFORM}-${ARCH}" in
   linux-x64)
@@ -54,7 +57,7 @@ case "${PLATFORM}-${ARCH}" in
 esac
 
 VIDEOCAPTIONER_EXE="videocaptioner${EXE_SUFFIX}"
-VIDEOCAPTIONER_TAR="videocaptioner-${VIDEOCAPTIONER_VERSION}-${VC_SUFFIX}.tar.gz"
+VIDEOCAPTIONER_TAR="videocaptioner-${VIDEOCAPTIONER_ARTIFACT_VERSION}-${VC_SUFFIX}.tar.gz"
 VIDEOCAPTIONER_TAR_URL="${VC_BASE_URL}/${VIDEOCAPTIONER_TAR}"
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

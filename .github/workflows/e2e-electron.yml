@@ -119,7 +119,7 @@ jobs:
         env:
           PLATFORM: ${{ env.PLATFORM }}
           ARCH: ${{ env.ARCH }}
-          VIDEOCAPTIONER_VERSION: 1.0.1
+          VIDEOCAPTIONER_ARTIFACT_VERSION: 1.4.2_1.0.2
 
       - name: Install Linux GUI libraries
         if: runner.os == 'Linux'

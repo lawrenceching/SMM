@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { videocaptionerArtifactVersion } from './videocaptioner-release-url';
 
 const repoRoot = join(import.meta.dir, '..');
 const script = join(repoRoot, 'ci', 'docker-image-coords.sh');
@@ -39,18 +40,30 @@ describe('ci/docker-image-coords.sh', () => {
 
   test('emits 3pp images keyed by package.json versions', () => {
     const out = runCoords();
+    const vcArtifact = videocaptionerArtifactVersion(
+      read3ppVersion('videocaptioner_upstream_version'),
+      read3ppVersion('videocaptioner_smm_build_version'),
+    );
     expect(out).toContain(`ffmpeg_image=ghcr.io/${OWNER}/smm-ffmpeg:${read3ppVersion('ffmpeg_version')}`);
     expect(out).toContain(`ytdlp_image=ghcr.io/${OWNER}/smm-ytdlp:${read3ppVersion('ytdlp_version')}`);
-    expect(out).toContain(
-      `videocaptioner_image=ghcr.io/${OWNER}/smm-videocaptioner:${read3ppVersion('videocaptioner_version')}`,
-    );
+    expect(out).toContain(`videocaptioner_image=ghcr.io/${OWNER}/smm-videocaptioner:${vcArtifact}`);
   });
 
   test('emits raw 3pp versions from package.json', () => {
     const out = runCoords();
+    const vcArtifact = videocaptionerArtifactVersion(
+      read3ppVersion('videocaptioner_upstream_version'),
+      read3ppVersion('videocaptioner_smm_build_version'),
+    );
     expect(out).toContain(`ffmpeg_version=${read3ppVersion('ffmpeg_version')}`);
     expect(out).toContain(`ytdlp_version=${read3ppVersion('ytdlp_version')}`);
-    expect(out).toContain(`videocaptioner_version=${read3ppVersion('videocaptioner_version')}`);
+    expect(out).toContain(
+      `videocaptioner_upstream_version=${read3ppVersion('videocaptioner_upstream_version')}`,
+    );
+    expect(out).toContain(
+      `videocaptioner_smm_build_version=${read3ppVersion('videocaptioner_smm_build_version')}`,
+    );
+    expect(out).toContain(`videocaptioner_artifact_version=${vcArtifact}`);
   });
 
   test('lowercases OWNER_LC', () => {

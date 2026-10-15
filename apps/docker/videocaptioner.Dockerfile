@@ -1,20 +1,21 @@
 # SMM VideoCaptioner binary image
 # Build context: repository root (e.g. docker build -f apps/docker/videocaptioner.Dockerfile .)
 #
-# Downloads VideoCaptioner release from SMM GitHub Releases (tag videocaptioner-<version>).
+# Downloads VideoCaptioner release from SMM GitHub Releases
+# (tag videocaptioner-<upstream>_<smm_build>).
 # Output layout (scratch root → /app/resources/ via COPY --from in final image):
 #   /bin/videocaptioner/{videocaptioner,...}
 #
-# Tag this image: smm-videocaptioner:latest
+# Tag this image: smm-videocaptioner:<upstream>_<smm_build>
 
-ARG VIDEOCAPTIONER_VERSION=1.0.1
+ARG VIDEOCAPTIONER_ARTIFACT_VERSION=1.4.2_1.0.2
 ARG VIDEOCAPTIONER_RELEASES_REPO=lawrenceching/SMM
 
 FROM alpine:3.20 AS builder
 
 RUN apk add --no-cache curl tar
 
-ARG VIDEOCAPTIONER_VERSION
+ARG VIDEOCAPTIONER_ARTIFACT_VERSION
 ARG VIDEOCAPTIONER_RELEASES_REPO
 ARG TARGETARCH
 
@@ -24,7 +25,7 @@ RUN set -eux; \
       arm64) VC_SUFFIX=linux-arm64 ;; \
       *) echo "Unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 1 ;; \
     esac; \
-    url="https://github.com/${VIDEOCAPTIONER_RELEASES_REPO}/releases/download/videocaptioner-${VIDEOCAPTIONER_VERSION}/videocaptioner-${VIDEOCAPTIONER_VERSION}-${VC_SUFFIX}.tar.gz"; \
+    url="https://github.com/${VIDEOCAPTIONER_RELEASES_REPO}/releases/download/videocaptioner-${VIDEOCAPTIONER_ARTIFACT_VERSION}/videocaptioner-${VIDEOCAPTIONER_ARTIFACT_VERSION}-${VC_SUFFIX}.tar.gz"; \
     curl -sSLf -o /tmp/vc.tar.gz "$url"; \
     tar -xf /tmp/vc.tar.gz -C /tmp; \
     mkdir -p /output/bin/videocaptioner; \
