@@ -154,6 +154,13 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Strip GUI hard-deps for CLI packaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          # WEIFENG v1.4.x lists PyQt5/modelscope as required; no wheels on linux/win arm64.
+          python smm/ci/videocaptioner/packaging/strip_gui_deps.py third_party/videocaptioner/pyproject.toml
+
       - name: Install dependencies
         working-directory: third_party/videocaptioner
         shell: bash
@@ -162,6 +169,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyinstaller
           pip install -e .
+          # openai may pull httpx2; request_logger still imports httpx
+          pip install 'httpx>=0.23.0'
 
       - name: Build executable
         working-directory: third_party/videocaptioner

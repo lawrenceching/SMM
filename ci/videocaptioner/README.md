@@ -6,6 +6,8 @@ repo's GitHub Releases. Upstream source is cloned ephemerally from
 
 PyInstaller packaging (`packaging/build_exe.py`, `packaging/videocaptioner.spec`)
 is **owned by SMM** and copied into the upstream checkout during CI.
+`packaging/strip_gui_deps.py` removes upstream GUI hard-deps (PyQt5, etc.)
+before `pip install`, so linux/win arm64 runners do not need PyQt wheels.
 
 ## 3pp keys (`package.json`)
 
