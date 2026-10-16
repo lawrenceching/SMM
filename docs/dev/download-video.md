@@ -8,8 +8,8 @@
 
 ### 实施阶段
 
-- **第一阶段（进行中）**：`apps/core`（`CommandPort`、`YtdlpJob`、`inspectVideo` / `downloadVideo`）+ `apps/server` 的 `CommandPort` 适配器（供 CLI 注入）+ `smm download`。不含 HTTP 路由和 Web UI。
-- **第二阶段**：`POST /api/ytdlp-inspect`、`/api/download-video`、`/api/get-jobs`，以及 DVD / 后台任务弹层切换到 Core Job。
+- **第一阶段（已完成）**：`apps/core`（`CommandPort`、`YtdlpJob`、`inspectVideo` / `downloadVideo`）+ `apps/server` 的 `CommandPort` 适配器 + `smm download`。
+- **第二阶段（已完成）**：`POST /api/ytdlp-inspect`、`/api/download-video`、`/api/get-jobs`，以及 DVD / 后台任务弹层切换到 Core Job。
 
 ## 已确认的决定
 
@@ -21,19 +21,19 @@
 6. **错误分类进 Core，文案留在 UI。** Core 快照带稳定的 `errorType`。UI 用现有 i18n 映射成提示。
 7. **`JobOrchestrator` 只删 `download-video` 分支。** 转写、ffmpeg 等任务仍走 IndexedDB。
 
-## 现状
+## 现状（落地后）
 
-| 职责 | 现在所在 |
-|------|----------|
-| URL / YouTube Cookies 规则 | `apps/core/src/download-video-validators.ts`、`download-video-cookie-platform.ts`，UI 再拦一层 |
-| `yt-dlp` 参数 | `apps/core/src/whitelistedCmd/ytdlp.ts`，由 UI 调用 |
-| `yt-dlp -J` 解析 | `apps/ui/src/api/ytdlp.ts`，经 `executeCmd` |
-| 下载循环、进度、停任务 | `apps/ui/src/components/JobOrchestratorProvider.tsx` 的 `download-video` 分支，状态在 IndexedDB |
-| 进度 JSON 解析、`test.local` 模拟 | `apps/server/src/utils/cmd.ts` |
-| 错误分类 | `apps/ui/src/lib/ytdlpErrorDetection.ts` |
-| 后台任务列表 | `useJobManager` 读 IndexedDB，不读 Core Job |
+| 职责 | 所在 |
+|------|------|
+| URL / YouTube Cookies 规则 | `apps/core` validators；UI 表单再拦一层 |
+| `yt-dlp` 参数 / 格式预设 | `apps/core/src/whitelistedCmd/ytdlp.ts` |
+| 探测（`-J`） | `core.inspectVideo` → `POST /api/ytdlp-inspect`；UI DVD Go |
+| 下载 / 进度 / 停任务 | `YtdlpJob` + `ytdlp` 队列；`POST /api/download-video`、`get-job`、`stop-job` |
+| 进度 JSON / `test.local` / 错误分类 | `@smm/core`（`pipeline/ytdlp/*`）；server `cmd.ts` / UI 仅 re-export 或映射文案 |
+| CLI | `smm download`（含 `--print-progress-only`） |
+| 后台任务弹层 / 音乐面板下载行 | 读 Core `YtdlpJob` 快照（Zustand），不再经 IndexedDB 执行下载 |
 
-CLI 还没有 `smm download`。
+转写、ffmpeg 等仍走 `JobOrchestrator` + IndexedDB（不在本次范围）。
 
 ## apps/core
 
@@ -308,7 +308,7 @@ sequenceDiagram
 | 修改 | 下载对话框的 Go / Start、后台任务弹层、音乐面板下载行 |
 | 删除调用 | `JobOrchestratorProvider` 的 `download-video` 分支；对话框不再调用 `executeYtdlp` |
 
-`apps/server/src/utils/cmd.ts` 里的 spawn、PTY、ffmpeg location 保留，改由 `CommandPort` 适配器调用。进度解析、`test.local`、错误分类的权威实现改到 Core 后，`cmd.ts` 和 UI 里的副本删掉，避免两套解析。
+`apps/server/src/utils/cmd.ts` 里的 spawn、PTY、ffmpeg location 保留，由 `CommandPort` 适配器调用。进度解析、`test.local`、错误分类以 Core 为准；`cmd.ts` / UI 只 re-export 或做展示映射，避免两套实现。
 
 ## 不在本次范围
 

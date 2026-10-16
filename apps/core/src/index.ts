@@ -167,6 +167,20 @@ export type {
 } from "./pipeline/ytdlp/downloadVideoApi";
 export {
   parseYtdlpProgressLine,
+  injectYtdlpProgressArgs,
+  YTDLP_PROGRESS_TEMPLATE,
   type YtdlpProgressData,
 } from "./pipeline/ytdlp/progress";
+export {
+  parseTestYtDlpUrl,
+  isTestYtDlpUrl,
+  extractTestYtDlpUrl,
+  buildYtDlpSimulatedError,
+} from "./pipeline/ytdlp/testLocal";
+export {
+  classifyYtdlpError,
+  type YtdlpErrorType,
+  type ClassifyYtdlpErrorInput,
+  type YtdlpErrorResult,
+} from "./pipeline/ytdlp/classifyYtdlpError";
 export type { FolderType, HelloCliBody } from "@smm/types";

@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { parseYtdlpProgressLine as parseCoreYtdlpProgressLine } from '@smm/core'
 import { useCommandLogQuery } from './useCommandLogQuery'
 
 /**
@@ -22,80 +23,22 @@ export interface YtdlpDownloadProgress {
 }
 
 /**
- * yt-dlp emits the literal text `NA` (no quotes) for unavailable values
- * of `eta`, `downloaded_bytes`, and `total_bytes` in the progress template.
- * This produces invalid JSON. We replace the value `NA` with `null` so
- * `JSON.parse` succeeds. The pattern is restricted to value position
- * (`: *NA` requires a preceding colon) so that the quoted string `"NA"`
- * emitted for `percent` and `speed` is not touched.
- */
-function sanitizeYtdlpProgressLine(line: string): string {
-  return line.replace(/: *NA\b/g, ':null')
-}
-
-function parseProgressNumericValue(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-  if (typeof value === 'string') {
-    if (value === 'NA' || value.trim() === '') return null
-    const n = Number(value)
-    return Number.isFinite(n) ? n : null
-  }
-  return null
-}
-
-/**
  * Parse a single line that looks like yt-dlp progress JSON. Returns null
- * if the line is not progress JSON.
+ * if the line is not progress JSON. Delegates to Core; maps into UI field names.
  */
 export function parseYtdlpProgressLine(line: string): YtdlpDownloadProgress | null {
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(sanitizeYtdlpProgressLine(line)) as Record<string, unknown>
-  } catch {
-    return null
-  }
-  const statusRaw = parsed.status
-  if (statusRaw !== 'downloading' && statusRaw !== 'finished') {
-    return null
-  }
-  const downloaded = parseProgressNumericValue(parsed.downloaded)
-  const total = parseProgressNumericValue(parsed.total)
-
-  // `percent` is often `"NA"` (a string) for resumed or freshly started
-  // downloads, so fall back to downloaded/total when it is not a number.
-  let percent: number | null = null
-  if (typeof parsed.percent === 'string') {
-    // yt-dlp's `_percent_json` field includes a trailing `%` (e.g. `"42.5%"`).
-    // Strip it before numeric parsing.
-    const cleaned = parsed.percent.replace(/%$/g, '').trim()
-    percent = parseProgressNumericValue(cleaned)
-  } else {
-    percent = parseProgressNumericValue(parsed.percent)
-  }
-  if (percent == null && downloaded != null && total != null && total > 0) {
-    percent = (downloaded / total) * 100
-  }
-  if (percent == null) percent = 0
-
-  // Default speed/eta to 0 when yt-dlp reports `"NA"`, so the UI always
-  // shows speed/eta elements (with "0 B/s" / "0s") instead of hiding
-  // them and making the user wonder if the app is broken.
-  const speed = parseProgressNumericValue(parsed.speed) ?? 0
-  const eta = parseProgressNumericValue(parsed.eta) ?? 0
-
-  const result: YtdlpDownloadProgress = {
-    percent,
-    speedBps: speed,
-    etaSeconds: eta,
-    downloadedBytes: downloaded,
-    totalBytes: total,
-    status: statusRaw,
+  const parsed = parseCoreYtdlpProgressLine(line)
+  if (!parsed) return null
+  // Default eta to 0 when yt-dlp reports NA so the UI keeps showing an eta chip.
+  return {
+    percent: parsed.percent,
+    speedBps: parsed.speed,
+    etaSeconds: parsed.eta ?? 0,
+    downloadedBytes: parsed.downloaded,
+    totalBytes: parsed.total,
+    status: parsed.status,
     updatedAt: Date.now(),
   }
-
-  return result
 }
 
 /**
