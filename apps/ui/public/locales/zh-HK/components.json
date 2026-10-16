@@ -379,6 +379,17 @@
       "processing": "正在處理字幕"
     }
   },
+  "llmTranslatorFields": {
+    "source": "LLM 憑證",
+    "configured": "已設定的 AI 模型",
+    "custom": "自訂",
+    "provider": "AI 提供方",
+    "providerPlaceholder": "選擇提供方",
+    "noProvidersHint": "尚未設定 AI 提供方。請開啟「設定 → AI」，或改用自訂。",
+    "apiKey": "API 金鑰",
+    "apiBase": "API 基礎網址",
+    "model": "模型"
+  },
   "subtitleTranslationDialog": {
     "title": "翻譯字幕",
     "description": "為所選字幕選擇翻譯引擎與目標語言。",

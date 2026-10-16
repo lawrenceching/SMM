@@ -383,6 +383,17 @@
       "summarizing": "正在总结..."
     }
   },
+  "llmTranslatorFields": {
+    "source": "LLM 凭证",
+    "configured": "已配置的 AI 模型",
+    "custom": "自定义",
+    "provider": "AI 提供方",
+    "providerPlaceholder": "选择提供方",
+    "noProvidersHint": "尚未配置 AI 提供方。请打开「设置 → AI」，或改用自定义。",
+    "apiKey": "API 密钥",
+    "apiBase": "API 基础地址",
+    "model": "模型"
+  },
   "subtitleTranslationDialog": {
     "title": "翻译字幕",
     "description": "为所选字幕选择翻译引擎与目标语言。",

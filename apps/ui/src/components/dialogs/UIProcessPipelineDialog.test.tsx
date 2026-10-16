@@ -11,6 +11,15 @@ vi.mock("@/lib/i18n", () => ({
   }),
 }))
 
+vi.mock("@/hooks/userConfig", () => ({
+  useConfig: () => ({
+    userConfig: {
+      aiProviders: [],
+      selectedAIProvider: "",
+    },
+  }),
+}))
+
 describe("UIProcessPipelineDialog", () => {
   const mockOnClose = vi.fn()
   const mockOnConfirm = vi.fn()

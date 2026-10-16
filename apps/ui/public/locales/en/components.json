@@ -385,6 +385,17 @@
       "summarizing": "Summarizing..."
     }
   },
+  "llmTranslatorFields": {
+    "source": "LLM credentials",
+    "configured": "Configured AI provider",
+    "custom": "Custom",
+    "provider": "AI provider",
+    "providerPlaceholder": "Select a provider",
+    "noProvidersHint": "No AI providers configured. Open Settings → AI, or use Custom.",
+    "apiKey": "API key",
+    "apiBase": "API base URL",
+    "model": "Model"
+  },
   "subtitleTranslationDialog": {
     "title": "Translate subtitles",
     "description": "Choose translator and target language for the selected subtitle files.",

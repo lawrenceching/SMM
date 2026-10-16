@@ -31,7 +31,16 @@ import type {
   SubtitleTranslationDialogRow,
   UISubtitleTranslationDialogProps,
 } from "./types"
+import { LlmTranslatorFields } from "./LlmTranslatorFields"
+import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
+import {
+  createDefaultLlmTranslatorFieldsValue,
+  isLlmTranslatorFieldsValid,
+  resolveLlmTranslatorPayload,
+  type LlmTranslatorFieldsValue,
+  type LlmTranslatorSourceMode,
+} from "@/lib/llmTranslatorFields"
 
 // "bing" remains a valid SubtitleTranslateTranslator / VideoCaptioner CLI value, but is
 // intentionally omitted from the UI: VideoCaptioner's free Bing provider fetches a token
@@ -48,6 +57,8 @@ const LAYOUT_OPTIONS: SubtitleTranslateLayout[] = [
 
 const LS_TRANSLATOR = "subtitleTranslation.translator"
 const LS_TARGET_LANG = "subtitleTranslation.targetLanguage"
+const LS_LLM_MODE = "subtitleTranslation.llmSourceMode"
+const LS_LLM_PROVIDER = "subtitleTranslation.llmProviderName"
 
 function readStoredTranslator(): SubtitleTranslateTranslator {
   try {
@@ -68,6 +79,19 @@ function readStoredTargetLanguage(): string {
     // ignore
   }
   return "zh-Hans"
+}
+
+function readStoredLlmPrefs(): { mode?: LlmTranslatorSourceMode; providerName?: string } {
+  try {
+    const mode = localStorage.getItem(LS_LLM_MODE)?.trim()
+    const providerName = localStorage.getItem(LS_LLM_PROVIDER)?.trim()
+    return {
+      ...(mode === "configured" || mode === "custom" ? { mode } : {}),
+      ...(providerName ? { providerName } : {}),
+    }
+  } catch {
+    return {}
+  }
 }
 
 function computeInitialSelection(
@@ -98,6 +122,8 @@ export function UISubtitleTranslationDialog({
   const { t } = useTranslation("components")
   const { t: tDialogs } = useTranslation("dialogs")
   const { t: tCommon } = useTranslation("common")
+  const { userConfig } = useConfig()
+  const aiProviders = userConfig.aiProviders
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
   const wasOpenRef = useRef(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -105,9 +131,9 @@ export function UISubtitleTranslationDialog({
   const [targetLanguage, setTargetLanguage] = useState("zh-Hans")
   const [reflect, setReflect] = useState(false)
   const [layout, setLayout] = useState<SubtitleTranslateLayout | "">("")
-  const [llmApiKey, setLlmApiKey] = useState("")
-  const [llmApiBase, setLlmApiBase] = useState("")
-  const [llmModel, setLlmModel] = useState("")
+  const [llmFields, setLlmFields] = useState<LlmTranslatorFieldsValue>(() =>
+    createDefaultLlmTranslatorFieldsValue(undefined, undefined),
+  )
 
   const eligibleRows = rows.filter((r) => r.eligible)
   const selectedEligibleCount = eligibleRows.filter((r) => selectedIds.has(r.id)).length
@@ -120,13 +146,17 @@ export function UISubtitleTranslationDialog({
       setTargetLanguage(readStoredTargetLanguage())
       setReflect(false)
       setLayout("")
-      setLlmApiKey("")
-      setLlmApiBase("")
-      setLlmModel("")
+      setLlmFields(
+        createDefaultLlmTranslatorFieldsValue(
+          aiProviders,
+          userConfig.selectedAIProvider,
+          readStoredLlmPrefs(),
+        ),
+      )
     }
     /* eslint-enable react-hooks/set-state-in-effect */
     wasOpenRef.current = isOpen
-  }, [isOpen, rows, defaultSelectedIds])
+  }, [isOpen, rows, defaultSelectedIds, aiProviders, userConfig.selectedAIProvider])
 
   const allEligibleSelected =
     eligibleRows.length > 0 && eligibleRows.every((r) => selectedIds.has(r.id))
@@ -158,31 +188,31 @@ export function UISubtitleTranslationDialog({
     videoCaptionerAvailable &&
     selectedEligibleCount > 0 &&
     targetLanguage.trim().length > 0 &&
-    (translator !== "llm" || llmApiKey.trim().length > 0)
+    (translator !== "llm" || isLlmTranslatorFieldsValid(llmFields, aiProviders))
 
   const handleConfirm = useCallback(() => {
     if (!canConfirm || !onConfirm) return
     try {
       localStorage.setItem(LS_TRANSLATOR, translator)
       localStorage.setItem(LS_TARGET_LANG, targetLanguage.trim())
+      if (translator === "llm") {
+        localStorage.setItem(LS_LLM_MODE, llmFields.mode)
+        if (llmFields.providerName.trim()) {
+          localStorage.setItem(LS_LLM_PROVIDER, llmFields.providerName.trim())
+        }
+      }
     } catch {
       // ignore
     }
+    const resolvedLlm =
+      translator === "llm" ? resolveLlmTranslatorPayload(llmFields, aiProviders) : null
     const payload: SubtitleTranslationConfirmPayload = {
       selectedIds: [...selectedIds].filter((id) => eligibleRows.some((r) => r.id === id)),
       translator,
       targetLanguage: targetLanguage.trim(),
       ...(translator === "llm" && reflect ? { reflect: true } : {}),
       ...(layout !== "" ? { layout: layout as SubtitleTranslateLayout } : {}),
-      ...(translator === "llm"
-        ? {
-            llm: {
-              apiKey: llmApiKey.trim(),
-              ...(llmApiBase.trim() ? { apiBase: llmApiBase.trim() } : {}),
-              ...(llmModel.trim() ? { model: llmModel.trim() } : {}),
-            },
-          }
-        : {}),
+      ...(resolvedLlm ? { llm: resolvedLlm } : {}),
     }
     void onConfirm(payload)
   }, [
@@ -194,9 +224,8 @@ export function UISubtitleTranslationDialog({
     targetLanguage,
     reflect,
     layout,
-    llmApiKey,
-    llmApiBase,
-    llmModel,
+    llmFields,
+    aiProviders,
   ])
 
   const dialogTitle = title ?? t("subtitleTranslationDialog.title")
@@ -301,31 +330,12 @@ export function UISubtitleTranslationDialog({
 
           {translator === "llm" ? (
             <>
-              <div className="grid gap-2">
-                <Label>{t("subtitleTranslationDialog.apiKey")}</Label>
-                <Input
-                  type="password"
-                  value={llmApiKey}
-                  onChange={(e) => setLlmApiKey(e.target.value)}
-                  data-testid="subtitle-translation-dialog-llm-api-key"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>{t("subtitleTranslationDialog.apiBase")}</Label>
-                <Input
-                  value={llmApiBase}
-                  onChange={(e) => setLlmApiBase(e.target.value)}
-                  data-testid="subtitle-translation-dialog-llm-api-base"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label>{t("subtitleTranslationDialog.model")}</Label>
-                <Input
-                  value={llmModel}
-                  onChange={(e) => setLlmModel(e.target.value)}
-                  data-testid="subtitle-translation-dialog-llm-model"
-                />
-              </div>
+              <LlmTranslatorFields
+                value={llmFields}
+                onChange={setLlmFields}
+                disabled={!videoCaptionerAvailable}
+                testIdPrefix="subtitle-translation-dialog"
+              />
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
