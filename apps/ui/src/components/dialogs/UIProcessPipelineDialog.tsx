@@ -41,7 +41,12 @@ import { useTranslation } from "@/lib/i18n"
 
 const ASR_OPTIONS: TranscribeAsrEngine[] = ["bijian", "jianying", "whisper-cpp"]
 const FORMAT_OPTIONS: TranscribeOutputFormat[] = ["srt", "ass", "txt", "json"]
-const TRANSLATOR_OPTIONS: SubtitleTranslateTranslator[] = ["bing", "google", "llm"]
+// "bing" remains a valid SubtitleTranslateTranslator / VideoCaptioner CLI value, but is
+// intentionally omitted from the UI: VideoCaptioner's free Bing provider fetches a token
+// from https://edge.microsoft.com/translate/auth, which now returns 404, so Bing jobs fail
+// at session init. Upstream tracker:
+// https://github.com/WEIFENG2333/VideoCaptioner/issues/1173
+const TRANSLATOR_OPTIONS: SubtitleTranslateTranslator[] = ["google", "llm"]
 const SUBTITLE_MODE_OPTIONS: SynthesizeSubtitleMode[] = ["soft", "hard"]
 const QUALITY_OPTIONS: SynthesizeQuality[] = ["ultra", "high", "medium", "low"]
 const RENDER_MODE_OPTIONS: SynthesizeRenderMode[] = ["ass", "rounded"]
@@ -81,11 +86,12 @@ function readStoredFormat(): TranscribeOutputFormat {
 function readStoredTranslator(): SubtitleTranslateTranslator {
   try {
     const v = localStorage.getItem(LS_TRANSLATOR)?.trim()
-    if (v === "bing" || v === "google" || v === "llm") return v
+    // Do not restore "bing" — option is hidden from UI (see TRANSLATOR_OPTIONS comment).
+    if (v === "google" || v === "llm") return v
   } catch {
     // ignore
   }
-  return "bing"
+  return "google"
 }
 
 function readStoredTargetLanguage(): string {
@@ -146,7 +152,7 @@ export function UIProcessPipelineDialog({
   const [noOptimize, setNoOptimize] = useState(false)
   const [noTranslate, setNoTranslate] = useState(false)
   const [noSplit, setNoSplit] = useState(false)
-  const [translator, setTranslator] = useState<SubtitleTranslateTranslator>("bing")
+  const [translator, setTranslator] = useState<SubtitleTranslateTranslator>("google")
   const [targetLanguage, setTargetLanguage] = useState("en")
   const [reflect, setReflect] = useState(false)
   const [layout, setLayout] = useState<SubtitleTranslateLayout | "">("")
