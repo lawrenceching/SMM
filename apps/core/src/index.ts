@@ -139,6 +139,7 @@ export type {
   ImportJob,
   ImportLibraryJobTask,
   ScrapeJobSnapshot,
+  YtdlpJobSnapshot,
   Job,
   JobStatus,
   JobStage,
@@ -156,4 +157,12 @@ export { DummyJob } from "./jobs/DummyJob";
 export { ImportFolderJob, type ImportFolderJobOptions } from "./jobs/ImportFolderJob";
 export { ImportLibraryJob, type ImportLibraryJobOptions } from "./jobs/ImportLibraryJob";
 export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
+export { YtdlpJob, type YtdlpJobOptions } from "./jobs/YtdlpJob";
+export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
+export type {
+  DownloadVideoHandle,
+  DownloadVideoRequest,
+  InspectVideoRequest,
+  InspectVideoResult,
+} from "./pipeline/ytdlp/downloadVideoApi";
 export type { FolderType, HelloCliBody } from "@smm/types";

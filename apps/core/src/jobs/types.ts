@@ -52,7 +52,26 @@ export interface ScrapeJobSnapshot {
   updatedAt: number;
 }
 
-export type Job = ImportJob | ImportLibraryJob | ScrapeJobSnapshot;
+/** Serialized yt-dlp download job returned by `getJob` / `listJobs`. */
+export interface YtdlpJobSnapshot {
+  kind: "ytdlp";
+  id: string;
+  type: "ytdlp";
+  url: string;
+  title?: string;
+  folder: string;
+  status: JobStatus;
+  /** 0–100 for this single URL download. */
+  progress: number;
+  speedBps?: number;
+  etaSeconds?: number | null;
+  errorType?: string;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type Job = ImportJob | ImportLibraryJob | ScrapeJobSnapshot | YtdlpJobSnapshot;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {
