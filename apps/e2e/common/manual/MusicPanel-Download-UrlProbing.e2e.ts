@@ -30,9 +30,6 @@ import DownloadVideoDialogCO from "test/componentobjects/DownloadVideoDialog.co"
 
 import { testbedOs } from 'test/lib/e2e-platform'
 
-const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError"
-const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson"
-
 const VALID_BILIBILI_URL = "https://www.bilibili.com/video/BV17NrWBaE87/"
 const VALID_BILIBILI_URL_2 = "https://www.bilibili.com/video/BV1bW411a7jV/"
 const YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
@@ -101,25 +98,82 @@ const MOCK_PLAYLIST_JSON = JSON.stringify({
     ],
 })
 
-async function clearYtdlpListFormatsMocks() {
+/**
+ * Stub `POST /api/ytdlp-inspect` in the page so Go does not spawn yt-dlp.
+ * `errorMessage` becomes `{ error }`; otherwise `json` is returned as `{ data: { video, playlistEntries? } }`.
+ */
+async function installYtdlpInspectMock(opts: { json?: string; errorMessage?: string; delayMs?: number }) {
     await browser.execute(
-        (errorKey, jsonKey) => {
-            localStorage.removeItem(errorKey)
-            localStorage.removeItem(jsonKey)
+        (mock) => {
+            const w = window as Window & {
+                __smmYtdlpInspectMock?: {
+                    errorMessage?: string
+                    video?: unknown
+                    playlistEntries?: unknown
+                    delayMs?: number
+                }
+                __smmYtdlpInspectFetchPatched?: boolean
+            }
+            if (mock.errorMessage) {
+                w.__smmYtdlpInspectMock = { errorMessage: mock.errorMessage, delayMs: mock.delayMs }
+            } else if (mock.json) {
+                const parsed = JSON.parse(mock.json) as {
+                    _type?: string
+                    entries?: unknown[]
+                }
+                if (parsed._type === "playlist" && Array.isArray(parsed.entries)) {
+                    w.__smmYtdlpInspectMock = {
+                        video: parsed.entries[0],
+                        playlistEntries: parsed.entries,
+                        delayMs: mock.delayMs,
+                    }
+                } else {
+                    w.__smmYtdlpInspectMock = { video: parsed, delayMs: mock.delayMs }
+                }
+            } else {
+                delete w.__smmYtdlpInspectMock
+            }
+
+            if (w.__smmYtdlpInspectFetchPatched) return
+            w.__smmYtdlpInspectFetchPatched = true
+            const originalFetch = window.fetch.bind(window)
+            window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+                const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url
+                const stub = w.__smmYtdlpInspectMock
+                if (stub && url.includes("/api/ytdlp-inspect")) {
+                    if (stub.delayMs) {
+                        await new Promise((r) => setTimeout(r, stub.delayMs))
+                    }
+                    const body = stub.errorMessage
+                        ? { error: stub.errorMessage }
+                        : {
+                              data: {
+                                  video: stub.video,
+                                  ...(stub.playlistEntries ? { playlistEntries: stub.playlistEntries } : {}),
+                              },
+                          }
+                    return new Response(JSON.stringify(body), {
+                        status: 200,
+                        headers: { "Content-Type": "application/json" },
+                    })
+                }
+                return originalFetch(input, init)
+            }
         },
-        TEST_MOCK_LIST_FORMATS_ERROR_KEY,
-        TEST_MOCK_LIST_FORMATS_JSON_KEY,
+        opts,
     )
 }
 
+async function clearYtdlpListFormatsMocks() {
+    await installYtdlpInspectMock({})
+}
+
 async function mockYtdlpListFormatsSuccess(json: string) {
-    await browser.execute(
-        (jsonKey, payload) => {
-            localStorage.setItem(jsonKey, payload)
-        },
-        TEST_MOCK_LIST_FORMATS_JSON_KEY,
-        json,
-    )
+    await installYtdlpInspectMock({ json, delayMs: 150 })
+}
+
+async function mockYtdlpListFormatsError(errorMessage: string) {
+    await installYtdlpInspectMock({ errorMessage })
 }
 
 describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
@@ -457,16 +511,8 @@ describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     it("TC-E2E-UNSUPPORTED-01: unsupported site URL displays unsupported-site error", async function () {
         this.timeout(60 * 1000)
 
-        // Inject yt-dlp "Unsupported URL" stderr; URL value is irrelevant to this case.
-        await browser.execute(
-            (errorKey) => {
-                localStorage.setItem(
-                    errorKey,
-                    "ERROR: Unsupported URL: https://mock.invalid/video",
-                )
-            },
-            TEST_MOCK_LIST_FORMATS_ERROR_KEY,
-        )
+        // Stub inspect as an unsupported-URL error; URL value is irrelevant to this case.
+        await mockYtdlpListFormatsError("ERROR: Unsupported URL: https://mock.invalid/video")
 
         await DownloadVideoDialogCO.setUrl("https://mock.invalid/video")
 

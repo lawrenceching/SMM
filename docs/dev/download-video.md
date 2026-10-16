@@ -335,7 +335,7 @@ HTTP：`ytdlp-inspect`、`download-video` 返回 `{ data: { id } }`，`get-job` 
 
 CLI：`smm download` 在假 Core 端口下等到 `succeeded` 后退出码 0，失败退出码 1；`--print-progress-only` 仅输出 `progress percent=` 行。
 
-UI：对话框 Start 按选中 URL 的数量调用 `download-video`，不写 IndexedDB。后台任务弹层按条渲染 `YtdlpJob` 的进度和停止。E2E 里原来用 `localStorage` 伪造 `yt-dlp -J` 的用例，改为拦截 `POST /api/ytdlp-inspect`。CLI e2e：`smm download … --print-progress-only` 断言 stdout 出现 `progress percent=` 且至少一次 `> 0`。
+UI：对话框 Start 按选中 URL 的数量调用 `download-video`，不写 IndexedDB。后台任务弹层按条渲染 `YtdlpJob` 的进度和停止。E2E（`MusicPanel-Download-UrlProbing`）通过页面 `fetch` 拦截 `POST /api/ytdlp-inspect`，不再用 `localStorage` 伪造 `-J`。CLI e2e：`smm download … --print-progress-only` 断言 stdout 出现 `progress percent=` 且至少一次 `> 0`。
 
 ## 实施顺序
 

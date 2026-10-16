@@ -5,8 +5,7 @@ import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCo
 import { executeYtdlp } from "@/lib/ytdlp/executeYtdlp";
 import { ytdlpInspectViaCore } from "@/api/ytdlpInspect";
 
-import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
-import type { PlaylistMetadata, VideoMetadata } from "@/api/ytdlp/types";
+import type { VideoMetadata } from "@/api/ytdlp/types";
 
 export async function getYtdlpVersion(): Promise<{ version?: string; error?: string }> {
   const probe = await probeWhitelistedCommand("yt-dlp");
@@ -45,12 +44,6 @@ export interface ListFormatsResult {
   playlistEntries?: VideoMetadata[];
 }
 
-/** E2E: when set, `listYtdlpFormats` throws this yt-dlp-style error without calling Core. */
-const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError";
-
-/** E2E: when set, `listYtdlpFormats` parses this `yt-dlp -J` stdout without calling Core. */
-const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson";
-
 /**
  * Lists formats / playlist entries via Core `POST /api/ytdlp-inspect`.
  * Throws on business error so callers can classify the message.
@@ -58,26 +51,6 @@ const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson";
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
 ): Promise<ListFormatsResult> {
-  if (typeof localStorage !== "undefined") {
-    const mockError = localStorage.getItem(TEST_MOCK_LIST_FORMATS_ERROR_KEY);
-    if (mockError) {
-      throw new Error(mockError);
-    }
-
-    const mockJson = localStorage.getItem(TEST_MOCK_LIST_FORMATS_JSON_KEY);
-    if (mockJson) {
-      // Brief delay so E2E can observe Go disabled during "probing".
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const parsed = parse(mockJson);
-      const videoMetadata = videoMetadataForFormatsListing(parsed);
-      let playlistEntries: VideoMetadata[] | undefined;
-      if ("entries" in parsed) {
-        playlistEntries = (parsed as PlaylistMetadata).entries;
-      }
-      return { videoMetadata, playlistEntries };
-    }
-  }
-
   const result = await ytdlpInspectViaCore({
     url: req.url,
     cookiesText: req.cookiesText,
