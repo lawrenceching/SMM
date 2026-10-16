@@ -3,15 +3,15 @@ import type {
   ClassifyYtdlpErrorInput,
   YtdlpErrorResult,
   YtdlpErrorType,
-} from "@smm/core"
-import { classifyYtdlpError } from "@smm/core"
+} from "@smm/core/pipeline/ytdlp/classifyYtdlpError"
+import { classifyYtdlpError } from "@smm/core/pipeline/ytdlp/classifyYtdlpError"
 
 export type {
   YtdlpErrorType,
   ClassifyYtdlpErrorInput,
   YtdlpErrorResult,
-} from "@smm/core"
-export { classifyYtdlpError } from "@smm/core"
+} from "@smm/core/pipeline/ytdlp/classifyYtdlpError"
+export { classifyYtdlpError } from "@smm/core/pipeline/ytdlp/classifyYtdlpError"
 
 // ---------------------------------------------------------------------------
 // i18n Key Mapping

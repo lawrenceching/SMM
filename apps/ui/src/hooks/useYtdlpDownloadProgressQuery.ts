@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { parseYtdlpProgressLine as parseCoreYtdlpProgressLine } from '@smm/core'
+import { parseYtdlpProgressLine as parseCoreYtdlpProgressLine } from '@smm/core/pipeline/ytdlp/progress'
 import { useCommandLogQuery } from './useCommandLogQuery'
 
 /**
