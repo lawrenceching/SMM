@@ -12,13 +12,17 @@ export interface HttpAccessLogOptions {
   isDebugEnabled?: () => boolean;
 }
 
+/** High-frequency endpoints omitted from HTTP access log (noise). */
+const HTTP_ACCESS_LOG_SKIP = new Set(["/api/log", "/api/get-job"]);
+
 /**
  * Only API-ish requests are logged. Excludes static assets, the
  * `/socket.io/` polling transport, `/proxy/*` (the loopback `/api/*`
- * hop is logged instead) and the high-frequency `/api/log` beacon.
+ * hop is logged instead), and high-frequency beacons / job polls
+ * (`/api/log`, `/api/get-job`).
  */
 export function shouldLogHttpAccess(pathname: string): boolean {
-  return pathname.startsWith("/api/") && pathname !== "/api/log";
+  return pathname.startsWith("/api/") && !HTTP_ACCESS_LOG_SKIP.has(pathname);
 }
 
 /**

@@ -165,4 +165,8 @@ export type {
   InspectVideoRequest,
   InspectVideoResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
+export {
+  parseYtdlpProgressLine,
+  type YtdlpProgressData,
+} from "./pipeline/ytdlp/progress";
 export type { FolderType, HelloCliBody } from "@smm/types";

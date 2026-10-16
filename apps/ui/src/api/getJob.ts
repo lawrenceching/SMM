@@ -11,7 +11,8 @@ type SerializedJob = Exclude<GetJobResponseBody, { error: string }>['data']
 type ImportJob = Extract<SerializedJob, { kind: 'import' }>
 export type ScrapeJob = Extract<SerializedJob, { kind: 'scrape' }>
 export type ImportLibraryJob = Extract<SerializedJob, { type: 'import-library' }>
-export type Job = ImportJob | ImportLibraryJob | ScrapeJob
+type YtdlpJob = Extract<SerializedJob, { kind: 'ytdlp' }>
+export type Job = ImportJob | ImportLibraryJob | ScrapeJob | YtdlpJob
 export type JobStatus = ImportJob['status']
 export type ScrapeTaskRuntimeStatus = ScrapeJob['tasks'][keyof ScrapeJob['tasks']]['status']
 

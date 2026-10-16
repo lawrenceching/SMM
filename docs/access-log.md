@@ -141,7 +141,7 @@ function logAccess(logger: CoreRoutesLogger | undefined, entry: AccessEntry): vo
 ### 3.4 刻意不记录
 
 - 请求/响应 body(access log 保持精瘦;body 由 `logHttpReqIn/Out` 与各路由业务日志承担)。
-- 静态资源、`/socket.io/` 轮询、`/api/log` 上报(高频噪音)、`/proxy/*`(仅记内层回环的 `/api/*`)。
+- 静态资源、`/socket.io/` 轮询、`/api/log` 上报(高频噪音)、`/api/get-job` 轮询(下载/导入进度轮询噪音)、`/proxy/*`(仅记内层回环的 `/api/*`)。
 - 非工具调用的 JSON-RPC 消息(`initialize`、`tools/list`、notifications)。
 - UI 侧前端执行的 frontendTools(后端不可见)。
 - socket.io 客户端→服务端事件(当前仅 `userAgent`,已有日志)。
@@ -183,7 +183,7 @@ function logAccess(logger: CoreRoutesLogger | undefined, entry: AccessEntry): vo
 ### 5.1 HTTP(apps/server/server.ts)
 
 - 在 `http.createServer` 回调内接线(与 `attachCliHttpTiming` 同层),复用 core-routes 导出的 helper;对 `res` 监听一次 `finish`(正常完成)与 `close`(未 `finish` 即 close → `outcome:"error"`,附 `aborted: true`,status 取 `res.statusCode`)。
-- 过滤:pathname 以 `/api/` 开头且 `!== "/api/log"`。core-routes 分发与 Hono 路由由此一并覆盖;MCP 独立端口不经过此服务器,由 5.2 覆盖。
+- 过滤:pathname 以 `/api/` 开头,且不在跳过集合(`/api/log`、`/api/get-job`)。core-routes 分发与 Hono 路由由此一并覆盖;MCP 独立端口不经过此服务器,由 5.2 覆盖。
 - debug 增强:helper 接受可选 `isDebugEnabled: () => boolean`(apps/server 传 `() => logger.isLevelEnabled("debug")`),为 true 时附加 `query` 字段。
 
 ### 5.2 MCP(packages/core-routes/src/mcp/createServer.ts)
@@ -219,7 +219,7 @@ function logAccess(logger: CoreRoutesLogger | undefined, entry: AccessEntry): vo
 | `accessLog.test.ts` | `truncateForLog`:小对象透传 / 超预算降级 truncated / 循环引用不抛;`logAccess`:ok→info、error→error、broadcast→debug、logger 缺失 no-op、logAccess 自身不抛 |
 | MCP 包装 | 经 `createMcpStreamableHttpHandler`(stub config + fake logger)验证:成功→info `outcome:ok`;`isError:true`→error;回调抛→error 且异常原样穿透 |
 | `withAccessLog` | execute 正常→info 含 args/clientId;抛→error 含 err;非 execute 字段透传、类型不变 |
-| HTTP helper | mock req/res:命中过滤(记)、`/api/log` 与非 `/api/`(不记)、finish 正常条目、close-before-finish → aborted;`isDebugEnabled=true` 时含 query |
+| HTTP helper | mock req/res:命中过滤(记)、`/api/log` / `/api/get-job` 与非 `/api/`(不记)、finish 正常条目、close-before-finish → aborted;`isDebugEnabled=true` 时含 query |
 | `messaging.ts` | fake io/socket:ack 成功/超时各产出对应条目;broadcast 为 debug 且无 data |
 
 现有 e2e(`apps/e2e/mcp` 等)不新增断言;后续如需可在 mcp e2e 中校验 smm.log 的 access 行。

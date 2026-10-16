@@ -7,7 +7,18 @@ import { DownloadVideoDialog } from './download-video-dialog'
 import { clearCookiesCache, setCachedCookies } from '@/lib/ytdlpCookiesCache'
 
 const h = vi.hoisted(() => ({
-  saveDownloadVideoJob: vi.fn().mockResolvedValue(undefined),
+  downloadVideoViaCore: vi.fn().mockResolvedValue('core-ytdlp-job-1'),
+  pollYtdlpJob: vi.fn().mockResolvedValue({
+    kind: 'ytdlp',
+    id: 'core-ytdlp-job-1',
+    type: 'ytdlp',
+    url: 'https://example.com/video',
+    folder: 'C:\\downloads',
+    status: 'succeeded',
+    progress: 100,
+    createdAt: 0,
+    updatedAt: 0,
+  }),
   mutateEpisodesMetadata: vi.fn(),
   resetEpisodesMetadata: vi.fn(),
   mutateCollectionMetadata: vi.fn(),
@@ -36,14 +47,19 @@ vi.mock('@/api/ytdlp', async (importOriginal) => {
   }
 })
 
-vi.mock('@/lib/downloadTaskDb', () => ({
-  saveDownloadVideoJob: h.saveDownloadVideoJob,
+vi.mock('@/api/downloadVideo', () => ({
+  downloadVideoViaCore: h.downloadVideoViaCore,
+  downloadVideo: vi.fn(),
+}))
+
+vi.mock('@/lib/pollYtdlpJob', () => ({
+  pollYtdlpJob: h.pollYtdlpJob,
 }))
 
 vi.mock('@/hooks/useJobManager', () => ({
   useJobManager: () => ({
     isReady: true,
-    createJob: h.saveDownloadVideoJob,
+    createJob: vi.fn(),
     createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
     startJob: vi.fn(),
     stopJob: vi.fn(),
@@ -53,7 +69,7 @@ vi.mock('@/hooks/useJobManager', () => ({
 vi.mock('@/hooks/useJobOrchestrator', () => ({
   useJobOrchestrator: () => ({
     isReady: true,
-    createJob: h.saveDownloadVideoJob,
+    createJob: vi.fn(),
     createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
     startJob: vi.fn(),
     stopJob: vi.fn(),
@@ -480,19 +496,12 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByTestId('download-video-dialog-start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalledTimes(1)
-      expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect(h.downloadVideoViaCore).toHaveBeenCalledTimes(1)
+      expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'download-video',
-          data: expect.objectContaining({
-            folder: 'D:\\collection-downloads',
-            videos: [
-              expect.objectContaining({
-                url: videoUrl,
-              }),
-            ],
-          }),
-        })
+          folder: 'D:\\collection-downloads',
+          url: videoUrl,
+        }),
       )
     })
     expect(mockOnClose).toHaveBeenCalled()
@@ -688,7 +697,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.change(urlInput, { target: { value: 'https://example.com/video' } })
     fireEvent.click(startButton)
 
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+    expect(h.downloadVideoViaCore).not.toHaveBeenCalled()
   })
 
   it('creates a download-video job and starts orchestration when the form is valid', async () => {
@@ -704,22 +713,17 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+      expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
         expect.objectContaining({
-          type: 'download-video',
-          data: expect.objectContaining({
-            folder: 'C:\\downloads',
-            videos: expect.arrayContaining([
-              expect.objectContaining({ url: 'https://example.com/video' }),
-            ]),
-          }),
-        })
+          folder: 'C:\\downloads',
+          url: 'https://example.com/video',
+        }),
       )
     })
     expect(mockOnClose).toHaveBeenCalled()
-    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
-    expect(job?.data?.ytdlpFormat).toBeUndefined()
-    expect(job?.data?.ytdlpExtraArgs).toBeUndefined()
+    const req = h.downloadVideoViaCore.mock.calls[0]?.[0]
+    expect(req?.format).toBeUndefined()
+    expect(req?.extraArgs).toBeUndefined()
   })
 
   it('passes selected ytdlp extra args when more options are enabled', async () => {
@@ -738,13 +742,11 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalled()
+      expect(h.downloadVideoViaCore).toHaveBeenCalled()
     })
-    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+    expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          ytdlpExtraArgs: ['--write-thumbnail'],
-        }),
+        extraArgs: ['--write-thumbnail'],
       }),
     )
   })
@@ -852,14 +854,12 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalled()
+      expect(h.downloadVideoViaCore).toHaveBeenCalled()
     })
-    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+    expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          ytdlpFormat: 'bv*[height<=1080]+ba/b[height<=1080]/best',
-        }),
-      })
+        format: 'bv*[height<=1080]+ba/b[height<=1080]/best',
+      }),
     )
   })
 
@@ -955,7 +955,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByText('Start'))
 
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+    expect(h.downloadVideoViaCore).not.toHaveBeenCalled()
   })
 
   it('does not enqueue when folder is empty', () => {
@@ -967,7 +967,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     })
     fireEvent.click(screen.getByText('Start'))
 
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+    expect(h.downloadVideoViaCore).not.toHaveBeenCalled()
   })
 
   // TC-EP-08: episodes fetch error is displayed and list is cleared
@@ -1075,7 +1075,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     )
     fireEvent.click(screen.getByText('Start'))
 
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+    expect(h.downloadVideoViaCore).not.toHaveBeenCalled()
     expect(warnSpy).toHaveBeenCalled()
     warnSpy.mockRestore()
   })
@@ -1121,20 +1121,13 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalledTimes(1)
+      expect(h.downloadVideoViaCore).toHaveBeenCalledTimes(1)
     })
-    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+    expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          videos: [
-            expect.objectContaining({
-              url: 'https://www.bilibili.com/video/BV1/',
-              title: 'Episode 1',
-              artist: 'Artist A',
-            }),
-          ],
-        }),
-      })
+        url: 'https://www.bilibili.com/video/BV1/',
+        title: 'Episode 1',
+      }),
     )
   })
 
@@ -1289,25 +1282,19 @@ describe('DownloadVideoDialog - user agreement', () => {
     fireEvent.click(screen.getByText('Start'))
 
     await waitFor(() => {
-      expect(h.saveDownloadVideoJob).toHaveBeenCalledTimes(1)
+      expect(h.downloadVideoViaCore).toHaveBeenCalledTimes(1)
     })
-    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+    expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          videos: [
-            expect.objectContaining({
-              url: 'https://www.bilibili.com/video/BV1/',
-              title: 'Episode 1',
-            }),
-          ],
-        }),
+        url: 'https://www.bilibili.com/video/BV1/',
+        title: 'Episode 1',
       }),
     )
   })
 
   it('shows toast error and keeps dialog open when save fails', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
-    h.saveDownloadVideoJob.mockImplementationOnce(() => {
+    h.downloadVideoViaCore.mockImplementationOnce(() => {
       throw new Error('Persist failed')
     })
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
@@ -1458,7 +1445,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.getByLabelText('Use cookies')).toHaveAttribute('aria-checked', 'true')
   })
 
-  it('does not set ytdlpCookiesFile when Use cookies is unchecked', async () => {
+  it('does not set cookiesText when Use cookies is unchecked', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1468,12 +1455,12 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'C:\\downloads' },
     })
     fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
+    await waitFor(() => expect(h.downloadVideoViaCore).toHaveBeenCalled())
     expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
-    expect(h.saveDownloadVideoJob.mock.calls[0]?.[0]?.data?.ytdlpCookiesFile).toBeUndefined()
+    expect(h.downloadVideoViaCore.mock.calls[0]?.[0]?.cookiesText).toBeUndefined()
   })
 
-  it('writes cookies file and sets ytdlpCookiesFile when Use cookies is enabled', async () => {
+  it('passes cookiesText when Use cookies is enabled', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
       onConfirm('# HTTP Cookie File\n.example.com\tTRUE\t/\tFALSE\t0\tcookie\tvalue')
@@ -1488,12 +1475,11 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'C:\\downloads' },
     })
     fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.writeYtdlpCookiesFile).toHaveBeenCalled())
-    expect(h.saveDownloadVideoJob).toHaveBeenCalledWith(
+    await waitFor(() => expect(h.downloadVideoViaCore).toHaveBeenCalled())
+    expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
+    expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({
-          ytdlpCookiesFile: '/data/user/temp/ytdlp-cookies-job-1.txt',
-        }),
+        cookiesText: '# HTTP Cookie File\n.example.com\tTRUE\t/\tFALSE\t0\tcookie\tvalue',
       }),
     )
   })
@@ -1512,7 +1498,7 @@ describe('DownloadVideoDialog - user agreement', () => {
     expect(screen.getByTestId('download-video-dialog-start')).toBeDisabled()
   })
 
-  it('sets ytdlpCookiesFromBrowser when From browser is enabled', async () => {
+  it('sets cookiesFromBrowser when From browser is enabled', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
     fireEvent.change(screen.getByLabelText('Video URL'), {
@@ -1524,14 +1510,14 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'C:\\downloads' },
     })
     fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
+    await waitFor(() => expect(h.downloadVideoViaCore).toHaveBeenCalled())
     expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
-    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
-    expect(job?.data?.ytdlpCookiesFromBrowser).toBe('firefox')
-    expect(job?.data?.ytdlpCookiesFile).toBeUndefined()
+    const req = h.downloadVideoViaCore.mock.calls[0]?.[0]
+    expect(req?.cookiesFromBrowser).toBe('firefox')
+    expect(req?.cookiesText).toBeUndefined()
   })
 
-  it('allows both manual cookies and From browser on the same job', async () => {
+  it('allows both manual cookiesText and cookiesFromBrowser on the same request', async () => {
     window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
     h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
       onConfirm('# HTTP Cookie File\n')
@@ -1547,31 +1533,15 @@ describe('DownloadVideoDialog - user agreement', () => {
       target: { value: 'C:\\downloads' },
     })
     fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.saveDownloadVideoJob).toHaveBeenCalled())
-    expect(h.writeYtdlpCookiesFile).toHaveBeenCalled()
-    const job = h.saveDownloadVideoJob.mock.calls[0]?.[0]
-    expect(job?.data?.ytdlpCookiesFromBrowser).toBe('firefox')
-    expect(job?.data?.ytdlpCookiesFile).toBe('/data/user/temp/ytdlp-cookies-job-1.txt')
+    await waitFor(() => expect(h.downloadVideoViaCore).toHaveBeenCalled())
+    expect(h.writeYtdlpCookiesFile).not.toHaveBeenCalled()
+    const req = h.downloadVideoViaCore.mock.calls[0]?.[0]
+    expect(req?.cookiesFromBrowser).toBe('firefox')
+    expect(req?.cookiesText).toBe('# HTTP Cookie File')
   })
 
-  it('shows error when writeFile fails for cookies', async () => {
-    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
-    h.openTextDialog.mockImplementation((onConfirm: (text: string) => void) => {
-      onConfirm('cookie data')
-    })
-    h.writeYtdlpCookiesFile.mockRejectedValueOnce(new Error('write failed'))
-    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
-    fireEvent.change(screen.getByLabelText('Video URL'), {
-      target: { value: 'https://example.com/video' },
-    })
-    fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
-    fireEvent.click(screen.getByTestId('download-video-dialog-cookies-button'))
-    fireEvent.change(screen.getByLabelText('Download Folder'), {
-      target: { value: 'C:\\downloads' },
-    })
-    fireEvent.click(screen.getByText('Start'))
-    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith('write failed'))
-    expect(h.saveDownloadVideoJob).not.toHaveBeenCalled()
+  it.skip('shows error when writeFile fails for cookies (legacy client-side cookies file)', async () => {
+    // Cookies files are written by Core from cookiesText; UI no longer writes them.
   })
 
   // ────────────────────────────────────────────────────────────────

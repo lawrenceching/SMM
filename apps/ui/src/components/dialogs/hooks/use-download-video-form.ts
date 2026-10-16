@@ -5,10 +5,6 @@ import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useDialogs } from "@/providers/dialog-provider"
 import { useConfig } from "@/hooks/userConfig/useConfig"
 import {
-  writeYtdlpCookiesFile,
-  buildYtdlpCookiesFilePath,
-} from "@/lib/ytdlpCookiesFile"
-import {
   getCookiesBrowserIds,
   type YtdlpCookiesBrowserId,
 } from "@/lib/ytdlpCookiesBrowsers"
@@ -166,7 +162,7 @@ export function useDownloadVideoForm(
   const { textDialog: [openTextDialog] } = useDialogs()
   const { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset: resetListFormats } =
     useListFormatsMutation()
-  const { appConfig, userConfig, patchUserConfig } = useConfig()
+  const { userConfig, patchUserConfig } = useConfig()
 
   // --- platform ---
   const platform = useMemo(() => {
@@ -378,22 +374,7 @@ export function useDownloadVideoForm(
     }
 
     const cfBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
-    const userDataDir = appConfig.userDataDir
-
-    // Write manual cookies to a temp file if enabled
-    let cookiesFile: string | undefined
-    if (useCookies && cookiesText.trim()) {
-      if (userDataDir) {
-        try {
-          const tempId = `list-formats-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
-          const filePath = buildYtdlpCookiesFilePath(userDataDir, tempId)
-          cookiesFile = await writeYtdlpCookiesFile(userDataDir, tempId, cookiesText)
-          if (!cookiesFile) cookiesFile = filePath
-        } catch {
-          // If writing fails, proceed without the cookies file
-        }
-      }
-    }
+    const cookiesTextTrimmed = useCookies ? cookiesText.trim() : undefined
 
     // Cache cookies for this domain
     const hostname = extractHostname(trimmed)
@@ -410,13 +391,12 @@ export function useDownloadVideoForm(
       {
         url: trimmed,
         cookiesFromBrowser: cfBrowser,
-        ...(cookiesFile ? { cookiesFile } : {}),
+        ...(cookiesTextTrimmed ? { cookiesText: cookiesTextTrimmed } : {}),
         ...(useJsRuntime ? { jsRuntime, jsRuntimePath: quickjsPath } : {}),
         ...(proxy.trim() ? { proxy: proxy.trim() } : {}),
-        ...(userDataDir ? { userDataDir } : {}),
       },
     )
-  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, appConfig.userDataDir, listFormats, runUrlValidation, proxy])
+  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, listFormats, runUrlValidation, proxy])
 
   const handleAgreementChange = useCallback(
     (checked: boolean) => {

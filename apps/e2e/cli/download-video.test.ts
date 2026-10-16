@@ -81,4 +81,37 @@ describe('download video', () => {
     },
     TEN_MINUTES_MS,
   )
+
+  it.skipIf(!hasYoutubeCookies)(
+    'prints parsed yt-dlp progress via --print-progress-only',
+    async () => {
+      expect(existsSync(youtubeCookiesPath)).toBe(true)
+      expect(downloadDir).toBeDefined()
+
+      const proxy =
+        process.env.YTDLP_HTTP_PROXY?.trim() ||
+        process.env.TMDB_HTTP_PROXY?.trim() ||
+        ''
+
+      const ret = proxy
+        ? await $`${bin} download ${YOUTUBE_URL} --folder ${downloadDir!} --cookies ${youtubeCookiesPath} --proxy ${proxy} --print-progress-only`.nothrow()
+        : await $`${bin} download ${YOUTUBE_URL} --folder ${downloadDir!} --cookies ${youtubeCookiesPath} --print-progress-only`.nothrow()
+
+      const out = cliOutput(ret)
+      if (ret.exitCode !== 0) {
+        console.error(out)
+      }
+      expect(ret.exitCode).toBe(0)
+
+      const progressPercents = [...out.matchAll(/progress percent=([0-9]+(?:\.[0-9]+)?)/g)].map(
+        (m) => Number(m[1]),
+      )
+      expect(progressPercents.length).toBeGreaterThan(0)
+      expect(progressPercents.some((p) => p > 0)).toBe(true)
+
+      const media = listDownloadedMedia(downloadDir!)
+      expect(media.length).toBeGreaterThan(0)
+    },
+    TEN_MINUTES_MS,
+  )
 })

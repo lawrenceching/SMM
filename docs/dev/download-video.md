@@ -265,10 +265,12 @@ Cookies 指南测速（`POST /api/speedtest`）留在 UI，与下载 Job 无关�
 ## CLI
 
 ```bash
-smm download <url> --folder <path> [--format default|best|1080p|720p|audio|<code>] [--proxy <url>] [--cookies-from-browser <name>] [--cookies <file>] [--verbose]
+smm download <url> --folder <path> [--format default|best|1080p|720p|audio|<code>] [--proxy <url>] [--cookies-from-browser <name>] [--cookies <file>] [--print-progress-only] [--verbose]
 ```
 
 `--format` 缺省为 `default`（不传 `-f`）。`--cookies <file>` 由 CLI 读出文件正文再交给 `cookiesText`，Core 仍负责写入受管副本并在结束后删除。YouTube 且没有 Cookies 时，命令直接失败退出，不启动 Job。
+
+`--print-progress-only` 只向 stdout 打印 `YtdlpJob` 快照行（`progress percent=… speedBps=… etaSeconds=…`），不打印 yt-dlp 日志。用于 e2e 断言宿主 `CommandPort` 把 `runCommand` 的 `sink.progress` 正确转回可解析行、Core 能更新进度。
 
 ```mermaid
 sequenceDiagram
@@ -331,20 +333,20 @@ Core 单测（不启动真实 yt-dlp）：
 
 HTTP：`ytdlp-inspect`、`download-video` 返回 `{ data: { id } }`，`get-job` 的 `kind` 为 `ytdlp`，`stop-job` 能中止。
 
-CLI：`smm download` 在假 Core 端口下等到 `succeeded` 后退出码 0，失败退出码 1。
+CLI：`smm download` 在假 Core 端口下等到 `succeeded` 后退出码 0，失败退出码 1；`--print-progress-only` 仅输出 `progress percent=` 行。
 
-UI：对话框 Start 按选中 URL 的数量调用 `download-video`，不写 IndexedDB。后台任务弹层按条渲染 `YtdlpJob` 的进度和停止。E2E 里原来用 `localStorage` 伪造 `yt-dlp -J` 的用例，改为拦截 `POST /api/ytdlp-inspect`。
+UI：对话框 Start 按选中 URL 的数量调用 `download-video`，不写 IndexedDB。后台任务弹层按条渲染 `YtdlpJob` 的进度和停止。E2E 里原来用 `localStorage` 伪造 `yt-dlp -J` 的用例，改为拦截 `POST /api/ytdlp-inspect`。CLI e2e：`smm download … --print-progress-only` 断言 stdout 出现 `progress percent=` 且至少一次 `> 0`。
 
 ## 实施顺序
 
 1. ~~Core：`CommandPort`、解析、错误分类、`test.local`、格式预设。~~（第一阶段已完成）
 2. ~~`YtdlpJob`、`inspectVideo`、`downloadVideo`、第二条队列。~~（第一阶段已完成）
 3. ~~`apps/server` `CommandPort` 适配器 + `smm download`。~~（第一阶段已完成）
-4. HTTP 路由和 `get-job` / `get-jobs` 序列化。（第二阶段）
-5. UI 切到新路由，删掉 `download-video` 的 IndexedDB 执行路径，弹层和音乐面板改读快照。（第二阶段）
-6. 更新 [Job Management](./job.md)：补上 `ytdlp` 队列、`POST /api/get-jobs`，并写明 External Command Job 已由 `YtdlpJob` 落地。（第二阶段）
+4. ~~HTTP 路由和 `get-job` / `get-jobs` 序列化。~~（第二阶段已完成）
+5. ~~UI 切到新路由，删掉 `download-video` 的 IndexedDB 执行路径，弹层和音乐面板改读快照。~~（第二阶段已完成）
+6. ~~更新 [Job Management](./job.md)：补上 `ytdlp` 队列、`POST /api/get-jobs`，并写明 External Command Job 已由 `YtdlpJob` 落地。~~（第二阶段已完成）
 
-第一阶段可用：`smm download <url> --folder <path>`（经 Core `YtdlpJob`）。DVD / HTTP 仍走旧 `executeCmd` + IndexedDB，第二阶段再切。
+可用路径：`smm download`、`POST /api/ytdlp-inspect`、`POST /api/download-video`、DVD Go/Start（经 Core）。
 
 ## References
 

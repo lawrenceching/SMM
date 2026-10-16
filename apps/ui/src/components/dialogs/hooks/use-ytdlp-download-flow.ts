@@ -1,13 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import type { VideoMetadata } from "@/api/ytdlp/types"
-import { useConfig } from "@/hooks/userConfig/useConfig"
-import { useJobManager } from "@/hooks/useJobManager"
-import {
-  buildDownloadVideoJob,
-  createDownloadVideoJobId,
-} from "@/lib/downloadVideoJobFactory"
-import { writeYtdlpCookiesFile } from "@/lib/ytdlpCookiesFile"
+import { downloadVideoViaCore } from "@/api/downloadVideo"
+import { pollYtdlpJob } from "@/lib/pollYtdlpJob"
 import {
   buildYtdlpExtraArgsFromSelection,
   type YtdlpDownloadExtraArgSelection,
@@ -19,6 +14,8 @@ import {
 import type { YtdlpCookiesBrowserId } from "@/lib/ytdlpCookiesBrowsers"
 import { setCachedCookies, extractHostname } from "@/lib/ytdlpCookiesCache"
 import { validateDownloadUrl } from "@smm/core/download-video-validators"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
+import type { JobStatus, YtdlpBackgroundJob } from "@/types/background-jobs"
 
 interface VideoListItem {
   title: string
@@ -40,11 +37,67 @@ function ytdlpMetadataToVideoListItems(entries: VideoMetadata[]): VideoListItem[
     .filter((item): item is VideoListItem => item !== null)
 }
 
+function toJobStatus(status: string): JobStatus {
+  if (
+    status === "pending" ||
+    status === "running" ||
+    status === "failed" ||
+    status === "succeeded" ||
+    status === "aborted" ||
+    status === "stopped"
+  ) {
+    return status
+  }
+  return "running"
+}
+
+function upsertYtdlpJobFromCore(params: {
+  id: string
+  url: string
+  folder: string
+  title?: string
+  status?: JobStatus
+  progress?: number
+  speedBps?: number
+  etaSeconds?: number | null
+  errorType?: string
+  error?: string
+}): void {
+  const existing = useBackgroundJobsStore.getState().jobs.find((j) => j.id === params.id)
+  const next: YtdlpBackgroundJob = {
+    id: params.id,
+    name: params.title?.trim() || params.url,
+    status: params.status ?? "pending",
+    progress: params.progress ?? 0,
+    type: "ytdlp",
+    data: {
+      folder: params.folder,
+      url: params.url,
+      ...(params.title?.trim() ? { title: params.title.trim() } : {}),
+      ...(params.speedBps !== undefined ? { speedBps: params.speedBps } : {}),
+      ...(params.etaSeconds !== undefined ? { etaSeconds: params.etaSeconds } : {}),
+      ...(params.errorType ? { errorType: params.errorType } : {}),
+      ...(params.error ? { error: params.error } : {}),
+      logRelativePath: `job-${params.id}.log`,
+    },
+  }
+  if (existing) {
+    useBackgroundJobsStore.getState().updateJob(params.id, {
+      name: next.name,
+      status: next.status,
+      progress: next.progress,
+      data: next.data,
+    })
+  } else {
+    useBackgroundJobsStore.getState().addJob(next)
+  }
+}
+
 export interface UseYtdlpDownloadFlowOptions {
   isOpen: boolean
   hasAgreed: boolean
   url: string
-  /** Video list entries from `yt-dlp -J` when it returns a playlist; null for single videos. */
+  /** Video list entries from `yt-dlp -J` playlist entries. */
   videoListEntries: VideoMetadata[] | null
   downloadFolder: string
   selectedFormatPresetId: YtdlpFormatPresetId
@@ -105,24 +158,18 @@ export function useYtdlpDownloadFlow(
     t,
   } = opts
 
-  const { appConfig } = useConfig()
-  const { createJob } = useJobManager()
-
   const [isEnqueueing, setIsEnqueueing] = useState(false)
 
-  // ── Derive video list from playlist entries ────────────────────────
   const videoList = useRef<VideoListItem[]>([])
   const getVideoList = useCallback(() => {
     if (!videoListEntries || videoListEntries.length === 0) return []
     return ytdlpMetadataToVideoListItems(videoListEntries)
   }, [videoListEntries])
 
-  // Update when entries change
   videoList.current = getVideoList()
 
   const [selectedUrls, setSelectedUrls] = useState<Set<string>>(new Set())
 
-  // When videoListEntries changes (new Go), reset selection to all
   const previousEntriesKeyRef = useRef("")
   useEffect(() => {
     const key = videoListEntries
@@ -147,67 +194,6 @@ export function useYtdlpDownloadFlow(
 
   const formBusy = isEnqueueing
 
-  // ── Enqueue pipeline ───────────────────────────────────────────────
-
-  const prepareYtdlpCookiesFileForJob = useCallback(
-    async (jobId: string): Promise<string | undefined> => {
-      if (!useCookies) return undefined
-      const trimmed = cookiesText.trim()
-      if (!trimmed) return undefined
-      const userDataDir = appConfig.userDataDir
-      if (!userDataDir) {
-        throw new Error(t("downloadVideo.cookiesWriteFailed"))
-      }
-      return writeYtdlpCookiesFile(userDataDir, jobId, trimmed)
-    },
-    [useCookies, cookiesText, appConfig.userDataDir, t],
-  )
-
-  const buildJobInput = useCallback(
-    async (
-      input: Omit<
-        Parameters<typeof buildDownloadVideoJob>[0],
-        | "ytdlpFormat"
-        | "ytdlpCookiesFile"
-        | "ytdlpCookiesFromBrowser"
-        | "ytdlpExtraArgs"
-        | "id"
-      >,
-    ) => {
-      const id = createDownloadVideoJobId()
-      const ytdlpCookiesFile = await prepareYtdlpCookiesFileForJob(id)
-      const proxyTrimmed = proxy?.trim()
-      return buildDownloadVideoJob({
-        ...input,
-        id,
-        ytdlpFormat: resolvedYtdlpFormat,
-        ...(ytdlpCookiesFile ? { ytdlpCookiesFile } : {}),
-        ...(useCookiesFromBrowser ? { ytdlpCookiesFromBrowser: cookiesBrowser } : {}),
-        ...(resolvedYtdlpExtraArgs && resolvedYtdlpExtraArgs.length > 0
-          ? { ytdlpExtraArgs: resolvedYtdlpExtraArgs }
-          : {}),
-        ...(useJsRuntime && jsRuntime
-          ? {
-              ytdlpJsRuntime: jsRuntime,
-              ...(jsRuntimePath?.trim() ? { ytdlpJsRuntimePath: jsRuntimePath.trim() } : {}),
-            }
-          : {}),
-        ...(proxyTrimmed ? { ytdlpProxy: proxyTrimmed } : {}),
-      })
-    },
-    [
-      prepareYtdlpCookiesFileForJob,
-      resolvedYtdlpFormat,
-      useCookiesFromBrowser,
-      cookiesBrowser,
-      resolvedYtdlpExtraArgs,
-      useJsRuntime,
-      jsRuntime,
-      jsRuntimePath,
-      proxy,
-    ],
-  )
-
   const toggleUrlSelection = useCallback((id: string) => {
     setSelectedUrls((prev) => {
       const next = new Set(prev)
@@ -230,7 +216,6 @@ export function useYtdlpDownloadFlow(
       return
     }
 
-    // Cache cookies for this domain
     const hostname = extractHostname(url.trim())
     if (hostname) {
       setCachedCookies(hostname, {
@@ -247,7 +232,6 @@ export function useYtdlpDownloadFlow(
       let urls: string[]
 
       if (currentList.length > 0) {
-        // Multi-video: use selected URLs
         const u = Array.from(selectedUrls)
         if (u.length === 0) {
           toast.error(t("downloadVideo.episodesNoneSelected"))
@@ -255,26 +239,79 @@ export function useYtdlpDownloadFlow(
         }
         urls = u
       } else {
-        // Single video
         urls = [url.trim()]
       }
 
-      const parentId = urls.length > 1 ? createDownloadVideoJobId() : undefined
-      const jobs = await Promise.all(
-        urls.map((u) => {
-          const item = currentList.find((e) => e.url === u)
-          return buildJobInput({
-            name: item?.title || "Download Video",
-            folder: downloadFolder,
-            urls: [u],
-            itemMeta: item ? [{ title: item.title, artist: item.artist }] : undefined,
-            parentId,
-          })
-        }),
-      )
+      const proxyTrimmed = proxy?.trim()
+      const cookiesTextTrimmed = useCookies ? cookiesText.trim() : undefined
+      const cookiesFromBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
+      const extraArgs =
+        resolvedYtdlpExtraArgs && resolvedYtdlpExtraArgs.length > 0
+          ? resolvedYtdlpExtraArgs
+          : undefined
 
-      await Promise.all(jobs.map((job) => createJob(job)))
-      onClose()
+      const failedUrls: string[] = []
+      for (const downloadUrl of urls) {
+        const item = currentList.find((e) => e.url === downloadUrl)
+        const title = item?.title || undefined
+        try {
+          const id = await downloadVideoViaCore({
+            url: downloadUrl,
+            folder: downloadFolder,
+            ...(title ? { title } : {}),
+            ...(resolvedYtdlpFormat ? { format: resolvedYtdlpFormat } : {}),
+            ...(extraArgs ? { extraArgs } : {}),
+            ...(cookiesTextTrimmed ? { cookiesText: cookiesTextTrimmed } : {}),
+            ...(cookiesFromBrowser ? { cookiesFromBrowser } : {}),
+            ...(useJsRuntime && jsRuntime
+              ? {
+                  jsRuntime,
+                  ...(jsRuntimePath?.trim() ? { jsRuntimePath: jsRuntimePath.trim() } : {}),
+                }
+              : {}),
+            ...(proxyTrimmed ? { proxy: proxyTrimmed } : {}),
+          })
+
+          upsertYtdlpJobFromCore({
+            id,
+            url: downloadUrl,
+            folder: downloadFolder,
+            title,
+            status: "pending",
+            progress: 0,
+          })
+
+          void pollYtdlpJob(id, (job) => {
+            upsertYtdlpJobFromCore({
+              id: job.id,
+              url: job.url,
+              folder: job.folder,
+              title: job.title,
+              status: toJobStatus(job.status),
+              progress: job.progress,
+              speedBps: job.speedBps,
+              etaSeconds: job.etaSeconds,
+              errorType: job.errorType,
+              error: job.error,
+            })
+          }).catch((error: unknown) => {
+            console.error("[DownloadVideoDialog] poll ytdlp job failed:", error)
+            useBackgroundJobsStore.getState().updateJob(id, { status: "failed" })
+          })
+        } catch (error) {
+          console.error("[DownloadVideoDialog] Failed to enqueue download:", downloadUrl, error)
+          failedUrls.push(downloadUrl)
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : t("downloadVideo.enqueueFailed") || "Download failed",
+          )
+        }
+      }
+
+      if (failedUrls.length === 0 || failedUrls.length < urls.length) {
+        onClose()
+      }
     } catch (error) {
       console.error("[DownloadVideoDialog] Failed to enqueue download job:", error)
       toast.error(error instanceof Error ? error.message : "Download failed")
@@ -290,13 +327,15 @@ export function useYtdlpDownloadFlow(
     useCookiesFromBrowser,
     cookiesBrowser,
     selectedUrls,
-    buildJobInput,
-    createJob,
+    resolvedYtdlpFormat,
+    resolvedYtdlpExtraArgs,
+    useJsRuntime,
+    jsRuntime,
+    jsRuntimePath,
+    proxy,
     onClose,
     t,
   ])
-
-  // --- reset all flow state ---
 
   const resetFlowState = useCallback(() => {
     setIsEnqueueing(false)

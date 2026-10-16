@@ -116,4 +116,29 @@ describe('download', () => {
     expect(code).toBe(0)
     expect(command.run).toHaveBeenCalledOnce()
   })
+
+  it('prints only progress lines when --print-progress-only is set', async () => {
+    const command: CommandPort = {
+      run: vi.fn(async (req): Promise<CommandRunResult> => {
+        req.onStdoutLine?.(
+          '{"percent": "37%", "speed": "4096", "eta": "12", "downloaded": "37", "total": "100", "status": "downloading"}',
+        )
+        await new Promise((r) => setTimeout(r, 250))
+        return { exitCode: 0, stdout: '', stderr: '' }
+      }),
+    }
+
+    const code = await download('https://www.bilibili.com/video/BV1', {
+      folder,
+      printProgressOnly: true,
+      _ports: { command },
+    })
+
+    expect(code).toBe(0)
+    const progressLines = logSpy.mock.calls
+      .map((c) => String(c[0] ?? ''))
+      .filter((line) => line.startsWith('progress percent='))
+    expect(progressLines.some((line) => /progress percent=37(\.0+)?\b/.test(line))).toBe(true)
+    expect(logSpy.mock.calls.every((c) => String(c[0] ?? '').startsWith('progress '))).toBe(true)
+  })
 })

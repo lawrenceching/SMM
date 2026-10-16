@@ -55,12 +55,16 @@ export const useBackgroundJobsStore = create<BackgroundJobsState>()((set, get) =
   updateJob: (id, updates) => {
     const updatedStatus = (updates as Partial<BackgroundJob>).status
     const updatedName = (updates as Partial<BackgroundJob>).name
+    const updatedProgress = (updates as Partial<BackgroundJob>).progress
     set((state) => ({
       jobs: state.jobs.map((job) =>
         job.id === id ? ({ ...job, ...updates } as BackgroundJob) : job
       ),
     }))
-    logger.info({ jobId: id, status: updatedStatus, name: updatedName }, 'job:update update')
+    logger.info(
+      { jobId: id, status: updatedStatus, name: updatedName, progress: updatedProgress },
+      'job:update update',
+    )
   },
 
   patchJob: (id, fn) => {

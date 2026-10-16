@@ -16,10 +16,26 @@ export interface DownloadOptions {
   cookies?: string
   title?: string
   verbose?: boolean
+  /**
+   * Print only YtdlpJob snapshot progress lines (`progress percent=…`), not yt-dlp logs.
+   * Used by e2e to assert Core/CommandPort progress parsing.
+   */
+  printProgressOnly?: boolean
   /** Test-only: override Core AppContext fields. */
   _context?: Partial<AppContextInput>
   /** Test-only: override Core platform ports. */
   _ports?: Partial<PlatformPortsInput>
+}
+
+function formatProgressLine(job: YtdlpJob): string {
+  const snap = job.toJSON()
+  const speed =
+    snap.speedBps === undefined || snap.speedBps === null ? '' : String(snap.speedBps)
+  const eta =
+    snap.etaSeconds === undefined || snap.etaSeconds === null
+      ? ''
+      : String(snap.etaSeconds)
+  return `progress percent=${snap.progress} speedBps=${speed} etaSeconds=${eta}`
 }
 
 /**
@@ -29,8 +45,9 @@ export interface DownloadOptions {
 export async function download(url: string, options: DownloadOptions): Promise<number> {
   try {
     const verbose = Boolean(options.verbose)
+    const printProgressOnly = Boolean(options.printProgressOnly)
     const core = getCore({
-      logger: verbose ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
+      logger: verbose && !printProgressOnly ? new CliLoggerAdapter(true) : new NoopLoggerAdapter(),
       _context: options._context,
       _ports: options._ports,
     })
@@ -49,7 +66,7 @@ export async function download(url: string, options: DownloadOptions): Promise<n
       if (quickjs) {
         jsRuntime = 'quickjs'
         jsRuntimePath = quickjs
-      } else if (verbose) {
+      } else if (verbose && !printProgressOnly) {
         console.warn('QuickJS not found; YouTube download may fail without a JS runtime')
       }
     }
@@ -67,9 +84,11 @@ export async function download(url: string, options: DownloadOptions): Promise<n
         jsRuntimePath,
       },
       {
-        onLog: (message: string) => {
-          console.log(message)
-        },
+        onLog: printProgressOnly
+          ? undefined
+          : (message: string) => {
+              console.log(message)
+            },
       },
     )
 
@@ -79,7 +98,29 @@ export async function download(url: string, options: DownloadOptions): Promise<n
       return 1
     }
 
-    await core.waitForJobUntilCompleted(id)
+    if (printProgressOnly && job instanceof YtdlpJob) {
+      let lastLine = ''
+      const tick = (): void => {
+        const current = core.getJob(id)
+        if (!(current instanceof YtdlpJob)) return
+        const line = formatProgressLine(current)
+        if (line !== lastLine) {
+          lastLine = line
+          console.log(line)
+        }
+      }
+      tick()
+      const interval = setInterval(tick, 200)
+      try {
+        await core.waitForJobUntilCompleted(id)
+        tick()
+      } finally {
+        clearInterval(interval)
+      }
+    } else {
+      await core.waitForJobUntilCompleted(id)
+    }
+
     if (job.status !== 'succeeded') {
       const detail =
         job instanceof YtdlpJob

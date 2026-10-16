@@ -8,7 +8,12 @@ import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import type { BackgroundJob } from '@/types/background-jobs'
 import { clearTestDelayJobTimers, stopTestDelayJob } from '@/lib/testDelayJobRunner'
 import { stopJobViaCore } from '@/api/stopJob'
-import { isGenericBackgroundJob, isImportFolderBackgroundJob, isTestDelayBackgroundJob } from '@/types/background-jobs'
+import {
+  isGenericBackgroundJob,
+  isImportFolderBackgroundJob,
+  isTestDelayBackgroundJob,
+  isYtdlpBackgroundJob,
+} from '@/types/background-jobs'
 
 export interface UseJobManagerResult {
   jobs: BackgroundJob[]
@@ -72,6 +77,13 @@ export function useJobManager(): UseJobManagerResult {
         useBackgroundJobsStore.getState().abortJob(id)
         return
       }
+      if (job && isYtdlpBackgroundJob(job)) {
+        void stopJobViaCore(id).catch((error: unknown) => {
+          console.error('[ytdlp] stop job failed', error)
+        })
+        useBackgroundJobsStore.getState().abortJob(id)
+        return
+      }
       orchestrator.stopJob(id)
     },
     [orchestrator],
@@ -90,6 +102,10 @@ export function useJobManager(): UseJobManagerResult {
         clearTestDelayJobTimers(id)
       }
       if (job && isImportFolderBackgroundJob(job)) {
+        useBackgroundJobsStore.getState().removeJob(id)
+        return
+      }
+      if (job && isYtdlpBackgroundJob(job)) {
         useBackgroundJobsStore.getState().removeJob(id)
         return
       }
@@ -133,6 +149,13 @@ export function useJobManager(): UseJobManagerResult {
         }
         if (isImportFolderBackgroundJob(job)) {
           useBackgroundJobsStore.getState().abortJob(job.id)
+          return
+        }
+        if (isYtdlpBackgroundJob(job)) {
+          useBackgroundJobsStore.getState().abortJob(job.id)
+          void stopJobViaCore(job.id).catch((error: unknown) => {
+            console.error('[ytdlp] stop pending job failed', error)
+          })
           return
         }
         await orchestrator.markPendingAsAborted(job.id)

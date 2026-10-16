@@ -2,7 +2,7 @@ import type { OpenAICompatibleConfig } from "@smm/types"
 
 export type LlmTranslatorSourceMode = "configured" | "custom"
 
-export interface LlmTranslatorCustomFields {
+interface LlmTranslatorCustomFields {
   apiKey: string
   apiBase: string
   model: string
@@ -34,7 +34,7 @@ export function findAiProviderByName(
   return providers.find((p) => trim(p.name) === n)
 }
 
-export function isAiProviderComplete(provider: OpenAICompatibleConfig | undefined): boolean {
+function isAiProviderComplete(provider: OpenAICompatibleConfig | undefined): boolean {
   if (!provider) return false
   return Boolean(trim(provider.apiKey) && trim(provider.baseURL) && trim(provider.model))
 }

@@ -6,9 +6,26 @@ import {
   enqueueYtDlpExecuteCmd,
   resolveCommand,
   runCommand,
+  type YtdlpProgressData,
 } from '../utils/cmd'
 
 const YTDLP_TIMEOUT_MS = 60 * 60 * 1000
+
+/**
+ * Re-encode {@link RunCommandSink.progress} as a stdout JSON line so Core
+ * {@link YtdlpJob.applyStdoutLine} can parse it. `runCommand` routes progress
+ * JSON away from `sink.stdout` into `sink.progress` only.
+ */
+export function ytdlpProgressDataToStdoutLine(data: YtdlpProgressData): string {
+  return JSON.stringify({
+    percent: data.percent,
+    speed: data.speed,
+    eta: data.eta,
+    downloaded: data.downloaded,
+    total: data.total,
+    status: data.status,
+  })
+}
 
 /**
  * Host {@link CommandPort} for yt-dlp. Reuses {@link runCommand} (PTY,
@@ -54,6 +71,13 @@ export function createYtdlpCommandPort(): CommandPort {
             stderr: (line) => {
               stderr += `${line}\n`
               request.onStderrLine?.(line)
+            },
+            progress: (data) => {
+              // runCommand diverts progress JSON to sink.progress (not stdout).
+              // Forward a parseable line so YtdlpJob can update percent/speed/eta.
+              const line = ytdlpProgressDataToStdoutLine(data)
+              stdout += `${line}\n`
+              request.onStdoutLine?.(line)
             },
             system: (event) => {
               if (event.event === 'exit') {
