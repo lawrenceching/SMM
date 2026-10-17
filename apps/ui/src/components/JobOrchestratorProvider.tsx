@@ -14,8 +14,6 @@ import { useTranslation } from '@/lib/i18n'
 import { DialogContext } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
-  SynthesizeBackgroundJobData,
-  ProcessBackgroundJobData,
   FfmpegConvertBackgroundJobData,
   FfmpegWriteTagsBackgroundJobData,
 } from '@/types/background-jobs'
@@ -103,72 +101,9 @@ export function useJobOrchestratorContext(): JobOrchestratorContextValue {
   return ctx
 }
 
-// ---------------------------------------------------------------------------
-// Helpers — videocaptioner arg builders
-// ---------------------------------------------------------------------------
-
-const VIDEOCAPTIONER_DUMMY_API_KEY = 'dummykey'
-
-function ensureVcApiKey(args: string[]): void {
-  if (!args.includes('--api-key')) {
-    args.push('--api-key', VIDEOCAPTIONER_DUMMY_API_KEY)
-  }
-}
-
-function buildSynthesizeArgs(data: SynthesizeBackgroundJobData): string[] {
-  const args: string[] = [
-    'synthesize',
-    data.videoPathPlatform || data.videoPath,
-    '-s', data.subtitlePathPlatform || data.subtitlePath,
-  ]
-  if (data.subtitleMode) args.push('--subtitle-mode', data.subtitleMode)
-  if (data.quality) args.push('--quality', data.quality)
-  if (data.style) args.push('--style', data.style)
-  if (data.renderMode) args.push('--render-mode', data.renderMode)
-  if (data.layout) args.push('--layout', data.layout)
-  ensureVcApiKey(args)
-  return args
-}
-
-function buildProcessArgs(data: ProcessBackgroundJobData): string[] {
-  const args: string[] = ['process', data.mediaPathPlatform || data.mediaPath]
-  args.push('--asr', data.asr || 'bijian')
-  if (data.language) args.push('--language', data.language)
-  if (data.wordTimestamps === true) args.push('--word-timestamps')
-  args.push('--format', data.format || 'srt')
-  if (data.noOptimize === true) args.push('--no-optimize')
-  if (data.noSplit === true) args.push('--no-split')
-  if (data.noTranslate === true) {
-    args.push('--no-translate')
-  } else if (data.translator && data.targetLanguage) {
-    args.push('--translator', data.translator, '--target-language', data.targetLanguage)
-    if (data.reflect === true) args.push('--reflect')
-    if (data.layout) args.push('--layout', data.layout)
-    if (data.prompt) args.push('--prompt', data.prompt)
-    if (data.translator === 'llm' && data.llm?.apiKey) {
-      args.push('--api-key', data.llm.apiKey)
-      if (data.llm.apiBase) args.push('--api-base', data.llm.apiBase)
-      if (data.llm.model) args.push('--model', data.llm.model)
-    }
-  }
-  if (data.noSynthesize === true) {
-    args.push('--no-synthesize')
-  } else {
-    if (data.subtitleMode) args.push('--subtitle-mode', data.subtitleMode)
-    if (data.quality) args.push('--quality', data.quality)
-    if (data.style) args.push('--style', data.style)
-    if (data.renderMode) args.push('--render-mode', data.renderMode)
-    if (data.synthesizeLayout) args.push('--layout', data.synthesizeLayout)
-  }
-  ensureVcApiKey(args)
-  return args
-}
-
 /** Timeout per job type — matches original Service Worker values. */
 const JOB_TIMEOUT_MS: Record<string, number> = {
   'download-video': 60 * 60 * 1000,       // 1 hour
-  'synthesize': 60 * 60 * 1000,            // 1 hour
-  'process': 2 * 60 * 60 * 1000,           // 2 hours
   'ffmpeg-convert': 60 * 60 * 1000,        // 1 hour
   'ffmpeg-compress': 2 * 60 * 60 * 1000,   // 2 hours (compression may take longer)
   'ffmpeg-write-tags': 5 * 60 * 1000,      // 5 min
@@ -388,9 +323,9 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           break
         }
 
-        // ── Transcribe / Translate (legacy IndexedDB) ─────────────
-        // New jobs go through Core TranscribeSubtitleJob / TranslateSubtitleJob.
-        // Leftover IndexedDB rows are marked failed (read-only history via mapper).
+        // ── Transcribe / Translate / Synthesize / Process (legacy IndexedDB) ─
+        // New jobs go through Core subtitle jobs. Leftover IndexedDB rows are
+        // marked failed (read-only history via mapper).
         case 'transcribe':
         case 'translate': {
           data.error =
@@ -400,45 +335,12 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           break
         }
 
-        // ── Synthesize ────────────────────────────────────────────
-        case 'synthesize': {
-          const sd = data as unknown as SynthesizeBackgroundJobData
-          const executionId = crypto.randomUUID()
-
-          const args = buildSynthesizeArgs(sd)
-          const result = await executeCmdToCompletionWithHeaders(
-            { command: 'videocaptioner', args },
-            { timeoutMs: JOB_TIMEOUT_MS['synthesize'], signal: controller.signal, executionId },
-          )
-
-          if (result.executionId) data.executionId = result.executionId
-          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-          success = result.success
-
-          if (controller.signal.aborted) wasStopped = true
-          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
-          record.progress = success ? 100 : record.progress
-          break
-        }
-
-        // ── Process ───────────────────────────────────────────────
+        case 'synthesize':
         case 'process': {
-          const pd = data as unknown as ProcessBackgroundJobData
-          const executionId = crypto.randomUUID()
-
-          const args = buildProcessArgs(pd)
-          const result = await executeCmdToCompletionWithHeaders(
-            { command: 'videocaptioner', args },
-            { timeoutMs: JOB_TIMEOUT_MS['process'], signal: controller.signal, executionId },
-          )
-
-          if (result.executionId) data.executionId = result.executionId
-          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-          success = result.success
-
-          if (controller.signal.aborted) wasStopped = true
-          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
-          record.progress = success ? 100 : record.progress
+          data.error =
+            'Synthesize/process jobs now run via Core; restart from the dialog.'
+          record.data = JSON.stringify(data)
+          record.status = 'failed'
           break
         }
 

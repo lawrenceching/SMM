@@ -23,7 +23,9 @@ import {
   isTranslateBackgroundJob,
   isTranslateSubtitleBackgroundJob,
   isSynthesizeBackgroundJob,
+  isSynthesizeSubtitleBackgroundJob,
   isProcessBackgroundJob,
+  isProcessSubtitleBackgroundJob,
 } from "@/types/background-jobs"
 import { readFile } from "@/api/readFile"
 import { useConfig } from "@/hooks/userConfig/useConfig"
@@ -51,8 +53,12 @@ function jobTypeToRunningJobType(
   if (isTranslateBackgroundJob(job) || isTranslateSubtitleBackgroundJob(job)) {
     return "translating"
   }
-  if (isSynthesizeBackgroundJob(job)) return "synthesising"
-  if (isProcessBackgroundJob(job)) return "processing"
+  if (isSynthesizeBackgroundJob(job) || isSynthesizeSubtitleBackgroundJob(job)) {
+    return "synthesising"
+  }
+  if (isProcessBackgroundJob(job) || isProcessSubtitleBackgroundJob(job)) {
+    return "processing"
+  }
   return null
 }
 

@@ -15,6 +15,8 @@ import { synthesizeSubtitleDialogRowsFromMusicFileRows } from "@/lib/synthesizeS
 import { processPipelineDialogRowsFromMusicFileRows } from "@/lib/processPipelineDialogRows"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import {
+  isProcessSubtitleBackgroundJob,
+  isSynthesizeSubtitleBackgroundJob,
   isTranscribeSubtitleBackgroundJob,
   isTranslateSubtitleBackgroundJob,
   type BackgroundJob,
@@ -42,15 +44,21 @@ function mergePrimaryJobIdByPath(
   return out
 }
 
+type CoreSubtitleKind =
+  | "transcribe-subtitle"
+  | "translate-subtitle"
+  | "synthesize-subtitle"
+  | "process-subtitle"
+
 /**
  * Row busy/status for Core-mirrored subtitle jobs (Zustand only).
- * Maps by mediaPath when present; translate falls back to subtitlePath.
+ * Maps by mediaPath / videoPath when present; translate falls back to subtitlePath.
  * Pending counts as busy (same as status-bar indicator for Core jobs).
  */
 function coreSubtitleFileStatuses(
   jobs: BackgroundJob[],
   folder: string,
-  kind: "transcribe-subtitle" | "translate-subtitle",
+  kind: CoreSubtitleKind,
 ): {
   runningPaths: Set<string>
   failedPaths: Set<string>
@@ -61,19 +69,14 @@ function coreSubtitleFileStatuses(
   const jobIdsByPath = new Map<string, string[]>()
 
   for (const job of jobs) {
+    let path = ""
     if (kind === "transcribe-subtitle") {
       if (!isTranscribeSubtitleBackgroundJob(job)) continue
       if (job.data.folder !== folder) continue
-      const path = job.data.mediaPath?.trim()
+      path = job.data.mediaPath?.trim()
         ? Path.posix(job.data.mediaPath.trim())
         : ""
-      if (!path) continue
-      const ids = jobIdsByPath.get(path) ?? []
-      ids.push(job.id)
-      jobIdsByPath.set(path, ids)
-      if (job.status === "running" || job.status === "pending") runningPaths.add(path)
-      else if (job.status === "failed") failedPaths.add(path)
-    } else {
+    } else if (kind === "translate-subtitle") {
       if (!isTranslateSubtitleBackgroundJob(job)) continue
       if (job.data.folder !== folder) continue
       const mediaPath = job.data.mediaPath?.trim()
@@ -82,14 +85,26 @@ function coreSubtitleFileStatuses(
       const subtitlePath = job.data.subtitlePath?.trim()
         ? Path.posix(job.data.subtitlePath.trim())
         : ""
-      const path = mediaPath || subtitlePath
-      if (!path) continue
-      const ids = jobIdsByPath.get(path) ?? []
-      ids.push(job.id)
-      jobIdsByPath.set(path, ids)
-      if (job.status === "running" || job.status === "pending") runningPaths.add(path)
-      else if (job.status === "failed") failedPaths.add(path)
+      path = mediaPath || subtitlePath
+    } else if (kind === "synthesize-subtitle") {
+      if (!isSynthesizeSubtitleBackgroundJob(job)) continue
+      if (job.data.folder !== folder) continue
+      path = job.data.videoPath?.trim()
+        ? Path.posix(job.data.videoPath.trim())
+        : ""
+    } else {
+      if (!isProcessSubtitleBackgroundJob(job)) continue
+      if (job.data.folder !== folder) continue
+      path = job.data.mediaPath?.trim()
+        ? Path.posix(job.data.mediaPath.trim())
+        : ""
     }
+    if (!path) continue
+    const ids = jobIdsByPath.get(path) ?? []
+    ids.push(job.id)
+    jobIdsByPath.set(path, ids)
+    if (job.status === "running" || job.status === "pending") runningPaths.add(path)
+    else if (job.status === "failed") failedPaths.add(path)
   }
 
   const primaryJobIdByPath = new Map<string, string>()
@@ -299,16 +314,8 @@ export function useMusicFolderSubtitlePipeline({
 
   const legacyTranscribe = useFileStatuses(platformFolder, "transcribe")
   const legacyTranslate = useFileStatuses(platformFolder, "translate")
-  const {
-    runningPaths: synthesizingPaths,
-    failedPaths: synthesizeFailedPaths,
-    primaryJobIdByPath: synthesizeJobIdByPath,
-  } = useFileStatuses(platformFolder, "synthesize")
-  const {
-    runningPaths: processingPaths,
-    failedPaths: processFailedPaths,
-    primaryJobIdByPath: processJobIdByPath,
-  } = useFileStatuses(platformFolder, "process")
+  const legacySynthesize = useFileStatuses(platformFolder, "synthesize")
+  const legacyProcess = useFileStatuses(platformFolder, "process")
 
   const coreTranscribe = useMemo(
     () => coreSubtitleFileStatuses(storeJobs, platformFolder, "transcribe-subtitle"),
@@ -316,6 +323,14 @@ export function useMusicFolderSubtitlePipeline({
   )
   const coreTranslate = useMemo(
     () => coreSubtitleFileStatuses(storeJobs, platformFolder, "translate-subtitle"),
+    [storeJobs, platformFolder],
+  )
+  const coreSynthesize = useMemo(
+    () => coreSubtitleFileStatuses(storeJobs, platformFolder, "synthesize-subtitle"),
+    [storeJobs, platformFolder],
+  )
+  const coreProcess = useMemo(
+    () => coreSubtitleFileStatuses(storeJobs, platformFolder, "process-subtitle"),
     [storeJobs, platformFolder],
   )
 
@@ -350,6 +365,38 @@ export function useMusicFolderSubtitlePipeline({
         coreTranslate.primaryJobIdByPath,
       ),
     [legacyTranslate.primaryJobIdByPath, coreTranslate.primaryJobIdByPath],
+  )
+  const synthesizingPaths = useMemo(
+    () => mergePathSets(legacySynthesize.runningPaths, coreSynthesize.runningPaths),
+    [legacySynthesize.runningPaths, coreSynthesize.runningPaths],
+  )
+  const synthesizeFailedPaths = useMemo(
+    () => mergePathSets(legacySynthesize.failedPaths, coreSynthesize.failedPaths),
+    [legacySynthesize.failedPaths, coreSynthesize.failedPaths],
+  )
+  const synthesizeJobIdByPath = useMemo(
+    () =>
+      mergePrimaryJobIdByPath(
+        legacySynthesize.primaryJobIdByPath,
+        coreSynthesize.primaryJobIdByPath,
+      ),
+    [legacySynthesize.primaryJobIdByPath, coreSynthesize.primaryJobIdByPath],
+  )
+  const processingPaths = useMemo(
+    () => mergePathSets(legacyProcess.runningPaths, coreProcess.runningPaths),
+    [legacyProcess.runningPaths, coreProcess.runningPaths],
+  )
+  const processFailedPaths = useMemo(
+    () => mergePathSets(legacyProcess.failedPaths, coreProcess.failedPaths),
+    [legacyProcess.failedPaths, coreProcess.failedPaths],
+  )
+  const processJobIdByPath = useMemo(
+    () =>
+      mergePrimaryJobIdByPath(
+        legacyProcess.primaryJobIdByPath,
+        coreProcess.primaryJobIdByPath,
+      ),
+    [legacyProcess.primaryJobIdByPath, coreProcess.primaryJobIdByPath],
   )
 
   const subtitleTranslationDialogRows = useMemo(
