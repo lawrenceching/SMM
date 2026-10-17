@@ -56,6 +56,8 @@ import { ScrapeJob } from "./jobs/ScrapeJob";
 import { YtdlpJob } from "./jobs/YtdlpJob";
 import { TranscribeSubtitleJob } from "./jobs/TranscribeSubtitleJob";
 import { TranslateSubtitleJob } from "./jobs/TranslateSubtitleJob";
+import { SynthesizeSubtitleJob } from "./jobs/SynthesizeSubtitleJob";
+import { ProcessSubtitleJob } from "./jobs/ProcessSubtitleJob";
 import { nextJobId } from "./jobs/jobManager";
 import {
   assertDownloadVideoRequest,
@@ -66,9 +68,13 @@ import {
   type InspectVideoResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
 import {
+  assertProcessSubtitleRequest,
+  assertSynthesizeSubtitleRequest,
   assertTranscribeSubtitleRequest,
   assertTranslateSubtitleRequest,
+  type ProcessSubtitleRequest,
   type SubtitleJobHandle,
+  type SynthesizeSubtitleRequest,
   type TranscribeSubtitleRequest,
   type TranslateSubtitleRequest,
 } from "./pipeline/videocaptioner/subtitleJobsApi";
@@ -496,6 +502,93 @@ export class Core {
     this.jobManager.submit(job, () => {}, {
       queue: "videocaptioner",
       timeoutMs: 10 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one subtitle synthesize as a {@link SynthesizeSubtitleJob} on the videocaptioner queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async synthesizeSubtitle(
+    request: SynthesizeSubtitleRequest,
+    callbacks: Callbacks = {},
+  ): Promise<SubtitleJobHandle> {
+    const { folder, videoPath, subtitlePath } = assertSynthesizeSubtitleRequest(request);
+    if (this.platformPorts().videoCaptioner === undefined) {
+      throw new Error("VideoCaptionerPort is required for synthesizeSubtitle");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new SynthesizeSubtitleJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      videoPath,
+      subtitlePath,
+      title: request.title,
+      subtitleMode: request.subtitleMode,
+      quality: request.quality,
+      style: request.style,
+      renderMode: request.renderMode,
+      layout: request.layout,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "videocaptioner",
+      timeoutMs: 60 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one full subtitle process pipeline as a {@link ProcessSubtitleJob} on the videocaptioner queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async processSubtitle(
+    request: ProcessSubtitleRequest,
+    callbacks: Callbacks = {},
+  ): Promise<SubtitleJobHandle> {
+    const { folder, mediaPath } = assertProcessSubtitleRequest(request);
+    if (this.platformPorts().videoCaptioner === undefined) {
+      throw new Error("VideoCaptionerPort is required for processSubtitle");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new ProcessSubtitleJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      mediaPath,
+      title: request.title,
+      asr: request.asr,
+      language: request.language,
+      wordTimestamps: request.wordTimestamps,
+      format: request.format,
+      noOptimize: request.noOptimize,
+      noSplit: request.noSplit,
+      noTranslate: request.noTranslate,
+      translator: request.translator,
+      targetLanguage: request.targetLanguage,
+      reflect: request.reflect,
+      layout: request.layout,
+      prompt: request.prompt,
+      llm: request.llm,
+      noSynthesize: request.noSynthesize,
+      subtitleMode: request.subtitleMode,
+      quality: request.quality,
+      style: request.style,
+      renderMode: request.renderMode,
+      synthesizeLayout: request.synthesizeLayout,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "videocaptioner",
+      timeoutMs: 2 * 60 * 60 * 1000,
     });
     return { id: job.id };
   }

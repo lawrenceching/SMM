@@ -191,9 +191,13 @@ export type {
   InspectVideoResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
 export {
+  assertProcessSubtitleRequest,
+  assertSynthesizeSubtitleRequest,
   assertTranscribeSubtitleRequest,
   assertTranslateSubtitleRequest,
+  type ProcessSubtitleRequest,
   type SubtitleJobHandle,
+  type SynthesizeSubtitleRequest,
   type TranscribeSubtitleRequest,
   type TranslateSubtitleRequest,
 } from "./pipeline/videocaptioner/subtitleJobsApi";
