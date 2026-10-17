@@ -10,6 +10,7 @@ import {
 import { getBunMcpServerPort } from '@server/mcp/BunMcpServerPort'
 import { NodejsNetworkPort } from './NodejsNetworkPort'
 import { createYtdlpCommandPort } from './YtdlpCommandPort'
+import { createVideoCaptionerPort } from './VideoCaptionerPort'
 import { wireCoreEvents } from './wireCoreEvents'
 import { buildCliHostRuntimeConfig } from '@server/hostRuntimeConfig'
 
@@ -45,6 +46,7 @@ export function getCore(options?: GetCoreOptions): Core {
         network: new NodejsNetworkPort(),
         discover: new StaticDiscoverAdapter(),
         command: createYtdlpCommandPort(),
+        videoCaptioner: createVideoCaptionerPort(),
         ...options?._ports,
         logger:
           options?._ports?.logger ?? options?.logger ?? new NoopLoggerAdapter(),
