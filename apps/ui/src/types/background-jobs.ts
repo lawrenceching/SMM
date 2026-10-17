@@ -209,10 +209,10 @@ export interface ProcessSubtitleBackgroundJob extends BackgroundJobBase {
 }
 
 /** Subtitle/text output format (VideoCaptioner CLI). */
-export type TranscribeOutputFormat = 'srt' | 'ass' | 'txt' | 'json';
+type TranscribeOutputFormat = 'srt' | 'ass' | 'txt' | 'json';
 
 /** ASR engine id for VideoCaptioner `transcribe --asr`. */
-export type TranscribeVideoCaptionerAsr = 'bijian' | 'jianying' | 'whisper-cpp';
+type TranscribeVideoCaptionerAsr = 'bijian' | 'jianying' | 'whisper-cpp';
 
 export interface TranscribeBackgroundJobData {
   /** Media library folder (platform path), matches `TaskJobRecord.folder` for filtering. */
@@ -244,10 +244,10 @@ export interface TranscribeBackgroundJob extends BackgroundJobBase {
 }
 
 /** Translator for VideoCaptioner `subtitle --translator`. */
-export type TranslateTranslator = 'bing' | 'google' | 'llm';
+type TranslateTranslator = 'bing' | 'google' | 'llm';
 
 /** Layout for VideoCaptioner `subtitle --layout`. */
-export type TranslateSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only';
+type TranslateSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only';
 
 export interface TranslateBackgroundJobData {
   /** Media library folder (platform path), matches `TaskJobRecord.folder` for filtering. */
@@ -279,10 +279,10 @@ export interface TranslateBackgroundJob extends BackgroundJobBase {
   data: TranslateBackgroundJobData;
 }
 
-export type SynthesizeSubtitleMode = 'soft' | 'hard'
-export type SynthesizeQuality = 'ultra' | 'high' | 'medium' | 'low'
-export type SynthesizeRenderMode = 'ass' | 'rounded'
-export type SynthesizeSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only'
+type SynthesizeSubtitleMode = 'soft' | 'hard'
+type SynthesizeQuality = 'ultra' | 'high' | 'medium' | 'low'
+type SynthesizeRenderMode = 'ass' | 'rounded'
+type SynthesizeSubtitleLayout = 'target-above' | 'source-above' | 'target-only' | 'source-only'
 
 export interface SynthesizeBackgroundJobData {
   /** Media library folder (platform path). */
