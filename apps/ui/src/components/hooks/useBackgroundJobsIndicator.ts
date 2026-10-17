@@ -3,7 +3,12 @@ import { useJobManager } from '@/hooks/useJobManager'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { useFailedCommandLogsStore } from '@/stores/failedCommandLogsStore'
 import { useStatusbarStore } from '@/stores/statusbarStore'
-import { isDownloadVideoJob, isYtdlpBackgroundJob } from '@/types/background-jobs'
+import {
+  isDownloadVideoJob,
+  isTranscribeSubtitleBackgroundJob,
+  isTranslateSubtitleBackgroundJob,
+  isYtdlpBackgroundJob,
+} from '@/types/background-jobs'
 
 interface UseBackgroundJobsIndicatorResult {
   shouldRender: boolean
@@ -39,7 +44,14 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
 
   const runningJobs = jobs.filter((job) => {
     if (job.status === 'running') return true
-    if (isYtdlpBackgroundJob(job) && job.status === 'pending') return true
+    if (
+      (isYtdlpBackgroundJob(job) ||
+        isTranscribeSubtitleBackgroundJob(job) ||
+        isTranslateSubtitleBackgroundJob(job)) &&
+      job.status === 'pending'
+    ) {
+      return true
+    }
     if (!isDownloadVideoJob(job) || job.status !== 'pending') return false
     return job.data.videos.some((item) => item.status === 'downloading')
   })

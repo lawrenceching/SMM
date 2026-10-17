@@ -112,6 +112,45 @@ export interface YtdlpBackgroundJob extends BackgroundJobBase {
   data: YtdlpBackgroundJobData
 }
 
+/** Core `TranscribeSubtitleJob` mirrored in the UI background-jobs store (not IndexedDB). */
+interface TranscribeSubtitleBackgroundJobData {
+  folder: string
+  mediaPath: string
+  title?: string
+  asr: string
+  language?: string
+  wordTimestamps?: boolean
+  format?: string
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface TranscribeSubtitleBackgroundJob extends BackgroundJobBase {
+  type: 'transcribe-subtitle'
+  data: TranscribeSubtitleBackgroundJobData
+}
+
+/** Core `TranslateSubtitleJob` mirrored in the UI background-jobs store (not IndexedDB). */
+interface TranslateSubtitleBackgroundJobData {
+  folder: string
+  subtitlePath: string
+  mediaPath?: string
+  title?: string
+  translator: string
+  targetLanguage: string
+  reflect?: boolean
+  layout?: string
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface TranslateSubtitleBackgroundJob extends BackgroundJobBase {
+  type: 'translate-subtitle'
+  data: TranslateSubtitleBackgroundJobData
+}
+
 /** Subtitle/text output format (VideoCaptioner CLI). */
 export type TranscribeOutputFormat = 'srt' | 'ass' | 'txt' | 'json';
 
@@ -321,6 +360,8 @@ export type BackgroundJob =
   | TestDelayBackgroundJob
   | DownloadVideoBackgroundJob
   | YtdlpBackgroundJob
+  | TranscribeSubtitleBackgroundJob
+  | TranslateSubtitleBackgroundJob
   | TranscribeBackgroundJob
   | TranslateBackgroundJob
   | SynthesizeBackgroundJob
@@ -335,6 +376,18 @@ export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBack
 
 export function isYtdlpBackgroundJob(job: BackgroundJob): job is YtdlpBackgroundJob {
   return job.type === 'ytdlp'
+}
+
+export function isTranscribeSubtitleBackgroundJob(
+  job: BackgroundJob,
+): job is TranscribeSubtitleBackgroundJob {
+  return job.type === 'transcribe-subtitle'
+}
+
+export function isTranslateSubtitleBackgroundJob(
+  job: BackgroundJob,
+): job is TranslateSubtitleBackgroundJob {
+  return job.type === 'translate-subtitle'
 }
 
 export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgroundJob {

@@ -5,15 +5,26 @@ import type { StartJobResult } from '@/components/JobOrchestratorProvider'
 import { isJobRemovable } from '@/lib/backgroundJobLifecycle'
 import { useTranslation } from '@/lib/i18n'
 import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
-import type { BackgroundJob } from '@/types/background-jobs'
 import { clearTestDelayJobTimers, stopTestDelayJob } from '@/lib/testDelayJobRunner'
 import { stopJobViaCore } from '@/api/stopJob'
 import {
   isGenericBackgroundJob,
   isImportFolderBackgroundJob,
   isTestDelayBackgroundJob,
+  isTranscribeSubtitleBackgroundJob,
+  isTranslateSubtitleBackgroundJob,
   isYtdlpBackgroundJob,
+  type BackgroundJob,
 } from '@/types/background-jobs'
+
+/** Core-mirrored jobs live in Zustand only; stop/remove via Core, never Orchestrator. */
+function isCoreMirroredBackgroundJob(job: BackgroundJob): boolean {
+  return (
+    isYtdlpBackgroundJob(job) ||
+    isTranscribeSubtitleBackgroundJob(job) ||
+    isTranslateSubtitleBackgroundJob(job)
+  )
+}
 
 export interface UseJobManagerResult {
   jobs: BackgroundJob[]
@@ -77,9 +88,9 @@ export function useJobManager(): UseJobManagerResult {
         useBackgroundJobsStore.getState().abortJob(id)
         return
       }
-      if (job && isYtdlpBackgroundJob(job)) {
+      if (job && isCoreMirroredBackgroundJob(job)) {
         void stopJobViaCore(id).catch((error: unknown) => {
-          console.error('[ytdlp] stop job failed', error)
+          console.error(`[${job.type}] stop job failed`, error)
         })
         useBackgroundJobsStore.getState().abortJob(id)
         return
@@ -105,7 +116,7 @@ export function useJobManager(): UseJobManagerResult {
         useBackgroundJobsStore.getState().removeJob(id)
         return
       }
-      if (job && isYtdlpBackgroundJob(job)) {
+      if (job && isCoreMirroredBackgroundJob(job)) {
         useBackgroundJobsStore.getState().removeJob(id)
         return
       }
@@ -151,10 +162,10 @@ export function useJobManager(): UseJobManagerResult {
           useBackgroundJobsStore.getState().abortJob(job.id)
           return
         }
-        if (isYtdlpBackgroundJob(job)) {
+        if (isCoreMirroredBackgroundJob(job)) {
           useBackgroundJobsStore.getState().abortJob(job.id)
           void stopJobViaCore(job.id).catch((error: unknown) => {
-            console.error('[ytdlp] stop pending job failed', error)
+            console.error(`[${job.type}] stop pending job failed`, error)
           })
           return
         }
