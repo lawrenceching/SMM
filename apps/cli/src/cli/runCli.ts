@@ -4,6 +4,8 @@ import { add } from './commands/add'
 import { addlib } from './commands/addlib'
 import { download } from './commands/download'
 import { hello } from './commands/hello'
+import { processSubtitle } from './commands/processSubtitle'
+import { synthesize } from './commands/synthesize'
 import { transcribe } from './commands/transcribe'
 import { translate } from './commands/translate'
 import { list } from './commands/list'
@@ -211,6 +213,181 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         },
       ) => {
         exitCode = await translate(subtitle, opts)
+      },
+    )
+
+  program
+    .command('synthesize')
+    .description('Burn or soft-mux subtitles onto a video with videocaptioner')
+    .argument('<video>', 'Video file path')
+    .requiredOption('-s, --subtitle <path>', 'Subtitle file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--subtitle-mode <mode>', 'Subtitle mux mode').choices(['soft', 'hard']),
+    )
+    .addOption(
+      new Option('--quality <quality>', 'Output quality preset').choices([
+        'ultra',
+        'high',
+        'medium',
+        'low',
+      ]),
+    )
+    .option('--style <style>', 'Subtitle style')
+    .addOption(
+      new Option('--render-mode <mode>', 'Hard-sub render mode').choices(['ass', 'rounded']),
+    )
+    .addOption(
+      new Option('--layout <layout>', 'Bilingual subtitle layout').choices([
+        'target-above',
+        'source-above',
+        'target-only',
+        'source-only',
+      ]),
+    )
+    .option('--title <title>', 'Display title for the job')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        video: string,
+        opts: {
+          folder: string
+          subtitle: string
+          subtitleMode?: 'soft' | 'hard'
+          quality?: 'ultra' | 'high' | 'medium' | 'low'
+          style?: string
+          renderMode?: 'ass' | 'rounded'
+          layout?: 'target-above' | 'source-above' | 'target-only' | 'source-only'
+          title?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await synthesize(video, opts)
+      },
+    )
+
+  program
+    .command('process')
+    .description('Run the full subtitle pipeline (transcribe → translate → synthesize)')
+    .argument('<media>', 'Media file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--asr <engine>', 'ASR engine').choices(['bijian', 'jianying', 'whisper-cpp']),
+    )
+    .option('--language <lang>', 'Source language hint for ASR')
+    .addOption(
+      new Option('--format <fmt>', 'Subtitle output format').choices([
+        'srt',
+        'ass',
+        'txt',
+        'json',
+      ]),
+    )
+    .option('--word-timestamps', 'Request word-level timestamps')
+    // Commander treats --no-* as negate options (property = optimize/split/translate/synthesize).
+    .option('--no-optimize', 'Skip subtitle optimization')
+    .option('--no-split', 'Skip subtitle splitting')
+    .option('--no-translate', 'Skip translation')
+    .addOption(
+      new Option('--translator <name>', 'Translator backend').choices(['bing', 'google', 'llm']),
+    )
+    .option('--target-language <lang>', 'Target language code')
+    .option('--reflect', 'Enable reflect pass for translation')
+    .addOption(
+      new Option('--layout <layout>', 'Bilingual subtitle layout').choices([
+        'target-above',
+        'source-above',
+        'target-only',
+        'source-only',
+      ]),
+    )
+    .option('--prompt <text>', 'Custom translation prompt')
+    .option('--api-key <key>', 'LLM API key (required when --translator llm)')
+    .option('--api-base <url>', 'LLM API base URL')
+    .option('--model <name>', 'LLM model name')
+    .option('--no-synthesize', 'Skip synthesize step')
+    .addOption(
+      new Option('--subtitle-mode <mode>', 'Subtitle mux mode').choices(['soft', 'hard']),
+    )
+    .addOption(
+      new Option('--quality <quality>', 'Synthesize quality preset').choices([
+        'ultra',
+        'high',
+        'medium',
+        'low',
+      ]),
+    )
+    .option('--style <style>', 'Synthesize subtitle style')
+    .addOption(
+      new Option('--render-mode <mode>', 'Hard-sub render mode').choices(['ass', 'rounded']),
+    )
+    .addOption(
+      new Option('--synthesize-layout <layout>', 'Synthesize bilingual layout').choices([
+        'target-above',
+        'source-above',
+        'target-only',
+        'source-only',
+      ]),
+    )
+    .option('--title <title>', 'Display title for the job')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        media: string,
+        opts: {
+          folder: string
+          asr?: 'bijian' | 'jianying' | 'whisper-cpp'
+          language?: string
+          format?: 'srt' | 'ass' | 'txt' | 'json'
+          wordTimestamps?: boolean
+          /** Commander --no-optimize → optimize=false when passed. */
+          optimize?: boolean
+          split?: boolean
+          translate?: boolean
+          synthesize?: boolean
+          translator?: 'bing' | 'google' | 'llm'
+          targetLanguage?: string
+          reflect?: boolean
+          layout?: 'target-above' | 'source-above' | 'target-only' | 'source-only'
+          prompt?: string
+          apiKey?: string
+          apiBase?: string
+          model?: string
+          subtitleMode?: 'soft' | 'hard'
+          quality?: 'ultra' | 'high' | 'medium' | 'low'
+          style?: string
+          renderMode?: 'ass' | 'rounded'
+          synthesizeLayout?: 'target-above' | 'source-above' | 'target-only' | 'source-only'
+          title?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await processSubtitle(media, {
+          folder: opts.folder,
+          asr: opts.asr,
+          language: opts.language,
+          format: opts.format,
+          wordTimestamps: opts.wordTimestamps,
+          noOptimize: opts.optimize === false ? true : undefined,
+          noSplit: opts.split === false ? true : undefined,
+          noTranslate: opts.translate === false ? true : undefined,
+          translator: opts.translator,
+          targetLanguage: opts.targetLanguage,
+          reflect: opts.reflect,
+          layout: opts.layout,
+          prompt: opts.prompt,
+          apiKey: opts.apiKey,
+          apiBase: opts.apiBase,
+          model: opts.model,
+          noSynthesize: opts.synthesize === false ? true : undefined,
+          subtitleMode: opts.subtitleMode,
+          quality: opts.quality,
+          style: opts.style,
+          renderMode: opts.renderMode,
+          synthesizeLayout: opts.synthesizeLayout,
+          title: opts.title,
+          verbose: opts.verbose,
+        })
       },
     )
 
