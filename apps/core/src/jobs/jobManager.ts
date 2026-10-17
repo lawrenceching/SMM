@@ -15,7 +15,7 @@ interface JobManagerOptions {
   timeoutMs: number;
 }
 
-export type JobQueueName = "default" | "ytdlp";
+export type JobQueueName = "default" | "ytdlp" | "videocaptioner";
 
 export interface SubmitJobOptions {
   queue?: JobQueueName;
@@ -27,6 +27,7 @@ export class JobManager {
   private jobs: Map<string, AbstractJob> = new Map();
   private _queue: PQueue | undefined;
   private _ytdlpQueue: PQueue | undefined;
+  private _videocaptionerQueue: PQueue | undefined;
   /**
    * The job id to Promise map.
    * The promise will be resolved when the job is completed.
@@ -58,8 +59,19 @@ export class JobManager {
     return this._ytdlpQueue;
   }
 
+  private get videocaptionerQueue(): PQueue {
+    if (this._videocaptionerQueue === undefined) {
+      this._videocaptionerQueue = new PQueue({
+        concurrency: 1,
+      });
+    }
+    return this._videocaptionerQueue;
+  }
+
   private queueFor(name: JobQueueName): PQueue {
-    return name === "ytdlp" ? this.ytdlpQueue : this.queue;
+    if (name === "ytdlp") return this.ytdlpQueue;
+    if (name === "videocaptioner") return this.videocaptionerQueue;
+    return this.queue;
   }
 
   async waitForJobUntilCompleted(id: string): Promise<void> {

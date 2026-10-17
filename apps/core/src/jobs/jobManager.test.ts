@@ -168,4 +168,66 @@ describe("JobManager", () => {
     await manager.waitForJobUntilCompleted("ytdlp-slow");
     expect(slow.status).toBe("succeeded");
   });
+
+  it("videocaptioner queue does not block the default queue", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+
+    let releaseSlow!: () => void;
+    const slowGate = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+
+    class SlowVideocaptionerJob extends QuickJob {
+      override async run(): Promise<void> {
+        await slowGate;
+      }
+    }
+
+    const slow = new SlowVideocaptionerJob(context, ports, jobOptions("videocaptioner-slow"));
+    const fast = new QuickJob(context, ports, jobOptions("default-fast-vc"));
+
+    manager.submit(slow, () => {}, { queue: "videocaptioner", timeoutMs: 60_000 });
+    manager.submit(fast, () => {});
+
+    await manager.waitForJobUntilCompleted("default-fast-vc");
+    expect(fast.status).toBe("succeeded");
+    expect(slow.status).toBe("running");
+
+    releaseSlow();
+    await manager.waitForJobUntilCompleted("videocaptioner-slow");
+    expect(slow.status).toBe("succeeded");
+  });
+
+  it("videocaptioner queue runs one job at a time", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+
+    let releaseFirst!: () => void;
+    const firstGate = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+
+    class SlowVideocaptionerJob extends QuickJob {
+      override async run(): Promise<void> {
+        await firstGate;
+      }
+    }
+
+    const first = new SlowVideocaptionerJob(context, ports, jobOptions("videocaptioner-first"));
+    const second = new QuickJob(context, ports, jobOptions("videocaptioner-second"));
+
+    manager.submit(first, () => {}, { queue: "videocaptioner", timeoutMs: 60_000 });
+    manager.submit(second, () => {}, { queue: "videocaptioner", timeoutMs: 60_000 });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(first.status).toBe("running");
+    expect(second.status).toBe("pending");
+
+    releaseFirst();
+    await manager.waitForJobUntilCompleted("videocaptioner-first");
+    await manager.waitForJobUntilCompleted("videocaptioner-second");
+    expect(first.status).toBe("succeeded");
+    expect(second.status).toBe("succeeded");
+  });
 });
