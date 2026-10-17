@@ -78,6 +78,36 @@ HTTP: `POST /api/get-job-log` — returns user-visible log lines from `Core.getJ
 Source Code: apps/server/src/route/StopJob.ts
 HTTP: `POST /api/stop-job` — requests abort of a running ImportJob via `Core.stopJob(id)`. Request body: `{ id: string }`. Response: `{ data: { id } }` or `{ error }` (`Job not found` / `Job is not abortable` / `Job already finished`). Abort is cooperative at import stage boundaries. CLI equivalent: `smm job stop`.
 
+## TranscribeSubtitle
+Source Code: apps/server/src/route/TranscribeSubtitle.ts
+HTTP: `POST /api/transcribe-subtitle` — starts Layer 2 `Core.transcribeSubtitle(request)` and enqueues a `TranscribeSubtitleJob` on the `videocaptioner` queue (concurrency 1, 10 minute per-job timeout). Request body:
+
+- `folder: string` (required) — imported media folder path
+- `mediaPath: string` (required) — media file to transcribe
+- `asr: "bijian" | "jianying" | "whisper-cpp"` (required)
+- `title?: string`
+- `language?: string` — ASR source language hint
+- `wordTimestamps?: boolean`
+- `format?: "srt" | "ass" | "txt" | "json"`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm transcribe`.
+
+## TranslateSubtitle
+Source Code: apps/server/src/route/TranslateSubtitle.ts
+HTTP: `POST /api/translate-subtitle` — starts Layer 2 `Core.translateSubtitle(request)` and enqueues a `TranslateSubtitleJob` on the `videocaptioner` queue (concurrency 1, 10 minute per-job timeout). Request body:
+
+- `folder: string` (required) — imported media folder path
+- `subtitlePath: string` (required) — subtitle file to translate
+- `translator: "bing" | "google" | "llm"` (required)
+- `targetLanguage: string` (required)
+- `mediaPath?: string` — associated media file
+- `title?: string`
+- `reflect?: boolean`
+- `layout?: "target-above" | "source-above" | "target-only" | "source-only"`
+- `llm?: { apiKey: string, apiBase?: string, model?: string }` — required when `translator` is `llm`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm translate`.
+
 ## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
 Source Code: apps/server/src/route/Tmdb.ts
 
