@@ -10,6 +10,8 @@ import { stopJobViaCore } from '@/api/stopJob'
 import {
   isGenericBackgroundJob,
   isImportFolderBackgroundJob,
+  isProcessSubtitleBackgroundJob,
+  isSynthesizeSubtitleBackgroundJob,
   isTestDelayBackgroundJob,
   isTranscribeSubtitleBackgroundJob,
   isTranslateSubtitleBackgroundJob,
@@ -22,7 +24,9 @@ function isCoreMirroredBackgroundJob(job: BackgroundJob): boolean {
   return (
     isYtdlpBackgroundJob(job) ||
     isTranscribeSubtitleBackgroundJob(job) ||
-    isTranslateSubtitleBackgroundJob(job)
+    isTranslateSubtitleBackgroundJob(job) ||
+    isSynthesizeSubtitleBackgroundJob(job) ||
+    isProcessSubtitleBackgroundJob(job)
   )
 }
 

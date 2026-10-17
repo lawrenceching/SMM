@@ -151,6 +151,63 @@ export interface TranslateSubtitleBackgroundJob extends BackgroundJobBase {
   data: TranslateSubtitleBackgroundJobData
 }
 
+/** Core `SynthesizeSubtitleJob` mirrored in the UI background-jobs store (not IndexedDB). */
+interface SynthesizeSubtitleBackgroundJobData {
+  folder: string
+  videoPath: string
+  subtitlePath: string
+  title?: string
+  subtitleMode?: string
+  quality?: string
+  style?: string
+  renderMode?: string
+  layout?: string
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface SynthesizeSubtitleBackgroundJob extends BackgroundJobBase {
+  type: 'synthesize-subtitle'
+  data: SynthesizeSubtitleBackgroundJobData
+}
+
+/**
+ * Core `ProcessSubtitleJob` mirrored in the UI background-jobs store (not IndexedDB).
+ * Secrets (`llm`) must never appear here — only on the HTTP enqueue path.
+ */
+interface ProcessSubtitleBackgroundJobData {
+  folder: string
+  mediaPath: string
+  title?: string
+  asr?: string
+  language?: string
+  wordTimestamps?: boolean
+  format?: string
+  noOptimize?: boolean
+  noSplit?: boolean
+  noTranslate?: boolean
+  translator?: string
+  targetLanguage?: string
+  reflect?: boolean
+  layout?: string
+  prompt?: string
+  noSynthesize?: boolean
+  subtitleMode?: string
+  quality?: string
+  style?: string
+  renderMode?: string
+  synthesizeLayout?: string
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface ProcessSubtitleBackgroundJob extends BackgroundJobBase {
+  type: 'process-subtitle'
+  data: ProcessSubtitleBackgroundJobData
+}
+
 /** Subtitle/text output format (VideoCaptioner CLI). */
 export type TranscribeOutputFormat = 'srt' | 'ass' | 'txt' | 'json';
 
@@ -362,6 +419,8 @@ export type BackgroundJob =
   | YtdlpBackgroundJob
   | TranscribeSubtitleBackgroundJob
   | TranslateSubtitleBackgroundJob
+  | SynthesizeSubtitleBackgroundJob
+  | ProcessSubtitleBackgroundJob
   | TranscribeBackgroundJob
   | TranslateBackgroundJob
   | SynthesizeBackgroundJob
@@ -388,6 +447,18 @@ export function isTranslateSubtitleBackgroundJob(
   job: BackgroundJob,
 ): job is TranslateSubtitleBackgroundJob {
   return job.type === 'translate-subtitle'
+}
+
+export function isSynthesizeSubtitleBackgroundJob(
+  job: BackgroundJob,
+): job is SynthesizeSubtitleBackgroundJob {
+  return job.type === 'synthesize-subtitle'
+}
+
+export function isProcessSubtitleBackgroundJob(
+  job: BackgroundJob,
+): job is ProcessSubtitleBackgroundJob {
+  return job.type === 'process-subtitle'
 }
 
 export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgroundJob {

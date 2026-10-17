@@ -5,6 +5,8 @@ import { useFailedCommandLogsStore } from '@/stores/failedCommandLogsStore'
 import { useStatusbarStore } from '@/stores/statusbarStore'
 import {
   isDownloadVideoJob,
+  isProcessSubtitleBackgroundJob,
+  isSynthesizeSubtitleBackgroundJob,
   isTranscribeSubtitleBackgroundJob,
   isTranslateSubtitleBackgroundJob,
   isYtdlpBackgroundJob,
@@ -47,7 +49,9 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
     if (
       (isYtdlpBackgroundJob(job) ||
         isTranscribeSubtitleBackgroundJob(job) ||
-        isTranslateSubtitleBackgroundJob(job)) &&
+        isTranslateSubtitleBackgroundJob(job) ||
+        isSynthesizeSubtitleBackgroundJob(job) ||
+        isProcessSubtitleBackgroundJob(job)) &&
       job.status === 'pending'
     ) {
       return true
