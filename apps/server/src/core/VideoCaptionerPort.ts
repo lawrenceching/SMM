@@ -11,12 +11,14 @@ import {
   runCommand,
 } from '../utils/cmd'
 
-const VIDEOCAPTIONER_TIMEOUT_MS = 10 * 60 * 1000
+/** Process jobs can run much longer than transcribe/translate alone. */
+const VIDEOCAPTIONER_TIMEOUT_MS = 2 * 60 * 60 * 1000
 
 /**
  * Host {@link VideoCaptionerPort} for videocaptioner. Reuses {@link runCommand}
  * (spawn, command log) but does not share the yt-dlp serial queue — Core
- * JobManager already serializes subtitle jobs.
+ * JobManager already serializes subtitle jobs. Timeout is 2h so full
+ * process pipelines are not killed early.
  */
 export function createVideoCaptionerPort(): VideoCaptionerPort {
   return {
