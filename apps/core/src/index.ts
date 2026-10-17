@@ -142,6 +142,8 @@ export type {
   YtdlpJobSnapshot,
   TranscribeSubtitleJobSnapshot,
   TranslateSubtitleJobSnapshot,
+  SynthesizeSubtitleJobSnapshot,
+  ProcessSubtitleJobSnapshot,
   Job,
   JobStatus,
   JobStage,

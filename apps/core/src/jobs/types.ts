@@ -108,13 +108,67 @@ export interface TranslateSubtitleJobSnapshot {
   updatedAt: number;
 }
 
+export interface SynthesizeSubtitleJobSnapshot {
+  kind: "synthesize-subtitle";
+  id: string;
+  type: "synthesize-subtitle";
+  folder: string;
+  videoPath: string;
+  subtitlePath: string;
+  title?: string;
+  subtitleMode?: string;
+  quality?: string;
+  style?: string;
+  renderMode?: string;
+  layout?: string;
+  status: JobStatus;
+  progress: number;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProcessSubtitleJobSnapshot {
+  kind: "process-subtitle";
+  id: string;
+  type: "process-subtitle";
+  folder: string;
+  mediaPath: string;
+  title?: string;
+  asr?: string;
+  language?: string;
+  wordTimestamps?: boolean;
+  format?: string;
+  noOptimize?: boolean;
+  noSplit?: boolean;
+  noTranslate?: boolean;
+  translator?: string;
+  targetLanguage?: string;
+  reflect?: boolean;
+  layout?: string;
+  prompt?: string;
+  noSynthesize?: boolean;
+  subtitleMode?: string;
+  quality?: string;
+  style?: string;
+  renderMode?: string;
+  synthesizeLayout?: string;
+  status: JobStatus;
+  progress: number;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type Job =
   | ImportJob
   | ImportLibraryJob
   | ScrapeJobSnapshot
   | YtdlpJobSnapshot
   | TranscribeSubtitleJobSnapshot
-  | TranslateSubtitleJobSnapshot;
+  | TranslateSubtitleJobSnapshot
+  | SynthesizeSubtitleJobSnapshot
+  | ProcessSubtitleJobSnapshot;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {
