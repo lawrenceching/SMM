@@ -183,4 +183,3 @@ smm process <media> --folder <path> [--asr …] [--language …] [--format …] 
 - 不持久化 Job 跨进程。
 - 不让浏览器依赖 `@smm/core` 根 barrel。
 - 不把 synthesize/process 拆到独立队列（产品已选共用 `videocaptioner`）。
-)
