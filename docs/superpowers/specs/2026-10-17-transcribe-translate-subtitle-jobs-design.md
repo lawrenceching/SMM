@@ -250,4 +250,3 @@ sequenceDiagram
 - 不解析 videocaptioner 百分比进度条。
 - 不持久化 Job 跨进程。
 - 不让浏览器依赖 `@smm/core` 根 barrel。
-)
