@@ -36,6 +36,8 @@ export class ImportLibraryJob extends AbstractJob {
   private updatedAt = Date.now();
   /** Serializes log file writes under concurrent child ImportFolderJob logging. */
   private logWriteChain: Promise<void> = Promise.resolve();
+  /** In-flight child imports; aborted when {@link abort} runs. */
+  private activeChildren: ImportFolderJob[] = [];
 
   constructor(ctx: AppContext, ports: PlatformPorts, options: ImportLibraryJobOptions & JobOptions) {
     super(ctx, ports, {
@@ -131,6 +133,9 @@ export class ImportLibraryJob extends AbstractJob {
       }
       const task = this.tasks[index];
       await queue.add(async () => {
+        if (this.requestToAbort) {
+          return;
+        }
         const job = new ImportFolderJob(this.context, this.ports, {
           id: nextJobId(),
           logDir: this.context.logDir,
@@ -149,10 +154,15 @@ export class ImportLibraryJob extends AbstractJob {
         if (task !== undefined) {
           this.patchTask(task.id, { status: "running", importJobId: job.id });
         }
-        await job.run();
+        this.activeChildren.push(job);
+        try {
+          await job.run();
+        } finally {
+          this.activeChildren = this.activeChildren.filter((c) => c !== job);
+        }
         if (task !== undefined) {
           this.patchTask(task.id, {
-            status: job.status === "failed" ? "failed" : "succeeded",
+            status: job.status === "failed" || job.status === "aborted" ? "failed" : "succeeded",
           });
         }
       });
@@ -164,7 +174,11 @@ export class ImportLibraryJob extends AbstractJob {
     this.updatedAt = Date.now();
   }
 
-  override abort(): Promise<void> {
-    throw new Error("Method not implemented.");
+  /** Cooperative stop: flag + abort any in-flight child {@link ImportFolderJob}. */
+  override async abort(): Promise<void> {
+    for (const child of [...this.activeChildren]) {
+      child.tryAbort();
+      await child.abort();
+    }
   }
 }

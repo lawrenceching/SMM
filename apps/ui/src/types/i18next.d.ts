@@ -385,6 +385,17 @@ interface ComponentsResources {
     noTracksFound: string
     tryAdjustingFilter: string
   }
+  llmTranslatorFields: {
+    source: string
+    configured: string
+    custom: string
+    provider: string
+    providerPlaceholder: string
+    noProvidersHint: string
+    apiKey: string
+    apiBase: string
+    model: string
+  }
   subtitleTranslationDialog: {
     title: string
     description: string

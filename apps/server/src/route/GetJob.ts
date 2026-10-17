@@ -1,38 +1,11 @@
 import { Hono } from 'hono'
-import { ImportFolderJob, ImportLibraryJob, ScrapeJob, type Job } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
-
-type GetJobData = Job | {
-  id: string
-  type: string
-  status: string
-  progress: number
-  logFilePath: string
-}
+import { serializeJob, type GetJobData } from './serializeJob'
 
 type GetJobResponseBody =
   | { data: GetJobData }
   | { error: string }
-
-function serializeJob(job: NonNullable<ReturnType<ReturnType<typeof getCore>['getJob']>>) {
-  if (job instanceof ScrapeJob) {
-    return job.toJSON()
-  }
-  if (job instanceof ImportFolderJob) {
-    return job.toJSON()
-  }
-  if (job instanceof ImportLibraryJob) {
-    return job.toJSON()
-  }
-  return {
-    id: job.id,
-    type: job.type,
-    status: job.status,
-    progress: job.progress(),
-    logFilePath: job.logFilePath,
-  }
-}
 
 export const getJobRoute = new Hono().post('/api/get-job', async (c) => {
   try {

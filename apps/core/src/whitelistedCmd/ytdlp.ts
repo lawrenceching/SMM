@@ -137,3 +137,71 @@ export function parseYtdlpDownloadStdout(stdout: string): string {
   const lines = stdout.trim().split("\n").filter((l) => l.trim());
   return lines[lines.length - 1]?.trim() ?? "";
 }
+
+export type YtdlpFormatPresetId = "default" | "best" | "1080p" | "720p" | "audio";
+
+export interface YtdlpFormatPreset {
+  id: YtdlpFormatPresetId;
+  /** yt-dlp `-f` selector; omitted for automatic default. */
+  format?: string;
+}
+
+export const YTDLP_FORMAT_PRESETS: readonly YtdlpFormatPreset[] = [
+  { id: "default" },
+  { id: "best", format: "bestvideo*+ba/b" },
+  { id: "1080p", format: "bv*[height<=1080]+ba/b[height<=1080]/best" },
+  { id: "720p", format: "bv*[height<=720]+ba/b[height<=720]/best" },
+  { id: "audio", format: "bestaudio/best" },
+];
+
+const PRESET_BY_ID = new Map<string, YtdlpFormatPreset>(
+  YTDLP_FORMAT_PRESETS.map((p) => [p.id, p]),
+);
+
+export function isYtdlpFormatPresetId(value: string): value is YtdlpFormatPresetId {
+  return PRESET_BY_ID.has(value);
+}
+
+/** Maps a preset id to the yt-dlp `-f` string, or `undefined` for automatic / unknown. */
+export function resolveYtdlpFormatFromPreset(presetId: string): string | undefined {
+  const preset = PRESET_BY_ID.get(presetId) ?? PRESET_BY_ID.get("default");
+  const format = preset?.format?.trim();
+  return format || undefined;
+}
+
+export type YtdlpFormatMode = "preset" | "format-code";
+
+export interface ResolveYtdlpFormatParams {
+  formatMode: YtdlpFormatMode;
+  selectedFormatCode: string;
+  selectedSupplementaryFormatCode: string;
+  selectedFormatPresetId: YtdlpFormatPresetId;
+}
+
+/**
+ * Resolves the yt-dlp `-f` format string from either a preset or format code selection.
+ * Returns `undefined` only when using the default preset (automatic selection).
+ */
+export function resolveYtdlpFormat(params: ResolveYtdlpFormatParams): string | undefined {
+  if (params.formatMode === "format-code" && params.selectedFormatCode) {
+    return params.selectedSupplementaryFormatCode
+      ? `${params.selectedSupplementaryFormatCode}+${params.selectedFormatCode}`
+      : params.selectedFormatCode;
+  }
+  return resolveYtdlpFormatFromPreset(params.selectedFormatPresetId);
+}
+
+/**
+ * CLI / Core helper: resolve `--format` flag value.
+ * Known preset ids map to selectors; any other non-empty string is treated as a raw `-f` code.
+ */
+export function resolveYtdlpFormatFlag(format: string | undefined): string | undefined {
+  const trimmed = format?.trim();
+  if (!trimmed || trimmed === "default") {
+    return undefined;
+  }
+  if (isYtdlpFormatPresetId(trimmed)) {
+    return resolveYtdlpFormatFromPreset(trimmed);
+  }
+  return trimmed;
+}

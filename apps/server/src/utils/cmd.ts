@@ -47,6 +47,25 @@ import {
 } from '../route/commandExecutionRegistry';
 import { parseFinishedFromSystemNote } from '../route/commandExecutionLogStatus';
 import { isCommandExecutionId } from '../route/commandLog'
+import {
+  parseYtdlpProgressLine,
+  injectYtdlpProgressArgs,
+  parseTestYtDlpUrl,
+  isTestYtDlpUrl,
+  extractTestYtDlpUrl,
+  buildYtDlpSimulatedError,
+  type YtdlpProgressData,
+} from '@smm/core'
+
+export {
+  parseYtdlpProgressLine,
+  injectYtdlpProgressArgs,
+  parseTestYtDlpUrl,
+  isTestYtDlpUrl,
+  extractTestYtDlpUrl,
+  buildYtDlpSimulatedError,
+  type YtdlpProgressData,
+}
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
@@ -124,15 +143,6 @@ export type SystemEvent =
   | { event: 'error'; message: string }
   | { event: 'timeout' };
 
-export interface YtdlpProgressData {
-  percent: number;
-  speed: number;
-  eta: number | null;
-  downloaded: number | null;
-  total: number | null;
-  status: 'downloading' | 'finished';
-}
-
 export interface RunCommandResult {
   /** True if the request was honored (executable resolved, args prepared). */
   ok: boolean;
@@ -146,141 +156,11 @@ export interface RunCommandResult {
   ptyFallback?: PtyFallbackReason;
 }
 
-// ─── Progress template & parsing ─────────────────────────────────────────────
-
-/**
- * Progress template JSON passed to `yt-dlp --progress-template`.
- *
- * Each line yt-dlp emits on stdout (with `--newline`) will be one of these
- * JSON objects. Fields are documented in `yt-dlp-progress.md`.
- *
- * Why `percent` and `speed` are quoted: yt-dlp emits the literal text
- * `NA` (no quotes) for unavailable values such as percent or speed at
- * the start of a download, which is not valid JSON. Wrapping the
- * `%(progress._percent_json)s` and `%(progress.speed)r` placeholders
- * in double quotes makes yt-dlp emit `"NA"` (a valid JSON string) when
- * the value is missing, so the line is always parseable.
- *
- * `eta`, `downloaded`, and `total` are also wrapped in quotes for the
- * same reason: the literal `NA` would otherwise break JSON syntax. The
- * UI parser handles both quoted strings and unquoted numbers.
- */
-const YTDLP_PROGRESS_TEMPLATE =
-  '{"percent": "%(progress._percent_json)s", "speed": "%(progress.speed)r", "eta": "%(progress.eta)r", "downloaded": "%(progress.downloaded_bytes)r", "total": "%(progress.total_bytes)r", "status": "%(progress.status)s"}';
-
-function isYtdlpDownloadCommand(args: string[]): boolean {
-  // Download invocations set an output template via --output.
-  return args.includes('--output');
-}
-
-export function injectYtdlpProgressArgs(args: string[]): string[] {
-  // Only inject if the caller hasn't already provided a progress template,
-  // and only for download invocations (i.e. --output is present).
-  if (args.includes('--progress-template') || args.includes('--newline')) {
-    return args;
-  }
-  if (!isYtdlpDownloadCommand(args)) {
-    return args;
-  }
-  return [...args, '--newline', '--progress-template', YTDLP_PROGRESS_TEMPLATE];
-}
-
 function argsIncludeFfmpegLocation(args: string[]): boolean {
   return args.includes('--ffmpeg-location');
 }
 
-// ─── Test URL simulation ─────────────────────────────────────────────────────
-
-/** HTTP status text map for common error codes. */
-const HTTP_STATUS_TEXT: Record<number, string> = {
-  400: 'Bad Request',
-  401: 'Unauthorized',
-  403: 'Forbidden',
-  404: 'Not Found',
-  407: 'Proxy Authentication Required',
-  412: 'Precondition Failed',
-  429: 'Too Many Requests',
-  500: 'Internal Server Error',
-  502: 'Bad Gateway',
-  503: 'Service Unavailable',
-  504: 'Gateway Timeout',
-};
-
-/** Fixed video ID used in all test URL simulations. */
-const TEST_VIDEO_ID = '1fSV26aE5Q';
-
-/**
- * Parses a test URL in the format `https://test.local/{extractor}/http/{status_code}`.
- * Returns null if the URL is not a valid test URL.
- */
-export function parseTestYtDlpUrl(url: string): { extractor: string; statusCode: number } | null {
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol !== 'https:' || parsed.host !== 'test.local') {
-      return null;
-    }
-    // Path format: /{extractor}/http/{status_code}
-    const parts = parsed.pathname.split('/').filter(Boolean);
-    if (parts.length !== 3) return null;
-    if (parts[1] !== 'http') return null;
-    const statusCodeRaw = parts[2];
-    if (statusCodeRaw === undefined) return null;
-    const statusCode = parseInt(statusCodeRaw, 10);
-    if (isNaN(statusCode) || statusCode < 100 || statusCode > 999) return null;
-    const extractor = parts[0];
-    if (extractor === undefined) return null;
-    return { extractor, statusCode };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Checks if any argument is a test URL.
- */
-export function isTestYtDlpUrl(args: string[]): boolean {
-  return args.some((arg) => arg.startsWith('https://test.local'));
-}
-
-/**
- * Extracts the test URL from args, if present.
- */
-export function extractTestYtDlpUrl(args: string[]): string | null {
-  return args.find((arg) => arg.startsWith('https://test.local')) ?? null;
-}
-
-/**
- * Capitalizes an extractor name for display (e.g., 'bilibili' -> 'BiliBili').
- */
-function capitalizeExtractorName(extractor: string): string {
-  // Handle special cases for common extractors
-  const knownNames: Record<string, string> = {
-    bilibili: 'BiliBili',
-    youtube: 'YouTube',
-    niconico: 'Niconico',
-  };
-  const known = knownNames[extractor.toLowerCase()];
-  if (known !== undefined) {
-    return known;
-  }
-  // Default: capitalize first letter
-  return extractor.charAt(0).toUpperCase() + extractor.slice(1);
-}
-
-/**
- * Builds a simulated yt-dlp error message for a given test URL.
- * The error format matches yt-dlp's actual error output.
- */
-export function buildYtDlpSimulatedError(testUrl: string): string {
-  const parsed = parseTestYtDlpUrl(testUrl);
-  if (!parsed) {
-    return `ERROR: Unable to download webpage: test URL parse failed`;
-  }
-  const { extractor, statusCode } = parsed;
-  const statusText = HTTP_STATUS_TEXT[statusCode] ?? 'Unknown Error';
-  const extractorDisplay = capitalizeExtractorName(extractor);
-  return `ERROR: [${extractorDisplay}] ${TEST_VIDEO_ID}: Unable to download webpage: HTTP Error ${statusCode}: ${statusText} (caused by <HTTPError ${statusCode}: ${statusText}>)`;
-}
+// ─── Test URL simulation (spawn wrapper only; parsing lives in @smm/core) ─────
 
 /**
  * Builds the bash command arguments to simulate a yt-dlp error.
@@ -300,67 +180,6 @@ export function buildTestYtDlpSimulatedSpawnArgs(errorMessage: string): string[]
   return ['-c', shellCmd];
 }
 
-/** Replace bare `NA` tokens with `null` so JSON.parse succeeds. */
-function sanitizeYtdlpProgressLine(line: string): string {
-  return line.replace(/: *NA\b/g, ':null');
-}
-
-function parseProgressNumericValue(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-  if (typeof value === 'string') {
-    if (value === 'NA' || value.trim() === '') return null
-    const n = Number(value)
-    return Number.isFinite(n) ? n : null
-  }
-  return null
-}
-
-/**
- * Parse a single line that looks like yt-dlp progress JSON. Returns null
- * if the line is not progress JSON.
- */
-export function parseYtdlpProgressLine(line: string): YtdlpProgressData | null {
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(sanitizeYtdlpProgressLine(line)) as Record<string, unknown>
-  } catch {
-    return null
-  }
-  const statusRaw = parsed.status
-  if (statusRaw !== 'downloading' && statusRaw !== 'finished') {
-    return null
-  }
-  const downloaded = parseProgressNumericValue(parsed.downloaded)
-  const total = parseProgressNumericValue(parsed.total)
-  // `percent` is often `"NA"` (a string) for resumed or freshly started
-  // downloads, so fall back to downloaded/total when it is not a number.
-  let percent: number | null = null
-  if (typeof parsed.percent === 'string') {
-    // yt-dlp's `_percent_json` field includes a trailing `%` (e.g. `"42.5%"`).
-    // Strip it before numeric parsing.
-    const cleaned = parsed.percent.replace(/%$/g, '').trim()
-    percent = parseProgressNumericValue(cleaned)
-  } else {
-    percent = parseProgressNumericValue(parsed.percent)
-  }
-  if (percent == null && downloaded != null && total != null && total > 0) {
-    percent = (downloaded / total) * 100
-  }
-  if (percent == null) percent = 0
-  const speed = parseProgressNumericValue(parsed.speed) ?? 0
-  const eta = parseProgressNumericValue(parsed.eta)
-  return {
-    percent,
-    speed,
-    eta,
-    downloaded,
-    total,
-    status: statusRaw,
-  }
-}
-
 /**
  * Fast shape check used to decide whether a stdout line is a yt-dlp progress
  * JSON object. Returns true iff the line is parseable JSON that contains a
@@ -369,7 +188,7 @@ export function parseYtdlpProgressLine(line: string): YtdlpProgressData | null {
 export function isYtdlpProgressJson(line: string): boolean {
   if (!line.startsWith('{')) return false
   try {
-    const parsed = JSON.parse(sanitizeYtdlpProgressLine(line)) as Record<string, unknown>
+    const parsed = JSON.parse(line.replace(/: *NA\b/g, ':null')) as Record<string, unknown>
     return typeof parsed.status === 'string'
   } catch {
     return false

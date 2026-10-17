@@ -37,3 +37,4 @@ export {
   getUserConfigPath,
   getUserDataDir,
 } from './src/utils/config'
+export { discoverQuickjs } from './src/utils/QuickJS'

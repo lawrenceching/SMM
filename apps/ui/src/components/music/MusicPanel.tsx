@@ -38,10 +38,16 @@ import {
 import { useDialogs } from "@/providers/dialog-provider";
 import { toast } from "sonner";
 import { Path } from "@smm/utils/path";
-import { mergeLibraryTracksWithJobTracks, tracksFromDownloadJobRecords } from "@/helpers/music/tracksFromDownloadVideoJobs";
+import {
+  mergeLibraryTracksWithJobTracks,
+  tracksFromDownloadJobRecords,
+  tracksFromYtdlpJobs,
+} from "@/helpers/music/tracksFromDownloadVideoJobs";
 import { DeleteTrackDialog } from "@/components/dialogs";
 import type { Track } from "../MediaPlayer";
 import { useJobManager, useJobs } from "@/hooks/useJobOrchestrator";
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore";
+import { isYtdlpBackgroundJob, type YtdlpBackgroundJob } from "@/types/background-jobs";
 import { absolutePosixMusicFilePath, displayPathForFile } from "@/lib/transcribeDialogRows";
 import { isAbsPath } from "@/lib/path";
 import { syncTracks } from "@/helpers/music/musicPanelSyncTracks";
@@ -123,10 +129,9 @@ export function MusicPanel() {
 
   const { startJob, stopJob, removeJob } = useJobManager();
   const allJobRecords = useJobs();
+  const backgroundJobs = useBackgroundJobsStore((s) => s.jobs);
 
-  // Download job records for this folder (for rendering download tracks).
-  // Only show active jobs (pending / running); completed, failed, and aborted
-  // jobs are removed from the list so they don't clutter the track view.
+  // Legacy IndexedDB download-video jobs for this folder (active only).
   const jobRecords = useMemo(
     () =>
       allJobRecords.filter(
@@ -137,9 +142,24 @@ export function MusicPanel() {
       ),
     [allJobRecords, platformFolder],
   );
+
+  // Core YtdlpJob snapshots mirrored in the background-jobs store.
+  const ytdlpJobs = useMemo(
+    (): YtdlpBackgroundJob[] =>
+      backgroundJobs.filter(
+        (j): j is YtdlpBackgroundJob =>
+          isYtdlpBackgroundJob(j) &&
+          j.data.folder === platformFolder &&
+          (j.status === "pending" || j.status === "running"),
+      ),
+    [backgroundJobs, platformFolder],
+  );
+
   const hasRunningDownload = useMemo(
-    () => jobRecords.some((r) => r.status === "running"),
-    [jobRecords],
+    () =>
+      jobRecords.some((r) => r.status === "running") ||
+      ytdlpJobs.some((j) => j.status === "running"),
+    [jobRecords, ytdlpJobs],
   );
   const startDownload = useCallback((jobId: string) => void startJob(jobId), [startJob]);
   const stopDownload = useCallback((jobId: string) => stopJob(jobId), [stopJob]);
@@ -162,23 +182,34 @@ export function MusicPanel() {
       return;
     }
     const prevRunning = runningJobIdsRef.current;
-    const hadCompletion = allJobRecords.some(
-      (r) =>
-        r.folder === pf &&
-        (r.status === "succeeded" || r.status === "failed") &&
-        prevRunning.has(r.id),
-    );
+    const hadCompletion =
+      allJobRecords.some(
+        (r) =>
+          r.folder === pf &&
+          (r.status === "succeeded" || r.status === "failed") &&
+          prevRunning.has(r.id),
+      ) ||
+      backgroundJobs.some(
+        (j) =>
+          isYtdlpBackgroundJob(j) &&
+          j.data.folder === pf &&
+          (j.status === "succeeded" || j.status === "failed") &&
+          prevRunning.has(j.id),
+      );
     if (hadCompletion) {
       void fetchMediaMetadataRef.current({ path: mfp });
     }
-    runningJobIdsRef.current = new Set(
-      allJobRecords.filter((r) => r.folder === pf && r.status === "running").map((r) => r.id),
-    );
-  }, [allJobRecords]);
+    runningJobIdsRef.current = new Set([
+      ...allJobRecords.filter((r) => r.folder === pf && r.status === "running").map((r) => r.id),
+      ...backgroundJobs
+        .filter((j) => isYtdlpBackgroundJob(j) && j.data.folder === pf && j.status === "running")
+        .map((j) => j.id),
+    ]);
+  }, [allJobRecords, backgroundJobs]);
 
   const jobTracks = useMemo(
-    () => tracksFromDownloadJobRecords(jobRecords),
-    [jobRecords],
+    () => [...tracksFromDownloadJobRecords(jobRecords), ...tracksFromYtdlpJobs(ytdlpJobs)],
+    [jobRecords, ytdlpJobs],
   );
 
   const {

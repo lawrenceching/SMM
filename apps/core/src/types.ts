@@ -1,4 +1,5 @@
 import type { HostPerformanceStore } from "./clients/hostPerformance";
+import type { CommandPort } from "./ports/CommandPort";
 import type { DiscoverPort } from "./ports/DiscoverPort";
 import type { FsPort } from "./ports/FsPort";
 import type { LoggerPort } from "./ports/LoggerPort";
@@ -47,6 +48,8 @@ export interface PlatformPorts {
   normalizePosix: (path: string) => string;
   discover?: DiscoverPort;
   hostPerformance?: HostPerformanceStore;
+  /** Optional: required for inspectVideo / downloadVideo (yt-dlp). */
+  command?: CommandPort;
 }
 
 /**
@@ -58,4 +61,5 @@ export interface PlatformPortsInput {
   network: NetworkPort;
   logger?: LoggerPort;
   discover?: DiscoverPort;
+  command?: CommandPort;
 }

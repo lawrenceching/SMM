@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   createContext,
   useCallback,
@@ -15,7 +14,6 @@ import { useTranslation } from '@/lib/i18n'
 import { DialogContext } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
-  DownloadVideoBackgroundJobData,
   TranscribeBackgroundJobData,
   TranslateBackgroundJobData,
   SynthesizeBackgroundJobData,
@@ -40,10 +38,6 @@ import {
 import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommandStatus'
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
-import type { YtdlpProgressData } from '@/lib/whitelistedCmd/executeCmdToCompletion'
-import { executeYtdlp } from '@/lib/ytdlp/executeYtdlp'
-import { permanentlyDeleteYtdlpCookiesFile } from '@/lib/ytdlpCookiesFile'
-import { useFeatures } from '@/hooks/useFeatures'
 import {
   buildFfmpegConvertArgs,
   buildFfmpegCompressArgs,
@@ -53,13 +47,6 @@ import {
   type FfmpegConvertFormat,
   type FfmpegConvertPreset,
 } from '@/lib/whitelistedCmd'
-import {
-  buildYtdlpDownloadArgs,
-  parseYtdlpDownloadStdout,
-} from '@smm/core/whitelistedCmd/ytdlp'
-import {
-  resolveYtdlpError,
-} from '@/lib/ytdlpErrorDetection'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -286,9 +273,6 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
   const [jobRecords, setJobRecords] = useState<TaskJobRecord[]>([])
   const [popoverJobRecords, setPopoverJobRecords] = useState<TaskJobRecord[]>([])
   const [isReady, setIsReady] = useState(false)
-  const { enableTtyForYtdlpCommand, enablePrintArgInYtdlpCommand } = useFeatures()
-  const ytdlpTty = enableTtyForYtdlpCommand
-  const ytdlpPrintArg = enablePrintArgInYtdlpCommand ? 'after_move:filepath' : undefined
 
   // Mutable refs so callbacks always see the latest values without stale closures.
   const jobRecordsRef = useRef<TaskJobRecord[]>([])
@@ -426,136 +410,15 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
       let wasStopped = false
 
       switch (jobType) {
-        // ── Download ──────────────────────────────────────────────
+        // ── Download (legacy IndexedDB) ───────────────────────────
+        // New downloads go through Core `YtdlpJob` via POST /api/download-video.
+        // Leftover IndexedDB download-video rows are marked failed.
         case 'download-video': {
-          const downloadData = data as unknown as DownloadVideoBackgroundJobData
-          const videos = downloadData.videos ?? []
-          const totalVideos = videos.length
-          let allSucceeded = true
-          let completedVideos = 0
-          const managedCookiesPath = downloadData.ytdlpCookiesFile?.trim() || undefined
-
-          try {
-          for (let i = 0; i < videos.length; i++) {
-            if (controller.signal.aborted) { wasStopped = true; break }
-
-            const video = videos[i]
-            if (video.status === 'succeeded') {
-              completedVideos++
-              continue
-            }
-
-            // Progress is now consumed by BackgroundJobsPopoverList via
-            // useYtdlpDownloadProgressQuery (polls the CLI command log).
-            // The onProgress callback is still wired to executeCmd's NDJSON
-            // stream (it fires), but does nothing meaningful here.
-            const handleYtdlpProgress = (_p: YtdlpProgressData): void => {
-              // no-op — progress is read from the command log.
-            }
-
-            video.status = 'downloading'
-            record.data = JSON.stringify(data)
-            record.updatedAt = Date.now()
-
-            try {
-              const executionId = crypto.randomUUID()
-              data.executionId = executionId
-              record.data = JSON.stringify(data)
-              await putJob(record)
-
-              const args = buildYtdlpDownloadArgs({
-                url: video.url,
-                folder: downloadData.folder,
-                format: downloadData.ytdlpFormat,
-                cookiesFile: downloadData.ytdlpCookiesFile,
-                cookiesFromBrowser: downloadData.ytdlpCookiesFromBrowser,
-                args: downloadData.ytdlpExtraArgs,
-                jsRuntime: downloadData.ytdlpJsRuntime,
-                jsRuntimePath: downloadData.ytdlpJsRuntimePath,
-                proxy: downloadData.ytdlpProxy,
-                printArg: ytdlpPrintArg,
-              })
-
-              const result = await executeYtdlp(args, {
-                cleanup: 'none',
-                timeoutMs: JOB_TIMEOUT_MS['download-video'],
-                signal: controller.signal,
-                executionId,
-                tty: ytdlpTty,
-                onProgress: handleYtdlpProgress,
-              })
-              if (result.executionId) data.executionId = result.executionId
-              if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-
-              if (!result.success) {
-                video.status = 'failed'
-                allSucceeded = false
-                // Single shared error-resolution path — consistent with
-                // the listing banner and the exception catch below.
-                if (!data.ytdlpErrorType) {
-                  const resolved = resolveYtdlpError(
-                    {
-                      stderr: result.stderr,
-                      stdout: result.stdout,
-                      exitCode: result.exitCode,
-                    },
-                    tRef.current as any,
-                  )
-                  data.ytdlpErrorType = resolved.type
-                  data.ytdlpErrorMessage = resolved.message
-                }
-              } else {
-                const outPath = parseYtdlpDownloadStdout(result.stdout)
-                if (outPath) {
-                  // Store download path (optional, currently not used by SW either)
-                }
-                video.status = 'succeeded'
-                completedVideos++
-              }
-            } catch (e) {
-              if (controller.signal.aborted) {
-                video.status = 'pending'
-                wasStopped = true
-                break
-              }
-              video.status = 'failed'
-              allSucceeded = false
-              // Single shared error-resolution path — consistent with
-              // the non-success path above and the listing banner.
-              if (!data.ytdlpErrorType) {
-                const resolved = resolveYtdlpError(
-                  { message: e instanceof Error ? e.message : String(e) },
-                  tRef.current as any,
-                )
-                data.ytdlpErrorType = resolved.type
-                data.ytdlpErrorMessage = resolved.message
-              }
-            }
-
-            // Update persisted progress to reflect completed videos.
-            record.progress = totalVideos > 0
-              ? Math.min(100, (completedVideos / totalVideos) * 100)
-              : 0
-            record.data = JSON.stringify(data)
-            record.updatedAt = Date.now()
-            await putJob(record)
-            await syncFromIndexedDB('executeJob:video-completed')
-          }
-
-          if (wasStopped) {
-            record.status = 'stopped'
-          } else if (allSucceeded) {
-            record.status = 'succeeded'
-            record.progress = 100
-            success = true
-          } else {
-            record.status = 'failed'
-          }
-          } finally {
-            if (managedCookiesPath) {
-              await permanentlyDeleteYtdlpCookiesFile(managedCookiesPath)
-            }
-          }
+          data.ytdlpErrorType = 'options-error'
+          data.ytdlpErrorMessage =
+            'Download video jobs now run via Core YtdlpJob; restart from the Download Video dialog.'
+          record.data = JSON.stringify(data)
+          record.status = 'failed'
           break
         }
 
@@ -876,7 +739,7 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
         // best-effort chaining
       }
     }
-  }, [syncFromIndexedDB, ytdlpPrintArg, ytdlpTty])
+  }, [syncFromIndexedDB])
 
   useEffect(() => { executeJobRef.current = executeJob }, [executeJob])
 

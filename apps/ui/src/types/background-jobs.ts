@@ -59,7 +59,7 @@ export interface TestDelayBackgroundJob extends BackgroundJobBase {
 }
 
 /** One row in {@link DownloadVideoBackgroundJobData.videos} */
-export interface DownloadVideoJobVideo {
+interface DownloadVideoJobVideo {
   url: string;
   artist: string;
   title: string;
@@ -92,6 +92,24 @@ export interface DownloadVideoBackgroundJobData {
 export interface DownloadVideoBackgroundJob extends BackgroundJobBase {
   type: 'download-video';
   data: DownloadVideoBackgroundJobData;
+}
+
+/** Core `YtdlpJob` mirrored in the UI background-jobs store (not IndexedDB). */
+interface YtdlpBackgroundJobData {
+  folder: string
+  url: string
+  title?: string
+  speedBps?: number
+  etaSeconds?: number | null
+  errorType?: string
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface YtdlpBackgroundJob extends BackgroundJobBase {
+  type: 'ytdlp'
+  data: YtdlpBackgroundJobData
 }
 
 /** Subtitle/text output format (VideoCaptioner CLI). */
@@ -302,6 +320,7 @@ export type BackgroundJob =
   | GenericBackgroundJob
   | TestDelayBackgroundJob
   | DownloadVideoBackgroundJob
+  | YtdlpBackgroundJob
   | TranscribeBackgroundJob
   | TranslateBackgroundJob
   | SynthesizeBackgroundJob
@@ -312,6 +331,10 @@ export type BackgroundJob =
 
 export function isDownloadVideoJob(job: BackgroundJob): job is DownloadVideoBackgroundJob {
   return job.type === 'download-video';
+}
+
+export function isYtdlpBackgroundJob(job: BackgroundJob): job is YtdlpBackgroundJob {
+  return job.type === 'ytdlp'
 }
 
 export function isGenericBackgroundJob(job: BackgroundJob): job is GenericBackgroundJob {
@@ -349,3 +372,4 @@ export function isFfmpegWriteTagsBackgroundJob(job: BackgroundJob): job is Ffmpe
 export function isImportFolderBackgroundJob(job: BackgroundJob): job is ImportFolderBackgroundJob {
   return job.type === 'import-folder'
 }
+

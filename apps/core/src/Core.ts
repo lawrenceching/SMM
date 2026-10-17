@@ -53,9 +53,19 @@ import { STATIC_MEDIA_DATABASES } from "./adapters/StaticDiscoverAdapter";
 import { ImportFolderJob } from "./jobs/ImportFolderJob";
 import { ImportLibraryJob } from "./jobs/ImportLibraryJob";
 import { ScrapeJob } from "./jobs/ScrapeJob";
+import { YtdlpJob } from "./jobs/YtdlpJob";
 import { nextJobId } from "./jobs/jobManager";
+import {
+  assertDownloadVideoRequest,
+  inspectVideoWithCommand,
+  type DownloadVideoHandle,
+  type DownloadVideoRequest,
+  type InspectVideoRequest,
+  type InspectVideoResult,
+} from "./pipeline/ytdlp/downloadVideoApi";
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
+import type { CommandPort } from "./ports/CommandPort";
 import {
   renameEpisodeFilePipeline,
   type RenameEpisodeFileInput,
@@ -168,6 +178,13 @@ export interface ScrapeFolderHandle {
   id: string;
 }
 
+export type {
+  DownloadVideoHandle,
+  DownloadVideoRequest,
+  InspectVideoRequest,
+  InspectVideoResult,
+};
+
 export interface ImportFolderOptions {
   /** When true, stop after stage 1: the folder is registered but never recognized. */
   skipInit?: boolean;
@@ -195,6 +212,7 @@ export class Core {
   private readonly userConfig: UserConfigHelper;
   private readonly mediaMetadata: MediaMetadataHelper;
   private readonly discover?: DiscoverPort;
+  private readonly command?: CommandPort;
   private readonly mcpServer?: McpServerPort;
   private readonly eventBus = new CoreEventBus();
   private readonly hostPerformance = new HostPerformanceStore();
@@ -219,6 +237,7 @@ export class Core {
       this.eventBus.emit(MEDIA_METADATA_UPDATED_EVENT, { folderPath });
     });
     this.discover = ports.discover;
+    this.command = ports.command;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
       void this.runHostSpeedTests();
@@ -305,16 +324,9 @@ export class Core {
     if(this._jobManager === undefined) {
       this._jobManager = new JobManager(
         // TODO: add app config
-        { concurrency: 1, timeoutMs: 5 * 60 * 1000 }, 
-        {
-          fs: this.fs,
-          network: this.network,
-          logger: this.logger,
-          normalizePosix: (p) => this.normalizePosix(p),
-          discover: this.discover,
-          hostPerformance: this.hostPerformance,
-        }
-      )
+        { concurrency: 1, timeoutMs: 5 * 60 * 1000 },
+        this.platformPorts(),
+      );
     }
     return this._jobManager;
   }
@@ -328,6 +340,85 @@ export class Core {
    * once it completed; stages 2 and 3 continue in the background. Stage 1 failures are
    * reported on the job, never thrown. See docs/dev/import-folder.md.
    */
+  private appContext(): AppContext {
+    return {
+      appDataDir: this.getMetadataRoot(),
+      userDataDir: this.userDataDir,
+      osLocale: this.osLocale ?? "",
+      tmpDir: this.tmpDir ?? "",
+      logDir: this.logDir ?? "",
+    };
+  }
+
+  private platformPorts(): PlatformPorts {
+    return {
+      fs: this.fs,
+      network: this.network,
+      logger: this.logger,
+      normalizePosix: (p) => this.normalizePosix(p),
+      discover: this.discover,
+      hostPerformance: this.hostPerformance,
+      command: this.command,
+    };
+  }
+
+  private requireCommand(): CommandPort {
+    if (this.command === undefined) {
+      throw new Error("CommandPort is required for yt-dlp operations");
+    }
+    return this.command;
+  }
+
+  /** Probe formats / playlist via `yt-dlp -J`. Not a Job. */
+  async inspectVideo(request: InspectVideoRequest): Promise<InspectVideoResult> {
+    return inspectVideoWithCommand({
+      request,
+      command: this.requireCommand(),
+      fs: this.fs,
+      userDataDir: this.userDataDir,
+      cookiesFileId: `inspect-${nextJobId()}`,
+    });
+  }
+
+  /**
+   * Enqueue one URL download as a {@link YtdlpJob} on the ytdlp queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async downloadVideo(
+    request: DownloadVideoRequest,
+    callbacks: Callbacks = {},
+  ): Promise<DownloadVideoHandle> {
+    const { url, folder } = assertDownloadVideoRequest(request);
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new YtdlpJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      url,
+      folder,
+      title: request.title,
+      format: request.format,
+      extraArgs: request.extraArgs,
+      cookiesText: request.cookiesText,
+      cookiesFromBrowser: request.cookiesFromBrowser,
+      jsRuntime: request.jsRuntime,
+      jsRuntimePath: request.jsRuntimePath,
+      proxy: request.proxy,
+      callbacks,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "ytdlp",
+      timeoutMs: 60 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  listJobs(): AbstractJob[] {
+    return this.jobManager.listJobs();
+  }
+
   async importFolder(options: {    
     path: string,
     type: FolderType,
@@ -335,21 +426,8 @@ export class Core {
     callbacks: Callbacks
   }): Promise<ImportFolderHandle> {
 
-    const ctx: AppContext = {
-      appDataDir: this.getMetadataRoot(),
-      userDataDir: this.userDataDir,
-      osLocale: this.osLocale ?? "",
-      tmpDir: this.tmpDir ?? "",
-      logDir: this.logDir ?? "",
-    };
-    const ports: PlatformPorts = {
-      fs: this.fs,
-      network: this.network,
-      logger: this.logger,
-      normalizePosix: (p) => this.normalizePosix(p),
-      discover: this.discover,
-      hostPerformance: this.hostPerformance,
-    };
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
     const job = new ImportFolderJob(ctx, ports, {
       id: Date.now().toString(),
       logDir: ctx.logDir,

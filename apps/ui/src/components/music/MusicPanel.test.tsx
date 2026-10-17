@@ -70,6 +70,7 @@ vi.mock('@/helpers/music/tracksFromDownloadVideoJobs', () => ({
     ...jobTracks,
   ],
   tracksFromDownloadJobRecords: () => h.emptyJobTracks,
+  tracksFromYtdlpJobs: () => h.emptyJobTracks,
 }))
 
 vi.mock('@/lib/transcribeDialogRows', async (importOriginal) => {

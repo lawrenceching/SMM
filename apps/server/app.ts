@@ -30,6 +30,9 @@ import { openFileRoute } from './src/route/OpenFile';
 import { openInFileManagerRoute } from './src/route/OpenInFileManager';
 import { moveFileToTrashRoute } from './src/route/MoveFileToTrash';
 import { getJobRoute } from './src/route/GetJob';
+import { getJobsRoute } from './src/route/GetJobs';
+import { ytdlpInspectRoute } from './src/route/YtdlpInspect';
+import { downloadVideoRoute } from './src/route/DownloadVideo';
 import { stopJobRoute } from './src/route/StopJob';
 import { getJobLogRoute } from './src/route/GetJobLog';
 import { commandLogRoute } from './src/route/commandLog';
@@ -167,8 +170,11 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', openInFileManagerRoute)
     .route('/', moveFileToTrashRoute)
     .route('/', getJobRoute)
+    .route('/', getJobsRoute)
     .route('/', stopJobRoute)
     .route('/', getJobLogRoute)
+    .route('/', ytdlpInspectRoute)
+    .route('/', downloadVideoRoute)
     .route('/', commandLogRoute)
     .route('/', tmdbRoute)
     .route('/', tvdbRoute)

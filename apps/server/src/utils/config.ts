@@ -148,7 +148,7 @@ export function getTmpDir(): string {
 }
 
 /** Merge persisted (possibly partial) config with defaults so required fields always exist. */
-export function mergeWithDefaultUserConfig(raw: Partial<UserConfig>): UserConfig {
+function mergeWithDefaultUserConfig(raw: Partial<UserConfig>): UserConfig {
     return {
         ...DEFAULT_USER_CONFIG,
         ...raw,

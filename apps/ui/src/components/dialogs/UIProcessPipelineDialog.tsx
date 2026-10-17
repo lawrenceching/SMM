@@ -37,11 +37,25 @@ import type {
   TranscribeOutputFormat,
   UIProcessPipelineDialogProps,
 } from "./types"
+import { LlmTranslatorFields } from "./LlmTranslatorFields"
+import { useConfig } from "@/hooks/userConfig"
 import { useTranslation } from "@/lib/i18n"
+import {
+  createDefaultLlmTranslatorFieldsValue,
+  isLlmTranslatorFieldsValid,
+  resolveLlmTranslatorPayload,
+  type LlmTranslatorFieldsValue,
+  type LlmTranslatorSourceMode,
+} from "@/lib/llmTranslatorFields"
 
 const ASR_OPTIONS: TranscribeAsrEngine[] = ["bijian", "jianying", "whisper-cpp"]
 const FORMAT_OPTIONS: TranscribeOutputFormat[] = ["srt", "ass", "txt", "json"]
-const TRANSLATOR_OPTIONS: SubtitleTranslateTranslator[] = ["bing", "google", "llm"]
+// "bing" remains a valid SubtitleTranslateTranslator / VideoCaptioner CLI value, but is
+// intentionally omitted from the UI: VideoCaptioner's free Bing provider fetches a token
+// from https://edge.microsoft.com/translate/auth, which now returns 404, so Bing jobs fail
+// at session init. Upstream tracker:
+// https://github.com/WEIFENG2333/VideoCaptioner/issues/1173
+const TRANSLATOR_OPTIONS: SubtitleTranslateTranslator[] = ["google", "llm"]
 const SUBTITLE_MODE_OPTIONS: SynthesizeSubtitleMode[] = ["soft", "hard"]
 const QUALITY_OPTIONS: SynthesizeQuality[] = ["ultra", "high", "medium", "low"]
 const RENDER_MODE_OPTIONS: SynthesizeRenderMode[] = ["ass", "rounded"]
@@ -57,6 +71,8 @@ const LS_FORMAT = "processPipeline.format"
 const LS_TRANSLATOR = "processPipeline.translator"
 const LS_TARGET_LANG = "processPipeline.targetLanguage"
 const LS_NO_SYNTH = "processPipeline.noSynthesize"
+const LS_LLM_MODE = "processPipeline.llmSourceMode"
+const LS_LLM_PROVIDER = "processPipeline.llmProviderName"
 
 function readStoredAsr(): TranscribeAsrEngine {
   try {
@@ -81,11 +97,12 @@ function readStoredFormat(): TranscribeOutputFormat {
 function readStoredTranslator(): SubtitleTranslateTranslator {
   try {
     const v = localStorage.getItem(LS_TRANSLATOR)?.trim()
-    if (v === "bing" || v === "google" || v === "llm") return v
+    // Do not restore "bing" — option is hidden from UI (see TRANSLATOR_OPTIONS comment).
+    if (v === "google" || v === "llm") return v
   } catch {
     // ignore
   }
-  return "bing"
+  return "google"
 }
 
 function readStoredTargetLanguage(): string {
@@ -104,6 +121,19 @@ function readStoredNoSynthesize(): boolean {
     // ignore
   }
   return true
+}
+
+function readStoredLlmPrefs(): { mode?: LlmTranslatorSourceMode; providerName?: string } {
+  try {
+    const mode = localStorage.getItem(LS_LLM_MODE)?.trim()
+    const providerName = localStorage.getItem(LS_LLM_PROVIDER)?.trim()
+    return {
+      ...(mode === "configured" || mode === "custom" ? { mode } : {}),
+      ...(providerName ? { providerName } : {}),
+    }
+  } catch {
+    return {}
+  }
 }
 
 function computeInitialSelection(
@@ -136,6 +166,8 @@ export function UIProcessPipelineDialog({
   const { t } = useTranslation("components")
   const { t: tDialogs } = useTranslation("dialogs")
   const { t: tCommon } = useTranslation("common")
+  const { userConfig } = useConfig()
+  const aiProviders = userConfig.aiProviders
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
   const wasOpenRef = useRef(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
@@ -146,14 +178,14 @@ export function UIProcessPipelineDialog({
   const [noOptimize, setNoOptimize] = useState(false)
   const [noTranslate, setNoTranslate] = useState(false)
   const [noSplit, setNoSplit] = useState(false)
-  const [translator, setTranslator] = useState<SubtitleTranslateTranslator>("bing")
+  const [translator, setTranslator] = useState<SubtitleTranslateTranslator>("google")
   const [targetLanguage, setTargetLanguage] = useState("en")
   const [reflect, setReflect] = useState(false)
   const [layout, setLayout] = useState<SubtitleTranslateLayout | "">("")
   const [prompt, setPrompt] = useState("")
-  const [llmApiKey, setLlmApiKey] = useState("")
-  const [llmApiBase, setLlmApiBase] = useState("")
-  const [llmModel, setLlmModel] = useState("")
+  const [llmFields, setLlmFields] = useState<LlmTranslatorFieldsValue>(() =>
+    createDefaultLlmTranslatorFieldsValue(undefined, undefined),
+  )
   const [noSynthesize, setNoSynthesize] = useState(true)
   const [subtitleMode, setSubtitleMode] = useState<SynthesizeSubtitleMode>("soft")
   const [quality, setQuality] = useState<SynthesizeQuality>("medium")
@@ -181,9 +213,13 @@ export function UIProcessPipelineDialog({
       setReflect(false)
       setLayout("")
       setPrompt("")
-      setLlmApiKey("")
-      setLlmApiBase("")
-      setLlmModel("")
+      setLlmFields(
+        createDefaultLlmTranslatorFieldsValue(
+          aiProviders,
+          userConfig.selectedAIProvider,
+          readStoredLlmPrefs(),
+        ),
+      )
       setSubtitleMode("soft")
       setQuality("medium")
       setStyle("")
@@ -192,7 +228,7 @@ export function UIProcessPipelineDialog({
     }
     /* eslint-enable react-hooks/set-state-in-effect */
     wasOpenRef.current = isOpen
-  }, [isOpen, rows, defaultSelectedIds])
+  }, [isOpen, rows, defaultSelectedIds, aiProviders, userConfig.selectedAIProvider])
 
   const allEligibleSelected =
     eligibleRows.length > 0 && eligibleRows.every((r) => selectedIds.has(r.id))
@@ -222,7 +258,10 @@ export function UIProcessPipelineDialog({
 
   const asrBlocked = disabledAsrEngines?.includes(asr) ?? false
   const translateOk = noTranslate || (Boolean(translator) && targetLanguage.trim().length > 0)
-  const llmOk = translator !== "llm" || noTranslate || llmApiKey.trim().length > 0
+  const llmOk =
+    translator !== "llm" ||
+    noTranslate ||
+    isLlmTranslatorFieldsValid(llmFields, aiProviders)
   const canConfirm =
     videoCaptionerAvailable && selectedEligibleCount > 0 && !asrBlocked && translateOk && llmOk
 
@@ -234,9 +273,19 @@ export function UIProcessPipelineDialog({
       localStorage.setItem(LS_TRANSLATOR, translator)
       localStorage.setItem(LS_TARGET_LANG, targetLanguage.trim())
       localStorage.setItem(LS_NO_SYNTH, noSynthesize ? "true" : "false")
+      if (!noTranslate && translator === "llm") {
+        localStorage.setItem(LS_LLM_MODE, llmFields.mode)
+        if (llmFields.providerName.trim()) {
+          localStorage.setItem(LS_LLM_PROVIDER, llmFields.providerName.trim())
+        }
+      }
     } catch {
       // ignore
     }
+    const resolvedLlm =
+      !noTranslate && translator === "llm"
+        ? resolveLlmTranslatorPayload(llmFields, aiProviders)
+        : null
     const payload: ProcessPipelineConfirmPayload = {
       selectedIds: [...selectedIds].filter((id) => eligibleRows.some((r) => r.id === id)),
       asr,
@@ -254,15 +303,7 @@ export function UIProcessPipelineDialog({
         : {
             translator,
             targetLanguage: targetLanguage.trim(),
-            ...(translator === "llm" && llmApiKey.trim()
-              ? {
-                  llm: {
-                    apiKey: llmApiKey.trim(),
-                    ...(llmApiBase.trim() ? { apiBase: llmApiBase.trim() } : {}),
-                    ...(llmModel.trim() ? { model: llmModel.trim() } : {}),
-                  },
-                }
-              : {}),
+            ...(resolvedLlm ? { llm: resolvedLlm } : {}),
           }),
       ...(layout !== "" ? { layout: layout as SubtitleTranslateLayout } : {}),
       ...(!noSynthesize
@@ -295,9 +336,8 @@ export function UIProcessPipelineDialog({
     reflect,
     layout,
     prompt,
-    llmApiKey,
-    llmApiBase,
-    llmModel,
+    llmFields,
+    aiProviders,
     noSynthesize,
     subtitleMode,
     quality,
@@ -499,20 +539,12 @@ export function UIProcessPipelineDialog({
                   <Input id="process-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
                 </div>
                 {translator === "llm" ? (
-                  <div className="space-y-2 rounded border p-2">
-                    <div className="space-y-1">
-                      <Label>{t("processPipelineDialog.llmApiKey")}</Label>
-                      <Input value={llmApiKey} onChange={(e) => setLlmApiKey(e.target.value)} type="password" />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{t("processPipelineDialog.llmApiBase")}</Label>
-                      <Input value={llmApiBase} onChange={(e) => setLlmApiBase(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{t("processPipelineDialog.llmModel")}</Label>
-                      <Input value={llmModel} onChange={(e) => setLlmModel(e.target.value)} />
-                    </div>
-                  </div>
+                  <LlmTranslatorFields
+                    value={llmFields}
+                    onChange={setLlmFields}
+                    disabled={!videoCaptionerAvailable}
+                    testIdPrefix="process-pipeline"
+                  />
                 ) : null}
               </>
             ) : null}

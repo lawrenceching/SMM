@@ -3,9 +3,9 @@ import { validateDownloadUrl } from "@smm/core/download-video-validators";
 import { buildYtdlpInspectArgs } from "@smm/core/whitelistedCmd/ytdlp";
 import { probeWhitelistedCommand } from "@/lib/whitelistedCmd/probeWhitelistedCommand";
 import { executeYtdlp } from "@/lib/ytdlp/executeYtdlp";
+import { ytdlpInspectViaCore } from "@/api/ytdlpInspect";
 
-import { parse, videoMetadataForFormatsListing } from "@/api/ytdlp/parse";
-import type { PlaylistMetadata, VideoMetadata } from "@/api/ytdlp/types";
+import type { VideoMetadata } from "@/api/ytdlp/types";
 
 export async function getYtdlpVersion(): Promise<{ version?: string; error?: string }> {
   const probe = await probeWhitelistedCommand("yt-dlp");
@@ -21,7 +21,9 @@ export async function getYtdlpVersion(): Promise<{ version?: string; error?: str
 
 export interface YtdlpListFormatsRequest {
   url: string;
-  /** Absolute path to a Netscape-format cookies file. */
+  /** Netscape cookies file contents (Core writes a managed temp file). */
+  cookiesText?: string;
+  /** @deprecated Prefer cookiesText; ignored by Core inspect. */
   cookiesFile?: string;
   /** Browser profile name for `--cookies-from-browser`. */
   cookiesFromBrowser?: string;
@@ -31,7 +33,7 @@ export interface YtdlpListFormatsRequest {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
-  /** Used to validate managed cookies cleanup on the client. */
+  /** @deprecated No longer used; Core manages cookies cleanup. */
   userDataDir?: string;
 }
 
@@ -42,82 +44,26 @@ export interface ListFormatsResult {
   playlistEntries?: VideoMetadata[];
 }
 
-/** E2E: when set, `listYtdlpFormats` throws this yt-dlp-style error without running yt-dlp. */
-const TEST_MOCK_LIST_FORMATS_ERROR_KEY = "test.mockYtdlpListFormatsError";
-
-/** E2E: when set, `listYtdlpFormats` parses this `yt-dlp -J` stdout without running yt-dlp. */
-const TEST_MOCK_LIST_FORMATS_JSON_KEY = "test.mockYtdlpListFormatsJson";
-
 /**
- * Runs `yt-dlp -J` and returns the parsed format list. Supports `--cookies` (manual file),
- * `--cookies-from-browser`, and `--js-runtimes`. Throws on non-zero exit code so callers
- * can classify the error.
+ * Lists formats / playlist entries via Core `POST /api/ytdlp-inspect`.
+ * Throws on business error so callers can classify the message.
  */
 export async function listYtdlpFormats(
   req: YtdlpListFormatsRequest
 ): Promise<ListFormatsResult> {
-  if (typeof localStorage !== "undefined") {
-    const mockError = localStorage.getItem(TEST_MOCK_LIST_FORMATS_ERROR_KEY);
-    if (mockError) {
-      throw new Error(mockError);
-    }
-
-    const mockJson = localStorage.getItem(TEST_MOCK_LIST_FORMATS_JSON_KEY);
-    if (mockJson) {
-      // Brief delay so E2E can observe Go disabled during "probing".
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      const parsed = parse(mockJson);
-      const videoMetadata = videoMetadataForFormatsListing(parsed);
-      let playlistEntries: VideoMetadata[] | undefined;
-      if ("entries" in parsed) {
-        playlistEntries = (parsed as PlaylistMetadata).entries;
-      }
-      return { videoMetadata, playlistEntries };
-    }
-  }
-
-  const args = buildYtdlpInspectArgs({
+  const result = await ytdlpInspectViaCore({
     url: req.url,
-    cookiesFile: req.cookiesFile,
+    cookiesText: req.cookiesText,
     cookiesFromBrowser: req.cookiesFromBrowser,
     jsRuntime: req.jsRuntime,
     jsRuntimePath: req.jsRuntimePath,
     proxy: req.proxy,
-    mode: "json",
   });
 
-  const result = await executeYtdlp(args, {
-    timeoutMs: 60_000,
-    cleanup: req.cookiesFile?.trim() ? "managed-cookies-after-run" : "none",
-    userDataDir: req.userDataDir,
-  });
-
-  if (!result.success) {
-    const stderr = result.stderr?.trim() ?? ""
-    const stdout = result.stdout?.trim() ?? ""
-    const errorText = [stderr, stdout].filter(Boolean).join("\n")
-    const message = errorText || `yt-dlp exited with code ${result.exitCode}`
-    // Prepend the system-level error (e.g. timeout message) if available
-    const fullMessage = result.error ? `${result.error}\n${message}` : message
-    const error = new Error(fullMessage)
-    // Attach executionId so DVD can show a "日志" button to view command logs
-    if (result.executionId) {
-      (error as Error & { executionId?: string }).executionId = result.executionId
-    }
-    throw error
-  }
-
-  const parsed = parse(result.stdout);
-  const videoMetadata = videoMetadataForFormatsListing(parsed);
-
-  // Extract full playlist entries when yt-dlp returns a playlist
-  let playlistEntries: VideoMetadata[] | undefined;
-  if ("entries" in parsed) {
-    const playlist = parsed as PlaylistMetadata;
-    playlistEntries = playlist.entries;
-  }
-
-  return { videoMetadata, playlistEntries };
+  return {
+    videoMetadata: result.video,
+    playlistEntries: result.playlistEntries,
+  };
 }
 
 /** Subset of yt-dlp `-J` output for a single video (`_type: video`). */

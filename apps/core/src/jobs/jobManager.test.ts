@@ -117,4 +117,55 @@ describe("JobManager", () => {
     const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
     expect(() => manager.tryAbort("missing")).not.toThrow();
   });
+
+  it("tryAbort also calls abort()", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    const job = new QuickJob(context, ports, jobOptions("job-abort-2"));
+    const abortSpy = vi.spyOn(job, "abort");
+    manager.submit(job, () => {});
+    await manager.waitForJobUntilCompleted("job-abort-2");
+
+    manager.tryAbort("job-abort-2");
+    expect(abortSpy).toHaveBeenCalledOnce();
+  });
+
+  it("listJobs returns submitted jobs", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+    const job = new QuickJob(context, ports, jobOptions("job-list-1"));
+    manager.submit(job, () => {});
+    expect(manager.listJobs()).toEqual([job]);
+    await manager.waitForJobUntilCompleted("job-list-1");
+  });
+
+  it("ytdlp queue does not block the default queue", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+
+    let releaseSlow!: () => void;
+    const slowGate = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+
+    class SlowYtdlpJob extends QuickJob {
+      override async run(): Promise<void> {
+        await slowGate;
+      }
+    }
+
+    const slow = new SlowYtdlpJob(context, ports, jobOptions("ytdlp-slow"));
+    const fast = new QuickJob(context, ports, jobOptions("default-fast"));
+
+    manager.submit(slow, () => {}, { queue: "ytdlp", timeoutMs: 60_000 });
+    manager.submit(fast, () => {});
+
+    await manager.waitForJobUntilCompleted("default-fast");
+    expect(fast.status).toBe("succeeded");
+    expect(slow.status).toBe("running");
+
+    releaseSlow();
+    await manager.waitForJobUntilCompleted("ytdlp-slow");
+    expect(slow.status).toBe("succeeded");
+  });
 });

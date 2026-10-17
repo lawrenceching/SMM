@@ -2,6 +2,7 @@ import { Command, CommanderError, Option } from 'commander'
 import type { FolderType } from '@smm/core'
 import { add } from './commands/add'
 import { addlib } from './commands/addlib'
+import { download } from './commands/download'
 import { hello } from './commands/hello'
 import { list } from './commands/list'
 import { metadata } from './commands/metadata'
@@ -94,6 +95,39 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .action(async (library: string, opts: { type: string; verbose?: boolean; skipInit?: boolean }) => {
       exitCode = await addlib(library, opts)
     })
+
+  program
+    .command('download')
+    .description('Download a video with yt-dlp into a folder')
+    .argument('<url>', 'Video URL')
+    .requiredOption('--folder <path>', 'Destination folder')
+    .option('--format <format>', 'Format preset (default|best|1080p|720p|audio) or raw -f code', 'default')
+    .option('--proxy <url>', 'Proxy URL for yt-dlp --proxy')
+    .option('--cookies-from-browser <name>', 'Browser name for --cookies-from-browser')
+    .option('--cookies <file>', 'Netscape cookies file path')
+    .option('--title <title>', 'Display title for the job')
+    .option(
+      '--print-progress-only',
+      'Print only progress snapshot lines (progress percent=…); omit yt-dlp logs',
+    )
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        url: string,
+        opts: {
+          folder: string
+          format?: string
+          proxy?: string
+          cookiesFromBrowser?: string
+          cookies?: string
+          title?: string
+          verbose?: boolean
+          printProgressOnly?: boolean
+        },
+      ) => {
+        exitCode = await download(url, opts)
+      },
+    )
 
   program
     .command('show')

@@ -17,7 +17,11 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
-import { isDownloadVideoJob, isFfmpegConvertBackgroundJob } from '@/types/background-jobs'
+import {
+  isDownloadVideoJob,
+  isFfmpegConvertBackgroundJob,
+  isYtdlpBackgroundJob,
+} from '@/types/background-jobs'
 import { cn } from '@/lib/utils'
 import type { TFunction } from 'i18next'
 import { useTranslation } from '@/lib/i18n'
@@ -102,6 +106,12 @@ function getStatusColor(status: JobStatus) {
 
 function getJobDisplayName(job: BackgroundJob, t: TFunction<'components'>): string {
   switch (job.type) {
+    case 'ytdlp': {
+      const title = job.data.title?.trim()
+      if (title && title !== 'Download Video') return title
+      if (job.data.url) return job.data.url
+      return t('statusBar.backgroundJobs.jobNames.downloadVideo')
+    }
     case 'download-video': {
       const videos = (job.data as { videos?: unknown[] } | undefined)?.videos
       if (videos && videos.length > 1) {
@@ -165,11 +175,11 @@ export function BackgroundJobItem({
   const { t } = useTranslation('components')
   const displayName = getJobDisplayName(job, t)
 
-  // For jobs with command logs, poll the log for real-time progress.
-  // Single source of truth: main.log. IDB never holds transient fields.
-  // - download-video → yt-dlp progress JSON
-  // - ffmpeg-convert  → ffmpeg `frame=… time=…` lines (see
-  //                     docs/design/ffmpeg-progress-display.md)
+  // Progress sources:
+  // - ytdlp (Core) → job snapshot fields (polled via get-job)
+  // - download-video (legacy IDB) → yt-dlp progress JSON from command log
+  // - ffmpeg-convert → ffmpeg `frame=… time=…` lines
+  const isYtdlp = isYtdlpBackgroundJob(job)
   const isDownload = isDownloadVideoJob(job)
   const isFfmpegConvert = isFfmpegConvertBackgroundJob(job)
   const executionId = getJobExecutionId(job) ?? ''
@@ -184,19 +194,25 @@ export function BackgroundJobItem({
     isRunning: shouldPollLog && isFfmpegConvert,
   })
 
-  // Live percent comes from the appropriate log-poll hook. Falls back to
-  // IDB's overall progress before the first progress line lands.
   const livePercent =
-    isDownload
-      ? ytdlpLiveProgress?.percent
-      : isFfmpegConvert
-        ? ffmpegLiveProgress?.percent ?? undefined
-        : undefined
+    isYtdlp
+      ? undefined
+      : isDownload
+        ? ytdlpLiveProgress?.percent
+        : isFfmpegConvert
+          ? ffmpegLiveProgress?.percent ?? undefined
+          : undefined
   const overallPercent = Math.max(0, Math.min(100, job.progress))
   const percent = livePercent ?? overallPercent
-  const speedBps = isDownload ? ytdlpLiveProgress?.speedBps : undefined
-  const etaSeconds =
-    isDownload
+  const showDownloadStats = isYtdlp || isDownload
+  const speedBps = isYtdlp
+    ? job.data.speedBps
+    : isDownload
+      ? ytdlpLiveProgress?.speedBps
+      : undefined
+  const etaSeconds = isYtdlp
+    ? job.data.etaSeconds ?? undefined
+    : isDownload
       ? ytdlpLiveProgress?.etaSeconds ?? undefined
       : isFfmpegConvert
         ? ffmpegLiveProgress?.etaSeconds ?? undefined
@@ -239,7 +255,7 @@ export function BackgroundJobItem({
                   <Progress value={percent} className="h-1.5" />
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs text-muted-foreground">{Math.round(percent)}%</p>
-                    {isDownload && speedBps != null && (
+                    {showDownloadStats && speedBps != null && (
                       <p
                         data-testid={`background-job-${job.id}-speed`}
                         className="text-xs text-muted-foreground"
@@ -247,7 +263,7 @@ export function BackgroundJobItem({
                         {formatDownloadSpeed(speedBps)}
                       </p>
                     )}
-                    {(isDownload || isFfmpegConvert) && etaSeconds != null && (
+                    {(showDownloadStats || isFfmpegConvert) && etaSeconds != null && (
                       <p
                         data-testid={`background-job-${job.id}-eta`}
                         className="text-xs text-muted-foreground"

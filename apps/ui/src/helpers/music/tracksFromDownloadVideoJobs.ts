@@ -1,5 +1,10 @@
 import type { Track } from '@/components/MediaPlayer'
-import type { DownloadVideoBackgroundJob, DownloadVideoItemStatus } from '@/types/background-jobs'
+import type {
+  DownloadVideoBackgroundJob,
+  DownloadVideoItemStatus,
+  JobStatus,
+  YtdlpBackgroundJob,
+} from '@/types/background-jobs'
 import type { DownloadJobRecord } from '@/lib/downloadTaskDb'
 
 function stableTempTrackId(jobId: string, itemIndex: number): number {
@@ -78,6 +83,38 @@ export function tracksFromDownloadVideoJobs(jobs: DownloadVideoBackgroundJob[]):
       status: mapItemStatus(item.status),
     }))
   )
+}
+
+function mapYtdlpJobStatus(status: JobStatus): NonNullable<Track['status']> {
+  switch (status) {
+    case 'succeeded':
+      return 'completed'
+    case 'failed':
+      return 'failed'
+    case 'running':
+      return 'downloading'
+    case 'aborted':
+    case 'stopped':
+      return 'stopped'
+    default:
+      return 'pending'
+  }
+}
+
+/** Maps Core `ytdlp` background jobs to temporary {@link Track} rows for the music table. */
+export function tracksFromYtdlpJobs(jobs: YtdlpBackgroundJob[]): Track[] {
+  return jobs.map((job, index) => ({
+    id: stableTempTrackId(job.id, index),
+    title: job.data.title?.trim() || job.name || job.data.url,
+    artist: '',
+    duration: 0,
+    thumbnail: '',
+    addedDate: new Date(),
+    path: undefined,
+    url: job.data.url,
+    jobId: job.id,
+    status: mapYtdlpJobStatus(job.status),
+  }))
 }
 
 /**

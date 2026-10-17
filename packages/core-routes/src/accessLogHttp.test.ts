@@ -30,8 +30,9 @@ describe("shouldLogHttpAccess", () => {
     expect(shouldLogHttpAccess("/api/scrape")).toBe(true);
   });
 
-  it("skips /api/log, static assets, socket.io and /proxy", () => {
+  it("skips high-frequency /api/log and /api/get-job, static assets, socket.io and /proxy", () => {
     expect(shouldLogHttpAccess("/api/log")).toBe(false);
+    expect(shouldLogHttpAccess("/api/get-job")).toBe(false);
     expect(shouldLogHttpAccess("/index.html")).toBe(false);
     expect(shouldLogHttpAccess("/socket.io/")).toBe(false);
     expect(shouldLogHttpAccess("/proxy/api/chat")).toBe(false);

@@ -139,6 +139,7 @@ export type {
   ImportJob,
   ImportLibraryJobTask,
   ScrapeJobSnapshot,
+  YtdlpJobSnapshot,
   Job,
   JobStatus,
   JobStage,
@@ -156,4 +157,30 @@ export { DummyJob } from "./jobs/DummyJob";
 export { ImportFolderJob, type ImportFolderJobOptions } from "./jobs/ImportFolderJob";
 export { ImportLibraryJob, type ImportLibraryJobOptions } from "./jobs/ImportLibraryJob";
 export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
+export { YtdlpJob, type YtdlpJobOptions } from "./jobs/YtdlpJob";
+export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
+export type {
+  DownloadVideoHandle,
+  DownloadVideoRequest,
+  InspectVideoRequest,
+  InspectVideoResult,
+} from "./pipeline/ytdlp/downloadVideoApi";
+export {
+  parseYtdlpProgressLine,
+  injectYtdlpProgressArgs,
+  YTDLP_PROGRESS_TEMPLATE,
+  type YtdlpProgressData,
+} from "./pipeline/ytdlp/progress";
+export {
+  parseTestYtDlpUrl,
+  isTestYtDlpUrl,
+  extractTestYtDlpUrl,
+  buildYtDlpSimulatedError,
+} from "./pipeline/ytdlp/testLocal";
+export {
+  classifyYtdlpError,
+  type YtdlpErrorType,
+  type ClassifyYtdlpErrorInput,
+  type YtdlpErrorResult,
+} from "./pipeline/ytdlp/classifyYtdlpError";
 export type { FolderType, HelloCliBody } from "@smm/types";
