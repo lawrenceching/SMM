@@ -1,15 +1,23 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
+import { Path } from "@smm/utils/path"
 import { basename } from "@/lib/path"
 import { UISynthesizeSubtitleDialog } from "./UISynthesizeSubtitleDialog"
 import type { SynthesizeSubtitleDialogProps, SynthesizeSubtitleConfirmPayload } from "./types"
-import { buildSynthesizeJob } from "@/lib/synthesizeJobFactory"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
-import { useJobManager } from "@/hooks/useJobManager"
+import { synthesizeSubtitleViaCore } from "@/api/synthesizeSubtitle"
+import {
+  applySynthesizeSubtitlePollUpdate,
+  pollSubtitleJob,
+  upsertSynthesizeSubtitleJobFromCore,
+} from "@/lib/pollSubtitleJob"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 
+/**
+ * Closes immediately after confirm, then enqueues Core synthesize-subtitle jobs and polls.
+ */
 export function SynthesizeSubtitleDialog({ rows, onClose, folder, ...rest }: SynthesizeSubtitleDialogProps) {
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
-  const { createJob } = useJobManager()
 
   const handleConfirm = useCallback(
     async (payload: SynthesizeSubtitleConfirmPayload) => {
@@ -27,27 +35,55 @@ export function SynthesizeSubtitleDialog({ rows, onClose, folder, ...rest }: Syn
           continue
         }
         const displayTitle = row.title?.trim() || basename(row.videoPath) || row.videoPath
+        const videoPath = Path.toPlatformPath(Path.posix(row.videoPath))
+        const subtitlePath = Path.toPlatformPath(Path.posix(row.subtitlePath))
 
-        const job = buildSynthesizeJob({
-          folder: folderTrimmed,
-          videoPath: row.videoPath,
-          subtitlePath: row.subtitlePath,
-          title: displayTitle,
-          subtitleMode: payload.subtitleMode,
-          quality: payload.quality,
-          ...(payload.style !== undefined ? { style: payload.style } : {}),
-          ...(payload.renderMode !== undefined ? { renderMode: payload.renderMode } : {}),
-          ...(payload.layout !== undefined ? { layout: payload.layout } : {}),
-        })
+        try {
+          const jobId = await synthesizeSubtitleViaCore({
+            folder: folderTrimmed,
+            videoPath,
+            subtitlePath,
+            title: displayTitle,
+            subtitleMode: payload.subtitleMode,
+            quality: payload.quality,
+            ...(payload.style !== undefined ? { style: payload.style } : {}),
+            ...(payload.renderMode !== undefined ? { renderMode: payload.renderMode } : {}),
+            ...(payload.layout !== undefined ? { layout: payload.layout } : {}),
+          })
 
-        await createJob(job)
-        saved += 1
+          upsertSynthesizeSubtitleJobFromCore({
+            id: jobId,
+            folder: folderTrimmed,
+            videoPath,
+            subtitlePath,
+            title: displayTitle,
+            subtitleMode: payload.subtitleMode,
+            quality: payload.quality,
+            ...(payload.style !== undefined ? { style: payload.style } : {}),
+            ...(payload.renderMode !== undefined ? { renderMode: payload.renderMode } : {}),
+            ...(payload.layout !== undefined ? { layout: payload.layout } : {}),
+            status: "pending",
+            progress: 0,
+          })
+
+          void pollSubtitleJob(jobId, "synthesize-subtitle", (job) => {
+            applySynthesizeSubtitlePollUpdate(job)
+          }).catch((error: unknown) => {
+            console.error("[SynthesizeSubtitleDialog] poll synthesize-subtitle job failed:", error)
+            useBackgroundJobsStore.getState().updateJob(jobId, { status: "failed" })
+          })
+
+          saved += 1
+        } catch (error) {
+          console.error("[SynthesizeSubtitleDialog] Failed to enqueue synthesize:", videoPath, error)
+          toast.error(error instanceof Error ? error.message : "Synthesis failed")
+        }
       }
 
       if (saved === 0) return
       onClose()
     },
-    [rows, onClose, folder, createJob],
+    [rows, onClose, folder],
   )
 
   return (
