@@ -33,6 +33,8 @@ import { getJobRoute } from './src/route/GetJob';
 import { getJobsRoute } from './src/route/GetJobs';
 import { ytdlpInspectRoute } from './src/route/YtdlpInspect';
 import { downloadVideoRoute } from './src/route/DownloadVideo';
+import { transcribeSubtitleRoute } from './src/route/TranscribeSubtitle';
+import { translateSubtitleRoute } from './src/route/TranslateSubtitle';
 import { stopJobRoute } from './src/route/StopJob';
 import { getJobLogRoute } from './src/route/GetJobLog';
 import { commandLogRoute } from './src/route/commandLog';
@@ -175,6 +177,8 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', getJobLogRoute)
     .route('/', ytdlpInspectRoute)
     .route('/', downloadVideoRoute)
+    .route('/', transcribeSubtitleRoute)
+    .route('/', translateSubtitleRoute)
     .route('/', commandLogRoute)
     .route('/', tmdbRoute)
     .route('/', tvdbRoute)

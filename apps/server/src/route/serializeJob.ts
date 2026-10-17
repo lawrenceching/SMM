@@ -2,6 +2,8 @@ import {
   ImportFolderJob,
   ImportLibraryJob,
   ScrapeJob,
+  TranscribeSubtitleJob,
+  TranslateSubtitleJob,
   YtdlpJob,
   type Job,
 } from '@smm/core'
@@ -30,6 +32,12 @@ export function serializeJob(
     return job.toJSON()
   }
   if (job instanceof YtdlpJob) {
+    return job.toJSON()
+  }
+  if (job instanceof TranscribeSubtitleJob) {
+    return job.toJSON()
+  }
+  if (job instanceof TranslateSubtitleJob) {
     return job.toJSON()
   }
   return {
