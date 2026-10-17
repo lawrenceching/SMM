@@ -1,7 +1,9 @@
 import {
   ImportFolderJob,
   ImportLibraryJob,
+  ProcessSubtitleJob,
   ScrapeJob,
+  SynthesizeSubtitleJob,
   TranscribeSubtitleJob,
   TranslateSubtitleJob,
   YtdlpJob,
@@ -38,6 +40,12 @@ export function serializeJob(
     return job.toJSON()
   }
   if (job instanceof TranslateSubtitleJob) {
+    return job.toJSON()
+  }
+  if (job instanceof SynthesizeSubtitleJob) {
+    return job.toJSON()
+  }
+  if (job instanceof ProcessSubtitleJob) {
     return job.toJSON()
   }
   return {

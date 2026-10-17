@@ -35,6 +35,8 @@ import { ytdlpInspectRoute } from './src/route/YtdlpInspect';
 import { downloadVideoRoute } from './src/route/DownloadVideo';
 import { transcribeSubtitleRoute } from './src/route/TranscribeSubtitle';
 import { translateSubtitleRoute } from './src/route/TranslateSubtitle';
+import { synthesizeSubtitleRoute } from './src/route/SynthesizeSubtitle';
+import { processSubtitleRoute } from './src/route/ProcessSubtitle';
 import { stopJobRoute } from './src/route/StopJob';
 import { getJobLogRoute } from './src/route/GetJobLog';
 import { commandLogRoute } from './src/route/commandLog';
@@ -179,6 +181,8 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', downloadVideoRoute)
     .route('/', transcribeSubtitleRoute)
     .route('/', translateSubtitleRoute)
+    .route('/', synthesizeSubtitleRoute)
+    .route('/', processSubtitleRoute)
     .route('/', commandLogRoute)
     .route('/', tmdbRoute)
     .route('/', tvdbRoute)
