@@ -1,5 +1,6 @@
 import type { HostPerformanceStore } from "./clients/hostPerformance";
 import type { CommandPort } from "./ports/CommandPort";
+import type { VideoCaptionerPort } from "./ports/VideoCaptionerPort";
 import type { DiscoverPort } from "./ports/DiscoverPort";
 import type { FsPort } from "./ports/FsPort";
 import type { LoggerPort } from "./ports/LoggerPort";
@@ -50,6 +51,7 @@ export interface PlatformPorts {
   hostPerformance?: HostPerformanceStore;
   /** Optional: required for inspectVideo / downloadVideo (yt-dlp). */
   command?: CommandPort;
+  videoCaptioner?: VideoCaptionerPort;
 }
 
 /**
@@ -62,4 +64,5 @@ export interface PlatformPortsInput {
   logger?: LoggerPort;
   discover?: DiscoverPort;
   command?: CommandPort;
+  videoCaptioner?: VideoCaptionerPort;
 }

@@ -160,6 +160,11 @@ export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
 export { YtdlpJob, type YtdlpJobOptions } from "./jobs/YtdlpJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
 export type {
+  VideoCaptionerPort,
+  VideoCaptionerRunRequest,
+  VideoCaptionerRunResult,
+} from "./ports/VideoCaptionerPort";
+export type {
   DownloadVideoHandle,
   DownloadVideoRequest,
   InspectVideoRequest,
