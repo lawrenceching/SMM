@@ -164,6 +164,10 @@ export {
   TranscribeSubtitleJob,
   type TranscribeSubtitleJobOptions,
 } from "./jobs/TranscribeSubtitleJob";
+export {
+  TranslateSubtitleJob,
+  type TranslateSubtitleJobOptions,
+} from "./jobs/TranslateSubtitleJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
 export type {
   VideoCaptionerPort,
