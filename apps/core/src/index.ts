@@ -160,6 +160,10 @@ export { ImportFolderJob, type ImportFolderJobOptions } from "./jobs/ImportFolde
 export { ImportLibraryJob, type ImportLibraryJobOptions } from "./jobs/ImportLibraryJob";
 export { ScrapeJob, type ScrapeJobOptions } from "./jobs/ScrapeJob";
 export { YtdlpJob, type YtdlpJobOptions } from "./jobs/YtdlpJob";
+export {
+  TranscribeSubtitleJob,
+  type TranscribeSubtitleJobOptions,
+} from "./jobs/TranscribeSubtitleJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
 export type {
   VideoCaptionerPort,
