@@ -17,7 +17,14 @@ import { useGetAssociatedFiles } from "@/hooks/useGetAssociatedFiles"
 import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import { absolutePosixMusicFilePath } from "@/lib/transcribeDialogRows"
 import type { BackgroundJob } from "@/types/background-jobs"
-import { isTranscribeBackgroundJob, isTranslateBackgroundJob, isSynthesizeBackgroundJob, isProcessBackgroundJob } from "@/types/background-jobs"
+import {
+  isTranscribeBackgroundJob,
+  isTranscribeSubtitleBackgroundJob,
+  isTranslateBackgroundJob,
+  isTranslateSubtitleBackgroundJob,
+  isSynthesizeBackgroundJob,
+  isProcessBackgroundJob,
+} from "@/types/background-jobs"
 import { readFile } from "@/api/readFile"
 import { useConfig } from "@/hooks/userConfig/useConfig"
 import { summarizeVideo } from "@/lib/summarizeVideo"
@@ -38,8 +45,12 @@ export interface LocalFileTableRowProps {
 function jobTypeToRunningJobType(
   job: BackgroundJob,
 ): RunningJob["type"] | null {
-  if (isTranscribeBackgroundJob(job)) return "transcribing"
-  if (isTranslateBackgroundJob(job)) return "translating"
+  if (isTranscribeBackgroundJob(job) || isTranscribeSubtitleBackgroundJob(job)) {
+    return "transcribing"
+  }
+  if (isTranslateBackgroundJob(job) || isTranslateSubtitleBackgroundJob(job)) {
+    return "translating"
+  }
   if (isSynthesizeBackgroundJob(job)) return "synthesising"
   if (isProcessBackgroundJob(job)) return "processing"
   return null

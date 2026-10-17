@@ -14,8 +14,6 @@ import { useTranslation } from '@/lib/i18n'
 import { DialogContext } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
-  TranscribeBackgroundJobData,
-  TranslateBackgroundJobData,
   SynthesizeBackgroundJobData,
   ProcessBackgroundJobData,
   FfmpegConvertBackgroundJobData,
@@ -117,36 +115,6 @@ function ensureVcApiKey(args: string[]): void {
   }
 }
 
-function buildTranscribeArgs(data: TranscribeBackgroundJobData): string[] {
-  const vc = data.videoCaptioner ?? {}
-  const args: string[] = ['transcribe', data.mediaPathPlatform || data.mediaPath]
-  args.push('--asr', vc.asr || 'bijian')
-  if (vc.language) args.push('--language', vc.language)
-  if (vc.wordTimestamps === true) args.push('--word-timestamps')
-  args.push('--format', vc.format || 'srt')
-  return args
-}
-
-function buildTranslateArgs(data: TranslateBackgroundJobData): string[] {
-  const args: string[] = [
-    'subtitle',
-    data.subtitlePathPlatform || data.subtitlePath,
-    '--translator', data.translator,
-    '--target-language', data.targetLanguage,
-    '--no-optimize',
-    '--no-split',
-  ]
-  if (data.reflect === true) args.push('--reflect')
-  if (data.layout) args.push('--layout', data.layout)
-  if (data.translator === 'llm' && data.llm?.apiKey) {
-    args.push('--api-key', data.llm.apiKey)
-    if (data.llm.apiBase) args.push('--api-base', data.llm.apiBase)
-    if (data.llm.model) args.push('--model', data.llm.model)
-  }
-  ensureVcApiKey(args)
-  return args
-}
-
 function buildSynthesizeArgs(data: SynthesizeBackgroundJobData): string[] {
   const args: string[] = [
     'synthesize',
@@ -199,8 +167,6 @@ function buildProcessArgs(data: ProcessBackgroundJobData): string[] {
 /** Timeout per job type — matches original Service Worker values. */
 const JOB_TIMEOUT_MS: Record<string, number> = {
   'download-video': 60 * 60 * 1000,       // 1 hour
-  'transcribe': 10 * 60 * 1000,            // 10 min
-  'translate': 10 * 60 * 1000,             // 10 min
   'synthesize': 60 * 60 * 1000,            // 1 hour
   'process': 2 * 60 * 60 * 1000,           // 2 hours
   'ffmpeg-convert': 60 * 60 * 1000,        // 1 hour
@@ -422,45 +388,15 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           break
         }
 
-        // ── Transcribe ────────────────────────────────────────────
-        case 'transcribe': {
-          const td = data as unknown as TranscribeBackgroundJobData
-          const executionId = crypto.randomUUID()
-
-          const args = buildTranscribeArgs(td)
-          const result = await executeCmdToCompletionWithHeaders(
-            { command: 'videocaptioner', args },
-            { timeoutMs: JOB_TIMEOUT_MS['transcribe'], signal: controller.signal, executionId },
-          )
-
-          if (result.executionId) data.executionId = result.executionId
-          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-          success = result.success
-
-          if (controller.signal.aborted) wasStopped = true
-          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
-          record.progress = success ? 100 : record.progress
-          break
-        }
-
-        // ── Translate ─────────────────────────────────────────────
+        // ── Transcribe / Translate (legacy IndexedDB) ─────────────
+        // New jobs go through Core TranscribeSubtitleJob / TranslateSubtitleJob.
+        // Leftover IndexedDB rows are marked failed (read-only history via mapper).
+        case 'transcribe':
         case 'translate': {
-          const td = data as unknown as TranslateBackgroundJobData
-          const executionId = crypto.randomUUID()
-
-          const args = buildTranslateArgs(td)
-          const result = await executeCmdToCompletionWithHeaders(
-            { command: 'videocaptioner', args },
-            { timeoutMs: JOB_TIMEOUT_MS['translate'], signal: controller.signal, executionId },
-          )
-
-          if (result.executionId) data.executionId = result.executionId
-          if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-          success = result.success
-
-          if (controller.signal.aborted) wasStopped = true
-          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
-          record.progress = success ? 100 : record.progress
+          data.error =
+            'Transcribe/translate jobs now run via Core; restart from the dialog.'
+          record.data = JSON.stringify(data)
+          record.status = 'failed'
           break
         }
 

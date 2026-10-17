@@ -35,6 +35,11 @@ vi.mock("@/hooks/useJobOrchestrator", () => ({
   useFileStatuses: vi.fn(),
 }))
 
+vi.mock("@/stores/backgroundJobsStore", () => ({
+  useBackgroundJobsStore: (selector: (s: { jobs: unknown[] }) => unknown) =>
+    selector({ jobs: [] }),
+}))
+
 vi.mock("@/hooks/useFeatures", () => ({
   useFeatures: vi.fn(),
 }))
