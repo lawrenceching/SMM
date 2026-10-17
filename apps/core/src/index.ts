@@ -140,6 +140,8 @@ export type {
   ImportLibraryJobTask,
   ScrapeJobSnapshot,
   YtdlpJobSnapshot,
+  TranscribeSubtitleJobSnapshot,
+  TranslateSubtitleJobSnapshot,
   Job,
   JobStatus,
   JobStage,

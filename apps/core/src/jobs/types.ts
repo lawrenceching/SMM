@@ -71,7 +71,50 @@ export interface YtdlpJobSnapshot {
   updatedAt: number;
 }
 
-export type Job = ImportJob | ImportLibraryJob | ScrapeJobSnapshot | YtdlpJobSnapshot;
+export interface TranscribeSubtitleJobSnapshot {
+  kind: "transcribe-subtitle";
+  id: string;
+  type: "transcribe-subtitle";
+  folder: string;
+  mediaPath: string;
+  title?: string;
+  asr: string;
+  language?: string;
+  wordTimestamps?: boolean;
+  format?: string;
+  status: JobStatus;
+  progress: number;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface TranslateSubtitleJobSnapshot {
+  kind: "translate-subtitle";
+  id: string;
+  type: "translate-subtitle";
+  folder: string;
+  subtitlePath: string;
+  mediaPath?: string;
+  title?: string;
+  translator: string;
+  targetLanguage: string;
+  reflect?: boolean;
+  layout?: string;
+  status: JobStatus;
+  progress: number;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type Job =
+  | ImportJob
+  | ImportLibraryJob
+  | ScrapeJobSnapshot
+  | YtdlpJobSnapshot
+  | TranscribeSubtitleJobSnapshot
+  | TranslateSubtitleJobSnapshot;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {
