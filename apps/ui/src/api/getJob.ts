@@ -12,7 +12,15 @@ type ImportJob = Extract<SerializedJob, { kind: 'import' }>
 export type ScrapeJob = Extract<SerializedJob, { kind: 'scrape' }>
 export type ImportLibraryJob = Extract<SerializedJob, { type: 'import-library' }>
 type YtdlpJob = Extract<SerializedJob, { kind: 'ytdlp' }>
-export type Job = ImportJob | ImportLibraryJob | ScrapeJob | YtdlpJob
+type TranscribeSubtitleJob = Extract<SerializedJob, { kind: 'transcribe-subtitle' }>
+type TranslateSubtitleJob = Extract<SerializedJob, { kind: 'translate-subtitle' }>
+export type Job =
+  | ImportJob
+  | ImportLibraryJob
+  | ScrapeJob
+  | YtdlpJob
+  | TranscribeSubtitleJob
+  | TranslateSubtitleJob
 export type JobStatus = ImportJob['status']
 export type ScrapeTaskRuntimeStatus = ScrapeJob['tasks'][keyof ScrapeJob['tasks']]['status']
 

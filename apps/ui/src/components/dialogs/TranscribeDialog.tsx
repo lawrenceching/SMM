@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import { toast } from "sonner"
+import { Path } from "@smm/utils/path"
 import { basename } from "@/lib/path"
 import { UITranscribeDialog } from "./UITranscribeDialog"
 import type {
@@ -9,19 +10,23 @@ import type {
 } from "./types"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
-import { buildTranscribeJob } from "@/lib/transcribeJobFactory"
-import { useJobManager } from "@/hooks/useJobManager"
+import { transcribeSubtitleViaCore } from "@/api/transcribeSubtitle"
+import {
+  applyTranscribeSubtitlePollUpdate,
+  pollSubtitleJob,
+  upsertTranscribeSubtitleJobFromCore,
+} from "@/lib/pollSubtitleJob"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 
 /** Not selectable in the dialog UI (still listed). */
 const TRANSCRIBE_DIALOG_DISABLED_ASR_ENGINES = ["whisper-cpp"] as const satisfies readonly TranscribeAsrEngine[]
 
 /**
- * Closes immediately after confirm, then enqueues transcribe jobs (IndexedDB + Service Worker).
+ * Closes immediately after confirm, then enqueues Core transcribe-subtitle jobs and polls.
  */
 export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeDialogProps) {
   const { isVideoCaptionerAsrOptionsEnabled, isTencentAsrTranscribeEnabled } = useFeatures()
   const { isAvailable: videoCaptionerAvailable } = useVideoCaptionerStatus()
-  const { createJob } = useJobManager()
 
   const handleConfirm = useCallback(
     async (payload: TranscribeDialogConfirmPayload) => {
@@ -31,10 +36,16 @@ export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeD
         return
       }
 
+      if (payload.provider === "tencentAsr") {
+        toast.error("Tencent ASR is not available in this version")
+        return
+      }
+
       const byId = new Map(rows.map((r) => [r.id, r]))
       let saved = 0
-      const vcOptions =
-        payload.provider === "videoCaptioner" ? payload.videoCaptioner : undefined
+      const vcOptions = payload.videoCaptioner
+      const asr = vcOptions?.asr ?? "bijian"
+
       for (const id of payload.selectedIds) {
         const row = byId.get(id)
         if (!row?.path) {
@@ -44,35 +55,52 @@ export function TranscribeDialog({ rows, onClose, folder, ...rest }: TranscribeD
           continue
         }
         const displayTitle = row.title?.trim() || basename(row.path) || row.path
+        const mediaPath = Path.toPlatformPath(Path.posix(row.path))
 
-        const job = buildTranscribeJob({
-          folder: folderTrimmed,
-          mediaPath: row.path,
-          title: displayTitle,
-          provider: payload.provider,
-          ...(payload.provider === "tencentAsr" && payload.tencentAsr
-            ? { tencentAsr: payload.tencentAsr }
-            : {}),
-          ...(payload.provider === "videoCaptioner" && isVideoCaptionerAsrOptionsEnabled && vcOptions
-            ? {
-                videoCaptioner: {
-                  asr: vcOptions.asr,
-                  language: vcOptions.language,
-                  ...(vcOptions.wordTimestamps ? { wordTimestamps: true as const } : {}),
-                  format: vcOptions.format,
-                },
-              }
-            : {}),
-        })
+        try {
+          const jobId = await transcribeSubtitleViaCore({
+            folder: folderTrimmed,
+            mediaPath,
+            title: displayTitle,
+            asr,
+            ...(vcOptions?.language?.trim() ? { language: vcOptions.language.trim() } : {}),
+            ...(vcOptions?.wordTimestamps ? { wordTimestamps: true as const } : {}),
+            ...(vcOptions?.format?.trim()
+              ? { format: vcOptions.format }
+              : {}),
+          })
 
-        await createJob(job)
-        saved += 1
+          upsertTranscribeSubtitleJobFromCore({
+            id: jobId,
+            folder: folderTrimmed,
+            mediaPath,
+            title: displayTitle,
+            asr,
+            ...(vcOptions?.language?.trim() ? { language: vcOptions.language.trim() } : {}),
+            ...(vcOptions?.wordTimestamps ? { wordTimestamps: true as const } : {}),
+            ...(vcOptions?.format?.trim() ? { format: vcOptions.format } : {}),
+            status: "pending",
+            progress: 0,
+          })
+
+          void pollSubtitleJob(jobId, "transcribe-subtitle", (job) => {
+            applyTranscribeSubtitlePollUpdate(job)
+          }).catch((error: unknown) => {
+            console.error("[TranscribeDialog] poll transcribe-subtitle job failed:", error)
+            useBackgroundJobsStore.getState().updateJob(jobId, { status: "failed" })
+          })
+
+          saved += 1
+        } catch (error) {
+          console.error("[TranscribeDialog] Failed to enqueue transcribe:", mediaPath, error)
+          toast.error(error instanceof Error ? error.message : "Transcription failed")
+        }
       }
 
       if (saved === 0) return
       onClose()
     },
-    [rows, onClose, folder, isVideoCaptionerAsrOptionsEnabled, createJob],
+    [rows, onClose, folder],
   )
 
   return (

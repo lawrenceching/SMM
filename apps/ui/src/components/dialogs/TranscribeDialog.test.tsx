@@ -3,27 +3,46 @@ import "@testing-library/jest-dom/vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
 import React from "react"
 import { toast } from "sonner"
+import { Path } from "@smm/utils/path"
 import { TranscribeDialog } from "./TranscribeDialog"
 import type { TranscribeDialogRow } from "./types"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 
 const h = vi.hoisted(() => ({
-  saveTranscribeJob: vi.fn().mockResolvedValue(undefined),
+  createJob: vi.fn().mockResolvedValue("orch-id"),
+  transcribeSubtitleViaCore: vi.fn().mockResolvedValue("core-transcribe-1"),
+  pollSubtitleJob: vi.fn().mockResolvedValue({
+    kind: "transcribe-subtitle",
+    id: "core-transcribe-1",
+    type: "transcribe-subtitle",
+    folder: "C:\\media\\music",
+    mediaPath: "C:\\media\\music\\track1.mp3",
+    asr: "bijian",
+    status: "succeeded",
+    progress: 100,
+    createdAt: 0,
+    updatedAt: 0,
+  }),
 }))
 
-vi.mock("@/lib/downloadTaskDb", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/downloadTaskDb")>()
+vi.mock("@/api/transcribeSubtitle", () => ({
+  transcribeSubtitleViaCore: h.transcribeSubtitleViaCore,
+}))
+
+vi.mock("@/lib/pollSubtitleJob", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/pollSubtitleJob")>()
   return {
     ...actual,
-    saveTranscribeJob: h.saveTranscribeJob,
+    pollSubtitleJob: h.pollSubtitleJob,
   }
 })
 
 vi.mock("@/hooks/useJobManager", () => ({
   useJobManager: () => ({
     isReady: true,
-    createJob: h.saveTranscribeJob,
+    createJob: h.createJob,
     createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
     startJob: vi.fn(),
     stopJob: vi.fn(),
@@ -33,7 +52,7 @@ vi.mock("@/hooks/useJobManager", () => ({
 vi.mock("@/hooks/useJobOrchestrator", () => ({
   useJobOrchestrator: () => ({
     isReady: true,
-    createJob: h.saveTranscribeJob,
+    createJob: h.createJob,
     createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
     startJob: vi.fn(),
     stopJob: vi.fn(),
@@ -121,6 +140,7 @@ describe("TranscribeDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    useBackgroundJobsStore.setState({ jobs: [] })
     vi.mocked(toast.error).mockImplementation(() => "id")
     vi.mocked(toast.success).mockImplementation(() => "id")
     vi.mocked(useVideoCaptionerStatus).mockReturnValue({
@@ -128,9 +148,10 @@ describe("TranscribeDialog", () => {
       isChecking: false,
     })
     vi.mocked(useFeatures).mockReturnValue(defaultFeatures)
+    h.transcribeSubtitleViaCore.mockResolvedValue("core-transcribe-1")
   })
 
-  it("shows error and does not save when folder is missing", async () => {
+  it("shows error and does not enqueue when folder is missing", async () => {
     render(<TranscribeDialog isOpen onClose={mockOnClose} rows={[rowWithPath()]} />)
 
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
@@ -141,10 +162,11 @@ describe("TranscribeDialog", () => {
       )
     })
     expect(mockOnClose).not.toHaveBeenCalled()
-    expect(h.saveTranscribeJob).not.toHaveBeenCalled()
+    expect(h.transcribeSubtitleViaCore).not.toHaveBeenCalled()
+    expect(h.createJob).not.toHaveBeenCalled()
   })
 
-  it("saves jobs and closes when folder and paths are valid", async () => {
+  it("enqueues via Core and closes when folder and paths are valid", async () => {
     render(
       <TranscribeDialog
         isOpen
@@ -157,18 +179,23 @@ describe("TranscribeDialog", () => {
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     await waitFor(() => {
-      expect(h.saveTranscribeJob).toHaveBeenCalledTimes(1)
+      expect(h.transcribeSubtitleViaCore).toHaveBeenCalledTimes(1)
     })
-    const arg = h.saveTranscribeJob.mock.calls[0]![0]
-    expect(arg.type).toBe("transcribe")
-    expect(arg.data.folder).toBe(platformFolder)
-    expect(arg.data.mediaPath).toMatch(/track1\.mp3/)
-    expect(arg.data.provider).toBe("videoCaptioner")
-    expect(arg.data.videoCaptioner).toBeUndefined()
+    expect(h.createJob).not.toHaveBeenCalled()
+    const arg = h.transcribeSubtitleViaCore.mock.calls[0]![0]
+    expect(arg.folder).toBe(platformFolder)
+    expect(arg.mediaPath).toBe(Path.toPlatformPath(Path.posix("/music/track1.mp3")))
+    expect(arg.title).toBe("My Track")
+    expect(arg.asr).toBe("bijian")
     expect(mockOnClose).toHaveBeenCalledTimes(1)
+
+    const jobs = useBackgroundJobsStore.getState().jobs
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0]!.type).toBe("transcribe-subtitle")
+    expect(jobs[0]!.status).toBe("pending")
   })
 
-  it("persists videoCaptioner options when ASR feature is enabled", async () => {
+  it("passes videoCaptioner options to Core when ASR feature is enabled", async () => {
     vi.mocked(useFeatures).mockReturnValue({
       ...defaultFeatures,
       isVideoCaptionerAsrOptionsEnabled: true,
@@ -185,10 +212,10 @@ describe("TranscribeDialog", () => {
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     await waitFor(() => {
-      expect(h.saveTranscribeJob).toHaveBeenCalled()
+      expect(h.transcribeSubtitleViaCore).toHaveBeenCalled()
     })
-    const arg = h.saveTranscribeJob.mock.calls[0]![0]
-    expect(arg.data.videoCaptioner).toEqual(
+    expect(h.createJob).not.toHaveBeenCalled()
+    expect(h.transcribeSubtitleViaCore.mock.calls[0]![0]).toEqual(
       expect.objectContaining({
         asr: "bijian",
         language: "auto",
@@ -210,9 +237,9 @@ describe("TranscribeDialog", () => {
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     await waitFor(() => {
-      expect(h.saveTranscribeJob).toHaveBeenCalled()
+      expect(h.transcribeSubtitleViaCore).toHaveBeenCalled()
     })
-    expect(h.saveTranscribeJob.mock.calls[0]![0].data.title).toMatch(/track1\.mp3/)
+    expect(h.transcribeSubtitleViaCore.mock.calls[0]![0].title).toMatch(/track1\.mp3/)
   })
 
   it("does not close when selected rows have no file path", () => {
@@ -228,13 +255,14 @@ describe("TranscribeDialog", () => {
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
     expect(mockOnClose).not.toHaveBeenCalled()
-    expect(h.saveTranscribeJob).not.toHaveBeenCalled()
+    expect(h.transcribeSubtitleViaCore).not.toHaveBeenCalled()
+    expect(h.createJob).not.toHaveBeenCalled()
     expect(toast.error).toHaveBeenCalledWith(
       'Track "No file" does not have an associated file path.',
     )
   })
 
-  it("skips invalid rows but saves valid ones", async () => {
+  it("skips invalid rows but enqueues valid ones", async () => {
     render(
       <TranscribeDialog
         isOpen
@@ -258,9 +286,47 @@ describe("TranscribeDialog", () => {
       'Track "Bad" does not have an associated file path.',
     )
     await waitFor(() => {
-      expect(h.saveTranscribeJob).toHaveBeenCalledTimes(1)
+      expect(h.transcribeSubtitleViaCore).toHaveBeenCalledTimes(1)
     })
-    expect(h.saveTranscribeJob.mock.calls[0]![0].data.title).toBe("Good")
+    expect(h.transcribeSubtitleViaCore.mock.calls[0]![0].title).toBe("Good")
+    expect(h.createJob).not.toHaveBeenCalled()
     expect(mockOnClose).toHaveBeenCalledTimes(1)
+  })
+
+  it("toasts and does not call Core when provider is tencentAsr", async () => {
+    vi.mocked(useFeatures).mockReturnValue({
+      ...defaultFeatures,
+      isTencentAsrTranscribeEnabled: true,
+    })
+    // Force default provider to tencentAsr (VideoCaptioner unavailable).
+    vi.mocked(useVideoCaptionerStatus).mockReturnValue({
+      isAvailable: false,
+      isChecking: false,
+    })
+    render(
+      <TranscribeDialog
+        isOpen
+        onClose={mockOnClose}
+        rows={[rowWithPath()]}
+        folder={platformFolder}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-advanced-options"))
+    fireEvent.change(screen.getByTestId("transcribe-dialog-tencent-base-url"), {
+      target: { value: "https://asr.example" },
+    })
+    fireEvent.change(screen.getByTestId("transcribe-dialog-tencent-api-key"), {
+      target: { value: "secret-key" },
+    })
+
+    fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
+
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith("Tencent ASR is not available in this version")
+    })
+    expect(h.transcribeSubtitleViaCore).not.toHaveBeenCalled()
+    expect(h.createJob).not.toHaveBeenCalled()
+    expect(mockOnClose).not.toHaveBeenCalled()
   })
 })

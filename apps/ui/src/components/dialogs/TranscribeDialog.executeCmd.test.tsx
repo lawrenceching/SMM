@@ -1,17 +1,12 @@
 /** @vitest-environment jsdom */
 /**
- * Integration: TranscribeDialog → JobOrchestrator → executeCmd boundary.
- * Verifies videocaptioner transcribe receives full nested media path.
+ * TranscribeDialog → Core HTTP enqueue boundary.
+ * Verifies nested media paths are converted to platform paths for ViaCore.
  */
-import type { ReactElement } from "react"
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { Path } from "@smm/utils/path"
-import { JobOrchestratorProvider } from "@/components/JobOrchestratorProvider"
 import { TranscribeDialog } from "./TranscribeDialog"
-import { deleteJob, getAllJobs } from "@/lib/downloadTaskDb"
-import type { ExecuteCmdRequest } from "@/api/executeCmd"
 import { useFeatures } from "@/hooks/useFeatures"
 import { useVideoCaptionerStatus } from "@/hooks/useVideoCaptionerStatus"
 import type { TranscribeDialogRow } from "./types"
@@ -23,18 +18,43 @@ const PLATFORM_FOLDER = Path.toPlatformPath(MEDIA_FOLDER_POSIX)
 const EXPECTED_MEDIA_PLATFORM = Path.toPlatformPath(NESTED_FILE_POSIX)
 
 const h = vi.hoisted(() => ({
-  executeCmdToCompletion: vi.fn(),
-  executeCmdToCompletionWithHeaders: vi.fn(),
+  transcribeSubtitleViaCore: vi.fn().mockResolvedValue("core-nested-1"),
+  pollSubtitleJob: vi.fn().mockResolvedValue({
+    kind: "transcribe-subtitle",
+    id: "core-nested-1",
+    type: "transcribe-subtitle",
+    folder: "folder",
+    mediaPath: "media",
+    asr: "bijian",
+    status: "succeeded",
+    progress: 100,
+    createdAt: 0,
+    updatedAt: 0,
+  }),
+  createJob: vi.fn(),
 }))
 
-vi.mock("@/lib/whitelistedCmd/executeCmdToCompletion", () => ({
-  executeCmdToCompletion: h.executeCmdToCompletion,
-  executeCmdToCompletionWithHeaders: h.executeCmdToCompletionWithHeaders,
+vi.mock("@/api/transcribeSubtitle", () => ({
+  transcribeSubtitleViaCore: h.transcribeSubtitleViaCore,
 }))
 
-vi.mock("@/lib/commandExecutionStatusPoller", () => ({
-  pollCommandExecutionStatusAndReconcile: vi.fn().mockResolvedValue(undefined),
-  COMMAND_EXECUTION_STATUS_POLL_MS: 60_000,
+vi.mock("@/lib/pollSubtitleJob", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/pollSubtitleJob")>()
+  return {
+    ...actual,
+    pollSubtitleJob: h.pollSubtitleJob,
+  }
+})
+
+vi.mock("@/hooks/useJobManager", () => ({
+  useJobManager: () => ({
+    isReady: true,
+    createJob: h.createJob,
+    createJobs: vi.fn().mockResolvedValue({ successIds: [], failures: [] }),
+    startJob: vi.fn(),
+    stopJob: vi.fn(),
+    removeJob: vi.fn(),
+  }),
 }))
 
 vi.mock("@/hooks/useFeatures", () => ({
@@ -95,29 +115,6 @@ vi.mock("@/lib/i18n", async (importOriginal) => {
   }
 })
 
-function isTranscribeRequest(req: ExecuteCmdRequest): boolean {
-  return req.command === "videocaptioner" && req.args[0] === "transcribe"
-}
-
-function renderWithOrchestrator(ui: ReactElement) {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  })
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <JobOrchestratorProvider>{ui}</JobOrchestratorProvider>
-    </QueryClientProvider>,
-  )
-}
-
-async function clearTaskDb() {
-  const records = await getAllJobs()
-  await Promise.all(records.map((r) => deleteJob(r.id)))
-}
-
 function nestedRow(): TranscribeDialogRow {
   return {
     id: NESTED_FILE_POSIX,
@@ -127,12 +124,11 @@ function nestedRow(): TranscribeDialogRow {
   }
 }
 
-describe("TranscribeDialog executeCmd integration (nested paths)", () => {
-  beforeEach(async () => {
+describe("TranscribeDialog Core enqueue (nested paths)", () => {
+  beforeEach(() => {
     Element.prototype.scrollIntoView = vi.fn()
     vi.clearAllMocks()
-    await clearTaskDb()
-    window.localStorage.clear()
+    h.transcribeSubtitleViaCore.mockResolvedValue("core-nested-1")
 
     vi.mocked(useVideoCaptionerStatus).mockReturnValue({
       isAvailable: true,
@@ -145,35 +141,12 @@ describe("TranscribeDialog executeCmd integration (nested paths)", () => {
       isTencentAsrTranscribeEnabled: false,
       setTencentAsrTranscribeEnabled: vi.fn(),
     })
-
-    h.executeCmdToCompletionWithHeaders.mockImplementation(async (request: ExecuteCmdRequest) => {
-      if (isTranscribeRequest(request)) {
-        return {
-          success: true,
-          stdout: "",
-          stderr: "",
-          exitCode: 0,
-          executionId: "test-transcribe-exec",
-        }
-      }
-      return {
-        success: false,
-        stdout: "",
-        stderr: `unexpected executeCmdToCompletionWithHeaders: ${request.args.join(" ")}`,
-        exitCode: 1,
-      }
-    })
   })
 
-  afterEach(async () => {
-    await clearTaskDb()
-    window.localStorage.clear()
-  })
-
-  it("passes full nested platform media path to videocaptioner transcribe via executeCmd", async () => {
+  it("passes full nested platform media path to transcribeSubtitleViaCore", async () => {
     const onClose = vi.fn()
 
-    renderWithOrchestrator(
+    render(
       <TranscribeDialog
         isOpen
         onClose={onClose}
@@ -184,25 +157,16 @@ describe("TranscribeDialog executeCmd integration (nested paths)", () => {
 
     fireEvent.click(screen.getByTestId("transcribe-dialog-confirm"))
 
-    await waitFor(
-      () => {
-        expect(h.executeCmdToCompletionWithHeaders).toHaveBeenCalled()
-      },
-      { timeout: 5000 },
-    )
+    await waitFor(() => {
+      expect(h.transcribeSubtitleViaCore).toHaveBeenCalled()
+    })
 
-    const transcribeCalls = h.executeCmdToCompletionWithHeaders.mock.calls.filter(([req]) =>
-      isTranscribeRequest(req),
-    )
-    expect(transcribeCalls.length).toBeGreaterThanOrEqual(1)
-
-    const request = transcribeCalls[0]![0]
-    expect(request.command).toBe("videocaptioner")
-    expect(request.args[0]).toBe("transcribe")
-    expect(request.args[1]).toBe(EXPECTED_MEDIA_PLATFORM)
-    expect(request.args[1]).toContain("a")
-    expect(request.args[1]).toContain("test.mp4")
-    expect(request.args[1]).not.toBe("test.mp4")
+    expect(h.createJob).not.toHaveBeenCalled()
+    const request = h.transcribeSubtitleViaCore.mock.calls[0]![0]
+    expect(request.mediaPath).toBe(EXPECTED_MEDIA_PLATFORM)
+    expect(request.mediaPath).toContain("a")
+    expect(request.mediaPath).toContain("test.mp4")
+    expect(request.mediaPath).not.toBe("test.mp4")
     expect(onClose).toHaveBeenCalled()
   })
 })
