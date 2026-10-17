@@ -54,6 +54,8 @@ import { ImportFolderJob } from "./jobs/ImportFolderJob";
 import { ImportLibraryJob } from "./jobs/ImportLibraryJob";
 import { ScrapeJob } from "./jobs/ScrapeJob";
 import { YtdlpJob } from "./jobs/YtdlpJob";
+import { TranscribeSubtitleJob } from "./jobs/TranscribeSubtitleJob";
+import { TranslateSubtitleJob } from "./jobs/TranslateSubtitleJob";
 import { nextJobId } from "./jobs/jobManager";
 import {
   assertDownloadVideoRequest,
@@ -63,6 +65,13 @@ import {
   type InspectVideoRequest,
   type InspectVideoResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
+import {
+  assertTranscribeSubtitleRequest,
+  assertTranslateSubtitleRequest,
+  type SubtitleJobHandle,
+  type TranscribeSubtitleRequest,
+  type TranslateSubtitleRequest,
+} from "./pipeline/videocaptioner/subtitleJobsApi";
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import type { CommandPort } from "./ports/CommandPort";
@@ -411,6 +420,78 @@ export class Core {
     this.jobManager.submit(job, () => {}, {
       queue: "ytdlp",
       timeoutMs: 60 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one media file transcription as a {@link TranscribeSubtitleJob} on the videocaptioner queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async transcribeSubtitle(
+    request: TranscribeSubtitleRequest,
+    callbacks: Callbacks = {},
+  ): Promise<SubtitleJobHandle> {
+    const { folder, mediaPath } = assertTranscribeSubtitleRequest(request);
+    if (this.platformPorts().videoCaptioner === undefined) {
+      throw new Error("VideoCaptionerPort is required for transcribeSubtitle");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new TranscribeSubtitleJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      mediaPath,
+      title: request.title,
+      asr: request.asr,
+      language: request.language,
+      wordTimestamps: request.wordTimestamps,
+      format: request.format,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "videocaptioner",
+      timeoutMs: 10 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one subtitle translation as a {@link TranslateSubtitleJob} on the videocaptioner queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async translateSubtitle(
+    request: TranslateSubtitleRequest,
+    callbacks: Callbacks = {},
+  ): Promise<SubtitleJobHandle> {
+    const { folder, subtitlePath, targetLanguage } = assertTranslateSubtitleRequest(request);
+    if (this.platformPorts().videoCaptioner === undefined) {
+      throw new Error("VideoCaptionerPort is required for translateSubtitle");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new TranslateSubtitleJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      subtitlePath,
+      mediaPath: request.mediaPath,
+      title: request.title,
+      translator: request.translator,
+      targetLanguage,
+      reflect: request.reflect,
+      layout: request.layout,
+      llm: request.llm,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "videocaptioner",
+      timeoutMs: 10 * 60 * 1000,
     });
     return { id: job.id };
   }

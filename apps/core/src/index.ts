@@ -181,6 +181,13 @@ export type {
   InspectVideoResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
 export {
+  assertTranscribeSubtitleRequest,
+  assertTranslateSubtitleRequest,
+  type SubtitleJobHandle,
+  type TranscribeSubtitleRequest,
+  type TranslateSubtitleRequest,
+} from "./pipeline/videocaptioner/subtitleJobsApi";
+export {
   parseYtdlpProgressLine,
   injectYtdlpProgressArgs,
   YTDLP_PROGRESS_TEMPLATE,
