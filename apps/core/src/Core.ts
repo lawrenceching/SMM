@@ -75,6 +75,7 @@ import {
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import type { CommandPort } from "./ports/CommandPort";
+import type { VideoCaptionerPort } from "./ports/VideoCaptionerPort";
 import {
   renameEpisodeFilePipeline,
   type RenameEpisodeFileInput,
@@ -222,6 +223,7 @@ export class Core {
   private readonly mediaMetadata: MediaMetadataHelper;
   private readonly discover?: DiscoverPort;
   private readonly command?: CommandPort;
+  private readonly videoCaptioner?: VideoCaptionerPort;
   private readonly mcpServer?: McpServerPort;
   private readonly eventBus = new CoreEventBus();
   private readonly hostPerformance = new HostPerformanceStore();
@@ -247,6 +249,7 @@ export class Core {
     });
     this.discover = ports.discover;
     this.command = ports.command;
+    this.videoCaptioner = ports.videoCaptioner;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
       void this.runHostSpeedTests();
@@ -368,6 +371,7 @@ export class Core {
       discover: this.discover,
       hostPerformance: this.hostPerformance,
       command: this.command,
+      videoCaptioner: this.videoCaptioner,
     };
   }
 

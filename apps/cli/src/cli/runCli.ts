@@ -4,6 +4,8 @@ import { add } from './commands/add'
 import { addlib } from './commands/addlib'
 import { download } from './commands/download'
 import { hello } from './commands/hello'
+import { transcribe } from './commands/transcribe'
+import { translate } from './commands/translate'
 import { list } from './commands/list'
 import { metadata } from './commands/metadata'
 import { recognize } from './commands/recognize'
@@ -126,6 +128,89 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         },
       ) => {
         exitCode = await download(url, opts)
+      },
+    )
+
+  program
+    .command('transcribe')
+    .description('Transcribe a media file to a subtitle with videocaptioner')
+    .argument('<media>', 'Media file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--asr <engine>', 'ASR engine')
+        .choices(['bijian', 'jianying', 'whisper-cpp'])
+        .default('bijian'),
+    )
+    .option('--language <lang>', 'Source language hint for ASR')
+    .addOption(
+      new Option('--format <fmt>', 'Subtitle output format')
+        .choices(['srt', 'ass', 'txt', 'json'])
+        .default('srt'),
+    )
+    .option('--word-timestamps', 'Request word-level timestamps')
+    .option('--title <title>', 'Display title for the job')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        media: string,
+        opts: {
+          folder: string
+          asr?: 'bijian' | 'jianying' | 'whisper-cpp'
+          language?: string
+          format?: 'srt' | 'ass' | 'txt' | 'json'
+          wordTimestamps?: boolean
+          title?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await transcribe(media, opts)
+      },
+    )
+
+  program
+    .command('translate')
+    .description('Translate a subtitle file with videocaptioner')
+    .argument('<subtitle>', 'Subtitle file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--translator <name>', 'Translator backend')
+        .choices(['bing', 'google', 'llm'])
+        .makeOptionMandatory(),
+    )
+    .requiredOption('--target-language <lang>', 'Target language code')
+    .option('--reflect', 'Enable reflect pass for translation')
+    .addOption(
+      new Option('--layout <layout>', 'Bilingual subtitle layout').choices([
+        'target-above',
+        'source-above',
+        'target-only',
+        'source-only',
+      ]),
+    )
+    .option('--api-key <key>', 'LLM API key (required when --translator llm)')
+    .option('--api-base <url>', 'LLM API base URL')
+    .option('--model <name>', 'LLM model name')
+    .option('--title <title>', 'Display title for the job')
+    .option('--media <path>', 'Associated media file path')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        subtitle: string,
+        opts: {
+          folder: string
+          translator: 'bing' | 'google' | 'llm'
+          targetLanguage: string
+          reflect?: boolean
+          layout?: 'target-above' | 'source-above' | 'target-only' | 'source-only'
+          apiKey?: string
+          apiBase?: string
+          model?: string
+          title?: string
+          media?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await translate(subtitle, opts)
       },
     )
 
