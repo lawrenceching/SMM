@@ -174,6 +174,10 @@ export {
   SynthesizeSubtitleJob,
   type SynthesizeSubtitleJobOptions,
 } from "./jobs/SynthesizeSubtitleJob";
+export {
+  ProcessSubtitleJob,
+  type ProcessSubtitleJobOptions,
+} from "./jobs/ProcessSubtitleJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
 export type {
   VideoCaptionerPort,
