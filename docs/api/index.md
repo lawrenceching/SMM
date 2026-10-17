@@ -108,6 +108,51 @@ HTTP: `POST /api/translate-subtitle` — starts Layer 2 `Core.translateSubtitle(
 
 Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm translate`.
 
+## SynthesizeSubtitle
+Source Code: apps/server/src/route/SynthesizeSubtitle.ts
+HTTP: `POST /api/synthesize-subtitle` — starts Layer 2 `Core.synthesizeSubtitle(request)` and enqueues a `SynthesizeSubtitleJob` on the shared `videocaptioner` queue (concurrency 1, **1 hour** per-job timeout). Server `VideoCaptionerPort` command timeout is **≥ 2 hours** so the Port does not kill the process before the JobManager deadline. Request body:
+
+- `folder: string` (required) — imported media folder path
+- `videoPath: string` (required) — video file to burn/mux subtitles onto
+- `subtitlePath: string` (required) — subtitle file to synthesize
+- `title?: string`
+- `subtitleMode?: "soft" | "hard"`
+- `quality?: "ultra" | "high" | "medium" | "low"`
+- `style?: string`
+- `renderMode?: "ass" | "rounded"`
+- `layout?: "target-above" | "source-above" | "target-only" | "source-only"`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm synthesize`.
+
+## ProcessSubtitle
+Source Code: apps/server/src/route/ProcessSubtitle.ts
+HTTP: `POST /api/process-subtitle` — starts Layer 2 `Core.processSubtitle(request)` and enqueues a `ProcessSubtitleJob` on the shared `videocaptioner` queue (concurrency 1, **2 hour** per-job timeout). Runs videocaptioner `process` as a single job (not chained Core jobs). Server `VideoCaptionerPort` command timeout is **≥ 2 hours**. Request body:
+
+- `folder: string` (required) — imported media folder path
+- `mediaPath: string` (required) — media file to process
+- `title?: string`
+- `asr?: "bijian" | "jianying" | "whisper-cpp"`
+- `language?: string` — ASR source language hint
+- `wordTimestamps?: boolean`
+- `format?: "srt" | "ass" | "txt" | "json"`
+- `noOptimize?: boolean`
+- `noSplit?: boolean`
+- `noTranslate?: boolean`
+- `translator?: "bing" | "google" | "llm"`
+- `targetLanguage?: string`
+- `reflect?: boolean`
+- `layout?: "target-above" | "source-above" | "target-only" | "source-only"`
+- `prompt?: string`
+- `llm?: { apiKey: string, apiBase?: string, model?: string }` — used when `translator` is `llm`; never appears in job snapshots
+- `noSynthesize?: boolean`
+- `subtitleMode?: "soft" | "hard"`
+- `quality?: "ultra" | "high" | "medium" | "low"`
+- `style?: string`
+- `renderMode?: "ass" | "rounded"`
+- `synthesizeLayout?: "target-above" | "source-above" | "target-only" | "source-only"`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm process`.
+
 ## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
 Source Code: apps/server/src/route/Tmdb.ts
 
