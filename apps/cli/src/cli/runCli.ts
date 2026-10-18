@@ -6,6 +6,8 @@ import { download } from './commands/download'
 import { hello } from './commands/hello'
 import { processSubtitle } from './commands/processSubtitle'
 import { synthesize } from './commands/synthesize'
+import { convert } from './commands/convert'
+import { compress } from './commands/compress'
 import { transcribe } from './commands/transcribe'
 import { translate } from './commands/translate'
 import { list } from './commands/list'
@@ -44,7 +46,7 @@ const FOLDER_TYPES: readonly FolderType[] = ['tvshow', 'movie', 'music']
 const TYPE_CHOICES = [...FOLDER_TYPES, 'anime'] as const
 
 /**
- * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `rename-episode-file`, `job`, `config`, `tmdb`, `tvdb`, `mcp`, `web`).
+ * Run the `smm` Commander program (`list`, `add`, `show`, `metadata`, `rm`, `recognize`, `try-to-recognize`, `try-to-rename`, `apply`, `reject`, `plan`, `scrape`, `convert`, `compress`, `rename-episode-file`, `job`, `config`, `tmdb`, `tvdb`, `mcp`, `web`).
  * @param argv Full process argv (e.g. `['node', 'smm', 'list']`).
  * @returns Process exit code (0 success, 1 on error).
  */
@@ -263,6 +265,87 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
         },
       ) => {
         exitCode = await synthesize(video, opts)
+      },
+    )
+
+  program
+    .command('convert')
+    .description('Convert a video file with ffmpeg')
+    .argument('<input>', 'Input video (or image) file path')
+    .requiredOption('-o, --output <path>', 'Output file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--format <fmt>', 'Output format')
+        .choices(['mp4h264', 'mp4h265', 'webm', 'mkv', 'avif', 'webp', 'apng'])
+        .makeOptionMandatory(),
+    )
+    .addOption(
+      new Option('--preset <preset>', 'Encode preset')
+        .choices(['quality', 'balanced', 'speed'])
+        .makeOptionMandatory(),
+    )
+    .option('--title <title>', 'Display title for the job')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        input: string,
+        opts: {
+          output: string
+          folder: string
+          format: 'mp4h264' | 'mp4h265' | 'webm' | 'mkv' | 'avif' | 'webp' | 'apng'
+          preset: 'quality' | 'balanced' | 'speed'
+          title?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await convert(input, opts)
+      },
+    )
+
+  program
+    .command('compress')
+    .description(
+      'Compress a video with ffmpeg (v1 flags: --container plus optional --preset-key, --crf, --video-encoder, --two-pass)',
+    )
+    .argument('<input>', 'Input video file path')
+    .requiredOption('-o, --output <path>', 'Output file path')
+    .requiredOption('--folder <path>', 'Media folder path')
+    .addOption(
+      new Option('--container <container>', 'Output container')
+        .choices(['mp4', 'mkv', 'webm', 'mov'])
+        .makeOptionMandatory(),
+    )
+    .addOption(
+      new Option('--preset-key <key>', 'Compress preset key (overrides default balanced)').choices([
+        'speed',
+        'balanced',
+        'quality',
+        'extreme',
+        'audioOnly',
+        'custom',
+      ]),
+    )
+    .option('--crf <n>', 'CRF quality value (overrides default)', (v: string) => parseInt(v, 10))
+    .option('--video-encoder <name>', 'Video encoder id (e.g. libx264, libx265)')
+    .option('--two-pass', 'Enable two-pass encoding')
+    .option('--title <title>', 'Display title for the job')
+    .option('-v, --verbose', 'Print detailed logs')
+    .action(
+      async (
+        input: string,
+        opts: {
+          output: string
+          folder: string
+          container: 'mp4' | 'mkv' | 'webm' | 'mov'
+          presetKey?: 'speed' | 'balanced' | 'quality' | 'extreme' | 'audioOnly' | 'custom'
+          crf?: number
+          videoEncoder?: string
+          twoPass?: boolean
+          title?: string
+          verbose?: boolean
+        },
+      ) => {
+        exitCode = await compress(input, opts)
       },
     )
 
