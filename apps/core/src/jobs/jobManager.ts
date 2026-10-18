@@ -15,7 +15,7 @@ interface JobManagerOptions {
   timeoutMs: number;
 }
 
-export type JobQueueName = "default" | "ytdlp" | "videocaptioner";
+export type JobQueueName = "default" | "ytdlp" | "videocaptioner" | "ffmpeg";
 
 export interface SubmitJobOptions {
   queue?: JobQueueName;
@@ -28,6 +28,7 @@ export class JobManager {
   private _queue: PQueue | undefined;
   private _ytdlpQueue: PQueue | undefined;
   private _videocaptionerQueue: PQueue | undefined;
+  private _ffmpegQueue: PQueue | undefined;
   /**
    * The job id to Promise map.
    * The promise will be resolved when the job is completed.
@@ -68,9 +69,19 @@ export class JobManager {
     return this._videocaptionerQueue;
   }
 
+  private get ffmpegQueue(): PQueue {
+    if (this._ffmpegQueue === undefined) {
+      this._ffmpegQueue = new PQueue({
+        concurrency: 1,
+      });
+    }
+    return this._ffmpegQueue;
+  }
+
   private queueFor(name: JobQueueName): PQueue {
     if (name === "ytdlp") return this.ytdlpQueue;
     if (name === "videocaptioner") return this.videocaptionerQueue;
+    if (name === "ffmpeg") return this.ffmpegQueue;
     return this.queue;
   }
 
