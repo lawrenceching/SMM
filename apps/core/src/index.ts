@@ -184,6 +184,10 @@ export {
   FfmpegConvertJob,
   type FfmpegConvertJobOptions,
 } from "./jobs/FfmpegConvertJob";
+export {
+  FfmpegCompressJob,
+  type FfmpegCompressJobOptions,
+} from "./jobs/FfmpegCompressJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
 export type { FfmpegPort, FfmpegRunRequest, FfmpegRunResult } from "./ports/FfmpegPort";
 export type {
