@@ -41,6 +41,11 @@ import {
 export type { TestbedOs } from './ui-page-url'
 // Re-export for convenience (switched wrappers are `export async function` below)
 export { setupTestMediaFolders }
+export {
+  prepareVideoFile,
+  SAMPLE_MP4_URL,
+  SAMPLE_MP4_CACHE_PATH,
+} from './prepareVideoFile'
 
 import {
     useEmbeddedHttpProxy,
