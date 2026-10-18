@@ -485,6 +485,7 @@ export function UIProcessPipelineDialog({
                 type="checkbox"
                 checked={noTranslate}
                 onChange={(e) => setNoTranslate(e.target.checked)}
+                data-testid="process-pipeline-no-translate"
               />
               {t("processPipelineDialog.noTranslate")}
             </label>
