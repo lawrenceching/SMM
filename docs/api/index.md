@@ -153,6 +153,32 @@ HTTP: `POST /api/process-subtitle` — starts Layer 2 `Core.processSubtitle(requ
 
 Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm process`.
 
+## FfmpegConvert
+Source Code: apps/server/src/route/FfmpegConvert.ts
+HTTP: `POST /api/ffmpeg-convert` — starts Layer 2 `Core.ffmpegConvert(request)` and enqueues a `FfmpegConvertJob` on the shared `ffmpeg` queue (concurrency 1, **1 hour** per-job timeout). Server `FfmpegPort` command timeout is **≥ 2 hours** so the Port does not kill the process before the JobManager deadline. Request body:
+
+- `folder: string` (required) — imported media folder path
+- `inputPath: string` (required) — input media file
+- `outputPath: string` (required) — output file path
+- `outputFormat: "mp4h264" | "mp4h265" | "webm" | "mkv" | "avif" | "webp" | "apng"` (required) — convert formats only; `compress-*` tokens are rejected (use `/api/ffmpeg-compress`)
+- `preset: "quality" | "balanced" | "speed"` (required)
+- `title?: string`
+- `imageOptions?: object` — image encode options when `outputFormat` is `avif` / `webp` / `apng`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm convert`.
+
+## FfmpegCompress
+Source Code: apps/server/src/route/FfmpegCompress.ts
+HTTP: `POST /api/ffmpeg-compress` — starts Layer 2 `Core.ffmpegCompress(request)` and enqueues a `FfmpegCompressJob` on the shared `ffmpeg` queue (concurrency 1, **2 hour** per-job timeout). Server `FfmpegPort` command timeout is **≥ 2 hours**. Request body:
+
+- `folder: string` (required) — imported media folder path
+- `inputPath: string` (required) — input video file
+- `outputPath: string` (required) — output file path
+- `compressOptions: object` (required) — compression settings (`container`, `videoEncoder`, `presetKey`, CRF/bitrate/size, two-pass, etc.)
+- `title?: string`
+
+Response: `{ data: { id: string } }` (job id) or `{ error }` (HTTP 200). Does not wait for completion; poll `POST /api/get-job`. CLI equivalent: `smm compress`.
+
 ## SearchInTmdb / GetMovieInTmdb / GetTvShowInTmdb
 Source Code: apps/server/src/route/Tmdb.ts
 

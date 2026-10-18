@@ -10,11 +10,14 @@ SMM 的 FFmpeg 操作涵盖格式转换、视频压缩、进度显示和错误�
 
 ```
 FormatConverterDialog
-  → buildFfmpegConvertJob()
-  → JobOrchestrator (ffmpeg-convert)
-  → buildFfmpegConvertArgs()  // packages/core/whitelistedCmd/ffmpeg.ts
-  → executeCmdToCompletion({ command: "ffmpeg", args })
+  → POST /api/ffmpeg-convert  (UI apiFetch / Hono RPC)
+  → Core.ffmpegConvert()
+  → JobManager.submit(FfmpegConvertJob, { queue: "ffmpeg", timeoutMs: 1h })
+  → buildFfmpegConvertArgs()  // apps/core whitelistedCmd/ffmpeg
+  → FfmpegPort.run({ command: "ffmpeg", args, … })
 ```
+
+Poll `POST /api/get-job` for snapshot `progress` / `etaSeconds` / terminal status. Logs via `POST /api/get-job-log`.
 
 ### 1.2 Image Format Output (AVIF / WebP / APNG)
 
@@ -42,16 +45,14 @@ FormatConverterDialog
 
 **数据流**:
 ```
-executeCmdToCompletion → { exitCode, stderr }
-  → classifyFfmpegConvertError() → { type, i18nKey }
-  → throw FfmpegConvertError
-  → FormatConverterDialog catch → setErrorMessage(t(i18nKey))
+FfmpegConvertJob → snapshot.error / status failed
+  → FormatConverterDialog / poll mirror catch → setErrorMessage(t(i18nKey))
   → 内联 <Alert variant="destructive">
 ```
 
 ## 2. Video Compression
 
-`VideoCompressionDialog` — 独立于 FormatConverterDialog 的专用压缩对话框，复用同一个 `ffmpeg-convert` 后台任务管道。
+`VideoCompressionDialog` — 独立于 FormatConverterDialog 的专用压缩对话框，经 `POST /api/ffmpeg-compress` 入队 Core `FfmpegCompressJob`（与 convert **共用** `ffmpeg` 队列，并发 1）。
 
 ### 2.1 Features
 
@@ -62,16 +63,17 @@ executeCmdToCompletion → { exitCode, stderr }
 
 ### 2.2 Data Model
 
-扩展 `FfmpegConvertBackgroundJobData` 添加可选 `compressOptions` 字段。现有 FormatConverterDialog 任务不受影响。
+压缩请求体使用独立的 `compressOptions`（不再用 `compress-*` 伪 `outputFormat`）。`FfmpegCompressJob` kind 为 `ffmpeg-compress`。
 
 ### 2.3 Entry Points
 
 - 系统菜单 → Video Compression
 - MusicPanel / TvShowPanel / MoviePanel 右键菜单
+- CLI: `smm compress`
 
 ## 3. Progress Display
 
-ffmpeg 转码/压缩的实时进度（百分比、ETA）通过 Command Log 轮询获取。
+ffmpeg 转码/压缩的实时进度（百分比、ETA）来自 Core Job snapshot（`progress` / `etaSeconds`），由 Job 内解析 ffmpeg stderr，经 `POST /api/get-job` 轮询。
 
 ### 3.1 Parsing
 
@@ -81,20 +83,21 @@ Duration: 00:02:59.71, start: 0.000000, bitrate: 793 kb/s
 frame= 5390 fps=253 q=39.7 Lsize= 4998KiB time=00:02:59.60 ...
 ```
 
-解析 `Duration`（总时长）和最新 `time=`（当前时间）计算进度百分比和 ETA。
+解析 `Duration`（总时长）和最新 `time=`（当前时间）计算进度百分比和 ETA（Core `pipeline/ffmpeg/progress`）。
 
-### 3.2 Hook
+### 3.2 UI
 
-`useFfmpegProgressQuery(executionId, isRunning)` — 基于 `useCommandLogQuery`，镜像 yt-dlp 的 `useYtdlpDownloadProgressQuery` 模式。
+对话框与 BackgroundJobs 镜像通过 Core job id 轮询 `get-job`（不再依赖 Command Log `executionId` 进度 hook）。
 
 ### 3.3 2-Pass 压缩
 
-两次 pass 共用同一个 `executionId`，共享 `main.log` 文件，实现连续的进度 UI。
+两遍编码在同一 `FfmpegCompressJob` 内完成：pass1 → progress 0–50，pass2 → 50–100。
 
 ## 4. Scope Boundaries
 
 | In scope | Out of scope |
 |----------|-------------|
-| ffmpeg-convert (转码/压缩) | ffmpeg-write-tags (元数据写入，瞬态) |
+| Core `ffmpeg-convert` / `ffmpeg-compress` Jobs | `ffmpeg-write-tags`（仍留 UI JobOrchestrator） |
 | 视频转图像 (AVIF/WebP/APNG) | jpg/png/webp 瞬态转换 |
-| BackgroundJobsPopover 进度显示 | generateFfmpegScreenshots (内联执行) |
+| BackgroundJobsPopover 进度显示（Core snapshot） | generateFfmpegScreenshots (内联执行) |
+| CLI `smm convert` / `smm compress` | 浏览器 import `@smm/core` 根 barrel |
