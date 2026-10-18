@@ -213,6 +213,13 @@ export {
   type TranslateSubtitleRequest,
 } from "./pipeline/videocaptioner/subtitleJobsApi";
 export {
+  assertFfmpegCompressRequest,
+  assertFfmpegConvertRequest,
+  type FfmpegCompressRequest,
+  type FfmpegConvertRequest,
+  type FfmpegJobHandle,
+} from "./pipeline/ffmpeg/ffmpegJobsApi";
+export {
   parseYtdlpProgressLine,
   injectYtdlpProgressArgs,
   YTDLP_PROGRESS_TEMPLATE,

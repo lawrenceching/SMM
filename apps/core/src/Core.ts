@@ -58,6 +58,8 @@ import { TranscribeSubtitleJob } from "./jobs/TranscribeSubtitleJob";
 import { TranslateSubtitleJob } from "./jobs/TranslateSubtitleJob";
 import { SynthesizeSubtitleJob } from "./jobs/SynthesizeSubtitleJob";
 import { ProcessSubtitleJob } from "./jobs/ProcessSubtitleJob";
+import { FfmpegConvertJob } from "./jobs/FfmpegConvertJob";
+import { FfmpegCompressJob } from "./jobs/FfmpegCompressJob";
 import { nextJobId } from "./jobs/jobManager";
 import {
   assertDownloadVideoRequest,
@@ -78,9 +80,17 @@ import {
   type TranscribeSubtitleRequest,
   type TranslateSubtitleRequest,
 } from "./pipeline/videocaptioner/subtitleJobsApi";
+import {
+  assertFfmpegCompressRequest,
+  assertFfmpegConvertRequest,
+  type FfmpegCompressRequest,
+  type FfmpegConvertRequest,
+  type FfmpegJobHandle,
+} from "./pipeline/ffmpeg/ffmpegJobsApi";
 import { createRecognitionDeps } from "./pipeline/createRecognitionDeps";
 import { renameFolderPipeline, type RenameFolderArgs } from "./pipeline/renameFolder";
 import type { CommandPort } from "./ports/CommandPort";
+import type { FfmpegPort } from "./ports/FfmpegPort";
 import type { VideoCaptionerPort } from "./ports/VideoCaptionerPort";
 import {
   renameEpisodeFilePipeline,
@@ -230,6 +240,7 @@ export class Core {
   private readonly discover?: DiscoverPort;
   private readonly command?: CommandPort;
   private readonly videoCaptioner?: VideoCaptionerPort;
+  private readonly ffmpeg?: FfmpegPort;
   private readonly mcpServer?: McpServerPort;
   private readonly eventBus = new CoreEventBus();
   private readonly hostPerformance = new HostPerformanceStore();
@@ -256,6 +267,7 @@ export class Core {
     this.discover = ports.discover;
     this.command = ports.command;
     this.videoCaptioner = ports.videoCaptioner;
+    this.ffmpeg = ports.ffmpeg;
     this.mcpServer = options.mcpServer;
     if (options.enableHostSpeedTest === true) {
       void this.runHostSpeedTests();
@@ -378,6 +390,7 @@ export class Core {
       hostPerformance: this.hostPerformance,
       command: this.command,
       videoCaptioner: this.videoCaptioner,
+      ffmpeg: this.ffmpeg,
     };
   }
 
@@ -588,6 +601,74 @@ export class Core {
     });
     this.jobManager.submit(job, () => {}, {
       queue: "videocaptioner",
+      timeoutMs: 2 * 60 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one ffmpeg format conversion as a {@link FfmpegConvertJob} on the ffmpeg queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async ffmpegConvert(
+    request: FfmpegConvertRequest,
+    callbacks: Callbacks = {},
+  ): Promise<FfmpegJobHandle> {
+    const { folder, inputPath, outputPath } = assertFfmpegConvertRequest(request);
+    if (this.platformPorts().ffmpeg === undefined) {
+      throw new Error("FfmpegPort is required for ffmpegConvert");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new FfmpegConvertJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      inputPath,
+      outputPath,
+      outputFormat: request.outputFormat,
+      preset: request.preset,
+      title: request.title,
+      imageOptions: request.imageOptions,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "ffmpeg",
+      timeoutMs: 60 * 60 * 1000,
+    });
+    return { id: job.id };
+  }
+
+  /**
+   * Enqueue one ffmpeg compression as a {@link FfmpegCompressJob} on the ffmpeg queue.
+   * Returns immediately after submit; poll {@link getJob} until terminal.
+   */
+  async ffmpegCompress(
+    request: FfmpegCompressRequest,
+    callbacks: Callbacks = {},
+  ): Promise<FfmpegJobHandle> {
+    const { folder, inputPath, outputPath } = assertFfmpegCompressRequest(request);
+    if (this.platformPorts().ffmpeg === undefined) {
+      throw new Error("FfmpegPort is required for ffmpegCompress");
+    }
+    const ctx = this.appContext();
+    const ports = this.platformPorts();
+    const job = new FfmpegCompressJob(ctx, ports, {
+      id: nextJobId(),
+      logDir: ctx.logDir,
+      join: (...parts) => this.fs.join(...parts),
+      printLogToConsole: false,
+      callbacks,
+      folder,
+      inputPath,
+      outputPath,
+      compressOptions: request.compressOptions,
+      title: request.title,
+    });
+    this.jobManager.submit(job, () => {}, {
+      queue: "ffmpeg",
       timeoutMs: 2 * 60 * 60 * 1000,
     });
     return { id: job.id };
