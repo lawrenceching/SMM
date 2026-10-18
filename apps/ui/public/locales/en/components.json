@@ -290,6 +290,7 @@
         "synthesize": "Synthesize",
         "process": "Process",
         "ffmpeg-convert": "Format conversion",
+        "ffmpeg-compress": "Video compression",
         "ffmpeg-write-tags": "Write tags",
         "importMediaLibrary": "Import Media Library",
         "initializeMediaFolder": "Initializing {{name}}",

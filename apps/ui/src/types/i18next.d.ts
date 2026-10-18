@@ -333,6 +333,7 @@ interface ComponentsResources {
         synthesize: string
         process: string
         'ffmpeg-convert': string
+        'ffmpeg-compress': string
         'ffmpeg-write-tags': string
         importMediaLibrary: string
         initializeMediaFolder: string

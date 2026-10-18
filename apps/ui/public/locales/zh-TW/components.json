@@ -285,6 +285,7 @@
         "synthesize": "合成字幕",
         "process": "字幕流程",
         "ffmpeg-convert": "格式轉換",
+        "ffmpeg-compress": "影片壓縮",
         "ffmpeg-write-tags": "寫入標籤",
         "importMediaLibrary": "匯入媒體庫",
         "initializeMediaFolder": "初始化 {{name}}",

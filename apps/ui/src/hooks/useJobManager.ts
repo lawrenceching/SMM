@@ -8,6 +8,8 @@ import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { clearTestDelayJobTimers, stopTestDelayJob } from '@/lib/testDelayJobRunner'
 import { stopJobViaCore } from '@/api/stopJob'
 import {
+  isCoreFfmpegCompressJob,
+  isCoreFfmpegConvertJob,
   isGenericBackgroundJob,
   isImportFolderBackgroundJob,
   isProcessSubtitleBackgroundJob,
@@ -26,7 +28,9 @@ function isCoreMirroredBackgroundJob(job: BackgroundJob): boolean {
     isTranscribeSubtitleBackgroundJob(job) ||
     isTranslateSubtitleBackgroundJob(job) ||
     isSynthesizeSubtitleBackgroundJob(job) ||
-    isProcessSubtitleBackgroundJob(job)
+    isProcessSubtitleBackgroundJob(job) ||
+    isCoreFfmpegConvertJob(job) ||
+    isCoreFfmpegCompressJob(job)
   )
 }
 

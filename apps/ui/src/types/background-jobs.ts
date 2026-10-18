@@ -349,7 +349,11 @@ export interface ProcessBackgroundJob extends BackgroundJobBase {
   data: ProcessBackgroundJobData
 }
 
-/** FFmpeg format conversion job data */
+/**
+ * Legacy IndexedDB FFmpeg format conversion / compress job data
+ * (Orchestrator + executeCmd). Distinguished from Core mirrors by
+ * `inputPathPlatform` / `outputPathPlatform`.
+ */
 export interface FfmpegConvertBackgroundJobData {
   /** Media library folder (platform path). */
   folder: string
@@ -374,9 +378,55 @@ export interface FfmpegConvertBackgroundJobData {
   logRelativePath?: string
 }
 
+/** Legacy IDB `ffmpeg-convert` job (history mapper / Orchestrator). */
 export interface FfmpegConvertBackgroundJob extends BackgroundJobBase {
   type: 'ffmpeg-convert'
   data: FfmpegConvertBackgroundJobData
+}
+
+/**
+ * Core `FfmpegConvertJob` mirrored in the UI background-jobs store (not IndexedDB).
+ * Shares `type: 'ffmpeg-convert'` with legacy; distinguish via
+ * {@link isCoreFfmpegConvertJob} (no `inputPathPlatform`).
+ */
+interface CoreFfmpegConvertBackgroundJobData {
+  folder: string
+  inputPath: string
+  outputPath: string
+  outputFormat: string
+  preset: string
+  title?: string
+  imageOptions?: FfmpegConvertImageOptions
+  etaSeconds?: number | null
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface CoreFfmpegConvertBackgroundJob extends BackgroundJobBase {
+  type: 'ffmpeg-convert'
+  data: CoreFfmpegConvertBackgroundJobData
+}
+
+/**
+ * Core `FfmpegCompressJob` mirrored in the UI background-jobs store (not IndexedDB).
+ * Uses distinct `type: 'ffmpeg-compress'` (legacy compress reused `ffmpeg-convert`).
+ */
+interface CoreFfmpegCompressBackgroundJobData {
+  folder: string
+  inputPath: string
+  outputPath: string
+  title?: string
+  compressOptions: FfmpegCompressOptions
+  etaSeconds?: number | null
+  error?: string
+  /** Relative to logDir for `POST /api/get-job-log`. */
+  logRelativePath?: string
+}
+
+export interface CoreFfmpegCompressBackgroundJob extends BackgroundJobBase {
+  type: 'ffmpeg-compress'
+  data: CoreFfmpegCompressBackgroundJobData
 }
 
 /** FFmpeg write-media-tags job data */
@@ -426,6 +476,8 @@ export type BackgroundJob =
   | SynthesizeBackgroundJob
   | ProcessBackgroundJob
   | FfmpegConvertBackgroundJob
+  | CoreFfmpegConvertBackgroundJob
+  | CoreFfmpegCompressBackgroundJob
   | FfmpegWriteTagsBackgroundJob
   | ImportFolderBackgroundJob
 
@@ -485,8 +537,33 @@ export function isProcessBackgroundJob(job: BackgroundJob): job is ProcessBackgr
   return job.type === 'process'
 }
 
+/**
+ * Legacy IDB convert/compress job (`inputPathPlatform` present).
+ * Core convert mirrors share `type: 'ffmpeg-convert'` — use
+ * {@link isCoreFfmpegConvertJob} for those.
+ */
 export function isFfmpegConvertBackgroundJob(job: BackgroundJob): job is FfmpegConvertBackgroundJob {
-  return job.type === 'ffmpeg-convert'
+  return (
+    job.type === 'ffmpeg-convert' &&
+    typeof job.data === 'object' &&
+    job.data !== null &&
+    'inputPathPlatform' in job.data
+  )
+}
+
+/** Core `FfmpegConvertJob` mirror (Zustand only; no `inputPathPlatform`). */
+export function isCoreFfmpegConvertJob(job: BackgroundJob): job is CoreFfmpegConvertBackgroundJob {
+  return (
+    job.type === 'ffmpeg-convert' &&
+    typeof job.data === 'object' &&
+    job.data !== null &&
+    !('inputPathPlatform' in job.data)
+  )
+}
+
+/** Core `FfmpegCompressJob` mirror (Zustand only). */
+export function isCoreFfmpegCompressJob(job: BackgroundJob): job is CoreFfmpegCompressBackgroundJob {
+  return job.type === 'ffmpeg-compress'
 }
 
 export function isFfmpegWriteTagsBackgroundJob(job: BackgroundJob): job is FfmpegWriteTagsBackgroundJob {

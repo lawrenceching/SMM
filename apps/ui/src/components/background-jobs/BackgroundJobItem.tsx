@@ -18,6 +18,8 @@ import {
 } from '@/components/ui/context-menu'
 import type { BackgroundJob, JobStatus } from '@/types/background-jobs'
 import {
+  isCoreFfmpegCompressJob,
+  isCoreFfmpegConvertJob,
   isDownloadVideoJob,
   isFfmpegConvertBackgroundJob,
   isYtdlpBackgroundJob,
@@ -129,6 +131,7 @@ function getJobDisplayName(job: BackgroundJob, t: TFunction<'components'>): stri
     case 'synthesize':
     case 'process':
     case 'ffmpeg-convert':
+    case 'ffmpeg-compress':
     case 'ffmpeg-write-tags': {
       const typeLabel = t(`statusBar.backgroundJobs.jobNames.${job.type}`)
       const detail = job.name.includes(': ') ? job.name.slice(job.name.indexOf(': ') + 2) : null
@@ -176,30 +179,32 @@ export function BackgroundJobItem({
   const displayName = getJobDisplayName(job, t)
 
   // Progress sources:
-  // - ytdlp (Core) → job snapshot fields (polled via get-job)
+  // - ytdlp / Core ffmpeg → job snapshot fields (polled via get-job)
   // - download-video (legacy IDB) → yt-dlp progress JSON from command log
-  // - ffmpeg-convert → ffmpeg `frame=… time=…` lines
+  // - legacy ffmpeg-convert → ffmpeg `frame=… time=…` lines from command log
   const isYtdlp = isYtdlpBackgroundJob(job)
   const isDownload = isDownloadVideoJob(job)
-  const isFfmpegConvert = isFfmpegConvertBackgroundJob(job)
+  const isLegacyFfmpegConvert = isFfmpegConvertBackgroundJob(job)
+  const isCoreFfmpeg = isCoreFfmpegConvertJob(job) || isCoreFfmpegCompressJob(job)
   const executionId = getJobExecutionId(job) ?? ''
   const isJobRunning = job.status === 'running'
-  const shouldPollLog = isJobRunning && (isDownload || isFfmpegConvert) && executionId.length > 0
+  const shouldPollLog =
+    isJobRunning && (isDownload || isLegacyFfmpegConvert) && executionId.length > 0
   const { progress: ytdlpLiveProgress } = useYtdlpDownloadProgressQuery({
     executionId,
     isRunning: shouldPollLog && isDownload,
   })
   const { progress: ffmpegLiveProgress } = useFfmpegProgressQuery({
     executionId,
-    isRunning: shouldPollLog && isFfmpegConvert,
+    isRunning: shouldPollLog && isLegacyFfmpegConvert,
   })
 
   const livePercent =
-    isYtdlp
+    isYtdlp || isCoreFfmpeg
       ? undefined
       : isDownload
         ? ytdlpLiveProgress?.percent
-        : isFfmpegConvert
+        : isLegacyFfmpegConvert
           ? ffmpegLiveProgress?.percent ?? undefined
           : undefined
   const overallPercent = Math.max(0, Math.min(100, job.progress))
@@ -212,11 +217,13 @@ export function BackgroundJobItem({
       : undefined
   const etaSeconds = isYtdlp
     ? job.data.etaSeconds ?? undefined
-    : isDownload
-      ? ytdlpLiveProgress?.etaSeconds ?? undefined
-      : isFfmpegConvert
-        ? ffmpegLiveProgress?.etaSeconds ?? undefined
-        : undefined
+    : isCoreFfmpeg
+      ? job.data.etaSeconds ?? undefined
+      : isDownload
+        ? ytdlpLiveProgress?.etaSeconds ?? undefined
+        : isLegacyFfmpegConvert
+          ? ffmpegLiveProgress?.etaSeconds ?? undefined
+          : undefined
 
   return (
     <ContextMenu>
@@ -263,7 +270,8 @@ export function BackgroundJobItem({
                         {formatDownloadSpeed(speedBps)}
                       </p>
                     )}
-                    {(showDownloadStats || isFfmpegConvert) && etaSeconds != null && (
+                    {(showDownloadStats || isLegacyFfmpegConvert || isCoreFfmpeg) &&
+                      etaSeconds != null && (
                       <p
                         data-testid={`background-job-${job.id}-eta`}
                         className="text-xs text-muted-foreground"

@@ -4,6 +4,8 @@ import { useBackgroundJobsStore } from '@/stores/backgroundJobsStore'
 import { useFailedCommandLogsStore } from '@/stores/failedCommandLogsStore'
 import { useStatusbarStore } from '@/stores/statusbarStore'
 import {
+  isCoreFfmpegCompressJob,
+  isCoreFfmpegConvertJob,
   isDownloadVideoJob,
   isProcessSubtitleBackgroundJob,
   isSynthesizeSubtitleBackgroundJob,
@@ -51,7 +53,9 @@ export function useBackgroundJobsIndicator(): UseBackgroundJobsIndicatorResult {
         isTranscribeSubtitleBackgroundJob(job) ||
         isTranslateSubtitleBackgroundJob(job) ||
         isSynthesizeSubtitleBackgroundJob(job) ||
-        isProcessSubtitleBackgroundJob(job)) &&
+        isProcessSubtitleBackgroundJob(job) ||
+        isCoreFfmpegConvertJob(job) ||
+        isCoreFfmpegCompressJob(job)) &&
       job.status === 'pending'
     ) {
       return true

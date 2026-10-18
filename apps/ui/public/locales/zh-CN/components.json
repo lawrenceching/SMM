@@ -288,6 +288,7 @@
         "synthesize": "合成字幕",
         "process": "字幕流水线",
         "ffmpeg-convert": "格式转换",
+        "ffmpeg-compress": "视频压缩",
         "ffmpeg-write-tags": "写入标签",
         "importMediaLibrary": "导入媒体库",
         "initializeMediaFolder": "初始化 {{name}}",

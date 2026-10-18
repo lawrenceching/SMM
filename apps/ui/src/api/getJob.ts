@@ -16,6 +16,8 @@ type TranscribeSubtitleJob = Extract<SerializedJob, { kind: 'transcribe-subtitle
 type TranslateSubtitleJob = Extract<SerializedJob, { kind: 'translate-subtitle' }>
 type SynthesizeSubtitleJob = Extract<SerializedJob, { kind: 'synthesize-subtitle' }>
 type ProcessSubtitleJob = Extract<SerializedJob, { kind: 'process-subtitle' }>
+type FfmpegConvertJob = Extract<SerializedJob, { kind: 'ffmpeg-convert' }>
+type FfmpegCompressJob = Extract<SerializedJob, { kind: 'ffmpeg-compress' }>
 export type Job =
   | ImportJob
   | ImportLibraryJob
@@ -25,6 +27,8 @@ export type Job =
   | TranslateSubtitleJob
   | SynthesizeSubtitleJob
   | ProcessSubtitleJob
+  | FfmpegConvertJob
+  | FfmpegCompressJob
 export type JobStatus = ImportJob['status']
 export type ScrapeTaskRuntimeStatus = ScrapeJob['tasks'][keyof ScrapeJob['tasks']]['status']
 
