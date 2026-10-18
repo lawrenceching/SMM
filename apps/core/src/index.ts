@@ -179,6 +179,7 @@ export {
   type ProcessSubtitleJobOptions,
 } from "./jobs/ProcessSubtitleJob";
 export type { CommandPort, CommandRunRequest, CommandRunResult } from "./ports/CommandPort";
+export type { FfmpegPort, FfmpegRunRequest, FfmpegRunResult } from "./ports/FfmpegPort";
 export type {
   VideoCaptionerPort,
   VideoCaptionerRunRequest,
