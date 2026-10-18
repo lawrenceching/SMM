@@ -13,6 +13,7 @@
     "packages/electron-common/ohos/**"
   ],
   "ignoreBinaries": [
+    "ffmpeg",
     "hdc",
     "pino-pretty",
     "tasklist",
