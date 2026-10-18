@@ -286,7 +286,8 @@ describe("VideoCompressionDialog", () => {
     const input = compressJobMutation.mutateAsync.mock.calls[0][0];
     expect(input.inputPath).toBe(sampleFilePath);
     expect(input.compressOptions).toBeDefined();
-    expect(input.outputContainer).toBe("mp4");
+    expect(input.compressOptions.container).toBe("mp4");
+    expect(input).not.toHaveProperty("outputContainer");
     expect(onClose).toHaveBeenCalled();
   });
 

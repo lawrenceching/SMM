@@ -285,7 +285,6 @@ export function VideoCompressionDialog({
       await createCompressJobAsync({
         inputPath: filePath,
         outputPath,
-        outputContainer: options.container,
         compressOptions: options,
         title: sourceDisplayName,
       })

@@ -1,14 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import type { ComponentProps } from "react"
+import { Path } from "@smm/utils/path"
 import { FormatConverterDialog } from "./format-converter-dialog"
 import type { TrackProperties } from "./types"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 
-const createJobMock = vi.fn().mockResolvedValue("job-123")
+const h = vi.hoisted(() => ({
+  createJob: vi.fn().mockResolvedValue("orch-id"),
+  ffmpegConvertViaCore: vi.fn().mockResolvedValue({ id: "core-convert-1" }),
+  pollFfmpegJob: vi.fn().mockResolvedValue({
+    kind: "ffmpeg-convert",
+    id: "core-convert-1",
+    status: "succeeded",
+    progress: 100,
+  }),
+}))
+
+vi.mock("@/api/ffmpegConvert", () => ({
+  ffmpegConvertViaCore: h.ffmpegConvertViaCore,
+}))
+
+vi.mock("@/lib/pollFfmpegJob", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/pollFfmpegJob")>()
+  return {
+    ...actual,
+    pollFfmpegJob: h.pollFfmpegJob,
+  }
+})
 
 vi.mock("@/hooks/useJobManager", () => ({
   useJobManager: () => ({
-    createJob: createJobMock,
+    createJob: h.createJob,
   }),
 }))
 
@@ -82,7 +105,9 @@ describe("FormatConverterDialog", () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    createJobMock.mockResolvedValue("job-123")
+    h.createJob.mockResolvedValue("orch-id")
+    h.ffmpegConvertViaCore.mockResolvedValue({ id: "core-convert-1" })
+    useBackgroundJobsStore.setState({ jobs: [] })
     Element.prototype.scrollIntoView = vi.fn()
   })
 
@@ -99,7 +124,7 @@ describe("FormatConverterDialog", () => {
   }
 
   it("disables form controls and shows spinner on Start while conversion is pending", () => {
-    createJobMock.mockImplementationOnce(() => new Promise(() => {}))
+    h.ffmpegConvertViaCore.mockImplementationOnce(() => new Promise(() => {}))
     renderDialog()
 
     fireEvent.click(screen.getByTestId("format-converter-start"))
@@ -140,20 +165,34 @@ describe("FormatConverterDialog", () => {
     )
   })
 
-  it("calls createJob with ffmpeg-convert data and closes dialog on Start", async () => {
+  it("enqueues via Core without createJob and closes dialog on Start", async () => {
     renderDialog()
 
     fireEvent.click(screen.getByTestId("format-converter-start"))
 
     await waitFor(() => {
-      expect(createJobMock).toHaveBeenCalledTimes(1)
+      expect(h.ffmpegConvertViaCore).toHaveBeenCalledTimes(1)
     })
-    const jobArg = createJobMock.mock.calls[0][0]
-    expect(jobArg.type).toBe("ffmpeg-convert")
-    expect(jobArg.data.outputFormat).toBe("mp4h264")
-    expect(jobArg.data.preset).toBe("balanced")
-    expect(jobArg.data.imageOptions).toBeUndefined()
+    expect(h.createJob).not.toHaveBeenCalled()
+
+    const arg = h.ffmpegConvertViaCore.mock.calls[0]![0]
+    expect(arg.outputFormat).toBe("mp4h264")
+    expect(arg.preset).toBe("balanced")
+    expect(arg.imageOptions).toBeUndefined()
+    expect(arg.inputPath).toBe(Path.toPlatformPath(Path.posix("/media/videos/sample.mkv")))
+    expect(arg.folder).toBe(Path.toPlatformPath(Path.posix("/media/videos")))
+    expect(arg.title).toBe("sample.mkv")
     expect(onClose).toHaveBeenCalled()
+
+    const jobs = useBackgroundJobsStore.getState().jobs
+    expect(jobs).toHaveLength(1)
+    expect(jobs[0]!.type).toBe("ffmpeg-convert")
+    expect(jobs[0]!.status).toBe("pending")
+    expect(h.pollFfmpegJob).toHaveBeenCalledWith(
+      "core-convert-1",
+      "ffmpeg-convert",
+      expect.any(Function),
+    )
   })
 
   it("shows image options and hides video preset when WebP is selected", async () => {
@@ -184,11 +223,12 @@ describe("FormatConverterDialog", () => {
     fireEvent.click(screen.getByTestId("format-converter-start"))
 
     await waitFor(() => {
-      expect(createJobMock).toHaveBeenCalledTimes(1)
+      expect(h.ffmpegConvertViaCore).toHaveBeenCalledTimes(1)
     })
-    const jobArg = createJobMock.mock.calls[0][0]
-    expect(jobArg.data.outputFormat).toBe("webp")
-    expect(jobArg.data.imageOptions).toMatchObject({
+    expect(h.createJob).not.toHaveBeenCalled()
+    const arg = h.ffmpegConvertViaCore.mock.calls[0]![0]
+    expect(arg.outputFormat).toBe("webp")
+    expect(arg.imageOptions).toMatchObject({
       mode: "animated",
       fps: 10,
       webp: { quality: 80, lossless: false, preset: "default", loop: "once" },

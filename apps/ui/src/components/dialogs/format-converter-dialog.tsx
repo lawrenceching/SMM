@@ -23,11 +23,17 @@ import {
 } from "@/components/ui/select"
 import { useTranslation } from "@/lib/i18n"
 import { Video, FolderOpen, Loader2 } from "lucide-react"
+import { Path } from "@smm/utils/path"
 import { basename, dirname, join } from "@/lib/path"
 import type { FormatConverterDialogProps } from "./types"
 import { toast } from "sonner"
-import { useJobManager } from "@/hooks/useJobManager"
-import { buildFfmpegConvertJob } from "@/lib/ffmpegConvertJobFactory"
+import { ffmpegConvertViaCore } from "@/api/ffmpegConvert"
+import {
+  applyFfmpegConvertPollUpdate,
+  pollFfmpegJob,
+  upsertFfmpegConvertJobFromCore,
+} from "@/lib/pollFfmpegJob"
+import { useBackgroundJobsStore } from "@/stores/backgroundJobsStore"
 import {
   DEFAULT_FFMPEG_CONVERT_IMAGE_OPTIONS,
   isFfmpegConvertImageFormat,
@@ -139,7 +145,6 @@ export function FormatConverterDialog({
   const [outputFileName, setOutputFileName] = useState("")
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isConverting, setIsConverting] = useState(false)
-  const { createJob } = useJobManager()
 
   const sourcePath = track ? getSourcePath(track) : ""
   const sourceDir = sourcePath ? dirname(sourcePath) : ""
@@ -198,21 +203,44 @@ export function FormatConverterDialog({
       toast.error(t("formatConverter.invalidParams", "Please set output folder and file name."))
       return
     }
-    const outputPath = join(outputDir, outputFileName)
+    const inputPath = Path.toPlatformPath(Path.posix(sourcePath))
+    const outputPath = Path.toPlatformPath(Path.posix(join(outputDir, outputFileName)))
+    const folder = Path.toPlatformPath(Path.posix(sourceDir || dirname(sourcePath)))
+    const title = sourceDisplayName
     setErrorMessage(null)
     setIsConverting(true)
 
-    const job = buildFfmpegConvertJob({
-      inputPath: sourcePath,
-      outputPath,
-      outputFormat,
-      preset: preset as FfmpegConvertPreset,
-      title: sourceDisplayName,
-      ...(isImageFormat && { imageOptions }),
-    })
-
     try {
-      await createJob(job)
+      const { id } = await ffmpegConvertViaCore({
+        folder,
+        inputPath,
+        outputPath,
+        outputFormat: outputFormat as FfmpegConvertFormat,
+        preset: preset as FfmpegConvertPreset,
+        title,
+        ...(isImageFormat && { imageOptions }),
+      })
+
+      upsertFfmpegConvertJobFromCore({
+        id,
+        folder,
+        inputPath,
+        outputPath,
+        outputFormat,
+        preset,
+        title,
+        ...(isImageFormat && { imageOptions }),
+        status: "pending",
+        progress: 0,
+      })
+
+      void pollFfmpegJob(id, "ffmpeg-convert", (job) => {
+        applyFfmpegConvertPollUpdate(job)
+      }).catch((error: unknown) => {
+        console.error("[FormatConverterDialog] poll ffmpeg-convert job failed:", error)
+        useBackgroundJobsStore.getState().updateJob(id, { status: "failed" })
+      })
+
       toast.success(t("formatConverter.success", "Conversion started."))
       onClose()
     } catch {
