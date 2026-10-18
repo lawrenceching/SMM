@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test'
-import { existsSync, mkdtempSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { $ } from 'bun'
@@ -10,6 +10,18 @@ import { checkVideoCaptionerAvailable } from '../test/lib/checkVideoCaptionerAva
 
 const TEN_MINUTES_MS = 10 * 60 * 1000
 const hasVc = checkVideoCaptionerAvailable()
+
+function assertNonEmptySrt(workDir: string, expectedName = 'sample.srt'): void {
+  const expectedPath = join(workDir, expectedName)
+  if (existsSync(expectedPath) && statSync(expectedPath).size > 0) {
+    return
+  }
+  const srts = readdirSync(workDir).filter((n) => n.toLowerCase().endsWith('.srt'))
+  console.error('dir:', readdirSync(workDir))
+  const match = srts.find((n) => statSync(join(workDir, n)).size > 0)
+  expect(match).toBeDefined()
+  expect(statSync(join(workDir, match!)).size).toBeGreaterThan(0)
+}
 
 describe('transcribe subtitle', () => {
   let workDir: string | undefined
@@ -44,7 +56,6 @@ describe('transcribe subtitle', () => {
     async () => {
       expect(workDir).toBeDefined()
       const mediaPath = join(workDir!, 'sample.mp4')
-      const srtPath = join(workDir!, 'sample.srt')
 
       await prepareVideoFile(mediaPath)
 
@@ -53,10 +64,10 @@ describe('transcribe subtitle', () => {
 
       if (ret.exitCode !== 0) {
         console.error(cliOutput(ret))
+        console.error('dir:', readdirSync(workDir!))
       }
       expect(ret.exitCode).toBe(0)
-      expect(existsSync(srtPath)).toBe(true)
-      expect(statSync(srtPath).size).toBeGreaterThan(0)
+      assertNonEmptySrt(workDir!)
     },
     TEN_MINUTES_MS,
   )

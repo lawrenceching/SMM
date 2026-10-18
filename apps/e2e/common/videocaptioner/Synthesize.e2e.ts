@@ -127,7 +127,7 @@ if (!isVideoCaptionerAvailable) {
     })
 
     it('synthesizes video via music header Synthesize', async function () {
-      this.timeout(10 * 60 * 1000)
+      this.timeout(12 * 60 * 1000)
 
       const folderName = `TestSynthesize-${Date.now()}`
       folderPath = await createAndImportFolderViaBrowser(
@@ -160,7 +160,7 @@ if (!isVideoCaptionerAvailable) {
       await confirm.waitForClickable({ timeout: 5000 })
       await confirm.click()
 
-      await waitForVideoChangedOrNew(folderPath, before, 10 * 60 * 1000)
+      await waitForVideoChangedOrNew(folderPath, before, 8 * 60 * 1000)
     })
   })
 }

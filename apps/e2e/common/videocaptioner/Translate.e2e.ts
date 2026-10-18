@@ -127,7 +127,7 @@ if (!isVideoCaptionerAvailable) {
     })
 
     it('translates sample.srt via music header Translate', async function () {
-      this.timeout(10 * 60 * 1000)
+      this.timeout(12 * 60 * 1000)
 
       const folderName = `TestTranslate-${Date.now()}`
       folderPath = await createAndImportFolderViaBrowser(
@@ -160,7 +160,7 @@ if (!isVideoCaptionerAvailable) {
       await confirm.waitForClickable({ timeout: 5000 })
       await confirm.click()
 
-      await waitForSrtChangedOrNew(folderPath, before, 10 * 60 * 1000)
+      await waitForSrtChangedOrNew(folderPath, before, 8 * 60 * 1000)
     })
   })
 }

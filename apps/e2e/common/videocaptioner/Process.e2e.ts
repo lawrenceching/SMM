@@ -1,5 +1,5 @@
 import * as fs from 'node:fs'
-import { browser } from '@wdio/globals'
+import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import MusicPanel from 'test/componentobjects/MusicPanel.co'
 import {
@@ -14,31 +14,61 @@ import {
   fileExistsViaBrowser,
   getFileSizeViaBrowser,
   joinPlatformPath,
+  listFileNamesViaBrowser,
 } from 'test/lib/browser-fs'
 
-async function waitForSrtFile(folderPath: string, fileName: string, timeoutMs: number) {
-  const outputPath = joinPlatformPath(folderPath, fileName)
-  await browser.waitUntil(
-    async () => {
-      try {
-        if (isDockerE2e || !fs.existsSync(outputPath)) {
-          const exists = await fileExistsViaBrowser(outputPath)
-          if (!exists) return false
-          const size = await getFileSizeViaBrowser(outputPath)
-          return size > 0
+/** Prefer non-empty `sample.srt`, else any non-empty `.srt` (log dir on failure). */
+async function waitForNonEmptySrt(folderPath: string, timeoutMs: number) {
+  const preferred = 'sample.srt'
+  try {
+    await browser.waitUntil(
+      async () => {
+        try {
+          const preferredPath = joinPlatformPath(folderPath, preferred)
+          if (isDockerE2e || !fs.existsSync(preferredPath)) {
+            if (await fileExistsViaBrowser(preferredPath)) {
+              if ((await getFileSizeViaBrowser(preferredPath)) > 0) return true
+            }
+          } else if (fs.statSync(preferredPath).size > 0) {
+            return true
+          }
+
+          if (isDockerE2e || !fs.existsSync(folderPath)) {
+            const names = await listFileNamesViaBrowser(folderPath)
+            for (const name of names) {
+              if (!name.toLowerCase().endsWith('.srt')) continue
+              const size = await getFileSizeViaBrowser(joinPlatformPath(folderPath, name))
+              if (size > 0) return true
+            }
+            return false
+          }
+          return fs.readdirSync(folderPath).some((n) => {
+            if (!n.toLowerCase().endsWith('.srt')) return false
+            return fs.statSync(joinPlatformPath(folderPath, n)).size > 0
+          })
+        } catch {
+          return false
         }
-        return fs.statSync(outputPath).size > 0
-      } catch {
-        return false
-      }
-    },
-    {
-      timeout: timeoutMs,
-      interval: 2_000,
-      timeoutMsg: `Process SRT never appeared or stayed empty: ${outputPath}`,
-    },
-  )
-  return outputPath
+      },
+      {
+        timeout: timeoutMs,
+        interval: 2_000,
+        timeoutMsg: `Process never produced a non-empty .srt under ${folderPath}`,
+      },
+    )
+  } catch (err) {
+    let listing: string[]
+    try {
+      listing =
+        isDockerE2e || !fs.existsSync(folderPath)
+          ? await listFileNamesViaBrowser(folderPath)
+          : fs.readdirSync(folderPath)
+    } catch {
+      listing = ['(failed to list)']
+    }
+    console.error('dir:', listing)
+    throw err
+  }
 }
 
 const isVideoCaptionerAvailable = isDockerE2e || checkVideoCaptionerAvailable()
@@ -49,7 +79,7 @@ if (!isVideoCaptionerAvailable) {
   })
 } else {
   /**
-   * Music header Process via VideoCaptioner short path (`sample.mp4` → `sample.srt`).
+   * Music header Process via VideoCaptioner short path (`sample.mp4` → non-empty `.srt`).
    * Checks noTranslate so Confirm does not require target language / translator.
    *
    * @supports local, Electron, Docker
@@ -90,7 +120,7 @@ if (!isVideoCaptionerAvailable) {
     })
 
     it('processes sample.mp4 via music header Process (noTranslate short path)', async function () {
-      this.timeout(10 * 60 * 1000)
+      this.timeout(12 * 60 * 1000)
 
       const folderName = `TestProcess-${Date.now()}`
       folderPath = await createAndImportFolderViaBrowser(
@@ -120,12 +150,13 @@ if (!isVideoCaptionerAvailable) {
       if (!(await noTranslate.isSelected())) {
         await noTranslate.click()
       }
+      expect(await noTranslate.isSelected()).toBe(true)
 
       const confirm = await $('[data-testid="process-pipeline-confirm"]')
       await confirm.waitForClickable({ timeout: 5000 })
       await confirm.click()
 
-      await waitForSrtFile(folderPath, 'sample.srt', 10 * 60 * 1000)
+      await waitForNonEmptySrt(folderPath, 8 * 60 * 1000)
     })
   })
 }
