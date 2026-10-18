@@ -53,7 +53,7 @@ UI / CLI
 | `FfmpegCompressJob` | `apps/core/src/jobs/FfmpegCompressJob.ts` | kind `ffmpeg-compress` |
 | Progress helpers | `apps/core/src/pipeline/ffmpeg/progress.ts`（或并列） | 从 UI `useFfmpegProgressQuery` 迁/共享解析逻辑 |
 | Snapshot types | `apps/core/src/jobs/types.ts` | 并入 `Job` 联合 |
-| Request asserts | `apps/core/src/pipeline/ffmpeg/ffmpegJobsApi.ts`（命名可微调） | convert/compress 请求校验 |
+| Request asserts | `apps/core/src/pipeline/ffmpeg/ffmpegJobsApi.ts` | convert/compress 请求校验 |
 | Argv | `whitelistedCmd/ffmpeg.ts` | 已有 `buildFfmpegConvertArgs` / `buildFfmpegCompressArgs` |
 | JobManager | `apps/core/src/jobs/jobManager.ts` | `JobQueueName` 增加 `"ffmpeg"`；concurrency 1 |
 | Server Port | `apps/server/src/core/FfmpegPort.ts` | `runCommand` 适配，timeout ≥ 2h |
@@ -164,7 +164,8 @@ smm compress <input> -o <output> --folder <path> [compress option flags …] [--
 #### 错误
 
 - exit ≠ 0 → `failed` + `error`（可读消息；可复用/下沉 `classifyFfmpegConvertError`）。
-- Abort / JobManager timeout → `aborted` 或 `failed`（与现有 AbstractJob / YtdlpJob 惯例对齐，实现时选一种并测稳）。
+- User abort / AbortSignal → `aborted`（与 `YtdlpJob` / 字幕 Job 一致）。
+- JobManager `timeoutMs` 触发 → 按现有 `JobManager` + `AbstractJob` 惯例结束（与 ytdlp/videocaptioner 相同路径，不单开语义）。
 
 ## 3. User Stories
 
