@@ -1,4 +1,6 @@
 import {
+  FfmpegCompressJob,
+  FfmpegConvertJob,
   ImportFolderJob,
   ImportLibraryJob,
   ProcessSubtitleJob,
@@ -46,6 +48,12 @@ export function serializeJob(
     return job.toJSON()
   }
   if (job instanceof ProcessSubtitleJob) {
+    return job.toJSON()
+  }
+  if (job instanceof FfmpegConvertJob) {
+    return job.toJSON()
+  }
+  if (job instanceof FfmpegCompressJob) {
     return job.toJSON()
   }
   return {

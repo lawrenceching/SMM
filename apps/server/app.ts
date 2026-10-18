@@ -37,6 +37,8 @@ import { transcribeSubtitleRoute } from './src/route/TranscribeSubtitle';
 import { translateSubtitleRoute } from './src/route/TranslateSubtitle';
 import { synthesizeSubtitleRoute } from './src/route/SynthesizeSubtitle';
 import { processSubtitleRoute } from './src/route/ProcessSubtitle';
+import { ffmpegConvertRoute } from './src/route/FfmpegConvert';
+import { ffmpegCompressRoute } from './src/route/FfmpegCompress';
 import { stopJobRoute } from './src/route/StopJob';
 import { getJobLogRoute } from './src/route/GetJobLog';
 import { commandLogRoute } from './src/route/commandLog';
@@ -183,6 +185,8 @@ export function createApp(deps: CreateAppDeps) {
     .route('/', translateSubtitleRoute)
     .route('/', synthesizeSubtitleRoute)
     .route('/', processSubtitleRoute)
+    .route('/', ffmpegConvertRoute)
+    .route('/', ffmpegCompressRoute)
     .route('/', commandLogRoute)
     .route('/', tmdbRoute)
     .route('/', tvdbRoute)
