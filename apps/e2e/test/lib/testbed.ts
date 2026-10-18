@@ -46,6 +46,8 @@ export {
   SAMPLE_MP4_URL,
   SAMPLE_MP4_CACHE_PATH,
 } from './prepareVideoFile'
+export { prepareMinimalSrt } from './prepareMinimalSrt'
+export { checkVideoCaptionerAvailable } from './checkVideoCaptionerAvailable'
 
 import {
     useEmbeddedHttpProxy,
