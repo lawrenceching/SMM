@@ -14,7 +14,6 @@ import { useTranslation } from '@/lib/i18n'
 import { DialogContext } from '@/providers/dialog-provider'
 import type {
   BackgroundJob,
-  FfmpegConvertBackgroundJobData,
   FfmpegWriteTagsBackgroundJobData,
 } from '@/types/background-jobs'
 import {
@@ -34,15 +33,7 @@ import {
 import { getExecutionIdFromJobRecord } from '@/lib/reconcileJobRecordWithCommandStatus'
 import { syncJobRecordsToStore } from '@/lib/jobRecordMapper'
 import { executeCmdToCompletionWithHeaders } from '@/lib/whitelistedCmd/executeCmdToCompletion'
-import {
-  buildFfmpegConvertArgs,
-  buildFfmpegCompressArgs,
-  buildFfmpegWriteTagsArgs,
-  type FfmpegCompressProbe,
-  type FfmpegCompressRun,
-  type FfmpegConvertFormat,
-  type FfmpegConvertPreset,
-} from '@/lib/whitelistedCmd'
+import { buildFfmpegWriteTagsArgs } from '@/lib/whitelistedCmd'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,60 +94,9 @@ export function useJobOrchestratorContext(): JobOrchestratorContextValue {
 
 /** Timeout per job type — matches original Service Worker values. */
 const JOB_TIMEOUT_MS: Record<string, number> = {
-  'download-video': 60 * 60 * 1000,       // 1 hour
-  'ffmpeg-convert': 60 * 60 * 1000,        // 1 hour
-  'ffmpeg-compress': 2 * 60 * 60 * 1000,   // 2 hours (compression may take longer)
   'ffmpeg-write-tags': 5 * 60 * 1000,      // 5 min
 }
 
-/** Run ffprobe on a video file to gather duration, width, height. */
-async function probeVideoForCompression(filePath: string): Promise<FfmpegCompressProbe> {
-  const emptyProbe: FfmpegCompressProbe = { durationSec: 0, width: 0, height: 0 }
-  try {
-    const result = await executeCmdToCompletionWithHeaders(
-      {
-        command: 'ffprobe',
-        args: [
-          '-v', 'error',
-          '-print_format', 'json',
-          '-show_format',
-          '-show_streams',
-          filePath,
-        ],
-      },
-      { timeoutMs: 30_000 },
-    )
-    if (!result.success) return emptyProbe
-    const parsed = JSON.parse(result.stdout) as {
-      format?: { duration?: string }
-      streams?: Array<{ codec_type?: string; width?: number; height?: number }>
-    }
-    const durationSec = parsed.format?.duration
-      ? Number.parseFloat(parsed.format.duration)
-      : 0
-    const videoStream = (parsed.streams ?? []).find((s) => s.codec_type === 'video')
-    return {
-      durationSec: Number.isFinite(durationSec) ? durationSec : 0,
-      width: videoStream?.width ?? 0,
-      height: videoStream?.height ?? 0,
-    }
-  } catch {
-    return emptyProbe
-  }
-}
-
-/** Best-effort cleanup of a 2-pass ffmpeg log file. */
-async function cleanupPassLog(logPath: string): Promise<void> {
-  if (!logPath) return
-  try {
-    const { moveFileToTrash } = await import('@/api/moveFileToTrash')
-    await moveFileToTrash(logPath)
-  } catch {
-    // best effort
-  }
-}
-
-// ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
@@ -344,102 +284,14 @@ export function JobOrchestratorProvider({ children }: { children: ReactNode }) {
           break
         }
 
-        // ── FFmpeg Convert ────────────────────────────────────────
+        // ── FFmpeg Convert (legacy IndexedDB) ─────────────────────
+        // New convert/compress jobs go through Core. Leftover IndexedDB
+        // ffmpeg-convert rows are marked failed (read-only history via mapper).
         case 'ffmpeg-convert': {
-          const cd = data as unknown as FfmpegConvertBackgroundJobData
-          const executionId = crypto.randomUUID()
-          const isCompress = cd.compressOptions != null
-
-          if (!isCompress) {
-            const args = buildFfmpegConvertArgs(
-              cd.inputPathPlatform,
-              cd.outputPathPlatform,
-              cd.outputFormat as FfmpegConvertFormat,
-              cd.preset as FfmpegConvertPreset,
-              cd.imageOptions,
-            )
-            const result = await executeCmdToCompletionWithHeaders(
-              { command: 'ffmpeg', args },
-              { timeoutMs: JOB_TIMEOUT_MS['ffmpeg-convert'], signal: controller.signal, executionId },
-            )
-
-            if (result.executionId) data.executionId = result.executionId
-            if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-            success = result.success
-          } else {
-            // Compression: probe source then build args (potentially 2-pass)
-            const probe = await probeVideoForCompression(cd.inputPathPlatform)
-            const run: FfmpegCompressRun = buildFfmpegCompressArgs(
-              cd.inputPathPlatform,
-              cd.outputPathPlatform,
-              cd.compressOptions!,
-              probe,
-            )
-
-            if (run.kind === 'single') {
-              const result = await executeCmdToCompletionWithHeaders(
-                { command: 'ffmpeg', args: run.args },
-                {
-                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
-                  signal: controller.signal,
-                  executionId,
-                },
-              )
-              if (result.executionId) data.executionId = result.executionId
-              if (result.logRelativePath) data.logRelativePath = result.logRelativePath ?? undefined
-              success = result.success
-            } else {
-              // Two-pass: pass 1 then pass 2. Both passes share the case-level
-              // executionId so they append to a single `main.log` — see
-              // docs/design/ffmpeg-progress-display.md. The popover then sees
-              // a continuous stream of progress lines across the whole
-              // compression.
-              const pass1Result = await executeCmdToCompletionWithHeaders(
-                { command: 'ffmpeg', args: run.pass1Args },
-                {
-                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
-                  signal: controller.signal,
-                  executionId,
-                },
-              )
-              if (pass1Result.executionId) data.executionId = pass1Result.executionId
-              if (pass1Result.logRelativePath) data.logRelativePath = pass1Result.logRelativePath ?? undefined
-
-              if (controller.signal.aborted || !pass1Result.success) {
-                await cleanupPassLog(run.passLogPath)
-                if (controller.signal.aborted) {
-                  wasStopped = true
-                } else {
-                  record.status = 'failed'
-                }
-                break
-              }
-
-              // Update progress to 50% after pass 1
-              record.progress = 50
-              record.updatedAt = Date.now()
-              record.data = JSON.stringify(data)
-              await putJob(record)
-              await syncFromIndexedDB('compress:pass1-done')
-
-              const pass2Result = await executeCmdToCompletionWithHeaders(
-                { command: 'ffmpeg', args: run.pass2Args },
-                {
-                  timeoutMs: JOB_TIMEOUT_MS['ffmpeg-compress'],
-                  signal: controller.signal,
-                  executionId,
-                },
-              )
-              if (pass2Result.executionId) data.executionId = pass2Result.executionId
-              if (pass2Result.logRelativePath) data.logRelativePath = pass2Result.logRelativePath ?? undefined
-              success = pass2Result.success
-              await cleanupPassLog(run.passLogPath)
-            }
-          }
-
-          if (controller.signal.aborted) wasStopped = true
-          record.status = wasStopped ? 'stopped' : (success ? 'succeeded' : 'failed')
-          record.progress = success ? 100 : record.progress
+          data.error =
+            'FFmpeg convert/compress jobs now run via Core; restart from the Format Converter or Video Compression dialog.'
+          record.data = JSON.stringify(data)
+          record.status = 'failed'
           break
         }
 
