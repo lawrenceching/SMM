@@ -188,6 +188,27 @@ class MusicPanelComponentObject {
         await item.click()
     }
 
+    async clickHeaderTranslate(): Promise<void> {
+        await this.openSubtitleMenu()
+        const item = await $('[data-testid="music-header-translate"]')
+        await item.waitForClickable({ timeout: 5000 })
+        await item.click()
+    }
+
+    async clickHeaderSynthesize(): Promise<void> {
+        await this.openSubtitleMenu()
+        const item = await $('[data-testid="music-header-synthesize"]')
+        await item.waitForClickable({ timeout: 5000 })
+        await item.click()
+    }
+
+    async clickHeaderProcess(): Promise<void> {
+        await this.openSubtitleMenu()
+        const item = await $('[data-testid="music-header-process"]')
+        await item.waitForClickable({ timeout: 5000 })
+        await item.click()
+    }
+
     async clickContextMenuSubtitleItem(item: MusicTrackContextMenuItem): Promise<void> {
         const labels = MUSIC_TRACK_CONTEXT_MENU_LABELS[item]
 
