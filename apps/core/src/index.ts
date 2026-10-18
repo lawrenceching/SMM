@@ -144,6 +144,8 @@ export type {
   TranslateSubtitleJobSnapshot,
   SynthesizeSubtitleJobSnapshot,
   ProcessSubtitleJobSnapshot,
+  FfmpegConvertJobSnapshot,
+  FfmpegCompressJobSnapshot,
   Job,
   JobStatus,
   JobStage,

@@ -3,6 +3,10 @@ import type {
   ImportLibraryJob as ImportLibraryJobPayload,
 } from "@smm/types/job/ImportLibraryJob";
 import type { ScrapeTaskId } from "../pipeline/scrape/types";
+import type {
+  FfmpegCompressOptions,
+  FfmpegConvertImageOptions,
+} from "../whitelistedCmd/constants";
 
 export type { ImportLibraryJobTask } from "@smm/types/job/ImportLibraryJob";
 
@@ -160,6 +164,42 @@ export interface ProcessSubtitleJobSnapshot {
   updatedAt: number;
 }
 
+export interface FfmpegConvertJobSnapshot {
+  kind: "ffmpeg-convert";
+  id: string;
+  type: "ffmpeg-convert";
+  folder: string;
+  inputPath: string;
+  outputPath: string;
+  outputFormat: string;
+  preset: string;
+  title?: string;
+  imageOptions?: FfmpegConvertImageOptions;
+  status: JobStatus;
+  progress: number;
+  etaSeconds?: number | null;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface FfmpegCompressJobSnapshot {
+  kind: "ffmpeg-compress";
+  id: string;
+  type: "ffmpeg-compress";
+  folder: string;
+  inputPath: string;
+  outputPath: string;
+  title?: string;
+  compressOptions: FfmpegCompressOptions;
+  status: JobStatus;
+  progress: number;
+  etaSeconds?: number | null;
+  error?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type Job =
   | ImportJob
   | ImportLibraryJob
@@ -168,7 +208,9 @@ export type Job =
   | TranscribeSubtitleJobSnapshot
   | TranslateSubtitleJobSnapshot
   | SynthesizeSubtitleJobSnapshot
-  | ProcessSubtitleJobSnapshot;
+  | ProcessSubtitleJobSnapshot
+  | FfmpegConvertJobSnapshot
+  | FfmpegCompressJobSnapshot;
 
 export function initialScrapeTasks(): Record<ScrapeTaskId, ScrapeJobTask> {
   return {
