@@ -199,9 +199,39 @@ describe("JobManager", () => {
     expect(slow.status).toBe("succeeded");
   });
 
-  it("ffmpeg queue runs one job at a time", async () => {
+  it("ffmpeg queue does not block the default queue", async () => {
     const { ports, context } = createPorts();
     const manager = new JobManager({ concurrency: 1, timeoutMs: 5_000 }, ports);
+
+    let releaseSlow!: () => void;
+    const slowGate = new Promise<void>((resolve) => {
+      releaseSlow = resolve;
+    });
+
+    class SlowFfmpegJob extends QuickJob {
+      override async run(): Promise<void> {
+        await slowGate;
+      }
+    }
+
+    const slow = new SlowFfmpegJob(context, ports, jobOptions("ffmpeg-slow"));
+    const fast = new QuickJob(context, ports, jobOptions("default-fast-ffmpeg"));
+
+    manager.submit(slow, () => {}, { queue: "ffmpeg", timeoutMs: 60_000 });
+    manager.submit(fast, () => {});
+
+    await manager.waitForJobUntilCompleted("default-fast-ffmpeg");
+    expect(fast.status).toBe("succeeded");
+    expect(slow.status).toBe("running");
+
+    releaseSlow();
+    await manager.waitForJobUntilCompleted("ffmpeg-slow");
+    expect(slow.status).toBe("succeeded");
+  });
+
+  it("ffmpeg queue runs one job at a time", async () => {
+    const { ports, context } = createPorts();
+    const manager = new JobManager({ concurrency: 2, timeoutMs: 5_000 }, ports);
 
     let releaseFirst!: () => void;
     const firstGate = new Promise<void>((resolve) => {
