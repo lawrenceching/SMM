@@ -14,7 +14,7 @@ if (trustAllTmdbCertEnabled()) {
 }
 
 // All subcommands (incl. `web`) are handled by Commander via runCli.
-const cliCommands = new Set(['list', 'add', 'addlib', 'download', 'show', 'metadata', 'rm', 'config', 'recognize', 'try-to-recognize', 'try-to-rename', 'apply', 'reject', 'plan', 'scrape', 'job', 'rename', 'rename-episode-file', 'hello', 'tmdb', 'tvdb', 'mcp', 'web'])
+const cliCommands = new Set(['list', 'add', 'addlib', 'download', 'show', 'metadata', 'rm', 'config', 'recognize', 'try-to-recognize', 'try-to-rename', 'apply', 'reject', 'plan', 'scrape', 'transcribe', 'translate', 'synthesize', 'convert', 'compress', 'process', 'job', 'rename', 'rename-episode-file', 'hello', 'tmdb', 'tvdb', 'mcp', 'web'])
 const firstArg = process.argv[2]
 const isCliHelp = firstArg === '--help' || firstArg === '-h'
 if (firstArg !== undefined && (cliCommands.has(firstArg) || isCliHelp)) {
