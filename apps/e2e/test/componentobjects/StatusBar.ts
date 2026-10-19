@@ -1,3 +1,6 @@
+import { browser } from '@wdio/globals'
+import { rightClickElement } from '../lib/context-menu'
+
 class StatusBar {
     /**
      * Get the main status bar element
@@ -275,11 +278,65 @@ class StatusBar {
     }
 
     /**
+     * Get delete context-menu item for a specific job by ID
+     */
+    backgroundJobDeleteMenu(jobId: string) {
+        return $(`[data-testid="background-job-${jobId}-delete-menu"]`)
+    }
+
+    /**
      * Click abort button for a specific job by ID
      */
     async abortBackgroundJob(jobId: string): Promise<void> {
         const abortBtn = await this.backgroundJobAbortButton(jobId)
         await abortBtn.click()
+    }
+
+    /**
+     * Right-click a job row and choose Delete.
+     * Re-queries the job item each attempt so abort/status re-renders do not leave a stale WebDriver ref.
+     */
+    async removeBackgroundJobViaContextMenu(
+        jobId: string,
+        options: { attempts?: number; menuTimeout?: number } = {},
+    ): Promise<void> {
+        const attempts = options.attempts ?? 3
+        const menuTimeout = options.menuTimeout ?? 3000
+        let lastError: unknown
+
+        for (let attempt = 1; attempt <= attempts; attempt++) {
+            try {
+                await this.ensureBackgroundJobsPopoverOpen()
+                const jobItem = await this.backgroundJobItem(jobId)
+                await jobItem.waitForExist({ timeout: 5000 })
+                await rightClickElement(jobItem)
+
+                const deleteMenu = this.backgroundJobDeleteMenu(jobId)
+                await deleteMenu.waitForExist({ timeout: menuTimeout })
+                await deleteMenu.waitForClickable({ timeout: menuTimeout })
+                await deleteMenu.click()
+                return
+            } catch (error) {
+                lastError = error
+                console.log(
+                    `[StatusBar] removeBackgroundJobViaContextMenu attempt ${attempt}/${attempts} failed: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`,
+                )
+                try {
+                    await browser.keys('Escape')
+                } catch {
+                    // ignore — menu may already be closed
+                }
+                await browser.pause(200)
+            }
+        }
+
+        const detail =
+            lastError instanceof Error ? lastError.message : String(lastError)
+        throw new Error(
+            `Failed to remove background job ${jobId} via context menu after ${attempts} attempts: ${detail}`,
+        )
     }
 
     /**

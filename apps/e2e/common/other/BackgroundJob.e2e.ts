@@ -72,8 +72,6 @@ describe('Background Job', () => {
         expect(jobId).not.toBeNull()
         console.log(`Found job ID: ${jobId}`)
 
-        const jobItem = $(`[data-testid="background-job-${jobId}"]`)
-
         await StatusBar.abortBackgroundJob(jobId!)
 
         await browser.waitUntil(async () => {
@@ -87,14 +85,11 @@ describe('Background Job', () => {
         const badgeText = await StatusBar.backgroundJobStatusBadge(jobId!).getText()
         expect(badgeText).toBe('aborted')
 
-        await jobItem.click({ button: 'right' })
-
-        const deleteMenu = $(`[data-testid="background-job-${jobId}-delete-menu"]`)
-        await deleteMenu.waitForExist({ timeout: 3000 })
-        await deleteMenu.click()
+        // Re-query + retry after abort: status re-render can stale a pre-abort jobItem ref.
+        await StatusBar.removeBackgroundJobViaContextMenu(jobId!)
 
         await browser.waitUntil(async () => {
-            return !(await $(`[data-testid="background-job-${jobId}"]`).isExisting())
+            return !(await StatusBar.backgroundJobItem(jobId!).isExisting())
         }, {
             timeout: 5000,
             timeoutMsg: 'Job was not removed from UI within 5s',
@@ -195,21 +190,10 @@ describe('Background Job', () => {
             timeoutMsg: 'Failure toast did not dismiss within 10s',
         })
 
-        const popoverOpenAfterWait = await StatusBar.isBackgroundJobsPopoverOpen()
-        if (!popoverOpenAfterWait) {
-            await StatusBar.clickBackgroundJobsIndicator()
-            await StatusBar.waitForBackgroundJobsPopover(5000)
-        }
-
-        const jobItem = $(`[data-testid="background-job-${jobId}"]`)
-        await jobItem.click({ button: 'right' })
-
-        const deleteMenu = $(`[data-testid="background-job-${jobId}-delete-menu"]`)
-        await deleteMenu.waitForExist({ timeout: 3000 })
-        await deleteMenu.click()
+        await StatusBar.removeBackgroundJobViaContextMenu(jobId!)
 
         await browser.waitUntil(async () => {
-            return !(await $(`[data-testid="background-job-${jobId}"]`).isExisting())
+            return !(await StatusBar.backgroundJobItem(jobId!).isExisting())
         }, {
             timeout: 5000,
             timeoutMsg: 'Job was not removed from UI within 5s',
