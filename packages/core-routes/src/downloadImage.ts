@@ -223,10 +223,17 @@ export async function doDownloadImage(
     const buffer = await readFile(platformPath);
     const ext = extname(platformPath);
     const contentType = getContentTypeFromExtension(ext);
-    logger?.info(
-      { platformPath, bytes: buffer.length, contentType },
-      "[DownloadImage] read file",
-    );
+    if (buffer.length === 0) {
+      logger?.warn(
+        { platformPath, bytes: 0, contentType },
+        "[DownloadImage] read empty file — client will decode to naturalWidth=0",
+      );
+    } else {
+      logger?.info(
+        { platformPath, bytes: buffer.length, contentType },
+        "[DownloadImage] read file",
+      );
+    }
     return { buffer, contentType };
   }
 

@@ -69,6 +69,11 @@ export function useImage(url?: string, placeholder?: string): string | undefined
 
     fetchProxiedImageWithFailover(imageUrl, { signal: abortController.signal })
       .then(async (blob) => {
+        if (blob.size === 0) {
+          console.warn(
+            `[useImage] empty image blob for ${imageUrl} (size=0); decoded <img> will have naturalWidth=0`,
+          )
+        }
         const base64data = await convertBlobToBase64(blob)
          
         setImageData(base64data)

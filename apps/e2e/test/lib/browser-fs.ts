@@ -534,13 +534,49 @@ export async function createTestFolderViaBrowser(
             try {
                 await mkdir(dirname(filePath), { recursive: true })
                 await writeFile(filePath, MINIMAL_JPEG)
+                console.log(
+                    `[createTestFolderViaBrowser] host JPEG write ok path=${filePath} bytes=${MINIMAL_JPEG.length}`,
+                )
                 continue
-            } catch {
+            } catch (error) {
                 // Remote / container paths: fall back to empty browser write.
+                console.log(
+                    `[createTestFolderViaBrowser] host JPEG write FAILED path=${filePath}: ${
+                        error instanceof Error ? error.message : String(error)
+                    }; falling back to empty writeFileViaBrowser (thumbnail naturalWidth will be 0)`,
+                )
             }
         }
         await writeFileViaBrowser(filePath, '')
+        if (isImageFixtureFile(file)) {
+            console.log(
+                `[createTestFolderViaBrowser] wrote empty image fixture via browser API path=${filePath}`,
+            )
+        }
     }
+
+    // What the SMM server sees (esp. Docker): host fs write may target a path
+    // the container cannot read, or empty browser writes leave 0-byte images.
+    for (const file of files) {
+        if (!isImageFixtureFile(file)) continue
+        const filePath = file
+            .split(/[/\\]/)
+            .filter(Boolean)
+            .reduce((acc, segment) => joinPlatformPath(acc, segment), folderPath)
+        try {
+            const size = await getFileSizeViaBrowser(filePath)
+            console.log(
+                `[createTestFolderViaBrowser] server-visible image size path=${filePath} size=${size}`,
+            )
+        } catch (error) {
+            console.log(
+                `[createTestFolderViaBrowser] server-visible image size FAILED path=${filePath}: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+            )
+        }
+    }
+
     folder.path = folderPath
     return folderPath
 }

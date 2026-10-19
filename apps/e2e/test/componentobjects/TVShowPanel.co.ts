@@ -712,6 +712,126 @@ class TVShowPanel {
         const table = await this.episodeTable
         await table.waitForDisplayed({ timeout: 10_000 })
 
+        const collectThumbnailHoverDiag = async () => {
+            return browser.execute(async (episode) => {
+                const idCell = Array.from(
+                    document.querySelectorAll(
+                        '[data-testid="media-file-table"] td',
+                    ),
+                ).find((td) => (td.textContent ?? '').trim() === episode)
+                const row = idCell?.closest('tr')
+                const trigger = row?.querySelector(
+                    '[data-slot="hover-card-trigger"]',
+                )
+                const content = document.querySelector(
+                    '[data-slot="hover-card-content"]',
+                )
+                const openContent = document.querySelector(
+                    '[data-slot="hover-card-content"][data-state="open"]',
+                )
+                const img =
+                    openContent?.querySelector(
+                        '[data-testid="thumbnail-image"]',
+                    ) ?? openContent?.querySelector('img')
+                const videoTitle =
+                    row
+                        ?.querySelector(
+                            '[data-testid="media-file-table-new-video-file"]',
+                        )
+                        ?.getAttribute('title') ??
+                    row?.querySelector('td .truncate[title]')?.getAttribute(
+                        'title',
+                    ) ??
+                    null
+                const imgSrc =
+                    img instanceof HTMLImageElement
+                        ? (img.getAttribute('src') ?? '')
+                        : ''
+                const dataUrlPayload = imgSrc.startsWith('data:')
+                    ? imgSrc.slice(imgSrc.indexOf(',') + 1)
+                    : null
+
+                let apiProbe: {
+                    thumbPath: string | null
+                    fileUrl: string | null
+                    status: number | null
+                    bytes: number | null
+                    contentType: string | null
+                    error: string | null
+                } | null = null
+                // Infer sibling thumbnail path from video path (…/S01E01.mp4 → …/S01E01.jpg).
+                if (videoTitle && /\.(mp4|mkv|avi|mov|m4v|webm)$/i.test(videoTitle)) {
+                    const thumbPath = videoTitle.replace(
+                        /\.[^.\\/]+$/,
+                        '.jpg',
+                    )
+                    const fileUrl = thumbPath.startsWith('/')
+                        ? `file://${thumbPath}`
+                        : `file:///${thumbPath.replace(/\\/g, '/')}`
+                    try {
+                        const token =
+                            new URL(window.location.href).searchParams.get(
+                                'token',
+                            ) ?? ''
+                        const headers: Record<string, string> = {}
+                        if (token) {
+                            headers.Authorization = `Bearer ${token}`
+                        }
+                        const res = await fetch(
+                            `/api/image?url=${encodeURIComponent(fileUrl)}`,
+                            { headers },
+                        )
+                        const buf = await res.arrayBuffer()
+                        apiProbe = {
+                            thumbPath,
+                            fileUrl,
+                            status: res.status,
+                            bytes: buf.byteLength,
+                            contentType: res.headers.get('content-type'),
+                            error: null,
+                        }
+                    } catch (error) {
+                        apiProbe = {
+                            thumbPath,
+                            fileUrl,
+                            status: null,
+                            bytes: null,
+                            contentType: null,
+                            error:
+                                error instanceof Error
+                                    ? error.message
+                                    : String(error),
+                        }
+                    }
+                }
+
+                return {
+                    triggerState: trigger?.getAttribute('data-state'),
+                    contentCount: document.querySelectorAll(
+                        '[data-slot="hover-card-content"]',
+                    ).length,
+                    contentState: content?.getAttribute('data-state'),
+                    open: !!openContent,
+                    imgComplete:
+                        img instanceof HTMLImageElement ? img.complete : null,
+                    naturalWidth:
+                        img instanceof HTMLImageElement
+                            ? img.naturalWidth
+                            : null,
+                    naturalHeight:
+                        img instanceof HTMLImageElement
+                            ? img.naturalHeight
+                            : null,
+                    imgSrcPrefix: imgSrc.slice(0, 80),
+                    imgSrcLength: imgSrc.length,
+                    dataUrlPayloadLength: dataUrlPayload?.length ?? null,
+                    videoTitle,
+                    apiProbe,
+                    activeTag: document.activeElement?.tagName,
+                }
+            }, episodeId)
+        }
+
         const point = await browser.execute((episode) => {
             const idCell = Array.from(
                 document.querySelectorAll('[data-testid="media-file-table"] td'),
@@ -745,6 +865,9 @@ class TVShowPanel {
             )
             return { x: Math.round(x), y: Math.round(y) }
         }, episodeId)
+        console.log(
+            `[expectThumbnailHoverPreview] episode=${episodeId} hoverPoint=${JSON.stringify(point)}`,
+        )
 
         // Trusted CDP mouse move — Radix receives real pointerenter.
         try {
@@ -755,13 +878,24 @@ class TVShowPanel {
                 | undefined
             if (page) {
                 await page.mouse.move(point.x, point.y)
+                console.log(
+                    `[expectThumbnailHoverPreview] CDP mouse.move applied for ${episodeId}`,
+                )
             }
-        } catch {
-            // Puppeteer bridge unavailable — focus/pointerover above is the fallback.
+        } catch (error) {
+            console.log(
+                `[expectThumbnailHoverPreview] CDP mouse.move unavailable for ${episodeId}: ${
+                    error instanceof Error ? error.message : String(error)
+                }`,
+            )
         }
 
         // openDelay is 200ms; give the portal a beat to mount before polling.
         await browser.pause(400)
+        const preWaitDiag = await collectThumbnailHoverDiag()
+        console.log(
+            `[expectThumbnailHoverPreview] pre-wait diag=${JSON.stringify(preWaitDiag)}`,
+        )
 
         try {
             await browser.waitUntil(
@@ -788,46 +922,14 @@ class TVShowPanel {
                     timeoutMsg: `Thumbnail hover preview for ${episodeId} did not open/load within ${timeout}ms`,
                 },
             )
+            console.log(
+                `[expectThumbnailHoverPreview] ok episode=${episodeId}`,
+            )
         } catch (err) {
-            const diag = await browser.execute((episode) => {
-                const idCell = Array.from(
-                    document.querySelectorAll(
-                        '[data-testid="media-file-table"] td',
-                    ),
-                ).find((td) => (td.textContent ?? '').trim() === episode)
-                const trigger = idCell
-                    ?.closest('tr')
-                    ?.querySelector('[data-slot="hover-card-trigger"]')
-                const content = document.querySelector(
-                    '[data-slot="hover-card-content"]',
-                )
-                const openContent = document.querySelector(
-                    '[data-slot="hover-card-content"][data-state="open"]',
-                )
-                const img =
-                    openContent?.querySelector(
-                        '[data-testid="thumbnail-image"]',
-                    ) ?? openContent?.querySelector('img')
-                return {
-                    triggerState: trigger?.getAttribute('data-state'),
-                    contentCount: document.querySelectorAll(
-                        '[data-slot="hover-card-content"]',
-                    ).length,
-                    contentState: content?.getAttribute('data-state'),
-                    open: !!openContent,
-                    imgComplete:
-                        img instanceof HTMLImageElement ? img.complete : null,
-                    naturalWidth:
-                        img instanceof HTMLImageElement
-                            ? img.naturalWidth
-                            : null,
-                    imgSrc:
-                        img instanceof HTMLImageElement
-                            ? img.getAttribute('src')?.slice(0, 120)
-                            : null,
-                    activeTag: document.activeElement?.tagName,
-                }
-            }, episodeId)
+            const diag = await collectThumbnailHoverDiag()
+            console.log(
+                `[expectThumbnailHoverPreview] FAILED episode=${episodeId} diag=${JSON.stringify(diag)}`,
+            )
             throw new Error(
                 `${err instanceof Error ? err.message : String(err)} diag=${JSON.stringify(diag)}`,
             )

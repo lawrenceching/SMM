@@ -215,6 +215,28 @@ describe('Initialize TV Show by TMDB', () => {
         // NFO case is used for testing thumbnail preview feature
 
         await then('simple layout thumbnail hover shows a cover preview for one episode', async () => {
+            const {
+                fileExistsViaBrowser,
+                getFileSizeViaBrowser,
+                joinPlatformPath,
+            } = await import('test/lib/browser-fs')
+            const thumbnailPath = joinPlatformPath(folder.path, 'S01E01.jpg')
+            try {
+                const exists = await fileExistsViaBrowser(thumbnailPath)
+                const size = exists
+                    ? await getFileSizeViaBrowser(thumbnailPath)
+                    : -1
+                console.log(
+                    `[InitializeTvShowByTmdb/NFO] thumbnail fixture path=${thumbnailPath} exists=${exists} size=${size}`,
+                )
+            } catch (error) {
+                console.log(
+                    `[InitializeTvShowByTmdb/NFO] thumbnail fixture probe FAILED path=${thumbnailPath}: ${
+                        error instanceof Error ? error.message : String(error)
+                    }`,
+                )
+            }
+
             // Default episode-table layout is already "simple"; do not require the
             // layout switcher (it is CSS-hidden when the toolbar container < 520px).
             await TvShowPanel.expectThumbnailHoverPreviewForEpisode('S01E01')
