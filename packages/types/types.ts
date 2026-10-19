@@ -244,9 +244,15 @@ export interface WriteFileRequestBody {
   path: string;
   mode: 'overwrite' | 'append' | 'create';
   /**
-   * The content to write to the file
+   * The content to write to the file.
+   * When `encoding` is `"base64"`, `data` is base64 of the raw file bytes.
    */
   data: string;
+  /**
+   * How to interpret `data`. Defaults to `"utf-8"`.
+   * Use `"base64"` for binary fixtures (e.g. JPEG thumbnails in e2e).
+   */
+  encoding?: 'utf-8' | 'base64';
 }
 
 export interface WriteFileResponseBody {

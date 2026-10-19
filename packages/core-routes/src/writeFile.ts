@@ -13,7 +13,27 @@ const writeFileRequestSchema = z.object({
   path: z.string().min(1, "Path is required"),
   mode: z.enum(["overwrite", "append", "create"]),
   data: z.string(),
+  encoding: z.enum(["utf-8", "base64"]).optional(),
 });
+
+function decodeWritePayload(
+  data: string,
+  encoding: "utf-8" | "base64" | undefined,
+): { ok: true; payload: string | Buffer } | { ok: false; error: string } {
+  if (encoding !== "base64") {
+    return { ok: true, payload: data };
+  }
+  // Reject clearly non-base64 input; Buffer.from is too permissive alone.
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(data) || data.length % 4 !== 0) {
+    return { ok: false, error: "Invalid base64 data" };
+  }
+  const payload = Buffer.from(data, "base64");
+  // Round-trip check: reject strings that are not valid base64 payloads.
+  if (payload.toString("base64").replace(/=+$/, "") !== data.replace(/=+$/, "")) {
+    return { ok: false, error: "Invalid base64 data" };
+  }
+  return { ok: true, payload };
+}
 
 const fileLocks = new Map<string, Promise<void>>();
 
@@ -67,7 +87,7 @@ export async function doWriteFile(
       };
     }
 
-    const { path: filePath, mode, data } = validationResult.data;
+    const { path: filePath, mode, data, encoding } = validationResult.data;
 
     if (isUserConfigFilePath(filePath)) {
       logger?.warn({ traceId, filePath }, "doWriteFile: rejected user config file");
@@ -76,8 +96,16 @@ export async function doWriteFile(
       };
     }
 
+    const decoded = decodeWritePayload(data, encoding);
+    if (!decoded.ok) {
+      logger?.error({ traceId, encoding }, "doWriteFile: Invalid payload encoding");
+      return { error: decoded.error };
+    }
+    const payload = decoded.payload;
+    const payloadSize = typeof payload === "string" ? Buffer.byteLength(payload, "utf-8") : payload.length;
+
     logger?.debug(
-      { traceId, filePath, mode, dataSize: data.length },
+      { traceId, filePath, mode, encoding: encoding ?? "utf-8", dataSize: payloadSize },
       "doWriteFile: Processing write request",
     );
 
@@ -113,9 +141,9 @@ export async function doWriteFile(
         }
 
         try {
-          await writeFile(validatedPath, data, "utf-8");
+          await writeFile(validatedPath, payload);
           logger?.info(
-            { traceId, path: validatedPath, size: data.length },
+            { traceId, path: validatedPath, size: payloadSize },
             "doWriteFile: File written successfully (create mode)",
           );
           return {};
@@ -130,9 +158,9 @@ export async function doWriteFile(
       if (mode === "overwrite") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Overwrite mode");
         try {
-          await writeFile(validatedPath, data, "utf-8");
+          await writeFile(validatedPath, payload);
           logger?.info(
-            { traceId, path: validatedPath, size: data.length },
+            { traceId, path: validatedPath, size: payloadSize },
             "doWriteFile: File written successfully (overwrite mode)",
           );
           return {};
@@ -147,9 +175,9 @@ export async function doWriteFile(
       if (mode === "append") {
         logger?.debug({ traceId, path: validatedPath }, "doWriteFile: Append mode");
         try {
-          await appendFile(validatedPath, data, "utf-8");
+          await appendFile(validatedPath, payload);
           logger?.info(
-            { traceId, path: validatedPath, appendedSize: data.length },
+            { traceId, path: validatedPath, appendedSize: payloadSize },
             "doWriteFile: Data appended successfully",
           );
           return {};

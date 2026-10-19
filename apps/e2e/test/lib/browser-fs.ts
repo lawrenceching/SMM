@@ -1,12 +1,14 @@
 /**
  * Browser-protocol filesystem helpers for e2e setup/cleanup.
  * Most I/O goes through WDIO `browser.execute` + same-origin `fetch('/api/...')`.
- * Image fixtures are written via Node `fs` when the path is host-local so
- * `/api/image` can return a decodable JPEG (utf-8 writeFile cannot carry binary).
+ * Image fixtures use `/api/writeFile` with `encoding: "base64"`. On local web /
+ * Electron (shared filesystem) a host `fs` write is tried first; Docker must
+ * never use host `fs` for container paths like `/root/.cache/smm`.
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { UserConfig, UserConfigPatchOperation } from '@smm/types'
+import { isDockerE2e } from './e2e-platform'
 import { isElectronAppUiReadyUrl } from './electron-ui-ready'
 import { retryOnTransientHelloFetch } from './retry-transient-hello-fetch'
 import { resolveUiPageUrl, type TestbedOs } from './ui-page-url'
@@ -16,6 +18,8 @@ const MINIMAL_JPEG = Buffer.from(
     '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=',
     'base64',
 )
+
+const MINIMAL_JPEG_BASE64 = MINIMAL_JPEG.toString('base64')
 
 function isImageFixtureFile(file: string): boolean {
     return /\.(jpe?g|png|webp|gif)$/i.test(file)
@@ -515,8 +519,8 @@ export async function resolveSmmTestFolderViaBrowser(): Promise<string> {
 /**
  * Create a media-folder fixture under `base` via `POST /api/writeFile`
  * (empty files for each entry in `folder.files`).
- * Image names get a minimal JPEG via host `fs` when possible so thumbnail
- * hover / inline `<img>` assertions can see `naturalWidth > 0`.
+ * Image names get a minimal JPEG (`encoding: "base64"`). On local shared-fs
+ * platforms a host `fs` write may be tried first; Docker never uses host `fs`.
  * When `files` is empty, writes a tiny keep file so the directory is created.
  */
 export async function createTestFolderViaBrowser(
@@ -531,32 +535,37 @@ export async function createTestFolderViaBrowser(
             .filter(Boolean)
             .reduce((acc, segment) => joinPlatformPath(acc, segment), folderPath)
         if (isImageFixtureFile(file)) {
-            try {
-                await mkdir(dirname(filePath), { recursive: true })
-                await writeFile(filePath, MINIMAL_JPEG)
+            if (!isDockerE2e) {
+                try {
+                    await mkdir(dirname(filePath), { recursive: true })
+                    await writeFile(filePath, MINIMAL_JPEG)
+                    console.log(
+                        `[createTestFolderViaBrowser] host JPEG write ok path=${filePath} bytes=${MINIMAL_JPEG.length}`,
+                    )
+                    continue
+                } catch (error) {
+                    console.log(
+                        `[createTestFolderViaBrowser] host JPEG write FAILED path=${filePath}: ${
+                            error instanceof Error ? error.message : String(error)
+                        }; falling back to base64 writeFileViaBrowser`,
+                    )
+                }
+            } else {
                 console.log(
-                    `[createTestFolderViaBrowser] host JPEG write ok path=${filePath} bytes=${MINIMAL_JPEG.length}`,
-                )
-                continue
-            } catch (error) {
-                // Remote / container paths: fall back to empty browser write.
-                console.log(
-                    `[createTestFolderViaBrowser] host JPEG write FAILED path=${filePath}: ${
-                        error instanceof Error ? error.message : String(error)
-                    }; falling back to empty writeFileViaBrowser (thumbnail naturalWidth will be 0)`,
+                    `[createTestFolderViaBrowser] Docker e2e: skip host fs for ${filePath}; using base64 writeFileViaBrowser`,
                 )
             }
+            await writeFileViaBrowser(filePath, MINIMAL_JPEG_BASE64, {
+                encoding: 'base64',
+            })
+            console.log(
+                `[createTestFolderViaBrowser] wrote JPEG via browser API path=${filePath} bytes=${MINIMAL_JPEG.length}`,
+            )
+            continue
         }
         await writeFileViaBrowser(filePath, '')
-        if (isImageFixtureFile(file)) {
-            console.log(
-                `[createTestFolderViaBrowser] wrote empty image fixture via browser API path=${filePath}`,
-            )
-        }
     }
 
-    // What the SMM server sees (esp. Docker): host fs write may target a path
-    // the container cannot read, or empty browser writes leave 0-byte images.
     for (const file of files) {
         if (!isImageFixtureFile(file)) continue
         const filePath = file
@@ -607,33 +616,53 @@ export async function createAndImportFolderViaBrowser(
     return folderPath
 }
 
-export async function writeFileViaBrowser(filePath: string, content: string): Promise<void> {
+export async function writeFileViaBrowser(
+    filePath: string,
+    content: string,
+    options?: { encoding?: 'utf-8' | 'base64' },
+): Promise<void> {
     await ensureBrowserOnUiPage()
     const authToken = process.env.SMM_AUTH_TOKEN
+    const encoding = options?.encoding ?? 'utf-8'
 
     const result = await browser.execute(
-        async (token: string | undefined, pathToWrite: string, data: string) => {
+        async (
+            token: string | undefined,
+            pathToWrite: string,
+            data: string,
+            enc: 'utf-8' | 'base64',
+        ) => {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
             }
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`
             }
+            const body: {
+                path: string
+                mode: 'overwrite'
+                data: string
+                encoding?: 'utf-8' | 'base64'
+            } = {
+                path: pathToWrite,
+                mode: 'overwrite',
+                data,
+            }
+            if (enc !== 'utf-8') {
+                body.encoding = enc
+            }
             const res = await fetch('/api/writeFile', {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({
-                    path: pathToWrite,
-                    mode: 'overwrite',
-                    data,
-                }),
+                body: JSON.stringify(body),
             })
-            const body = await res.json() as { error?: string }
-            return { error: body.error ?? null }
+            const json = await res.json() as { error?: string }
+            return { error: json.error ?? null }
         },
         authToken,
         filePath,
         content,
+        encoding,
     ) as unknown as { error: string | null }
 
     if (result.error) {
