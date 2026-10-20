@@ -33,7 +33,11 @@ export function findAssociatedFiles(
       .filter((filePath) => {
         const name = basename(filePath);
         if (possibleFileNames.includes(name)) return true;
-        if (name.startsWith(filenameWithoutExtension + ".")) {
+        // Dot tag: video.en.srt; underscore tag: video_zh-Hans.srt (yt-dlp)
+        if (
+          name.startsWith(filenameWithoutExtension + ".") ||
+          name.startsWith(filenameWithoutExtension + "_")
+        ) {
           return extensionsList.some((ext) => name.endsWith(ext));
         }
         return false;

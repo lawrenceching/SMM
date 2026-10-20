@@ -5,7 +5,8 @@ import { basename, extname } from "@/lib/path"
 import { extensions } from "@smm/types/mediaFileExtensions"
 import type { AssociatedFile } from "@/types/associated-files"
 
-function filterAssociatedFiles(allFilePaths: string[], videoFilePath: string): AssociatedFile[] {
+/** Exported for unit tests; MusicPanel associated-file matching. */
+export function filterAssociatedFiles(allFilePaths: string[], videoFilePath: string): AssociatedFile[] {
   const filename = basename(videoFilePath) ?? ""
   const ext = extname(filename)
   const stem = filename.replace(ext, "")
@@ -22,7 +23,8 @@ function filterAssociatedFiles(allFilePaths: string[], videoFilePath: string): A
         results.push({ type, path: fp })
         continue
       }
-      if (base.startsWith(stem + ".")) {
+      // Dot tag: video.en.srt; underscore tag: video_zh-Hans.srt (yt-dlp)
+      if (base.startsWith(stem + ".") || base.startsWith(stem + "_")) {
         if (exts.some((e) => base.endsWith(e))) {
           results.push({ type, path: fp })
         }

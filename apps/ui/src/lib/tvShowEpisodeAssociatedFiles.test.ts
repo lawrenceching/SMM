@@ -20,4 +20,17 @@ describe("findSubtitles", () => {
       "/media/Show/S01E01.tc.ass",
     ]);
   });
+
+  it("matches underscore language-tagged subtitles (e.g. S01E01_zh-Hans.srt)", () => {
+    const files = [
+      "/media/Show/S01E01.srt",
+      "/media/Show/S01E01_zh-Hans.srt",
+      "/media/Show/S01E02_zh-Hans.srt",
+    ];
+    expect(findSubtitles(files, video)).toEqual([
+      "/media/Show/S01E01.srt",
+      "/media/Show/S01E01_zh-Hans.srt",
+    ]);
+  });
 });
+
