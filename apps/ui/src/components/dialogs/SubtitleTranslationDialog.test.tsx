@@ -174,6 +174,31 @@ describe("SubtitleTranslationDialog", () => {
     expect(jobs[0]!.data).not.toHaveProperty("llm")
   })
 
+  it("uses a dropdown for google and coerces an unsupported stored target language", async () => {
+    window.localStorage.setItem("subtitleTranslation.translator", "google")
+    window.localStorage.setItem("subtitleTranslation.targetLanguage", "zh-CN")
+    render(
+      <SubtitleTranslationDialog
+        isOpen
+        onClose={mockOnClose}
+        rows={[eligibleRow()]}
+        folder={platformFolder}
+      />,
+    )
+
+    const targetLanguage = screen.getByTestId("subtitle-translation-dialog-target-language")
+    expect(targetLanguage.tagName).not.toBe("INPUT")
+    expect(targetLanguage).toHaveAttribute("role", "combobox")
+
+    fireEvent.click(screen.getByTestId("subtitle-translation-dialog-confirm"))
+
+    await waitFor(() => {
+      expect(h.translateSubtitleViaCore).toHaveBeenCalledTimes(1)
+    })
+    expect(h.translateSubtitleViaCore.mock.calls[0]![0].targetLanguage).toBe("zh-Hans")
+    expect(window.localStorage.getItem("subtitleTranslation.targetLanguage")).toBe("zh-Hans")
+  })
+
   it("does not close when selected rows are ineligible", async () => {
     render(
       <SubtitleTranslationDialog

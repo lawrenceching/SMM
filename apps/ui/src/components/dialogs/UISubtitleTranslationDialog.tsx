@@ -41,6 +41,12 @@ import {
   type LlmTranslatorFieldsValue,
   type LlmTranslatorSourceMode,
 } from "@/lib/llmTranslatorFields"
+import {
+  DEFAULT_VIDEOCAPTIONER_TARGET_LANGUAGE,
+  VIDEOCAPTIONER_TARGET_LANGUAGES,
+  formatVideoCaptionerTargetLanguage,
+  normalizeVideoCaptionerTargetLanguage,
+} from "@/lib/videoCaptionerTargetLanguages"
 
 // "bing" remains a valid SubtitleTranslateTranslator / VideoCaptioner CLI value, but is
 // intentionally omitted from the UI: VideoCaptioner's free Bing provider fetches a token
@@ -78,7 +84,7 @@ function readStoredTargetLanguage(): string {
   } catch {
     // ignore
   }
-  return "zh-Hans"
+  return DEFAULT_VIDEOCAPTIONER_TARGET_LANGUAGE
 }
 
 function readStoredLlmPrefs(): { mode?: LlmTranslatorSourceMode; providerName?: string } {
@@ -119,7 +125,7 @@ export function UISubtitleTranslationDialog({
   videoCaptionerAvailable = true,
   onConfirm,
 }: UISubtitleTranslationDialogProps) {
-  const { t } = useTranslation("components")
+  const { t, i18n } = useTranslation("components")
   const { t: tDialogs } = useTranslation("dialogs")
   const { t: tCommon } = useTranslation("common")
   const { userConfig } = useConfig()
@@ -128,7 +134,14 @@ export function UISubtitleTranslationDialog({
   const wasOpenRef = useRef(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set())
   const [translator, setTranslator] = useState<SubtitleTranslateTranslator>("google")
-  const [targetLanguage, setTargetLanguage] = useState("zh-Hans")
+  const [rawTargetLanguage, setTargetLanguage] = useState<string>(DEFAULT_VIDEOCAPTIONER_TARGET_LANGUAGE)
+  // Google only accepts VideoCaptioner's fixed code list, so coerce free-form values
+  // (e.g. a stored "zh-CN") to a supported code instead of letting the CLI reject them.
+  const targetLanguage =
+    translator === "google"
+      ? normalizeVideoCaptionerTargetLanguage(rawTargetLanguage)
+      : rawTargetLanguage
+  const uiLanguage = i18n?.language
   const [reflect, setReflect] = useState(false)
   const [layout, setLayout] = useState<SubtitleTranslateLayout | "">("")
   const [llmFields, setLlmFields] = useState<LlmTranslatorFieldsValue>(() =>
@@ -320,12 +333,31 @@ export function UISubtitleTranslationDialog({
 
           <div className="grid gap-2">
             <Label>{t("subtitleTranslationDialog.targetLanguage")}</Label>
-            <Input
-              value={targetLanguage}
-              onChange={(e) => setTargetLanguage(e.target.value)}
-              placeholder="zh-Hans"
-              data-testid="subtitle-translation-dialog-target-language"
-            />
+            {translator === "google" ? (
+              <Select
+                value={targetLanguage}
+                onValueChange={setTargetLanguage}
+                disabled={!videoCaptionerAvailable}
+              >
+                <SelectTrigger data-testid="subtitle-translation-dialog-target-language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {VIDEOCAPTIONER_TARGET_LANGUAGES.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {formatVideoCaptionerTargetLanguage(code, uiLanguage)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                value={targetLanguage}
+                onChange={(e) => setTargetLanguage(e.target.value)}
+                placeholder={DEFAULT_VIDEOCAPTIONER_TARGET_LANGUAGE}
+                data-testid="subtitle-translation-dialog-target-language"
+              />
+            )}
           </div>
 
           {translator === "llm" ? (
