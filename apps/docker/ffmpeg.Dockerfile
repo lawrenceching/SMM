@@ -10,7 +10,8 @@
 #
 # Tag this image: smm-ffmpeg:<version>  (version = 3pp.ffmpeg_version in root package.json)
 #
-# FFMPEG_VERSION must stay in sync with 3pp.ffmpeg_version in root package.json.
+# Pass --build-arg FFMPEG_VERSION=... from root package.json (see ci/docker-3pp-build-args.sh).
+# The ARG default below is only a local fallback when build-arg is omitted.
 
 ARG FFMPEG_VERSION=8.1
 

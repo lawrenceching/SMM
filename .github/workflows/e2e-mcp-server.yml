@@ -193,11 +193,17 @@ jobs:
             -t smm-cli-build:latest -f apps/docker/cli.Dockerfile .
           docker buildx build --load --platform "$PLATFORM" \
             -t smm-ui-build:latest -f apps/docker/ui.Dockerfile .
+          # shellcheck disable=SC2046
           docker buildx build --load --platform "$PLATFORM" \
+            $(bash ci/docker-3pp-build-args.sh ffmpeg) \
             -t smm-ffmpeg:latest -f apps/docker/ffmpeg.Dockerfile .
+          # shellcheck disable=SC2046
           docker buildx build --load --platform "$PLATFORM" \
+            $(bash ci/docker-3pp-build-args.sh ytdlp) \
             -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
+          # shellcheck disable=SC2046
           docker buildx build --load --platform "$PLATFORM" \
+            $(bash ci/docker-3pp-build-args.sh videocaptioner) \
             -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
 
       - name: Assemble smm:latest

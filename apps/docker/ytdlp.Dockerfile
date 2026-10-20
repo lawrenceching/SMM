@@ -7,7 +7,8 @@
 #
 # Tag this image: smm-ytdlp:<version>  (version = 3pp.ytdlp_version in root package.json)
 #
-# YTDLP_VERSION must stay in sync with 3pp.ytdlp_version in root package.json.
+# Pass --build-arg YTDLP_VERSION=... from root package.json (see ci/docker-3pp-build-args.sh).
+# The ARG default below is only a local fallback when build-arg is omitted.
 
 ARG YTDLP_VERSION=2026.07.04
 

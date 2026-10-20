@@ -51,14 +51,14 @@ jobs:
         env:
           PLATFORMS: linux/amd64,linux/arm64
           IMAGE: ${{ steps.meta.outputs.videocaptioner_image }}
-          VC_VERSION: ${{ steps.meta.outputs.videocaptioner_artifact_version }}
           FORCE_REBUILD: ${{ inputs.force_build }}
         run: |
           set -euo pipefail
           if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
             echo "Building ${IMAGE}"
+            # shellcheck disable=SC2046
             docker buildx build --platform "$PLATFORMS" --push \
-              --build-arg "VIDEOCAPTIONER_ARTIFACT_VERSION=${VC_VERSION}" \
+              $(bash ci/docker-3pp-build-args.sh videocaptioner) \
               -t "${IMAGE}" -f apps/docker/videocaptioner.Dockerfile .
           else
             echo "Image ${IMAGE} already exists; skipping build."

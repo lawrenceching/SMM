@@ -55,7 +55,9 @@ jobs:
           set -euo pipefail
           if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
             echo "Building ${IMAGE}"
+            # shellcheck disable=SC2046
             docker buildx build --platform "$PLATFORMS" --push \
+              $(bash ci/docker-3pp-build-args.sh ffmpeg) \
               -t "${IMAGE}" -f apps/docker/ffmpeg.Dockerfile .
           else
             echo "Image ${IMAGE} already exists; skipping build."

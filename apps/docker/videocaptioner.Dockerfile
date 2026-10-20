@@ -7,6 +7,9 @@
 #   /bin/videocaptioner/{videocaptioner,...}
 #
 # Tag this image: smm-videocaptioner:<upstream>_<smm_build>
+#
+# Pass --build-arg VIDEOCAPTIONER_* from root package.json (see ci/docker-3pp-build-args.sh).
+# ARG defaults below are only local fallbacks when build-args are omitted.
 
 ARG VIDEOCAPTIONER_ARTIFACT_VERSION=1.4.2_1.0.2
 ARG VIDEOCAPTIONER_RELEASES_REPO=lawrenceching/SMM

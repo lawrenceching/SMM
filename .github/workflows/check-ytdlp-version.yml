@@ -1,0 +1,60 @@
+name: Check Ytdlp Version
+
+# Biweekly check: if yt-dlp has a newer GitHub release than package.json
+# 3pp.ytdlp_version, open (or update) a bump PR for human review/merge.
+on:
+  schedule:
+    # 1st and 15th of each month ~ every two weeks (UTC 08:00)
+    - cron: '0 8 1,15 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-ytdlp-version:
+    name: Check yt-dlp version
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Compare pinned vs latest
+        id: versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun ci/check-ytdlp-version.ts
+
+      - name: Bump package.json when outdated
+        if: steps.versions.outputs.needs_bump == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun ci/check-ytdlp-version.ts --bump
+
+      - name: Create or update pull request
+        if: steps.versions.outputs.needs_bump == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(3pp): bump yt-dlp to ${{ steps.versions.outputs.latest }}'
+          branch: chore/bump-ytdlp
+          delete-branch: true
+          title: 'chore(3pp): bump yt-dlp to ${{ steps.versions.outputs.latest }}'
+          body: |
+            Automated bump of `3pp.ytdlp_version` in the root `package.json`.
+
+            | | Version |
+            |---|---|
+            | Pinned | `${{ steps.versions.outputs.pinned }}` |
+            | Latest | `${{ steps.versions.outputs.latest }}` |
+
+            Release: ${{ steps.versions.outputs.release_url }}
+
+            Docker / Electron both read this field (Docker via `--build-arg YTDLP_VERSION`). Please review and merge when ready — do not auto-merge.
