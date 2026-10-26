@@ -1,5 +1,11 @@
 # @smm/tvdb4
 
+## 1.3.25-rc.8
+
+### Patch Changes
+
+- v.14.17-rc.8
+
 ## 1.3.25-rc.7
 
 ### Patch Changes

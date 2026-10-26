@@ -1,6 +1,6 @@
 {
   "name": "server",
-  "version": "1.4.17-rc.7",
+  "version": "1.4.17-rc.8",
   "module": "index.ts",
   "type": "module",
   "private": true,

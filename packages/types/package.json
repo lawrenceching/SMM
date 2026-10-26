@@ -1,6 +1,6 @@
 {
   "name": "@smm/types",
-  "version": "0.0.6-rc.7",
+  "version": "0.0.6-rc.8",
   "private": true,
   "type": "module",
   "exports": {

@@ -1,5 +1,11 @@
 # @smm/types
 
+## 0.0.6-rc.8
+
+### Patch Changes
+
+- v.14.17-rc.8
+
 ## 0.0.6-rc.7
 
 ### Patch Changes
