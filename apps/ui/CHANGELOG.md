@@ -1,5 +1,16 @@
 # ui
 
+## 1.4.17-rc.9
+
+### Patch Changes
+
+- v1.4.17-rc.9
+- Updated dependencies
+  - @smm/core@1.4.17-rc.9
+  - @smm/tvdb4@1.3.25-rc.9
+  - @smm/types@0.0.6-rc.9
+  - @smm/utils@1.2.25-rc.9
+
 ## 1.4.17-rc.8
 
 ### Patch Changes

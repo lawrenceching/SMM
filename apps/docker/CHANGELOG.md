@@ -1,5 +1,11 @@
 # docker
 
+## 1.4.17-rc.9
+
+### Patch Changes
+
+- v1.4.17-rc.9
+
 ## 1.4.17-rc.8
 
 ### Patch Changes
