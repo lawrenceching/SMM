@@ -32,4 +32,17 @@ describe("filterAssociatedFiles", () => {
       `${folder}/${stem}_zh-Hans.srt`,
     ])
   })
+
+  it("classifies _summary.txt as summary, not subtitle", () => {
+    const summary = `${folder}/${stem}_summary.txt`
+    const files = [video, summary, `${folder}/${stem}.srt`]
+    const associated = filterAssociatedFiles(files, video)
+
+    expect(associated.filter((f) => f.type === "subtitle").map((f) => f.path)).toEqual([
+      `${folder}/${stem}.srt`,
+    ])
+    expect(associated.filter((f) => f.type === "summary").map((f) => f.path)).toEqual([
+      summary,
+    ])
+  })
 })
