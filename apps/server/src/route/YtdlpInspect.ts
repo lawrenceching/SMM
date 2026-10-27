@@ -35,6 +35,7 @@ export const ytdlpInspectRoute = new Hono().post('/api/ytdlp-inspect', async (c)
       jsRuntime: optionalString(rec.jsRuntime),
       jsRuntimePath: optionalString(rec.jsRuntimePath),
       proxy: optionalString(rec.proxy),
+      potProviderUrl: optionalString(rec.potProviderUrl),
     }
 
     const data = await getCore().inspectVideo(request)

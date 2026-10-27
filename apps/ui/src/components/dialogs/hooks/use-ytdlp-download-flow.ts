@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import type { VideoMetadata } from "@/api/ytdlp/types"
 import { downloadVideoViaCore } from "@/api/downloadVideo"
+import type { DownloadSubtitleLang } from "@/api/ytdlpListSubs"
 import { pollYtdlpJob } from "@/lib/pollYtdlpJob"
 import {
   buildYtdlpExtraArgsFromSelection,
@@ -116,6 +117,10 @@ export interface UseYtdlpDownloadFlowOptions {
   jsRuntimePath?: string
   /** Proxy URL for yt-dlp `--proxy`. */
   proxy?: string
+  /** bgutil HTTP POT provider base URL. */
+  potProviderUrl?: string
+  /** Subtitle languages to pass to each download. Omitted when none are selected. */
+  subtitleLangs?: DownloadSubtitleLang[]
   onClose: () => void
   t: (key: string) => string
 }
@@ -154,6 +159,8 @@ export function useYtdlpDownloadFlow(
     jsRuntime = "quickjs",
     jsRuntimePath,
     proxy,
+    potProviderUrl,
+    subtitleLangs,
     onClose,
     t,
   } = opts
@@ -243,6 +250,7 @@ export function useYtdlpDownloadFlow(
       }
 
       const proxyTrimmed = proxy?.trim()
+      const potProviderUrlTrimmed = potProviderUrl?.trim()
       const cookiesTextTrimmed = useCookies ? cookiesText.trim() : undefined
       const cookiesFromBrowser = useCookiesFromBrowser ? cookiesBrowser : undefined
       const extraArgs =
@@ -270,6 +278,8 @@ export function useYtdlpDownloadFlow(
                 }
               : {}),
             ...(proxyTrimmed ? { proxy: proxyTrimmed } : {}),
+            ...(potProviderUrlTrimmed ? { potProviderUrl: potProviderUrlTrimmed } : {}),
+            ...(subtitleLangs && subtitleLangs.length > 0 ? { subtitleLangs } : {}),
           })
 
           upsertYtdlpJobFromCore({
@@ -333,6 +343,8 @@ export function useYtdlpDownloadFlow(
     jsRuntime,
     jsRuntimePath,
     proxy,
+    potProviderUrl,
+    subtitleLangs,
     onClose,
     t,
   ])

@@ -8,6 +8,7 @@ import {
   buildYtdlpDownloadArgs,
   validateYtdlpDownloadExtraArgs,
 } from "../whitelistedCmd/ytdlp";
+import type { DownloadSubtitleLang } from "../pipeline/ytdlp/listSubs";
 import { AbstractJob, type JobOptions } from "./abstract-job";
 import type { YtdlpJobSnapshot } from "./types";
 
@@ -17,11 +18,13 @@ export interface YtdlpJobOptions {
   title?: string;
   format?: string;
   extraArgs?: string[];
+  subtitleLangs?: DownloadSubtitleLang[];
   cookiesText?: string;
   cookiesFromBrowser?: string;
   jsRuntime?: string;
   jsRuntimePath?: string;
   proxy?: string;
+  potProviderUrl?: string;
 }
 
 /**
@@ -33,11 +36,13 @@ export class YtdlpJob extends AbstractJob {
   private readonly title: string | undefined;
   private readonly format: string | undefined;
   private readonly extraArgs: string[] | undefined;
+  private readonly subtitleLangs: DownloadSubtitleLang[] | undefined;
   private readonly cookiesText: string | undefined;
   private readonly cookiesFromBrowser: string | undefined;
   private readonly jsRuntime: string | undefined;
   private readonly jsRuntimePath: string | undefined;
   private readonly proxy: string | undefined;
+  private readonly potProviderUrl: string | undefined;
 
   private speedBps: number | undefined;
   private etaSeconds: number | null | undefined;
@@ -63,11 +68,13 @@ export class YtdlpJob extends AbstractJob {
     this.title = options.title?.trim() || undefined;
     this.format = options.format?.trim() || undefined;
     this.extraArgs = options.extraArgs;
+    this.subtitleLangs = options.subtitleLangs;
     this.cookiesText = options.cookiesText;
     this.cookiesFromBrowser = options.cookiesFromBrowser;
     this.jsRuntime = options.jsRuntime;
     this.jsRuntimePath = options.jsRuntimePath;
     this.proxy = options.proxy;
+    this.potProviderUrl = options.potProviderUrl;
   }
 
   toJSON(): YtdlpJobSnapshot {
@@ -128,12 +135,14 @@ export class YtdlpJob extends AbstractJob {
           url: this.url,
           folder: this.folder,
           format: this.format,
+          subtitleLangs: this.subtitleLangs,
           args: this.extraArgs,
           cookiesFile: this.cookiesFilePath,
           cookiesFromBrowser: this.cookiesFromBrowser,
           jsRuntime: this.jsRuntime,
           jsRuntimePath: this.jsRuntimePath,
           proxy: this.proxy,
+          potProviderUrl: this.potProviderUrl,
         }),
       );
 

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { inspect } from 'node:util'
-import type { AppContextInput, PlatformPortsInput } from '@smm/core'
+import type { AppContextInput, DownloadSubtitleLang, PlatformPortsInput } from '@smm/core'
 import { NoopLoggerAdapter, YtdlpJob } from '@smm/core'
 import { isYoutubeDownloadUrl } from '@smm/core/download-video-cookie-platform'
 import { resolveYtdlpFormatFlag } from '@smm/core/whitelistedCmd/ytdlp'
@@ -15,6 +15,8 @@ export interface DownloadOptions {
   /** Path to a Netscape cookies file; CLI reads the body and passes cookiesText to Core. */
   cookies?: string
   title?: string
+  /** Comma-separated yt-dlp subtitle language codes (`--sub-langs`). */
+  subLangs?: string
   verbose?: boolean
   /**
    * Print only YtdlpJob snapshot progress lines (`progress percent=…`), not yt-dlp logs.
@@ -25,6 +27,14 @@ export interface DownloadOptions {
   _context?: Partial<AppContextInput>
   /** Test-only: override Core platform ports. */
   _ports?: Partial<PlatformPortsInput>
+}
+
+function parseCliSubtitleLangs(value: string | undefined): DownloadSubtitleLang[] | undefined {
+  const trimmed = value?.trim()
+  if (!trimmed) return undefined
+  const codes = trimmed.split(',').map((code) => code.trim()).filter(Boolean)
+  if (codes.length === 0) return undefined
+  return codes.map((code) => ({ code, kind: 'both' as const }))
 }
 
 function formatProgressLine(job: YtdlpJob): string {
@@ -58,6 +68,7 @@ export async function download(url: string, options: DownloadOptions): Promise<n
     }
 
     const format = resolveYtdlpFormatFlag(options.format)
+    const subtitleLangs = parseCliSubtitleLangs(options.subLangs)
 
     let jsRuntime: string | undefined
     let jsRuntimePath: string | undefined
@@ -77,6 +88,7 @@ export async function download(url: string, options: DownloadOptions): Promise<n
         folder: options.folder,
         title: options.title,
         format,
+        subtitleLangs,
         proxy: options.proxy,
         cookiesFromBrowser: options.cookiesFromBrowser,
         cookiesText,

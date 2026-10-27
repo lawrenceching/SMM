@@ -47,6 +47,7 @@ const SHAPES: Record<keyof UserConfig, Shape> = {
   anonymousTelemetryConsent: scalar,
   ytdlpExecutablePath: scalar,
   ytdlpProxy: scalar,
+  ytdlpPotProviderUrl: scalar,
   ffmpegExecutablePath: scalar,
   videoCaptionerExecutablePath: scalar,
   useBundledFfmpegForVideoCaptioner: scalar,

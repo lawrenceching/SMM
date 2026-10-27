@@ -112,6 +112,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
     .option('--cookies-from-browser <name>', 'Browser name for --cookies-from-browser')
     .option('--cookies <file>', 'Netscape cookies file path')
     .option('--title <title>', 'Display title for the job')
+    .option('--sub-langs <codes>', 'Comma-separated subtitle languages, for example en,zh-Hans')
     .option(
       '--print-progress-only',
       'Print only progress snapshot lines (progress percent=…); omit yt-dlp logs',
@@ -127,6 +128,7 @@ export async function runCli(argv: string[] = process.argv): Promise<number> {
           cookiesFromBrowser?: string
           cookies?: string
           title?: string
+          subLangs?: string
           verbose?: boolean
           printProgressOnly?: boolean
         },

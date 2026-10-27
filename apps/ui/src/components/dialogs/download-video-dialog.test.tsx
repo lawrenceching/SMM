@@ -37,6 +37,12 @@ const h = vi.hoisted(() => ({
     videocaptioner: { configuredPath: null, discoveredPath: null },
     quickjs: { configuredPath: null, discoveredPath: '/app/Resources/bin/quickjs/qjs' },
   }),
+  listSubtitleLanguagesViaCore: vi.fn().mockResolvedValue({
+    languages: [
+      { code: 'en', name: 'English', kind: 'manual' },
+      { code: 'ja', name: 'Japanese', kind: 'auto' },
+    ],
+  }),
 }))
 
 vi.mock('@/api/ytdlp', async (importOriginal) => {
@@ -50,6 +56,10 @@ vi.mock('@/api/ytdlp', async (importOriginal) => {
 vi.mock('@/api/downloadVideo', () => ({
   downloadVideoViaCore: h.downloadVideoViaCore,
   downloadVideo: vi.fn(),
+}))
+
+vi.mock('@/api/ytdlpListSubs', () => ({
+  listSubtitleLanguagesViaCore: h.listSubtitleLanguagesViaCore,
 }))
 
 vi.mock('@/lib/pollYtdlpJob', () => ({
@@ -291,10 +301,18 @@ vi.mock('@/lib/i18n', async (importOriginal) => {
           'downloadVideo.cookiesEmpty': 'Enter cookie file content.',
           'downloadVideo.cookiesWriteFailed': 'Could not save cookies file.',
           'downloadVideo.moreOptions.label': 'More options...',
+          'downloadVideo.potProviderUrlLabel': 'POT Provider URL',
           'downloadVideo.writeThumbnail.label': 'Download thumbnail',
           'downloadVideo.embedThumbnail.label': 'Embed thumbnail in audio/video file',
           'downloadVideo.embedMetadata.label': 'Embed metadata',
           'downloadVideo.formatUnavailableSuffix': ' (unavailable)',
+          'downloadVideo.downloadSubtitlesLabel': 'Download subtitles',
+          'downloadVideo.subtitleLanguagesLabel': 'Subtitle languages',
+          'downloadVideo.subtitleLanguagesLoading': 'Loading subtitle languages…',
+          'downloadVideo.subtitleLanguagesEmpty': 'No subtitles available',
+          'downloadVideo.subtitleLanguagesPlaceholder': 'Select languages',
+          'downloadVideo.subtitleLanguageAuto': 'auto',
+          'downloadVideo.subtitleLanguagesError': 'Could not load subtitle languages',
         }
         return dialogsTranslations[key] || key
       },
@@ -861,6 +879,88 @@ describe('DownloadVideoDialog - user agreement', () => {
         format: 'bv*[height<=1080]+ba/b[height<=1080]/best',
       }),
     )
+  })
+
+  it('lists subtitle languages when checked and sends the selection on start', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+
+    fireEvent.click(screen.getByTestId('download-video-dialog-subtitles-checkbox'))
+
+    await waitFor(() => {
+      expect(h.listSubtitleLanguagesViaCore).toHaveBeenCalledWith(
+        expect.objectContaining({ url: 'https://example.com/video' }),
+      )
+    })
+
+    fireEvent.click(screen.getByTestId('download-video-dialog-subtitle-langs'))
+    fireEvent.click(await screen.findByTestId('download-video-dialog-subtitle-lang-en'))
+    fireEvent.click(screen.getByTestId('download-video-dialog-subtitle-lang-ja'))
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://example.com/video',
+          subtitleLangs: [
+            { code: 'en', kind: 'manual' },
+            { code: 'ja', kind: 'auto' },
+          ],
+        }),
+      )
+    })
+  })
+
+  it('does not send subtitle languages when the checkbox stays off', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.downloadVideoViaCore).toHaveBeenCalled()
+    })
+    expect(h.downloadVideoViaCore.mock.calls[0]?.[0]?.subtitleLangs).toBeUndefined()
+    expect(h.listSubtitleLanguagesViaCore).not.toHaveBeenCalled()
+  })
+
+  it('sends the POT provider URL from more options on start', async () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />)
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+    fireEvent.change(screen.getByLabelText('Download Folder'), {
+      target: { value: 'C:\\downloads' },
+    })
+    fireEvent.click(screen.getByTestId('download-video-dialog-more-options-checkbox'))
+    fireEvent.change(screen.getByTestId('download-video-dialog-pot-provider-url-input'), {
+      target: { value: 'http://127.0.0.1:4416' },
+    })
+    fireEvent.click(screen.getByText('Start'))
+
+    await waitFor(() => {
+      expect(h.downloadVideoViaCore).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://example.com/video',
+          potProviderUrl: 'http://127.0.0.1:4416',
+        }),
+      )
+    })
   })
 
   // TC-EP-02: YouTube URLs do not show the episodes checkbox

@@ -17,11 +17,13 @@ import { AgreementSection } from "./download-video-dialog/components/agreement-s
 import { UrlInputSection } from "./download-video-dialog/components/url-input-section"
 import { CookiesSection } from "./download-video-dialog/components/cookies-section"
 import { FormatSection } from "./download-video-dialog/components/format-section"
+import { SubtitleSection } from "./download-video-dialog/components/subtitle-section"
 import { VideoListSection, type VideoListEntry } from "./download-video-dialog/components/video-list-section"
 import { MoreOptionsSection } from "./download-video-dialog/components/more-options-section"
 import { FolderSection } from "./download-video-dialog/components/folder-section"
 import { DialogFooter } from "./download-video-dialog/components/dialog-footer"
 import type { YtdlpFormatMode } from "@/lib/ytdlpFormatPresets"
+import type { SubtitleLanguage } from "@/api/ytdlpListSubs"
 
 export interface UIDownloadVideoDialogContentProps {
   hasAgreed: boolean
@@ -66,6 +68,14 @@ export interface UIDownloadVideoDialogContentProps {
   onFormatCodeChange: (id: string) => void
   onSupplementaryFormatCodeChange: (id: string) => void
 
+  downloadSubtitles: boolean
+  subtitleLanguages: SubtitleLanguage[]
+  selectedSubtitleCodes: string[]
+  isListingSubtitles: boolean
+  subtitleListError: string | null
+  onDownloadSubtitlesChange: (checked: boolean) => void
+  onSubtitleLanguageToggle: (code: string) => void
+
   // New: JS Runtime
   isYoutube: boolean
   useJsRuntime: boolean
@@ -96,6 +106,8 @@ export interface UIDownloadVideoDialogContentProps {
   // Proxy
   proxy: string
   onProxyChange: (value: string) => void
+  potProviderUrl: string
+  onPotProviderUrlChange: (value: string) => void
 
   downloadFolder: string
   onFolderChange: (value: string) => void
@@ -155,6 +167,14 @@ export function UIDownloadVideoDialogContent({
   onFormatCodeChange,
   onSupplementaryFormatCodeChange,
 
+  downloadSubtitles,
+  subtitleLanguages,
+  selectedSubtitleCodes,
+  isListingSubtitles,
+  subtitleListError,
+  onDownloadSubtitlesChange,
+  onSubtitleLanguageToggle,
+
   isYoutube,
   useJsRuntime,
   jsRuntime,
@@ -175,6 +195,8 @@ export function UIDownloadVideoDialogContent({
 
   proxy,
   onProxyChange,
+  potProviderUrl,
+  onPotProviderUrlChange,
 
   downloadFolder,
   onFolderChange,
@@ -310,6 +332,8 @@ export function UIDownloadVideoDialogContent({
                   onOpenCookiesEditor={onOpenCookiesEditor}
                   proxy={proxy}
                   onProxyChange={onProxyChange}
+                  potProviderUrl={potProviderUrl}
+                  onPotProviderUrlChange={onPotProviderUrlChange}
                   t={t}
                 />
               </>
@@ -333,6 +357,19 @@ export function UIDownloadVideoDialogContent({
                   onFormatModeChange={onFormatModeChange}
                   onFormatCodeChange={onFormatCodeChange}
                   onSupplementaryFormatCodeChange={onSupplementaryFormatCodeChange}
+                  t={t}
+                />
+
+                <SubtitleSection
+                  isUrlValid={isUrlValid}
+                  formBusy={formBusy}
+                  downloadSubtitles={downloadSubtitles}
+                  subtitleLanguages={subtitleLanguages}
+                  selectedSubtitleCodes={selectedSubtitleCodes}
+                  isListingSubtitles={isListingSubtitles}
+                  subtitleListError={subtitleListError}
+                  onDownloadSubtitlesChange={onDownloadSubtitlesChange}
+                  onSubtitleLanguageToggle={onSubtitleLanguageToggle}
                   t={t}
                 />
 
@@ -373,6 +410,8 @@ export function UIDownloadVideoDialogContent({
                 onOpenCookiesEditor={onOpenCookiesEditor}
                 proxy={proxy}
                 onProxyChange={onProxyChange}
+                potProviderUrl={potProviderUrl}
+                onPotProviderUrlChange={onPotProviderUrlChange}
                 t={t}
               />
               </>

@@ -668,6 +668,13 @@ interface DialogsResources {
     getVideos: string
     collectionVideosLoading: string
     formatLabel: string
+    downloadSubtitlesLabel: string
+    subtitleLanguagesLabel: string
+    subtitleLanguagesLoading: string
+    subtitleLanguagesEmpty: string
+    subtitleLanguagesPlaceholder: string
+    subtitleLanguageAuto: string
+    subtitleLanguagesError: string
     formatDefault: string
     formatBest: string
     format1080p: string

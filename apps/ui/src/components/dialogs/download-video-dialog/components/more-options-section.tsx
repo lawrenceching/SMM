@@ -60,6 +60,8 @@ export interface MoreOptionsSectionProps {
   // Proxy
   proxy: string
   onProxyChange: (value: string) => void
+  potProviderUrl: string
+  onPotProviderUrlChange: (value: string) => void
 
   t: (key: string) => string
 }
@@ -93,6 +95,8 @@ export function MoreOptionsSection({
   onOpenCookiesEditor,
   proxy,
   onProxyChange,
+  potProviderUrl,
+  onPotProviderUrlChange,
   t,
 }: MoreOptionsSectionProps) {
   return (
@@ -210,6 +214,18 @@ export function MoreOptionsSection({
               onChange={(e) => onProxyChange(e.target.value)}
               disabled={formBusy}
               placeholder="socks5://127.0.0.1:1080/"
+              className="h-8"
+            />
+            <Label htmlFor="download-video-pot-provider-url" className="mt-2 font-normal">
+              {t("downloadVideo.potProviderUrlLabel")}
+            </Label>
+            <Input
+              id="download-video-pot-provider-url"
+              data-testid="download-video-dialog-pot-provider-url-input"
+              value={potProviderUrl}
+              onChange={(e) => onPotProviderUrlChange(e.target.value)}
+              disabled={formBusy}
+              placeholder="http://127.0.0.1:4416"
               className="h-8"
             />
           </div>

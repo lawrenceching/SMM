@@ -5,8 +5,11 @@ import { isYoutubeDownloadUrl } from "../../download-video-cookie-platform";
 import {
   buildYtdlpCookiesFilePath,
   buildYtdlpInspectArgs,
+  buildYtdlpListSubsArgs,
+  validateSubtitleLangs,
   validateYtdlpDownloadExtraArgs,
 } from "../../whitelistedCmd/ytdlp";
+import { parseYtdlpListSubsStdout, type DownloadSubtitleLang, type SubtitleLanguage } from "./listSubs";
 import { parse, videoMetadataForFormatsListing } from "./parse";
 import type { PlaylistMetadata, VideoMetadata } from "./types";
 import { classifyYtdlpError } from "./classifyYtdlpError";
@@ -18,6 +21,8 @@ export interface YtdlpCommonRequest {
   jsRuntime?: string;
   jsRuntimePath?: string;
   proxy?: string;
+  /** bgutil HTTP POT provider base URL. */
+  potProviderUrl?: string;
 }
 
 export interface InspectVideoRequest extends YtdlpCommonRequest {
@@ -35,7 +40,15 @@ export interface DownloadVideoRequest extends YtdlpCommonRequest {
   title?: string;
   format?: string;
   extraArgs?: string[];
+  /** Selected subtitle languages. Omitted or empty means video only. */
+  subtitleLangs?: DownloadSubtitleLang[];
 }
+
+export interface ListSubtitleLanguagesResult {
+  languages: SubtitleLanguage[];
+}
+
+export type { DownloadSubtitleLang, SubtitleLanguage };
 
 export interface DownloadVideoHandle {
   id: string;
@@ -76,6 +89,10 @@ export function assertDownloadVideoRequest(request: DownloadVideoRequest): {
   const extraError = validateYtdlpDownloadExtraArgs(request.extraArgs);
   if (extraError) {
     throw new Error(extraError);
+  }
+  const subtitleError = validateSubtitleLangs(request.subtitleLangs);
+  if (subtitleError) {
+    throw new Error(subtitleError);
   }
   return { url, folder };
 }
@@ -135,6 +152,7 @@ export async function inspectVideoWithCommand(options: {
         jsRuntime: options.request.jsRuntime,
         jsRuntimePath: options.request.jsRuntimePath,
         proxy: options.request.proxy,
+        potProviderUrl: options.request.potProviderUrl,
       });
       const result = await options.command.run(
         { command: "yt-dlp", args },
@@ -156,6 +174,55 @@ export async function inspectVideoWithCommand(options: {
         playlistEntries = (parsed as PlaylistMetadata).entries;
       }
       return { video, playlistEntries };
+    },
+  );
+}
+
+export async function listSubtitleLanguagesWithCommand(options: {
+  request: InspectVideoRequest;
+  command: CommandPort;
+  fs: FsPort;
+  userDataDir: string;
+  cookiesFileId: string;
+}): Promise<ListSubtitleLanguagesResult> {
+  const url = assertValidDownloadUrl(options.request.url);
+  assertYoutubeCookies(url, options.request);
+
+  if (parseTestYtDlpUrl(url)) {
+    const stderr = buildYtDlpSimulatedError(url);
+    const classified = classifyYtdlpError({ stderr, stdout: "", exitCode: 1 });
+    throw new Error(`${classified.type}: ${stderr}`);
+  }
+
+  return withManagedCookiesFile(
+    options.fs,
+    options.userDataDir,
+    options.cookiesFileId,
+    options.request.cookiesText,
+    async (cookiesFile) => {
+      const args = buildYtdlpListSubsArgs({
+        url,
+        cookiesFile,
+        cookiesFromBrowser: options.request.cookiesFromBrowser,
+        jsRuntime: options.request.jsRuntime,
+        jsRuntimePath: options.request.jsRuntimePath,
+        proxy: options.request.proxy,
+        potProviderUrl: options.request.potProviderUrl,
+      });
+      const result = await options.command.run(
+        { command: "yt-dlp", args },
+        new AbortController().signal,
+      );
+      if (result.exitCode !== 0) {
+        const classified = classifyYtdlpError({
+          stderr: result.stderr,
+          stdout: result.stdout,
+          exitCode: result.exitCode,
+        });
+        const detail = result.stderr.trim() || result.stdout.trim() || `exit ${result.exitCode}`;
+        throw new Error(`${classified.type}: ${detail}`);
+      }
+      return { languages: parseYtdlpListSubsStdout(result.stdout) };
     },
   );
 }

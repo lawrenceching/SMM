@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import type { DownloadVideoRequest } from '@smm/core'
+import type { DownloadSubtitleLang, DownloadVideoRequest } from '@smm/core'
 import { getCore } from '../core/getCore'
 import { logger } from '../../lib/logger'
 
@@ -17,6 +17,21 @@ function optionalStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
   const args = value.filter((item): item is string => typeof item === 'string')
   return args.length > 0 ? args : undefined
+}
+
+function optionalSubtitleLangs(value: unknown): DownloadSubtitleLang[] | undefined {
+  if (!Array.isArray(value)) return undefined
+  const langs: DownloadSubtitleLang[] = []
+  for (const item of value) {
+    if (item === null || typeof item !== 'object') continue
+    const rec = item as Record<string, unknown>
+    const code = typeof rec.code === 'string' ? rec.code.trim() : ''
+    const kind = rec.kind
+    if (!code) continue
+    if (kind !== 'manual' && kind !== 'auto' && kind !== 'both') continue
+    langs.push({ code, kind })
+  }
+  return langs.length > 0 ? langs : undefined
 }
 
 export const downloadVideoRoute = new Hono().post('/api/download-video', async (c) => {
@@ -45,11 +60,13 @@ export const downloadVideoRoute = new Hono().post('/api/download-video', async (
       title: optionalString(rec.title),
       format: optionalString(rec.format),
       extraArgs: optionalStringArray(rec.extraArgs),
+      subtitleLangs: optionalSubtitleLangs(rec.subtitleLangs),
       cookiesText: optionalString(rec.cookiesText),
       cookiesFromBrowser: optionalString(rec.cookiesFromBrowser),
       jsRuntime: optionalString(rec.jsRuntime),
       jsRuntimePath: optionalString(rec.jsRuntimePath),
       proxy: optionalString(rec.proxy),
+      potProviderUrl: optionalString(rec.potProviderUrl),
     }
 
     const { id } = await getCore().downloadVideo(request, {})

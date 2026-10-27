@@ -40,6 +40,16 @@ describe("assertDownloadVideoRequest", () => {
       folder: "/dl",
     });
   });
+
+  it("rejects an invalid subtitle language code", () => {
+    expect(() =>
+      assertDownloadVideoRequest({
+        url: "https://www.bilibili.com/video/BV1",
+        folder: "/dl",
+        subtitleLangs: [{ code: "en;rm", kind: "manual" }],
+      }),
+    ).toThrow(/invalid subtitle language/);
+  });
 });
 
 describe("inspectVideoWithCommand", () => {

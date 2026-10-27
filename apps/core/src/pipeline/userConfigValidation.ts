@@ -208,6 +208,7 @@ export function validateUserConfigValue<K extends keyof UserConfig>(
     }
     case "ytdlpExecutablePath":
     case "ytdlpProxy":
+    case "ytdlpPotProviderUrl":
     case "ffmpegExecutablePath":
     case "videoCaptionerExecutablePath":
     case "quickjsExecutablePath": {

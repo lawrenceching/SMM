@@ -8,6 +8,7 @@ export interface YtdlpInspectParams {
   jsRuntime?: string
   jsRuntimePath?: string
   proxy?: string
+  potProviderUrl?: string
 }
 
 type YtdlpInspectResponseBody = Awaited<
@@ -32,6 +33,7 @@ async function ytdlpInspect(
   if (params.jsRuntime?.trim()) json.jsRuntime = params.jsRuntime.trim()
   if (params.jsRuntimePath?.trim()) json.jsRuntimePath = params.jsRuntimePath.trim()
   if (params.proxy?.trim()) json.proxy = params.proxy.trim()
+  if (params.potProviderUrl?.trim()) json.potProviderUrl = params.potProviderUrl.trim()
 
   const resp = await rpc.api['ytdlp-inspect'].$post({ json }, { init: { signal } })
   return unwrapJson(resp)

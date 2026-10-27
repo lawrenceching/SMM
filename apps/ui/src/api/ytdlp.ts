@@ -33,6 +33,8 @@ export interface YtdlpListFormatsRequest {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
+  /** bgutil HTTP POT provider base URL. */
+  potProviderUrl?: string;
   /** @deprecated No longer used; Core manages cookies cleanup. */
   userDataDir?: string;
 }
@@ -58,6 +60,7 @@ export async function listYtdlpFormats(
     jsRuntime: req.jsRuntime,
     jsRuntimePath: req.jsRuntimePath,
     proxy: req.proxy,
+    potProviderUrl: req.potProviderUrl,
   });
 
   return {

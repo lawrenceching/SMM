@@ -83,6 +83,14 @@ class DownloadVideoDialogCO {
         return $('[data-testid="download-video-dialog-format-select"]')
     }
 
+    get subtitlesCheckbox() {
+        return $('[data-testid="download-video-dialog-subtitles-checkbox"]')
+    }
+
+    get subtitleLanguages() {
+        return $('[data-testid="download-video-dialog-subtitle-langs"]')
+    }
+
     get browserSelectTrigger() {
         return $('[data-testid="download-video-dialog-cookies-browser-select"]')
     }

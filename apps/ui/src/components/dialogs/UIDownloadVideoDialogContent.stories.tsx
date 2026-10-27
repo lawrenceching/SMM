@@ -51,6 +51,14 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
     onFormatCodeChange: action("onFormatCodeChange"),
     onSupplementaryFormatCodeChange: action("onSupplementaryFormatCodeChange"),
 
+    downloadSubtitles: false,
+    subtitleLanguages: [],
+    selectedSubtitleCodes: [],
+    isListingSubtitles: false,
+    subtitleListError: null,
+    onDownloadSubtitlesChange: action("onDownloadSubtitlesChange"),
+    onSubtitleLanguageToggle: action("onSubtitleLanguageToggle"),
+
     isYoutube: false,
     useJsRuntime: false,
     jsRuntime: DEFAULT_YTDLP_JS_RUNTIME_ID,
@@ -71,6 +79,8 @@ function baseArgs(): UIDownloadVideoDialogContentProps {
 
     proxy: "",
     onProxyChange: action("onProxyChange"),
+    potProviderUrl: "",
+    onPotProviderUrlChange: action("onPotProviderUrlChange"),
 
     downloadFolder: "",
     onFolderChange: action("onFolderChange"),

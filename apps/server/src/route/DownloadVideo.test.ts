@@ -13,6 +13,7 @@ describe('POST /api/download-video', () => {
   let userDataDir: string
   let prevUserDataDir: string | undefined
   let app: Hono
+  let command: CommandPort
 
   beforeEach(() => {
     prevUserDataDir = process.env.USER_DATA_DIR
@@ -20,7 +21,7 @@ describe('POST /api/download-video', () => {
     process.env.USER_DATA_DIR = userDataDir
     resetCoreForTests()
 
-    const command: CommandPort = {
+    command = {
       run: vi.fn(async (): Promise<CommandRunResult> => ({
         exitCode: 0,
         stdout: '',
@@ -102,5 +103,27 @@ describe('POST /api/download-video', () => {
     expect(res.status).toBe(200)
     const json = (await res.json()) as { error?: string }
     expect(json.error).toMatch(/cookies/i)
+  })
+
+  it('passes subtitleLangs into the yt-dlp download args', async () => {
+    const res = await postDownload({
+      url: 'https://www.bilibili.com/video/BV1',
+      folder: '/downloads',
+      subtitleLangs: [
+        { code: 'en', kind: 'manual' },
+        { code: 'ja', kind: 'auto' },
+      ],
+    })
+    expect(res.status).toBe(200)
+    const json = (await res.json()) as { data?: { id: string }; error?: string }
+    expect(json.error).toBeUndefined()
+
+    await vi.waitFor(() => {
+      expect(command.run).toHaveBeenCalled()
+    })
+    const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
+    expect(args).toContain('--write-subs')
+    expect(args).toContain('--write-auto-subs')
+    expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,ja')
   })
 })

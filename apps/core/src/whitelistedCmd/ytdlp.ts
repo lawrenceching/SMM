@@ -1,3 +1,4 @@
+import { isSubtitleLangCode, type DownloadSubtitleLang } from "../pipeline/ytdlp/listSubs";
 import { YTDLP_DOWNLOAD_ALLOWED_ARGS } from "./constants";
 import { isYtdlpCookiesFromBrowserName } from "./ytdlpCookiesBrowser";
 
@@ -26,6 +27,11 @@ export interface YtdlpCommonOptionsInput {
   jsRuntimePath?: string;
   /** Proxy URL for `--proxy` (http, https, socks5). */
   proxy?: string;
+  /**
+   * bgutil HTTP POT provider base URL.
+   * Becomes `--extractor-args youtubepot-bgutilhttp:base_url=<url>`.
+   */
+  potProviderUrl?: string;
 }
 
 export interface YtdlpDownloadRequestInput extends YtdlpCommonOptionsInput {
@@ -33,6 +39,8 @@ export interface YtdlpDownloadRequestInput extends YtdlpCommonOptionsInput {
   folder: string;
   args?: string[];
   format?: string;
+  /** Languages selected for `--write-subs` / `--write-auto-subs` / `--sub-langs`. */
+  subtitleLangs?: DownloadSubtitleLang[];
   /**
    * When set, `--print <printArg>` is appended to the args.
    * Default is undefined (no --print) so progress JSON lines remain on
@@ -52,6 +60,11 @@ function appendYtdlpCommonOptions(args: string[], input: YtdlpCommonOptionsInput
   const proxy = input.proxy?.trim();
   if (proxy) {
     args.push("--proxy", proxy);
+  }
+
+  const potProviderUrl = input.potProviderUrl?.trim();
+  if (potProviderUrl && /^https?:\/\/[^\s;]+$/.test(potProviderUrl)) {
+    args.push("--extractor-args", `youtubepot-bgutilhttp:base_url=${potProviderUrl}`);
   }
 
   const cookiesFile = input.cookiesFile?.trim();
@@ -88,6 +101,44 @@ export function buildYtdlpInspectArgs(input: YtdlpInspectRequestInput): string[]
   return args;
 }
 
+/** yt-dlp argv for `--list-subs` (no download). */
+export function buildYtdlpListSubsArgs(input: YtdlpInspectRequestInput): string[] {
+  const args: string[] = [];
+  appendYtdlpCommonOptions(args, input);
+  args.push("--list-subs", input.url.trim());
+  return args;
+}
+
+export function validateSubtitleLangs(langs?: DownloadSubtitleLang[]): string | undefined {
+  if (!langs || langs.length === 0) {
+    return undefined;
+  }
+  const seen = new Set<string>();
+  for (const lang of langs) {
+    const code = lang.code.trim();
+    if (!isSubtitleLangCode(code)) {
+      return `invalid subtitle language: ${lang.code}`;
+    }
+    if (lang.kind !== "manual" && lang.kind !== "auto" && lang.kind !== "both") {
+      return `invalid subtitle kind: ${String(lang.kind)}`;
+    }
+    if (seen.has(code)) {
+      return `duplicate subtitle language: ${code}`;
+    }
+    seen.add(code);
+  }
+  return undefined;
+}
+
+function appendSubtitleDownloadArgs(args: string[], langs?: DownloadSubtitleLang[]): void {
+  if (!langs || langs.length === 0) return;
+  const writeSubs = langs.some((lang) => lang.kind === "manual" || lang.kind === "both");
+  const writeAuto = langs.some((lang) => lang.kind === "auto" || lang.kind === "both");
+  if (writeSubs) args.push("--write-subs");
+  if (writeAuto) args.push("--write-auto-subs");
+  args.push("--sub-langs", langs.map((lang) => lang.code.trim()).join(","));
+}
+
 export function validateYtdlpDownloadExtraArgs(args?: string[]): string | undefined {
   if (!args || args.length === 0) {
     return undefined;
@@ -117,6 +168,8 @@ export function buildYtdlpDownloadArgs(input: YtdlpDownloadRequestInput): string
   if (format) {
     args.push("-f", format);
   }
+
+  appendSubtitleDownloadArgs(args, input.subtitleLangs);
 
   args.push(input.url);
 

@@ -64,10 +64,12 @@ import { nextJobId } from "./jobs/jobManager";
 import {
   assertDownloadVideoRequest,
   inspectVideoWithCommand,
+  listSubtitleLanguagesWithCommand,
   type DownloadVideoHandle,
   type DownloadVideoRequest,
   type InspectVideoRequest,
   type InspectVideoResult,
+  type ListSubtitleLanguagesResult,
 } from "./pipeline/ytdlp/downloadVideoApi";
 import {
   assertProcessSubtitleRequest,
@@ -412,6 +414,17 @@ export class Core {
     });
   }
 
+  /** List subtitle languages via `yt-dlp --list-subs`. Not a Job. */
+  async listSubtitleLanguages(request: InspectVideoRequest): Promise<ListSubtitleLanguagesResult> {
+    return listSubtitleLanguagesWithCommand({
+      request,
+      command: this.requireCommand(),
+      fs: this.fs,
+      userDataDir: this.userDataDir,
+      cookiesFileId: `list-subs-${nextJobId()}`,
+    });
+  }
+
   /**
    * Enqueue one URL download as a {@link YtdlpJob} on the ytdlp queue.
    * Returns immediately after submit; poll {@link getJob} until terminal.
@@ -433,11 +446,13 @@ export class Core {
       title: request.title,
       format: request.format,
       extraArgs: request.extraArgs,
+      subtitleLangs: request.subtitleLangs,
       cookiesText: request.cookiesText,
       cookiesFromBrowser: request.cookiesFromBrowser,
       jsRuntime: request.jsRuntime,
       jsRuntimePath: request.jsRuntimePath,
       proxy: request.proxy,
+      potProviderUrl: request.potProviderUrl,
       callbacks,
     });
     this.jobManager.submit(job, () => {}, {

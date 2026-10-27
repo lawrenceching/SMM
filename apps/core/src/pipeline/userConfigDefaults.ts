@@ -32,6 +32,7 @@ export const USER_CONFIG_KEY_FLAGS = {
   anonymousTelemetryConsent: true,
   ytdlpExecutablePath: true,
   ytdlpProxy: true,
+  ytdlpPotProviderUrl: true,
   ffmpegExecutablePath: true,
   videoCaptionerExecutablePath: true,
   useBundledFfmpegForVideoCaptioner: true,

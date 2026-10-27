@@ -196,10 +196,13 @@ export type {
   VideoCaptionerRunResult,
 } from "./ports/VideoCaptionerPort";
 export type {
+  DownloadSubtitleLang,
   DownloadVideoHandle,
   DownloadVideoRequest,
   InspectVideoRequest,
   InspectVideoResult,
+  ListSubtitleLanguagesResult,
+  SubtitleLanguage,
 } from "./pipeline/ytdlp/downloadVideoApi";
 export {
   assertProcessSubtitleRequest,

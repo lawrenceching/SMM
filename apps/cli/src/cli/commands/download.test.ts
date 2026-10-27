@@ -61,6 +61,28 @@ describe('download', () => {
     expect(command.run).toHaveBeenCalledOnce()
   })
 
+  it('passes --sub-langs as write-subs and write-auto-subs', async () => {
+    const command: CommandPort = {
+      run: vi.fn(async (): Promise<CommandRunResult> => ({
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+      })),
+    }
+
+    const code = await download('https://www.bilibili.com/video/BV1', {
+      folder,
+      subLangs: 'en, zh-Hans',
+      _ports: { command },
+    })
+
+    expect(code).toBe(0)
+    const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
+    expect(args).toContain('--write-subs')
+    expect(args).toContain('--write-auto-subs')
+    expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,zh-Hans')
+  })
+
   it('returns 1 when CommandPort exits non-zero', async () => {
     const command: CommandPort = {
       run: vi.fn(async (): Promise<CommandRunResult> => ({

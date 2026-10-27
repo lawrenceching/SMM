@@ -81,4 +81,58 @@ describe("buildYtdlpDownloadArgs", () => {
     expect(urlIdx).toBeGreaterThanOrEqual(0);
     expect(proxyIdx).toBeLessThan(urlIdx);
   });
+
+  it("adds --write-subs and --sub-langs for manual languages", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      subtitleLangs: [{ code: "en", kind: "manual" }, { code: "zh-Hans", kind: "manual" }],
+    });
+    expect(args).toContain("--write-subs");
+    expect(args).not.toContain("--write-auto-subs");
+    const langsIdx = args.indexOf("--sub-langs");
+    expect(args[langsIdx + 1]).toBe("en,zh-Hans");
+    expect(langsIdx).toBeLessThan(args.indexOf(base.url));
+  });
+
+  it("adds --write-auto-subs when a language is automatic", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      subtitleLangs: [{ code: "ja", kind: "auto" }],
+    });
+    expect(args).not.toContain("--write-subs");
+    expect(args).toContain("--write-auto-subs");
+    expect(args[args.indexOf("--sub-langs") + 1]).toBe("ja");
+  });
+
+  it("adds both write flags when a language exists as manual and automatic", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      subtitleLangs: [{ code: "en", kind: "both" }],
+    });
+    expect(args).toContain("--write-subs");
+    expect(args).toContain("--write-auto-subs");
+  });
+
+  it("omits subtitle flags when subtitleLangs is empty", () => {
+    const args = buildYtdlpDownloadArgs({ ...base, subtitleLangs: [] });
+    expect(args).not.toContain("--write-subs");
+    expect(args).not.toContain("--sub-langs");
+  });
+
+  it("passes bgutil POT provider URL as extractor-args", () => {
+    const args = buildYtdlpDownloadArgs({
+      ...base,
+      potProviderUrl: "http://127.0.0.1:4416",
+    });
+    const idx = args.indexOf("--extractor-args");
+    expect(args[idx + 1]).toBe("youtubepot-bgutilhttp:base_url=http://127.0.0.1:4416");
+    expect(idx).toBeLessThan(args.indexOf(base.url));
+  });
+
+  it("omits POT extractor-args when the provider URL is empty or unsafe", () => {
+    expect(buildYtdlpDownloadArgs({ ...base, potProviderUrl: "   " })).not.toContain("--extractor-args");
+    expect(
+      buildYtdlpDownloadArgs({ ...base, potProviderUrl: "http://127.0.0.1:4416;youtube:player_client=web" }),
+    ).not.toContain("--extractor-args");
+  });
 });

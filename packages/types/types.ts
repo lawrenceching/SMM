@@ -186,6 +186,13 @@ export interface UserConfig {
   ytdlpProxy?: string
 
   /**
+   * Base URL of a bgutil HTTP POT provider.
+   * Passed as `--extractor-args youtubepot-bgutilhttp:base_url=...`.
+   * Example: `http://127.0.0.1:4416`
+   */
+  ytdlpPotProviderUrl?: string
+
+  /**
    * Path to the ffmpeg executable file.
    */
   ffmpegExecutablePath?: string

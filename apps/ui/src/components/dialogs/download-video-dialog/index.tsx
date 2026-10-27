@@ -48,6 +48,8 @@ function DownloadVideoDialogContent({
     jsRuntime: form.jsRuntime,
     jsRuntimePath: form.jsRuntimePath,
     proxy: form.proxy,
+    potProviderUrl: form.potProviderUrl,
+    subtitleLangs: form.subtitleLangsForDownload,
     onClose,
     t: td,
   })
@@ -125,6 +127,13 @@ function DownloadVideoDialogContent({
       onFormatModeChange={form.setFormatMode}
       onFormatCodeChange={form.setSelectedFormatCode}
       onSupplementaryFormatCodeChange={form.setSelectedSupplementaryFormatCode}
+      downloadSubtitles={form.downloadSubtitles}
+      subtitleLanguages={form.subtitleLanguages}
+      selectedSubtitleCodes={form.selectedSubtitleCodes}
+      isListingSubtitles={form.isListingSubtitles}
+      subtitleListError={form.subtitleListError}
+      onDownloadSubtitlesChange={form.onDownloadSubtitlesChange}
+      onSubtitleLanguageToggle={form.onSubtitleLanguageToggle}
       isYoutube={form.isYoutube}
       useJsRuntime={form.useJsRuntime}
       jsRuntime={form.jsRuntime}
@@ -142,6 +151,8 @@ function DownloadVideoDialogContent({
       onExtraArgToggle={form.setExtraArgEnabled}
       proxy={form.proxy}
       onProxyChange={form.setProxy}
+      potProviderUrl={form.potProviderUrl}
+      onPotProviderUrlChange={form.setPotProviderUrl}
       downloadFolder={form.downloadFolder}
       onFolderChange={form.setDownloadFolder}
       onFolderSelect={handleFolderSelect}

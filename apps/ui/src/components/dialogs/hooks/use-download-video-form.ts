@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { validateDownloadUrl } from "@smm/core/download-video-validators"
 import { useListFormatsMutation } from "./useListFormatsMutation"
 import { useLocalStorage } from "@/hooks/use-local-storage"
@@ -35,6 +35,11 @@ import {
   is1080pAvailableFromFormats,
 } from "@/lib/ytdlpFormatCodes"
 import { fetchDiscoverExecutables } from "@/api/discoverExecutables"
+import {
+  listSubtitleLanguagesViaCore,
+  type DownloadSubtitleLang,
+  type SubtitleLanguage,
+} from "@/api/ytdlpListSubs"
 import type { VideoMetadata } from "@/api/ytdlp/types"
 import { isYoutubeDownloadUrl } from "@smm/core/download-video-cookie-platform"
 
@@ -111,6 +116,15 @@ export interface UseDownloadVideoFormReturn {
 
   // New: proxy
   proxy: string
+  potProviderUrl: string
+
+  downloadSubtitles: boolean
+  subtitleLanguages: SubtitleLanguage[]
+  selectedSubtitleCodes: string[]
+  isListingSubtitles: boolean
+  subtitleListError: string | null
+  /** Languages to send on Start. Undefined when subtitles are off or none are selected. */
+  subtitleLangsForDownload: DownloadSubtitleLang[] | undefined
 
   // New: video list entries from playlist
   listingExecutionId: string | null
@@ -144,6 +158,10 @@ export interface UseDownloadVideoFormReturn {
 
   // New: proxy setter
   setProxy: (v: string) => void
+  setPotProviderUrl: (v: string) => void
+
+  onDownloadSubtitlesChange: (checked: boolean) => void
+  onSubtitleLanguageToggle: (code: string) => void
 
   handleUrlChange: (value: string) => void
   handleUrlBlur: () => void
@@ -210,6 +228,15 @@ export function useDownloadVideoForm(
   const [jsRuntimePath, setJsRuntimePath] = useState<string | undefined>(undefined)
   const [quickjsUnavailable, setQuickjsUnavailable] = useState(false)
   const [proxy, setProxyState] = useState<string>(() => userConfig?.ytdlpProxy ?? "")
+  const [potProviderUrl, setPotProviderUrlState] = useState<string>(
+    () => userConfig?.ytdlpPotProviderUrl ?? "",
+  )
+  const [downloadSubtitles, setDownloadSubtitles] = useState(false)
+  const [subtitleLanguages, setSubtitleLanguages] = useState<SubtitleLanguage[]>([])
+  const [selectedSubtitleCodes, setSelectedSubtitleCodes] = useState<string[]>([])
+  const [isListingSubtitles, setIsListingSubtitles] = useState(false)
+  const [subtitleListError, setSubtitleListError] = useState<string | null>(null)
+  const subtitleRequestGen = useRef(0)
   const [youtubeCookiesHintEmphasized, setYoutubeCookiesHintEmphasized] = useState(false)
   const [youtubeCookiesHintFlashKey, setYoutubeCookiesHintFlashKey] = useState(0)
 
@@ -268,6 +295,13 @@ export function useDownloadVideoForm(
     ? buildYtdlpExtraArgsFromSelection(extraArgSelection)
     : undefined
 
+  const subtitleLangsForDownload = useMemo(() => {
+    if (!downloadSubtitles) return undefined
+    const selected = subtitleLanguages.filter((lang) => selectedSubtitleCodes.includes(lang.code))
+    if (selected.length === 0) return undefined
+    return selected.map((lang) => ({ code: lang.code, kind: lang.kind }))
+  }, [downloadSubtitles, subtitleLanguages, selectedSubtitleCodes])
+
   // --- Sync availableHeights when videoMetadata changes ---
   useEffect(() => {
     if (videoMetadata) {
@@ -299,6 +333,15 @@ export function useDownloadVideoForm(
   )
 
   // --- handlers ---
+  const clearSubtitleState = useCallback(() => {
+    subtitleRequestGen.current += 1
+    setDownloadSubtitles(false)
+    setSubtitleLanguages([])
+    setSelectedSubtitleCodes([])
+    setIsListingSubtitles(false)
+    setSubtitleListError(null)
+  }, [])
+
   const handleUrlChange = useCallback(
     (value: string) => {
       setUrl(value)
@@ -307,6 +350,7 @@ export function useDownloadVideoForm(
       // Reset format listing when URL changes so cookies move back to top level
       if (value.trim() !== url.trim()) {
         resetListFormats()
+        clearSubtitleState()
       }
       // Pre-fill cookies from cache for the new URL's domain
       const hostname = extractHostname(value.trim())
@@ -342,7 +386,7 @@ export function useDownloadVideoForm(
         setUrlError(null)
       }
     },
-    [t, url, platform, resetListFormats],
+    [t, url, platform, resetListFormats, clearSubtitleState],
   )
 
   const handleGo = useCallback(async () => {
@@ -394,9 +438,10 @@ export function useDownloadVideoForm(
         ...(cookiesTextTrimmed ? { cookiesText: cookiesTextTrimmed } : {}),
         ...(useJsRuntime ? { jsRuntime, jsRuntimePath: quickjsPath } : {}),
         ...(proxy.trim() ? { proxy: proxy.trim() } : {}),
+        ...(potProviderUrl.trim() ? { potProviderUrl: potProviderUrl.trim() } : {}),
       },
     )
-  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, listFormats, runUrlValidation, proxy])
+  }, [url, useCookiesFromBrowser, cookiesBrowser, useJsRuntime, jsRuntime, useCookies, cookiesText, listFormats, runUrlValidation, proxy, potProviderUrl])
 
   const handleAgreementChange = useCallback(
     (checked: boolean) => {
@@ -441,6 +486,73 @@ export function useDownloadVideoForm(
     [],
   )
 
+  const onDownloadSubtitlesChange = useCallback(
+    (checked: boolean) => {
+      const generation = ++subtitleRequestGen.current
+      setDownloadSubtitles(checked)
+      setSelectedSubtitleCodes([])
+      setSubtitleListError(null)
+      if (!checked) {
+        setIsListingSubtitles(false)
+        return
+      }
+
+      setIsListingSubtitles(true)
+      setSubtitleLanguages([])
+      const trimmed = url.trim()
+      void listSubtitleLanguagesViaCore({
+        url: trimmed,
+        cookiesFromBrowser: useCookiesFromBrowser ? cookiesBrowser : undefined,
+        ...(useCookies && cookiesText.trim() ? { cookiesText: cookiesText.trim() } : {}),
+        ...(useJsRuntime
+          ? {
+              jsRuntime,
+              ...(jsRuntimePath?.trim() ? { jsRuntimePath: jsRuntimePath.trim() } : {}),
+            }
+          : {}),
+        ...(proxy.trim() ? { proxy: proxy.trim() } : {}),
+        ...(potProviderUrl.trim() ? { potProviderUrl: potProviderUrl.trim() } : {}),
+      })
+        .then((result) => {
+          if (generation !== subtitleRequestGen.current) return
+          setSubtitleLanguages(result.languages)
+        })
+        .catch((error: unknown) => {
+          if (generation !== subtitleRequestGen.current) return
+          setSubtitleLanguages([])
+          setSubtitleListError(
+            error instanceof Error && error.message
+              ? error.message
+              : t("downloadVideo.subtitleLanguagesError"),
+          )
+        })
+        .finally(() => {
+          if (generation === subtitleRequestGen.current) {
+            setIsListingSubtitles(false)
+          }
+        })
+    },
+    [
+      url,
+      useCookies,
+      cookiesText,
+      useCookiesFromBrowser,
+      cookiesBrowser,
+      useJsRuntime,
+      jsRuntime,
+      jsRuntimePath,
+      proxy,
+      potProviderUrl,
+      t,
+    ],
+  )
+
+  const onSubtitleLanguageToggle = useCallback((code: string) => {
+    setSelectedSubtitleCodes((prev) =>
+      prev.includes(code) ? prev.filter((item) => item !== code) : [...prev, code],
+    )
+  }, [])
+
   const setProxy = useCallback(
     async (value: string) => {
       setProxyState(value)
@@ -454,6 +566,24 @@ export function useDownloadVideoForm(
         ])
       } catch (error) {
         console.error("[useDownloadVideoForm] Failed to persist proxy:", error)
+      }
+    },
+    [patchUserConfig, userConfig],
+  )
+
+  const setPotProviderUrl = useCallback(
+    async (value: string) => {
+      setPotProviderUrlState(value)
+      const trimmed = value.trim()
+      if (trimmed === (userConfig?.ytdlpPotProviderUrl ?? "")) {
+        return
+      }
+      try {
+        await patchUserConfig(`dvd-pot-provider-${Date.now()}`, [
+          { op: "add", path: "/ytdlpPotProviderUrl", value: trimmed },
+        ])
+      } catch (error) {
+        console.error("[useDownloadVideoForm] Failed to persist POT provider URL:", error)
       }
     },
     [patchUserConfig, userConfig],
@@ -485,8 +615,10 @@ export function useDownloadVideoForm(
     setYoutubeCookiesHintEmphasized(false)
     setYoutubeCookiesHintFlashKey(0)
     setProxy(userConfig?.ytdlpProxy ?? "")
+    setPotProviderUrl(userConfig?.ytdlpPotProviderUrl ?? "")
+    clearSubtitleState()
     resetListFormats()
-  }, [platform, resetListFormats, userConfig?.ytdlpProxy, setProxy])
+  }, [platform, resetListFormats, userConfig?.ytdlpProxy, userConfig?.ytdlpPotProviderUrl, setProxy, setPotProviderUrl, clearSubtitleState])
 
   return {
     url,
@@ -535,6 +667,16 @@ export function useDownloadVideoForm(
     youtubeCookiesHintEmphasized,
     youtubeCookiesHintFlashKey,
     proxy,
+    potProviderUrl,
+
+    downloadSubtitles,
+    subtitleLanguages,
+    selectedSubtitleCodes,
+    isListingSubtitles,
+    subtitleListError,
+    subtitleLangsForDownload,
+    onDownloadSubtitlesChange,
+    onSubtitleLanguageToggle,
 
     setDownloadFolder,
     setSelectedFormatPresetId,
@@ -550,6 +692,7 @@ export function useDownloadVideoForm(
     setUseJsRuntime,
     setJsRuntime,
     setProxy,
+    setPotProviderUrl,
 
     handleUrlChange,
     handleUrlBlur,
