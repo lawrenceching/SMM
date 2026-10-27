@@ -5,6 +5,7 @@ import { isYoutubeDownloadUrl } from "../../download-video-cookie-platform";
 import {
   buildYtdlpCookiesFilePath,
   buildYtdlpInspectArgs,
+  assertSubtitleDownloadSupported,
   buildYtdlpListSubsArgs,
   validateSubtitleLangs,
   validateYtdlpDownloadExtraArgs,
@@ -93,6 +94,9 @@ export function assertDownloadVideoRequest(request: DownloadVideoRequest): {
   const subtitleError = validateSubtitleLangs(request.subtitleLangs);
   if (subtitleError) {
     throw new Error(subtitleError);
+  }
+  if (request.subtitleLangs && request.subtitleLangs.length > 0) {
+    assertSubtitleDownloadSupported();
   }
   return { url, folder };
 }
@@ -185,6 +189,7 @@ export async function listSubtitleLanguagesWithCommand(options: {
   userDataDir: string;
   cookiesFileId: string;
 }): Promise<ListSubtitleLanguagesResult> {
+  assertSubtitleDownloadSupported();
   const url = assertValidDownloadUrl(options.request.url);
   assertYoutubeCookies(url, options.request);
 

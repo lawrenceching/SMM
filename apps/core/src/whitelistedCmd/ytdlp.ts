@@ -101,8 +101,20 @@ export function buildYtdlpInspectArgs(input: YtdlpInspectRequestInput): string[]
   return args;
 }
 
+/** arm64 builds do not ship the POT server, so subtitle download is unavailable. */
+export function isSubtitleDownloadSupported(arch: string = process.arch): boolean {
+  return arch !== "arm64";
+}
+
+export function assertSubtitleDownloadSupported(arch: string = process.arch): void {
+  if (!isSubtitleDownloadSupported(arch)) {
+    throw new Error("Subtitle download is not supported on arm64");
+  }
+}
+
 /** yt-dlp argv for `--list-subs` (no download). */
 export function buildYtdlpListSubsArgs(input: YtdlpInspectRequestInput): string[] {
+  assertSubtitleDownloadSupported();
   const args: string[] = [];
   appendYtdlpCommonOptions(args, input);
   args.push("--list-subs", input.url.trim());
@@ -132,6 +144,7 @@ export function validateSubtitleLangs(langs?: DownloadSubtitleLang[]): string | 
 
 function appendSubtitleDownloadArgs(args: string[], langs?: DownloadSubtitleLang[]): void {
   if (!langs || langs.length === 0) return;
+  assertSubtitleDownloadSupported();
   const writeSubs = langs.some((lang) => lang.kind === "manual" || lang.kind === "both");
   const writeAuto = langs.some((lang) => lang.kind === "auto" || lang.kind === "both");
   if (writeSubs) args.push("--write-subs");

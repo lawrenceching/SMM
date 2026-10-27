@@ -25,6 +25,8 @@ URL 输入框 + Go 按钮。平台检测沿用 URL 匹配逻辑。
 
 格式拉取成功后出现「下载字幕」勾选框。勾选后对话框调用 `POST /api/ytdlp-list-subs`（`yt-dlp --list-subs`，沿用当前 Cookies、代理和 JS 运行时）拉取可用语言，语言为多选。开始下载时，选中的语言随每次 `download-video` 传给 yt-dlp：手动字幕加 `--write-subs`，自动字幕加 `--write-auto-subs`，同一种语言两边都有时两个参数都加，并带 `--sub-langs`。未勾选或未选择语言时不传这些参数。播放列表里每条下载使用同一组语言。
 
+arm64 上 `GET /api/hello` 的 `subtitleDownloadSupported` 为 false。对话框不显示字幕勾选框，带 `subtitleLangs` 的下载和 `ytdlp-list-subs` 都会被拒绝。这些安装包不包含 POT HTTP 服务。
+
 下载任务在后台执行（支持进度显示、暂停、恢复）。
 
 ## 2. URL Validation

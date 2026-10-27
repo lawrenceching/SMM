@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildYtdlpDownloadArgs } from "./ytdlp";
+import { assertSubtitleDownloadSupported, buildYtdlpDownloadArgs, isSubtitleDownloadSupported } from "./ytdlp";
 
 describe("buildYtdlpDownloadArgs", () => {
   const base = {
@@ -80,6 +80,14 @@ describe("buildYtdlpDownloadArgs", () => {
     expect(proxyIdx).toBeGreaterThanOrEqual(0);
     expect(urlIdx).toBeGreaterThanOrEqual(0);
     expect(proxyIdx).toBeLessThan(urlIdx);
+  });
+
+  it("rejects subtitle download on arm64", () => {
+    expect(isSubtitleDownloadSupported("x64")).toBe(true);
+    expect(isSubtitleDownloadSupported("arm64")).toBe(false);
+    expect(() => assertSubtitleDownloadSupported("arm64")).toThrow(
+      /Subtitle download is not supported on arm64/,
+    );
   });
 
   it("adds --write-subs and --sub-langs for manual languages", () => {

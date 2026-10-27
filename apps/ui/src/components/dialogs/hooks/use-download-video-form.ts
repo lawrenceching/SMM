@@ -62,6 +62,8 @@ export interface UseDownloadVideoFormOptions {
   isOpen: boolean
   destinationFolder?: string
   t: (key: string) => string
+  /** False on arm64, where subtitle download is unavailable. */
+  subtitleDownloadSupported?: boolean
 }
 
 export interface UseDownloadVideoFormReturn {
@@ -175,7 +177,7 @@ export interface UseDownloadVideoFormReturn {
 export function useDownloadVideoForm(
   opts: UseDownloadVideoFormOptions,
 ): UseDownloadVideoFormReturn {
-  const { isOpen, destinationFolder, t } = opts
+  const { isOpen, destinationFolder, t, subtitleDownloadSupported = true } = opts
 
   const { textDialog: [openTextDialog] } = useDialogs()
   const { videoMetadata, videoListEntries, isListing, listingError, listingExecutionId, listFormats, reset: resetListFormats } =
@@ -296,11 +298,11 @@ export function useDownloadVideoForm(
     : undefined
 
   const subtitleLangsForDownload = useMemo(() => {
-    if (!downloadSubtitles) return undefined
+    if (!subtitleDownloadSupported || !downloadSubtitles) return undefined
     const selected = subtitleLanguages.filter((lang) => selectedSubtitleCodes.includes(lang.code))
     if (selected.length === 0) return undefined
     return selected.map((lang) => ({ code: lang.code, kind: lang.kind }))
-  }, [downloadSubtitles, subtitleLanguages, selectedSubtitleCodes])
+  }, [subtitleDownloadSupported, downloadSubtitles, subtitleLanguages, selectedSubtitleCodes])
 
   // --- Sync availableHeights when videoMetadata changes ---
   useEffect(() => {
@@ -488,6 +490,7 @@ export function useDownloadVideoForm(
 
   const onDownloadSubtitlesChange = useCallback(
     (checked: boolean) => {
+      if (!subtitleDownloadSupported) return
       const generation = ++subtitleRequestGen.current
       setDownloadSubtitles(checked)
       setSelectedSubtitleCodes([])
@@ -543,6 +546,7 @@ export function useDownloadVideoForm(
       jsRuntimePath,
       proxy,
       potProviderUrl,
+      subtitleDownloadSupported,
       t,
     ],
   )

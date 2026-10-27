@@ -172,11 +172,11 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 
 `3pp.bgutil_version` 与 `3pp.node_version` 决定产物。`ci/download-3pp-binary.sh` 与 `apps/docker/bgutil.Dockerfile` 写入同一布局：
 
-- `bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip`（GitHub Release zip，不解压）
-- `bin/node/node`（nodejs.org 官方二进制；Windows 为 `node.exe`）
-- `bin/bgutil-pot-provider/package.json`、`build/main.js`、生产 `node_modules`
+- `bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip`（GitHub Release zip，不解压；amd64 与 arm64 都有）
+- `bin/node/node`（nodejs.org 官方二进制；Windows 为 `node.exe`；仅 amd64 / x64）
+- `bin/bgutil-pot-provider/package.json`、`build/main.js`、生产 `node_modules`（仅 amd64 / x64）
 
-服务在目标平台上 `npm ci`、`tsc`、`npm prune --omit=dev`。Docker 构建使用 Debian，以便 glibc 版 Node 与 `canvas` 预编译包可用。最终镜像安装 cairo/pango 等库，供以后启动该服务时加载 `canvas`。这一步只打包，不在容器或 Electron 启动时执行 `node build/main.js`。
+x64 上服务在目标平台 `npm ci`、`tsc`、`npm prune --omit=dev`。arm64 跳过 Node 和 POT 服务，产品也不支持下载字幕。Docker 构建使用 Debian，以便 glibc 版 Node 与 `canvas` 预编译包可用。最终镜像安装 cairo/pango 等库，供以后启动该服务时加载 `canvas`。这一步只打包，不在容器或 Electron 启动时执行 `node build/main.js`。
 
 镜像标签：`smm-bgutil:<bgutil_version>-node<node_version>`。
 ### 7.7 验证

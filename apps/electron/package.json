@@ -15,10 +15,10 @@
     "dev": "electron-vite dev",
     "build": "pnpm run typecheck && electron-vite build",
     "postinstall": "electron-builder install-app-deps",
-    "build:unpack": "pnpm run build && electron-builder --dir",
-    "build:win": "pnpm run build && electron-builder --win --publish never",
-    "build:mac": "pnpm run build && electron-builder --mac --publish never",
-    "build:linux": "pnpm run build && electron-builder --linux --publish never",
+    "build:unpack": "pnpm run build && node ./scripts/run-electron-builder.mjs --dir",
+    "build:win": "pnpm run build && node ./scripts/run-electron-builder.mjs --win --publish never",
+    "build:mac": "pnpm run build && node ./scripts/run-electron-builder.mjs --mac --publish never",
+    "build:linux": "pnpm run build && node ./scripts/run-electron-builder.mjs --linux --publish never",
     "test": "vitest run"
   },
   "dependencies": {

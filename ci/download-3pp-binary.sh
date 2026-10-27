@@ -240,26 +240,18 @@ fi
 
 echo "QuickJS installed into bin/quickjs."
 
-# --- bgutil POT plugin zip, Node.js runtime, and built HTTP server ---
+# --- bgutil POT plugin zip. Node.js and the HTTP server are omitted on arm64. ---
 case "${PLATFORM}-${ARCH}" in
   linux-x64)
     NODE_PLATFORM="linux-x64"
     NODE_ARCHIVE_EXT="tar.xz"
     ;;
-  linux-arm64)
-    NODE_PLATFORM="linux-arm64"
-    NODE_ARCHIVE_EXT="tar.xz"
-    ;;
-  mac-arm64)
-    NODE_PLATFORM="darwin-arm64"
-    NODE_ARCHIVE_EXT="tar.gz"
+  linux-arm64|mac-arm64|win-arm64)
+    NODE_PLATFORM=""
+    NODE_ARCHIVE_EXT=""
     ;;
   win-x64)
     NODE_PLATFORM="win-x64"
-    NODE_ARCHIVE_EXT="zip"
-    ;;
-  win-arm64)
-    NODE_PLATFORM="win-arm64"
     NODE_ARCHIVE_EXT="zip"
     ;;
   *)
@@ -268,10 +260,21 @@ case "${PLATFORM}-${ARCH}" in
     ;;
 esac
 
-NODE_DIST="node-v${NODE_VERSION}-${NODE_PLATFORM}"
-NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIST}.${NODE_ARCHIVE_EXT}"
 BGUTIL_REPO="https://github.com/Brainicism/bgutil-ytdlp-pot-provider"
 BGUTIL_ZIP_URL="${BGUTIL_REPO}/releases/download/${BGUTIL_VERSION}/bgutil-ytdlp-pot-provider.zip"
+
+echo "Downloading ${BGUTIL_ZIP_URL} ..."
+mkdir -p bin/yt-dlp/yt-dlp-plugins
+curl -sSLf -o "bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip" "${BGUTIL_ZIP_URL}"
+
+if [ "${ARCH}" = "arm64" ]; then
+  echo "Skipping bgutil POT server and Node runtime on arm64."
+  rm -rf bin/node bin/bgutil-pot-provider
+  exit 0
+fi
+
+NODE_DIST="node-v${NODE_VERSION}-${NODE_PLATFORM}"
+NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIST}.${NODE_ARCHIVE_EXT}"
 
 echo "Downloading ${NODE_URL} ..."
 curl -sSLf -o "${TMPDIR}/node-dist.${NODE_ARCHIVE_EXT}" "${NODE_URL}"
@@ -304,10 +307,6 @@ cp "${NODE_BIN}" "bin/node/"
 if [ "${PLATFORM}" != "win" ]; then
   chmod +x bin/node/node
 fi
-
-echo "Downloading ${BGUTIL_ZIP_URL} ..."
-mkdir -p bin/yt-dlp/yt-dlp-plugins
-curl -sSLf -o "bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip" "${BGUTIL_ZIP_URL}"
 
 echo "Building bgutil POT server ${BGUTIL_VERSION} ..."
 git clone --depth 1 --branch "${BGUTIL_VERSION}" "${BGUTIL_REPO}.git" "${TMPDIR}/bgutil"

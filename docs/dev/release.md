@@ -137,7 +137,7 @@ flowchart TB
 1. **resolve-version**：从 `apps/electron/package.json`（或 `version_override`）得到 `git_tag`（`v` + semver）
 2. **Verify CI gates**：校验该 commit 上的 required check runs（不重跑测试）
 3. **ensure-release-tag**：若 `git_tag` 不存在 → 创建 tag；已存在 → 跳过（并发防竞态）
-4. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64（构建依赖前置检查通过）。每个平台在 `ci/download-3pp-binary.sh` 里额外下载 bgutil 插件 zip、官方 Node.js，并在该平台编译 POT HTTP 服务（`build/main.js` 与生产 `node_modules`）。版本来自根 `package.json` 的 `3pp.bgutil_version` 与 `3pp.node_version`。产物进入安装包的 `resources/bin/yt-dlp/yt-dlp-plugins/`、`resources/bin/node/` 和 `resources/bin/bgutil-pot-provider/`。这一步只打包，不在应用启动时拉起服务。bgutil 服务是 GPL-3.0-only，Release 说明需要能对应到该 tag 的源码。
+4. 并行构建：linux x64/arm64、windows x64/arm64、mac arm64（构建依赖前置检查通过）。每个平台在 `ci/download-3pp-binary.sh` 里下载 bgutil 插件 zip。x64 再下载官方 Node.js，并在该平台编译 POT HTTP 服务（`build/main.js` 与生产 `node_modules`）。arm64 不打包 Node 和 `bin/bgutil-pot-provider`，安装包里也不提供下载字幕。版本来自根 `package.json` 的 `3pp.bgutil_version` 与 `3pp.node_version`。x64 产物进入安装包的 `resources/bin/yt-dlp/yt-dlp-plugins/`、`resources/bin/node/` 和 `resources/bin/bgutil-pot-provider/`。这一步只打包，不在应用启动时拉起服务。bgutil 服务是 GPL-3.0-only，Release 说明需要能对应到该 tag 的源码。
 5. 若 tag **新建**：`action-gh-release` 创建 Release 并上传各平台安装包  
 6. 若 tag **已存在**：跳过建 tag，向**已有 Release** 上传/更新 Electron 资产（不覆盖 Docker 相关说明）
 

@@ -114,7 +114,7 @@ interface DownloadVideoRequest extends YtdlpCommonRequest {
   format?: string
   /** 仅允许 `YTDLP_DOWNLOAD_ALLOWED_ARGS` 里的开关。 */
   extraArgs?: string[]
-  /** 选中的字幕语言。空或不传表示只下视频。`both` 同时写手动和自动字幕。 */
+  /** 选中的字幕语言。空或不传表示只下视频。`both` 同时写手动和自动字幕。arm64 上传入非空列表会被拒绝。 */
   subtitleLangs?: { code: string; kind: "manual" | "auto" | "both" }[]
 }
 
@@ -281,7 +281,7 @@ Cookies 指南测速（`POST /api/speedtest`）留在 UI，与下载 Job 无关�
 smm download <url> --folder <path> [--format default|best|1080p|720p|audio|<code>] [--proxy <url>] [--cookies-from-browser <name>] [--cookies <file>] [--sub-langs en,zh-Hans] [--print-progress-only] [--verbose]
 ```
 
-`--format` 缺省为 `default`（不传 `-f`）。`--cookies <file>` 由 CLI 读出文件正文再交给 `cookiesText`，Core 仍负责写入受管副本并在结束后删除。YouTube 且没有 Cookies 时，命令直接失败退出，不启动 Job。`--sub-langs` 把逗号分隔的语言交给 `subtitleLangs`，每条都按 `both` 传递，因此同时加上 `--write-subs` 和 `--write-auto-subs`。
+`--format` 缺省为 `default`（不传 `-f`）。`--cookies <file>` 由 CLI 读出文件正文再交给 `cookiesText`，Core 仍负责写入受管副本并在结束后删除。YouTube 且没有 Cookies 时，命令直接失败退出，不启动 Job。`--sub-langs` 把逗号分隔的语言交给 `subtitleLangs`，每条都按 `both` 传递，因此同时加上 `--write-subs` 和 `--write-auto-subs`。arm64 上 `--sub-langs` 会失败退出，对话框也不提供下载字幕。
 
 `--print-progress-only` 只向 stdout 打印 `YtdlpJob` 快照行（`progress percent=… speedBps=… etaSeconds=…`），不打印 yt-dlp 日志。用于 e2e 断言宿主 `CommandPort` 把 `runCommand` 的 `sink.progress` 正确转回可解析行、Core 能更新进度。
 

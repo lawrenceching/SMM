@@ -882,6 +882,7 @@ describe("hello", () => {
       logDir: "/data/ad/logs",
       osLocale: "zh-CN",
       isDocker: false,
+      subtitleDownloadSupported: process.arch !== "arm64",
     });
   });
 

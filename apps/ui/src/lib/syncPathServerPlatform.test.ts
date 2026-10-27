@@ -19,6 +19,7 @@ describe('syncPathServerPlatformFromHello', () => {
       reverseProxyUrl: null,
       osLocale: 'en-US',
       isDocker: false,
+      subtitleDownloadSupported: true,
       coreRoutesPort: 30000,
     })
 

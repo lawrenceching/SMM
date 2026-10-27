@@ -33,10 +33,12 @@ win:
       filter:
         - '**/*.exe'
         - 'yt-dlp-plugins/**'
+    # bgutil-packaging:begin
     - from: '../../bin/node'
       to: 'bin/node'
     - from: '../../bin/bgutil-pot-provider'
       to: 'bin/bgutil-pot-provider'
+    # bgutil-packaging:end
     - from: '../../bin/videocaptioner'
       to: 'bin/videocaptioner'
     - from: '../../bin/quickjs'
@@ -75,10 +77,12 @@ mac:
       to: 'bin/yt-dlp/yt-dlp'
     - from: '../../bin/yt-dlp/yt-dlp-plugins'
       to: 'bin/yt-dlp/yt-dlp-plugins'
+    # bgutil-packaging:begin
     - from: '../../bin/node'
       to: 'bin/node'
     - from: '../../bin/bgutil-pot-provider'
       to: 'bin/bgutil-pot-provider'
+    # bgutil-packaging:end
     - from: '../../bin/videocaptioner'
       to: 'bin/videocaptioner'
       filter:
@@ -107,10 +111,12 @@ linux:
       to: 'bin/yt-dlp/yt-dlp'
     - from: '../../bin/yt-dlp/yt-dlp-plugins'
       to: 'bin/yt-dlp/yt-dlp-plugins'
+    # bgutil-packaging:begin
     - from: '../../bin/node'
       to: 'bin/node'
     - from: '../../bin/bgutil-pot-provider'
       to: 'bin/bgutil-pot-provider'
+    # bgutil-packaging:end
     - from: '../../bin/videocaptioner'
       to: 'bin/videocaptioner'
       filter:

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { stripBgutilPackaging, targetOmitsBgutilServer } from '../apps/electron/scripts/run-electron-builder.mjs';
 
 const repoRoot = join(import.meta.dir, '..');
 
@@ -29,6 +30,7 @@ describe('bgutil packaging contract', () => {
     expect(sh).toContain('bin/bgutil-pot-provider');
     expect(sh).toContain('build/main.js');
     expect(sh).toContain('prune --omit=dev');
+    expect(sh).toContain('Skipping bgutil POT server and Node runtime on arm64.');
   });
 
   test('bgutil.Dockerfile uses the same release zip and node dist', () => {
@@ -41,5 +43,20 @@ describe('bgutil packaging contract', () => {
     );
     expect(df).toContain('/output/bin/bgutil-pot-provider');
     expect(df).toContain('prune --omit=dev');
+    expect(df).toContain('Skipping bgutil POT server and Node runtime on arm64.');
+    expect(df).toContain('if [ "${TARGETARCH}" = "arm64" ]');
+  });
+
+  test('arm64 electron packaging drops the POT server and keeps the plugin zip', () => {
+    const yml = readFileSync(join(repoRoot, 'apps/electron/electron-builder.yml'), 'utf8');
+    const stripped = stripBgutilPackaging(yml);
+    expect(yml.match(/# bgutil-packaging:begin/g)?.length).toBe(3);
+    expect(stripped).not.toContain('bin/bgutil-pot-provider');
+    expect(stripped).not.toContain("from: '../../bin/node'");
+    expect(stripped).toContain('yt-dlp-plugins');
+    expect(targetOmitsBgutilServer(['--win', '--arm64'], {}, 'x64')).toBe(true);
+    expect(targetOmitsBgutilServer(['--win', '--x64'], { ARCH: 'arm64' }, 'arm64')).toBe(false);
+    expect(targetOmitsBgutilServer(['--mac'], {}, 'arm64')).toBe(true);
+    expect(targetOmitsBgutilServer(['--win'], { ARCH: 'x64' }, 'arm64')).toBe(false);
   });
 });

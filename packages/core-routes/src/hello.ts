@@ -32,5 +32,6 @@ export function doHello(options: HelloOptions): HelloResponseBody {
     uptime: process.uptime(),
     ...options,
     platform: options.platform ?? process.platform,
+    subtitleDownloadSupported: process.arch !== "arm64",
   };
 }

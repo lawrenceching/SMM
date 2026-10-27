@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CommandPort } from "../../ports/CommandPort";
 import type { FsPort } from "../../ports/FsPort";
+import * as ytdlpCmd from "../../whitelistedCmd/ytdlp";
 import {
   assertDownloadVideoRequest,
   assertValidDownloadUrl,
@@ -39,6 +40,20 @@ describe("assertDownloadVideoRequest", () => {
       url: "https://www.youtube.com/watch?v=abc",
       folder: "/dl",
     });
+  });
+
+  it("rejects subtitle languages when the platform does not support them", () => {
+    const spy = vi.spyOn(ytdlpCmd, "assertSubtitleDownloadSupported").mockImplementation(() => {
+      throw new Error("Subtitle download is not supported on arm64");
+    });
+    expect(() =>
+      assertDownloadVideoRequest({
+        url: "https://www.bilibili.com/video/BV1",
+        folder: "/dl",
+        subtitleLangs: [{ code: "en", kind: "manual" }],
+      }),
+    ).toThrow(/not supported on arm64/);
+    spy.mockRestore();
   });
 
   it("rejects an invalid subtitle language code", () => {

@@ -1102,6 +1102,11 @@ export interface HelloCliBody {
    * UI uses this to hide host file-manager actions that cannot work in-container.
    */
   isDocker: boolean;
+  /**
+   * False on arm64. Those builds omit the bgutil POT server, and subtitle
+   * download is unavailable.
+   */
+  subtitleDownloadSupported: boolean;
 }
 
 /** HTTP-only extensions for browser / embedded UI. */

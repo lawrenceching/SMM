@@ -3,6 +3,7 @@ import { createContext } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { helloQueryKey } from '@/lib/appQueryKeys'
 import { DownloadVideoDialog } from './download-video-dialog'
 import { clearCookiesCache, setCachedCookies } from '@/lib/ytdlpCookiesCache'
 
@@ -227,13 +228,16 @@ vi.mock('@/hooks/ytdlp/useYtdlpMutations', () => ({
   }),
 }))
 
-function renderWithQueryClient(ui: ReactElement) {
+function renderWithQueryClient(ui: ReactElement, hello?: { subtitleDownloadSupported: boolean }) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   })
+  if (hello) {
+    queryClient.setQueryData(helloQueryKey, hello)
+  }
   return render(
     <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>
   )
@@ -879,6 +883,19 @@ describe('DownloadVideoDialog - user agreement', () => {
         format: 'bv*[height<=1080]+ba/b[height<=1080]/best',
       }),
     )
+  })
+
+  it('hides subtitle download when the server is arm64', () => {
+    window.localStorage.setItem('DownloadVideoDialog.userAgreed', 'true')
+    renderWithQueryClient(<DownloadVideoDialog {...defaultProps} />, {
+      subtitleDownloadSupported: false,
+    })
+
+    fireEvent.change(screen.getByLabelText('Video URL'), {
+      target: { value: 'https://example.com/video' },
+    })
+
+    expect(screen.queryByTestId('download-video-dialog-subtitles-checkbox')).not.toBeInTheDocument()
   })
 
   it('lists subtitle languages when checked and sends the selection on start', async () => {

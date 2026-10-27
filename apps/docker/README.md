@@ -4,7 +4,7 @@ SMM Docker 镜像构建 workspace。镜像包含：
 
 - **CLI**：`apps/cli` 的 Linux 可执行文件（glibc）
 - **UI**：`apps/ui` 的前端静态资源
-- **bin**：ffmpeg、ffprobe、yt-dlp、bgutil POT 插件与服务、Node.js、VideoCaptioner、QuickJS 等第三方文件（Linux 版）
+- **bin**：ffmpeg、ffprobe、yt-dlp、bgutil POT 插件、Node.js 与 POT 服务（arm64 镜像不含后两项）、VideoCaptioner、QuickJS 等第三方文件（Linux 版）
 
 最终镜像基于 `debian:bookworm-slim`，与 `cli.Dockerfile`（同在 Debian 编译，产出 glibc CLI）及 3pp 二进制（ffmpeg / yt-dlp 等均为 glibc 链接）保持 ABI 一致。
 
@@ -24,7 +24,7 @@ pnpm run build:cli          # 产出 smm-cli-build:latest
 pnpm run build:ui           # 产出 smm-ui-build:latest
 pnpm run build:ffmpeg       # 产出 smm-ffmpeg:latest (ffmpeg/ffprobe + quickjs)
 pnpm run build:ytdlp        # 产出 smm-ytdlp:latest (yt-dlp)
-pnpm run build:bgutil       # 产出 smm-bgutil:latest (POT 插件 zip、Node、服务构建产物)
+pnpm run build:bgutil       # 产出 smm-bgutil:latest（插件 zip；amd64 另含 Node 与服务构建产物）
 pnpm run build:videocaptioner # 产出 smm-videocaptioner:latest (VideoCaptioner)
 pnpm run build              # 引用上述六个镜像，组装 smm:latest
 
@@ -96,8 +96,8 @@ UI 从 URL query `token` 或 localStorage `auth-token` 读取 token，并在 HTT
 | ffmpeg | `../../bin/ffmpeg` → `bin/ffmpeg` | `bin/ffmpeg/{ffmpeg,ffprobe}` |
 | yt-dlp | `../../bin/yt-dlp/yt-dlp` → `bin/yt-dlp/yt-dlp` | `bin/yt-dlp/yt-dlp` |
 | bgutil 插件 | `bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip` | 同左 |
-| Node.js | `bin/node/node` | `bin/node/node` |
-| bgutil 服务 | `bin/bgutil-pot-provider/{package.json,build,node_modules}` | 同左 |
+| Node.js | `bin/node/node`（arm64 安装包不含） | `bin/node/node`（arm64 镜像不含） |
+| bgutil 服务 | `bin/bgutil-pot-provider/{package.json,build,node_modules}`（arm64 不含） | 同左 |
 | VideoCaptioner | `../../bin/videocaptioner` → `bin/videocaptioner` | `bin/videocaptioner/{videocaptioner,…}` |
 | QuickJS | `../../bin/quickjs` → `bin/quickjs` | `bin/quickjs/{qjs,…}` |
 

@@ -69,6 +69,8 @@ export interface UIDownloadVideoDialogContentProps {
   onSupplementaryFormatCodeChange: (id: string) => void
 
   downloadSubtitles: boolean
+  /** False on arm64. The subtitle checkbox is omitted. */
+  subtitleDownloadSupported?: boolean
   subtitleLanguages: SubtitleLanguage[]
   selectedSubtitleCodes: string[]
   isListingSubtitles: boolean
@@ -168,6 +170,7 @@ export function UIDownloadVideoDialogContent({
   onSupplementaryFormatCodeChange,
 
   downloadSubtitles,
+  subtitleDownloadSupported = true,
   subtitleLanguages,
   selectedSubtitleCodes,
   isListingSubtitles,
@@ -360,18 +363,20 @@ export function UIDownloadVideoDialogContent({
                   t={t}
                 />
 
-                <SubtitleSection
-                  isUrlValid={isUrlValid}
-                  formBusy={formBusy}
-                  downloadSubtitles={downloadSubtitles}
-                  subtitleLanguages={subtitleLanguages}
-                  selectedSubtitleCodes={selectedSubtitleCodes}
-                  isListingSubtitles={isListingSubtitles}
-                  subtitleListError={subtitleListError}
-                  onDownloadSubtitlesChange={onDownloadSubtitlesChange}
-                  onSubtitleLanguageToggle={onSubtitleLanguageToggle}
-                  t={t}
-                />
+                {subtitleDownloadSupported && (
+                  <SubtitleSection
+                    isUrlValid={isUrlValid}
+                    formBusy={formBusy}
+                    downloadSubtitles={downloadSubtitles}
+                    subtitleLanguages={subtitleLanguages}
+                    selectedSubtitleCodes={selectedSubtitleCodes}
+                    isListingSubtitles={isListingSubtitles}
+                    subtitleListError={subtitleListError}
+                    onDownloadSubtitlesChange={onDownloadSubtitlesChange}
+                    onSubtitleLanguageToggle={onSubtitleLanguageToggle}
+                    t={t}
+                  />
+                )}
 
                 <VideoListSection
                   entries={videoList}

@@ -802,6 +802,7 @@ export class Core {
       logDir: this.logDir ?? "",
       osLocale: this.osLocale ?? detectOsLocale(),
       isDocker: this.isDocker,
+      subtitleDownloadSupported: process.arch !== "arm64",
     };
   }
 

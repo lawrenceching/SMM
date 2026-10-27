@@ -2,6 +2,7 @@ import { useCallback, useContext, useEffect, useRef } from "react"
 import type { DownloadVideoDialogProps, FileItem } from "../types"
 import { useTranslation, castTranslationFn } from "@/lib/i18n"
 import { DialogContext } from "@/providers/dialog-provider"
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 import { useDownloadVideoForm } from "../hooks/use-download-video-form"
 import { useYtdlpDownloadFlow } from "../hooks/use-ytdlp-download-flow"
 import { UIDownloadVideoDialogContent } from "../UIDownloadVideoDialogContent"
@@ -26,7 +27,15 @@ function DownloadVideoDialogContent({
   const dialogContext = useContext(DialogContext)
   useEffect(() => { openLogDialogRef.current = dialogContext?.logDialog[0] }, [dialogContext])
 
-  const form = useDownloadVideoForm({ isOpen: true, destinationFolder, t: td })
+  const { data: helloData } = useHelloQuery()
+  const subtitleDownloadSupported = helloData?.subtitleDownloadSupported !== false
+
+  const form = useDownloadVideoForm({
+    isOpen: true,
+    destinationFolder,
+    t: td,
+    subtitleDownloadSupported,
+  })
 
   const flow = useYtdlpDownloadFlow({
     isOpen: true,
@@ -128,6 +137,7 @@ function DownloadVideoDialogContent({
       onFormatCodeChange={form.setSelectedFormatCode}
       onSupplementaryFormatCodeChange={form.setSelectedSupplementaryFormatCode}
       downloadSubtitles={form.downloadSubtitles}
+      subtitleDownloadSupported={subtitleDownloadSupported}
       subtitleLanguages={form.subtitleLanguages}
       selectedSubtitleCodes={form.selectedSubtitleCodes}
       isListingSubtitles={form.isListingSubtitles}

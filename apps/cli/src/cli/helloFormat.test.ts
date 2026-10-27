@@ -14,6 +14,7 @@ describe('formatHelloLines', () => {
         logDir: 'C:\\Users\\me\\AppData\\Local\\SMM\\logs',
         osLocale: 'zh-CN',
         isDocker: false,
+        subtitleDownloadSupported: true,
       }),
     ).toEqual([
       'Version: 1.3.8',
