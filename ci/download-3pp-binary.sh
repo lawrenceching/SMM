@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# ffmpeg/ffprobe, yt-dlp, VideoCaptioner, and QuickJS are downloaded directly from
-# their release sources — no npm packages, no self-hosted archive.
+# ffmpeg/ffprobe, yt-dlp, VideoCaptioner, QuickJS, Node.js, and the bgutil POT
+# provider are downloaded directly from their release sources.
 # VideoCaptioner binaries come from SMM GitHub Releases
 # (tag videocaptioner-<upstream>_<smm_build>, e.g. videocaptioner-1.4.2_1.0.2).
-# Install into bin/ffmpeg, bin/yt-dlp, bin/videocaptioner, and bin/quickjs for Electron packaging.
+# Install into bin/ffmpeg, bin/yt-dlp, bin/videocaptioner, bin/quickjs, bin/node,
+# and bin/bgutil-pot-provider for Electron packaging.
 # Requires: PLATFORM (linux|win|mac), ARCH (x64|arm64).
-# Optional: FFMPEG_VERSION, YTDLP_VERSION, VIDEOCAPTIONER_ARTIFACT_VERSION,
+# Optional: FFMPEG_VERSION, YTDLP_VERSION, BGUTIL_VERSION, NODE_VERSION,
+#           VIDEOCAPTIONER_ARTIFACT_VERSION,
 #           VIDEOCAPTIONER_RELEASES_REPO (versions default to root package.json `3pp`).
 
 set -e
@@ -19,6 +21,8 @@ VIDEOCAPTIONER_RELEASES_REPO="${VIDEOCAPTIONER_RELEASES_REPO:-$(node -p "require
 
 FFMPEG_VERSION="${FFMPEG_VERSION:-$(node -p "require('./package.json')['3pp'].ffmpeg_version" 2>/dev/null || echo 8.1)}"
 YTDLP_VERSION="${YTDLP_VERSION:-$(node -p "require('./package.json')['3pp'].ytdlp_version" 2>/dev/null || echo 2026.07.04)}"
+BGUTIL_VERSION="${BGUTIL_VERSION:-$(node -p "require('./package.json')['3pp'].bgutil_version" 2>/dev/null || echo 2.0.2)}"
+NODE_VERSION="${NODE_VERSION:-$(node -p "require('./package.json')['3pp'].node_version" 2>/dev/null || echo 22.22.0)}"
 # osxexperts names its mac arm64 builds ffmpeg<VER>arm.zip (e.g. 81 = FFmpeg 8.1).
 FFMPEG_MAC_VER="${FFMPEG_MAC_VER:-${FFMPEG_VERSION//./}}"
 
@@ -235,3 +239,95 @@ if [ "${PLATFORM}" != "win" ]; then
 fi
 
 echo "QuickJS installed into bin/quickjs."
+
+# --- bgutil POT plugin zip, Node.js runtime, and built HTTP server ---
+case "${PLATFORM}-${ARCH}" in
+  linux-x64)
+    NODE_PLATFORM="linux-x64"
+    NODE_ARCHIVE_EXT="tar.xz"
+    ;;
+  linux-arm64)
+    NODE_PLATFORM="linux-arm64"
+    NODE_ARCHIVE_EXT="tar.xz"
+    ;;
+  mac-arm64)
+    NODE_PLATFORM="darwin-arm64"
+    NODE_ARCHIVE_EXT="tar.gz"
+    ;;
+  win-x64)
+    NODE_PLATFORM="win-x64"
+    NODE_ARCHIVE_EXT="zip"
+    ;;
+  win-arm64)
+    NODE_PLATFORM="win-arm64"
+    NODE_ARCHIVE_EXT="zip"
+    ;;
+  *)
+    echo "Node.js: unsupported PLATFORM/ARCH: ${PLATFORM}-${ARCH}" >&2
+    exit 1
+    ;;
+esac
+
+NODE_DIST="node-v${NODE_VERSION}-${NODE_PLATFORM}"
+NODE_URL="https://nodejs.org/dist/v${NODE_VERSION}/${NODE_DIST}.${NODE_ARCHIVE_EXT}"
+BGUTIL_REPO="https://github.com/Brainicism/bgutil-ytdlp-pot-provider"
+BGUTIL_ZIP_URL="${BGUTIL_REPO}/releases/download/${BGUTIL_VERSION}/bgutil-ytdlp-pot-provider.zip"
+
+echo "Downloading ${NODE_URL} ..."
+curl -sSLf -o "${TMPDIR}/node-dist.${NODE_ARCHIVE_EXT}" "${NODE_URL}"
+mkdir -p "${TMPDIR}/node-extracted"
+case "${NODE_ARCHIVE_EXT}" in
+  tar.xz) tar -xJf "${TMPDIR}/node-dist.${NODE_ARCHIVE_EXT}" -C "${TMPDIR}/node-extracted" ;;
+  tar.gz) tar -xzf "${TMPDIR}/node-dist.${NODE_ARCHIVE_EXT}" -C "${TMPDIR}/node-extracted" ;;
+  zip) unzip -qo "${TMPDIR}/node-dist.${NODE_ARCHIVE_EXT}" -d "${TMPDIR}/node-extracted" ;;
+esac
+
+NODE_ROOT="${TMPDIR}/node-extracted/${NODE_DIST}"
+if [ "${PLATFORM}" = "win" ]; then
+  NODE_BIN="${NODE_ROOT}/node.exe"
+else
+  NODE_BIN="${NODE_ROOT}/bin/node"
+fi
+if [ ! -f "${NODE_BIN}" ]; then
+  echo "Node.js binary not found: ${NODE_BIN}" >&2
+  exit 1
+fi
+NPM_CLI="$(find "${NODE_ROOT}" -path '*/npm/bin/npm-cli.js' | head -n 1)"
+if [ -z "${NPM_CLI}" ] || [ ! -f "${NPM_CLI}" ]; then
+  echo "npm-cli.js not found under ${NODE_ROOT}" >&2
+  exit 1
+fi
+
+rm -rf bin/node
+mkdir -p bin/node
+cp "${NODE_BIN}" "bin/node/"
+if [ "${PLATFORM}" != "win" ]; then
+  chmod +x bin/node/node
+fi
+
+echo "Downloading ${BGUTIL_ZIP_URL} ..."
+mkdir -p bin/yt-dlp/yt-dlp-plugins
+curl -sSLf -o "bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip" "${BGUTIL_ZIP_URL}"
+
+echo "Building bgutil POT server ${BGUTIL_VERSION} ..."
+git clone --depth 1 --branch "${BGUTIL_VERSION}" "${BGUTIL_REPO}.git" "${TMPDIR}/bgutil"
+(
+  cd "${TMPDIR}/bgutil/server"
+  "${NODE_BIN}" "${NPM_CLI}" ci
+  "${NODE_BIN}" ./node_modules/typescript/bin/tsc -p tsconfig.json
+  "${NODE_BIN}" "${NPM_CLI}" prune --omit=dev
+)
+if [ ! -f "${TMPDIR}/bgutil/server/build/main.js" ]; then
+  echo "bgutil server build/main.js was not produced" >&2
+  exit 1
+fi
+
+rm -rf bin/bgutil-pot-provider
+mkdir -p bin/bgutil-pot-provider
+cp "${TMPDIR}/bgutil/server/package.json" bin/bgutil-pot-provider/package.json
+cp -a "${TMPDIR}/bgutil/server/build" bin/bgutil-pot-provider/build
+cp -a "${TMPDIR}/bgutil/server/node_modules" bin/bgutil-pot-provider/node_modules
+rm -rf bin/bgutil-pot-provider/node_modules/.cache
+rm -f bin/bgutil-pot-provider/build/tsconfig.tsbuildinfo bin/bgutil-pot-provider/build/*.map
+
+echo "bgutil POT provider installed into bin/yt-dlp/yt-dlp-plugins, bin/node, and bin/bgutil-pot-provider."

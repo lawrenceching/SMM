@@ -46,6 +46,12 @@ describe('ci/docker-3pp-build-args.sh', () => {
     expect(out).toContain(`--build-arg VIDEOCAPTIONER_RELEASES_REPO=${repo}`);
   });
 
+  test('emits BGUTIL_VERSION and NODE_VERSION for bgutil', () => {
+    const out = runArgs('bgutil');
+    expect(out).toContain(`--build-arg BGUTIL_VERSION=${read3pp('bgutil_version')}`);
+    expect(out).toContain(`--build-arg NODE_VERSION=${read3pp('node_version')}`);
+  });
+
   test('rejects unknown component', () => {
     const proc = Bun.spawnSync(['bash', script, 'nope'], {
       cwd: repoRoot,

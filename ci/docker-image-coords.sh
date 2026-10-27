@@ -2,7 +2,7 @@
 # Emits Docker image coordinates as KEY=VALUE lines (for GITHUB_OUTPUT or env).
 #
 # cli/ui images are tagged by commit SHA (app code rebuilds every commit).
-# The 3pp images (ffmpeg / yt-dlp / videocaptioner) are tagged by their own
+# The 3pp images (ffmpeg / yt-dlp / videocaptioner / bgutil) are tagged by their own
 # software version from the root package.json "3pp" field, so unchanged
 # external binaries are never re-downloaded by CI.
 #
@@ -22,6 +22,8 @@ read_3pp() {
 
 FFMPEG_VERSION="$(read_3pp ffmpeg_version)"
 YTDLP_VERSION="$(read_3pp ytdlp_version)"
+BGUTIL_VERSION="$(read_3pp bgutil_version)"
+NODE_VERSION="$(read_3pp node_version)"
 VIDEOCAPTIONER_UPSTREAM_VERSION="$(read_3pp videocaptioner_upstream_version)"
 VIDEOCAPTIONER_SMM_BUILD_VERSION="$(read_3pp videocaptioner_smm_build_version)"
 VIDEOCAPTIONER_ARTIFACT_VERSION="${VIDEOCAPTIONER_UPSTREAM_VERSION}_${VIDEOCAPTIONER_SMM_BUILD_VERSION}"
@@ -32,9 +34,12 @@ echo "cli_image=ghcr.io/${OWNER_LC}/smm-cli-build:${SHA}"
 echo "ui_image=ghcr.io/${OWNER_LC}/smm-ui-build:${SHA}"
 echo "ffmpeg_image=ghcr.io/${OWNER_LC}/smm-ffmpeg:${FFMPEG_VERSION}"
 echo "ytdlp_image=ghcr.io/${OWNER_LC}/smm-ytdlp:${YTDLP_VERSION}"
+echo "bgutil_image=ghcr.io/${OWNER_LC}/smm-bgutil:${BGUTIL_VERSION}-node${NODE_VERSION}"
 echo "videocaptioner_image=ghcr.io/${OWNER_LC}/smm-videocaptioner:${VIDEOCAPTIONER_ARTIFACT_VERSION}"
 echo "ffmpeg_version=${FFMPEG_VERSION}"
 echo "ytdlp_version=${YTDLP_VERSION}"
+echo "bgutil_version=${BGUTIL_VERSION}"
+echo "node_version=${NODE_VERSION}"
 echo "videocaptioner_upstream_version=${VIDEOCAPTIONER_UPSTREAM_VERSION}"
 echo "videocaptioner_smm_build_version=${VIDEOCAPTIONER_SMM_BUILD_VERSION}"
 echo "videocaptioner_artifact_version=${VIDEOCAPTIONER_ARTIFACT_VERSION}"

@@ -5,11 +5,11 @@
 #   docker buildx build $(bash ci/docker-3pp-build-args.sh ytdlp) -t smm-ytdlp:latest \
 #     -f apps/docker/ytdlp.Dockerfile .
 #
-# Components: ffmpeg | ytdlp | videocaptioner
+# Components: ffmpeg | ytdlp | videocaptioner | bgutil
 
 set -euo pipefail
 
-COMPONENT="${1:?component required (ffmpeg|ytdlp|videocaptioner)}"
+COMPONENT="${1:?component required (ffmpeg|ytdlp|videocaptioner|bgutil)}"
 REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 
 read_3pp() {
@@ -30,8 +30,12 @@ case "${COMPONENT}" in
     printf '%s\n' "--build-arg VIDEOCAPTIONER_ARTIFACT_VERSION=${UPSTREAM}_${SMM_BUILD}"
     printf '%s\n' "--build-arg VIDEOCAPTIONER_RELEASES_REPO=${RELEASES_REPO}"
     ;;
+  bgutil)
+    printf '%s\n' "--build-arg BGUTIL_VERSION=$(read_3pp bgutil_version)"
+    printf '%s\n' "--build-arg NODE_VERSION=$(read_3pp node_version)"
+    ;;
   *)
-    echo "Unknown component: ${COMPONENT} (expected ffmpeg|ytdlp|videocaptioner)" >&2
+    echo "Unknown component: ${COMPONENT} (expected ffmpeg|ytdlp|videocaptioner|bgutil)" >&2
     exit 1
     ;;
 esac

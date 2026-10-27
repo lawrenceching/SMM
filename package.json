@@ -13,6 +13,8 @@
   "3pp": {
     "ffmpeg_version": "8.1",
     "ytdlp_version": "2026.10.21",
+    "bgutil_version": "2.0.2",
+    "node_version": "22.22.0",
     "videocaptioner_upstream_version": "1.4.2",
     "videocaptioner_smm_build_version": "1.0.2",
     "videocaptioner_ref": "v1.4.2",

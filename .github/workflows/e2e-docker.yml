@@ -160,6 +160,10 @@ jobs:
             -t smm-ytdlp:latest -f apps/docker/ytdlp.Dockerfile .
           # shellcheck disable=SC2046
           docker buildx build --load --platform "$PLATFORM" \
+            $(bash ci/docker-3pp-build-args.sh bgutil) \
+            -t smm-bgutil:latest -f apps/docker/bgutil.Dockerfile .
+          # shellcheck disable=SC2046
+          docker buildx build --load --platform "$PLATFORM" \
             $(bash ci/docker-3pp-build-args.sh videocaptioner) \
             -t smm-videocaptioner:latest -f apps/docker/videocaptioner.Dockerfile .
 

@@ -11,6 +11,7 @@
     "build:cli": "docker buildx build --progress=plain -t smm-cli-build:latest -f cli.Dockerfile ../..",
     "build:ffmpeg": "docker buildx build --progress=plain $(bash ../../ci/docker-3pp-build-args.sh ffmpeg) -t smm-ffmpeg:latest -f ffmpeg.Dockerfile ../..",
     "build:ytdlp": "docker buildx build --progress=plain $(bash ../../ci/docker-3pp-build-args.sh ytdlp) -t smm-ytdlp:latest -f ytdlp.Dockerfile ../..",
+    "build:bgutil": "docker buildx build --progress=plain $(bash ../../ci/docker-3pp-build-args.sh bgutil) -t smm-bgutil:latest -f bgutil.Dockerfile ../..",
     "build:videocaptioner": "docker buildx build --progress=plain $(bash ../../ci/docker-3pp-build-args.sh videocaptioner) -t smm-videocaptioner:latest -f videocaptioner.Dockerfile ../.."
   }
 }

@@ -9,6 +9,7 @@ const requiredArgs: Array<{ arg: string; defaultImage: string; stage: string }> 
   { arg: 'SMM_UI_IMAGE', defaultImage: 'smm-ui-build:latest', stage: 'ui' },
   { arg: 'SMM_FFMPEG_IMAGE', defaultImage: 'smm-ffmpeg:latest', stage: 'ffmpeg' },
   { arg: 'SMM_YTDLP_IMAGE', defaultImage: 'smm-ytdlp:latest', stage: 'ytdlp' },
+  { arg: 'SMM_BGUTIL_IMAGE', defaultImage: 'smm-bgutil:latest', stage: 'bgutil' },
   {
     arg: 'SMM_VIDEOCAPTIONER_IMAGE',
     defaultImage: 'smm-videocaptioner:latest',

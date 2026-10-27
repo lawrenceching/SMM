@@ -167,6 +167,18 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 [x] 更新 `apps/docker/package.json`
 ### 7.6 更新文档
 [x] 更新 `apps/docker/README.md`
+
+### 7.9 bgutil POT provider（插件 zip、Node、HTTP 服务）
+
+`3pp.bgutil_version` 与 `3pp.node_version` 决定产物。`ci/download-3pp-binary.sh` 与 `apps/docker/bgutil.Dockerfile` 写入同一布局：
+
+- `bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip`（GitHub Release zip，不解压）
+- `bin/node/node`（nodejs.org 官方二进制；Windows 为 `node.exe`）
+- `bin/bgutil-pot-provider/package.json`、`build/main.js`、生产 `node_modules`
+
+服务在目标平台上 `npm ci`、`tsc`、`npm prune --omit=dev`。Docker 构建使用 Debian，以便 glibc 版 Node 与 `canvas` 预编译包可用。最终镜像安装 cairo/pango 等库，供以后启动该服务时加载 `canvas`。这一步只打包，不在容器或 Electron 启动时执行 `node build/main.js`。
+
+镜像标签：`smm-bgutil:<bgutil_version>-node<node_version>`。
 ### 7.7 验证
 [x] 全流程构建验证
 ## 8. Backward Compatibility
@@ -176,4 +188,4 @@ ARG VIDEOCAPTIONER_REPO=lawrenceching/VideoCaptioner
 | 已有 `smm:latest` 不含 3pp | 新构建的 `smm:latest` 包含 3pp，行为恢复至与原 Dockerfile 等价 |
 | 最终镜像构建流程 | 新增 3 个前置构建步骤（文档说明）；不改变已有 `build:cli` / `build:ui` |
 | `SMM_RESOURCES_PATH` 环境变量 | 回到 `/app/resources`（与原有值一致） |
-| CI 流程 | 需在最终构建前先构建三个 3pp 中间镜像 |
+| CI 流程 | 需在最终构建前先构建 3pp 中间镜像（含 `smm-bgutil`） |

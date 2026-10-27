@@ -7,6 +7,7 @@
 #   - smm-ui-build:latest    (built via ui.Dockerfile,   ships Vite dist at /)
 #   - smm-ffmpeg:latest      (built via ffmpeg.Dockerfile, ships bin/ffmpeg/ + bin/quickjs/)
 #   - smm-ytdlp:latest       (built via ytdlp.Dockerfile,  ships bin/yt-dlp/)
+#   - smm-bgutil:latest      (built via bgutil.Dockerfile, ships the POT plugin zip, Node, and server)
 #   - smm-videocaptioner:latest (built via videocaptioner.Dockerfile, ships bin/videocaptioner/)
 #
 # Final base is alpine so the musl-linked CLI runs natively.
@@ -16,6 +17,7 @@
 #   pnpm --filter docker build:ui
 #   pnpm --filter docker build:ffmpeg
 #   pnpm --filter docker build:ytdlp
+#   pnpm --filter docker build:bgutil
 #   pnpm --filter docker build:videocaptioner
 #
 # CI may override intermediate sources with GHCR tags via --build-arg (see SMM_*_IMAGE below).
@@ -25,12 +27,14 @@ ARG SMM_CLI_IMAGE=smm-cli-build:latest
 ARG SMM_UI_IMAGE=smm-ui-build:latest
 ARG SMM_FFMPEG_IMAGE=smm-ffmpeg:latest
 ARG SMM_YTDLP_IMAGE=smm-ytdlp:latest
+ARG SMM_BGUTIL_IMAGE=smm-bgutil:latest
 ARG SMM_VIDEOCAPTIONER_IMAGE=smm-videocaptioner:latest
 
 FROM ${SMM_CLI_IMAGE} AS cli
 FROM ${SMM_UI_IMAGE} AS ui
 FROM ${SMM_FFMPEG_IMAGE} AS ffmpeg
 FROM ${SMM_YTDLP_IMAGE} AS ytdlp
+FROM ${SMM_BGUTIL_IMAGE} AS bgutil
 FROM ${SMM_VIDEOCAPTIONER_IMAGE} AS videocaptioner
 
 # Final stage
@@ -38,6 +42,7 @@ FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl bash libstdc++6 \
+    libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libjpeg62-turbo libgif7 librsvg2-2 libpixman-1-0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=cli /app/cli /app/cli
@@ -46,6 +51,7 @@ RUN chmod +x /app/cli
 COPY --from=ui / /app/public/
 COPY --from=ffmpeg        / /app/resources/
 COPY --from=ytdlp         / /app/resources/
+COPY --from=bgutil        / /app/resources/
 COPY --from=videocaptioner / /app/resources/
 
 WORKDIR /app

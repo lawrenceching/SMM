@@ -4,7 +4,7 @@ SMM Docker 镜像构建 workspace。镜像包含：
 
 - **CLI**：`apps/cli` 的 Linux 可执行文件（glibc）
 - **UI**：`apps/ui` 的前端静态资源
-- **bin**：ffmpeg、ffprobe、yt-dlp、VideoCaptioner、QuickJS 等第三方可执行文件（Linux 版）
+- **bin**：ffmpeg、ffprobe、yt-dlp、bgutil POT 插件与服务、Node.js、VideoCaptioner、QuickJS 等第三方文件（Linux 版）
 
 最终镜像基于 `debian:bookworm-slim`，与 `cli.Dockerfile`（同在 Debian 编译，产出 glibc CLI）及 3pp 二进制（ffmpeg / yt-dlp 等均为 glibc 链接）保持 ABI 一致。
 
@@ -24,14 +24,16 @@ pnpm run build:cli          # 产出 smm-cli-build:latest
 pnpm run build:ui           # 产出 smm-ui-build:latest
 pnpm run build:ffmpeg       # 产出 smm-ffmpeg:latest (ffmpeg/ffprobe + quickjs)
 pnpm run build:ytdlp        # 产出 smm-ytdlp:latest (yt-dlp)
+pnpm run build:bgutil       # 产出 smm-bgutil:latest (POT 插件 zip、Node、服务构建产物)
 pnpm run build:videocaptioner # 产出 smm-videocaptioner:latest (VideoCaptioner)
-pnpm run build              # 引用上述五个镜像，组装 smm:latest
+pnpm run build              # 引用上述六个镜像，组装 smm:latest
 
 # 或从仓库根等价的 docker buildx 命令
 docker buildx build --progress=plain -t smm-cli-build:latest        -f apps/docker/cli.Dockerfile .
 docker buildx build --progress=plain -t smm-ui-build:latest         -f apps/docker/ui.Dockerfile  .
 docker buildx build --progress=plain -t smm-ffmpeg:latest           -f apps/docker/ffmpeg.Dockerfile .
 docker buildx build --progress=plain -t smm-ytdlp:latest            -f apps/docker/ytdlp.Dockerfile .
+docker buildx build --progress=plain -t smm-bgutil:latest           -f apps/docker/bgutil.Dockerfile .
 docker buildx build --progress=plain -t smm-videocaptioner:latest   -f apps/docker/videocaptioner.Dockerfile .
 docker buildx build --progress=plain -t smm:latest                  -f apps/docker/Dockerfile .
 ```
@@ -52,20 +54,21 @@ docker run --rm -p 30000:30000 -p 30001:30001 \
 
 ### CI 中的 3pp 版本管理
 
-CI（`_build-docker-push.yml`）为三个 3pp 中间镜像各建一个独立 job，镜像标签与软件自身版本一致，版本号来自根目录 `package.json` 的 `3pp` 字段：
+CI（`_build-docker-push.yml`）为四个 3pp 中间镜像各建一个独立 job，镜像标签与软件自身版本一致，版本号来自根目录 `package.json` 的 `3pp` 字段：
 
 | 镜像 | 标签 | 版本来源 |
 |---|---|---|
 | `smm-ffmpeg` | `<ffmpeg_version>` | `3pp.ffmpeg_version` |
 | `smm-ytdlp` | `<ytdlp_version>` | `3pp.ytdlp_version` |
+| `smm-bgutil` | `<bgutil_version>-node<node_version>` | `3pp.bgutil_version` + `3pp.node_version` |
 | `smm-videocaptioner` | `<upstream>_<smm_build>` | `3pp.videocaptioner_upstream_version` + `3pp.videocaptioner_smm_build_version` |
 
 > **3pp 来源（2026-08-09 起）**：所有 3pp 二进制均从官方渠道直接下载，不再依赖 `plugins.tar.gz` 或任何 npm 包。`3pp.ffmpeg_version`（8.1）对应 BtbN FFmpeg-Builds（linux x64/arm64 与 win64/winarm64）；`3pp.ytdlp_version`（2026.07.04）对应 yt-dlp 官方 GitHub release；`3pp.videocaptioner_upstream_version` + `3pp.videocaptioner_smm_build_version` 对应 SMM GitHub Releases 标签 `videocaptioner-<upstream>_<smm_build>`（`3pp.videocaptioner_releases_repo`）。桌面版 `ci/download-3pp-binary.sh` 与 Docker 镜像使用相同来源：linux/win→BtbN FFmpeg-Builds，mac-arm64→osxexperts.net。
 
 - 对应标签的镜像已存在于 GHCR 时，CI 直接复用，**不会重新下载**外部二进制。
 - 升级某个 3pp：修改 `package.json` 中对应版本号 → 标签变化 → CI 重新构建该镜像。
-- 单独构建某个 3pp 镜像（3pp 软件发布新版本号时，只构建该软件的镜像，不动 cli/ui、不组装 `smm:latest`）：手动运行对应的 **Build ffmpeg Docker Image** / **Build ytdlp Docker Image** / **Build videocaptioner Docker Image** workflow（Actions 中可各自独立触发）。
-- 强制重建（覆盖已有版本标签）：在上述三个 workflow 手动运行时勾选 **Force Build**（`force_build`），或在 `build-docker.yml` / `release-all.yml` 勾选 `force_rebuild_3pp`。
+- 单独构建某个 3pp 镜像（3pp 软件发布新版本号时，只构建该软件的镜像，不动 cli/ui、不组装 `smm:latest`）：手动运行对应的 **Build ffmpeg Docker Image** / **Build ytdlp Docker Image** / **Build bgutil Docker Image** / **Build videocaptioner Docker Image** workflow（Actions 中可各自独立触发）。
+- 强制重建（覆盖已有版本标签）：在上述 workflow 手动运行时勾选 **Force Build**（`force_build`），或在 `build-docker.yml` / `release-all.yml` 勾选 `force_rebuild_3pp`。
 
 `cli` / `ui` 是应用代码，仍按 commit SHA 打标签，每次提交重建。
 
@@ -92,6 +95,9 @@ UI 从 URL query `token` 或 localStorage `auth-token` 读取 token，并在 HTT
 |---|---|---|
 | ffmpeg | `../../bin/ffmpeg` → `bin/ffmpeg` | `bin/ffmpeg/{ffmpeg,ffprobe}` |
 | yt-dlp | `../../bin/yt-dlp/yt-dlp` → `bin/yt-dlp/yt-dlp` | `bin/yt-dlp/yt-dlp` |
+| bgutil 插件 | `bin/yt-dlp/yt-dlp-plugins/bgutil-ytdlp-pot-provider.zip` | 同左 |
+| Node.js | `bin/node/node` | `bin/node/node` |
+| bgutil 服务 | `bin/bgutil-pot-provider/{package.json,build,node_modules}` | 同左 |
 | VideoCaptioner | `../../bin/videocaptioner` → `bin/videocaptioner` | `bin/videocaptioner/{videocaptioner,…}` |
 | QuickJS | `../../bin/quickjs` → `bin/quickjs` | `bin/quickjs/{qjs,…}` |
 

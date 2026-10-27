@@ -243,6 +243,7 @@ jobs:
             --build-arg "SMM_UI_IMAGE=${{ steps.meta.outputs.ui_image }}" \
             --build-arg "SMM_FFMPEG_IMAGE=${{ steps.meta.outputs.ffmpeg_image }}" \
             --build-arg "SMM_YTDLP_IMAGE=${{ steps.meta.outputs.ytdlp_image }}" \
+            --build-arg "SMM_BGUTIL_IMAGE=${{ steps.meta.outputs.bgutil_image }}" \
             --build-arg "SMM_VIDEOCAPTIONER_IMAGE=${{ steps.meta.outputs.videocaptioner_image }}" \
             "${tags[@]}" \
             -f apps/docker/Dockerfile .

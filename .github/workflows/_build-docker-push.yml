@@ -190,9 +190,61 @@ jobs:
             echo "Image ${IMAGE} already exists; skipping build."
           fi
 
+  build-bgutil:
+    name: Build bgutil Docker Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image coordinates
+        id: meta
+        env:
+          OWNER_LC: ${{ github.repository_owner }}
+          SHA: ${{ github.sha }}
+        run: bash ci/docker-image-coords.sh >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Docker build platforms
+        id: platforms
+        env:
+          BUILD_ARM64_DOCKER_IMAGE: ${{ inputs.build_arm64_docker_image }}
+        run: bash ci/docker-build-platforms.sh >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU
+        if: inputs.build_arm64_docker_image
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build or reuse smm-bgutil image
+        env:
+          PLATFORMS: ${{ steps.platforms.outputs.platforms }}
+          IMAGE: ${{ steps.meta.outputs.bgutil_image }}
+          FORCE_REBUILD: ${{ inputs.force_rebuild_3pp }}
+        run: |
+          set -euo pipefail
+          if [ "${FORCE_REBUILD}" = "true" ] || ! docker buildx imagetools inspect "${IMAGE}" >/dev/null 2>&1; then
+            echo "Building ${IMAGE}"
+            # shellcheck disable=SC2046
+            docker buildx build --platform "$PLATFORMS" --push \
+              $(bash ci/docker-3pp-build-args.sh bgutil) \
+              -t "${IMAGE}" -f apps/docker/bgutil.Dockerfile .
+          else
+            echo "Image ${IMAGE} already exists; skipping build."
+          fi
+
   build-and-push:
     name: Build and push lawrenceching/smm
-    needs: [build-ffmpeg, build-ytdlp, build-videocaptioner]
+    needs: [build-ffmpeg, build-ytdlp, build-videocaptioner, build-bgutil]
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
@@ -265,6 +317,7 @@ jobs:
             --build-arg "SMM_UI_IMAGE=${{ steps.meta.outputs.ui_image }}" \
             --build-arg "SMM_FFMPEG_IMAGE=${{ steps.meta.outputs.ffmpeg_image }}" \
             --build-arg "SMM_YTDLP_IMAGE=${{ steps.meta.outputs.ytdlp_image }}" \
+            --build-arg "SMM_BGUTIL_IMAGE=${{ steps.meta.outputs.bgutil_image }}" \
             --build-arg "SMM_VIDEOCAPTIONER_IMAGE=${{ steps.meta.outputs.videocaptioner_image }}" \
             "${tags[@]}" \
             -f apps/docker/Dockerfile .
