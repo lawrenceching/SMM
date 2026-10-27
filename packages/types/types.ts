@@ -1,3 +1,7 @@
+import type { HelloFeatures } from "./featureToggles.ts"
+
+export type { HelloFeatures }
+
 /**
  * Represent the application configuration, which not editable to the user.
  */
@@ -1107,6 +1111,11 @@ export interface HelloCliBody {
    * download is unavailable.
    */
   subtitleDownloadSupported: boolean;
+  /**
+   * Product switches. Missing or false hides the matching UI entry points.
+   * `ytdlp` covers download-video. `videocaptioner` covers the subtitle pipeline.
+   */
+  features: HelloFeatures;
 }
 
 /** HTTP-only extensions for browser / embedded UI. */

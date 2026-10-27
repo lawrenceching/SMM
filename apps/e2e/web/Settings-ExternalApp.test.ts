@@ -5,6 +5,7 @@ import StatusBar from 'test/componentobjects/StatusBar'
 import Page from 'test/pageobjects/page'
 import { setup, cleanup } from 'test/lib/testbed'
 import { testbedOs } from 'test/lib/e2e-platform'
+import { featureToggles } from '@smm/types/featureToggles'
 
 function normalizePath(p: string): string {
     return p.replace(/\\/g, '/')
@@ -56,15 +57,17 @@ describe('Settings - External Applications (3pp discovery)', () => {
         await ConfigDialog.switchToTab('external-apps')
         await ConfigDialog.waitForExternalAppsDiscovery()
 
-        const ytdlpPath = normalizePath(await ConfigDialog.getYtdlpResolvedPath())
         const ffmpegPath = normalizePath(await ConfigDialog.getFfmpegResolvedPath())
         const quickjsPath = normalizePath(await ConfigDialog.getQuickjsResolvedPath())
 
-        expect(ytdlpPath).toMatch(/\/bin\/yt-dlp\/yt-dlp(\.exe)?$/i)
+        if (featureToggles().ytdlp) {
+            const ytdlpPath = normalizePath(await ConfigDialog.getYtdlpResolvedPath())
+            expect(ytdlpPath).toMatch(/\/bin\/yt-dlp\/yt-dlp(\.exe)?$/i)
+            expect(await ConfigDialog.getYtdlpVersionText()).toMatch(/^Version:\s+\S+/)
+        }
         expect(ffmpegPath).toMatch(/\/bin\/ffmpeg\/ffmpeg(\.exe)?$/i)
         expect(quickjsPath).toMatch(/\/bin\/quickjs\/qjs(\.exe)?$/i)
 
-        expect(await ConfigDialog.getYtdlpVersionText()).toMatch(/^Version:\s+\S+/)
         expect(await ConfigDialog.getFfmpegVersionText()).toMatch(/^Version:\s+\S+/)
         expect(await ConfigDialog.getQuickjsVersionText()).toMatch(/^Version:\s+\S+/)
     })

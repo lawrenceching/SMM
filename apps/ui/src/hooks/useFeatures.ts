@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { isHarmonyOS } from "@/lib/isHarmonyOS"
+import { useHelloQuery } from "@/hooks/userConfig/useHelloQuery"
 
 const VIDEOCAPTIONER_ASR_OPTIONS_STORAGE_KEY = "features.isVideoCaptionerAsrOptionsEnabled"
 const TENCENT_ASR_STORAGE_KEY = "features.isTencentAsrTranscribeEnabled"
@@ -254,11 +255,11 @@ export interface UseFeaturesResult {
    *  Defaults to false while the feature is still under development. */
   isAiAreaEnabled: boolean
   setIsAiAreaEnabled: (enabled: boolean) => void
-  /** Subtitle / transcribe via VideoCaptioner is supported on this OS build. */
+  /** Subtitle / transcribe via VideoCaptioner is supported on this OS build and hello `features.videocaptioner` is on. */
   isTranscribeEnabled: boolean
-  /** Subtitle menu and pipeline (transcribe / translate / synthesize / process). Disabled on HarmonyOS. */
+  /** Subtitle menu and pipeline (transcribe / translate / synthesize / process). Off on HarmonyOS, or when hello `features.videocaptioner` is not true. */
   isSubtitleFeaturesEnabled: boolean
-  /** Download video dialog and music-panel download. Disabled on HarmonyOS. */
+  /** Download video dialog and music-panel download. Off on HarmonyOS, or when hello `features.ytdlp` is not true. */
   isDownloadVideoEnabled: boolean
   /** Format converter dialog (视频转码). Disabled on HarmonyOS. */
   isFormatConverterEnabled: boolean
@@ -337,20 +338,23 @@ export interface UseFeaturesResult {
 
 export function useFeatures(): UseFeaturesResult {
   const isHarmonyOSRuntime = useMemo(() => isHarmonyOS(), [])
+  const { data: helloData } = useHelloQuery()
+  const ytdlpEnabled = helloData?.features?.ytdlp === true
+  const videoCaptionerEnabled = helloData?.features?.videocaptioner === true
 
-  const isSubtitleFeaturesEnabled = !isHarmonyOSRuntime
-  const isDownloadVideoEnabled = !isHarmonyOSRuntime
+  const isSubtitleFeaturesEnabled = !isHarmonyOSRuntime && videoCaptionerEnabled
+  const isDownloadVideoEnabled = !isHarmonyOSRuntime && ytdlpEnabled
   const isFormatConverterEnabled = !isHarmonyOSRuntime
   const isVideoCompressionEnabled = !isHarmonyOSRuntime
   const isMusicFolderImportEnabled = !isHarmonyOSRuntime
 
   const isTranscribeEnabled = useMemo(() => {
-    if (isHarmonyOSRuntime) {
+    if (!videoCaptionerEnabled || isHarmonyOSRuntime) {
       return false
     }
     const platform = getRuntimePlatform()
     return platform !== "darwin"
-  }, [isHarmonyOSRuntime])
+  }, [isHarmonyOSRuntime, videoCaptionerEnabled])
 
   const [isVideoCaptionerAsrOptionsEnabled, setIsVideoCaptionerAsrOptionsEnabled] = useState(
     readVideoCaptionerAsrOptionsEnabled,

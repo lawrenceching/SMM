@@ -18,6 +18,7 @@ import {
   resolveTvdbSearchLanguage,
 } from "@smm/utils/locale";
 import { parseTvdbSearchLanguage } from "@smm/types/tvdbSupportedLanguages";
+import { featureToggles } from "@smm/types/featureToggles";
 import type { TVDBv4LanguageRecord, TVDBv4SearchResult } from "@smm/tvdb4";
 import type { RecognizeMediaFilePlan } from "@smm/types/RecognizeMediaFilePlan";
 import type { RenameFilesPlan } from "@smm/types/RenameFilesPlan";
@@ -803,6 +804,7 @@ export class Core {
       osLocale: this.osLocale ?? detectOsLocale(),
       isDocker: this.isDocker,
       subtitleDownloadSupported: process.arch !== "arm64",
+      features: featureToggles(),
     };
   }
 

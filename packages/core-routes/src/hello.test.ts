@@ -35,4 +35,12 @@ describe("doHello", () => {
     const result = doHello({ ...options, platform: "linux" });
     expect(result.platform).toBe("linux");
   });
+
+  it("fills features from featureToggles when options omit them", () => {
+    const result = doHello(options);
+    expect(result.features).toEqual({
+      ytdlp: false,
+      videocaptioner: false,
+    });
+  });
 });

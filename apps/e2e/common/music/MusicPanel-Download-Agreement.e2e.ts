@@ -19,6 +19,7 @@ import MusicPanel from 'test/componentobjects/MusicPanel.co'
 import DownloadVideoDialogCO from 'test/componentobjects/DownloadVideoDialog.co'
 
 import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from 'test/lib/skipIfFeatureDisabled'
 
 const LOCALSTORAGE_AGREEMENT_KEY = 'DownloadVideoDialog.userAgreed'
 
@@ -59,6 +60,7 @@ describe('MusicPanel - Download - User Agreement (4.1)', () => {
 
     before(function () {
         skipIfOhos(this)
+        skipIfFeatureDisabled(this, 'ytdlp')
     })
 
     beforeEach(async () => {

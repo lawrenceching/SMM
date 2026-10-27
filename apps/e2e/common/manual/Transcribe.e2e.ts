@@ -9,6 +9,7 @@ import MoviePanelCO from 'test/componentobjects/MoviePanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
 import { TvShowPanelCO } from 'test/componentobjects/TVShowPanel.co'
 import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from 'test/lib/skipIfFeatureDisabled'
 import {
     createTestFolderViaBrowser,
     joinPlatformPath,
@@ -33,6 +34,7 @@ import type { TestFolder } from 'test/actions/import-folders'
 describe('Transcribe', () => {
     before(function () {
         skipIfOhos(this)
+        skipIfFeatureDisabled(this, 'videocaptioner')
     })
 
     beforeEach(async () => {

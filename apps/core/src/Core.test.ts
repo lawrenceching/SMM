@@ -883,6 +883,7 @@ describe("hello", () => {
       osLocale: "zh-CN",
       isDocker: false,
       subtitleDownloadSupported: process.arch !== "arm64",
+      features: { ytdlp: false, videocaptioner: false },
     });
   });
 

@@ -23,6 +23,7 @@ import {
 } from "test/lib/bilibili-cookies"
 
 import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from 'test/lib/skipIfFeatureDisabled'
 
 /** Delay between retries when clearFolderViaBrowser hits EBUSY (yt-dlp still writing). */
 const CLEAR_FOLDER_EBUSY_RETRY_DELAY_MS = 10_000
@@ -114,6 +115,10 @@ async function openDownloadDialog() {
  */
 describe('MusicPanel - Download', () => {
     let testFolder = ''
+
+    before(function () {
+        skipIfFeatureDisabled(this, 'ytdlp')
+    })
 
     beforeEach(async () => {
         await setup({

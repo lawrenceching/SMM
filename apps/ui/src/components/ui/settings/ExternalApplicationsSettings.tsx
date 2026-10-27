@@ -13,6 +13,7 @@ import { getYtdlpVersion } from "@/api/ytdlp"
 import { getFfmpegVersion } from "@/api/ffmpeg"
 import { getQuickjsVersion } from "@/api/quickjs"
 import { discoverVideoCaptioner } from "@/api/videocaptioner"
+import { useFeatures } from "@/hooks/useFeatures"
 import {
   fetchDiscoverExecutables,
   type ExecutablePathInfo,
@@ -20,6 +21,7 @@ import {
 
 export function ExternalApplicationsSettings() {
   const { userConfig, patchUserConfig } = useConfig()
+  const { isDownloadVideoEnabled, isSubtitleFeaturesEnabled } = useFeatures()
   const { t } = useTranslation(['settings', 'common'])
   const { filePickerDialog } = useDialogs()
   const [openFilePicker] = filePickerDialog
@@ -82,13 +84,15 @@ export function ExternalApplicationsSettings() {
       try {
         const paths = await fetchDiscoverExecutables()
 
-        applyExecutablePathFields(
-          paths.ytdlp,
-          setYtdlpExecutablePath,
-          setYtdlpDiscoveredPlaceholder,
-          setYtdlpUsesAppDiscovery,
-          t("externalApps.ytdlpExecutablePathPlaceholder"),
-        )
+        if (isDownloadVideoEnabled) {
+          applyExecutablePathFields(
+            paths.ytdlp,
+            setYtdlpExecutablePath,
+            setYtdlpDiscoveredPlaceholder,
+            setYtdlpUsesAppDiscovery,
+            t("externalApps.ytdlpExecutablePathPlaceholder"),
+          )
+        }
         applyExecutablePathFields(
           paths.ffmpeg,
           setFfmpegExecutablePath,
@@ -104,9 +108,11 @@ export function ExternalApplicationsSettings() {
           t("externalApps.quickjsExecutablePathPlaceholder"),
         )
 
-        const ytdlpVersionResult = await getYtdlpVersion()
-        if (ytdlpVersionResult.version) {
-          setYtdlpVersion(ytdlpVersionResult.version)
+        if (isDownloadVideoEnabled) {
+          const ytdlpVersionResult = await getYtdlpVersion()
+          if (ytdlpVersionResult.version) {
+            setYtdlpVersion(ytdlpVersionResult.version)
+          }
         }
 
         const ffmpegVersionResult = await getFfmpegVersion()
@@ -114,10 +120,12 @@ export function ExternalApplicationsSettings() {
           setFfmpegVersion(ffmpegVersionResult.version)
         }
 
-        const videoCaptionerResult = await discoverVideoCaptioner()
-        setVideoCaptionerPath(
-          videoCaptionerResult.path ?? paths.videocaptioner.discoveredPath ?? null,
-        )
+        if (isSubtitleFeaturesEnabled) {
+          const videoCaptionerResult = await discoverVideoCaptioner()
+          setVideoCaptionerPath(
+            videoCaptionerResult.path ?? paths.videocaptioner.discoveredPath ?? null,
+          )
+        }
 
         // Get QuickJS version via discovered path
         const quickjsVersionResult = await getQuickjsVersion()
@@ -130,17 +138,21 @@ export function ExternalApplicationsSettings() {
     }
 
     discoverPaths()
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
-  }, [])
+    // t is only used for placeholder copy; re-discover when the product switches change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDownloadVideoEnabled, isSubtitleFeaturesEnabled])
 
   const hasChanges = useMemo(() => {
     return (
-      ytdlpExecutablePath !== initialValues.ytdlpExecutablePath ||
+      (isDownloadVideoEnabled && ytdlpExecutablePath !== initialValues.ytdlpExecutablePath) ||
       ffmpegExecutablePath !== initialValues.ffmpegExecutablePath ||
-      useBundledFfmpegForVideoCaptioner !== initialValues.useBundledFfmpegForVideoCaptioner ||
+      (isSubtitleFeaturesEnabled &&
+        useBundledFfmpegForVideoCaptioner !== initialValues.useBundledFfmpegForVideoCaptioner) ||
       quickjsExecutablePath !== initialValues.quickjsExecutablePath
     )
   }, [
+    isDownloadVideoEnabled,
+    isSubtitleFeaturesEnabled,
     ytdlpExecutablePath,
     ffmpegExecutablePath,
     useBundledFfmpegForVideoCaptioner,
@@ -153,13 +165,17 @@ export function ExternalApplicationsSettings() {
     console.log(`[${traceId}] ExternalApplicationsSettings: Saving`)
 
     const patch = [
-      setFieldPatch("/ytdlpExecutablePath", ytdlpExecutablePath || undefined, userConfig.ytdlpExecutablePath),
+      isDownloadVideoEnabled
+        ? setFieldPatch("/ytdlpExecutablePath", ytdlpExecutablePath || undefined, userConfig.ytdlpExecutablePath)
+        : null,
       setFieldPatch("/ffmpegExecutablePath", ffmpegExecutablePath || undefined, userConfig.ffmpegExecutablePath),
-      setFieldPatch(
-        "/useBundledFfmpegForVideoCaptioner",
-        useBundledFfmpegForVideoCaptioner,
-        userConfig.useBundledFfmpegForVideoCaptioner,
-      ),
+      isSubtitleFeaturesEnabled
+        ? setFieldPatch(
+            "/useBundledFfmpegForVideoCaptioner",
+            useBundledFfmpegForVideoCaptioner,
+            userConfig.useBundledFfmpegForVideoCaptioner,
+          )
+        : null,
       setFieldPatch("/quickjsExecutablePath", quickjsExecutablePath || undefined, userConfig.quickjsExecutablePath),
     ].filter((operation): operation is UserConfigPatchOperation => operation !== null)
     if (patch.length > 0) {
@@ -180,6 +196,7 @@ export function ExternalApplicationsSettings() {
         <p className="text-sm text-muted-foreground">{t('externalApps.description')}</p>
 
         {/* yt-dlp */}
+        {isDownloadVideoEnabled && (
         <div className="space-y-2">
           <Label htmlFor="ytdlp-executable-path">{t('externalApps.ytdlpExecutablePath')}</Label>
           <div className="flex gap-2">
@@ -227,6 +244,7 @@ export function ExternalApplicationsSettings() {
             </p>
           )}
         </div>
+        )}
 
         {/* ffmpeg */}
         <div className="space-y-2">
@@ -278,6 +296,8 @@ export function ExternalApplicationsSettings() {
         </div>
 
         {/* VideoCaptioner */}
+        {isSubtitleFeaturesEnabled && (
+        <>
         <div className="space-y-2">
           <Label>{t('externalApps.videoCaptionerExecutablePath')}</Label>
           <p
@@ -304,6 +324,8 @@ export function ExternalApplicationsSettings() {
             </Label>
           </div>
         </div>
+        </>
+        )}
 
         {/* QuickJS */}
         <div className="space-y-2">

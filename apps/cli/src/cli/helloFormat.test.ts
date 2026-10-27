@@ -15,6 +15,7 @@ describe('formatHelloLines', () => {
         osLocale: 'zh-CN',
         isDocker: false,
         subtitleDownloadSupported: true,
+        features: { ytdlp: false, videocaptioner: false },
       }),
     ).toEqual([
       'Version: 1.3.8',
@@ -26,6 +27,8 @@ describe('formatHelloLines', () => {
       'Log dir: C:\\Users\\me\\AppData\\Local\\SMM\\logs',
       'OS locale: zh-CN',
       'Docker: no',
+      'yt-dlp: no',
+      'VideoCaptioner: no',
     ])
   })
 })

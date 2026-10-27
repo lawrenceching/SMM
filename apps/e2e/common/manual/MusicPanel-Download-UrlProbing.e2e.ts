@@ -29,6 +29,7 @@ import MusicPanel from "test/componentobjects/MusicPanel.co"
 import DownloadVideoDialogCO from "test/componentobjects/DownloadVideoDialog.co"
 
 import { testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from "test/lib/skipIfFeatureDisabled"
 
 const VALID_BILIBILI_URL = "https://www.bilibili.com/video/BV17NrWBaE87/"
 const VALID_BILIBILI_URL_2 = "https://www.bilibili.com/video/BV1bW411a7jV/"
@@ -178,6 +179,10 @@ async function mockYtdlpListFormatsError(errorMessage: string) {
 
 describe("MusicPanel - Download - URL Input & Format Probing (4.2)", () => {
     let testFolder = ""
+
+    before(function () {
+        skipIfFeatureDisabled(this, "ytdlp")
+    })
 
     beforeEach(async () => {
         await setup({

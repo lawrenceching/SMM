@@ -5,6 +5,7 @@ import { cleanup, setup } from 'test/lib/testbed'
 import MusicPanel from 'test/componentobjects/MusicPanel.co'
 import TranscribeDialogCO from 'test/componentobjects/TranscribeDialog.co'
 import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from 'test/lib/skipIfFeatureDisabled'
 import {
     assertTutorialFixturesForCurrentPlatform,
     copyTutorialsAndImportMusicFolder,
@@ -64,6 +65,7 @@ async function expectFolderContainsFile(folderPath: string, fileName: string) {
 describe('MusicPanel - Transcribe', () => {
     before(function () {
         skipIfOhos(this)
+        skipIfFeatureDisabled(this, 'videocaptioner')
     })
 
     before(async () => {

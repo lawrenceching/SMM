@@ -11,6 +11,7 @@ const mockHello = vi.fn(() => ({
   logDir: '/data/ad/logs',
   osLocale: 'en-US',
   isDocker: false,
+  features: { ytdlp: false, videocaptioner: false },
 }))
 
 vi.mock('@smm/server', () => ({
@@ -43,6 +44,8 @@ describe('smm hello', () => {
         'Log dir: /data/ad/logs',
         'OS locale: en-US',
         'Docker: no',
+        'yt-dlp: no',
+        'VideoCaptioner: no',
       ])
       expect(errors).toEqual([])
     } finally {

@@ -8,6 +8,7 @@ import {
   prepareVideoFile,
   setup,
 } from 'test/lib/testbed'
+import { featureToggles } from '@smm/types/featureToggles'
 import { isDockerE2e, skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
 import {
   basenamePlatformPath,
@@ -79,7 +80,8 @@ async function waitForSrtChangedOrNew(
   )
 }
 
-const isVideoCaptionerAvailable = isDockerE2e || checkVideoCaptionerAvailable()
+const isVideoCaptionerAvailable =
+  featureToggles().videocaptioner && (isDockerE2e || checkVideoCaptionerAvailable())
 
 if (!isVideoCaptionerAvailable) {
   describe.skip('Translate - videocaptioner not available in this environment', () => {

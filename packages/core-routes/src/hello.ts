@@ -1,4 +1,5 @@
-import type { HelloResponseBody } from "@smm/types";
+import type { HelloFeatures, HelloResponseBody } from "@smm/types";
+import { featureToggles } from "@smm/types/featureToggles";
 
 export interface HelloOptions {
   /** CLI/ohos app version, e.g. "1.3.8". */
@@ -25,6 +26,8 @@ export interface HelloOptions {
    * Kept as `coreRoutesPort` for wire compatibility with existing clients.
    */
   coreRoutesPort: number;
+  /** When omitted, {@link doHello} fills in {@link featureToggles}. */
+  features?: HelloFeatures;
 }
 
 export function doHello(options: HelloOptions): HelloResponseBody {
@@ -33,5 +36,6 @@ export function doHello(options: HelloOptions): HelloResponseBody {
     ...options,
     platform: options.platform ?? process.platform,
     subtitleDownloadSupported: process.arch !== "arm64",
+    features: options.features ?? featureToggles(),
   };
 }

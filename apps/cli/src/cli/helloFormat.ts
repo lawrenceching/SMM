@@ -11,5 +11,7 @@ export function formatHelloLines(body: HelloCliBody): string[] {
     `Log dir: ${body.logDir}`,
     `OS locale: ${body.osLocale}`,
     `Docker: ${body.isDocker ? 'yes' : 'no'}`,
+    `yt-dlp: ${body.features.ytdlp ? 'yes' : 'no'}`,
+    `VideoCaptioner: ${body.features.videocaptioner ? 'yes' : 'no'}`,
   ]
 }

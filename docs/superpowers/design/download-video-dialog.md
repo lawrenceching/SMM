@@ -27,6 +27,8 @@ URL 输入框 + Go 按钮。平台检测沿用 URL 匹配逻辑。
 
 arm64 上 `GET /api/hello` 的 `subtitleDownloadSupported` 为 false。对话框不显示字幕勾选框，带 `subtitleLangs` 的下载和 `ytdlp-list-subs` 都会被拒绝。这些安装包不包含 POT HTTP 服务。
 
+`features.ytdlp` 不为 true 时，菜单、欢迎页和音乐面板都不打开这个对话框。HTTP 下载接口本身不受该开关影响。
+
 下载任务在后台执行（支持进度显示、暂停、恢复）。
 
 ## 2. URL Validation

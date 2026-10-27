@@ -46,6 +46,7 @@ vi.mock("@/hooks/useVideoCaptionerStatus", () => ({
 vi.mock("@/hooks/useFeatures", () => ({
     useFeatures: vi.fn(() => ({
         isTranscribeEnabled: true,
+        isSubtitleFeaturesEnabled: true,
         isVideoCaptionerAsrOptionsEnabled: false,
         setVideoCaptionerAsrOptionsEnabled: vi.fn(),
         isTencentAsrTranscribeEnabled: false,
@@ -142,6 +143,7 @@ describe("StatusBar", () => {
         })
         mockUseFeatures.mockReturnValue({
             isTranscribeEnabled: true,
+            isSubtitleFeaturesEnabled: true,
             isVideoCaptionerAsrOptionsEnabled: false,
             setVideoCaptionerAsrOptionsEnabled: vi.fn(),
             isTencentAsrTranscribeEnabled: false,
@@ -278,6 +280,7 @@ describe("StatusBar", () => {
     it("renders transcribe unavailable on OS when transcribe feature is disabled", () => {
         mockUseFeatures.mockReturnValue({
             isTranscribeEnabled: false,
+            isSubtitleFeaturesEnabled: true,
             isVideoCaptionerAsrOptionsEnabled: false,
             setVideoCaptionerAsrOptionsEnabled: vi.fn(),
             isTencentAsrTranscribeEnabled: false,
@@ -295,6 +298,27 @@ describe("StatusBar", () => {
                     title: "Subtitle generation is not available on this operating system.",
                     type: "warning",
                 },
+            ]),
+        )
+    })
+
+    it("omits VideoCaptioner status when the subtitle feature is off", () => {
+        mockUseFeatures.mockReturnValue({
+            isTranscribeEnabled: false,
+            isSubtitleFeaturesEnabled: false,
+            isVideoCaptionerAsrOptionsEnabled: false,
+            setVideoCaptionerAsrOptionsEnabled: vi.fn(),
+            isTencentAsrTranscribeEnabled: false,
+            setTencentAsrTranscribeEnabled: vi.fn(),
+        })
+
+        render(<StatusBar />)
+
+        expect(screen.getByTestId("message-indicator")).toHaveAttribute(
+            "data-messages",
+            JSON.stringify([
+                { title: "TMDB is available", type: "info" },
+                { title: "TVDB is available", type: "info" },
             ]),
         )
     })

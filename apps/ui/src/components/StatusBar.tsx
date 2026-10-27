@@ -50,7 +50,7 @@ export function StatusBar({
     const { folders, selectedFolder } = useUIMediaFolderStoreState()
     const bootstrap = useStatusbarStore((s) => s.bootstrap)
     const { tmdbStatus, tvdbStatus } = useDatabaseConnectionStatus()
-    const { isTranscribeEnabled } = useFeatures()
+    const { isTranscribeEnabled, isSubtitleFeaturesEnabled } = useFeatures()
     const { isAvailable: isVideoCaptionerAvailable } = useVideoCaptionerStatus()
     const { data: discoverConfig } = useDiscoverConfig()
     const [newVersionDialogOpen, setNewVersionDialogOpen] = useState(false)
@@ -102,8 +102,8 @@ export function StatusBar({
             checkFailed: t("statusBar.messages.tvdbCheckFailed"),
         })
         if (tvdbMessage) messages.push(tvdbMessage)
-        return [
-            ...messages,
+        if (!isSubtitleFeaturesEnabled) return messages
+        messages.push(
             isTranscribeEnabled
                 ? {
                       title: isVideoCaptionerAvailable
@@ -118,8 +118,9 @@ export function StatusBar({
                       title: t("statusBar.messages.transcribeUnavailableOnOs"),
                       type: "warning",
                   },
-        ]
-    }, [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isTranscribeEnabled, t])
+        )
+        return messages
+    }, [tmdbStatus, tvdbStatus, isVideoCaptionerAvailable, isSubtitleFeaturesEnabled, isTranscribeEnabled, t])
 
     const handleVersionClick = () => {
         if (hasUpdate && latestVersion) {

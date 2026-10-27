@@ -2,6 +2,7 @@ import { browser, expect } from '@wdio/globals'
 import Sidebar from 'test/componentobjects/Sidebar'
 import { cleanup, setup } from 'test/lib/testbed'
 import { skipIfOhos, testbedOs } from 'test/lib/e2e-platform'
+import { skipIfFeatureDisabled } from 'test/lib/skipIfFeatureDisabled'
 import {
     clearFolderViaBrowser,
     createAndImportFolderViaBrowser,
@@ -55,6 +56,7 @@ describe('Subtitle', () => {
 
     before(function () {
         skipIfOhos(this)
+        skipIfFeatureDisabled(this, 'videocaptioner')
     })
 
     beforeEach(async () => {

@@ -30,6 +30,7 @@ Implementation notes:
 - `*Dir` — resolved via platform-specific config helpers (same paths as today’s `buildHelloOptions`)
 - `osLocale` — OS locale detected by CLI process (e.g. `en-US`, `zh-CN`)
 - `isDocker` — `true` when `/.dockerenv` is present (host sets this via `isRunningInDocker()` in `apps/server`)
+- `features` — product switches from `featureToggles()` in `@smm/types`. Both `ytdlp` and `videocaptioner` default to `false`. The UI hides those entry points; HTTP and CLI are unchanged. See [feature toggles](./feature-toggles.md).
 
 ```mermaid
 sequenceDiagram
@@ -55,6 +56,11 @@ interface HelloCliBody {
   logDir: string
   osLocale: string
   isDocker: boolean
+  /** Product switches. UI hides yt-dlp / VideoCaptioner entry points when a flag is not true. */
+  features: {
+    ytdlp: boolean
+    videocaptioner: boolean
+  }
 }
 
 /** HTTP-only extensions for browser / embedded UI. */
@@ -119,6 +125,8 @@ Tmp dir: C:\Users\lawrence\AppData\Local\Temp\SMM
 Log dir: C:\Users\lawrence\AppData\Local\SMM\logs
 OS locale: zh-CN
 Docker: no
+yt-dlp: no
+VideoCaptioner: no
 ```
 
 `-f json` prints `HelloCliBody` (no `reverseProxyUrl`, no `coreRoutesPort`):
@@ -133,7 +141,11 @@ Docker: no
   "tmpDir": "C:\\Users\\lawrence\\AppData\\Local\\Temp\\SMM",
   "logDir": "C:\\Users\\lawrence\\AppData\\Local\\SMM\\logs",
   "osLocale": "zh-CN",
-  "isDocker": false
+  "isDocker": false,
+  "features": {
+    "ytdlp": false,
+    "videocaptioner": false
+  }
 }
 ```
 

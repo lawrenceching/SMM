@@ -20,6 +20,7 @@ describe('syncPathServerPlatformFromHello', () => {
       osLocale: 'en-US',
       isDocker: false,
       subtitleDownloadSupported: true,
+      features: { ytdlp: false, videocaptioner: false },
       coreRoutesPort: 30000,
     })
 

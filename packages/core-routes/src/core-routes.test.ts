@@ -165,6 +165,7 @@ describe("handleCoreRoutesRequest", () => {
     expect(body.userDataDir).toBe("/tmp/userData");
     expect(typeof body.uptime).toBe("number");
     expect(body.platform).toBe(process.platform);
+    expect(body.features).toEqual({ ytdlp: false, videocaptioner: false });
   });
 
   it("sets Cache-Control: no-store on JSON responses so the browser never caches them", async () => {

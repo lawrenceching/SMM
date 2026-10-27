@@ -1,6 +1,7 @@
 /// <reference types="@wdio/globals/types" />
 
 import { browser } from '@wdio/globals'
+import { featureToggles } from '@smm/types/featureToggles'
 
 // Key constants for keyboard simulation
 const Key = {
@@ -891,19 +892,21 @@ class ConfigDialog {
             return new RegExp(`/${toolDir}/${exe}(\\.exe)?$`, 'i').test(n)
         }
         try {
+            const includeYtdlp = featureToggles().ytdlp
             await browser.waitUntil(
                 async () => {
-                    const ytdlp = await this.getYtdlpResolvedPath()
                     const ffmpeg = await this.getFfmpegResolvedPath()
                     const quickjs = await this.getQuickjsResolvedPath()
-                    const ytdlpVer = await this.getYtdlpVersionText()
                     const ffmpegVer = await this.getFfmpegVersionText()
                     const quickjsVer = await this.getQuickjsVersionText()
+                    const ytdlpOk = !includeYtdlp || (
+                        looksLikeBin(await this.getYtdlpResolvedPath(), 'bin/yt-dlp', 'yt-dlp') &&
+                        (await this.getYtdlpVersionText()).startsWith('Version:')
+                    )
                     return (
-                        looksLikeBin(ytdlp, 'bin/yt-dlp', 'yt-dlp') &&
+                        ytdlpOk &&
                         looksLikeBin(ffmpeg, 'bin/ffmpeg', 'ffmpeg') &&
                         looksLikeBin(quickjs, 'bin/quickjs', 'qjs') &&
-                        ytdlpVer.startsWith('Version:') &&
                         ffmpegVer.startsWith('Version:') &&
                         quickjsVer.startsWith('Version:')
                     )
@@ -916,10 +919,10 @@ class ConfigDialog {
                 },
             )
         } catch (err) {
-            const ytdlp = await this.getYtdlpResolvedPath()
+            const ytdlp = featureToggles().ytdlp ? await this.getYtdlpResolvedPath() : '(feature off)'
             const ffmpeg = await this.getFfmpegResolvedPath()
             const quickjs = await this.getQuickjsResolvedPath()
-            const ytdlpVer = await this.getYtdlpVersionText()
+            const ytdlpVer = featureToggles().ytdlp ? await this.getYtdlpVersionText() : '(feature off)'
             const ffmpegVer = await this.getFfmpegVersionText()
             const quickjsVer = await this.getQuickjsVersionText()
             throw new Error(

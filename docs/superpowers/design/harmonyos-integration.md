@@ -218,7 +218,7 @@ packages/electron-common/
 
 ## 6. Disabled Features (HarmonyOS)
 
-HarmonyOS builds hide features that depend on bundled CLI tools (yt-dlp, FFmpeg, VideoCaptioner) or are not yet validated on the platform. Gating is centralized in `useFeatures()` via `isHarmonyOS()` — UI components read feature flags rather than branching on platform directly.
+HarmonyOS builds hide features that depend on bundled CLI tools (yt-dlp, FFmpeg, VideoCaptioner) or are not yet validated on the platform. Gating is centralized in `useFeatures()` via `isHarmonyOS()` — UI components read feature flags rather than branching on platform directly. Download video and the VideoCaptioner subtitle pipeline also require `GET /api/hello` `features.ytdlp` / `features.videocaptioner` to be true; both default to false on every platform. See [feature toggles](../../dev/feature-toggles.md).
 
 **Source of truth:** `apps/ui/src/lib/harmonyOSDisabledFeatures.ts` (IDs) and `apps/ui/src/hooks/useFeatures.ts` (runtime flags).
 
