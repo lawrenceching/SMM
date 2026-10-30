@@ -1,6 +1,6 @@
 {
   "name": "@smm/core",
-  "version": "1.4.17-rc.9",
+  "version": "1.4.17-rc.10",
   "private": true,
   "type": "module",
   "exports": {

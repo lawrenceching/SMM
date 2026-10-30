@@ -1,5 +1,19 @@
 # cli
 
+## 1.4.17-rc.10
+
+### Patch Changes
+
+- v1.4.17-rc.10
+- Updated dependencies
+  - @smm/core@1.4.17-rc.10
+  - server@1.4.17-rc.10
+  - @smm/core-routes@1.4.17-rc.10
+  - @smm/test@1.2.25-rc.10
+  - @smm/tvdb4@1.3.25-rc.10
+  - @smm/types@0.0.6-rc.10
+  - @smm/utils@1.2.25-rc.10
+
 ## 1.4.17-rc.9
 
 ### Patch Changes

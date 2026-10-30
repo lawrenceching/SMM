@@ -1,5 +1,13 @@
 # @smm/test
 
+## 1.2.25-rc.10
+
+### Patch Changes
+
+- v1.4.17-rc.10
+- Updated dependencies
+  - @smm/types@0.0.6-rc.10
+
 ## 1.2.25-rc.9
 
 ### Patch Changes
