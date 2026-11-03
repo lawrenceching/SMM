@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { assertSubtitleDownloadSupported, buildYtdlpDownloadArgs, isSubtitleDownloadSupported } from "./ytdlp";
 
+/** Arg builders read `process.arch`. Pin it so CI arm64 runners still exercise x64 behavior. */
+async function withProcessArch<T>(arch: string, run: () => T | Promise<T>): Promise<T> {
+  const previous = Object.getOwnPropertyDescriptor(process, "arch");
+  Object.defineProperty(process, "arch", { configurable: true, enumerable: true, value: arch });
+  try {
+    return await run();
+  } finally {
+    if (previous) {
+      Object.defineProperty(process, "arch", previous);
+    }
+  }
+}
+
 describe("buildYtdlpDownloadArgs", () => {
   const base = {
     url: "https://www.youtube.com/watch?v=abc",
@@ -90,35 +103,52 @@ describe("buildYtdlpDownloadArgs", () => {
     );
   });
 
-  it("adds --write-subs and --sub-langs for manual languages", () => {
-    const args = buildYtdlpDownloadArgs({
-      ...base,
-      subtitleLangs: [{ code: "en", kind: "manual" }, { code: "zh-Hans", kind: "manual" }],
+  it("rejects subtitle download args on arm64", async () => {
+    await withProcessArch("arm64", () => {
+      expect(() =>
+        buildYtdlpDownloadArgs({
+          ...base,
+          subtitleLangs: [{ code: "en", kind: "manual" }],
+        }),
+      ).toThrow(/Subtitle download is not supported on arm64/);
     });
-    expect(args).toContain("--write-subs");
-    expect(args).not.toContain("--write-auto-subs");
-    const langsIdx = args.indexOf("--sub-langs");
-    expect(args[langsIdx + 1]).toBe("en,zh-Hans");
-    expect(langsIdx).toBeLessThan(args.indexOf(base.url));
   });
 
-  it("adds --write-auto-subs when a language is automatic", () => {
-    const args = buildYtdlpDownloadArgs({
-      ...base,
-      subtitleLangs: [{ code: "ja", kind: "auto" }],
+  it("adds --write-subs and --sub-langs for manual languages", async () => {
+    await withProcessArch("x64", () => {
+      const args = buildYtdlpDownloadArgs({
+        ...base,
+        subtitleLangs: [{ code: "en", kind: "manual" }, { code: "zh-Hans", kind: "manual" }],
+      });
+      expect(args).toContain("--write-subs");
+      expect(args).not.toContain("--write-auto-subs");
+      const langsIdx = args.indexOf("--sub-langs");
+      expect(args[langsIdx + 1]).toBe("en,zh-Hans");
+      expect(langsIdx).toBeLessThan(args.indexOf(base.url));
     });
-    expect(args).not.toContain("--write-subs");
-    expect(args).toContain("--write-auto-subs");
-    expect(args[args.indexOf("--sub-langs") + 1]).toBe("ja");
   });
 
-  it("adds both write flags when a language exists as manual and automatic", () => {
-    const args = buildYtdlpDownloadArgs({
-      ...base,
-      subtitleLangs: [{ code: "en", kind: "both" }],
+  it("adds --write-auto-subs when a language is automatic", async () => {
+    await withProcessArch("x64", () => {
+      const args = buildYtdlpDownloadArgs({
+        ...base,
+        subtitleLangs: [{ code: "ja", kind: "auto" }],
+      });
+      expect(args).not.toContain("--write-subs");
+      expect(args).toContain("--write-auto-subs");
+      expect(args[args.indexOf("--sub-langs") + 1]).toBe("ja");
     });
-    expect(args).toContain("--write-subs");
-    expect(args).toContain("--write-auto-subs");
+  });
+
+  it("adds both write flags when a language exists as manual and automatic", async () => {
+    await withProcessArch("x64", () => {
+      const args = buildYtdlpDownloadArgs({
+        ...base,
+        subtitleLangs: [{ code: "en", kind: "both" }],
+      });
+      expect(args).toContain("--write-subs");
+      expect(args).toContain("--write-auto-subs");
+    });
   });
 
   it("omits subtitle flags when subtitleLangs is empty", () => {

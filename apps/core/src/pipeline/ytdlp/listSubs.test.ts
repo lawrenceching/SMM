@@ -4,6 +4,19 @@ import type { FsPort } from "../../ports/FsPort";
 import { listSubtitleLanguagesWithCommand } from "./downloadVideoApi";
 import { parseYtdlpListSubsStdout } from "./listSubs";
 
+/** Listing subs is rejected on arm64. Pin x64 so the command path is what these tests cover. */
+async function withProcessArch<T>(arch: string, run: () => T | Promise<T>): Promise<T> {
+  const previous = Object.getOwnPropertyDescriptor(process, "arch");
+  Object.defineProperty(process, "arch", { configurable: true, enumerable: true, value: arch });
+  try {
+    return await run();
+  } finally {
+    if (previous) {
+      Object.defineProperty(process, "arch", previous);
+    }
+  }
+}
+
 const LIST_SUBS_STDOUT = `
 [youtube] abc: Downloading webpage
 [info] Available subtitles for abc:
@@ -51,37 +64,57 @@ describe("listSubtitleLanguagesWithCommand", () => {
   } as unknown as FsPort;
 
   it("runs yt-dlp --list-subs and parses languages", async () => {
-    const run = vi.fn<CommandPort["run"]>(async () => ({
-      exitCode: 0,
-      stdout: LIST_SUBS_STDOUT,
-      stderr: "",
-    }));
-    const command: CommandPort = { run };
-    const result = await listSubtitleLanguagesWithCommand({
-      request: { url: "https://www.bilibili.com/video/BV1", proxy: "http://127.0.0.1:8080" },
-      command,
-      fs,
-      userDataDir: "/data",
-      cookiesFileId: "list-subs-1",
+    await withProcessArch("x64", async () => {
+      const run = vi.fn<CommandPort["run"]>(async () => ({
+        exitCode: 0,
+        stdout: LIST_SUBS_STDOUT,
+        stderr: "",
+      }));
+      const command: CommandPort = { run };
+      const result = await listSubtitleLanguagesWithCommand({
+        request: { url: "https://www.bilibili.com/video/BV1", proxy: "http://127.0.0.1:8080" },
+        command,
+        fs,
+        userDataDir: "/data",
+        cookiesFileId: "list-subs-1",
+      });
+      expect(result.languages.map((lang) => lang.code)).toEqual(["en", "zh-Hans", "ja"]);
+      const args = run.mock.calls[0]?.[0].args ?? [];
+      expect(args).toContain("--list-subs");
+      expect(args).toContain("--proxy");
+      expect(args.at(-1)).toBe("https://www.bilibili.com/video/BV1");
     });
-    expect(result.languages.map((lang) => lang.code)).toEqual(["en", "zh-Hans", "ja"]);
-    const args = run.mock.calls[0]?.[0].args ?? [];
-    expect(args).toContain("--list-subs");
-    expect(args).toContain("--proxy");
-    expect(args.at(-1)).toBe("https://www.bilibili.com/video/BV1");
   });
 
   it("returns simulated test.local error without CommandPort.run", async () => {
-    const run = vi.fn();
-    await expect(
-      listSubtitleLanguagesWithCommand({
-        request: { url: "https://test.local/bilibili/http/412" },
-        command: { run },
-        fs,
-        userDataDir: "/data",
-        cookiesFileId: "list-subs-2",
-      }),
-    ).rejects.toThrow(/http-412/);
-    expect(run).not.toHaveBeenCalled();
+    await withProcessArch("x64", async () => {
+      const run = vi.fn();
+      await expect(
+        listSubtitleLanguagesWithCommand({
+          request: { url: "https://test.local/bilibili/http/412" },
+          command: { run },
+          fs,
+          userDataDir: "/data",
+          cookiesFileId: "list-subs-2",
+        }),
+      ).rejects.toThrow(/http-412/);
+      expect(run).not.toHaveBeenCalled();
+    });
+  });
+
+  it("rejects listing on arm64 before calling yt-dlp", async () => {
+    await withProcessArch("arm64", async () => {
+      const run = vi.fn();
+      await expect(
+        listSubtitleLanguagesWithCommand({
+          request: { url: "https://www.bilibili.com/video/BV1" },
+          command: { run },
+          fs,
+          userDataDir: "/data",
+          cookiesFileId: "list-subs-arm64",
+        }),
+      ).rejects.toThrow(/Subtitle download is not supported on arm64/);
+      expect(run).not.toHaveBeenCalled();
+    });
   });
 });
