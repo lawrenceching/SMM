@@ -1,21 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { withProcessArch } from "@smm/test";
 import type { CommandPort } from "../../ports/CommandPort";
 import type { FsPort } from "../../ports/FsPort";
 import { listSubtitleLanguagesWithCommand } from "./downloadVideoApi";
 import { parseYtdlpListSubsStdout } from "./listSubs";
-
-/** Listing subs is rejected on arm64. Pin x64 so the command path is what these tests cover. */
-async function withProcessArch<T>(arch: string, run: () => T | Promise<T>): Promise<T> {
-  const previous = Object.getOwnPropertyDescriptor(process, "arch");
-  Object.defineProperty(process, "arch", { configurable: true, enumerable: true, value: arch });
-  try {
-    return await run();
-  } finally {
-    if (previous) {
-      Object.defineProperty(process, "arch", previous);
-    }
-  }
-}
 
 const LIST_SUBS_STDOUT = `
 [youtube] abc: Downloading webpage

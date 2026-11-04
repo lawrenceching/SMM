@@ -1,18 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { withProcessArch } from "@smm/test";
 import { assertSubtitleDownloadSupported, buildYtdlpDownloadArgs, isSubtitleDownloadSupported } from "./ytdlp";
-
-/** Arg builders read `process.arch`. Pin it so CI arm64 runners still exercise x64 behavior. */
-async function withProcessArch<T>(arch: string, run: () => T | Promise<T>): Promise<T> {
-  const previous = Object.getOwnPropertyDescriptor(process, "arch");
-  Object.defineProperty(process, "arch", { configurable: true, enumerable: true, value: arch });
-  try {
-    return await run();
-  } finally {
-    if (previous) {
-      Object.defineProperty(process, "arch", previous);
-    }
-  }
-}
 
 describe("buildYtdlpDownloadArgs", () => {
   const base = {

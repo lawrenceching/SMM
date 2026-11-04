@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import type { CommandPort, CommandRunResult } from '@smm/core'
 import { resetCoreForTests } from '@smm/server'
+import { withProcessArch } from '@smm/test'
 import { download } from './download'
 
 describe('download', () => {
@@ -62,25 +63,48 @@ describe('download', () => {
   })
 
   it('passes --sub-langs as write-subs and write-auto-subs', async () => {
-    const command: CommandPort = {
-      run: vi.fn(async (): Promise<CommandRunResult> => ({
-        exitCode: 0,
-        stdout: '',
-        stderr: '',
-      })),
-    }
+    await withProcessArch('x64', async () => {
+      const command: CommandPort = {
+        run: vi.fn(async (): Promise<CommandRunResult> => ({
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+        })),
+      }
 
-    const code = await download('https://www.bilibili.com/video/BV1', {
-      folder,
-      subLangs: 'en, zh-Hans',
-      _ports: { command },
+      const code = await download('https://www.bilibili.com/video/BV1', {
+        folder,
+        subLangs: 'en, zh-Hans',
+        _ports: { command },
+      })
+
+      expect(code).toBe(0)
+      const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
+      expect(args).toContain('--write-subs')
+      expect(args).toContain('--write-auto-subs')
+      expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,zh-Hans')
     })
+  })
 
-    expect(code).toBe(0)
-    const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
-    expect(args).toContain('--write-subs')
-    expect(args).toContain('--write-auto-subs')
-    expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,zh-Hans')
+  it('rejects --sub-langs on arm64', async () => {
+    await withProcessArch('arm64', async () => {
+      const command: CommandPort = {
+        run: vi.fn(async (): Promise<CommandRunResult> => ({
+          exitCode: 0,
+          stdout: '',
+          stderr: '',
+        })),
+      }
+
+      const code = await download('https://www.bilibili.com/video/BV1', {
+        folder,
+        subLangs: 'en',
+        _ports: { command },
+      })
+
+      expect(code).toBe(1)
+      expect(command.run).not.toHaveBeenCalled()
+    })
   })
 
   it('returns 1 when CommandPort exits non-zero', async () => {

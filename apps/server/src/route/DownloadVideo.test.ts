@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { Hono } from 'hono'
 import type { CommandPort, CommandRunResult } from '@smm/core'
+import { withProcessArch } from '@smm/test'
 import { downloadVideoRoute } from './DownloadVideo'
 import { getJobRoute } from './GetJob'
 import { getJobsRoute } from './GetJobs'
@@ -106,24 +107,40 @@ describe('POST /api/download-video', () => {
   })
 
   it('passes subtitleLangs into the yt-dlp download args', async () => {
-    const res = await postDownload({
-      url: 'https://www.bilibili.com/video/BV1',
-      folder: '/downloads',
-      subtitleLangs: [
-        { code: 'en', kind: 'manual' },
-        { code: 'ja', kind: 'auto' },
-      ],
-    })
-    expect(res.status).toBe(200)
-    const json = (await res.json()) as { data?: { id: string }; error?: string }
-    expect(json.error).toBeUndefined()
+    await withProcessArch('x64', async () => {
+      const res = await postDownload({
+        url: 'https://www.bilibili.com/video/BV1',
+        folder: '/downloads',
+        subtitleLangs: [
+          { code: 'en', kind: 'manual' },
+          { code: 'ja', kind: 'auto' },
+        ],
+      })
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as { data?: { id: string }; error?: string }
+      expect(json.error).toBeUndefined()
 
-    await vi.waitFor(() => {
-      expect(command.run).toHaveBeenCalled()
+      await vi.waitFor(() => {
+        expect(command.run).toHaveBeenCalled()
+      })
+      const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
+      expect(args).toContain('--write-subs')
+      expect(args).toContain('--write-auto-subs')
+      expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,ja')
     })
-    const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
-    expect(args).toContain('--write-subs')
-    expect(args).toContain('--write-auto-subs')
-    expect(args[args.indexOf('--sub-langs') + 1]).toBe('en,ja')
+  })
+
+  it('rejects subtitleLangs on arm64', async () => {
+    await withProcessArch('arm64', async () => {
+      const res = await postDownload({
+        url: 'https://www.bilibili.com/video/BV1',
+        folder: '/downloads',
+        subtitleLangs: [{ code: 'en', kind: 'manual' }],
+      })
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as { error?: string }
+      expect(json.error).toMatch(/Subtitle download is not supported on arm64/)
+      expect(command.run).not.toHaveBeenCalled()
+    })
   })
 })

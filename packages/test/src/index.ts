@@ -3,6 +3,8 @@
  *
  * This package provides shared testing utilities for SMM tests.
  */
+export { withProcessArch } from './withProcessArch'
+
 export {
   type LangCode,
   type TestFolder,

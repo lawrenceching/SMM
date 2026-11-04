@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import type { CommandPort, CommandRunResult } from '@smm/core'
+import { withProcessArch } from '@smm/test'
 import { ytdlpListSubsRoute } from './YtdlpListSubs'
 import { getCore, resetCoreForTests } from '../core/getCore'
 
@@ -51,24 +52,45 @@ describe('POST /api/ytdlp-list-subs', () => {
   })
 
   it('returns languages from --list-subs stdout', async () => {
-    const command: CommandPort = {
-      run: vi.fn(async (): Promise<CommandRunResult> => ({
-        exitCode: 0,
-        stdout: LIST_SUBS_STDOUT,
-        stderr: '',
-      })),
-    }
-    getCore({ _ports: { command } })
+    await withProcessArch('x64', async () => {
+      const command: CommandPort = {
+        run: vi.fn(async (): Promise<CommandRunResult> => ({
+          exitCode: 0,
+          stdout: LIST_SUBS_STDOUT,
+          stderr: '',
+        })),
+      }
+      getCore({ _ports: { command } })
 
-    const res = await post({ url: 'https://www.bilibili.com/video/BV1' })
-    expect(res.status).toBe(200)
-    const json = (await res.json()) as {
-      data?: { languages: Array<{ code: string; kind: string }> }
-      error?: string
-    }
-    expect(json.error).toBeUndefined()
-    expect(json.data?.languages).toEqual([{ code: 'en', name: 'English', kind: 'manual' }])
-    const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
-    expect(args).toContain('--list-subs')
+      const res = await post({ url: 'https://www.bilibili.com/video/BV1' })
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as {
+        data?: { languages: Array<{ code: string; kind: string }> }
+        error?: string
+      }
+      expect(json.error).toBeUndefined()
+      expect(json.data?.languages).toEqual([{ code: 'en', name: 'English', kind: 'manual' }])
+      const args = (command.run as ReturnType<typeof vi.fn>).mock.calls[0]?.[0].args as string[]
+      expect(args).toContain('--list-subs')
+    })
+  })
+
+  it('rejects listing on arm64', async () => {
+    await withProcessArch('arm64', async () => {
+      const command: CommandPort = {
+        run: vi.fn(async (): Promise<CommandRunResult> => ({
+          exitCode: 0,
+          stdout: LIST_SUBS_STDOUT,
+          stderr: '',
+        })),
+      }
+      getCore({ _ports: { command } })
+
+      const res = await post({ url: 'https://www.bilibili.com/video/BV1' })
+      expect(res.status).toBe(200)
+      const json = (await res.json()) as { error?: string }
+      expect(json.error).toMatch(/Subtitle download is not supported on arm64/)
+      expect(command.run).not.toHaveBeenCalled()
+    })
   })
 })
