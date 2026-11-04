@@ -12,6 +12,19 @@ vi.mock("@/lib/isHarmonyOS", () => ({
 import { isHarmonyOS } from "@/lib/isHarmonyOS"
 import { useFeatures } from "./useFeatures"
 
+/** Transcribe gating reads `process.platform` before the user agent. */
+function withProcessPlatform<T>(platform: string, run: () => T): T {
+  const previous = Object.getOwnPropertyDescriptor(process, "platform")
+  Object.defineProperty(process, "platform", { configurable: true, enumerable: true, value: platform })
+  try {
+    return run()
+  } finally {
+    if (previous) {
+      Object.defineProperty(process, "platform", previous)
+    }
+  }
+}
+
 function wrapperWithFeatures(features?: HelloFeatures) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -48,14 +61,29 @@ describe("useFeatures HarmonyOS gating", () => {
   it("enables yt-dlp and VideoCaptioner when hello features are true", () => {
     vi.mocked(isHarmonyOS).mockReturnValue(false)
 
-    const { result } = renderHook(() => useFeatures(), {
-      wrapper: wrapperWithFeatures({ ytdlp: true, videocaptioner: true }),
-    })
+    withProcessPlatform("win32", () => {
+      const { result } = renderHook(() => useFeatures(), {
+        wrapper: wrapperWithFeatures({ ytdlp: true, videocaptioner: true }),
+      })
 
-    expect(result.current.isDownloadVideoEnabled).toBe(true)
-    expect(result.current.isSubtitleFeaturesEnabled).toBe(true)
-    const macUa = /Macintosh|Mac OS X|MacIntel/i.test(window.navigator.userAgent)
-    expect(result.current.isTranscribeEnabled).toBe(!macUa)
+      expect(result.current.isDownloadVideoEnabled).toBe(true)
+      expect(result.current.isSubtitleFeaturesEnabled).toBe(true)
+      expect(result.current.isTranscribeEnabled).toBe(true)
+    })
+  })
+
+  it("disables transcribe on darwin when VideoCaptioner is enabled", () => {
+    vi.mocked(isHarmonyOS).mockReturnValue(false)
+
+    withProcessPlatform("darwin", () => {
+      const { result } = renderHook(() => useFeatures(), {
+        wrapper: wrapperWithFeatures({ ytdlp: true, videocaptioner: true }),
+      })
+
+      expect(result.current.isDownloadVideoEnabled).toBe(true)
+      expect(result.current.isSubtitleFeaturesEnabled).toBe(true)
+      expect(result.current.isTranscribeEnabled).toBe(false)
+    })
   })
 
   it("hides yt-dlp and VideoCaptioner when hello features are false", () => {
