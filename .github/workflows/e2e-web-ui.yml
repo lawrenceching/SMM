@@ -51,7 +51,7 @@ jobs:
             {"platform":"win","arch":"arm64","runs-on":"windows-11-arm","chrome-source":"runner","chrome-version":""},
             {"platform":"linux","arch":"x64","runs-on":"ubuntu-latest","chrome-source":"cft","chrome-version":"146.0.7680.153"},
             {"platform":"linux","arch":"arm64","runs-on":"ubuntu-24.04-arm","chrome-source":"cft","chrome-version":"153.0.8010.52"},
-            {"platform":"mac","arch":"arm64","runs-on":"macos-15","chrome-source":"cft","chrome-version":"153.0.8010.52"}
+            {"platform":"mac","arch":"arm64","runs-on":"macos-15","chrome-source":"cft","chrome-version":"146.0.7680.153"}
           ]
           EOF
           )"

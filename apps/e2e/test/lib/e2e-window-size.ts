@@ -59,10 +59,7 @@ export function shouldFitE2eWindowToScreen(
     return false
   }
   if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'web') {
-    // Headless Linux/Windows report a tiny virtual screen; fitting would
-    // shrink the layout. Headed macOS CI has a real display whose menu bar
-    // and Dock shrink screenAvail, so the window must fit or clicks miss.
-    return platform === 'darwin'
+    return false
   }
   if (process.env.CI === 'true' && process.env.E2E_PLATFORM === 'electron') {
     return platform === 'darwin'

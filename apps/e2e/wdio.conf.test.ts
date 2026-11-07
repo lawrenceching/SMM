@@ -20,16 +20,6 @@ describe('shouldUseCiHeadlessChromeArgs', () => {
     ).toBe(true);
   });
 
-  test('false for Web UI CI on a macOS runner (headed GUI session)', () => {
-    expect(
-      shouldUseCiHeadlessChromeArgs({
-        CI: 'true',
-        E2E_PLATFORM: 'web',
-        RUNNER_OS: 'macOS',
-      }),
-    ).toBe(false);
-  });
-
   test('false for local desktop and CI desktop', () => {
     expect(shouldUseCiHeadlessChromeArgs({})).toBe(false);
     expect(
@@ -116,17 +106,10 @@ describe('shouldFitE2eWindowToScreen', () => {
     expect(shouldFitE2eWindowToScreen({ platform: 'darwin' })).toBe(true);
   });
 
-  test('keeps 1920x1080 on Web CI Linux/Windows so a tiny headless screen cannot clamp target', () => {
+  test('keeps 1920x1080 on Web CI so a small runner desktop cannot clamp target', () => {
     process.env.CI = 'true';
     process.env.E2E_PLATFORM = 'web';
-    expect(shouldFitE2eWindowToScreen({ platform: 'linux' })).toBe(false);
-    expect(shouldFitE2eWindowToScreen({ platform: 'win32' })).toBe(false);
-  });
-
-  test('fits Web CI mac so the window stays inside the menu bar and Dock', () => {
-    process.env.CI = 'true';
-    process.env.E2E_PLATFORM = 'web';
-    expect(shouldFitE2eWindowToScreen({ platform: 'darwin' })).toBe(true);
+    expect(shouldFitE2eWindowToScreen()).toBe(false);
   });
 
   test('still fits locally and on non-Electron CI', () => {
